@@ -2,7 +2,6 @@ mod api;
 use api::create_character_request::UserRef;
 use api::get_api_client;
 use api::CreateCharacterRequest;
-use api::LogInRequest;
 use api::Role;
 use std::env;
 
