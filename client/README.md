@@ -16,7 +16,7 @@ CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-server-runner cargo run --target
 ## Building
 ```sh
 cargo build --release
-cp ./target/release/project_comet_client ./out/project_comet_client
+mkdir -p ./out && cp ./target/release/project_comet_client "$_"
 ```
 
 ## Building WASM Target

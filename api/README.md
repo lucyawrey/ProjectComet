@@ -18,7 +18,7 @@ cargo run
 ## Building
 ```sh
 cargo build --release
-cp ./target/release/project_comet_api ./out/project_comet_api
+mkdir -p ./out && cp ./target/release/project_comet_api "$_"
 ```
 
 ## Installing Runtime Dependancies
