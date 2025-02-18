@@ -1,13 +1,8 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct Person;
+#[require(Name, Transform)]
+pub struct PlayerCharacter;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Name(pub String);
-
-#[derive(Component)]
-pub struct Position {
-    pub x: f32,
-    pub y: f32,
-}

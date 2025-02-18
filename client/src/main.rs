@@ -1,12 +1,12 @@
 use bevy::prelude::*;
-use systems::{add_people, greet_people, hello_world, update_people};
+use plugins::HelloPlugin;
 mod components;
+mod plugins;
 mod systems;
 
 fn main() {
     App::new()
-        //.add_plugins(DefaultPlugins) - removing default plugins only while learning ECS basics
-        .add_systems(Startup, add_people)
-        .add_systems(Update, (hello_world, (update_people, greet_people).chain()))
+        .add_plugins(DefaultPlugins)
+        .add_plugins(HelloPlugin)
         .run();
 }
