@@ -5,7 +5,14 @@ service GameData {
     rpc GetGameServerStartupData (Message) returns (Message);
     rpc LogInCaracter (Message) returns (Message);
     rpc UpdateCaracter (Message) returns (Message);
-    rpc CreateItemInstance (CreateItemInstanceRequest) returns (Message);
+    rpc AddItem (AddItemRequest) returns (Message);
+}
+
+service Content {
+    rpc GetContent (Message) returns (Message);
+    rpc GetContents (Message) returns (Message);
+    rpc GetAsset (Message) returns (Message);
+    rpc GetAssets (Message) returns (Message);
 }
 
 service Administration {
@@ -40,17 +47,15 @@ service Users {
 }
 
 // GameData Service
-message CreateItemInstanceRequest {
-   string name = 1;
-   int64 character_id = 2;
-   int64 item_id = 3;
-   int64 quantity = 4;
-   ItemInstanceLocation location = 5;
-   bool in_collection = 6;
-   string instance_data = 7;
+message AddItemRequest {
+   int64 character_id = 1;
+   int64 item_content_id = 2;
+   int64 quantity = 3;
+   ItemLocation location = 4;
+   AddItemRequest quality = 5;
 }
 
-enum ItemInstanceLocation {
+enum ItemLocation {
     Other = 0;
     Dropped = 1;
     NpcMerchant = 2;
@@ -60,6 +65,12 @@ enum ItemInstanceLocation {
     InventoryContainer = 6;
     ClassCrystal = 7;
     Box = 8;
+}
+
+enum ItemQuality {
+    Normal = 0;
+    Silver = 1;
+    Gold = 2;
 }
 // End GameData Service
 

@@ -1,6 +1,5 @@
-use crate::api::game_data_server::GameData;
-use crate::api::CreateItemInstanceRequest;
 use crate::api::Message;
+use crate::api::{game_data_server::GameData, AddItemRequest};
 use sonyflake::Sonyflake;
 use sqlx::pool::Pool;
 use sqlx::Sqlite;
@@ -47,9 +46,9 @@ impl GameData for GameDataService {
         Ok(Response::new(Message { message }))
     }
     /// TODO
-    async fn create_item_instance(
+    async fn add_item(
         &self,
-        request: Request<CreateItemInstanceRequest>,
+        request: Request<AddItemRequest>,
     ) -> Result<Response<Message>, Status> {
         let message = format!("Request: {:?}", request);
         println!("{:?}", message);

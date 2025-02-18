@@ -48,6 +48,8 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 ### Current Phase
 - [ ] Implement business logic, queries, and API endpoints for `user`s, `access_tokens`s, and general authetication.
 - [ ] Move database migrations into main API server startup.
+- [ ] Fix standalone release build breakage, likey results from writing to the SQLite database.
+- [ ] Fix dockerfile build.
 - [ ] Support serialization of SQLx Json convenience types.
 - [ ] Implement support for enum string names in TOML data files.
 - [ ] Build out remaining API data model for database and Rust--Classes, Quest Progress, Character Status(Current Zone, Position, HP, Status Effects), etc.

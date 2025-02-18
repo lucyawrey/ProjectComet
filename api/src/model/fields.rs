@@ -90,7 +90,7 @@ pub enum GuildRole {
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
 #[repr(i32)]
-pub enum ItemInstanceLocation {
+pub enum ItemLocation {
     Other = 0,
     Dropped = 1,
     NpcMerchant = 2,
@@ -104,7 +104,7 @@ pub enum ItemInstanceLocation {
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
 #[repr(i32)]
-pub enum ItemInstanceQuality {
+pub enum ItemQuality {
     Normal = 0,
     Silver = 1,
     Gold = 2,

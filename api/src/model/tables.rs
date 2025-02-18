@@ -2,7 +2,7 @@ use super::fields::{
     AccessLevel, AssetData, CharacterAncestry, CharacterData, CharacterGender, CharacterStatusData,
     ClassData, CompanionCollectionEntryData, ContentData, ContentSubtype, ContentType,
     Customization, GameOptionsData, GameOptionsType, GuildRole, ItemCollectionEntryLocation,
-    ItemInstanceData, ItemInstanceLocation, ItemInstanceQuality, OutfitData, Role, Statistics,
+    ItemInstanceData, ItemLocation, ItemQuality, OutfitData, Role, Statistics,
 };
 use chrono::NaiveDateTime;
 use sqlx::{types::Json, FromRow};
@@ -184,8 +184,8 @@ pub struct Item {
     pub character_id: i64,    // Snowflake ID, referances a `Character`
     pub item_content_id: i64, // Snowflake ID, referances a `Content`
     pub quantity: i64, // Quantitiy can only be above item's `stack_size` when in a box. `is_unique` items never stack. Items can only stack if they have the same `location`, `quality`, `craft_character_id` and no `instance_data`.
-    pub location: ItemInstanceLocation,
-    pub quality: ItemInstanceQuality,
+    pub location: ItemLocation,
+    pub quality: ItemQuality,
     pub container_item_id: Option<i64>, // Snowflake ID, referances a `Character`, None when item can't have a signature or wasn't crafted by a character
     pub extra_character_id_0: Option<i64>, // Snowflake ID, referances a `Character`, usually used for crafted item signatures
     pub extra_character_id_1: Option<i64>, // Snowflake ID, referances a `Character`, usually used for tracking who is bound to an item
@@ -199,7 +199,7 @@ pub struct ItemCollectionEntry {
     pub character_id: i64,    // Snowflake ID, referances a `Character`
     pub item_content_id: i64, // Snowflake ID, referances an `Item`
     pub location: ItemCollectionEntryLocation,
-    pub quality: ItemInstanceQuality,
+    pub quality: ItemQuality,
 }
 
 #[derive(Debug, FromRow)]
