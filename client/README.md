@@ -16,17 +16,17 @@ CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-server-runner cargo run --target
 ## Building
 ```sh
 cargo build --release
-mkdir -p ./out && cp ./target/release/project_comet_client "$_"
+mkdir -p ../out/client && cp ./target/release/project_comet_client "$_"
 ```
 
 ## Building WASM Target
 ```sh
 cargo build --release --target wasm32-unknown-unknown
 wasm-bindgen --no-typescript --target web \
-    --out-dir ./out/ \
+    --out-dir ../out/client/ \
     --out-name "project_comet_client" \
     ./target/wasm32-unknown-unknown/release/project_comet_client.wasm
-cp ./src/index.html ./out/index.html
+cp ./src/index.html ../out/client/index.html
 ```
 
 ## Installing WASM Target Runtime Dependancies

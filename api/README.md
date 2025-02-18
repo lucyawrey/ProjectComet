@@ -13,12 +13,19 @@ cargo run --bin script migrate
 
 ## Running the API
 ```sh
+cargo run --bin script migrate
 cargo run
 ```
 ## Building
 ```sh
+cargo run --bin script migrate
 cargo build --release
-mkdir -p ./out && cp ./target/release/project_comet_api "$_"
+mkdir -p ../out/api && cp ./target/release/project_comet_api "$_"
+mkdir -p ../out/api && cp ./target/release/script "$_"
+mkdir -p ../out/api && cp ./.env "$_"
+mkdir -p ../out/api && cp ./secrets "$_"
+mkdir -p ../out/api && cp ./game_data.sqlite "$_"
+mkdir -p ../out/data/content && cp ../data/content/game.toml "$_"
 ```
 
 ## Installing Runtime Dependancies
@@ -39,6 +46,7 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 
 ## To do Goals
 ### Current Phase
+- [ ] Move migrations into main server startup.
 - [ ] Statically link C dependancies
 - [ ] Containerize app including grpc UI
 - [ ] Rust level defaults for datbase tables and fields.

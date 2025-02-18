@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 mod model;
+mod queries;
 mod utils;
+use queries::data_import::data_import;
 use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
 use std::{env, process};
 use utils::{new_sonyflake, next_id};
@@ -50,8 +52,22 @@ async fn migrate() -> Result<(), Box<dyn std::error::Error>> {
         println!("  Loading existing database.");
     }
     let db = SqlitePool::connect(&database_url).await?;
+
     println!("  Running database migrations.");
     sqlx::migrate!().run(&db).await?;
+
+    println!("  Importing data from data files.");
+    let version = data_import(
+        &SqlitePool::connect(&database_url)
+            .await
+            .expect("Could not load SQLite database."),
+    )
+    .await
+    .unwrap();
+    println!(
+        "  Updated database for game version: '{} {}'.",
+        version.game_id, version.game_version
+    );
 
     Ok(())
 }

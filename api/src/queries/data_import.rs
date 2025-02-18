@@ -176,7 +176,8 @@ pub async fn import_user_row(db: &Pool<Sqlite>, row: &Map<String, Value>) -> Res
         .unwrap_or(&NO_VALUE)
         .as_integer()
         .ok_or("Missing ID.")?;
-    let is_id_conflict = sqlx::query!("SELECT id from user WHERE id = $1", id)
+    let is_id_conflict = sqlx::query("SELECT id from user WHERE id = $1")
+        .bind(id)
         .fetch_one(db)
         .await
         .is_ok();
@@ -256,7 +257,8 @@ pub async fn import_access_token_row(
         None
     };
 
-    let is_id_conflict = sqlx::query!("SELECT id from access_token WHERE id = $1", id)
+    let is_id_conflict = sqlx::query("SELECT id from access_token WHERE id = $1")
+        .bind(id)
         .fetch_one(db)
         .await
         .is_ok();
