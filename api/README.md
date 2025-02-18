@@ -6,7 +6,8 @@
 - protobuf compiler
 - libmagic
 
-## Installing Native Dependancies
+## Installing Runtime Dependancies
+### Most Linux Systems
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 sudo apt-get install libssl-dev

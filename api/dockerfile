@@ -1,0 +1,10 @@
+FROM rust:1.84 as builder
+WORKDIR /usr/src/project_comet_api
+COPY . .
+RUN cargo install --path .
+
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y protobuf-compiler && apt-get install -y libmagic1 && apt-get install -y libmagic-dev && apt-get install -y libssl-dev && rm -rf /var/lib/apt/lists/*
+ENV PROTOC "/usr/bin/protoc"
+COPY --from=builder /usr/local/cargo/bin/project_comet_api /usr/local/bin/project_comet_api
+CMD ["project_comet_api"]
