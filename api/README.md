@@ -46,36 +46,17 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 
 ## To do Goals
 ### Current Phase
-- [ ] Move migrations into main server startup.
-- [ ] Statically link C dependancies
-- [ ] Containerize app including grpc UI
-- [ ] Rust level defaults for datbase tables and fields.
-- [ ] Create core user, access_token, and authentication logic.
-- [ ] Implement all toml table importers and support for enum string names in toml.
-- [ ] Build out core server data model and API schema (HP, MP, Class Levels, Current World, Zone, Position)
-- [ ] Setup rust model to protobuf mapping?
-- [ ] Create database query functions focused on characters, item instances, and collections.
-- [ ] Create basic API endpoints focused on characters, item instances, and collections.
-- [ ] Chnage TOML data importers to only update modifed data.
-- [ ] Add more database CHECK constraints and triggers
-- [ ] More consistant error structure.
-- [ ] Better dependancy injection.
-- [ ] Waiting period for User and Character deletion.
-- [ ] Decide on good way to return Soulbound item to binder after a timer
-### Future Phase
-- [ ] JSON string passthrough without serialization.
-
-## Helpful Development Regexes
-### Partial SQL CREATE TABLE to Rust Type Converter
-```
-[\S\s]*?CREATE TABLE\s+([a-z_])([a-z_]+)\s\( *\n([\S\s]*?)\n *\)\sSTRICT;
-struct \U$1$2 {\n$3\n}\n\n
-```
-```
-^\s+([a-z0-9_]+)\s+([A-Z]+)[,\s]+([^\s].*?)\s*,*$
-    $1: $2,    // $3
-```
-### Find Nullable Columns in SQL
-```
-(?!.*?NOT NULL)(INTEGER|TEXT)[A-Za-z0-9\(\)_ ]*
-```
+- [ ] Implement business logic, queries, and API endpoints for `user`s, `access_tokens`s, and general authetication.
+- [ ] Move database migrations into main API server startup.
+- [ ] Support serialization of SQLx Json convenience types.
+- [ ] Implement support for enum string names in TOML data files.
+- [ ] Build out remaining API data model for database and Rust--Classes, Quest Progress, Character Status(Current Zone, Position, HP, Status Effects), etc.
+- [ ] Implement business logic, queries, and API endpoints for `characters`s, `items`s, and character supporting data.
+- [ ] Add Rust defaults for datbase tables and fields.
+- [ ] Add more CHECK constraints and TRIGGERs to SQLite database to ensure data resiliency.
+- [ ] More consistant Rust error structure from individual functions to API responses.
+- [ ] Proper server-wide dependancy injection (for things like Database and ID Generator).
+- [ ] Add a waiting period for User and Character deletion.
+- [ ] Implement a way to return Soulbound items to binder after a timer on the API side.
+- [ ] Refactor TOML data importers to only update changed data.
+- [ ] Refactor JSON `FromRow` struct fields to support optional string passthrough without serialization.
