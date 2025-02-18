@@ -3,7 +3,7 @@ name = "project_comet_api"
 version = "0.1.0"
 authors = ["Lucy Awrey <lucyawrey@gmail.com>"]
 edition = "2021"
-default-run = "main"
+default-run = "project_comet_api"
 
 [dependencies]
 tonic = "*"
@@ -34,7 +34,7 @@ argon2 = "0.5.3"
 tonic-reflection = "0.12.3"
 
 [[bin]] # Bin to run the gRPC server
-name = "main"
+name = "project_comet_api"
 path = "src/main.rs"
 
 [[bin]] # Bin to run migrations

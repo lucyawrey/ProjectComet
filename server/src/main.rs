@@ -26,12 +26,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = client.create_character(request).await?;
     println!("RESPONSE={:?}\n", response);
 
-    let request = tonic::Request::new(LogInRequest {
-        username: "CometAdmin".to_string(),
-        password: "fQ/KefK9RWn5Z6o28jBpfQ".to_string(),
-    });
-    let response = client.log_in(request).await?;
-    println!("RESPONSE={:?}\n", response);
-
     Ok(())
 }
