@@ -6,6 +6,16 @@
 - protobuf compiler
 - libmagic
 
+## Running Migrations
+```sh
+cargo run --bin script migrate
+```
+
+## Running the API
+```sh
+cargo run
+```
+
 ## Installing Runtime Dependancies
 ### Most Linux Systems
 ```sh

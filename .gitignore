@@ -6,6 +6,7 @@ data/assets
 
 # Rust build artifacts
 **/target
+**/out
 
 # SQLite
 **/.sqlx
