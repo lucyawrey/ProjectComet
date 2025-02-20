@@ -1,7 +1,10 @@
 use crate::{
-    model::tables::{User, UserPassword, UserSession},
+    model::tables::{AccessToken, User, UserPassword, UserRecoveryCode, UserSession},
     utils::{
-        authentication::{generate_session_token, hash_token, verify_password},
+        authentication::{
+            generate_session_token, hash_token, parse_access_token_id, verify_password,
+            verify_token,
+        },
         current_timestamp,
     },
 };
@@ -33,21 +36,6 @@ pub async fn user_login_query(
     }
 }
 
-pub async fn validate_session_query(db: &Pool<Sqlite>, session_token: &str) -> Result<User, ()> {
-    let session_token_hash = hash_token(session_token).ok_or(())?;
-    let session = query_as::<_, UserSession>("SELECT * FROM session WHERE id = $1")
-        .bind(session_token_hash)
-        .fetch_one(db)
-        .await
-        .map_err(|_e| ())?;
-    let user = query_as::<_, User>("SELECT * FROM user WHERE id = $1")
-        .bind(session.user_id)
-        .fetch_one(db)
-        .await
-        .map_err(|_e| ())?;
-    Ok(user)
-}
-
 pub async fn create_user_session_query(
     db: &Pool<Sqlite>,
     user_id: i64,
@@ -65,4 +53,57 @@ pub async fn create_user_session_query(
     .await
     .map_err(|_e| ())?;
     Ok(session_token)
+}
+
+pub async fn validate_session_query(
+    db: &Pool<Sqlite>,
+    session_token: &str,
+) -> Result<(User, UserSession), ()> {
+    let session_token_hash = hash_token(session_token).ok_or(())?;
+    let session = query_as::<_, UserSession>("SELECT * FROM user_session WHERE id = $1")
+        .bind(session_token_hash)
+        .fetch_one(db)
+        .await
+        .map_err(|_e| ())?;
+    let user = query_as::<_, User>("SELECT * FROM user WHERE id = $1")
+        .bind(session.user_id)
+        .fetch_one(db)
+        .await
+        .map_err(|_e| ())?;
+    Ok((user, session))
+}
+
+pub async fn validate_recovery_code_query(
+    db: &Pool<Sqlite>,
+    recovery_code: &str,
+) -> Result<(User, UserRecoveryCode), ()> {
+    let recovery_code_hash = hash_token(recovery_code).ok_or(())?;
+    let code = query_as::<_, UserRecoveryCode>("SELECT * FROM user_recovery_code WHERE id = $1")
+        .bind(recovery_code_hash)
+        .fetch_one(db)
+        .await
+        .map_err(|_e| ())?;
+    let user = query_as::<_, User>("SELECT * FROM user WHERE id = $1")
+        .bind(code.user_id)
+        .fetch_one(db)
+        .await
+        .map_err(|_e| ())?;
+    Ok((user, code))
+}
+
+pub async fn validate_access_token_query(
+    db: &Pool<Sqlite>,
+    access_token: &str,
+) -> Result<AccessToken, ()> {
+    let id = parse_access_token_id(access_token).ok_or(())?;
+    let access = query_as::<_, AccessToken>("SELECT * FROM access_token WHERE id = $1")
+        .bind(id)
+        .fetch_one(db)
+        .await
+        .map_err(|_e| ())?;
+    if verify_token(access_token, &access.access_token_hash) {
+        Ok(access)
+    } else {
+        Err(())
+    }
 }

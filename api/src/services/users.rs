@@ -1,10 +1,11 @@
 use crate::{
     api::{
-        create_character_request::UserRef, users_server::Users, Character, CreateCharacterRequest,
-        LogInReply, LogInRequest, Message, User,
+        users_server::Users, Character, CreateCharacterRequest, LogInReply, LogInRequest, Message,
+        User,
     },
-    model::{fields::Role, Ref},
+    model::fields::Role,
     queries::{authentication::user_login_query, character::create_character_query},
+    utils::transport::authenticate,
 };
 use sonyflake::Sonyflake;
 use sqlx::pool::Pool;
@@ -28,18 +29,13 @@ impl Users for UsersService {
         &self,
         request: Request<CreateCharacterRequest>,
     ) -> Result<Response<Character>, Status> {
+        let (user, _) = authenticate(&self.db, &request).await.auth_session_or()?;
         let args = request.into_inner();
 
         let new = create_character_query(
             &self.db,
             &self.sf,
-            match args
-                .user_ref
-                .ok_or(Status::internal("Must provide user ID or Username."))?
-            {
-                UserRef::Id(id) => Ref::Id(id),
-                UserRef::Username(name) => Ref::Name(name),
-            },
+            user,
             args.home_world_id,
             args.name,
             match args.role {

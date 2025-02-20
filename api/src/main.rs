@@ -64,33 +64,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     Server::builder()
         .add_service(reflection_service)
-        .add_service(GameDataServer::with_interceptor(
-            game_data_service,
-            authenticate,
-        ))
-        .add_service(UsersServer::with_interceptor(users_service, authenticate))
+        .add_service(GameDataServer::with_interceptor(game_data_service, echo))
+        .add_service(UsersServer::with_interceptor(users_service, echo))
         .serve(addr)
         .await?;
 
     Ok(())
 }
 
-fn authenticate(req: Request<()>) -> Result<Request<()>, Status> {
-    println!("Request: {:?}", req);
-    match req
-        .metadata()
-        .get("authorization")
-        .map(|m| m.to_str().ok())
-        .flatten()
-    {
-        Some(authorization) => {
-            if authorization.chars().count() < 33 {
-                //validate_session_query(db, authorization).await.map_err(|| Status::unauthenticated("Access tokens not yet supproted."))?;
-                Ok(req)
-            } else {
-                Err(Status::unauthenticated("Access tokens not yet supproted."))
-            }
-        }
-        _ => Err(Status::unauthenticated("No authorization token.")),
-    }
+fn echo(req: Request<()>) -> Result<Request<()>, Status> {
+    println!("Request: {:?}\n", req);
+    Ok(req)
 }

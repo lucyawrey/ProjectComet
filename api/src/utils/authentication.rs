@@ -1,9 +1,18 @@
-use crate::model::fields::AccessLevel;
+use crate::{
+    model::{
+        authentication::{AuthStatus, AuthType},
+        fields::AccessLevel,
+    },
+    queries::authentication::{
+        validate_access_token_query, validate_recovery_code_query, validate_session_query,
+    },
+};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use base32ct::Encoding;
 use base64ct::Encoding as Encoding64;
 use rand::{rngs::OsRng, TryRngCore};
 use sha2::{Digest, Sha256};
+use sqlx::{Pool, Sqlite};
 
 // TODO precise encoding buffer sizes
 
@@ -88,10 +97,48 @@ pub fn generate_access_token(
     Some((token, token_hash))
 }
 
+pub fn parse_access_token_id(access_token: &str) -> Option<i64> {
+    let split: Vec<&str> = access_token.splitn(3, '_').collect();
+    let base_32_id = split.get(1)?;
+    let mut buf = [0u8; 8];
+    base32ct::Base32Unpadded::decode(base_32_id, &mut buf).ok()?;
+    Some(i64::from_be_bytes(buf))
+}
+
 pub fn generate_recovery_code() -> Option<(String, String)> {
     let bytes: [u8; 32] = get_random_bytes()?;
     let mut buf = [0u8; 100];
     let code_base32 = base32ct::Base32Unpadded::encode(&bytes, &mut buf).ok()?;
     let code_hash = hash_token(code_base32)?;
     Some((code_base32.to_string(), code_hash))
+}
+
+pub async fn authenticate_from_token(db: &Pool<Sqlite>, token: Option<&str>) -> AuthStatus {
+    match token {
+        Some(token) => {
+            if token.chars().count() < 33 {
+                match validate_session_query(db, token).await {
+                    Ok((user, session)) => {
+                        AuthStatus::Authenticated(AuthType::UserSession(user, session))
+                    }
+                    Err(_) => AuthStatus::Unauthenticated,
+                }
+            } else if token.contains('_') {
+                match validate_access_token_query(db, token).await {
+                    Ok(access_token) => {
+                        AuthStatus::Authenticated(AuthType::AccessToken(access_token))
+                    }
+                    Err(_) => AuthStatus::Unauthenticated,
+                }
+            } else {
+                match validate_recovery_code_query(db, token).await {
+                    Ok((user, recovery_code)) => {
+                        AuthStatus::Authenticated(AuthType::UserRecoveryCode(user, recovery_code))
+                    }
+                    Err(_) => AuthStatus::Unauthenticated,
+                }
+            }
+        }
+        None => AuthStatus::Unauthenticated,
+    }
 }

@@ -145,13 +145,9 @@ message LogInReply {
 }
 
 message CreateCharacterRequest {
-   oneof user_ref {
-    int64 id = 1;
-    string username = 2;
-   }
-   string home_world_id = 3;
-   optional Role role = 4;
-   optional string name = 5;
+   string home_world_id = 1;
+   optional Role role = 2;
+   optional string name = 3;
 }
 // End User Service
 

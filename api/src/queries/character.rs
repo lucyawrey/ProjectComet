@@ -2,7 +2,6 @@ use crate::{
     model::{
         fields::Role,
         tables::{Character, User},
-        Ref,
     },
     utils::{generate_random_name, next_id, validate_and_format_name},
 };
@@ -12,7 +11,7 @@ use sqlx::{query_as, Pool, Sqlite};
 pub async fn create_character_query(
     db: &Pool<Sqlite>,
     sf: &Sonyflake,
-    user_ref: Ref,
+    user: User,
     home_world_id: String,
     name: Option<String>,
     role: Option<Role>,
@@ -22,18 +21,6 @@ pub async fn create_character_query(
         None => generate_random_name(),
     };
 
-    let user = match user_ref {
-        Ref::Name(username) => query_as::<_, User>("SELECT * FROM user WHERE username = $1")
-            .bind(username)
-            .fetch_one(db)
-            .await
-            .map_err(|e| e.to_string())?,
-        Ref::Id(id) => query_as::<_, User>("SELECT * FROM user WHERE id = $1")
-            .bind(id)
-            .fetch_one(db)
-            .await
-            .map_err(|e| e.to_string())?,
-    };
     let role = match role {
         Some(role) => {
             if role > user.role {
