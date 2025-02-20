@@ -28,7 +28,6 @@ impl Users for UsersService {
         &self,
         request: Request<CreateCharacterRequest>,
     ) -> Result<Response<Character>, Status> {
-        println!("Request: {:?}", request);
         let args = request.into_inner();
 
         let new = create_character_query(
@@ -67,14 +66,14 @@ impl Users for UsersService {
     }
     /// TODO
     async fn sign_up(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
 
     async fn log_in(&self, request: Request<LogInRequest>) -> Result<Response<LogInReply>, Status> {
-        println!("Request: {:?}", request);
         let args = request.into_inner();
+
         let (session_token, session_user) =
             user_login_query(&self.db, &args.username, &args.password)
                 .await
@@ -91,68 +90,68 @@ impl Users for UsersService {
     }
     /// TODO
     async fn log_out(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn delete_user(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn update_username(
         &self,
         request: Request<Message>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn update_password(
         &self,
         request: Request<Message>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn verify_recovery_code(
         &self,
         request: Request<Message>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn recover_user(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn get_character(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn get_characters(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn delete_character(
         &self,
         request: Request<Message>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
 }

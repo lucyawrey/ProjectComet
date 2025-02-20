@@ -52,7 +52,7 @@ message AddItemRequest {
    int64 item_content_id = 2;
    int64 quantity = 3;
    ItemLocation location = 4;
-   AddItemRequest quality = 5;
+   ItemQuality quality = 5;
 }
 
 enum ItemLocation {

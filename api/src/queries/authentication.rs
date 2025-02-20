@@ -1,7 +1,7 @@
 use crate::{
     model::tables::{User, UserPassword, UserSession},
     utils::{
-        authentication::{generate_session_token, verify_password},
+        authentication::{generate_session_token, hash_token, verify_password},
         current_timestamp,
     },
 };
@@ -31,6 +31,21 @@ pub async fn user_login_query(
     } else {
         Err(())
     }
+}
+
+pub async fn validate_session_query(db: &Pool<Sqlite>, session_token: &str) -> Result<User, ()> {
+    let session_token_hash = hash_token(session_token).ok_or(())?;
+    let session = query_as::<_, UserSession>("SELECT * FROM session WHERE id = $1")
+        .bind(session_token_hash)
+        .fetch_one(db)
+        .await
+        .map_err(|_e| ())?;
+    let user = query_as::<_, User>("SELECT * FROM user WHERE id = $1")
+        .bind(session.user_id)
+        .fetch_one(db)
+        .await
+        .map_err(|_e| ())?;
+    Ok(user)
 }
 
 pub async fn create_user_session_query(

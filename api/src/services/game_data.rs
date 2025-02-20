@@ -23,35 +23,35 @@ impl GameData for GameDataService {
         &self,
         request: Request<Message>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn log_in_caracter(
         &self,
         request: Request<Message>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn update_caracter(
         &self,
         request: Request<Message>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
     /// TODO
     async fn add_item(
         &self,
         request: Request<AddItemRequest>,
     ) -> Result<Response<Message>, Status> {
-        let message = format!("Request: {:?}", request);
-        println!("{:?}", message);
-        Ok(Response::new(Message { message }))
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
     }
 }
