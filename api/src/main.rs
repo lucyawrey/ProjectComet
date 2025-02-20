@@ -9,10 +9,7 @@ use queries::data_import::data_import;
 use services::game_data::GameDataService;
 use services::users::UsersService;
 use sqlx::SqlitePool;
-use std::{
-    env,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-};
+use std::{env, net::SocketAddr};
 use tonic::{transport::Server, Request, Status};
 use utils::{new_sonyflake, parse_range};
 
@@ -20,13 +17,14 @@ use utils::{new_sonyflake, parse_range};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv()?;
 
+    let address = env::var("ADDRESS").expect("Environment variable 'ADDRESS' not found.");
     let database_url =
         env::var("DATABASE_URL").expect("Environment variable 'DATABASE_URL' not found.");
     let machine_id_range =
         env::var("MACHINE_ID_RANGE").expect("Environment variable 'MACHINE_ID_RANGE' not found.");
+
     let mut machine_ids =
         parse_range(machine_id_range).expect("'MACHINE_ID_RANGE' must be a pair of integers.");
-
     let game_data_service = GameDataService::new(
         SqlitePool::connect(&database_url)
             .await
@@ -57,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         version.game_id, version.game_version
     );
 
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 50051);
+    let addr: SocketAddr = address.parse().expect("Unable to parse socket address.");
     println!(
         "  ☄️ Starting Project Comet Game Data API Service on {}\n",
         addr

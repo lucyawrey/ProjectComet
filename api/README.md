@@ -47,6 +47,7 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 ## To do Goals
 ### Current Phase
 - [ ] Implement business logic, queries, and API endpoints for `user`s, `access_tokens`s, and general authetication.
+- [ ] Potentially migrate from SQLx to rusqlite.
 - [ ] Move database migrations into main API server startup.
 - [ ] Fix standalone release build breakage, likey results from writing to the SQLite database.
 - [ ] Fix dockerfile build.

@@ -6,7 +6,9 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = get_api_client().await?;
+    dotenvy::dotenv()?;
+
+    let mut client = get_api_client().await;
 
     let args: Vec<String> = env::args().collect();
     let character_name = args.get(1).cloned();

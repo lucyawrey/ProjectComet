@@ -8,4 +8,3 @@
 ## To do
 - [ ] Statically link non-cargo dependancies. 
 - [ ] Containerize aplication services, including grpc UI.
-- [ ] Switch to environment variables for URIs on client and server.
