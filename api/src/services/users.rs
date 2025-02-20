@@ -25,41 +25,6 @@ impl UsersService {
 
 #[tonic::async_trait]
 impl Users for UsersService {
-    async fn create_character(
-        &self,
-        request: Request<CreateCharacterRequest>,
-    ) -> Result<Response<Character>, Status> {
-        let (user, _) = authenticate(&self.db, &request).await.auth_session_or()?;
-        let args = request.into_inner();
-
-        let new = create_character_query(
-            &self.db,
-            &self.sf,
-            user,
-            args.home_world_id,
-            args.name,
-            match args.role {
-                Some(role) => Role::try_from(role).ok(),
-                None => None,
-            },
-        )
-        .await
-        .map_err(|e| Status::internal(e.to_string()))?;
-
-        println!("New DB Character: {:?}", new);
-        Ok(Response::new(Character {
-            id: new.id,
-            updated_at: new.updated_at.and_utc().timestamp(),
-            name: new.name,
-            role: new.role.into(),
-            home_world_id: new.home_world_id,
-            user_id: new.user_id,
-            ancestry: new.ancestry.into(),
-            gender: new.gender.into(),
-            customization: "TODO: Serialize Json<Customization>".to_owned(),
-            data: "TODO: Serialize Json<CharacterData>".to_owned(),
-        }))
-    }
     /// TODO
     async fn sign_up(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
         Ok(Response::new(Message {
@@ -127,6 +92,42 @@ impl Users for UsersService {
     async fn recover_user(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
         Ok(Response::new(Message {
             message: format!("Request: {:?}", request),
+        }))
+    }
+
+    async fn create_character(
+        &self,
+        request: Request<CreateCharacterRequest>,
+    ) -> Result<Response<Character>, Status> {
+        let (user, _) = authenticate(&self.db, &request).await.auth_session_or()?;
+        let args = request.into_inner();
+
+        let new = create_character_query(
+            &self.db,
+            &self.sf,
+            user,
+            args.home_world_id,
+            args.name,
+            match args.role {
+                Some(role) => Role::try_from(role).ok(),
+                None => None,
+            },
+        )
+        .await
+        .map_err(|e| Status::internal(e.to_string()))?;
+
+        println!("New DB Character: {:?}", new);
+        Ok(Response::new(Character {
+            id: new.id,
+            updated_at: new.updated_at.and_utc().timestamp(),
+            name: new.name,
+            role: new.role.into(),
+            home_world_id: new.home_world_id,
+            user_id: new.user_id,
+            ancestry: new.ancestry.into(),
+            gender: new.gender.into(),
+            customization: "TODO: Serialize Json<Customization>".to_owned(),
+            data: "TODO: Serialize Json<CharacterData>".to_owned(),
         }))
     }
     /// TODO
