@@ -26,7 +26,7 @@ wasm-bindgen --no-typescript --target web \
     --out-dir ../out/client/ \
     --out-name "project_comet_client" \
     ./target/wasm32-unknown-unknown/release/project_comet_client.wasm
-cp ./src/index.html ../out/client/index.html
+cp ./www/index.html ../out/client/index.html
 ```
 
 ## Installing WASM Target Runtime Dependancies

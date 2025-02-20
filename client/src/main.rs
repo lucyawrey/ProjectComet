@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use plugins::HelloPlugin;
 mod components;
 mod plugins;
+mod resources;
 mod systems;
 
 fn main() {

@@ -8,3 +8,4 @@
 ## To do
 - [ ] Statically link non-cargo dependancies. 
 - [ ] Containerize aplication services, including grpc UI.
+- [ ] Cache `access_token` authentication based on SSL certificate or lochost/VPN port.

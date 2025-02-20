@@ -1,5 +1,6 @@
 use crate::components::Name;
 use crate::components::PlayerCharacter;
+use crate::resources::GreetTimer;
 use bevy::prelude::*;
 
 pub fn add_people(mut commands: Commands) {
@@ -7,9 +8,6 @@ pub fn add_people(mut commands: Commands) {
     commands.spawn((PlayerCharacter, Name("Laura".to_string())));
     commands.spawn((PlayerCharacter, Name("Lucy".to_string())));
 }
-
-#[derive(Resource)]
-pub struct GreetTimer(pub Timer);
 
 pub fn greet_people(
     time: Res<Time>,
