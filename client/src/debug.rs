@@ -1,3 +1,4 @@
+use crate::database::GameState;
 use bevy::app::Plugin;
 use bevy::{
     color::palettes::css::GOLD,
@@ -5,12 +6,12 @@ use bevy::{
     prelude::*,
 };
 
-pub struct FpsPlugin;
+pub struct DebugPlugin;
 
-impl Plugin for FpsPlugin {
+impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
-            .add_systems(Update, (text_update_system, text_color_system));
+            .add_systems(Update, (fps_text_update_system, debug_text_update_system));
     }
 }
 
@@ -20,19 +21,19 @@ struct FpsText;
 
 // A unit struct to help identify the color-changing Text component
 #[derive(Component)]
-struct ColorText;
+struct DebugText;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // UI camera
     commands.spawn(Camera2d);
-    // Text with one section
+    // Debug text with one section
     commands.spawn((
         // Accepts a `String` or any type that converts into a `String`, such as `&str`
-        Text::new("hello\nproject comet!"),
+        Text::default(),
         TextFont {
             // This font is loaded and will be used instead of the default font.
             font: asset_server.load("FiraMono-Bold.ttf"),
-            font_size: 67.0,
+            font_size: 50.0,
             ..default()
         },
         // Set the justification of the Text
@@ -44,13 +45,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             right: Val::Px(5.0),
             ..default()
         },
-        ColorText,
+        DebugText,
     ));
-
-    // Text with multiple sections
+    // FPS text with multiple sections
     commands
         .spawn((
-            // Create a Text with multiple child spans.
             Text::new("FPS: "),
             TextFont {
                 font: asset_server.load("FiraMono-Bold.ttf"),
@@ -85,20 +84,30 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ));
 }
 
-fn text_color_system(time: Res<Time>, mut query: Query<&mut TextColor, With<ColorText>>) {
-    for mut text_color in &mut query {
+fn debug_text_update_system(
+    time: Res<Time>,
+    state: Res<GameState>,
+    mut color_query: Query<&mut TextColor, With<DebugText>>,
+    mut text_query: Query<&mut Text, With<DebugText>>,
+) {
+    for mut color in &mut color_query {
         let seconds = time.elapsed_secs();
-
         // Update the color of the ColorText span.
-        text_color.0 = Color::srgb(
+        color.0 = Color::srgb(
             ops::sin(1.25 * seconds) / 2.0 + 0.5,
             ops::sin(0.75 * seconds) / 2.0 + 0.5,
             ops::sin(0.50 * seconds) / 2.0 + 0.5,
         );
     }
+
+    for mut text in &mut text_query {
+        if text.0 != state.debug_text {
+            **text = state.debug_text.clone();
+        }
+    }
 }
 
-fn text_update_system(
+fn fps_text_update_system(
     diagnostics: Res<DiagnosticsStore>,
     mut query: Query<&mut TextSpan, With<FpsText>>,
 ) {

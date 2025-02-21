@@ -1,7 +1,6 @@
-use std::sync::Mutex;
-
 use bevy::prelude::*;
 use rusqlite::Connection;
+use std::sync::Mutex;
 
 pub struct DatabasePlugin;
 
@@ -9,6 +8,7 @@ impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
         let conn = Mutex::new(Connection::open_in_memory().expect("Failed to open database."));
         app.insert_resource(Database(conn))
+            .insert_resource(GameState::default())
             .add_systems(Startup, init_db);
     }
 }
@@ -16,14 +16,19 @@ impl Plugin for DatabasePlugin {
 #[derive(Resource)]
 pub struct Database(pub Mutex<Connection>);
 
+#[derive(Resource, Default)]
+pub struct GameState {
+    pub debug_text: String,
+}
+
 #[derive(Debug)]
 pub struct Person {
-    pub id: i32,
+    pub _id: i32,
     pub name: String,
     pub data: Option<Vec<u8>>,
 }
 
-pub fn init_db(db: Res<Database>) {
+pub fn init_db(db: Res<Database>, mut state: ResMut<GameState>) {
     let db = db.0.lock().unwrap();
     db.execute(
         "CREATE TABLE person (
@@ -34,14 +39,24 @@ pub fn init_db(db: Res<Database>) {
         (), // empty list of parameters.
     )
     .unwrap();
-    let me = Person {
-        id: 0,
-        name: "Steven".to_string(),
+    let person1 = Person {
+        _id: 0,
+        name: "Lucy".to_string(),
         data: None,
     };
     db.execute(
         "INSERT INTO person (name, data) VALUES (?1, ?2)",
-        (&me.name, &me.data),
+        (&person1.name, &person1.data),
+    )
+    .unwrap();
+    let person2 = Person {
+        _id: 0,
+        name: "Shannon".to_string(),
+        data: None,
+    };
+    db.execute(
+        "INSERT INTO person (name, data) VALUES (?1, ?2)",
+        (&person2.name, &person2.data),
     )
     .unwrap();
 
@@ -49,13 +64,13 @@ pub fn init_db(db: Res<Database>) {
     let person_iter = statement
         .query_map([], |row| {
             Ok(Person {
-                id: row.get(0)?,
+                _id: row.get(0)?,
                 name: row.get(1)?,
                 data: row.get(2)?,
             })
         })
         .unwrap();
     for person in person_iter {
-        println!("Found person {:?}", person.unwrap());
+        state.debug_text = format!("{}{:?},\n", state.debug_text, person.unwrap());
     }
 }

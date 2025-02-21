@@ -1,17 +1,17 @@
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use database::DatabasePlugin;
-use fps::FpsPlugin;
+use debug::DebugPlugin;
 use hello::HelloPlugin;
 mod components;
 mod database;
-mod fps;
+mod debug;
 mod hello;
 
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, FrameTimeDiagnosticsPlugin))
         .add_plugins(DatabasePlugin)
-        .add_plugins(FpsPlugin)
+        .add_plugins(DebugPlugin)
         .add_plugins(HelloPlugin)
         .run();
 }
