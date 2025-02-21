@@ -1,3 +1,4 @@
+use crate::debug::DebugState;
 use bevy::prelude::*;
 use rusqlite::Connection;
 use std::sync::Mutex;
@@ -8,18 +9,12 @@ impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
         let conn = Mutex::new(Connection::open_in_memory().expect("Failed to open database."));
         app.insert_resource(Database(conn))
-            .insert_resource(GameState::default())
             .add_systems(Startup, init_db);
     }
 }
 
 #[derive(Resource)]
 pub struct Database(pub Mutex<Connection>);
-
-#[derive(Resource, Default)]
-pub struct GameState {
-    pub debug_text: String,
-}
 
 #[derive(Debug)]
 pub struct Person {
@@ -28,7 +23,7 @@ pub struct Person {
     pub data: Option<Vec<u8>>,
 }
 
-pub fn init_db(db: Res<Database>, mut state: ResMut<GameState>) {
+pub fn init_db(db: Res<Database>, mut state: ResMut<DebugState>) {
     let db = db.0.lock().unwrap();
     db.execute(
         "CREATE TABLE person (
@@ -71,6 +66,7 @@ pub fn init_db(db: Res<Database>, mut state: ResMut<GameState>) {
         })
         .unwrap();
     for person in person_iter {
-        state.debug_text = format!("{}{:?},\n", state.debug_text, person.unwrap());
+        state.debug_text = format!("{}{:?}\n", state.debug_text, person.unwrap());
     }
+    state.debug_color = Color::linear_rgb(1.0, 0.2, 0.2)
 }
