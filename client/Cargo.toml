@@ -12,7 +12,6 @@ serde_json = "1.0.138"
 rusqlite = { git = "https://github.com/Spxg/rusqlite", rev = "06917a785e312fb822de7654922c198504a8cb46", features = [
     "bundled",
 ] } # Once wasm support is merged this can be changed back to main.
-dotenvy = "0.15.7"
 
 # Enable only a small amount of optimization in debug mode.
 [profile.dev]

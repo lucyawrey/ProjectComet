@@ -1,7 +1,19 @@
 use crate::components::Name;
 use crate::components::PlayerCharacter;
-use crate::resources::GreetTimer;
 use bevy::prelude::*;
+
+pub struct HelloPlugin;
+
+impl Plugin for HelloPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(GreetTimer(Timer::from_seconds(5.0, TimerMode::Repeating)))
+            .add_systems(Startup, add_people)
+            .add_systems(Update, (update_people, greet_people).chain());
+    }
+}
+
+#[derive(Resource)]
+pub struct GreetTimer(pub Timer);
 
 pub fn add_people(mut commands: Commands) {
     commands.spawn((PlayerCharacter, Name("Stefanie".to_string())));

@@ -1,15 +1,17 @@
-use bevy::prelude::*;
-use plugins::HelloPlugin;
+use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
+use database::DatabasePlugin;
+use fps::FpsPlugin;
+use hello::HelloPlugin;
 mod components;
-mod plugins;
-mod resources;
-mod systems;
+mod database;
+mod fps;
+mod hello;
 
 fn main() {
-    dotenvy::dotenv().unwrap();
-
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins((DefaultPlugins, FrameTimeDiagnosticsPlugin))
+        .add_plugins(DatabasePlugin)
+        .add_plugins(FpsPlugin)
         .add_plugins(HelloPlugin)
         .run();
 }

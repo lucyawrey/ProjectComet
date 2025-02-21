@@ -3,6 +3,7 @@
 
 # Assets - will need to have source control for eventually
 data/assets
+client/assets
 
 # Rust build artifacts
 **/target
