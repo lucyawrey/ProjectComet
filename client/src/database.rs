@@ -1,7 +1,7 @@
 use crate::debug::DebugState;
 use bevy::prelude::*;
 use rusqlite::Connection;
-use std::sync::Mutex;
+use std::{fmt::Debug, sync::Mutex};
 
 pub struct DatabasePlugin;
 
@@ -23,7 +23,7 @@ pub struct Person {
     pub data: Option<Vec<u8>>,
 }
 
-pub fn init_db(db: Res<Database>, mut state: ResMut<DebugState>) {
+pub fn init_db(db: Res<Database>, mut debug: ResMut<DebugState>) {
     let db = db.0.lock().unwrap();
     db.execute(
         "CREATE TABLE person (
@@ -66,7 +66,6 @@ pub fn init_db(db: Res<Database>, mut state: ResMut<DebugState>) {
         })
         .unwrap();
     for person in person_iter {
-        state.debug_text = format!("{}{:?}\n", state.debug_text, person.unwrap());
+        debug.print(person.unwrap(), Some(Color::linear_rgb(1.0, 0.2, 0.2)));
     }
-    state.debug_color = Color::linear_rgb(1.0, 0.2, 0.2)
 }

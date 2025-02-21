@@ -21,6 +21,18 @@ pub struct DebugState {
     pub debug_color: Color,
 }
 
+impl DebugState {
+    pub fn print<T>(&mut self, content: T, color: Option<Color>)
+    where
+        T: std::fmt::Debug,
+    {
+        self.debug_text = format!("{}{:?}\n", self.debug_text, content);
+        if let Some(color) = color {
+            self.debug_color = color;
+        }
+    }
+}
+
 // A unit struct to help identify the FPS UI component, since there may be many Text components
 #[derive(Component)]
 struct FpsText;
