@@ -59,7 +59,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Text::new("FPS: "),
             TextFont {
                 font: asset_server.load(DEFAULT_FONT),
-                font_size: 33.0,
+                font_size: 30.0,
                 ..default()
             },
         ))
@@ -68,7 +68,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             (
                 TextFont {
                     font: asset_server.load(DEFAULT_FONT),
-                    font_size: 33.0,
+                    font_size: 30.0,
                     ..Default::default()
                 },
                 TextColor(GOLD.into()),

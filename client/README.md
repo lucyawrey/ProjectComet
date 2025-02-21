@@ -37,3 +37,9 @@ rustup target add wasm32-unknown-unknown
 cargo install wasm-server-runner
 cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
+
+## To do
+- [ ] Persist SQLite database
+- [ ] Download initial SQLite database
+- [ ] Load content + assets from SQLite database
+- [ ] Sync content + assets from API database
