@@ -1,4 +1,4 @@
-use crate::debug::DebugState;
+use crate::{config::DEFAULT_CLIENT_DATABASE_PATH, debug::DebugState};
 use bevy::prelude::*;
 use rusqlite::Connection;
 use std::{fmt::Debug, sync::Mutex};
@@ -7,7 +7,10 @@ pub struct DatabasePlugin;
 
 impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
-        let conn = Mutex::new(Connection::open_in_memory().expect("Failed to open database."));
+        // TODO download db and persist in file storage in browsers
+        let conn = Mutex::new(
+            Connection::open(DEFAULT_CLIENT_DATABASE_PATH).expect("Failed to open database."),
+        );
         app.insert_resource(Database(conn))
             .add_systems(Startup, init_db);
     }
@@ -19,49 +22,30 @@ pub struct Database(pub Mutex<Connection>);
 #[derive(Debug)]
 pub struct Person {
     pub _id: i32,
-    pub name: String,
-    pub data: Option<Vec<u8>>,
+    pub _name: String,
+    pub _data: Option<Vec<u8>>,
 }
 
 pub fn init_db(db: Res<Database>, mut debug: ResMut<DebugState>) {
     let db = db.0.lock().unwrap();
-    db.execute(
+    let _ignore_err = db.execute(
         "CREATE TABLE person (
             id   INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
             data BLOB
         )",
         (), // empty list of parameters.
-    )
-    .unwrap();
-    let person1 = Person {
-        _id: 0,
-        name: "Lucy".to_string(),
-        data: None,
-    };
-    db.execute(
-        "INSERT INTO person (name, data) VALUES (?1, ?2)",
-        (&person1.name, &person1.data),
-    )
-    .unwrap();
-    let person2 = Person {
-        _id: 0,
-        name: "Shannon".to_string(),
-        data: None,
-    };
-    db.execute(
-        "INSERT INTO person (name, data) VALUES (?1, ?2)",
-        (&person2.name, &person2.data),
-    )
-    .unwrap();
+    );
+    db.execute("INSERT INTO person (name) VALUES (?1)", ("Lucy",))
+        .unwrap();
 
-    let mut statement = db.prepare("SELECT id, name, data FROM person").unwrap();
-    let person_iter = statement
+    let mut query = db.prepare("SELECT id, name, data FROM person").unwrap();
+    let person_iter = query
         .query_map([], |row| {
             Ok(Person {
                 _id: row.get(0)?,
-                name: row.get(1)?,
-                data: row.get(2)?,
+                _name: row.get(1)?,
+                _data: row.get(2)?,
             })
         })
         .unwrap();
