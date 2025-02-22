@@ -1,7 +1,7 @@
 use crate::{
     api::{
-        users_server::Users, Character, CreateCharacterRequest, LogInReply, LogInRequest, Message,
-        User,
+        users_server::Users, Character, CreateCharacterRequest, LogInCharacterReply,
+        LogInCharacterRequest, LogInReply, LogInRequest, Message, User,
     },
     model::fields::Role,
     queries::{authentication::user_login_query, character::create_character_query},
@@ -149,6 +149,20 @@ impl Users for UsersService {
     ) -> Result<Response<Message>, Status> {
         Ok(Response::new(Message {
             message: format!("Request: {:?}", request),
+        }))
+    }
+    async fn get_worlds(&self, request: Request<Message>) -> Result<Response<Message>, Status> {
+        Ok(Response::new(Message {
+            message: format!("Request: {:?}", request),
+        }))
+    }
+    /// TODO
+    async fn log_in_character(
+        &self,
+        request: Request<LogInCharacterRequest>,
+    ) -> Result<Response<LogInCharacterReply>, Status> {
+        Ok(Response::new(LogInCharacterReply {
+            server_address: format!("Request: {:?}", request),
         }))
     }
 }

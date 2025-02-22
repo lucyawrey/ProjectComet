@@ -8,13 +8,6 @@ service GameData {
     rpc AddItem (AddItemRequest) returns (Message);
 }
 
-service Content {
-    rpc GetContent (Message) returns (Message);
-    rpc GetContents (Message) returns (Message);
-    rpc GetAsset (Message) returns (Message);
-    rpc GetAssets (Message) returns (Message);
-}
-
 service Administration {
     rpc CreateAccessToken (CreateAccessTokenRequest) returns (CreateAccessTokenReply);
     rpc VerifyAccessToken (VerifyAccessTokenRequest) returns (AccessToken);
@@ -28,6 +21,15 @@ service Administration {
     rpc ResetUserRecoveryCode(ByIdRequest) returns (ResetUserRecoveryCodeReply);
 
     // TODO Server and World management
+}
+
+service Asset {
+    rpc GetGameInfo (Message) returns (Message);
+    rpc GetAssetDatabaseDownloadUrl (Message) returns (Message);
+    rpc GetContent (Message) returns (Message);
+    rpc GetContents (Message) returns (Message);
+    rpc GetAsset (Message) returns (Message);
+    rpc GetAssets (Message) returns (Message);
 }
 
 service Users {
@@ -44,6 +46,9 @@ service Users {
     rpc GetCharacter (Message) returns (Message);
     rpc GetCharacters (Message) returns (Message);
     rpc DeleteCharacter (Message) returns (Message);
+
+    rpc GetWorlds (Message) returns (Message);
+    rpc LogInCharacter (LogInCharacterRequest) returns (LogInCharacterReply);
 }
 
 // GameData Service
@@ -148,6 +153,15 @@ message CreateCharacterRequest {
    string home_world_id = 1;
    optional Role role = 2;
    optional string name = 3;
+}
+
+message LogInCharacterRequest {
+   int64 character_id = 1;
+   optional int64 world_id = 2;
+}
+
+message LogInCharacterReply {
+   string server_address = 1;
 }
 // End User Service
 
