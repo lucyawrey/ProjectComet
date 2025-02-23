@@ -5,14 +5,18 @@ authors = ["Lucy Awrey <lucyawrey@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-wasm-bindgen = "= 0.2.100"
 bevy = "0.15.2"
 serde = "1.0.217"
 serde_json = "1.0.138"
-rusqlite = { git = "https://github.com/Spxg/rusqlite", rev = "06917a785e312fb822de7654922c198504a8cb46", features = [
+rusqlite = { git = "https://github.com/Spxg/rusqlite", features = [
     "bundled",
-    # "wasm32-wasi-vfs",
 ] } # Once wasm support is merged this can be changed back to main.
+# WASM only dependancies
+wasm-bindgen = "= 0.2.100"
+wasm-bindgen-futures = "0.4.50"
+sqlite-wasm-rs = { version = "0.3.0", default-features = false, features = [
+    "precompiled",
+] }
 
 # Enable only a small amount of optimization in debug mode.
 [profile.dev]

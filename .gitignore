@@ -4,10 +4,12 @@
 # Assets - will need to have source control for eventually
 data/assets
 client/assets
+client/www/assets
 
-# Rust build artifacts
+# Build artifacts
 **/target
 **/out
+client/www/wasm*
 
 # SQLite
 **/.sqlx

@@ -2552,7 +2552,7 @@ dependencies = [
 [[package]]
 name = "libsqlite3-sys"
 version = "0.31.0"
-source = "git+https://github.com/Spxg/rusqlite?rev=06917a785e312fb822de7654922c198504a8cb46#06917a785e312fb822de7654922c198504a8cb46"
+source = "git+https://github.com/Spxg/rusqlite#5b7f1a72465d323017d70e23b76ce7458aeff4fc"
 dependencies = [
  "cc",
  "pkg-config",
@@ -3328,7 +3328,9 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sqlite-wasm-rs",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -3540,7 +3542,7 @@ checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 [[package]]
 name = "rusqlite"
 version = "0.33.0"
-source = "git+https://github.com/Spxg/rusqlite?rev=06917a785e312fb822de7654922c198504a8cb46#06917a785e312fb822de7654922c198504a8cb46"
+source = "git+https://github.com/Spxg/rusqlite#5b7f1a72465d323017d70e23b76ce7458aeff4fc"
 dependencies = [
  "bitflags 2.6.0",
  "fallible-iterator",

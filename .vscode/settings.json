@@ -4,5 +4,8 @@
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "[toml]": {
         "editor.defaultFormatter": "tamasfe.even-better-toml"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     }
 }

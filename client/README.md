@@ -8,9 +8,13 @@
 cargo run
 ```
 
-## Running the Client for a WASM Target in the Browser
+## Building WASM Target for Development
 ```sh
-CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-server-runner cargo run --target wasm32-unknown-unknown
+cargo build --target wasm32-unknown-unknown
+wasm-bindgen --no-typescript --target web \
+    --out-dir ./www \
+    --out-name "wasm" \
+    ./target/wasm32-unknown-unknown/debug/project_comet_client.wasm
 ```
 
 ## Building
@@ -23,10 +27,11 @@ mkdir -p ../out/client && cp ./target/release/project_comet_client "$_"
 ```sh
 cargo build --release --target wasm32-unknown-unknown
 wasm-bindgen --no-typescript --target web \
-    --out-dir ../out/client/ \
-    --out-name "project_comet_client" \
+    --out-dir ../out/client \
+    --out-name "wasm" \
     ./target/wasm32-unknown-unknown/release/project_comet_client.wasm
 cp ./www/index.html ../out/client/index.html
+cp ./www/worker.js ../out/client/worker.js
 ```
 
 ## Installing WASM Target Runtime Dependancies
@@ -34,7 +39,6 @@ cp ./www/index.html ../out/client/index.html
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup target add wasm32-unknown-unknown
-cargo install wasm-server-runner
 cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
 
