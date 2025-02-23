@@ -7,6 +7,7 @@ mod config;
 mod database;
 mod debug;
 mod hello;
+mod utils;
 
 fn main() {
     App::new()

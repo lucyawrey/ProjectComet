@@ -11,6 +11,7 @@ serde = "1.0.217"
 serde_json = "1.0.138"
 rusqlite = { git = "https://github.com/Spxg/rusqlite", rev = "06917a785e312fb822de7654922c198504a8cb46", features = [
     "bundled",
+    # "wasm32-wasi-vfs",
 ] } # Once wasm support is merged this can be changed back to main.
 
 # Enable only a small amount of optimization in debug mode.

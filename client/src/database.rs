@@ -1,4 +1,4 @@
-use crate::{config::DEFAULT_CLIENT_DATABASE_PATH, debug::DebugState};
+use crate::{debug::DebugState, utils::get_database};
 use bevy::prelude::*;
 use rusqlite::Connection;
 use std::{fmt::Debug, sync::Mutex};
@@ -8,9 +8,7 @@ pub struct DatabasePlugin;
 impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
         // TODO download db and persist in file storage in browsers
-        let conn = Mutex::new(
-            Connection::open(DEFAULT_CLIENT_DATABASE_PATH).expect("Failed to open database."),
-        );
+        let conn = Mutex::new(get_database().expect("Failed to open database."));
         app.insert_resource(Database(conn))
             .add_systems(Startup, init_db);
     }
