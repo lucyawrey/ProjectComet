@@ -43,6 +43,7 @@ cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
 
 ## To do
+- [ ] Move Bevy Client to webworker.
 - [ ] Persist SQLite database
 - [ ] Download initial SQLite database
 - [ ] Load content + assets from SQLite database

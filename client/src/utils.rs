@@ -1,13 +1,18 @@
 use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
-use bevy::tasks::block_on;
-use rusqlite::{Connection, OpenFlags};
-use sqlite_wasm_rs::export::{self as ffi, OpfsSAHPoolCfgBuilder};
-use wasm_bindgen::prelude::wasm_bindgen;
+use rusqlite::Connection;
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn get_database() -> Result<Connection, ()> {
     Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
 }
+
+// WASM Implementation
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+use rusqlite::OpenFlags;
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+use sqlite_wasm_rs::export::{self as ffi, OpfsSAHPoolCfgBuilder};
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn get_database() -> Result<Connection, ()> {
@@ -36,7 +41,7 @@ pub async fn install_opfs_sahpool() -> bool {
         .vfs_name("project_comet_vfs")
         .directory("")
         .build();
-    if let Err(_) = sqlite_wasm_rs::export::install_opfs_sahpool(Some(&config), false).await {
+    if let Err(_) = ffi::install_opfs_sahpool(Some(&config), false).await {
         return false;
     }
     if let Err(_) = Connection::open_with_flags_and_vfs(
