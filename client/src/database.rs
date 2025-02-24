@@ -9,8 +9,8 @@ impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
         // TODO download db and persist in file storage in browsers
         let conn = Mutex::new(get_database().expect("Failed to open database."));
-        app.insert_resource(Database(conn))
-            .add_systems(Startup, init_db);
+        app.insert_resource(Database(conn));
+        app.add_systems(Startup, init_db);
     }
 }
 

@@ -9,9 +9,9 @@ pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(DebugState::default())
-            .add_systems(Startup, setup)
-            .add_systems(Update, (fps_text_update_system, debug_text_update_system));
+        app.insert_resource(DebugState::default());
+        app.add_systems(Startup, setup);
+        app.add_systems(Update, (fps_text_update_system, debug_text_update_system));
     }
 }
 
