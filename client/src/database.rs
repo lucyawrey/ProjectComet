@@ -1,4 +1,4 @@
-use crate::{debug::DebugState, utils::get_database};
+use crate::{debug::DebugState, platform::get_database};
 use bevy::prelude::*;
 use rusqlite::Connection;
 use std::{fmt::Debug, sync::Mutex};

@@ -16,3 +16,6 @@ client/www/wasm*
 **.sqlite
 **.sqlite-wal
 **.sqlite-shm
+
+# Local Config
+**/.cargo
