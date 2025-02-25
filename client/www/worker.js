@@ -1,35 +1,36 @@
 console.log(`Created worker.`);
-import init, { install_opfs_sahpool, query } from "./wasm.js";
+import init, {
+  install_opfs_sahpool,
+  child_entry_point,
+  query,
+} from "./wasm.js";
 
 onmessage = (e) => {
-  if (e.data === "load") {
-    let initialised = new Promise(async (resolve) => {
-      // Initialize WASM module
-      await init().catch((err) => {
-        setTimeout(() => {
-          throw err;
-        });
+  let initialised = new Promise(async (resolve) => {
+    // Initialize WASM module
+    await init(e.data).catch((err) => {
+      setTimeout(() => {
         throw err;
       });
-      // Initialize SQLite OPFS
-      let res = await install_opfs_sahpool();
-      if (res !== "ok") {
-        throw res;
-      }
-      resolve();
+      throw err;
     });
+    // Initialize SQLite OPFS
+    let res = await install_opfs_sahpool();
+    if (res !== "ok") {
+      throw res;
+    }
+    resolve();
+  });
 
-    onmessage = async (e) => {
-      // This will queue further commands up until the module is fully initialised
-      await initialised;
-      if (e.data === "query") {
-        let out = await query();
-        self.postMessage(out);
-      } else {
-        self.postMessage("Invalid message.");
-      }
-    };
+  onmessage = async (e) => {
+    // This will queue further commands up until the module is fully initialised
+    await initialised;
+    if (e.data === "query") {
+      self.postMessage(await query());
+    } else {
+      child_entry_point(e.data);
+    }
+  };
 
-    self.postMessage("loading");
-  }
+  self.postMessage("loading");
 };

@@ -29,22 +29,22 @@ pub async fn install_opfs_sahpool() -> String {
 
 #[derive(Debug)]
 pub struct Person {
-    pub id: i32,
-    pub name: String,
-    pub data: Option<Vec<u8>>,
+    pub _id: i32,
+    pub _name: String,
+    pub _data: Option<Vec<u8>>,
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn query() -> String {
-    let db = match Connection::open_with_flags_and_vfs(
+    use web_sys::console;
+
+    let db = Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
         rusqlite::OpenFlags::default(),
         "project_comet_vfs",
-    ) {
-        Ok(db) => db,
-        Err(e) => return e.to_string(),
-    };
+    )
+    .unwrap();
 
     let _ignore_err = db.execute(
         "CREATE TABLE person (
@@ -60,9 +60,9 @@ pub fn query() -> String {
     let person_iter = query
         .query_map([], |row| {
             Ok(Person {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                data: row.get(2)?,
+                _id: row.get(0)?,
+                _name: row.get(1)?,
+                _data: row.get(2)?,
             })
         })
         .unwrap();
@@ -74,12 +74,22 @@ pub fn query() -> String {
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
-struct Work {
+pub struct Work {
     func: Box<dyn FnOnce() + Send>,
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
-pub fn worker_execute(
+pub fn run(
+    worker: web_sys::Worker,
+    f: impl FnOnce() + Send + 'static,
+) -> Result<(), wasm_bindgen::JsValue> {
+    let _worker = execute(worker, f)?;
+    // reclaim_on_message(worker); set callback
+    Ok(())
+}
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+fn execute(
     worker: web_sys::Worker,
     f: impl FnOnce() + Send + 'static,
 ) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {

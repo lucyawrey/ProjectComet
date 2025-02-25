@@ -36,6 +36,7 @@ fn main() {}
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
+    use platform::run;
     use wasm_bindgen::{prelude::Closure, JsCast};
     use web_sys::{console, MessageEvent, Worker, WorkerOptions, WorkerType};
 
@@ -45,17 +46,24 @@ pub fn init_app() {
     console::log_1(&"WASM - Creating worker.".into());
 
     let callback: Closure<dyn FnMut(MessageEvent)> = Closure::new(move |event: MessageEvent| {
-        let res = event.data().as_string().unwrap();
-        match res.as_str() {
-            "loading" => {
+        let data = event.data();
+        if let Some(text) = data.as_string() {
+            if text.as_str() == "loading" {
                 console::log_1(&"WASM - Worker loading...".into());
+                return;
             }
-            _ => console::log_1(&format!("WASM\n{}", res).into()),
         }
+        console::log_1(&"WASM".into());
+        console::log_1(&data);
     });
     worker.set_onmessage(Some(callback.as_ref().unchecked_ref()));
-    let _ = worker.post_message(&"load".into()).unwrap();
-    let _ = worker.post_message(&"query".into()).unwrap();
+
+    let _ = worker.post_message(&wasm_bindgen::module());
+
+    let _ = worker.post_message(&"query".into());
+    let _ = run(worker, || {
+        console::log_1(&"WASM - Worker closure test.".into());
+    });
 
     app();
 }
