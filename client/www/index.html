@@ -22,12 +22,11 @@
       display: block;
     }
   </style>
+  <script src="./wasm.js"></script>
   <script type="module">
-    import init, { init_app } from "./wasm.js";
-
-    await init();
+    await wasm_bindgen();
     try {
-      init_app();
+      wasm_bindgen.init_app();
     } catch(e) {
       if (!e.message.startsWith("Using exceptions for control flow")) {
         throw e;

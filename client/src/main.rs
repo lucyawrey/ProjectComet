@@ -38,11 +38,9 @@ fn main() {}
 pub fn init_app() {
     use platform::run;
     use wasm_bindgen::{prelude::Closure, JsCast};
-    use web_sys::{console, MessageEvent, Worker, WorkerOptions, WorkerType};
+    use web_sys::{console, js_sys, MessageEvent, Worker};
 
-    let options = WorkerOptions::new();
-    options.set_type(WorkerType::Module);
-    let worker = Worker::new_with_options("./worker.js", &options).unwrap();
+    let worker = Worker::new("./worker.js").unwrap();
     console::log_1(&"WASM - Creating worker.".into());
 
     let callback: Closure<dyn FnMut(MessageEvent)> = Closure::new(move |event: MessageEvent| {
@@ -58,11 +56,15 @@ pub fn init_app() {
     });
     worker.set_onmessage(Some(callback.as_ref().unchecked_ref()));
 
-    let _ = worker.post_message(&wasm_bindgen::module());
+    // With a worker spun up send it the module/memory so it can start instantiating the Wasm module. Later it might receive further messages about code to run on the Wasm module.
+    let array = js_sys::Array::new();
+    array.push(&wasm_bindgen::module());
+    array.push(&wasm_bindgen::memory());
+    let _ = worker.post_message(&array);
 
     let _ = worker.post_message(&"query".into());
-    let _ = run(worker, || {
-        console::log_1(&"WASM - Worker closure test.".into());
+    let _ = run(worker, move || {
+        console::log_1(&"WASM - Inside callback.".into());
     });
 
     app();

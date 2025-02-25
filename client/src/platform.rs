@@ -37,8 +37,6 @@ pub struct Person {
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn query() -> String {
-    use web_sys::console;
-
     let db = Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
         rusqlite::OpenFlags::default(),
@@ -82,16 +80,6 @@ pub struct Work {
 pub fn run(
     worker: web_sys::Worker,
     f: impl FnOnce() + Send + 'static,
-) -> Result<(), wasm_bindgen::JsValue> {
-    let _worker = execute(worker, f)?;
-    // reclaim_on_message(worker); set callback
-    Ok(())
-}
-
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-fn execute(
-    worker: web_sys::Worker,
-    f: impl FnOnce() + Send + 'static,
 ) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {
     use wasm_bindgen::JsValue;
 
@@ -111,12 +99,12 @@ fn execute(
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn child_entry_point(ptr: u32) -> Result<(), wasm_bindgen::JsValue> {
-    use wasm_bindgen::{JsCast, JsValue};
+    use wasm_bindgen::JsCast;
     use web_sys::{js_sys, DedicatedWorkerGlobalScope};
 
     let ptr = unsafe { Box::from_raw(ptr as *mut Work) };
     let global = js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>();
     (ptr.func)();
-    global.post_message(&JsValue::undefined())?;
+    global.post_message(&"callback_done".into())?;
     Ok(())
 }

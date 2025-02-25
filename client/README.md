@@ -1,7 +1,16 @@
 # Game Client
 
 ## Requirements
-- Rust tooolshain
+- Rust toolchain
+- Python
+
+## Installing Runtime Dependancies
+### Most Linux Systems
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup default nightly
+rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+```
 
 ## Running the Client
 ```sh
@@ -10,11 +19,12 @@ cargo run
 
 ## Building WASM Target for Development
 ```sh
-cargo build --target wasm32-unknown-unknown
-wasm-bindgen --no-typescript --target web \
+RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+mutable-globals' cargo build --target wasm32-unknown-unknown -Z build-std=panic_abort,std
+wasm-bindgen --no-typescript --target no-modules \
     --out-dir ./www \
     --out-name "wasm" \
     ./target/wasm32-unknown-unknown/debug/project_comet_client.wasm
+python3 server.py
 ```
 
 ## Building
@@ -25,7 +35,7 @@ mkdir -p ../out/client && cp ./target/release/project_comet_client "$_"
 
 ## Building WASM Target
 ```sh
-cargo build --release --target wasm32-unknown-unknown
+RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+mutable-globals' cargo build --release --target wasm32-unknown-unknown -Z build-std=panic_abort,std
 wasm-bindgen --no-typescript --target web \
     --out-dir ../out/client \
     --out-name "wasm" \

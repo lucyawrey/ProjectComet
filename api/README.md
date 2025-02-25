@@ -1,7 +1,7 @@
 # Game API Service
 
 ## Requirements
-- Rust tooolshain
+- Rust toolchain
 - libssl
 - protobuf compiler
 - libmagic
