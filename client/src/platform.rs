@@ -6,50 +6,58 @@ pub fn get_database() -> Result<Connection, ()> {
     Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
 }
 
-// WASM Implementation
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-use rusqlite::OpenFlags;
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-use sqlite_wasm_rs::export::{self as ffi, OpfsSAHPoolCfgBuilder};
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-use wasm_bindgen::prelude::wasm_bindgen;
-
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn get_database() -> Result<Connection, ()> {
-    // let mut db = std::ptr::null_mut();
-    // let _ret = unsafe {
-    //     ffi::sqlite3_open_v2(
-    //         c"project_comet_vfs.db".as_ptr().cast(),
-    //         &mut db as *mut _,
-    //         ffi::SQLITE_OPEN_READWRITE | ffi::SQLITE_OPEN_CREATE,
-    //         std::ptr::null(),
-    //     )
-    // };
-    // Connection::open_with_flags_and_vfs(
-    //     DEFAULT_CLIENT_DATABASE_PATH,
-    //     OpenFlags::default(),
-    //     "project_comet_vfs",
-    // )
-    // .map_err(|_e| ())
     Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
-#[wasm_bindgen]
-pub async fn install_opfs_sahpool() -> bool {
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub async fn install_opfs_sahpool() -> String {
+    use rusqlite::{
+        ffi::{self, OpfsSAHPoolCfgBuilder},
+        OpenFlags,
+    };
+
     let config = OpfsSAHPoolCfgBuilder::new()
         .vfs_name("project_comet_vfs")
         .directory("")
         .build();
-    if let Err(_) = ffi::install_opfs_sahpool(Some(&config), false).await {
-        return false;
+    if let Err(e) = ffi::install_opfs_sahpool(Some(&config), false).await {
+        return e.to_string();
     }
-    if let Err(_) = Connection::open_with_flags_and_vfs(
+    let db = match Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
         OpenFlags::default(),
         "project_comet_vfs",
     ) {
-        return false;
+        Ok(db) => db,
+        Err(e) => return e.to_string(),
+    };
+
+    let _ignore_err = db.execute(
+        "CREATE TABLE person (
+            id   INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            data BLOB
+        )",
+        (), // empty list of parameters.
+    );
+    db.execute("INSERT INTO person (name) VALUES (?1)", ("Lucy",))
+        .unwrap();
+    let mut query = db.prepare("SELECT id, name, data FROM person").unwrap();
+    let person_iter = query
+        .query_map([], |row| {
+            Ok(crate::database::Person {
+                _id: row.get(0)?,
+                _name: row.get(1)?,
+                _data: row.get(2)?,
+            })
+        })
+        .unwrap();
+    let mut out = String::new();
+    for person in person_iter {
+        out = out + &format!("{:?}\n", person.unwrap())
     }
-    true
+    out
 }

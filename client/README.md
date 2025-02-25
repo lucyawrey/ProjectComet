@@ -43,8 +43,9 @@ cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
 
 ## To do
-- [ ] Persist SQLite database via webworker + OPFS
-- [ ] Download initial SQLite database
+- [ ] Create database API on top of Native SQLite and WASM Worker SQLite.
+- [ ] Worker loading without `thread::sleep`.
+- [ ] Download initial SQLite database to OPFS
 - [ ] Load content + assets from SQLite database
 - [ ] Sync content + assets from API database
-- [ ] Move Bevy Client to WebWorker, very difficult to get working at all, especially so with any user input.
+- [ ] Move Bevy Client to WebWorker, only if new easier method is created.

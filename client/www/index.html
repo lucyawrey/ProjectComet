@@ -23,15 +23,16 @@
     }
   </style>
   <script type="module">
-    import init from "./wasm.js";
+    import init, { init_app } from "./wasm.js";
 
-    init().catch((error) => {
-      if (!error.message.startsWith("Using exceptions for control flow, don't mind me. This isn't actually an error!")) {
-        throw error;
+    await init();
+    try {
+      init_app();
+    } catch(e) {
+      if (!e.message.startsWith("Using exceptions for control flow")) {
+        throw e;
       }
-    });
-
-    const worker = new Worker("worker.js", { type: "module" });
+    }
   </script>
   <main>
     <h1>Project Comet</h1>
