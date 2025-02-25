@@ -47,8 +47,8 @@ pub fn init_app() {
     let callback: Closure<dyn FnMut(MessageEvent)> = Closure::new(move |event: MessageEvent| {
         let res = event.data().as_string().unwrap();
         match res.as_str() {
-            "loaded" => {
-                console::log_1(&"WASM - Worker loaded.".into());
+            "loading" => {
+                console::log_1(&"WASM - Worker loading...".into());
             }
             _ => console::log_1(&format!("WASM\n{}", res).into()),
         }

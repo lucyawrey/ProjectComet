@@ -1,16 +1,26 @@
-console.log(`Initialized worker!`);
+console.log(`Created worker.`);
 import init, { install_opfs_sahpool } from "./wasm.js";
 
-addEventListener("message", async (event) => {
-  let cmd = event.data;
-  if (cmd === "load") {
-    await init();
-    //self.postMessage("loaded");
-    let out = await install_opfs_sahpool();
-    self.postMessage(out);
-  } else if (cmd === "query") {
-    self.postMessage(
-      "Need to move query logic here once we can ensure `load` runs first."
-    );
+onmessage = (e) => {
+  if (e.data === "load") {
+    let initialised = init().catch((err) => {
+      setTimeout(() => {
+        throw err;
+      });
+      throw err;
+    });
+
+    onmessage = async (e) => {
+      // This will queue further commands up until the module is fully initialised:
+      await initialised;
+      if (e.data === "query") {
+        let out = await install_opfs_sahpool();
+        self.postMessage(out);
+      } else {
+        self.postMessage("Invalid message.");
+      }
+    };
+
+    self.postMessage("loading");
   }
-});
+};

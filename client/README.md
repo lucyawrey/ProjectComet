@@ -44,7 +44,6 @@ cargo install -f wasm-bindgen-cli --version 0.2.100
 
 ## To do
 - [ ] Create database API on top of Native SQLite and WASM Worker SQLite.
-- [ ] Worker loading without `thread::sleep`.
 - [ ] Download initial SQLite database to OPFS
 - [ ] Load content + assets from SQLite database
 - [ ] Sync content + assets from API database
