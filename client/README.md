@@ -43,8 +43,8 @@ cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
 
 ## To do
-- [ ] Move Bevy Client to webworker.
-- [ ] Persist SQLite database
+- [ ] Persist SQLite database via webworker + OPFS
 - [ ] Download initial SQLite database
 - [ ] Load content + assets from SQLite database
 - [ ] Sync content + assets from API database
+- [ ] Move Bevy Client to WebWorker, very difficult to get working at all, especially so with any user input.
