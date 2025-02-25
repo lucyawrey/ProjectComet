@@ -35,8 +35,9 @@ pub struct Person {
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
-#[wasm_bindgen::prelude::wasm_bindgen]
-pub fn query() -> String {
+pub fn query() {
+    use web_sys::console;
+
     let db = Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
         rusqlite::OpenFlags::default(),
@@ -68,7 +69,7 @@ pub fn query() -> String {
     for person in person_iter {
         out = out + &format!("{:?}\n", person.unwrap())
     }
-    out
+    console::log_1(&out.into());
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
@@ -78,9 +79,9 @@ pub struct Work {
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn run(
-    worker: web_sys::Worker,
+    worker: &web_sys::Worker,
     f: impl FnOnce() + Send + 'static,
-) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {
+) -> Result<&web_sys::Worker, wasm_bindgen::JsValue> {
     use wasm_bindgen::JsValue;
 
     let work = Box::new(Work { func: Box::new(f) });

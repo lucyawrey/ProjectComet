@@ -21,12 +21,8 @@ onmessage = (e) => {
   onmessage = async (e) => {
     // This will queue further commands up until the module is fully initialised
     await initialised;
-    if (typeof e.data === "string" && e.data === "query") {
-      self.postMessage(await wasm_bindgen.query());
-    } else {
-      console.log(e.data);
-      wasm_bindgen.child_entry_point(e.data);
-    }
+    console.log(e.data);
+    wasm_bindgen.child_entry_point(e.data);
   };
 
   self.postMessage("loading");

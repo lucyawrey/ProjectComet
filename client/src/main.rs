@@ -36,7 +36,7 @@ fn main() {}
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
-    use platform::run;
+    use platform::{query, run};
     use wasm_bindgen::{prelude::Closure, JsCast};
     use web_sys::{console, js_sys, MessageEvent, Worker};
 
@@ -51,8 +51,7 @@ pub fn init_app() {
                 return;
             }
         }
-        console::log_1(&"WASM".into());
-        console::log_1(&data);
+        console::log_2(&"WASM -".into(), &data);
     });
     worker.set_onmessage(Some(callback.as_ref().unchecked_ref()));
 
@@ -62,10 +61,10 @@ pub fn init_app() {
     array.push(&wasm_bindgen::memory());
     let _ = worker.post_message(&array);
 
-    let _ = worker.post_message(&"query".into());
-    let _ = run(worker, move || {
+    let _ = run(&worker, || {
         console::log_1(&"WASM - Inside callback.".into());
     });
+    let _ = run(&worker, query);
 
     app();
 }
