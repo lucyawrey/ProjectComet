@@ -27,6 +27,13 @@ pub async fn install_opfs_sahpool() -> String {
     }
 }
 
+#[derive(Debug)]
+pub struct Person {
+    pub id: i32,
+    pub name: String,
+    pub data: Option<Vec<u8>>,
+}
+
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn query() -> String {
@@ -52,10 +59,10 @@ pub fn query() -> String {
     let mut query = db.prepare("SELECT id, name, data FROM person").unwrap();
     let person_iter = query
         .query_map([], |row| {
-            Ok(crate::database::Person {
-                _id: row.get(0)?,
-                _name: row.get(1)?,
-                _data: row.get(2)?,
+            Ok(Person {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                data: row.get(2)?,
             })
         })
         .unwrap();

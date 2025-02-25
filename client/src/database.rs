@@ -17,16 +17,9 @@ impl Plugin for DatabasePlugin {
 #[derive(Resource)]
 pub struct Database(pub Mutex<Connection>);
 
-#[derive(Debug)]
-pub struct Person {
-    pub _id: i32,
-    pub _name: String,
-    pub _data: Option<Vec<u8>>,
-}
-
 pub fn init_db(db: Res<Database>, mut debug: ResMut<DebugState>) {
     let db = db.0.lock().unwrap();
-    let _ignore_err = db.execute(
+    let _err = db.execute(
         "CREATE TABLE person (
             id   INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
@@ -34,20 +27,5 @@ pub fn init_db(db: Res<Database>, mut debug: ResMut<DebugState>) {
         )",
         (), // empty list of parameters.
     );
-    db.execute("INSERT INTO person (name) VALUES (?1)", ("Lucy",))
-        .unwrap();
-
-    let mut query = db.prepare("SELECT id, name, data FROM person").unwrap();
-    let person_iter = query
-        .query_map([], |row| {
-            Ok(Person {
-                _id: row.get(0)?,
-                _name: row.get(1)?,
-                _data: row.get(2)?,
-            })
-        })
-        .unwrap();
-    for person in person_iter {
-        debug.print(person.unwrap(), Some(Color::linear_rgb(1.0, 0.2, 0.2)));
-    }
+    debug.print("Database Ready.", Some(Color::linear_rgb(1.0, 0.2, 0.2)));
 }
