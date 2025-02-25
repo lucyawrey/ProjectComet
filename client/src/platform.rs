@@ -14,21 +14,25 @@ pub fn get_database() -> Result<Connection, ()> {
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub async fn install_opfs_sahpool() -> String {
-    use rusqlite::{
-        ffi::{self, OpfsSAHPoolCfgBuilder},
-        OpenFlags,
-    };
+    use rusqlite::ffi::{self, OpfsSAHPoolCfgBuilder};
 
     let config = OpfsSAHPoolCfgBuilder::new()
         .vfs_name("project_comet_vfs")
         .directory("")
         .build();
     if let Err(e) = ffi::install_opfs_sahpool(Some(&config), false).await {
-        return e.to_string();
+        e.to_string()
+    } else {
+        "ok".to_string()
     }
+}
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub fn query() -> String {
     let db = match Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
-        OpenFlags::default(),
+        rusqlite::OpenFlags::default(),
         "project_comet_vfs",
     ) {
         Ok(db) => db,
@@ -60,4 +64,42 @@ pub async fn install_opfs_sahpool() -> String {
         out = out + &format!("{:?}\n", person.unwrap())
     }
     out
+}
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+struct Work {
+    func: Box<dyn FnOnce() + Send>,
+}
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+pub fn worker_execute(
+    worker: web_sys::Worker,
+    f: impl FnOnce() + Send + 'static,
+) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {
+    use wasm_bindgen::JsValue;
+
+    let work = Box::new(Work { func: Box::new(f) });
+    let ptr = Box::into_raw(work);
+    match worker.post_message(&JsValue::from(ptr as u32)) {
+        Ok(()) => Ok(worker),
+        Err(e) => {
+            unsafe {
+                drop(Box::from_raw(ptr));
+            }
+            Err(e)
+        }
+    }
+}
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub fn child_entry_point(ptr: u32) -> Result<(), wasm_bindgen::JsValue> {
+    use wasm_bindgen::{JsCast, JsValue};
+    use web_sys::{js_sys, DedicatedWorkerGlobalScope};
+
+    let ptr = unsafe { Box::from_raw(ptr as *mut Work) };
+    let global = js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>();
+    (ptr.func)();
+    global.post_message(&JsValue::undefined())?;
+    Ok(())
 }
