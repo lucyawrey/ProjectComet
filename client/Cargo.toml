@@ -26,6 +26,7 @@ web-sys = { version = "0.3.77", features = [
     "WorkerOptions",
     "WorkerType",
     "DedicatedWorkerGlobalScope",
+    "Crypto",
 ] }
 
 # Enable only a small amount of optimization in debug mode.

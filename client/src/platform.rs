@@ -40,8 +40,10 @@ pub fn query() {
     )
     .unwrap();
 
+    let name = get_worker_scope().crypto().unwrap().random_uuid();
+
     // Breaks on second run due to UNIQUE constraint.
-    db.execute("INSERT INTO content (name) VALUES ($1)", ["Diamond"])
+    db.execute("INSERT INTO content (name) VALUES ($1)", [name])
         .unwrap();
 
     let mut query = db.prepare("SELECT name FROM content").unwrap();
@@ -55,7 +57,7 @@ pub fn query() {
     for name in content_names {
         out = out + &name.unwrap() + "\n";
     }
-    console::log_1(&format!("WASM -\n{}", out).into());
+    console::log_1(&format!("WASM - Database content table names\n{}", out).into());
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
@@ -99,6 +101,14 @@ pub fn spawn_worker(
     worker.post_message(&array)?;
 
     Ok(worker)
+}
+
+#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+pub fn get_worker_scope() -> web_sys::DedicatedWorkerGlobalScope {
+    use wasm_bindgen::JsCast;
+    use web_sys::{js_sys, DedicatedWorkerGlobalScope};
+
+    js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>()
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
@@ -165,13 +175,10 @@ pub async fn install_opfs_sahpool(initial_db_file: Vec<u8>) -> Result<(), wasm_b
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn child_entry_point(ptr: u32) -> Result<(), wasm_bindgen::JsValue> {
-    use wasm_bindgen::JsCast;
-    use web_sys::{js_sys, DedicatedWorkerGlobalScope};
-
     let ptr = unsafe { Box::from_raw(ptr as *mut Work) };
     (ptr.func)();
 
-    let global = js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>();
-    global.post_message(&"callback_done".into())?;
+    let worker_scope = get_worker_scope();
+    worker_scope.post_message(&"callback_done".into())?;
     Ok(())
 }

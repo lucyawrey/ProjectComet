@@ -8,7 +8,8 @@
 ## To do
 - [ ] Move library code to `lib.rs`.
 - [ ] Setup cargo workspace.
-- [ ] Create web server project, run scripts and build scripts.
+- [ ] Create web server: static host `client_data.sqlite` and game web client, either python or axum.
+- [ ] Create run scripts and build scripts, possibly in python.
 - [ ] Containerize aplication services: `api`, `server`, `client` (WASM builder + Native buolder), and `grpcui`.
 - [ ] Move more information to main README.
 - [ ] Cache `access_token` authentication based on SSL certificate or lochost/VPN port.
