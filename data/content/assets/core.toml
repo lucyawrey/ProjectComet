@@ -1,0 +1,24 @@
+[[asset]]
+id = 2918852900216176636
+path = "/music/casino_night.flac"
+source_path = "/assets/casino_night.flac"
+
+[[asset]]
+id = 2918860121046056956
+path = "/fonts/FiraMono-Medium.ttf"
+source_path = "/assets/FiraMono-Medium.ttf"
+
+[[asset]]
+id = 2918863104404160508
+path = "/images/gold.png"
+source_path = "/assets/gold.png"
+
+[[asset]]
+id = 2918784413758193660
+path = "/images/stella.png"
+source_path = "/assets/stella.png"
+
+[[asset]]
+id = 2918853005140885500
+path = "/text/text.json"
+source_path = "/assets/text.json"

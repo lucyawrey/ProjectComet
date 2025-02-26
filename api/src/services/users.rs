@@ -5,7 +5,7 @@ use crate::{
     },
     model::fields::Role,
     queries::{authentication::user_login_query, character::create_character_query},
-    utils::transport::authenticate,
+    utils::{authentication::id_to_base32, transport::authenticate},
 };
 use sonyflake::Sonyflake;
 use sqlx::pool::Pool;
@@ -43,6 +43,8 @@ impl Users for UsersService {
             session_token,
             session_user: Some(User {
                 id: session_user.id,
+                handle: id_to_base32(session_user.handle)
+                    .ok_or(Status::internal("Failed to encode handle."))?,
                 updated_at: session_user.updated_at.and_utc().timestamp(),
                 username: session_user.username,
                 role: session_user.role.into(),
@@ -119,6 +121,7 @@ impl Users for UsersService {
         println!("New DB Character: {:?}", new);
         Ok(Response::new(Character {
             id: new.id,
+            handle: id_to_base32(new.handle).ok_or(Status::internal("Failed to encode handle."))?,
             updated_at: new.updated_at.and_utc().timestamp(),
             name: new.name,
             role: new.role.into(),

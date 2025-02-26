@@ -4,4 +4,4 @@ name = "Gold"
 content_type = 100
 content_subtype = 100
 data = { stack_size = 999999999, tradability = 1, is_unique = false, is_soulbound = false }
-asset_ids = [2918863104404160508, 2918784413758193660]
+asset_ids = [2918863104404160508]

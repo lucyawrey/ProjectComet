@@ -3,7 +3,9 @@ use crate::{
         fields::Role,
         tables::{Character, User},
     },
-    utils::{generate_random_name, next_id, validate_and_format_name},
+    utils::{
+        authentication::get_random_id, generate_random_name, next_id, validate_and_format_name,
+    },
 };
 use sonyflake::Sonyflake;
 use sqlx::{query_as, Pool, Sqlite};
@@ -34,10 +36,13 @@ pub async fn create_character_query(
     };
 
     let (id, created_at, _) = next_id(&sf)?;
+    // TODO poll for uniqueness
+    let handle = get_random_id();
     let new_character = query_as::<_, Character>(
-            "INSERT INTO character (id, updated_at, name, role, home_world_id, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+            "INSERT INTO character (id, handle, updated_at, name, role, home_world_id, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
         )
         .bind(id)
+        .bind(handle)
         .bind(created_at)
         .bind(name)
         .bind(role)

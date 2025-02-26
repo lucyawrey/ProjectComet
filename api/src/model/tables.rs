@@ -21,7 +21,8 @@ pub struct GameInfo {
 /* User Service Schema */
 #[derive(Debug, FromRow)]
 pub struct User {
-    pub id: i64, // Should not be exposed to other clients. Snowflake ID, alias of rowid
+    pub id: i64,     // Should not be exposed to other clients. Snowflake ID, alias of rowid
+    pub handle: i64, // Secondary user ID used for anonymity and friend requests.
     pub updated_at: NaiveDateTime, // Unix timestamp in seconds
     pub username: String, // Should not be exposed to other clients. // Unique no case
     pub role: Role,
@@ -82,6 +83,7 @@ pub struct World {
 #[derive(Debug, FromRow)]
 pub struct Character {
     pub id: i64,                   // Snowflake ID, alias of rowid
+    pub handle: i64,               // Secondary character ID used for anonymity and friend requests.
     pub updated_at: NaiveDateTime, // Unix timestamp in seconds
     pub name: String, // Unique no case with `home_world_id`. Character is initially created with a silly random name.
     pub role: Role, // Same type as `User.role`, `Character.role` can be a lower rank than `User.role` but should never be higher than it.
@@ -228,7 +230,7 @@ pub struct Asset {
     pub data: AssetData, // Binary blob or string representation of file saved to virtual filesystem
     pub size: i64,    // Size of data in bytes
     pub is_user_generated: bool,
-    pub creator_user_id: Option<i64>, // Should not be exposed to the client. Snowflake ID, referances a `User`
+    pub creator_user_handle: Option<i64>,
 }
 
 #[derive(Debug, FromRow)]
@@ -246,5 +248,5 @@ pub struct Content {
     pub asset_id_4: Option<i64>, // Snowflake ID, referances an `Asset`
     pub is_user_generated: bool,
     pub base_content_id: Option<i64>,
-    pub creator_user_id: Option<i64>, // Should not be exposed to the client. Snowflake ID, referances a `User`
+    pub creator_user_handle: Option<i64>,
 }

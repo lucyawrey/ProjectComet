@@ -10,7 +10,8 @@ use crate::{
     utils::{
         append_secret_to_file,
         authentication::{
-            generate_access_token, generate_password, generate_recovery_code, hash_password,
+            generate_access_token, generate_password, generate_recovery_code, get_random_id,
+            hash_password,
         },
         get_magic_cookie, read_asset_file, read_dir_recursive,
     },
@@ -21,7 +22,18 @@ use toml::{map::Map, Table, Value};
 
 const NO_VALUE: Value = Value::Boolean(false);
 
-pub async fn data_import(db: &Pool<Sqlite>) -> Result<GameVersion, String> {
+pub async fn data_import(
+    db: &Pool<Sqlite>,
+    set_table_keys: Option<&[&str]>,
+) -> Result<GameVersion, String> {
+    let table_keys = set_table_keys.unwrap_or(&[
+        "asset",
+        "game_server",
+        "world",
+        "content",
+        "user",
+        "access_token",
+    ]);
     let magic_cookie = get_magic_cookie();
     let mut data_toml_string = String::new();
     let files = read_dir_recursive("../data/content").unwrap();
@@ -43,20 +55,13 @@ pub async fn data_import(db: &Pool<Sqlite>) -> Result<GameVersion, String> {
         return Ok(version);
     }
 
-    for key in [
-        "asset",
-        "game_server",
-        "world",
-        "content",
-        "user",
-        "access_token",
-    ] {
+    for key in table_keys {
         let err_text = format!("Table definiton invalid for table: '{}'", key);
-        let value = data.get(key).ok_or(&err_text)?;
+        let value = data.get(*key).ok_or(&err_text)?;
         for entry in value.as_array().ok_or(&err_text)? {
             let row = entry.as_table().ok_or(&err_text)?;
 
-            match key {
+            match *key {
                 "asset" => import_asset_row(db, &magic_cookie, row)
                     .await
                     .map_err(|e| format!("{}. {}", &err_text, e))?,
@@ -181,11 +186,14 @@ pub async fn import_user_row(db: &Pool<Sqlite>, row: &Map<String, Value>) -> Res
         .fetch_one(db)
         .await
         .is_ok();
+    // TODO poll for uniqueness
+    let handle = get_random_id();
 
     let user_row = query_as::<_, User>(
-            "INSERT INTO user (id, username, role) VALUES ($1, $2, $3) ON CONFLICT(id) DO UPDATE SET username=excluded.username, role=excluded.role, updated_at=(unixepoch()) RETURNING *",
+            "INSERT INTO user (id, handle, username, role) VALUES ($1, $2, $3, $4) ON CONFLICT(id) DO UPDATE SET username=excluded.username, role=excluded.role, updated_at=(unixepoch()) RETURNING *",
         )
         .bind(id)
+        .bind(handle)
         .bind(row.get("username").unwrap_or(&NO_VALUE).as_str())
         .bind(row.get("role").unwrap_or(&NO_VALUE).as_integer())
         .fetch_one(db)

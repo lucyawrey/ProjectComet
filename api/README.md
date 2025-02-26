@@ -6,16 +6,12 @@
 - protobuf compiler
 - libmagic
 
-## Running Migrations
-```sh
-cargo run --bin script migrate
-```
-
 ## Running the API
 ```sh
 cargo run --bin script migrate
 cargo run
 ```
+
 ## Building
 ```sh
 cargo run --bin script migrate
@@ -46,7 +42,7 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 
 ## To do Goals
 ### Current Phase
-- [ ] Implement `client_data.sqlite` migration. Better seperate script code.
+- [ ] Better seperate script code.
 - [ ] Implement business logic, queries, and API endpoints for `user`s, `access_tokens`s, and general authetication.
 - [ ] Fix standalone release build breakage, likey results from writing to the SQLite database.
 - [ ] Fix dockerfile build.
@@ -60,6 +56,6 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 - [ ] Proper server-wide dependancy injection (for things like Database and ID Generator).
 - [ ] Add a waiting period for User and Character deletion.
 - [ ] Implement a way to return Soulbound items to binder after a timer on the API side.
-- [ ] Potentially migrate from SQLx to rusqlite.
+- [ ] Potentially move from SQLx to rusqlite.
 - [ ] Refactor TOML data importers to only update changed data.
 - [ ] Refactor JSON `FromRow` struct fields to support optional string passthrough without serialization.

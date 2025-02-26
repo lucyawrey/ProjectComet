@@ -145,7 +145,7 @@ pub fn read_asset_file(
     let size: i64 = data
         .len()
         .try_into()
-        .expect("Cannot read file too large for current 32 bit system.");
+        .expect("Cannot read file. Too large for 32 bit systems");
     if file_type.starts_with("text") || file_type.ends_with("json") {
         Ok((
             AssetData::String(

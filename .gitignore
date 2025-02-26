@@ -16,6 +16,7 @@ client/www/wasm*
 **.sqlite
 **.sqlite-wal
 **.sqlite-shm
+api/migrations/*_client_*.sql
 
 # Local Config
 **/.cargo

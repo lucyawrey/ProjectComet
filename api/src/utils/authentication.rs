@@ -84,25 +84,22 @@ pub fn generate_access_token(
     let bytes: [u8; 20] = get_random_bytes()?;
     let mut buf = [0u8; 100];
     let secret_base32 = base32ct::Base32Unpadded::encode(&bytes, &mut buf).ok()?;
-    let mut buf2 = [0u8; 100];
-    let id_base32 =
-        base32ct::Base32Unpadded::encode(&access_token_id.to_be_bytes(), &mut buf2).ok()?;
+
+    let base32_id = id_to_base32(access_token_id)?;
     let access_level_str = match access_level {
         AccessLevel::Default => "default",
         AccessLevel::GameServer => &format!("server:{}", game_server_id?),
         AccessLevel::Administrator => "admin",
     };
-    let token = format!("{}_{}_{}", access_level_str, id_base32, secret_base32);
+    let token = format!("{}_{}_{}", access_level_str, base32_id, secret_base32);
     let token_hash = hash_token(&token)?;
     Some((token, token_hash))
 }
 
 pub fn parse_access_token_id(access_token: &str) -> Option<i64> {
     let split: Vec<&str> = access_token.splitn(3, '_').collect();
-    let base_32_id = split.get(1)?;
-    let mut buf = [0u8; 8];
-    base32ct::Base32Unpadded::decode(base_32_id, &mut buf).ok()?;
-    Some(i64::from_be_bytes(buf))
+    let base32_id = split.get(1)?;
+    base32_to_id(base32_id)
 }
 
 pub fn generate_recovery_code() -> Option<(String, String)> {
@@ -111,6 +108,23 @@ pub fn generate_recovery_code() -> Option<(String, String)> {
     let code_base32 = base32ct::Base32Unpadded::encode(&bytes, &mut buf).ok()?;
     let code_hash = hash_token(code_base32)?;
     Some((code_base32.to_string(), code_hash))
+}
+
+pub fn get_random_id() -> Option<i64> {
+    let bytes: [u8; 8] = get_random_bytes()?;
+    Some(i64::from_be_bytes(bytes))
+}
+
+pub fn id_to_base32(id: i64) -> Option<String> {
+    let mut buf = [0u8; 100];
+    let encoded = base32ct::Base32Unpadded::encode(&id.to_be_bytes(), &mut buf).ok()?;
+    Some(encoded.to_owned())
+}
+
+pub fn base32_to_id(base32: &str) -> Option<i64> {
+    let mut buf = [0u8; 8];
+    base32ct::Base32Unpadded::decode(base32, &mut buf).ok()?;
+    Some(i64::from_be_bytes(buf))
 }
 
 pub async fn authenticate_from_token(db: &Pool<Sqlite>, token: Option<&str>) -> AuthStatus {

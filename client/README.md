@@ -53,7 +53,7 @@ cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
 
 ## To do
+- [ ] Create database API on top of Native SQLite and WASM Worker SQLite. Download `client_data.sqlite` on Native if it does not exist instead of creating it.
 - [ ] Setup Client API access
-- [ ] Create database API on top of Native SQLite and WASM Worker SQLite.
 - [ ] Load content + assets from SQLite database
 - [ ] Sync content + assets from API database
