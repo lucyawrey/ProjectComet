@@ -46,9 +46,8 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 
 ## To do Goals
 ### Current Phase
+- [ ] Implement `client_data.sqlite` migration. Better seperate script code.
 - [ ] Implement business logic, queries, and API endpoints for `user`s, `access_tokens`s, and general authetication.
-- [ ] Potentially migrate from SQLx to rusqlite.
-- [ ] Move database migrations into main API server startup.
 - [ ] Fix standalone release build breakage, likey results from writing to the SQLite database.
 - [ ] Fix dockerfile build.
 - [ ] Support serialization of SQLx Json convenience types.
@@ -61,5 +60,6 @@ go run github.com/fullstorydev/grpcui/cmd/grpcui@latest -plaintext 127.0.0.1:500
 - [ ] Proper server-wide dependancy injection (for things like Database and ID Generator).
 - [ ] Add a waiting period for User and Character deletion.
 - [ ] Implement a way to return Soulbound items to binder after a timer on the API side.
+- [ ] Potentially migrate from SQLx to rusqlite.
 - [ ] Refactor TOML data importers to only update changed data.
 - [ ] Refactor JSON `FromRow` struct fields to support optional string passthrough without serialization.

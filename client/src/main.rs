@@ -36,35 +36,12 @@ fn main() {}
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
-    use platform::{query, run};
-    use wasm_bindgen::{prelude::Closure, JsCast};
-    use web_sys::{console, js_sys, MessageEvent, Worker};
+    use platform::{get_callback_closure, query, run_in_worker, spawn_worker};
 
-    let worker = Worker::new("./worker.js").unwrap();
-    console::log_1(&"WASM - Creating worker.".into());
-
-    let callback: Closure<dyn FnMut(MessageEvent)> = Closure::new(move |event: MessageEvent| {
-        let data = event.data();
-        if let Some(text) = data.as_string() {
-            if text.as_str() == "loading" {
-                console::log_1(&"WASM - Worker loading...".into());
-                return;
-            }
-        }
-        console::log_2(&"WASM -".into(), &data);
-    });
-    worker.set_onmessage(Some(callback.as_ref().unchecked_ref()));
-
-    // With a worker spun up send it the module/memory so it can start instantiating the Wasm module. Later it might receive further messages about code to run on the Wasm module.
-    let array = js_sys::Array::new();
-    array.push(&wasm_bindgen::module());
-    array.push(&wasm_bindgen::memory());
-    let _ = worker.post_message(&array);
-
-    let _ = run(&worker, || {
-        console::log_1(&"WASM - Inside callback.".into());
-    });
-    let _ = run(&worker, query);
+    // Callback ownership needs to stay here to keep it in scope for future messages.
+    let callback = get_callback_closure();
+    let worker = spawn_worker(&callback).expect("Failed to initialize web worker.");
+    let _ = run_in_worker(&worker, query);
 
     app();
 }

@@ -53,8 +53,7 @@ cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
 
 ## To do
+- [ ] Setup Client API access
 - [ ] Create database API on top of Native SQLite and WASM Worker SQLite.
-- [ ] Download initial SQLite database to OPFS
 - [ ] Load content + assets from SQLite database
 - [ ] Sync content + assets from API database
-- [ ] Move Bevy Client to WebWorker, only if new easier method is created.
