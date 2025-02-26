@@ -6,7 +6,10 @@
 - Data - Collection of game data (.toml documents) and assets stored in this repo. Both are consumed by the API project and imported into an SQLite database.
 
 ## To do
-- [ ] Web server project, run script and build script.
+- [ ] Move library code to `lib.rs`.
+- [ ] Setup cargo workspace.
+- [ ] Create web server project, run scripts and build scripts.
 - [ ] Containerize aplication services: `api`, `server`, `client` (WASM builder + Native buolder), and `grpcui`.
+- [ ] Move more information to main README.
 - [ ] Cache `access_token` authentication based on SSL certificate or lochost/VPN port.
 - [ ] Statically link non-cargo dependancies. 
