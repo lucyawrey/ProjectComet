@@ -1,14 +1,26 @@
 use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
-use rusqlite::Connection;
+use rusqlite::{Connection, OpenFlags};
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn get_database() -> Result<Connection, ()> {
-    Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
+    Connection::open_with_flags(
+        DEFAULT_CLIENT_DATABASE_PATH,
+        OpenFlags::SQLITE_OPEN_READ_WRITE
+            | OpenFlags::SQLITE_OPEN_URI
+            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|_e| ())
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn get_database() -> Result<Connection, ()> {
-    Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
+    Connection::open_with_flags(
+        DEFAULT_CLIENT_DATABASE_PATH,
+        OpenFlags::SQLITE_OPEN_READ_WRITE
+            | OpenFlags::SQLITE_OPEN_URI
+            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|_e| ())
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
@@ -28,7 +40,6 @@ pub fn game_info_query(db: &Connection) -> Result<(String, String), String> {
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn query() {
     use crate::config::DEFAULT_WASM_VFS_NAME;
-    use rusqlite::OpenFlags;
     use web_sys::console;
 
     let db = Connection::open_with_flags_and_vfs(
@@ -42,7 +53,6 @@ pub fn query() {
 
     let name = get_worker_scope().crypto().unwrap().random_uuid();
 
-    // Breaks on second run due to UNIQUE constraint.
     db.execute("INSERT INTO content (name) VALUES ($1)", [name])
         .unwrap();
 
@@ -135,10 +145,7 @@ pub fn run_in_worker(
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub async fn install_opfs_sahpool(initial_db_file: Vec<u8>) -> Result<(), wasm_bindgen::JsValue> {
     use crate::config::{CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_WASM_VFS_NAME};
-    use rusqlite::{
-        ffi::{self, OpfsSAHPoolCfgBuilder},
-        OpenFlags,
-    };
+    use rusqlite::ffi::{self, OpfsSAHPoolCfgBuilder};
     use web_sys::console;
 
     let opfs_options = OpfsSAHPoolCfgBuilder::new()
