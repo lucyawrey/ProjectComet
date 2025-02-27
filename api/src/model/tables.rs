@@ -230,7 +230,7 @@ pub struct Asset {
     pub data: AssetData, // Binary blob or string representation of file saved to virtual filesystem
     pub size: i64,    // Size of data in bytes
     pub is_user_generated: bool,
-    pub creator_user_handle: Option<i64>,
+    pub creator_user_id: Option<i64>, // Should not be exposed to client. Snowflake ID, referances an `User`
 }
 
 #[derive(Debug, FromRow)]
@@ -248,5 +248,5 @@ pub struct Content {
     pub asset_id_4: Option<i64>, // Snowflake ID, referances an `Asset`
     pub is_user_generated: bool,
     pub base_content_id: Option<i64>,
-    pub creator_user_handle: Option<i64>,
+    pub creator_user_id: Option<i64>, // Should not be exposed to client. Snowflake ID, referances an `User`
 }

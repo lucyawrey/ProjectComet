@@ -229,7 +229,7 @@ CREATE INDEX collection_entry_character_id_index ON collection_entry(character_i
 
 -- Client Schema Changes
 ALTER TABLE asset DROP COLUMN creator_user_handle;
-ALTER TABLE asset ADD COLUMN creator_user_handle INTEGER REFERENCES user(handle);
+ALTER TABLE asset ADD COLUMN creator_user_id INTEGER REFERENCES user(id);
 ALTER TABLE content DROP COLUMN creator_user_handle;
-ALTER TABLE content ADD COLUMN creator_user_handle INTEGER REFERENCES user(handle);
+ALTER TABLE content ADD COLUMN creator_user_id INTEGER REFERENCES user(id);
 -- End Client Schema Changes

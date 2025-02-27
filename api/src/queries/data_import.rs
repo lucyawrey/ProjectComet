@@ -1,10 +1,8 @@
 use crate::{
     model::{
         fields::AccessLevel,
-        tables::{
-            AccessToken, Asset, Content, GameInfo, GameServer, User, UserPassword,
-            UserRecoveryCode, World,
-        },
+        tables::{AccessToken, GameInfo, GameServer, User, UserPassword, UserRecoveryCode, World},
+        IdWrapper,
     },
     queries::game_info::get_game_info_query,
     utils::{
@@ -155,8 +153,8 @@ pub async fn import_content_row(db: &Pool<Sqlite>, row: &Map<String, Value>) -> 
         Some(s) => s.iter().map(|id| id.as_integer()).flatten().collect(),
         None => Vec::new(),
     };
-    let new_row = query_as::<_, Content>(
-            "INSERT INTO content (id, name, content_type, content_subtype, data, asset_id_0, asset_id_1, asset_id_2, asset_id_3, asset_id_4) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT(id) DO UPDATE SET name=excluded.name, content_type=excluded.content_type, content_subtype=excluded.content_subtype, data=excluded.data, asset_id_0=excluded.asset_id_0, asset_id_1=excluded.asset_id_1, asset_id_2=excluded.asset_id_2, asset_id_3=excluded.asset_id_3, asset_id_4=excluded.asset_id_4, updated_at=(unixepoch()) RETURNING *",
+    let new_row = query_as::<_, IdWrapper>(
+            "INSERT INTO content (id, name, content_type, content_subtype, data, asset_id_0, asset_id_1, asset_id_2, asset_id_3, asset_id_4) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT(id) DO UPDATE SET name=excluded.name, content_type=excluded.content_type, content_subtype=excluded.content_subtype, data=excluded.data, asset_id_0=excluded.asset_id_0, asset_id_1=excluded.asset_id_1, asset_id_2=excluded.asset_id_2, asset_id_3=excluded.asset_id_3, asset_id_4=excluded.asset_id_4, updated_at=(unixepoch()) RETURNING id",
         )
         .bind(row.get("id").unwrap_or(&NO_VALUE).as_integer())
         .bind(row.get("name").unwrap_or(&NO_VALUE).as_str())
@@ -359,8 +357,8 @@ pub async fn import_asset_row(
 
     let (asset_data, file_size, file_type) =
         read_asset_file(&source_path, &magic_cookie).map_err(|e| e.to_string())?;
-    let new_row = query_as::<_, Asset>(
-            "INSERT INTO asset (id, path, file_type, data, size) VALUES ($1, $2, $3, $4, $5) ON CONFLICT(id) DO UPDATE SET path=excluded.path, file_type=excluded.file_type, data=excluded.data, size=excluded.size, updated_at=(unixepoch()) RETURNING *",
+    let new_row = query_as::<_, IdWrapper>(
+            "INSERT INTO asset (id, path, file_type, data, size) VALUES ($1, $2, $3, $4, $5) ON CONFLICT(id) DO UPDATE SET path=excluded.path, file_type=excluded.file_type, data=excluded.data, size=excluded.size, updated_at=(unixepoch()) RETURNING id",
         )
         .bind(id)
         .bind(path)
