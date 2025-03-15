@@ -14,13 +14,7 @@ pub fn get_database() -> Result<Connection, ()> {
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn get_database() -> Result<Connection, ()> {
-    Connection::open_with_flags(
-        DEFAULT_CLIENT_DATABASE_PATH,
-        OpenFlags::SQLITE_OPEN_READ_WRITE
-            | OpenFlags::SQLITE_OPEN_URI
-            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )
-    .map_err(|_e| ())
+    Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
