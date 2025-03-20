@@ -1,12 +1,13 @@
-use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
-use database::DatabasePlugin;
-use debug::DebugPlugin;
-use hello::HelloPlugin;
 mod components;
 mod config;
 mod database;
 mod debug;
 mod hello;
+mod server_bindings;
+use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
+use database::DatabasePlugin;
+use debug::DebugPlugin;
+use hello::HelloPlugin;
 
 pub fn app() {
     let mut app = App::new();
