@@ -7,14 +7,6 @@ data/assets
 # Build artifacts
 **/target
 **/out
-client/www/wasm*
-
-# SQLite
-**/.sqlx
-**.sqlite
-**.sqlite-wal
-**.sqlite-shm
-api/migrations/*_client_*.sql
 
 # Local Config
 **/.cargo
