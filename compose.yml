@@ -1,9 +1,0 @@
-services:
-  api:
-    build: ./api
-    ports:
-      - "50051:50051"
-  grpcui:
-    image: "fullstorydev/grpcui"
-    ports:
-      - "8080:8080"

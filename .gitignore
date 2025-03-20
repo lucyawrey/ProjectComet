@@ -3,8 +3,6 @@
 
 # Assets - will need to have source control for eventually
 data/assets
-client/assets
-client/www/assets
 
 # Build artifacts
 **/target
