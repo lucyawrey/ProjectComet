@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+
+<body>
+  <style>
+    h1 {
+      color: white;
+      text-align: center;
+      padding: 0;
+      margin: 12px;
+    }
+    body {
+      margin: 0px;
+      background-color: rgb(133, 139, 255);
+    }
+    canvas {
+      margin-bottom: 20px;
+      padding-left: 0;
+      padding-right: 0;
+      margin-left: auto;
+      margin-right: auto;
+      display: block;
+    }
+  </style>
+  <script src="./wasm.js"></script>
+  <script type="module">
+    await wasm_bindgen();
+    try {
+      wasm_bindgen.init_app();
+    } catch(e) {
+      if (!e.message.startsWith("Using exceptions for control flow")) {
+        throw e;
+      }
+    }
+  </script>
+  <main>
+    <h1>Project Comet</h1>
+    <canvas id="project-comet-canvas"></canvas>
+  </main>
+</body>
+
+</html>

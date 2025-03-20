@@ -7,7 +7,6 @@ mod config;
 mod database;
 mod debug;
 mod hello;
-mod platform;
 
 pub fn app() {
     let mut app = App::new();
@@ -36,12 +35,6 @@ fn main() {}
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
-    use platform::{get_callback_closure, query, run_in_worker, spawn_worker};
-
-    // Callback ownership needs to stay here to keep it in scope for future messages.
-    let callback = get_callback_closure();
-    let worker = spawn_worker(&callback).expect("Failed to initialize web worker.");
-    let _ = run_in_worker(&worker, query);
-
+    web_sys::console::log_1(&"WASM - Initializing Bevy Game".into());
     app();
 }

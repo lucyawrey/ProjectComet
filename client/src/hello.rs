@@ -17,7 +17,7 @@ impl Plugin for HelloPlugin {
 pub struct GreetTimer(pub Timer);
 
 pub fn add_people(mut commands: Commands) {
-    commands.spawn((PlayerCharacter, Name("Stefanie".to_string())));
+    commands.spawn((PlayerCharacter, Name("Stef".to_string())));
     commands.spawn((PlayerCharacter, Name("Laura".to_string())));
     commands.spawn((PlayerCharacter, Name("Lucy".to_string())));
 }
@@ -30,15 +30,15 @@ pub fn greet_people(
 ) {
     if timer.0.tick(time.delta()).just_finished() {
         for name in &query {
-            debug.print(format!("hello {}!", name.0), None);
+            debug.print(format!("hello: {}", name.0), None);
         }
     }
 }
 
 pub fn update_people(mut query: Query<&mut Name, With<PlayerCharacter>>) {
     for mut name in &mut query {
-        if name.0 == "Stefanie" {
-            name.0 = "Stefieany".to_string();
+        if name.0 == "Stef" {
+            name.0 = "Stefanie".to_string();
             break;
         }
     }

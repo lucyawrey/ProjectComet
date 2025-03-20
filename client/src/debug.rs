@@ -5,6 +5,8 @@ use bevy::{
     prelude::*,
 };
 
+use crate::config::{CLIENT_GAME_ID, CLIENT_VERSION};
+
 pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
@@ -43,7 +45,15 @@ struct DebugText;
 
 pub const DEFAULT_FONT: &str = "FiraMono-Medium.ttf";
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut debug: ResMut<DebugState>) {
+    debug.print(
+        format!(
+            "client_game_id: {}, client_version: {}",
+            CLIENT_GAME_ID, CLIENT_VERSION
+        ),
+        None,
+    );
+
     // UI camera
     commands.spawn(Camera2d);
     // Debug text with one section
