@@ -18,5 +18,5 @@ spacetime publish --project-path . project-comet-server
 
 ## Generate Client Bindings
 ```sh
-spacetime generate --lang rust --out-dir ../client/src/server_bindings --project-path .
+spacetime generate --lang rust --out-dir ../client/src/database_bindings --project-path .
 ```

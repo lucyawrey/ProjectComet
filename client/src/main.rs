@@ -1,9 +1,9 @@
 mod components;
 mod config;
 mod database;
+mod database_bindings;
 mod debug;
 mod hello;
-mod server_bindings;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use database::DatabasePlugin;
 use debug::DebugPlugin;

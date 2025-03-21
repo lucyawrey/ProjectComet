@@ -24,14 +24,8 @@ pub struct DebugState {
 }
 
 impl DebugState {
-    pub fn print<T>(&mut self, content: T, color: Option<Color>)
-    where
-        T: std::fmt::Debug,
-    {
-        self.debug_text = format!("{}{:?}\n", self.debug_text, content);
-        if let Some(color) = color {
-            self.debug_color = color;
-        }
+    pub fn print(&mut self, text: &str) {
+        self.debug_text = format!("{}{}\n", self.debug_text, text);
     }
 }
 
@@ -46,13 +40,10 @@ struct DebugText;
 pub const DEFAULT_FONT: &str = "FiraMono-Medium.ttf";
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut debug: ResMut<DebugState>) {
-    debug.print(
-        format!(
-            "client_game_id: {}, client_version: {}",
-            CLIENT_GAME_ID, CLIENT_VERSION
-        ),
-        None,
-    );
+    debug.print(&format!(
+        "client_game_id: {}, client_version: {}",
+        CLIENT_GAME_ID, CLIENT_VERSION
+    ));
 
     // UI camera
     commands.spawn(Camera2d);

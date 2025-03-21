@@ -1,34 +1,10 @@
+mod tables;
+mod types;
 mod utils;
-use spacetimedb::{reducer, table, Identity, ReducerContext, SpacetimeType, Table, Timestamp};
+use spacetimedb::{reducer, ReducerContext, Table};
+pub use tables::*;
+use types::Role;
 use utils::{get_random_id, get_random_name, validate_message, validate_username};
-
-#[derive(SpacetimeType)]
-pub enum Role {
-    NewPlayer,
-    Player,
-    MembershipPlayer,
-    GameModerator,
-    GameAdministrator,
-}
-
-#[table(name = user)]
-pub struct User {
-    #[primary_key]
-    id: Identity,
-    #[unique]
-    handle: u64,
-    #[unique]
-    name: String,
-    role: Role,
-    online: bool,
-}
-
-#[table(name = message, public)]
-pub struct Message {
-    sender: Identity,
-    sent: Timestamp,
-    text: String,
-}
 
 #[reducer(init)]
 pub fn init(_ctx: &ReducerContext) {

@@ -7,7 +7,7 @@ pub struct HelloPlugin;
 
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GreetTimer(Timer::from_seconds(5.0, TimerMode::Repeating)));
+        app.insert_resource(GreetTimer(Timer::from_seconds(10.0, TimerMode::Repeating)));
         app.add_systems(Startup, add_people);
         app.add_systems(Update, (update_people, greet_people).chain());
     }
@@ -30,7 +30,7 @@ pub fn greet_people(
 ) {
     if timer.0.tick(time.delta()).just_finished() {
         for name in &query {
-            debug.print(format!("hello: {}", name.0), None);
+            debug.print(&format!("hello: {}", name.0));
         }
     }
 }

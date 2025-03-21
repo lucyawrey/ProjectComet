@@ -5,7 +5,7 @@
 **/target
 **/out
 server/Cargo.lock
-client/src/server_bindings
+client/src/database_bindings
 
 # Local config
 **/.cargo
