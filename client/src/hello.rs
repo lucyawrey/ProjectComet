@@ -1,9 +1,10 @@
 use crate::chat::ChatState;
 use crate::components::Name;
 use crate::components::PlayerCharacter;
-use crate::database::Database;
+use crate::database::DatabaseConnection;
 use crate::database_bindings::CharacterTableAccess;
 use bevy::prelude::*;
+use spacetimedb_sdk::DbContext;
 use spacetimedb_sdk::Table;
 
 pub struct HelloPlugin;
@@ -18,9 +19,8 @@ impl Plugin for HelloPlugin {
 
 #[derive(Resource)]
 pub struct GreetTimer(pub Timer);
-
-pub fn add_people(mut commands: Commands, db: Res<Database>) {
-    for character in db.0.db.character().iter() {
+pub fn add_people(mut commands: Commands, conn: Res<DatabaseConnection>) {
+    for character in conn.0.db().character().iter() {
         commands.spawn((PlayerCharacter, Name(character.name)));
     }
 }
