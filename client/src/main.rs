@@ -21,11 +21,16 @@ pub fn app() {
         ..default()
     }));
     app.add_plugins(FrameTimeDiagnosticsPlugin);
+    app.add_systems(Startup, setup_camera);
     app.add_plugins(FpsPlugin);
     app.add_plugins(DatabasePlugin);
     app.add_plugins(ChatPlugin);
     app.add_plugins(HelloPlugin);
     app.run();
+}
+
+fn setup_camera(mut commands: Commands) {
+    commands.spawn(Camera2d);
 }
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]

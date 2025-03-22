@@ -20,8 +20,6 @@ impl Plugin for FpsPlugin {
 struct FpsText;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // UI camera
-    commands.spawn(Camera2d);
     // FPS text with multiple sections
     commands
         .spawn((
