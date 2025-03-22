@@ -3997,6 +3997,7 @@ name = "project_comet_client"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "futures",
  "hex",
  "serde",
  "spacetimedb-sdk",

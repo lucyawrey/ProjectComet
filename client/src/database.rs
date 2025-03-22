@@ -1,31 +1,44 @@
+use crate::chat::ChatState;
 use crate::config::DEFAULT_DB_HOST;
 use crate::{config::DEFAULT_DB_NAME, database_bindings::*};
 use bevy::prelude::*;
+use futures::channel::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use spacetimedb_sdk::credentials::File;
-use spacetimedb_sdk::DbContext;
+use spacetimedb_sdk::{DbContext, Table};
 
 pub struct DatabasePlugin;
 
 impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
+        let (sender, receiver) = mpsc::unbounded();
         // Connect to the database
         let conn = connect_to_db();
         // Subscribe to SQL queries in order to construct a local partial replica of the database.
         subscribe_to_tables(&conn);
+        // Register callbacks
+        register_callbacks(&conn, &sender);
         // Spawn a thread, where the connection will process messages and invoke callbacks.
         conn.run_threaded();
 
-        app.insert_resource(DatabaseConnection::new(conn));
+        app.insert_resource(Db::new(conn, receiver));
+        app.add_systems(Update, process_messages);
     }
 }
 
 #[derive(Resource)]
-pub struct DatabaseConnection(pub DbConnection);
+pub struct Db {
+    pub conn: DbConnection,
+    pub receiver: UnboundedReceiver<DatabaseMessage>,
+}
 
-impl DatabaseConnection {
-    fn new(conn: DbConnection) -> DatabaseConnection {
-        DatabaseConnection(conn)
+impl Db {
+    fn new(conn: DbConnection, receiver: UnboundedReceiver<DatabaseMessage>) -> Db {
+        Db { conn, receiver }
     }
+}
+
+pub enum DatabaseMessage {
+    Message { text: String },
 }
 
 fn connect_to_db() -> DbConnection {
@@ -72,8 +85,43 @@ fn subscribe_to_tables(conn: &DbConnection) {
         .on_applied(|_ctx| {})
         .on_error(|_ctx, _err| {})
         .subscribe([
-            "SELECT * FROM user",
+            "SELECT * FROM userr",
             "SELECT * FROM message",
             "SELECT * FROM character",
         ]);
+}
+
+fn register_callbacks(conn: &DbConnection, sender: &UnboundedSender<DatabaseMessage>) {
+    conn.db
+        .message()
+        .on_insert(on_message_inserted(sender.clone()));
+}
+
+fn on_message_inserted(
+    sender: UnboundedSender<DatabaseMessage>,
+) -> impl FnMut(&EventContext, &Message) + Send + 'static {
+    move |_ctx, row| {
+        sender
+            .unbounded_send(DatabaseMessage::Message {
+                text: row.text.clone(),
+            })
+            .unwrap();
+    }
+}
+
+pub fn process_messages(mut db: ResMut<Db>, mut chat: ResMut<ChatState>) {
+    loop {
+        let message = db.receiver.try_next();
+        if let Ok(message) = message {
+            if let Some(message) = message {
+                match message {
+                    DatabaseMessage::Message { text } => {
+                        chat.print(&text);
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+    }
 }
