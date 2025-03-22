@@ -1,25 +1,28 @@
 use crate::components::Name;
 use crate::components::PlayerCharacter;
+use crate::database::Database;
+use crate::database_bindings::CharacterTableAccess;
 use crate::debug::DebugState;
 use bevy::prelude::*;
+use spacetimedb_sdk::Table;
 
 pub struct HelloPlugin;
 
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GreetTimer(Timer::from_seconds(10.0, TimerMode::Repeating)));
+        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Once)));
         app.add_systems(Startup, add_people);
-        app.add_systems(Update, (update_people, greet_people).chain());
+        app.add_systems(Update, greet_people);
     }
 }
 
 #[derive(Resource)]
 pub struct GreetTimer(pub Timer);
 
-pub fn add_people(mut commands: Commands) {
-    commands.spawn((PlayerCharacter, Name("Stef".to_string())));
-    commands.spawn((PlayerCharacter, Name("Laura".to_string())));
-    commands.spawn((PlayerCharacter, Name("Lucy".to_string())));
+pub fn add_people(mut commands: Commands, db: Res<Database>) {
+    for character in db.0.db.character().iter() {
+        commands.spawn((PlayerCharacter, Name(character.name)));
+    }
 }
 
 pub fn greet_people(
@@ -31,15 +34,6 @@ pub fn greet_people(
     if timer.0.tick(time.delta()).just_finished() {
         for name in &query {
             debug.print(&format!("hello: {}", name.0));
-        }
-    }
-}
-
-pub fn update_people(mut query: Query<&mut Name, With<PlayerCharacter>>) {
-    for mut name in &mut query {
-        if name.0 == "Stef" {
-            name.0 = "Stefanie".to_string();
-            break;
         }
     }
 }

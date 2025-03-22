@@ -3,7 +3,7 @@ mod types;
 mod utils;
 use spacetimedb::{reducer, ReducerContext, Table};
 pub use tables::*;
-use types::Role;
+use types::*;
 use utils::{get_random_id, get_random_name, validate_message, validate_username};
 
 #[reducer(init)]
@@ -67,11 +67,35 @@ pub fn set_username(ctx: &ReducerContext, username: String) -> Result<(), String
 
 #[reducer]
 /// Clients invoke this reducer to send messages.
+pub fn create_character(
+    ctx: &ReducerContext,
+    name: String,
+    home_world_id: String,
+) -> Result<(), String> {
+    validate_username(&name)?;
+    ctx.db.character().insert(Character {
+        id: get_random_id(&ctx),
+        handle: get_random_id(&ctx),
+        name,
+        home_world_id,
+        user_id: ctx.sender,
+        role: Role::NewPlayer,
+        ancestry: CharacterAncestry::Cat,
+        gender: CharacterGender::None,
+        customization: Customization::default(),
+        data: CharacterData::default(),
+        online: false,
+    });
+    Ok(())
+}
+
+#[reducer]
+/// Clients invoke this reducer to send messages.
 pub fn send_message(ctx: &ReducerContext, text: String) -> Result<(), String> {
     validate_message(&text)?;
     log::info!("{}", text);
     ctx.db.message().insert(Message {
-        sender: ctx.sender,
+        sender_user_id: ctx.sender,
         text,
         sent: ctx.timestamp,
     });

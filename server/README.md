@@ -13,7 +13,7 @@ curl -sSf https://install.spacetimedb.com | sh
 ## Running SpacetimeDB Module Locally
 ```sh
 spacetime start
-spacetime publish --project-path . project-comet-server
+spacetime publish --project-path . project-comet
 ```
 
 ## Generate Client Bindings
