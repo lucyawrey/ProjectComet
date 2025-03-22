@@ -1,8 +1,8 @@
+use crate::chat::ChatState;
 use crate::components::Name;
 use crate::components::PlayerCharacter;
 use crate::database::Database;
 use crate::database_bindings::CharacterTableAccess;
-use crate::debug::DebugState;
 use bevy::prelude::*;
 use spacetimedb_sdk::Table;
 
@@ -27,13 +27,13 @@ pub fn add_people(mut commands: Commands, db: Res<Database>) {
 
 pub fn greet_people(
     time: Res<Time>,
-    mut debug: ResMut<DebugState>,
+    mut chat: ResMut<ChatState>,
     mut timer: ResMut<GreetTimer>,
     query: Query<&Name, With<PlayerCharacter>>,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
         for name in &query {
-            debug.print(&format!("hello: {}", name.0));
+            chat.print(&format!("hello: {}", name.0));
         }
     }
 }

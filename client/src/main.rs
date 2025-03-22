@@ -1,12 +1,14 @@
+mod chat;
 mod components;
 mod config;
 mod database;
 mod database_bindings;
-mod debug;
+mod fps;
 mod hello;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
+use chat::ChatPlugin;
 use database::DatabasePlugin;
-use debug::DebugPlugin;
+use fps::FpsPlugin;
 use hello::HelloPlugin;
 
 pub fn app() {
@@ -19,8 +21,9 @@ pub fn app() {
         ..default()
     }));
     app.add_plugins(FrameTimeDiagnosticsPlugin);
+    app.add_plugins(FpsPlugin);
     app.add_plugins(DatabasePlugin);
-    app.add_plugins(DebugPlugin);
+    app.add_plugins(ChatPlugin);
     app.add_plugins(HelloPlugin);
     app.run();
 }
