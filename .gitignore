@@ -1,8 +1,7 @@
 # Secrets
 **/secrets
 
-# Assets - will need to have source control for eventually
-data/assets
+# Asset copies
 client/assets
 client/www/assets
 
