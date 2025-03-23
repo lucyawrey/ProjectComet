@@ -1,8 +1,8 @@
-use sqlx::FromRow;
 pub mod authentication;
 pub mod fields;
 pub mod fields_impl;
 pub mod tables;
+use sqlx::FromRow;
 
 #[derive(Debug)]
 pub enum Ref {

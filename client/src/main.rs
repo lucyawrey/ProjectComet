@@ -1,13 +1,15 @@
-use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
-use database::DatabasePlugin;
-use debug::DebugPlugin;
-use hello::HelloPlugin;
+mod chat;
 mod components;
 mod config;
 mod database;
-mod debug;
+mod fps;
 mod hello;
 mod platform;
+use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
+use chat::ChatPlugin;
+use database::DatabasePlugin;
+use fps::FpsPlugin;
+use hello::HelloPlugin;
 
 pub fn app() {
     let mut app = App::new();
@@ -19,10 +21,16 @@ pub fn app() {
         ..default()
     }));
     app.add_plugins(FrameTimeDiagnosticsPlugin);
+    app.add_systems(Startup, setup_camera);
+    app.add_plugins(FpsPlugin);
     app.add_plugins(DatabasePlugin);
-    app.add_plugins(DebugPlugin);
+    app.add_plugins(ChatPlugin);
     app.add_plugins(HelloPlugin);
     app.run();
+}
+
+fn setup_camera(mut commands: Commands) {
+    commands.spawn(Camera2d);
 }
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -36,12 +44,6 @@ fn main() {}
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
-    use platform::{get_callback_closure, query, run_in_worker, spawn_worker};
-
-    // Callback ownership needs to stay here to keep it in scope for future messages.
-    let callback = get_callback_closure();
-    let worker = spawn_worker(&callback).expect("Failed to initialize web worker.");
-    let _ = run_in_worker(&worker, query);
-
+    web_sys::console::log_1(&"WASM - Initializing Bevy Game".into());
     app();
 }

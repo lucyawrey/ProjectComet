@@ -2,14 +2,14 @@ use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
 use rusqlite::{Connection, OpenFlags};
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-pub fn get_database() -> Result<Connection, ()> {
+pub fn get_database() -> Result<Connection, String> {
     Connection::open_with_flags(
         DEFAULT_CLIENT_DATABASE_PATH,
         OpenFlags::SQLITE_OPEN_READ_WRITE
             | OpenFlags::SQLITE_OPEN_URI
             | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
-    .map_err(|_e| ())
+    .map_err(|e| e.to_string())
 }
 
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
