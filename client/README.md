@@ -19,7 +19,7 @@ cargo run
 
 ## Building WASM Target for Development
 ```sh
-RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+mutable-globals' cargo build --target wasm32-unknown-unknown -Z build-std=panic_abort,std
+cargo build --target wasm32-unknown-unknown
 wasm-bindgen --no-typescript --target no-modules \
     --out-dir ./www \
     --out-name "wasm" \
@@ -35,7 +35,7 @@ mkdir -p ../out/client && cp ./target/release/project_comet_client "$_"
 
 ## Building WASM Target
 ```sh
-RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+mutable-globals' cargo build --release --target wasm32-unknown-unknown -Z build-std=panic_abort,std
+cargo build --release --target wasm32-unknown-unknown
 wasm-bindgen --no-typescript --target web \
     --out-dir ../out/client \
     --out-name "wasm" \

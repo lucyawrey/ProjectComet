@@ -4,7 +4,6 @@ mod config;
 mod database;
 mod fps;
 mod hello;
-mod platform;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use chat::ChatPlugin;
 use database::DatabasePlugin;

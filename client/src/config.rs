@@ -6,6 +6,7 @@ pub const DEFAULT_FONT: &str = "FiraMono-Medium.ttf";
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub const DEFAULT_CLIENT_DATABASE_PATH: &str = "../api/client_data.sqlite";
+
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub const DEFAULT_CLIENT_DATABASE_PATH: &str = "/client_data.sqlite";
 #[cfg(all(target_family = "wasm", target_os = "unknown"))]

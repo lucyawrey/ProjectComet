@@ -1,6 +1,5 @@
-use tonic::Status;
-
 use super::tables::{AccessToken, User, UserRecoveryCode, UserSession};
+use tonic::Status;
 
 #[derive(Debug)]
 pub enum AuthStatus {

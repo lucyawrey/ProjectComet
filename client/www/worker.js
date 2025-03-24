@@ -1,10 +1,10 @@
 console.log(`Created worker.`);
 importScripts("./wasm.js");
 
-onmessage = (e) => {
+onmessage = ({ data }) => {
   let initialised = new Promise(async (resolve) => {
     // Initialize WASM module
-    await wasm_bindgen(...e.data);
+    await wasm_bindgen(...data);
     // Initialize SQLite OPFS
     let response = await fetch("./client_data.sqlite");
     let buff = await response.arrayBuffer();
@@ -14,11 +14,12 @@ onmessage = (e) => {
     resolve();
   });
 
-  onmessage = async (e) => {
+  onmessage = async ({ data }) => {
     // This will queue further commands up until the module is fully initialised
     await initialised;
-    wasm_bindgen.child_entry_point(e.data);
+    // wasm-bindgen-spawn call
+    wasm_bindgen[data]();
   };
 
-  self.postMessage("loading");
+  postMessage("loading");
 };

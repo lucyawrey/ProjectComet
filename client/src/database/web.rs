@@ -1,23 +1,58 @@
 use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
 use rusqlite::{Connection, OpenFlags};
 
-#[cfg(any(target_family = "unix", target_family = "windows"))]
-pub fn get_database() -> Result<Connection, String> {
-    Connection::open_with_flags(
-        DEFAULT_CLIENT_DATABASE_PATH,
-        OpenFlags::SQLITE_OPEN_READ_WRITE
-            | OpenFlags::SQLITE_OPEN_URI
-            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )
-    .map_err(|e| e.to_string())
+pub struct CrossPlatformDatabase {}
+
+impl CrossPlatformDatabase {
+    pub fn new() -> Result<CrossPlatformDatabase, String> {
+        Ok(CrossPlatformDatabase {})
+    }
+
+    pub fn query_content_names(&self) -> String {
+        "TODO: Client Database on the Web".to_string()
+    }
 }
 
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn get_database() -> Result<Connection, ()> {
     Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
 }
 
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+pub fn spawn_worker(
+    callback: &wasm_bindgen::prelude::Closure<dyn FnMut(web_sys::MessageEvent)>,
+) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {
+    use wasm_bindgen::JsCast;
+    use web_sys::{console, js_sys, Worker};
+
+    let worker = Worker::new("./worker.js")?;
+    console::log_1(&"WASM - Creating worker.".into());
+
+    worker.set_onmessage(Some(callback.as_ref().unchecked_ref()));
+
+    // With a worker spun up send it the module/memory so it can start instantiating the Wasm module. Later it might receive further messages about code to run on the Wasm module.
+    let array = js_sys::Array::new();
+    array.push(&wasm_bindgen::module());
+    array.push(&wasm_bindgen::memory());
+    worker.post_message(&array)?;
+
+    Ok(worker)
+}
+
+pub fn get_callback_closure() -> wasm_bindgen::prelude::Closure<dyn FnMut(web_sys::MessageEvent)> {
+    use wasm_bindgen::prelude::Closure;
+    use web_sys::{console, MessageEvent};
+
+    Closure::new(move |event: MessageEvent| {
+        let data = event.data();
+        if let Some(text) = data.as_string() {
+            if text.as_str() == "loading" {
+                console::log_1(&"WASM - Worker loading...".into());
+                return;
+            }
+        }
+        console::log_2(&"WASM -".into(), &data);
+    })
+}
+
 pub fn game_info_query(db: &Connection) -> Result<(String, String), String> {
     let mut query = db
         .prepare("SELECT game_id, game_version FROM game_info WHERE id = 0")
@@ -31,7 +66,6 @@ pub fn game_info_query(db: &Connection) -> Result<(String, String), String> {
         .map_err(|e| e.to_string())?)
 }
 
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn query() {
     use crate::config::DEFAULT_WASM_VFS_NAME;
     use web_sys::console;
@@ -64,50 +98,6 @@ pub fn query() {
     console::log_1(&format!("WASM - Database content table names\n{}", out).into());
 }
 
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-pub struct Work {
-    func: Box<dyn FnOnce() + Send>,
-}
-
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-pub fn get_callback_closure() -> wasm_bindgen::prelude::Closure<dyn FnMut(web_sys::MessageEvent)> {
-    use wasm_bindgen::prelude::Closure;
-    use web_sys::{console, MessageEvent};
-
-    Closure::new(move |event: MessageEvent| {
-        let data = event.data();
-        if let Some(text) = data.as_string() {
-            if text.as_str() == "loading" {
-                console::log_1(&"WASM - Worker loading...".into());
-                return;
-            }
-        }
-        console::log_2(&"WASM -".into(), &data);
-    })
-}
-
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-pub fn spawn_worker(
-    callback: &wasm_bindgen::prelude::Closure<dyn FnMut(web_sys::MessageEvent)>,
-) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {
-    use wasm_bindgen::JsCast;
-    use web_sys::{console, js_sys, Worker};
-
-    let worker = Worker::new("./worker.js")?;
-    console::log_1(&"WASM - Creating worker.".into());
-
-    worker.set_onmessage(Some(callback.as_ref().unchecked_ref()));
-
-    // With a worker spun up send it the module/memory so it can start instantiating the Wasm module. Later it might receive further messages about code to run on the Wasm module.
-    let array = js_sys::Array::new();
-    array.push(&wasm_bindgen::module());
-    array.push(&wasm_bindgen::memory());
-    worker.post_message(&array)?;
-
-    Ok(worker)
-}
-
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
 pub fn get_worker_scope() -> web_sys::DedicatedWorkerGlobalScope {
     use wasm_bindgen::JsCast;
     use web_sys::{js_sys, DedicatedWorkerGlobalScope};
@@ -115,27 +105,6 @@ pub fn get_worker_scope() -> web_sys::DedicatedWorkerGlobalScope {
     js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>()
 }
 
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-pub fn run_in_worker(
-    worker: &web_sys::Worker,
-    f: impl FnOnce() + Send + 'static,
-) -> Result<&web_sys::Worker, wasm_bindgen::JsValue> {
-    use wasm_bindgen::JsValue;
-
-    let work = Box::new(Work { func: Box::new(f) });
-    let ptr = Box::into_raw(work);
-    match worker.post_message(&JsValue::from(ptr as u32)) {
-        Ok(()) => Ok(worker),
-        Err(e) => {
-            unsafe {
-                drop(Box::from_raw(ptr));
-            }
-            Err(e)
-        }
-    }
-}
-
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub async fn install_opfs_sahpool(initial_db_file: Vec<u8>) -> Result<(), wasm_bindgen::JsValue> {
     use crate::config::{CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_WASM_VFS_NAME};
@@ -164,22 +133,10 @@ pub async fn install_opfs_sahpool(initial_db_file: Vec<u8>) -> Result<(), wasm_b
         }
     }
 
-    // TODO fetch db file with worker.
     opfs_util
         .import_db(DEFAULT_CLIENT_DATABASE_PATH, &initial_db_file)
         .unwrap();
     console::log_1(&"WASM - Imported new database into the VFS.".into());
 
-    Ok(())
-}
-
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
-#[wasm_bindgen::prelude::wasm_bindgen]
-pub fn child_entry_point(ptr: u32) -> Result<(), wasm_bindgen::JsValue> {
-    let ptr = unsafe { Box::from_raw(ptr as *mut Work) };
-    (ptr.func)();
-
-    let worker_scope = get_worker_scope();
-    worker_scope.post_message(&"callback_done".into())?;
     Ok(())
 }

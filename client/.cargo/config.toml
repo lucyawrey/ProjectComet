@@ -1,0 +1,9 @@
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+atomics,+bulk-memory,+mutable-globals"]
+
+[unstable]
+build-std = ["panic_abort", "std"]
+
+# Switch default build target (and language server) to wasm
+[build]
+target = "wasm-unknown-unknown"
