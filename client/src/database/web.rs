@@ -1,11 +1,24 @@
-use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
-use rusqlite::{Connection, OpenFlags};
+use crate::config::{
+    CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_CLIENT_DATABASE_PATH, DEFAULT_WASM_VFS_NAME,
+};
+use rusqlite::{
+    ffi::{self, OpfsSAHPoolCfgBuilder},
+    Connection, OpenFlags,
+};
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+use web_sys::{console, js_sys, DedicatedWorkerGlobalScope, MessageEvent, Worker};
 
-pub struct CrossPlatformDatabase {}
+pub struct CrossPlatformDatabase {
+    //worker: Mutex<Worker>,
+}
 
 impl CrossPlatformDatabase {
-    pub fn new() -> Result<CrossPlatformDatabase, String> {
-        Ok(CrossPlatformDatabase {})
+    pub fn new() -> Result<CrossPlatformDatabase, ()> {
+        let callback = get_callback_closure();
+        let worker = spawn_worker(callback).map_err(|_e| ())?;
+        Ok(CrossPlatformDatabase {
+            //worker: Mutex::new(worker),
+        })
     }
 
     pub fn query_content_names(&self) -> String {
@@ -13,16 +26,9 @@ impl CrossPlatformDatabase {
     }
 }
 
-pub fn get_database() -> Result<Connection, ()> {
-    Connection::open(DEFAULT_CLIENT_DATABASE_PATH).map_err(|_e| ())
-}
-
 pub fn spawn_worker(
-    callback: &wasm_bindgen::prelude::Closure<dyn FnMut(web_sys::MessageEvent)>,
+    callback: Closure<dyn FnMut(web_sys::MessageEvent)>,
 ) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {
-    use wasm_bindgen::JsCast;
-    use web_sys::{console, js_sys, Worker};
-
     let worker = Worker::new("./worker.js")?;
     console::log_1(&"WASM - Creating worker.".into());
 
@@ -37,10 +43,7 @@ pub fn spawn_worker(
     Ok(worker)
 }
 
-pub fn get_callback_closure() -> wasm_bindgen::prelude::Closure<dyn FnMut(web_sys::MessageEvent)> {
-    use wasm_bindgen::prelude::Closure;
-    use web_sys::{console, MessageEvent};
-
+pub fn get_callback_closure() -> Closure<dyn FnMut(web_sys::MessageEvent)> {
     Closure::new(move |event: MessageEvent| {
         let data = event.data();
         if let Some(text) = data.as_string() {
@@ -67,9 +70,6 @@ pub fn game_info_query(db: &Connection) -> Result<(String, String), String> {
 }
 
 pub fn query() {
-    use crate::config::DEFAULT_WASM_VFS_NAME;
-    use web_sys::console;
-
     let db = Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
         OpenFlags::SQLITE_OPEN_READ_WRITE
@@ -98,19 +98,12 @@ pub fn query() {
     console::log_1(&format!("WASM - Database content table names\n{}", out).into());
 }
 
-pub fn get_worker_scope() -> web_sys::DedicatedWorkerGlobalScope {
-    use wasm_bindgen::JsCast;
-    use web_sys::{js_sys, DedicatedWorkerGlobalScope};
-
+pub fn get_worker_scope() -> DedicatedWorkerGlobalScope {
     js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>()
 }
 
 #[wasm_bindgen::prelude::wasm_bindgen]
-pub async fn install_opfs_sahpool(initial_db_file: Vec<u8>) -> Result<(), wasm_bindgen::JsValue> {
-    use crate::config::{CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_WASM_VFS_NAME};
-    use rusqlite::ffi::{self, OpfsSAHPoolCfgBuilder};
-    use web_sys::console;
-
+pub async fn install_opfs_sahpool(initial_db_file: Vec<u8>) -> Result<(), JsValue> {
     let opfs_options = OpfsSAHPoolCfgBuilder::new()
         .vfs_name(DEFAULT_WASM_VFS_NAME)
         .build();

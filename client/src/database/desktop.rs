@@ -8,13 +8,7 @@ pub struct CrossPlatformDatabase {
 
 impl CrossPlatformDatabase {
     pub fn new() -> Result<CrossPlatformDatabase, String> {
-        let conn = Connection::open_with_flags(
-            DEFAULT_CLIENT_DATABASE_PATH,
-            OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_URI
-                | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-        )
-        .map_err(|e| e.to_string())?;
+        let conn = connect_to_database().map_err(|e| e.to_string())?;
         Ok(CrossPlatformDatabase {
             conn: Mutex::new(conn),
         })
@@ -35,4 +29,13 @@ impl CrossPlatformDatabase {
         }
         out
     }
+}
+
+pub fn connect_to_database() -> Connection {
+    Connection::open_with_flags(
+        DEFAULT_CLIENT_DATABASE_PATH,
+        OpenFlags::SQLITE_OPEN_READ_WRITE
+            | OpenFlags::SQLITE_OPEN_URI
+            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
 }
