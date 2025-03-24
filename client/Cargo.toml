@@ -20,14 +20,7 @@ rusqlite = { git = "https://github.com/Spxg/rusqlite", features = [
 ] } # Once wasm support is merged this can be changed back to main.
 wasm-bindgen = "= 0.2.100"
 wasm-bindgen-futures = "0.4.50"
-web-sys = { version = "0.3.77", features = [
-    "MessageEvent",
-    "Worker",
-    "WorkerOptions",
-    "WorkerType",
-    "DedicatedWorkerGlobalScope",
-    "Crypto",
-] }
+web-sys = { version = "0.3.77", features = ["MessageEvent", "Worker"] }
 
 # Enable only a small amount of optimization in debug mode.
 [profile.dev]

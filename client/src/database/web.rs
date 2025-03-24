@@ -6,7 +6,7 @@ use rusqlite::{
     Connection, OpenFlags,
 };
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-use web_sys::{console, js_sys, DedicatedWorkerGlobalScope, MessageEvent, Worker};
+use web_sys::{console, js_sys, MessageEvent, Worker};
 
 pub struct CrossPlatformDatabase {
     //worker: Mutex<Worker>,
@@ -14,8 +14,6 @@ pub struct CrossPlatformDatabase {
 
 impl CrossPlatformDatabase {
     pub fn new() -> Result<CrossPlatformDatabase, ()> {
-        let callback = get_callback_closure();
-        let worker = spawn_worker(callback).map_err(|_e| ())?;
         Ok(CrossPlatformDatabase {
             //worker: Mutex::new(worker),
         })
@@ -27,7 +25,7 @@ impl CrossPlatformDatabase {
 }
 
 pub fn spawn_worker(
-    callback: Closure<dyn FnMut(web_sys::MessageEvent)>,
+    callback: &Closure<dyn FnMut(web_sys::MessageEvent)>,
 ) -> Result<web_sys::Worker, wasm_bindgen::JsValue> {
     let worker = Worker::new("./worker.js")?;
     console::log_1(&"WASM - Creating worker.".into());
@@ -69,7 +67,7 @@ pub fn game_info_query(db: &Connection) -> Result<(String, String), String> {
         .map_err(|e| e.to_string())?)
 }
 
-pub fn query() {
+pub fn query_content_names() {
     let db = Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
         OpenFlags::SQLITE_OPEN_READ_WRITE
@@ -78,11 +76,6 @@ pub fn query() {
         DEFAULT_WASM_VFS_NAME,
     )
     .unwrap();
-
-    let name = get_worker_scope().crypto().unwrap().random_uuid();
-
-    db.execute("INSERT INTO content (name) VALUES ($1)", [name])
-        .unwrap();
 
     let mut query = db.prepare("SELECT name FROM content").unwrap();
     let content_names = query
@@ -96,10 +89,6 @@ pub fn query() {
         out = out + &name.unwrap() + "\n";
     }
     console::log_1(&format!("WASM - Database content table names\n{}", out).into());
-}
-
-pub fn get_worker_scope() -> DedicatedWorkerGlobalScope {
-    js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>()
 }
 
 #[wasm_bindgen::prelude::wasm_bindgen]

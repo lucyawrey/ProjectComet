@@ -6,7 +6,7 @@ mod fps;
 mod hello;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use chat::ChatPlugin;
-use database::DatabasePlugin;
+use database::{get_callback_closure, spawn_worker, DatabasePlugin};
 use fps::FpsPlugin;
 use hello::HelloPlugin;
 
@@ -44,5 +44,10 @@ fn main() {}
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
     web_sys::console::log_1(&"WASM - Initializing Bevy Game".into());
+    let callback = get_callback_closure();
+    let worker = spawn_worker(&callback)
+        .map_err(|_e| ())
+        .expect("Failed to spawn web worker used for client database.");
+
     app();
 }

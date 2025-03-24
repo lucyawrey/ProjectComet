@@ -8,6 +8,7 @@ impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
         let cross_platform_db =
             CrossPlatformDatabase::new().expect("Failed to initialize client database.");
+
         app.insert_resource(Database(cross_platform_db));
         app.add_systems(Startup, setup);
     }
