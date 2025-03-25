@@ -1,5 +1,6 @@
 console.log(`Created worker.`);
 importScripts("./wasm.js");
+let loading = true;
 
 onmessage = ({ data }) => {
   let initialised = new Promise(async (resolve) => {
@@ -7,18 +8,23 @@ onmessage = ({ data }) => {
     await wasm_bindgen(...data);
     // Initialize SQLite OPFS
     let response = await fetch("./client_data.sqlite");
-    let buff = await response.arrayBuffer();
+    let bytes = await (await response.blob()).bytes();
     // TODO transfer data more efficiently - ArrayBuffer.transfer() or Shared Memory
-    let view = new Uint8Array(buff);
-    await wasm_bindgen.install_opfs_sahpool(view);
+    console.log(bytes.byteLength);
+    await wasm_bindgen.install_opfs_sahpool(bytes);
     resolve();
   });
 
   onmessage = async ({ data }) => {
-    // This will queue further commands up until the module is fully initialised
-    await initialised;
+    if (loading) {
+      // This will queue further commands up until the module is fully initialised
+      await initialised;
+      console.log(`Worker loaded.`);
+      loading = false;
+    }
     // wasm-bindgen-spawn call
-    wasm_bindgen[data]();
+    let result = wasm_bindgen[data]();
+    postMessage(result);
   };
 
   postMessage("loading");
