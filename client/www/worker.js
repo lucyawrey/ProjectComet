@@ -6,12 +6,18 @@ onmessage = ({ data }) => {
   let initialised = new Promise(async (resolve) => {
     // Initialize WASM module
     await wasm_bindgen(...data);
+
     // Initialize SQLite OPFS
-    let response = await fetch("./client_data.sqlite");
-    let bytes = await (await response.blob()).bytes();
-    // TODO transfer data more efficiently - ArrayBuffer.transfer() or Shared Memory
-    console.log(bytes.byteLength);
-    await wasm_bindgen.install_opfs_sahpool(bytes);
+    await wasm_bindgen.install_opfs_sahpool();
+    let loadedDatabase = await wasm_bindgen.check_database();
+    if (!loadedDatabase) {
+      let response = await fetch("./client_data.sqlite");
+      // TODO download and transfer data more efficiently - ArrayBuffer.transfer() or Shared Memory
+      let bytes = await (await response.blob()).bytes();
+      await wasm_bindgen.import_database(bytes);
+    }
+
+    // Resolve promise
     resolve();
   });
 

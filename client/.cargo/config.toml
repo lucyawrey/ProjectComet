@@ -6,4 +6,4 @@ build-std = ["panic_abort", "std"]
 
 # Switch default build target (and language server) to wasm
 [build]
-target = "wasm-unknown-unknown"
+target = "wasm32-unknown-unknown"

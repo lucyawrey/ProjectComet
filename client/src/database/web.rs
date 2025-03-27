@@ -111,35 +111,56 @@ pub fn query_content_names() -> String {
 }
 
 #[wasm_bindgen]
-pub async fn install_opfs_sahpool(initial_db_file: Vec<u8>) -> Result<(), JsValue> {
-    let opfs_options = OpfsSAHPoolCfgBuilder::new()
-        .vfs_name(DEFAULT_WASM_VFS_NAME)
-        .build();
-    let opfs_util = ffi::install_opfs_sahpool(Some(&opfs_options), false)
-        .await
-        .map_err(|e| e.to_string())?;
+pub async fn install_opfs_sahpool() -> Result<(), JsValue> {
+    ffi::install_opfs_sahpool(
+        Some(
+            &OpfsSAHPoolCfgBuilder::new()
+                .vfs_name(DEFAULT_WASM_VFS_NAME)
+                .build(),
+        ),
+        false,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
 
+#[wasm_bindgen]
+pub async fn check_database() -> bool {
     if let Ok(db) = connect_to_database() {
         if let Ok((game_id, game_version)) = query_game_info(&db) {
             console::log_1(
                 &format!(
-                    "WASM - Server database info. game_id: {}, game_version: {}",
+                    "WASM - Client database info. game_id: {}, game_version: {}",
                     game_id, game_version
                 )
                 .into(),
             );
             // TODO Better database update process
             if game_id == CLIENT_GAME_ID && game_version.contains(CLIENT_VERSION) {
-                console::log_1(&"WASM - Loaded existng database from the VFS.".into());
-                return Ok(());
+                console::log_1(&"WASM - Database exists and matches game client version. Using existng database from the VFS.".into());
+                return true;
             }
         }
     }
+    false
+}
 
-    opfs_util
-        .import_db(DEFAULT_CLIENT_DATABASE_PATH, &initial_db_file)
-        .unwrap();
+#[wasm_bindgen]
+pub async fn import_database(initial_db_file: Vec<u8>) -> Result<(), JsValue> {
+    ffi::install_opfs_sahpool(
+        Some(
+            &OpfsSAHPoolCfgBuilder::new()
+                .vfs_name(DEFAULT_WASM_VFS_NAME)
+                .build(),
+        ),
+        false,
+    )
+    .await
+    .map_err(|e| e.to_string())?
+    .import_db(DEFAULT_CLIENT_DATABASE_PATH, &initial_db_file)
+    .map_err(|e| e.to_string())?;
+
     console::log_1(&"WASM - Imported new database into the VFS.".into());
-
     Ok(())
 }
