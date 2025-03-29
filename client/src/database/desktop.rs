@@ -1,6 +1,8 @@
 use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
 use rusqlite::{Connection, OpenFlags};
 
+use super::query_all_content;
+
 pub struct ClientDatabase {
     conn: Connection,
 }
@@ -11,21 +13,13 @@ impl ClientDatabase {
         Ok(ClientDatabase { conn })
     }
 
-    pub fn query_content_names(&self) -> String {
-        let db = &self.conn;
-
-        let mut query = db.prepare("SELECT name FROM content").unwrap();
-        let content_names = query
-            .query_map([], |row| {
-                let name: String = row.get("name")?;
-                Ok(name)
-            })
-            .unwrap();
+    pub fn query_content(&self) -> String {
+        let content = query_all_content(&self.conn).unwrap();
         let mut out = String::new();
-        for name in content_names {
-            out = out + "\n" + &name.unwrap();
+        for item in content {
+            out = out + &item.name + "\n";
         }
-        out
+        out.trim().to_string()
     }
 }
 

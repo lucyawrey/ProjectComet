@@ -17,6 +17,6 @@ pub fn setup(world: &mut World) {
 
 pub fn debug(db: NonSend<ClientDatabase>, mut chat: ResMut<ChatState>) {
     chat.print("Testing database. Content table name rows:");
-    let names = db.query_content_names();
+    let names = db.query_content();
     chat.print(&names);
 }

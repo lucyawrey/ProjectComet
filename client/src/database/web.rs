@@ -1,4 +1,4 @@
-use super::{Content, GameInfo};
+use super::{query_all_content, query_game_info, Content, GameInfo};
 use crate::config::{
     CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_CLIENT_DATABASE_PATH, DEFAULT_WASM_VFS_NAME,
 };
@@ -31,9 +31,9 @@ impl ClientDatabase {
         })
     }
 
-    pub fn query_content_names(&self) -> String {
+    pub fn query_content(&self) -> String {
         let msg = serde_wasm_bindgen::to_value(&WorkerMessage {
-            func: "query_all_content".to_string(),
+            func: "query_all_content_bind".to_string(),
             args: Vec::new(),
         })
         .unwrap();
@@ -51,7 +51,7 @@ pub struct WorkerMessage {
 #[derive(Serialize, Deserialize)]
 pub enum ReturnMessage {
     GameInfo(GameInfo),
-    AllContent(Vec<Content>),
+    Content(Vec<Content>),
 }
 
 pub fn spawn_worker(callback: &Closure<dyn FnMut(MessageEvent)>) -> Result<Worker, JsValue> {
@@ -97,68 +97,13 @@ pub fn connect_to_database() -> Result<Connection, String> {
     .map_err(|e| e.to_string())
 }
 
-pub fn query_game_info(db: &Connection) -> Result<GameInfo, String> {
-    let mut query = db
-        .prepare("SELECT * FROM game_info WHERE id = 0")
-        .map_err(|e| e.to_string())?;
-    Ok(query
-        .query_row((), |row| {
-            let supported_client_game_ids: String = row.get("supported_client_game_ids")?;
-            let game_info = GameInfo {
-                game_id: row.get("game_id")?,
-                game_version: row.get("game_version")?,
-                supported_client_game_ids: serde_json::from_str(&supported_client_game_ids)
-                    .map_err(|_e| rusqlite::Error::ExecuteReturnedResults)?,
-                game_display_name: row.get("game_display_name")?,
-                created_at: row.get("created_at")?,
-                updated_at: row.get("updated_at")?,
-            };
-
-            let msg =
-                serde_wasm_bindgen::to_value(&ReturnMessage::GameInfo(game_info.clone())).unwrap();
-            let _ = get_worker_scope().post_message(&msg);
-
-            return Ok(game_info);
-        })
-        .map_err(|e| e.to_string())?)
-}
-
 #[wasm_bindgen]
-pub fn query_all_content() -> Result<(), JsValue> {
-    let db = connect_to_database().unwrap();
-
-    let mut query = db
-        .prepare("SELECT * FROM content")
-        .map_err(|e| e.to_string())?;
-    let mut content = Vec::new();
-    let rows = query
-        .query_map([], |row| {
-            let data: String = row.get("data")?;
-            Ok(Content {
-                id: row.get("id")?,
-                updated_at: row.get("updated_at")?,
-                name: row.get("name")?,
-                content_type: row.get("content_type")?,
-                content_subtype: row.get("content_subtype")?,
-                data: serde_json::from_str(&data)
-                    .map_err(|_e| rusqlite::Error::ExecuteReturnedResults)?,
-                asset_id_0: row.get("asset_id_0")?,
-                asset_id_1: row.get("asset_id_1")?,
-                asset_id_2: row.get("asset_id_2")?,
-                asset_id_3: row.get("asset_id_3")?,
-                asset_id_4: row.get("asset_id_4")?,
-                is_user_generated: row.get("is_user_generated")?,
-                base_content_id: row.get("base_content_id")?,
-                creator_user_handle: row.get("creator_user_handle")?,
-            })
-        })
-        .map_err(|e| e.to_string())?;
-    for row in rows {
-        content.push(row.map_err(|e| e.to_string())?);
-    }
+pub fn query_all_content_bind() -> Result<(), JsValue> {
+    let db = connect_to_database()?;
+    let content = query_all_content(&db)?;
 
     let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
-    let msg = ReturnMessage::AllContent(content)
+    let msg = ReturnMessage::Content(content)
         .serialize(&serializer)
         .unwrap();
     let _ = get_worker_scope().post_message(&msg);
@@ -192,6 +137,13 @@ pub async fn check_database() -> bool {
                 )
                 .into(),
             );
+
+            let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
+            let msg = ReturnMessage::GameInfo(game_info.clone())
+                .serialize(&serializer)
+                .unwrap();
+            let _ = get_worker_scope().post_message(&msg);
+
             // TODO Better database update process
             if game_info.game_id == CLIENT_GAME_ID
                 && game_info.game_version.contains(CLIENT_VERSION)
