@@ -1,3 +1,4 @@
+use super::{Content, GameInfo};
 use crate::config::{
     CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_CLIENT_DATABASE_PATH, DEFAULT_WASM_VFS_NAME,
 };
@@ -5,11 +6,13 @@ use rusqlite::{
     ffi::{self, OpfsSAHPoolCfgBuilder},
     Connection, OpenFlags,
 };
+use serde::{Deserialize, Serialize};
+use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::{
     prelude::{wasm_bindgen, Closure},
     JsCast, JsValue,
 };
-use web_sys::{console, js_sys, MessageEvent, Worker};
+use web_sys::{console, js_sys, DedicatedWorkerGlobalScope, MessageEvent, Worker};
 
 pub struct ClientDatabase {
     worker: Worker,
@@ -29,9 +32,26 @@ impl ClientDatabase {
     }
 
     pub fn query_content_names(&self) -> String {
-        let _ = &self.worker.post_message(&"query_content_names".into());
+        let msg = serde_wasm_bindgen::to_value(&WorkerMessage {
+            func: "query_all_content".to_string(),
+            args: Vec::new(),
+        })
+        .unwrap();
+        let _ = &self.worker.post_message(&msg);
         "Check Terminal Output".to_string()
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct WorkerMessage {
+    pub func: String,
+    pub args: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum ReturnMessage {
+    GameInfo(GameInfo),
+    AllContent(Vec<Content>),
 }
 
 pub fn spawn_worker(callback: &Closure<dyn FnMut(MessageEvent)>) -> Result<Worker, JsValue> {
@@ -62,6 +82,10 @@ pub fn get_callback_closure() -> Closure<dyn FnMut(MessageEvent)> {
     })
 }
 
+pub fn get_worker_scope() -> DedicatedWorkerGlobalScope {
+    js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>()
+}
+
 pub fn connect_to_database() -> Result<Connection, String> {
     Connection::open_with_flags_and_vfs(
         DEFAULT_CLIENT_DATABASE_PATH,
@@ -73,41 +97,73 @@ pub fn connect_to_database() -> Result<Connection, String> {
     .map_err(|e| e.to_string())
 }
 
-pub fn query_game_info(db: &Connection) -> Result<(String, String), String> {
+pub fn query_game_info(db: &Connection) -> Result<GameInfo, String> {
     let mut query = db
         .prepare("SELECT * FROM game_info WHERE id = 0")
         .map_err(|e| e.to_string())?;
     Ok(query
         .query_row((), |row| {
-            let game_id: String = row.get("game_id")?;
-            let game_version: String = row.get("game_version")?;
-            Ok((game_id, game_version))
+            let supported_client_game_ids: String = row.get("supported_client_game_ids")?;
+            let game_info = GameInfo {
+                game_id: row.get("game_id")?,
+                game_version: row.get("game_version")?,
+                supported_client_game_ids: serde_json::from_str(&supported_client_game_ids)
+                    .map_err(|_e| rusqlite::Error::ExecuteReturnedResults)?,
+                game_display_name: row.get("game_display_name")?,
+                created_at: row.get("created_at")?,
+                updated_at: row.get("updated_at")?,
+            };
+
+            let msg =
+                serde_wasm_bindgen::to_value(&ReturnMessage::GameInfo(game_info.clone())).unwrap();
+            let _ = get_worker_scope().post_message(&msg);
+
+            return Ok(game_info);
         })
         .map_err(|e| e.to_string())?)
 }
 
-#[wasm_bindgen(getter_with_clone)]
-pub struct WorkerMessage {
-    pub func: String,
-    pub param: Option<String>,
-}
-
 #[wasm_bindgen]
-pub fn query_content_names() -> String {
+pub fn query_all_content() -> Result<(), JsValue> {
     let db = connect_to_database().unwrap();
 
-    let mut query = db.prepare("SELECT name FROM content").unwrap();
-    let content_names = query
+    let mut query = db
+        .prepare("SELECT * FROM content")
+        .map_err(|e| e.to_string())?;
+    let mut content = Vec::new();
+    let rows = query
         .query_map([], |row| {
-            let name: String = row.get("name")?;
-            Ok(name)
+            let data: String = row.get("data")?;
+            Ok(Content {
+                id: row.get("id")?,
+                updated_at: row.get("updated_at")?,
+                name: row.get("name")?,
+                content_type: row.get("content_type")?,
+                content_subtype: row.get("content_subtype")?,
+                data: serde_json::from_str(&data)
+                    .map_err(|_e| rusqlite::Error::ExecuteReturnedResults)?,
+                asset_id_0: row.get("asset_id_0")?,
+                asset_id_1: row.get("asset_id_1")?,
+                asset_id_2: row.get("asset_id_2")?,
+                asset_id_3: row.get("asset_id_3")?,
+                asset_id_4: row.get("asset_id_4")?,
+                is_user_generated: row.get("is_user_generated")?,
+                base_content_id: row.get("base_content_id")?,
+                creator_user_handle: row.get("creator_user_handle")?,
+            })
         })
-        .unwrap();
-    let mut out = String::new();
-    for name in content_names {
-        out = out + "\n" + &name.unwrap();
+        .map_err(|e| e.to_string())?;
+    for row in rows {
+        content.push(row.map_err(|e| e.to_string())?);
     }
-    out
+
+    let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
+    let msg = ReturnMessage::AllContent(content)
+        .serialize(&serializer)
+        .unwrap();
+    let _ = get_worker_scope().post_message(&msg);
+
+    Ok(())
 }
 
 #[wasm_bindgen]
@@ -128,16 +184,18 @@ pub async fn install_opfs_sahpool() -> Result<(), JsValue> {
 #[wasm_bindgen]
 pub async fn check_database() -> bool {
     if let Ok(db) = connect_to_database() {
-        if let Ok((game_id, game_version)) = query_game_info(&db) {
+        if let Ok(game_info) = query_game_info(&db) {
             console::log_1(
                 &format!(
                     "WASM - Client database info. game_id: {}, game_version: {}",
-                    game_id, game_version
+                    game_info.game_id, game_info.game_version
                 )
                 .into(),
             );
             // TODO Better database update process
-            if game_id == CLIENT_GAME_ID && game_version.contains(CLIENT_VERSION) {
+            if game_info.game_id == CLIENT_GAME_ID
+                && game_info.game_version.contains(CLIENT_VERSION)
+            {
                 console::log_1(&"WASM - Database exists and matches game client version. Using existng database from the VFS.".into());
                 return true;
             }

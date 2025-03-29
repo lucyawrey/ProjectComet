@@ -5,5 +5,7 @@
 #[cfg_attr(all(target_family = "wasm", target_os = "unknown"), path = "web.rs")]
 pub mod platform;
 pub mod plugin;
+pub mod tables;
 pub use platform::*;
 pub use plugin::*;
+pub use tables::*;

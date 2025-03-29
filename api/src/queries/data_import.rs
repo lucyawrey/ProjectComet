@@ -254,7 +254,7 @@ pub async fn import_access_token_row(
         .get("access_level")
         .unwrap_or(&NO_VALUE)
         .as_integer()
-        .map(|a| AccessLevel::try_from(a as i32).ok())
+        .map(|a| AccessLevel::try_from(a as u16).ok())
         .flatten()
         .ok_or("Missing access_level.")?;
     let game_server_id = if access_level == AccessLevel::GameServer {

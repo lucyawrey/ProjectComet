@@ -29,8 +29,7 @@ onmessage = ({ data }) => {
       loading = false;
     }
     // wasm-bindgen-spawn call
-    let result = wasm_bindgen[data]();
-    postMessage(result);
+    wasm_bindgen[data.func](data.params);
   };
 
   postMessage("loading");

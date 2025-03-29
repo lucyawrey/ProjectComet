@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::prelude::Type;
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum Role {
     NewPlayer = 0,
     Player = 1,
@@ -13,7 +13,7 @@ pub enum Role {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum AccessLevel {
     Default = 0,
     GameServer = 1,
@@ -21,14 +21,14 @@ pub enum AccessLevel {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum CharacterAncestry {
     Cat = 0,
     Human = 1,
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum CharacterGender {
     Neutral = 0,   // they/them
     Feminine = 1,  // she/her
@@ -59,7 +59,7 @@ pub struct CharacterHistory {}
 pub struct NpcRelationships {}
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum GameOptionsType {
     User = 0,
     Character = 1,
@@ -82,14 +82,14 @@ pub struct ClassData {}
 pub struct OutfitData {}
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum GuildRole {
     Member = 0,
     Trustee = 1,
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum ItemLocation {
     Other = 0,
     Dropped = 1,
@@ -103,7 +103,7 @@ pub enum ItemLocation {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum ItemQuality {
     Normal = 0,
     Silver = 1,
@@ -114,7 +114,7 @@ pub enum ItemQuality {
 pub struct ItemInstanceData {}
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum ItemCollectionEntryLocation {
     NotTracked = 0,
     Soulbound = 1,
@@ -133,7 +133,7 @@ pub enum AssetData {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum ContentType {
     None = 0,
 
@@ -148,7 +148,7 @@ pub enum ContentType {
 }
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Type)]
-#[repr(i32)]
+#[repr(u16)]
 pub enum ContentSubtype {
     None = 0,
 
@@ -179,8 +179,9 @@ pub struct ContentData {
     pub is_soulbound: bool,
     // TODO fix enum serde serialization
     // pub tradability: ItemTradability,
-    pub tradability: i32,
+    pub tradability: u16,
 }
+
 // pub enum ContentData {
 //     Class {},
 //     Item {
@@ -196,7 +197,7 @@ pub struct ContentData {
 #[derive(
     Debug, Eq, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize,
 )]
-#[repr(i32)]
+#[repr(u16)]
 pub enum ItemTradability {
     Untradeable = 0,
     Droppable = 1,
