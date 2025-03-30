@@ -1,6 +1,7 @@
 use crate::chat::ChatState;
 use crate::components::Name;
 use crate::components::PlayerCharacter;
+use crate::database::Data;
 use bevy::prelude::*;
 
 pub struct HelloPlugin;
@@ -8,35 +9,34 @@ pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GreetTimer(Timer::from_seconds(1.0, TimerMode::Once)));
-        app.add_systems(Update, (update_people, greet_people).chain());
+        app.add_systems(Startup, spawn_people);
+        app.add_systems(Update, greet_people_and_content);
     }
 }
 
 #[derive(Resource)]
 pub struct GreetTimer(pub Timer);
 
-pub fn greet_people(
+pub fn spawn_people(mut commands: Commands) {
+    commands.spawn((PlayerCharacter, Name("Stef".to_string())));
+    commands.spawn((PlayerCharacter, Name("Laura".to_string())));
+    commands.spawn((PlayerCharacter, Name("Lucy".to_string())));
+}
+
+pub fn greet_people_and_content(
     time: Res<Time>,
+    data: Res<Data>,
     mut timer: ResMut<GreetTimer>,
     mut chat: ResMut<ChatState>,
-    mut commands: Commands,
     query: Query<&Name, With<PlayerCharacter>>,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
-        commands.spawn((PlayerCharacter, Name("Stef".to_string())));
-        commands.spawn((PlayerCharacter, Name("Laura".to_string())));
-        commands.spawn((PlayerCharacter, Name("Lucy".to_string())));
+        chat.print("HERE!!");
         for name in &query {
             chat.print(&format!("hello {}!", name.0));
         }
-    }
-}
-
-pub fn update_people(mut query: Query<&mut Name, With<PlayerCharacter>>) {
-    for mut name in &mut query {
-        if name.0 == "Stef" {
-            name.0 = "Stefanie".to_string();
-            break;
+        for (_, content) in &data.content {
+            chat.print(&format!("hello {}!", content.name));
         }
     }
 }

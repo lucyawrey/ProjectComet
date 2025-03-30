@@ -8,6 +8,7 @@ use rusqlite::{
 };
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::Serializer;
+use std::sync::{mpsc, mpsc::Receiver};
 use wasm_bindgen::{
     prelude::{wasm_bindgen, Closure},
     JsCast, JsValue,
@@ -15,41 +16,53 @@ use wasm_bindgen::{
 use web_sys::{console, js_sys, DedicatedWorkerGlobalScope, MessageEvent, Worker};
 
 pub struct ClientDatabase {
+    pub receiver: Receiver<DatabaseResult>,
     worker: Worker,
     _callback: Closure<dyn FnMut(MessageEvent)>,
 }
 
 impl ClientDatabase {
     pub fn new() -> Result<ClientDatabase, String> {
-        let callback = get_callback_closure();
+        let (sender, receiver) = mpsc::channel();
+        let callback = Closure::new(move |event: MessageEvent| {
+            let data = event.data();
+            if let Some(text) = data.as_string() {
+                if text.as_str() == "loading" {
+                    console::log_1(&"WASM - Worker loading...".into());
+                    return;
+                }
+            }
+            let msg: DatabaseResult = serde_wasm_bindgen::from_value(data).unwrap();
+            sender.send(msg).expect("Failed to send message.");
+        });
         let worker = spawn_worker(&callback)
             .map_err(|_e| "Failed to spawn web worker used for client database.")?;
 
         Ok(ClientDatabase {
+            receiver,
             worker,
             _callback: callback,
         })
     }
 
-    pub fn query_content(&self) -> String {
-        let msg = serde_wasm_bindgen::to_value(&WorkerMessage {
+    pub fn query_content(&self) {
+        let msg = serde_wasm_bindgen::to_value(&WorkerDatabaseRequest {
             func: "query_all_content_bind".to_string(),
             args: Vec::new(),
         })
         .unwrap();
         let _ = &self.worker.post_message(&msg);
-        "Check Terminal Output".to_string()
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct WorkerMessage {
+pub struct WorkerDatabaseRequest {
     pub func: String,
     pub args: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub enum ReturnMessage {
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DatabaseResult {
     GameInfo(GameInfo),
     Content(Vec<Content>),
 }
@@ -67,19 +80,6 @@ pub fn spawn_worker(callback: &Closure<dyn FnMut(MessageEvent)>) -> Result<Worke
     worker.post_message(&array)?;
 
     Ok(worker)
-}
-
-pub fn get_callback_closure() -> Closure<dyn FnMut(MessageEvent)> {
-    Closure::new(move |event: MessageEvent| {
-        let data = event.data();
-        if let Some(text) = data.as_string() {
-            if text.as_str() == "loading" {
-                console::log_1(&"WASM - Worker loading...".into());
-                return;
-            }
-        }
-        console::log_2(&"WASM -".into(), &data);
-    })
 }
 
 pub fn get_worker_scope() -> DedicatedWorkerGlobalScope {
@@ -103,7 +103,7 @@ pub fn query_all_content_bind() -> Result<(), JsValue> {
     let content = query_all_content(&db)?;
 
     let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
-    let msg = ReturnMessage::Content(content)
+    let msg = DatabaseResult::Content(content)
         .serialize(&serializer)
         .unwrap();
     let _ = get_worker_scope().post_message(&msg);
@@ -139,7 +139,7 @@ pub async fn check_database() -> bool {
             );
 
             let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
-            let msg = ReturnMessage::GameInfo(game_info.clone())
+            let msg = DatabaseResult::GameInfo(game_info.clone())
                 .serialize(&serializer)
                 .unwrap();
             let _ = get_worker_scope().post_message(&msg);

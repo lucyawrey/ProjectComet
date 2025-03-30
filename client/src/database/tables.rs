@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GameInfo {
     pub created_at: i64,
     pub updated_at: i64,
@@ -10,7 +10,7 @@ pub struct GameInfo {
     pub game_display_name: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Asset {
     pub id: i64,           // Snowflake ID, alias of rowid
     pub updated_at: i64,   // Unix timestamp in seconds
@@ -23,7 +23,7 @@ pub struct Asset {
 }
 
 // TODO shre content field tyoes with API
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Content {
     pub id: i64,         // Snowflake ID, alias of rowid
     pub updated_at: i64, // Unix timestamp in seconds
@@ -41,14 +41,14 @@ pub struct Content {
     pub creator_user_handle: Option<i64>, // Should not be exposed to client. Snowflake ID, referances an `User`
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum AssetData {
     None,
     Blob(Vec<u8>),
     String(String),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ContentData {
     pub stack_size: i64,
     pub is_unique: bool,

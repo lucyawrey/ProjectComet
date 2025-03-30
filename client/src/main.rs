@@ -1,3 +1,4 @@
+#![feature(mpmc_channel)]
 mod chat;
 mod components;
 mod config;
