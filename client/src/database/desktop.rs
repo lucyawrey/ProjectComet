@@ -1,7 +1,6 @@
+use super::query_all_content;
 use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
 use rusqlite::{Connection, OpenFlags};
-
-use super::query_all_content;
 
 pub struct ClientDatabase {
     conn: Connection,

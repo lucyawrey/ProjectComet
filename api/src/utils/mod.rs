@@ -1,6 +1,5 @@
 pub mod authentication;
 pub mod transport;
-
 use crate::model::fields::AssetData;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use num::{FromPrimitive, Integer, ToPrimitive};
