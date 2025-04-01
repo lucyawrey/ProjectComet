@@ -1,7 +1,8 @@
-use super::{query_all_content, query_game_info, Content, GameInfo};
+use super::{query_all_content, query_game_info, Data, DatabasePlugin, DatabaseResult};
 use crate::config::{
     CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_CLIENT_DATABASE_PATH, DEFAULT_WASM_VFS_NAME,
 };
+use bevy::prelude::*;
 use rusqlite::{
     ffi::{self, OpfsSAHPoolCfgBuilder},
     Connection, OpenFlags,
@@ -14,6 +15,41 @@ use wasm_bindgen::{
     JsCast, JsValue,
 };
 use web_sys::{console, js_sys, DedicatedWorkerGlobalScope, MessageEvent, Worker};
+
+/* Plugin */
+impl Plugin for DatabasePlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(Data::default());
+        app.add_systems(Startup, (setup, fetch_data).chain());
+        app.add_systems(Update, process_messages);
+    }
+}
+
+pub fn setup(world: &mut World) {
+    let database = ClientDatabase::new().expect("Failed to initialize client database.");
+    world.insert_non_send_resource(database);
+}
+
+pub fn fetch_data(db: NonSend<ClientDatabase>) {
+    db.query_content();
+}
+
+pub fn process_messages(db: NonSend<ClientDatabase>, mut data: ResMut<Data>) {
+    loop {
+        match db.receiver.try_recv() {
+            Ok(result) => match result {
+                DatabaseResult::GameInfo(game_info) => data.game_info = Some(game_info),
+                DatabaseResult::Content(content) => {
+                    for item in content {
+                        data.content.insert(item.id, item);
+                    }
+                }
+            },
+            Err(_) => break,
+        }
+    }
+}
+/* End Plugin */
 
 pub struct ClientDatabase {
     pub receiver: Receiver<DatabaseResult>,
@@ -59,12 +95,6 @@ impl ClientDatabase {
 pub struct WorkerDatabaseRequest {
     pub func: String,
     pub args: Vec<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum DatabaseResult {
-    GameInfo(GameInfo),
-    Content(Vec<Content>),
 }
 
 pub fn spawn_worker(callback: &Closure<dyn FnMut(MessageEvent)>) -> Result<Worker, JsValue> {

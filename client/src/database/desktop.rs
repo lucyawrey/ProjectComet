@@ -1,24 +1,50 @@
-use super::query_all_content;
+use super::{
+    query_all_content, query_game_info, Content, Data, DatabasePlugin, DatabaseResult, GameInfo,
+};
 use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
+use bevy::prelude::*;
 use rusqlite::{Connection, OpenFlags};
+use std::sync::Mutex;
 
+/* Plugin */
+impl Plugin for DatabasePlugin {
+    fn build(&self, app: &mut App) {
+        let database = ClientDatabase::new().expect("Failed to initialize client database.");
+        app.insert_resource(database);
+        app.insert_resource(Data::default());
+        app.add_systems(Startup, fetch_data);
+    }
+}
+
+pub fn fetch_data(db: Res<ClientDatabase>, mut data: ResMut<Data>) {
+    let game_info = db.query_game_info();
+    data.game_info = Some(game_info);
+    let content = db.query_content();
+    for item in content {
+        data.content.insert(item.id, item);
+    }
+}
+/* End Plugin */
+
+#[derive(Resource)]
 pub struct ClientDatabase {
-    conn: Connection,
+    conn: Mutex<Connection>,
 }
 
 impl ClientDatabase {
     pub fn new() -> Result<ClientDatabase, String> {
         let conn = connect_to_database()?;
-        Ok(ClientDatabase { conn })
+        Ok(ClientDatabase {
+            conn: Mutex::new(conn),
+        })
     }
 
-    pub fn query_content(&self) -> String {
-        let content = query_all_content(&self.conn).unwrap();
-        let mut out = String::new();
-        for item in content {
-            out = out + &item.name + "\n";
-        }
-        out.trim().to_string()
+    pub fn query_game_info(&self) -> GameInfo {
+        query_game_info(&self.conn.lock().unwrap()).unwrap()
+    }
+
+    pub fn query_content(&self) -> Vec<Content> {
+        query_all_content(&self.conn.lock().unwrap()).unwrap()
     }
 }
 
