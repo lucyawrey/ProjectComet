@@ -22,7 +22,7 @@ pub struct Asset {
     pub creator_user_handle: Option<i64>, // Should not be exposed to client. Snowflake ID, referances an `User`
 }
 
-// TODO shre content field tyoes with API
+// TODO share content field tyoes with API
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Content {
     pub id: i64,         // Snowflake ID, alias of rowid
@@ -46,6 +46,12 @@ pub enum AssetData {
     None,
     Blob(Vec<u8>),
     String(String),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Ref {
+    Id(i64),
+    Name(String),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

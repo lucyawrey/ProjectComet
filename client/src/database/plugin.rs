@@ -1,4 +1,4 @@
-use super::{Content, GameInfo};
+use super::{Asset, Content, GameInfo};
 use bevy::{prelude::*, utils::HashMap};
 use serde::{Deserialize, Serialize};
 
@@ -13,5 +13,7 @@ pub struct Data {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DatabaseResult {
     GameInfo(GameInfo),
+    Asset(Asset),
+    Assets(Vec<Asset>),
     Content(Vec<Content>),
 }

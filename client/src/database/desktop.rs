@@ -1,6 +1,4 @@
-use super::{
-    query_all_content, query_game_info, Content, Data, DatabasePlugin, DatabaseResult, GameInfo,
-};
+use super::{query_contents, query_game_info, Content, Data, DatabasePlugin, GameInfo};
 use crate::config::DEFAULT_CLIENT_DATABASE_PATH;
 use bevy::prelude::*;
 use rusqlite::{Connection, OpenFlags};
@@ -44,7 +42,7 @@ impl ClientDatabase {
     }
 
     pub fn query_content(&self) -> Vec<Content> {
-        query_all_content(&self.conn.lock().unwrap()).unwrap()
+        query_contents(&self.conn.lock().unwrap()).unwrap()
     }
 }
 
