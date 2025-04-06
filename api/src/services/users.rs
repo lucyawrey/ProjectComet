@@ -47,7 +47,7 @@ impl Users for UsersService {
                     .ok_or(Status::internal("Failed to encode handle."))?,
                 updated_at: session_user.updated_at.and_utc().timestamp(),
                 username: session_user.username,
-                role: session_user.role.into(),
+                role: session_user.role as i32,
             }),
         }))
     }
@@ -111,7 +111,7 @@ impl Users for UsersService {
             args.home_world_id,
             args.name,
             match args.role {
-                Some(role) => Role::try_from(role).ok(),
+                Some(role) => Role::try_from(role as u16).ok(),
                 None => None,
             },
         )
@@ -124,11 +124,11 @@ impl Users for UsersService {
             handle: id_to_base32(new.handle).ok_or(Status::internal("Failed to encode handle."))?,
             updated_at: new.updated_at.and_utc().timestamp(),
             name: new.name,
-            role: new.role.into(),
+            role: new.role as i32,
             home_world_id: new.home_world_id,
             user_id: new.user_id,
-            ancestry: new.ancestry.into(),
-            gender: new.gender.into(),
+            ancestry: new.ancestry as i32,
+            gender: new.gender as i32,
             customization: "TODO: Serialize Json<Customization>".to_owned(),
             data: "TODO: Serialize Json<CharacterData>".to_owned(),
         }))
