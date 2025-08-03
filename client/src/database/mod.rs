@@ -1,8 +1,5 @@
-#[cfg_attr(
-    any(target_family = "unix", target_family = "windows"),
-    path = "desktop.rs"
-)]
-#[cfg_attr(all(target_family = "wasm", target_os = "unknown"), path = "web.rs")]
+#[cfg_attr(not(target_arch = "wasm32"), path = "desktop.rs")]
+#[cfg_attr(target_arch = "wasm32", path = "web.rs")]
 pub mod platform;
 pub mod plugin;
 pub mod queries;

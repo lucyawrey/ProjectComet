@@ -9,12 +9,12 @@ bevy = "0.15.2"
 serde = "1.0.217"
 serde_json = "1.0.140"
 
-[target.'cfg(any(target_family = "unix", target_family = "windows"))'.dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rusqlite = { git = "https://github.com/Spxg/rusqlite", features = [
     "bundled",
 ] } # Once wasm support is merged this can be changed back to main.
 
-[target.'cfg(all(target_family = "wasm", target_os = "unknown"))'.dependencies]
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 rusqlite = { git = "https://github.com/Spxg/rusqlite", features = [
     "precompiled-wasm",
 ] } # Once wasm support is merged this can be changed back to main.

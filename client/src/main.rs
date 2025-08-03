@@ -33,15 +33,15 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d);
 }
 
-#[cfg(any(target_family = "unix", target_family = "windows"))]
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     app();
 }
 
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+#[cfg(target_arch = "wasm32")]
 fn main() {}
 
-#[cfg(all(target_family = "wasm", target_os = "unknown"))]
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
     web_sys::console::log_1(&"WASM - Initializing Bevy Game".into());
