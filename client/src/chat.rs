@@ -29,7 +29,7 @@ struct ChatText;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut chat: ResMut<ChatState>) {
     chat.print(&format!(
-        "client_game_id: {}, client_version: {}",
+        "client_game_id: {}, client_game_version: {}",
         CLIENT_GAME_ID, CLIENT_GAME_VERSION
     ));
 

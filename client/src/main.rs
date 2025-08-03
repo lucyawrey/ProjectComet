@@ -1,12 +1,12 @@
+mod api;
 mod chat;
 mod components;
 mod config;
-mod database;
 mod fps;
 mod hello;
+use api::ApiPlugin;
 use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 use chat::ChatPlugin;
-use database::DatabasePlugin;
 use fps::FpsPlugin;
 use hello::HelloPlugin;
 
@@ -22,7 +22,7 @@ pub fn app() {
     app.add_plugins(FrameTimeDiagnosticsPlugin::default());
     app.add_systems(Startup, setup_camera);
     app.add_plugins(FpsPlugin);
-    app.add_plugins(DatabasePlugin);
+    app.add_plugins(ApiPlugin);
     app.add_plugins(ChatPlugin);
     app.add_plugins(HelloPlugin);
     app.run();
