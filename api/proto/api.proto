@@ -25,11 +25,11 @@ service Administration {
 
 service Asset {
     rpc GetGameInfo (Message) returns (Message);
-    rpc GetAssetDatabaseDownloadUrl (Message) returns (Message);
     rpc GetContent (Message) returns (Message);
     rpc GetContents (Message) returns (Message);
     rpc GetAsset (Message) returns (Message);
     rpc GetAssets (Message) returns (Message);
+    rpc GetAssetUrl (Message) returns (Message);
 }
 
 service Users {
