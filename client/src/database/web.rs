@@ -134,9 +134,16 @@ pub fn connect_to_database() -> Result<Connection, String> {
 }
 
 #[wasm_bindgen]
-pub fn query_contents_bind() -> Result<(), JsValue> {
+pub fn query_contents_by_refs_bind(args: Vec<String>) -> Result<(), JsValue> {
+    let mut refs = Vec::new();
+    for arg in args {
+        match arg.parse::<i64>() {
+            Ok(id) => refs.push(Ref::Id(id)),
+            Err(_) => refs.push(Ref::Name(arg)),
+        }
+    }
     let db = connect_to_database()?;
-    let content = query_contents(&db)?;
+    let content = query_contents_by_refs(&db, refs)?;
 
     let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
     let msg = DatabaseResult::Content(content)
@@ -148,16 +155,9 @@ pub fn query_contents_bind() -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn query_contents_by_refs_bind(args: Vec<String>) -> Result<(), JsValue> {
-    let mut refs = Vec::new();
-    for arg in args {
-        match arg.parse::<i64>() {
-            Ok(id) => refs.push(Ref::Id(id)),
-            Err(_) => refs.push(Ref::Name(arg)),
-        }
-    }
+pub fn query_contents_bind() -> Result<(), JsValue> {
     let db = connect_to_database()?;
-    let content = query_contents_by_refs(&db, refs)?;
+    let content = query_contents(&db)?;
 
     let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
     let msg = DatabaseResult::Content(content)
