@@ -19,7 +19,7 @@ pub fn app() {
         }),
         ..default()
     }));
-    app.add_plugins(FrameTimeDiagnosticsPlugin);
+    app.add_plugins(FrameTimeDiagnosticsPlugin::default());
     app.add_systems(Startup, setup_camera);
     app.add_plugins(FpsPlugin);
     app.add_plugins(DatabasePlugin);

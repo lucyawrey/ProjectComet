@@ -1,7 +1,6 @@
 use super::{Asset, Content, GameInfo};
 use bevy::prelude::*;
-use bevy::utils::HashMap;
-use serde::{Deserialize, Serialize};
+use bevy_platform::collections::hash_map::HashMap;
 
 pub struct DatabasePlugin;
 
@@ -11,7 +10,7 @@ pub struct Data {
     pub content: HashMap<i64, Content>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub enum DatabaseResult {
     GameInfo(GameInfo),
     Asset(Asset),
@@ -28,7 +27,9 @@ impl Plugin for DatabasePlugin {
     }
 }
 
-pub fn fetch_data(db: Res<ClientDatabase>, mut data: ResMut<Data>) {}
+pub fn fetch_data(db: Res<ClientDatabase>, mut data: ResMut<Data>) {
+    data.game_info = Some(db.query_game_info());
+}
 
 #[derive(Resource)]
 pub struct ClientDatabase {}
