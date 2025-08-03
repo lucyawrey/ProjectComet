@@ -1,4 +1,4 @@
-use crate::config::{CLIENT_GAME_ID, CLIENT_VERSION, DEFAULT_FONT};
+use crate::config::{CLIENT_GAME_ID, CLIENT_GAME_VERSION, DEFAULT_FONT};
 use bevy::app::Plugin;
 use bevy::prelude::*;
 
@@ -30,7 +30,7 @@ struct ChatText;
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut chat: ResMut<ChatState>) {
     chat.print(&format!(
         "client_game_id: {}, client_version: {}",
-        CLIENT_GAME_ID, CLIENT_VERSION
+        CLIENT_GAME_ID, CLIENT_GAME_VERSION
     ));
 
     // Chat text with one section

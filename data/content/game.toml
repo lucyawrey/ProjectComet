@@ -1,9 +1,10 @@
 [game_info]
+game_display_name = "Project Comet"
 game_id = "project_comet"
-# set `game_version = "dev"` to always reimport content
 game_version = "0.1.0.0"
 supported_client_game_ids = ["project_comet"]
-game_display_name = "Project Comet"
+supported_client_game_versions = ["0.1.0"]
+# set `game_version = "dev"` to always reimport content
 
 [[game_server]]
 id = "development"

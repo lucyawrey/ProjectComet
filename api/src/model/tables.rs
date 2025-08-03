@@ -5,7 +5,7 @@ use super::fields::{
     ItemInstanceData, ItemLocation, ItemQuality, OutfitData, Role, Statistics,
 };
 use chrono::NaiveDateTime;
-use sqlx::{types::Json, FromRow};
+use sqlx::{FromRow, types::Json};
 
 #[derive(Debug, FromRow)]
 pub struct GameInfo {
@@ -15,6 +15,7 @@ pub struct GameInfo {
     pub game_id: String,
     pub game_version: String,
     pub supported_client_game_ids: Json<Vec<String>>,
+    pub supported_client_game_versions: Json<Vec<String>>,
     pub game_display_name: String,
 }
 

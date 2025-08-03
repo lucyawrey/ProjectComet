@@ -3,7 +3,7 @@ mod model;
 mod queries;
 mod utils;
 use queries::data_import::data_import;
-use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
+use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
 use std::{env, process};
 use utils::{new_sonyflake, next_id};
 
@@ -28,7 +28,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         None => {
-            println!("Please provide a valid script name as the first argument. Valid options are 'migrate' and 'id_gen'.");
+            println!(
+                "Please provide a valid script name as the first argument. Valid options are 'migrate' and 'id_gen'."
+            );
             process::exit(1);
         }
     };
@@ -38,10 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn migrate() -> Result<(), Box<dyn std::error::Error>> {
     let database_url =
         env::var("DATABASE_URL").expect("Environment variable DATABASE_URL not found");
-    let client_database_output_url = env::var("CLIENT_DATABASE_OUTPUT_URL")
-        .expect("Environment variable CLIENT_DATABASE_OUTPUT_URL not found");
     let api_migrator = sqlx::migrate!("./migrations");
-    let client_migrator = sqlx::migrate!("./migrations/client");
 
     // API Database
     if !Sqlite::database_exists(&database_url)
@@ -66,32 +65,6 @@ async fn migrate() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "  Updated database for game version: '{} {}'.",
         version.game_id, version.game_version
-    );
-
-    //Client Database
-    if !Sqlite::database_exists(&client_database_output_url)
-        .await
-        .unwrap_or(false)
-    {
-        println!(
-            "  Creating client database {}.",
-            &client_database_output_url
-        );
-        Sqlite::create_database(&client_database_output_url)
-            .await
-            .expect("Failed to create client database")
-    }
-    let cdb = SqlitePool::connect(&client_database_output_url).await?;
-
-    client_migrator.run(&cdb).await?;
-
-    println!("\n  Importing data from data files to client database.\n");
-    let cversion = data_import(&cdb, Some(&["asset", "content"]))
-        .await
-        .unwrap();
-    println!(
-        "  Updated client database for game version: '{} {}'.",
-        cversion.game_id, cversion.game_version
     );
 
     Ok(())

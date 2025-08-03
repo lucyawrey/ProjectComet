@@ -1,8 +1,8 @@
 use crate::{
     model::{
+        IdWrapper,
         fields::AccessLevel,
         tables::{AccessToken, GameInfo, GameServer, User, UserPassword, UserRecoveryCode, World},
-        IdWrapper,
     },
     queries::game_info::get_game_info_query,
     utils::{
@@ -14,9 +14,9 @@ use crate::{
         get_magic_cookie, read_asset_file, read_dir_recursive,
     },
 };
-use sqlx::{query_as, Pool, Sqlite};
+use sqlx::{Pool, Sqlite, query_as};
 use std::fs;
-use toml::{map::Map, Table, Value};
+use toml::{Table, Value, map::Map};
 
 const NO_VALUE: Value = Value::Boolean(false);
 
@@ -124,13 +124,20 @@ pub async fn update_game_info(
         .as_array()
         .map(|a| serde_json::to_string(a).ok())
         .flatten();
+    let supported_client_game_versions = game_info
+        .get("supported_client_game_versions")
+        .unwrap_or(&NO_VALUE)
+        .as_array()
+        .map(|a| serde_json::to_string(a).ok())
+        .flatten();
     let new_info = query_as::<_, GameInfo>(
-            "INSERT INTO game_info (id, game_id, game_version, game_display_name, supported_client_game_ids) VALUES (0, $1, $2, $3, $4) ON CONFLICT(id) DO UPDATE SET game_id=excluded.game_id, game_version=excluded.game_version, game_display_name=excluded.game_display_name, supported_client_game_ids=excluded.supported_client_game_ids, updated_at=(unixepoch()) RETURNING *",
+            "INSERT INTO game_info (id, game_id, game_version, game_display_name, supported_client_game_ids, supported_client_game_versions) VALUES (0, $1, $2, $3, $4, $5) ON CONFLICT(id) DO UPDATE SET game_id=excluded.game_id, game_version=excluded.game_version, game_display_name=excluded.game_display_name, supported_client_game_ids=excluded.supported_client_game_ids, supported_client_game_versions=excluded.supported_client_game_versions, updated_at=(unixepoch()) RETURNING *",
         )
         .bind(game_id)
         .bind(game_version)
         .bind(game_info.get("game_display_name").unwrap_or(&NO_VALUE).as_str())
         .bind(supported_client_game_ids)
+        .bind(supported_client_game_versions)
         .fetch_one(db)
         .await
         .map_err(|e| e.to_string())?;
