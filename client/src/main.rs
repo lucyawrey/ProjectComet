@@ -1,4 +1,3 @@
-#![feature(mpmc_channel)]
 mod chat;
 mod components;
 mod config;
@@ -33,15 +32,8 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-fn main() {
-    app();
-}
-
-#[cfg(target_arch = "wasm32")]
 fn main() {}
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn init_app() {
     web_sys::console::log_1(&"WASM - Initializing Bevy Game".into());

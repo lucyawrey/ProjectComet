@@ -3,21 +3,17 @@
 ## Requirements
 - Rust toolchain
 - Python
+- Web Browser with WebGPU support
 
 ## Installing Runtime Dependancies
 ### Most Linux Systems
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup default nightly
-rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+rustup target add wasm32-unknown-unknown
+cargo install -f wasm-bindgen-cli --version 0.2.100
 ```
 
-## Running the Client
-```sh
-cargo run
-```
-
-## Building WASM Target for Development
+## Build and run WASM target for development
 ```sh
 cargo build --target wasm32-unknown-unknown
 wasm-bindgen --no-typescript --target no-modules \
@@ -27,13 +23,7 @@ wasm-bindgen --no-typescript --target no-modules \
 python3 server.py
 ```
 
-## Building
-```sh
-cargo build --release
-mkdir -p ../out/client && cp ./target/release/project_comet_client "$_"
-```
-
-## Building WASM Target
+## Building WASM target for release
 ```sh
 cargo build --release --target wasm32-unknown-unknown
 wasm-bindgen --no-typescript --target web \
@@ -44,16 +34,8 @@ cp ./www/index.html ../out/client/index.html
 cp ./www/worker.js ../out/client/worker.js
 ```
 
-## Installing WASM Target Runtime Dependancies
-### Most Linux Systems
-```sh
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup target add wasm32-unknown-unknown
-cargo install -f wasm-bindgen-cli --version 0.2.100
-```
-
 ## To do
-- [ ] Create database API on top of Native SQLite and WASM Worker SQLite. Download `client_data.sqlite` on Native if it does not exist instead of creating it.
 - [ ] Setup Client API access
-- [ ] Load content + assets from SQLite database
-- [ ] Sync content + assets from API database
+- [ ] Create HTTP asset download endpoints in API
+- [ ] Load content from API
+- [ ] Load and cache assets from API
