@@ -1,4 +1,3 @@
-using System.Net;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -28,7 +27,6 @@ public class ApiDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // TODO Add CreatedAt interface
         var entityTpes = modelBuilder.Model.GetEntityTypes().Where(t => t.ClrType.IsAssignableTo(typeof(IUpdated)));
         foreach (var entityType in entityTpes)
         {
@@ -73,6 +71,11 @@ public class DateTimeUnixEpochSecondsConverter : ValueConverter<DateTime, long>
     }
 }
 
+public interface ICreated
+{
+    DateTime CreatedAt { get; set; }
+}
+
 public interface IUpdated
 {
     DateTime UpdatedAt { get; set; }
@@ -81,79 +84,6 @@ public interface IUpdated
 public interface IGeneratedId
 {
     long Id { get; set; }
-}
-
-public class GameInfo : IUpdated
-{
-    public long Id { get; set; } = 0; // Primary key. Enforce constraint Id = 0 (there should only ever be one GameInfo)
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public required string ServerGroupName { get; set; }
-    public required string GameId { get; set; }
-    public required string GameVersion { get; set; }
-    public required List<string> SupportedClientGameIds { get; set; }
-    public required List<string> SupportedClientGameVersions { get; set; }
-    public required string GameDisplayName { get; set; }
-}
-
-public class World : IUpdated
-{
-    public required string Id;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsOverflowWorld { get; set; } = false;
-    public required string DisplayName;
-
-}
-
-public class GameServer : IUpdated
-{
-    public required string Id;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public required IPAddress Address;
-    public int CurrentUserCount = 0;
-}
-
-public class Instance : IUpdated
-{
-    public required string Id;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public int CurrentUserCount = 0;
-    public required string ZoneId;
-    public required World World;
-    public required GameServer GameServer;
-}
-
-public class User : IUpdated, IGeneratedId
-{
-    public long Id { get; set; } = 0;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public required long Handle { get; set; }
-    public required string Username { get; set; }
-    public Role Role { get; set; } = Role.NewPlayer;
-
-    /// <summary>
-    /// The user's hashed password. This is very sensitive information and should never be sent to a client.
-    /// </summary>
-    public required string PasswordHash { get; set; }
-    /// <summary>
-    /// The user's account recovery code. This is very sensitive information and should never be sent to a client.
-    /// </summary>
-    public string? RecoveryCode { get; set; }
-}
-
-public class Session
-{
-    public required string Id { get; set; }
-    public required DateTime ExpiresAt { get; set; }
-    public required User User { get; set; }
-}
-
-public class AccessToken
-{
-
 }
 
 public enum Role
