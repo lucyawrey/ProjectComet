@@ -18,7 +18,7 @@ public class GreeterService : Greeter.GreeterBase
 
     public override async Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
     {
-        _db.Users.Add(new User
+        _db.User.Add(new User
         {
             Handle = _idGen.CreateId(),
             Username = request.Name,
