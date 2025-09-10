@@ -1,0 +1,237 @@
+syntax = "proto3";
+package api;
+
+service GameData {
+    rpc GetGameServerStartupData (Message) returns (Message);
+    rpc LogInCaracter (Message) returns (Message);
+    rpc UpdateCaracter (Message) returns (Message);
+    rpc AddItem (AddItemRequest) returns (Message);
+}
+
+service Administration {
+    rpc CreateAccessToken (CreateAccessTokenRequest) returns (CreateAccessTokenReply);
+    rpc VerifyAccessToken (VerifyAccessTokenRequest) returns (AccessToken);
+    rpc GetAccessTokens (GetAccessTokensRequest) returns (GetAccessTokensReply);
+    rpc DeleteAccessToken (ByIdRequest) returns (Message);
+
+    rpc GetUser (GetUserRequest) returns (User);
+    rpc GetUsers (GetUsersRequest) returns (GetUsersReply);
+    rpc UpdateUser (UpdateUserRequest) returns (User);
+    rpc LogOutUser (ByIdRequest) returns (Message);
+    rpc ResetUserRecoveryCode(ByIdRequest) returns (ResetUserRecoveryCodeReply);
+
+    // TODO Server and World management
+}
+
+service Asset {
+    rpc GetGameInfo (Message) returns (Message);
+    rpc GetContent (Message) returns (Message);
+    rpc GetContents (Message) returns (Message);
+    rpc GetAsset (Message) returns (Message);
+    rpc GetAssets (Message) returns (Message);
+    rpc GetAssetUrl (Message) returns (Message);
+}
+
+service Users {
+    rpc SignUp (Message) returns (Message);
+    rpc LogIn (LogInRequest) returns (LogInReply);
+    rpc LogOut (Message) returns (Message);
+    rpc DeleteUser (Message) returns (Message);
+    rpc UpdateUsername (Message) returns (Message);
+    rpc UpdatePassword (Message) returns (Message);
+    rpc VerifyRecoveryCode (Message) returns (Message);
+    rpc RecoverUser (Message) returns (Message);
+    
+    rpc CreateCharacter (CreateCharacterRequest) returns (Character);
+    rpc GetCharacter (Message) returns (Message);
+    rpc GetCharacters (Message) returns (Message);
+    rpc DeleteCharacter (Message) returns (Message);
+
+    rpc GetWorlds (Message) returns (Message);
+    rpc LogInCharacter (LogInCharacterRequest) returns (LogInCharacterReply);
+}
+
+// GameData Service
+message AddItemRequest {
+   int64 characterId = 1;
+   int64 itemContentId = 2;
+   int64 quantity = 3;
+   ItemLocation location = 4;
+   ItemQuality quality = 5;
+}
+
+enum ItemLocation {
+    Other = 0;
+    Dropped = 1;
+    NpcMerchant = 2;
+    Market = 3;
+    Inventory = 4;
+    Equipped = 5;
+    InventoryContainer = 6;
+    ClassCrystal = 7;
+    Box = 8;
+}
+
+enum ItemQuality {
+    Normal = 0;
+    Silver = 1;
+    Gold = 2;
+}
+// End GameData Service
+
+// Administration Service
+message CreateAccessTokenRequest {
+    AccessLevel accessLevel = 1;
+    optional string gameServerId = 2;
+    optional int64 lifetimeSeconds = 3;
+}
+
+message CreateAccessTokenReply {
+    string accessToken = 1;
+    AccessToken accessTokenData = 2;
+}
+
+message GetAccessTokensRequest {
+    optional int32 pageSize = 1;
+    optional int32 page = 2;
+    optional string accessToken = 3;
+    optional bool canExpire = 4;
+}
+
+message GetAccessTokensReply {
+    int32 page = 1;
+    int32 pageCount = 2;
+    repeated AccessToken accessTokenDataList = 3;
+}
+
+message VerifyAccessTokenRequest {
+    string accessToken = 1;
+}
+
+message GetUserRequest {
+    oneof ref {
+        int64 id = 1;
+        string username = 2;
+    }
+}
+
+message GetUsersRequest {
+    optional int32 pageSize = 1;
+    optional int32 page = 2;
+    optional Role role = 3;
+}
+
+message GetUsersReply {
+    int32 page = 1;
+    int32 pageCount = 2;
+    repeated User userList = 3;
+}
+
+message UpdateUserRequest {
+    int64 id = 1;
+    optional string username = 3;
+    optional Role role = 4;
+}
+
+message ResetUserRecoveryCodeReply {
+    string recoveryCode = 1;
+}
+// End Administration Service
+
+// User Service
+message LogInRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LogInReply {
+    string sessionToken = 1;
+    User sessionUser = 2;
+}
+
+message CreateCharacterRequest {
+   string homeWorldId = 1;
+   optional Role role = 2;
+   optional string name = 3;
+}
+
+message LogInCharacterRequest {
+   int64 characterId = 1;
+   optional int64 worldId = 2;
+}
+
+message LogInCharacterReply {
+   string serverAddress = 1;
+}
+// End User Service
+
+// Shared
+message Message {
+    string message = 1;
+}
+
+message ByIdRequest {
+    int64 id = 1;
+}
+
+message ByStringIdRequest {
+    string id = 1;
+}
+
+message User {
+    int64 id = 1;
+    string handle = 2;
+    int64 updatedAt = 3;
+    string username = 4;
+    Role role = 5;
+}
+
+enum Role {
+    NewPlayer = 0;
+    Player = 1;
+    MembershipPlayer = 2;
+    GameModerator = 3;
+    GameAdministrator = 4;
+}
+
+message AccessToken {
+    int64 id = 1;
+    AccessLevel accessLevel = 2;
+    optional string gameServerId = 3;
+    optional int64 expiresAt = 4;
+}
+
+enum AccessLevel {
+    Default = 0;
+    GameServer = 1;
+    Administrator = 2;
+}
+
+message Character {
+    int64 id = 1;
+    string handle = 2;
+    int64 updatedAt = 3;
+    string name = 4;
+    Role role = 5;
+    string homeWorldId = 6;
+    int64 userId = 7;
+    Ancestry ancestry = 8;
+    Gender gender = 9;
+    string customization = 10; // JSON
+    string data = 11; // JSON
+}
+
+enum Ancestry {
+    Catkin = 0;
+    Human = 1;
+    Elf = 2;
+    Construct = 3;
+}
+
+enum Gender {
+    Neutral = 0;
+    Feminine = 1;
+    Masculine = 2;
+    None = 3;
+}
+// End Shared
