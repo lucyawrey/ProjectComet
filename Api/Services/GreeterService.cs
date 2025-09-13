@@ -22,6 +22,7 @@ public class GreeterService : Greeter.GreeterBase
         {
             Handle = _idGen.CreateId(),
             Username = request.Name,
+            DisplayName = request.Name,
             PasswordHash = "TODO: SETUP PASSWORD HASHING"
         });
         await _db.SaveChangesAsync();

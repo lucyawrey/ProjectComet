@@ -6,6 +6,7 @@ public class User : IUpdated, IGeneratedId
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public required long Handle { get; set; }
     public required string Username { get; set; }
+    public required string DisplayName { get; set; }
     public Role Role { get; set; } = Role.NewPlayer;
 
     /// <summary>
@@ -16,4 +17,9 @@ public class User : IUpdated, IGeneratedId
     /// The user's account recovery code. This is very sensitive information and should never be sent to a client.
     /// </summary>
     public string? RecoveryCode { get; set; }
+}
+
+public enum Role
+{
+    NewPlayer = 0, Player = 1, MembershipPlayer = 2, GameModerator = 3, GameAdministrator = 4
 }

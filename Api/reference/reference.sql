@@ -1,7 +1,7 @@
 -- Initial Migration for Creating Database Schema
 
 -- Game Info Schema
-CREATE TABLE game_info (
+CREATE TABLE game_info ( X
     id                 INTEGER  NOT NULL PRIMARY KEY CHECK (id = 0),
     created_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
     updated_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
@@ -14,7 +14,7 @@ CREATE TABLE game_info (
 -- End Game Ino Schema
 
 -- Game Content Service Schema
-CREATE TABLE asset (
+CREATE TABLE asset ( SKIPPED
     id                 INTEGER  NOT NULL PRIMARY KEY, -- Snowflake ID, alias of rowid
     updated_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
     path               TEXT     NOT NULL UNIQUE COLLATE NOCASE, -- Case insensitive indexed name, should be a valid unix path with no spaces, used in the virtual filesystem
@@ -45,7 +45,7 @@ CREATE TABLE content (
 -- End Game Content Service Schema
 
 -- User Service Schema
-CREATE TABLE user (
+CREATE TABLE user ( X
     id                 INTEGER  NOT NULL PRIMARY KEY, -- Snowflake ID, alias of rowid
     handle             INTEGER  NOT NULL UNIQUE, -- Secondary user ID used for anonymity and friend requests.
     updated_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds, updates when a login method is updated
@@ -53,19 +53,19 @@ CREATE TABLE user (
     role               INTEGER  DEFAULT 0 NOT NULL -- Enum(NewPlayer=0, Player=1, MembershipPlayer=2, GameModerator=3, GameAdministrator=4)
 ) STRICT;
 
-CREATE TABLE user_password (
+CREATE TABLE user_password ( SKIPPED
     id                 INTEGER  NOT NULL PRIMARY KEY, -- Snowflake ID, alias of rowid
     user_id            INTEGER  NOT NULL UNIQUE REFERENCES user(id),
     password_hash      TEXT     NOT NULL
 ) STRICT;
 
-CREATE TABLE user_session (
+CREATE TABLE user_session ( X
     id                 TEXT     NOT NULL PRIMARY KEY, -- Hash of the generated user session token
     expires_at         INTEGER  NOT NULL, -- Unix timestamp in seconds a certain time in the future
     user_id            INTEGER  NOT NULL REFERENCES user(id)
 ) STRICT;
 
-CREATE TABLE user_recovery_code (
+CREATE TABLE user_recovery_code ( SKIPPED
     id                 TEXT     NOT NULL PRIMARY KEY, -- Hash of the generated user account recovery code
     user_id            INTEGER  NOT NULL UNIQUE REFERENCES user(id),
     is_temporary       INTEGER  DEFAULT FALSE NOT NULL -- Boolean
@@ -73,7 +73,7 @@ CREATE TABLE user_recovery_code (
 -- End User Service Schema
 
 -- Administration Service Schema
-CREATE TABLE access_token (
+CREATE TABLE access_token ( X
     id                 INTEGER  NOT NULL PRIMARY KEY, -- Snowflake ID, alias of rowid
     access_token_hash  TEXT     NOT NULL, -- Hash of the generated access token. Token format is: `default|server:gameserverid|admin_IdBase32Representation_secret`
     access_level       INTEGER  NOT NULL, -- Enum(Default=0, GameServer=1, Administrator=2)
@@ -81,7 +81,7 @@ CREATE TABLE access_token (
     expires_at         INTEGER -- Unix timestamp in seconds a certain time in the future. If NULL, token does not expire
 ) STRICT;
 
-CREATE TABLE game_server (
+CREATE TABLE game_server ( X
     id                 TEXT     NOT NULL PRIMARY KEY COLLATE NOCASE, -- Case insensitive String ID, should be lowercase, short, and have no whitespace or special characters
     created_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
     updated_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
@@ -89,7 +89,7 @@ CREATE TABLE game_server (
     display_name       TEXT     NOT NULL -- Server name for end user display
 ) STRICT;
 
-CREATE TABLE world (
+CREATE TABLE world ( X
     id                 TEXT     NOT NULL PRIMARY KEY COLLATE NOCASE, -- Case insensitive String ID, should be lowercase, short, and have no whitespace or special characters
     created_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
     updated_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds

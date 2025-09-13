@@ -85,8 +85,3 @@ public interface IGeneratedId
 {
     long Id { get; set; }
 }
-
-public enum Role
-{
-    NewPlayer = 0, Player = 1, MembershipPlayer = 2, GameModerator = 3, GameAdministrator = 4
-}
