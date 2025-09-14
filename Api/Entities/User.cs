@@ -1,10 +1,10 @@
 namespace AzaleaGames.ProjectComet.Api.Entities;
 
-public class User : IUpdated, IGeneratedId
+public class User : IUpdated, IGeneratedId, IGeneratedHandle
 {
     public long Id { get; set; } = 0;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public required long Handle { get; set; }
+    public long Handle { get; set; } = 0;
     public required string Username { get; set; }
     public required string DisplayName { get; set; }
     public Role Role { get; set; } = Role.NewPlayer;

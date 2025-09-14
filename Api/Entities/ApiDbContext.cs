@@ -27,11 +27,20 @@ public class ApiDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        var entityTpes = modelBuilder.Model.GetEntityTypes().Where(t => t.ClrType.IsAssignableTo(typeof(IUpdated)));
-        foreach (var entityType in entityTpes)
+        var entityTypes = modelBuilder.Model.GetEntityTypes().Where(t => t.ClrType.IsAssignableTo(typeof(IUpdated)));
+        foreach (var entityType in entityTypes)
         {
             modelBuilder.Entity(entityType.ClrType)
                 .Property("UpdatedAt")
+                .HasDefaultValueSql("unixepoch()")
+                .HasConversion<DateTimeUnixEpochSecondsConverter>()
+                .ValueGeneratedOnAddOrUpdate();
+        }
+        var entityTypesCreated = modelBuilder.Model.GetEntityTypes().Where(t => t.ClrType.IsAssignableTo(typeof(ICreated)));
+        foreach (var entityType in entityTypesCreated)
+        {
+            modelBuilder.Entity(entityType.ClrType)
+                .Property("CreatedAt")
                 .HasDefaultValueSql("unixepoch()")
                 .HasConversion<DateTimeUnixEpochSecondsConverter>()
                 .ValueGeneratedOnAddOrUpdate();
@@ -47,6 +56,10 @@ public class ApiDbContext : DbContext
                 if (entry.Entity is IGeneratedId entity)
                 {
                     entity.Id = _idGen.CreateId();
+                }
+                if (entry.Entity is IGeneratedHandle handledEntity)
+                {
+                    handledEntity.Handle = _idGen.CreateId();
                 }
             }
             if (entry.State == EntityState.Modified)
@@ -84,4 +97,9 @@ public interface IUpdated
 public interface IGeneratedId
 {
     long Id { get; set; }
+}
+
+public interface IGeneratedHandle
+{
+    long Handle { get; set; }
 }

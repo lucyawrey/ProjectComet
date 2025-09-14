@@ -25,7 +25,7 @@ CREATE TABLE asset ( SKIPPED
     creator_user_id    INTEGER  REFERENCES user(id) -- NULL when is_user_generated is false
 ) STRICT;
 
-CREATE TABLE content (
+CREATE TABLE content ( X
     id                 INTEGER  NOT NULL PRIMARY KEY, -- Snowflake ID, alias of rowid
     updated_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
     name               TEXT     NOT NULL COLLATE NOCASE, -- Case insensitive indexed name, should be between 2 and 30 legal characters with at most 4 spaces
@@ -100,7 +100,7 @@ CREATE INDEX world_game_server_id_index ON game_server(id);
 -- End Administration Service Schema
 
 -- Game Data Service Schema
-CREATE TABLE character (
+CREATE TABLE character ( X
     id                 INTEGER  NOT NULL PRIMARY KEY, -- Snowflake ID, alias of rowid
     handle             INTEGER  NOT NULL UNIQUE, -- Secondary character ID used for anonymity and friend requests.
     updated_at         INTEGER  DEFAULT (unixepoch()) NOT NULL, -- Unix timestamp in seconds
