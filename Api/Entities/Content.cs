@@ -5,6 +5,7 @@ public class Content : IUpdated, IGeneratedId
     public long Id { get; set; } = 0;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public required string Name { get; set; }
+    public string? DisplayName { get; set; }
     public required ContentType ContentType { get; set; }
     public required ContentSubtype ContentSubtype { get; set; }
     public bool AlwaysUnlocked { get; set; } = false;
@@ -49,4 +50,11 @@ public enum ContentSubtype
     HairstyleOption = 352,
     MakeupOptions = 353,
     UnderclothesOption = 354,
+}
+
+public enum ContentItemTradeability
+{
+    Market,
+    Direct,
+    Soulbound,
 }

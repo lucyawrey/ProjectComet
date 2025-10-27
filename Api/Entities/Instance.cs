@@ -2,11 +2,10 @@ namespace AzaleaGames.ProjectComet.Api.Entities;
 
 public class Instance : IUpdated, ICreated
 {
-    public required string Id;
+    public required string Id { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public int CurrentUserCount = 0;
-    public required string ZoneId;
-    public required World World;
-    public required GameServer GameServer;
+    public required ContentZone ContentZone { get; set; }
+    public required World World { get; set; }
+    public required GameServer GameServer { get; set; }
 }
