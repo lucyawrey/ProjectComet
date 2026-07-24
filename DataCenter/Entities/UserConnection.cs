@@ -1,4 +1,4 @@
-using AzaleaGames.ProjectComet.Api.Entities;
+using AzaleaGames.ProjectComet.DataCenter.Entities;
 
 public class UserConnection : IUpdated, IGeneratedId
 {

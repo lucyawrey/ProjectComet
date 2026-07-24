@@ -1,4 +1,4 @@
-using AzaleaGames.ProjectComet.Api.Entities;
+using AzaleaGames.ProjectComet.DataCenter.Entities;
 
 public class Content : IUpdated, IGeneratedId
 {

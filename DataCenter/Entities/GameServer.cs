@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace AzaleaGames.ProjectComet.Api.Entities;
+namespace AzaleaGames.ProjectComet.DataCenter.Entities;
 
 public class GameServer : IUpdated, ICreated
 {

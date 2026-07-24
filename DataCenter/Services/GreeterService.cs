@@ -1,15 +1,15 @@
-using AzaleaGames.ProjectComet.Api.Entities;
+using AzaleaGames.ProjectComet.DataCenter.Entities;
 using Grpc.Core;
 using IdGen;
 
-namespace AzaleaGames.ProjectComet.Api.Services;
+namespace AzaleaGames.ProjectComet.DataCenter.Services;
 
 public class GreeterService : Greeter.GreeterBase
 {
     private readonly ILogger<GreeterService> _logger;
-    private readonly ApiDbContext _db;
+    private readonly DataCenterDbContext _db;
     private readonly IIdGenerator<long> _idGen;
-    public GreeterService(ILogger<GreeterService> logger, ApiDbContext db, IIdGenerator<long> idGen)
+    public GreeterService(ILogger<GreeterService> logger, DataCenterDbContext db, IIdGenerator<long> idGen)
     {
         _logger = logger;
         _db = db;

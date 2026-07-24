@@ -2,9 +2,9 @@ using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace AzaleaGames.ProjectComet.Api.Entities;
+namespace AzaleaGames.ProjectComet.DataCenter.Entities;
 
-public class ApiDbContext : DbContext
+public class DataCenterDbContext : DbContext
 {
     public DbSet<GameInfo> GameInfo { get; set; }
     public DbSet<User> User { get; set; }
@@ -12,7 +12,7 @@ public class ApiDbContext : DbContext
     private readonly string _dbPath;
     private readonly IIdGenerator<long> _idGen;
 
-    public ApiDbContext(IIdGenerator<long> idGen)
+    public DataCenterDbContext(IIdGenerator<long> idGen)
     {
         _idGen = idGen;
 

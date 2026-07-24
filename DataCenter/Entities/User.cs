@@ -1,4 +1,4 @@
-namespace AzaleaGames.ProjectComet.Api.Entities;
+namespace AzaleaGames.ProjectComet.DataCenter.Entities;
 
 public class User : IUpdated, IGeneratedId, IGeneratedHandle
 {
