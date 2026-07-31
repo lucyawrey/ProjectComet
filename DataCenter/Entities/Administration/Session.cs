@@ -1,11 +1,10 @@
-using System.Net;
-
 namespace AzaleaGames.ProjectComet.DataCenter.Entities;
 
-public class GameServer : IUpdated, ICreated
+public class Session
 {
-    public required string Id { get; set; }
+    public required string Id { get; set; } // Primary key
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public required IPAddress Address { get; set; }
+    public required DateTime ExpiresAt { get; set; }
+    public required User User { get; set; }
 }

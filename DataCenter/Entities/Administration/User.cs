@@ -2,7 +2,8 @@ namespace AzaleaGames.ProjectComet.DataCenter.Entities;
 
 public class User : IUpdated, IGeneratedId, IGeneratedHandle
 {
-    public long Id { get; set; } = 0;
+    public long Id { get; set; } = 0; // Primary key
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public long Handle { get; set; } = 0;
     public required string Username { get; set; }

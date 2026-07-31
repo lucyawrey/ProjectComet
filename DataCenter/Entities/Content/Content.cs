@@ -1,8 +1,9 @@
-using AzaleaGames.ProjectComet.DataCenter.Entities;
+namespace AzaleaGames.ProjectComet.DataCenter.Entities.Content;
 
 public class Content : IUpdated, IGeneratedId
 {
     public long Id { get; set; } = 0;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public required string Name { get; set; }
     public string? DisplayName { get; set; }

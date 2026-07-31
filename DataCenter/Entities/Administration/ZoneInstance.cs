@@ -1,11 +1,11 @@
 namespace AzaleaGames.ProjectComet.DataCenter.Entities;
 
-public class Instance : IUpdated, ICreated
+public class ZoneInstance : IUpdated, ICreated
 {
-    public required string Id { get; set; }
+    public required string Id { get; set; } // Primary key
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public required ContentZone ContentZone { get; set; }
+    public required Zone Zone { get; set; }
     public required World World { get; set; }
-    public required GameServer GameServer { get; set; }
+    public required Server GameServer { get; set; }
 }

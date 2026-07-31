@@ -1,8 +1,9 @@
-namespace AzaleaGames.ProjectComet.DataCenter.Entities;
+namespace AzaleaGames.ProjectComet.DataCenter.Entities.Gameplay;
 
 public class Character : IUpdated, IGeneratedId, IGeneratedHandle
 {
     public long Id { get; set; } = 0;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public long Handle { get; set; } = 0;
     public required string Name { get; set; }

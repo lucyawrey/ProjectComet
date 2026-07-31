@@ -1,4 +1,4 @@
-namespace AzaleaGames.ProjectComet.DataCenter.Entities;
+namespace AzaleaGames.ProjectComet.DataCenter.Entities.Administration;
 
 public class World : IUpdated, ICreated
 {

@@ -1,8 +1,9 @@
-namespace AzaleaGames.ProjectComet.DataCenter.Entities;
+namespace AzaleaGames.ProjectComet.DataCenter.Entities.Administration;
 
 public class AccessToken : IUpdated, IGeneratedId
 {
-    public long Id { get; set; } = 0;
+    public long Id { get; set; } = 0; // Primary key
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public required DateTime ExpiresAt { get; set; }
     public AccessLevel AccessLevel { get; set; }
