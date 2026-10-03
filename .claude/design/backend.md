@@ -5,7 +5,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 ## Decided
 
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
-- **One shared container system** for bags, Class Crystals and Storage (see `classes.md`).
+- **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
 ## Considering
 
@@ -14,8 +14,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
   - B. A product like SpacetimeDB. The project lead is slightly biased against it because of the self-hosting requirement; verify current license terms before weighing it.
   - C (unlikely). A systems-language backend written with help from another developer, if neither A nor B works.
 - **Data model (agent suggestions, not agreed):**
-  - **Items:** every item has an owner (a character, or account Storage) and a location: inventory slot, equipped slot, Storage, or inside another item (bag or crystal), plus a slot index. Container rules are data. Moving, trading and equipping are all "change the item's location" in one database transaction, so an item can never be in two places.
-  - **Class entries:** current XP, highest level, when unlocked. A Class Crystal is an item with a soulbound owner, a reference to one of the owner's class entries, a bought/granted flag and a loadout reference. Promotion is one transaction: check requirement, move XP and create the entry if new, convert the crystal, charge resources.
+  - **Items:** every item has an owner (a character, or account Storage) and a location: inventory slot, Storage, or inside a bag, plus a slot index. Gear and outfit sets reference items in Storage (one item may be referenced by several sets). Container rules are data. Moving, trading and equipping are all location changes in one database transaction, so an item can never be in two places.
+  - **Class entries:** current XP, highest level, when unlocked. A Class Crystal is an item with a soulbound owner, a reference to one of the owner's class entries, a bought/granted flag, and references to a loadout, gear set and outfit set. Promotion is one transaction: check requirement, move XP and create the entry if new, convert the crystal, charge resources.
   - **Loadouts:** one slot list per loadout; each slot has a kind (Skill or Rune), a colour, a binding if it's a Skill slot, and a locked flag.
   - **Mastery:** gear and class Runes share one mastery system; progress is stored on the item (gear) or the class entry (class).
   - **Finite rune stones:** the first copy a character receives is marked soulbound on acquisition; later copies are ordinary items.

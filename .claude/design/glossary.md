@@ -4,14 +4,14 @@ Working terms agreed with the project lead (2026-10-03). Terminology may change 
 
 | Term | Meaning |
 | --- | --- |
-| **Class Crystal** | An item that grants permission to use one of its soulbound owner's class entries, and holds a gear set, outfit, appearance and a loadout reference. Always one equipped. |
+| **Class Crystal** | A soulbound item that grants permission to use one of its owner's class entries, and references a loadout, gear set, outfit set and appearance. The only thing a character equips; always one equipped. |
 | **Class entry** | A character's permanent record of a class: current XP and highest level. |
 | **Crystal Archives** | All of a character's class entries. |
 | **Bought / granted crystal** | Granted crystals (quests, starting class, first Freelancer) are free and don't raise the rising crystal price. |
 | **Freelancer** | Root of the promotion tree; no core kit, so every primary slot is flex. |
 | **Class promotion** | Converting a crystal to a higher-tier class. |
 | **Loadout** | A per-character saved skill setup, assigned to a crystal. |
-| **Soul Experience (Soul XP)** | XP that grows your soul; overflow from maxed classes and crafts, and all XP a borrower earns. |
+| **Soul Experience (Soul XP)** | XP that grows your soul; overflow from maxed classes and crafts. |
 | **Soul Ascension** | A soul milestone (may upgrade Anima Capacity and slots together). |
 | **Anima / Anima Capacity** | The magic of your soul: an energy resource gained over time, spent on teleports, crystals and locked content. Capacity is how much you can store. Never sold for real money. |
 | **Skills** | Primary actions: ~10 slots, a designer-made core kit plus flex slots. Jump, crouch, dodge and sprint are class Skills on dedicated controls. |
@@ -25,7 +25,10 @@ Working terms agreed with the project lead (2026-10-03). Terminology may change 
 | **Unbound Rune** | Unlocks a core slot of its type so any allowed Skill can go there. |
 | **Gear / class Runes** | Runes built into gear (free while worn) or classes (locked, shown in a slot). |
 | **Mastery / extraction** | Mastery builds up on worn gear (stored on the item) or on a class's Runes (stored on the class entry); extraction yields a rune stone and resets mastery. |
-| **Outfit Magic** | Using gear as an outfit; the outfit's World Runes replace the gear's. |
+| **Outfit Magic** | Wearing an actual gear piece over the top as an outfit; the outfit's World Runes replace the gear's. |
+| **Gear set / outfit set** | The gear and outfit a crystal references. Items technically live in Storage but are presented as "in" the crystal; one item can be in several sets. |
+| **Storage** | Practically unlimited item storage, reached at settlements. Shares most systems with the inventory. |
+| **Soulbound** | An item tied to its owner: it can be dropped, carried by others and handed back, and recalled by the owner. Only the owner can equip a soulbound crystal. |
 | **Region › Zone › Shard; Dungeon › Instance** | Server hierarchy. Worlds are labels inside a region. |
 | **Height zones** | Vertical layers (digging, crouching, standing, jumping, flying) used in hit checks. |
 | **Invulnerability / pierce** | Defender's invuln level vs attack's pierce level. |
