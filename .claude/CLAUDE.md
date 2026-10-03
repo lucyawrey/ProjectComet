@@ -127,7 +127,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 ### Skills (open)
 
-- Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. More harmonious UI while keeping the concepts distinct.
+- Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
 - What are primary actions called, and what teaches them?
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
 - Idea: a slotted skill that turns a specific core slot into a flex slot, one per core slot type.
