@@ -55,7 +55,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **The item collection log has one entry per item type**, set the first time you obtain it (quality and dye variants don't count separately).
 - **Untradeable is a content-design flag on an item type**, and it means every instance is always soulbound to whichever player receives it. The relationship only goes that way: soulbound items are not implicitly untradeable. For example, finite rune stones are a tradeable type even though your first copy is soulbound.
 - **Some recipes are learned from the item collection log** (first obtaining an item grants the recipe flag). The log itself still gives no other benefit.
-- **Re-obtaining** applies only to destroyed items of untradeable types, and only if you don't currently have a soulbound copy of that type.
+- **Re-obtaining** applies only to destroyed items of untradeable types, and only if you don't currently have a soulbound copy of that type. It's done at an NPC.
 
 ## Considering
 
@@ -76,5 +76,5 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 ## Open
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
-- **Re-obtaining mechanics:** where and how (an NPC? a collection UI button?), and does it cost anything?
+- **Re-obtaining cost:** free, or a fee at the NPC?
 - **Which things are flags:** anything else on the boundary between items and learned flags?
