@@ -29,7 +29,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 ### Combat (decided 2026-10-03)
 
 - **PvE only for the first major version.** No PvP system is planned, so no PvP netcode.
-- **Dodge and invulnerability come from skills**, not universally. Defenders have invulnerability levels (none / dodge / a rarer "true" invuln); attacks have pierce levels, and some attacks hit through normal invuln.
+- **Every class can dodge, but invulnerability varies by class and skill.** Defenders have invulnerability levels (none / dodge / a rarer "true" invuln); attacks have pierce levels, and some attacks hit through normal invuln.
 - **Height zones are separate from invulnerability.** Zones (digging, crouching, standing, jumping, flying) are vertical position; invulnerability is defensive state. Both feed one shared "is this hit valid?" check.
 - **Real height check:** height thresholds between attacker and defender add or subtract an integer offset to the zone check. Can be disabled for flat areas like boss arenas as an optimization.
 - **Frame data in 30 Hz simulation ticks:** explicit startup, active and recovery frames, run in parallel with (not driven by) animations. Consistent timing matters more than visual match.
@@ -83,6 +83,19 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - Maybe crafting certain endgame items that shouldn't flood the market.
 - **Outfit dispelling by other players is dropped.**
 
+### Skills (decided 2026-10-03)
+
+- **Two tiers of actions:**
+  - **Primary:** a small set used for normal rotations and combat, with proper default bindings on controller and keyboard.
+  - **Secondary:** used less often but do cool things (long-term buffs, teleports, transformations). On controller, a context menu (hold a button, pick with the D-pad). On keyboard, players can optionally put both tiers on one hotbar.
+- **Core kit + flex slots** for primary actions: each class has a designer-made core kit, plus a few flex slots. Easy to understand; complexity can be added on top later.
+- **Jump, crouch and dodge** have dedicated buttons but are class skills: each class can change their effect (dodge timing, jump height for a dragoon-style class, a rogue's crouch doubling as a faster sneak) while they always remain jump, crouch and dodge.
+- **Coloured slots replace SP** for slotted skills (genuine passives, modifiers to primary actions, and skills that add secondary actions):
+  - Slots come in **major and minor** sizes; a minor skill can go in a major slot.
+  - Colours to start: **Battle** and **World**. Crafting falls under World, so a battle class's World slots decide how good a crafter it is (and many players won't craft).
+  - More colours may come later (e.g. more than one World or Battle type, not split along crafting lines), but the total should stay small.
+- **The shape-based grid idea is dropped.**
+
 ### Netcode (adopted from agent suggestions 2026-10-03)
 
 - **Lenient PvE hit validation:** accept player hits on monsters as seen by the client, within sanity limits; honour dodges that started before a hit landed on the client, up to ~150–200 ms.
@@ -108,6 +121,13 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 - **Gateway and Data Center: one service or two?** In the custom .NET approach, should the Gateway server (public-facing, primarily HTTP API) and the Data Center server (database API layer) be the same thing or separate?
 - **Are the plans sensible?** Find real-world examples of documented MMO backends (talks, postmortems, open-source servers, engineering blogs) and compare our architecture against them.
+
+### Skills (open)
+
+- A name for slotted skills (and maybe their slots). Agent ideas: Facets (slots) + Traits (skills), Runes (merging with Skill Runes items), Sigils.
+- Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
+- Idea: a slotted skill that turns a specific core slot into a flex slot, one per core slot type.
+- How many primary slots?
 
 ### Classes (open)
 
@@ -143,6 +163,6 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 
 ## Next steps
 
-1. Go through the notes together, one area at a time. **Combat, world structure, and classes are done** (see Decided; some class questions remain open). Remaining areas: skills, crafts, items/inventory/collection, companions, unlockables, aesthetic, database tables.
+1. Go through the notes together, one area at a time. **Combat, world structure, classes and skills are done** (see Decided; some questions remain open). Remaining areas: crafts, items/inventory/collection, companions, unlockables, aesthetic, database tables.
 2. Research documented real-world MMO backends to sanity-check the architecture, including the Gateway/Data Center split.
 3. Agree on the doc structure, then write human-readable docs.
