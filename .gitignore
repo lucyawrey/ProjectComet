@@ -1,0 +1,6 @@
+# Obsidian: share vault config and plugins, ignore per-user state
+.obsidian/workspace*.json
+.obsidian/graph.json
+.obsidian/cache
+.obsidian/plugins/obsidian-git/data.json
+.trash/
