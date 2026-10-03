@@ -1,6 +1,6 @@
 # Items, inventory and collection
 
-Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items. Decisions made with the project lead on 2026-10-03. Collection is not yet discussed in detail.
+Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items. Decisions made with the project lead on 2026-10-03. Topic covered; a few questions are left open, some intentionally.
 
 ## Decided
 

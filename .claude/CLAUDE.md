@@ -39,7 +39,7 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | `classes.md` | Class Crystals, promotion, XP and Soul XP, Anima | Done; a few open questions |
 | `skills.md` | Skills, Abilities, Runes, slots, gear Runes, Outfit Magic | Done; a few open questions |
 | `crafts.md` | Crafting, gathering, housing | Done |
-| `items.md` | Inventory, Storage, gear and outfit sets, soulbound items, collection | In progress |
+| `items.md` | Inventory, Storage, bags, currency, gear and outfit sets, soulbound items, tradeability, collection | Done; a few open questions |
 | `netcode.md` | Adopted netcode approach | Done |
 | `art.md` | Art direction (not yet discussed) | Not started |
 | `backend.md` | Backend options, data-model suggestions, open architecture questions | Mostly open |
@@ -74,6 +74,6 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 
 ## Next steps
 
-1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills and crafts are done** (see `.claude/design/`). **Items/inventory is in progress** (`items.md`): inventory, Storage, bags, gear/outfit sets and soulbound items are settled; collection's core split is settled (items vs learned flags vs item collection log); resume with collection's Open questions. Remaining areas after that: companions, unlockables, aesthetic, database tables.
+1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts and items are done** (see `.claude/design/`); everything will likely be reviewed again later. **Resume with companions.** Remaining areas after that: unlockables, aesthetic, database tables.
 2. Research documented real-world MMO backends to sanity-check the architecture, including the Gateway/Data Center split.
 3. Agree on the doc structure, then write human-readable docs.
