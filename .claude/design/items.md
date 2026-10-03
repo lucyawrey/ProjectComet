@@ -74,7 +74,9 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Music and decorative collectables** (like FFXIV orchestrion rolls) are found as items and consumed to learn them as flags, like dyes.
 - **Crafting and gathering tools:** each gear set has **3 tool slots** (the number stays open to reconsideration). Never enough for every craft, so crystals set up for crafting or gathering still specialise.
   - Not every craft has an associated class, and some crafts may be about forcing an unsuited class to work for it (a fun challenge).
-- **Gear wears out and can be repaired** (by crafters or NPCs).
+- **Wear and repair:** gear, tools and outfit pieces wear out with use and can be repaired (by crafters or NPCs). Outfit pieces wear out more slowly than gear. Furniture doesn't wear.
+  - At zero durability an item keeps working at **reduced stats** until repaired; it's never destroyed by wear.
+  - **Borrowers can repair lent soulbound gear** (repair restores rather than destroys or transforms).
 - **Currencies:** gold lives in the wallet; special tokens are ordinary stackable items. Token item types are marked as currencies in their content data, and Storage has a special currency viewer for them.
 - **Dyes:** once a colour is learned, applying it is free. The colour is stored on the item.
 - **Crafter signatures are optional:** crafters choose whether to sign each item with their name.
