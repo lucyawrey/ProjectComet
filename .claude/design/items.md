@@ -43,6 +43,11 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **Effective state** (what you're actually wearing) is derived from the equipped sets' references plus whether each item is currently in Storage. The same check covers lent soulbound gear returning to its owner.
 - **Bags** come in both kinds from the notes: several slots' worth of a limited range of item types, or bundle-style any type up to a total quantity. Bags can't go inside bags.
 - Bags can sit in the inventory or be dropped on the ground, and keep their contents either way. Depositing a bag into Storage empties its contents into Storage; the bag stays in Storage, empty.
+- **Bag UI:**
+  - Each bag type can have its own UI (e.g. the coin purse).
+  - A selector switches between the main inventory and any carried bag.
+  - Bags can optionally be hidden from the main inventory grid; an indicator then shows how many inventory slots bags are using.
+  - When bags are shown in the inventory, they can be opened either from the selector or by clicking them in the main inventory.
 - **There are no soulbound bags.** A soulbound item inside a dropped bag can still be recalled out of it by its owner.
 - **Dropped items and bags despawn after one hour, and all of them vanish on a shard restart.** This is the main way most items are destroyed.
 - **Timers are easy server configuration**, not hard-coded: the despawn time and the soulbound return times can be tuned (e.g. to manage server load, or by private server hosts).
