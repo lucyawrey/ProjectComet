@@ -107,7 +107,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - Destroying a crystal whose Skills are used by other loadouts gives a warning, then removes those Skills: a locked core slot resets to its base Skill and its Unbound Rune is removed; a flex slot is simply emptied (empty slots are always allowed).
 - **Rune stones are tradeable items.** Finite rune stones (only from major quests or fixed loot) never let you trade away your first one, even if more than one can be obtained. Duplicates (anything but your first finite instance) can be traded, broken down into materials, or sold to NPCs.
 - **Gear Runes:** Runes granted by worn gear are free (they don't use slots). Gear Runes can be extracted as rune stones, but you can't slot a duplicate of a Rune your worn gear currently grants.
-- **Outfit Magic** (similar to FFXIV glamours) always uses the outfit's **World** Runes instead of the underlying gear's World Runes. Gear is chosen for battle; the outfit carries world utility (e.g. temperature regulation).
+- **Outfit Magic** (similar to FFXIV glamours) always uses the outfit's **World** Runes instead of the underlying gear's World Runes. Gear is chosen for battle; the outfit carries world utility (e.g. temperature regulation). This means active World Runes from gear always match the character's visible appearance.
 - **Variant and Unbound Runes** customise the core kit:
   - **Variant Runes** swap a core action for a designer-made alternative; the slot stays locked.
   - **Unbound Runes** (rare, hard to get) unlock a core slot so any allowed action can go there; one per core slot type. They're alternatives to the (often better for the class) Variant for that slot; using both costs two slots.
