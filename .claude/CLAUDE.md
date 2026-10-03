@@ -10,7 +10,7 @@ Handoff notes for agent sessions on Project Comet. Last updated 2026-10-03.
 
 ## What this phase is
 
-Planning only. The project lead is drafting plans for fun, and eventually to present to a small indie team they've joined. No hiring, no development yet.
+Planning only. Multiple characters per account will exist, but this design phase ignores multi-character flows for simplicity. The project lead is drafting plans for fun, and eventually to present to a small indie team they've joined. No hiring, no development yet.
 
 ## Project lead
 
@@ -70,7 +70,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **The Crystal Archives** keep every class entry's current XP and highest level.
 - **Class changes** work almost anywhere, in and out of combat. Cooldowns don't reset on swap and need some scaling. Zones, areas or individual encounters can block class changes entirely or only in combat.
 - **Swapping between two crystals of the same class** plays the class-change animation but is by definition a gear swap. It may also swap the skill loadout.
-- **Class loadouts** (skill setups) are separate saved objects; a player can keep any number. A crystal is assigned one when gear is added. The UI can hide this and let players edit "the crystal's loadout" directly, but it still saves to a separate loadout that survives the crystal's deletion.
+- **Class loadouts** (skill setups) are separate per-character saved objects; a player can keep any number. A crystal is assigned one when gear is added. The UI can hide this and let players edit "the crystal's loadout" directly, but it still saves to a separate loadout that survives the crystal's deletion.
 - **Appearance in crystals:** besides gear/outfit looks, a crystal can change the character's base design (body, features) on top of their real base form, to emphasise the transformation.
 - **Swap casts can be interrupted.**
 - **Promotion tree:** the system allows a class to have multiple parents, even if class design never uses it.
@@ -106,7 +106,6 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 ### Classes (open)
 
-- Are class loadouts stored per account or per character?
 - Level cap and ascension level?
 - What is the crystal cost resource?
 
