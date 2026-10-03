@@ -79,6 +79,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **Storage in tents or camps:** maybe, perhaps only for higher-tier camps.
 - **Recall stations:** soul recall could be its own kind of station, separate from Storage and the Crystal Archives. "Extra large" stations might combine all three (Storage, Crystal Archives, recall).
+- **Multiple tool slots per gear set:** instead of one, a few tool slots per gear set, but never enough for every craft in the game, so a crystal still specialises.
 - **Crystal borrowing (on hold).** Unique, but removed for simplicity. Bring it back if a feature this unusual becomes worth the complexity. If it returns, use the **lockout** rule:
   - A borrower uses the owner's class level and skill setup (they can rearrange hotbar/controller bindings), never earns XP for the owner, and all XP they earn goes to their own Soul XP. Borrowing a friend's crystal to farm Soul XP was a welcome trick.
   - The borrower gets the crystal's gear. While the crystal is lent, its items count as "lent out" and the owner's other gear and outfit sets show those slots as empty.
