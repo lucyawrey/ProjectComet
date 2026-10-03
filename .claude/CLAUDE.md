@@ -10,7 +10,7 @@ Handoff notes for agent sessions on Project Comet. Last updated 2026-10-03.
 
 ## What this phase is
 
-Planning only. Multiple characters per account will exist, but this design phase ignores multi-character flows for simplicity. The project lead is drafting plans for fun, and eventually to present to a small indie team they've joined. No hiring, no development yet.
+Planning only. Don't hash out precise UI and control details yet. Multiple characters per account will exist, but this design phase ignores multi-character flows for simplicity. The project lead is drafting plans for fun, and eventually to present to a small indie team they've joined. No hiring, no development yet.
 
 ## Project lead
 
@@ -88,7 +88,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Working terminology** (may change, but must stay distinct): **Skills** are primary actions; **Abilities** are all secondary actions, whatever their source (class, character-wide, Runes). Abilities are generally ill-suited to battle but not always (re-casting a one-hour buff mid-fight), and players can optionally bind them; **Runes** are slotted skills; **rune stones** are Runes as items.
 - **Two tiers of actions:**
   - **Primary:** a small set used for normal rotations and combat, with proper default bindings on controller and keyboard.
-  - **Secondary:** used less often but do cool things (long-term buffs, teleports, transformations). On controller, a context menu (hold a button, pick with the D-pad). On keyboard, players can optionally put both tiers on one hotbar.
+  - **Secondary (Abilities):** a large selection used less often but doing cool things (long-term buffs, teleports, transformations), provided by classes, Runes, the base system and character-wide unlocks. They don't need to fit the primary control scheme, but can optionally go on hotbars. (Rough idea: a context menu on controller.)
 - **Core kit + flex slots** for primary actions: each class has a designer-made core kit, plus a few flex slots. Easy to understand; complexity can be added on top later.
 - **About 10 primary slots in total, including flex** (a goal: lower it if no good controller scheme is found). Exact bindings are deferred.
 - **Jump, crouch, dodge and sprint** have dedicated controls but are class skills: each class can change their effect (dodge timing, jump height for a dragoon-style class, a rogue's crouch doubling as a faster sneak) while they always remain jump, crouch, dodge and sprint.
@@ -147,7 +147,6 @@ Experienced web developer with shipped production apps; strong in deployments, o
 ### Skills (open)
 
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
-- Agent suggestion, not agreed: split the Abilities context menu into a fixed section for character-wide Abilities (teleports, mounts, companions) and a section that changes with the crystal (class and Rune Abilities), so swapping class doesn't reshuffle teleports.
 - Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
 
 
