@@ -74,11 +74,16 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Music and decorative collectables** (like FFXIV orchestrion rolls) are found as items and consumed to learn them as flags, like dyes.
 - **Crafting and gathering tools:** each gear set has **3 tool slots** (the number stays open to reconsideration). Never enough for every craft, so crystals set up for crafting or gathering still specialise.
   - Not every craft has an associated class, and some crafts may be about forcing an unsuited class to work for it (a fun challenge).
+- **Gear wears out and can be repaired** (by crafters or NPCs).
+- **Currencies:** gold lives in the wallet; special tokens are ordinary stackable items. Token item types are marked as currencies in their content data, and Storage has a special currency viewer for them.
+- **Dyes:** once a colour is learned, applying it is free. The colour is stored on the item.
+- **Crafter signatures are optional:** crafters choose whether to sign each item with their name.
 
 ## Considering
 
 - **Storage in tents or camps:** maybe, perhaps only for higher-tier camps.
 - **Recall stations:** soul recall could be its own kind of station, separate from Storage and the Crystal Archives. "Extra large" stations might combine all three (Storage, Crystal Archives, recall).
+- **Tokens in the wallet:** move special tokens into the wallet if the physicality isn't worth the inconvenience.
 - **Tool slot count:** 3 is decided for now but open to reconsideration (e.g. if tool Runes make extra slots too strong).
 - **Crystal borrowing (on hold).** Unique, but removed for simplicity. Bring it back if a feature this unusual becomes worth the complexity. If it returns, use the **lockout** rule:
   - A borrower uses the owner's class level and skill setup (they can rearrange hotbar/controller bindings), never earns XP for the owner, and all XP they earn goes to their own Soul XP. Borrowing a friend's crystal to farm Soul XP was a welcome trick.
