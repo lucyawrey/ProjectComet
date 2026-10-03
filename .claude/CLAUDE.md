@@ -106,7 +106,8 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - "Classes you have" means classes with a crystal **soulbound to you**, wherever it is (Storage, lent out, traded), not every unlocked class. Lending a crystal never breaks your loadouts, and a borrower can't take its Skills into their own crystals.
   - Destroying a crystal whose Skills are used by other loadouts gives a warning, then removes those Skills: a locked core slot resets to its base Skill and its Unbound Rune is removed; a flex slot is simply emptied (empty slots are always allowed).
 - **Rune stones are tradeable items.** Finite rune stones (only from major quests or fixed loot) never let you trade away your first one, even if more than one can be obtained. Duplicates (anything but your first finite instance) can be traded, broken down into materials, or sold to NPCs.
-- **Gear Runes:** Runes granted by worn gear are free (they don't use slots). Gear Runes can be extracted as rune stones, but you can't slot a duplicate of a Rune your worn gear currently grants.
+- **Gear Runes:** Runes granted by worn gear are free (they don't use slots). You can't slot a duplicate of a Rune your worn gear currently grants.
+  - **Extraction** is non-destructive (the gear keeps its Rune) and only possible after the gear is worn enough. That mastery progress belongs to the item, not the character, until extracted.
 - **Outfit Magic** (similar to FFXIV glamours) always uses the outfit's **World** Runes instead of the underlying gear's World Runes. Gear is chosen for battle; the outfit carries world utility (e.g. temperature regulation). This means active World Runes from gear always match the character's visible appearance.
   - Any gear can be worn as equipment or used as an outfit; nothing prevents either. Some gear is mainly an outfit (weak stats, good World Runes), some mainly equipment (no World Runes), and some is good for both: you might skip an outfit to keep its World Runes, or use it as an outfit once its battle stats are outclassed.
 - **Variant and Unbound Runes** customise the core kit:
@@ -147,6 +148,8 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
 - Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
+
+- Extraction limits: since it's non-destructive, can an item be extracted more than once? Does it produce a rune stone or teach the Rune directly?
 
 ### Classes (open)
 
