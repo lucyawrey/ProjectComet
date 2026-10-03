@@ -7,6 +7,7 @@ Handoff notes for agent sessions on Project Comet. Last updated 2026-10-03.
 - **Discuss before acting.** Propose a plan and wait for agreement before writing docs, pushing, or changing branches. Don't fill in content or structure that hasn't been discussed.
 - **Don't present agent suggestions as decisions.** An earlier session's context mixed agent suggestions in with the project lead's decisions. Keep three categories apart: *decided*, *considering*, and *open*.
 - **Human-readable docs are the goal of this phase.** Design docs are written for people. Agent-oriented material (like this file) lives under `.claude/`.
+- **Once human-readable docs exist, they are the source of truth**, not chat context or `.claude/` notes. They will be in the project lead's voice and partly written by them directly. When the docs and this file disagree, the docs win; update this file to match.
 
 ## What this phase is
 
