@@ -103,6 +103,8 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - Some classes have extra optional class Skills for their flex slots.
   - Most flex Skills come from other classes: a character can use the untyped core Skills and optional flex Skills of any other class they have, as long as they can equip the required weapon.
   - The system can explicitly ban specific Skills for specific classes, but rarely (only for broken builds).
+  - "Classes you have" means classes you **hold a crystal for**, not every unlocked class.
+  - Destroying a crystal whose Skills are used by other loadouts gives a warning, then removes those Skills: a locked core slot resets to its base Skill and its Unbound Rune is removed; a flex slot is simply emptied (empty slots are always allowed).
 - **Rune stones are tradeable items.** Finite rune stones (only from major quests or fixed loot) never let you trade away your first one, even if more than one can be obtained. Duplicates (anything but your first finite instance) can be traded, broken down into materials, or sold to NPCs.
 - **Variant and Unbound Runes** customise the core kit:
   - **Variant Runes** swap a core action for a designer-made alternative; the slot stays locked.
@@ -140,7 +142,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 ### Skills (open)
 
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
-- Does "classes you have" (for borrowing Skills into flex slots) mean every unlocked class entry, or only classes you currently hold a crystal for?
+- Does "hold a crystal" mean crystals soulbound to you wherever they are (so lending doesn't break loadouts), or crystals physically with you?
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
 - Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
 
