@@ -85,6 +85,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **Storage in tents or camps:** maybe, perhaps only for higher-tier camps.
 - **Recall stations:** soul recall could be its own kind of station, separate from Storage and the Crystal Archives. "Extra large" stations might combine all three (Storage, Crystal Archives, recall).
+- **Gold as items (alternative to the wallet):** gold also takes inventory slots as coin stacks, like tokens. A currency UI in both Storage and the inventory shows currency totals at a glance.
 - **Tokens in the wallet:** move special tokens into the wallet if the physicality isn't worth the inconvenience.
 - **Tool slot count:** 3 is decided for now but open to reconsideration (e.g. if tool Runes make extra slots too strong).
 - **Crystal borrowing (on hold).** Unique, but removed for simplicity. Bring it back if a feature this unusual becomes worth the complexity. If it returns, use the **lockout** rule:
