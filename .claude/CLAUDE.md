@@ -97,6 +97,10 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - Colours: **Offense** and **Support** (Battle split in two, so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
   - Support sits "in the middle": battle first, but some Support skills (e.g. a party speed buff) are also useful for exploration.
   - World stays one colour for now: splitting off an "Industry" colour would waste slots for players who don't craft. The total number of colours should stay small.
+- **Variant and Unbound Runes** customise the core kit:
+  - **Variant Runes** swap a core action for a designer-made alternative; the slot stays locked.
+  - **Unbound Runes** (rare, hard to get) unlock a core slot so any allowed action can go there; one per core slot type. They're alternatives to the (often better for the class) Variant for that slot; using both costs two slots.
+  - No extra limit for now. A player unbinding most of their core kit to play like Freelancer (which generally has fewer Battle rune slots) is fine. Add a limit later if the game becomes a mess.
 - **The shape-based grid idea is dropped.**
 
 ### Netcode (adopted from agent suggestions 2026-10-03)
@@ -130,7 +134,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
 - What are primary actions called, and what teaches them?
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
-- Idea: a slotted skill that turns a specific core slot into a flex slot, one per core slot type.
+- Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility).
 
 ### Classes (open)
 
