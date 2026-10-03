@@ -72,7 +72,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **Instance items:** inside a dungeon instance, items can unlock doors; they're disposed of when used or when the dungeon ends. Redoing the dungeon resets everything.
 - **Titles and achievements are flags**, granted directly.
 - **Music and decorative collectables** (like FFXIV orchestrion rolls) are found as items and consumed to learn them as flags, like dyes.
-- **Crafting and gathering tools:** a single dedicated tool slot per class (in the gear set).
+- **Crafting and gathering tools:** a single dedicated tool slot in each gear set.
   - Not every craft has an associated class, and some crafts may be about forcing an unsuited class to work for it (a fun challenge).
 
 ## Considering
