@@ -20,7 +20,8 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Soulbound items** exist to make items feel physical: every item is "real" and can be handed around.
   - Soulbound items can be dropped, held by other players and handed back, and recalled by the owner.
   - Another player holding your soulbound Class Crystal can't equip it, but can carry it and give it back.
-  - Soulbound gear can be lent out freely. Once it returns to the owner, it counts as empty in the borrower's gear sets.
+  - Soulbound gear can be lent out freely, and other players can equip it. Once it returns to the owner, it counts as empty in the borrower's gear sets.
+  - The owner can recall a soulbound item at any time, for free, wherever it is (held by another player, in a dropped bag, or lost after despawning). Recalling is done at a specific place: Storage or the Crystal Archives (which one is still to decide).
 - **Crystal borrowing is scrapped for now** (see Considering).
 - **Containers vs sets (adopted from an agent suggestion):**
   - **Containers** are physical locations: inventory, Storage and bags. Each item is in exactly one, and every move is one transaction.
@@ -41,6 +42,11 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - "Classes you have" for flex Skills would still mean crystals soulbound to you wherever they are; lending must never break the owner's loadouts, and a borrower can't take its Skills into their own crystals.
   - Rejected alternative: letting owner and borrower both use the same item (effectively a free copy of the gear, and double mastery on one item).
 - **Selling or trading a referenced item (agent suggestion):** warn first. Nothing auto-equips from the inventory.
+- **Lent soulbound gear (agent suggestions):**
+  - Only the owner can do destructive or transforming actions: sell, trade, dismantle, use as a crafting input, upgrade, or extract its Rune. A borrower can wear, carry, store, drop and hand it on.
+  - Mastery builds on the item while a borrower wears it (mastery belongs to the item), so the owner benefits.
+  - A recall of gear the borrower has equipped takes effect immediately; the slot reads as empty, like any other item that has left Storage. (Alternative: delay until the borrower leaves combat or the instance.)
+  - The UI should make it obvious that an item is soulbound to someone else and recallable, since lending for payment and then recalling is a possible scam.
 
 ## Open
 
@@ -48,6 +54,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - Bags: keep both kinds from the notes (several slots of a limited range of item types, or bundle-style any type up to a total quantity)? Bags inside bags (agent: no)? Does a bag deposited into Storage stay as an empty bag?
 - Where else is Storage available: housing, guild halls, tents or camps?
 - Despawn timing: how long do dropped items last, and do they survive a shard restart (temporary structures don't)?
-- Recalling soulbound items: where can it be done ("an appropriate location" in the notes), and does it cost anything (e.g. Anima)? Can an owner recall lent soulbound gear at any time?
-- Soulbound vs untradeable: soulbound gear can be lent, so what exactly stops it being given away for good? Is the finite rune stone rule (never trade away your first copy) the same thing as soulbound?
+- Recall location: Storage or the Crystal Archives?
+- Is the finite rune stone rule (never trade away your first copy) the same thing as soulbound? (The backend suggestion already marks that first copy soulbound.)
 - Collection (not yet discussed): what counts as collected (first acquisition? crafted quality and dye variants?), and what "easier ways to get it again" means in practice without becoming a duplication source.
