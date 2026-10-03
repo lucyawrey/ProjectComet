@@ -122,6 +122,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 ### Crafts (in progress 2026-10-03)
 
 - **Building means housing and guild structures**, not building in the open world.
+- **Housing and guild halls are instanced**, reached through gateways, doors or even vehicles in the seamless world (using transition rooms, no loading screens). Designers can fall back on teleports in the worst case.
 - **Temporary open-world structures** (tents, RuneScape-style campfires) exist but are never persisted across server restarts: they're either consumed (campfires) or still exist as an item on the character (tents).
 
 ### Netcode (adopted from agent suggestions 2026-10-03)
