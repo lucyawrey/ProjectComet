@@ -68,8 +68,10 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - Ascending a granted crystal produces a bought one.
   - Ascending one crystal while you still hold others of that class charges the rising price (awkward, but worth it for game feel).
 - **The Crystal Archives** keep every class entry's current XP and highest level.
-- **Class changes** work almost anywhere, in and out of combat. Cooldowns don't reset on swap and need some scaling. Zones can block class changes entirely or only in combat.
+- **Class changes** work almost anywhere, in and out of combat. Cooldowns don't reset on swap and need some scaling. Zones, areas or individual encounters can block class changes entirely or only in combat.
 - **Swapping between two crystals of the same class** plays the class-change animation but is by definition a gear swap. It may also swap the skill loadout.
+- **Class loadouts** (skill setups) are separate saved objects; a player can keep any number. A crystal is assigned one when gear is added. The UI can hide this and let players edit "the crystal's loadout" directly, but it still saves to a separate loadout that survives the crystal's deletion.
+- **Appearance in crystals:** besides gear/outfit looks, a crystal can change the character's base design (body, features) on top of their real base form, to emphasise the transformation.
 - **Swap casts can be interrupted.**
 - **Promotion tree:** the system allows a class to have multiple parents, even if class design never uses it.
 - **XP:** all XP goes to the equipped class. Overflow from a maxed class or a maxed craft becomes Soul XP. An unlockable toggle may send XP to Soul instead of a non-maxed class. No percentage splits; Freelancer no longer takes an automatic share.
@@ -104,8 +106,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 ### Classes (open)
 
-- Class-change rules: zone-level only, or per area/encounter too?
-- Is a skill loadout stored per crystal (so two crystals of one class can differ)?
+- Are class loadouts stored per account or per character?
 - Level cap and ascension level?
 - What is the crystal cost resource?
 
