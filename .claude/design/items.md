@@ -51,6 +51,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - "Classes you have" for flex Skills would still mean crystals soulbound to you wherever they are; lending must never break the owner's loadouts, and a borrower can't take its Skills into their own crystals.
   - Rejected alternative: letting owner and borrower both use the same item (effectively a free copy of the gear, and double mastery on one item).
 - **Mastery on an outfit item's other Runes:** maybe builds up too, but slower, even though those Runes aren't active.
+- **Mastery per Rune (agent suggestion):** since gear can have multiple Runes, track mastery per Rune on the item. Extracting one Rune resets only that Rune's mastery.
 - **Selling or trading a referenced item (agent suggestion):** warn first. Nothing auto-equips from the inventory.
 - **Lent soulbound gear (agent suggestions):**
   - Mastery builds on the item while a borrower wears it (mastery belongs to the item), so the owner benefits.
