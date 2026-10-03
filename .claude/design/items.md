@@ -47,13 +47,14 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Collection goals:** showing off, using things (outfits, hairstyles…) and protection against losing things. Protection can be dropped if it conflicts with the economy.
 - **Things are items; knowledge is a flag** (adopted from an agent suggestion):
   - **Items:** gear and outfits (actual pieces), materials, consumables, Class Crystals, rune stones, bags.
-  - **Learned flags** (character-wide unlocks): e.g. hairstyles, recipes, Rune unlocks, emotes. Usually unlocked by consuming an item, which stays tradeable until someone learns it.
+  - **Learned flags** (character-wide unlocks): e.g. hairstyles, dyes, recipes, Rune unlocks, emotes. Usually unlocked by consuming an item, which stays tradeable until someone learns it.
   - **Companions** are their own system (see notes; not yet discussed).
   - Outfits stay real items, partly because unlocked outfits would become free, permanent sources of World Runes.
 - **Three separate data concepts:** items, learned flags, and an **item collection log** (records items a character has obtained). The collection UI can show flags and the item collection log together.
   - Why the log is separate from flags: **the item collection log gives no mechanical benefit** (it's for showing off), while flags are real unlocks. Possible exceptions: re-obtaining items, or unlocking crafting recipes from collected items (see Open).
 - **The item collection log has one entry per item type**, set the first time you obtain it (quality and dye variants don't count separately).
-- **Untradeable item types:** an item type is untradeable when every instance of it is soulbound (none can be permanently traded). Types like finite rune stones, where only your first copy is soulbound, count as tradeable.
+- **Untradeable is a content-design flag on an item type**, and it means every instance is always soulbound to whichever player receives it. The relationship only goes that way: soulbound items are not implicitly untradeable. For example, finite rune stones are a tradeable type even though your first copy is soulbound.
+- **Some recipes are learned from the item collection log** (first obtaining an item grants the recipe flag). The log itself still gives no other benefit.
 - **Re-obtaining** applies only to destroyed items of untradeable types, and only if you don't currently have a soulbound copy of that type.
 
 ## Considering
@@ -76,5 +77,4 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
 - **Re-obtaining mechanics:** where and how (an NPC? a collection UI button?), and does it cost anything?
-- **Recipes from the collection log:** could obtaining an item unlock (or help unlock) its crafting recipe?
-- **Which things are flags:** are dyes items or learned flags? Anything else on the boundary?
+- **Which things are flags:** anything else on the boundary between items and learned flags?
