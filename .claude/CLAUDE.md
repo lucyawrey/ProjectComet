@@ -119,6 +119,11 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - No extra limit for now. A player unbinding most of their core kit to play like Freelancer (which generally has fewer Battle rune slots) is fine. Add a limit later if the game becomes a mess.
 - **The shape-based grid idea is dropped.**
 
+### Crafts (in progress 2026-10-03)
+
+- **Building means housing and guild structures**, not building in the open world.
+- **Temporary open-world structures** (tents, RuneScape-style campfires) exist but are never persisted across server restarts: they're either consumed (campfires) or still exist as an item on the character (tents).
+
 ### Netcode (adopted from agent suggestions 2026-10-03)
 
 - **Lenient PvE hit validation:** accept player hits on monsters as seen by the client, within sanity limits; honour dodges that started before a hit landed on the client, up to ~150–200 ms.
