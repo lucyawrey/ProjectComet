@@ -91,7 +91,8 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Core kit + flex slots** for primary actions: each class has a designer-made core kit, plus a few flex slots. Easy to understand; complexity can be added on top later.
 - **About 10 primary slots in total, including flex** (a goal: lower it if no good controller scheme is found). Exact bindings are deferred.
 - **Jump, crouch, dodge and sprint** have dedicated controls but are class skills: each class can change their effect (dodge timing, jump height for a dragoon-style class, a rogue's crouch doubling as a faster sneak) while they always remain jump, crouch, dodge and sprint.
-- **Coloured slots replace SP** for slotted skills, which are called **Runes** (genuine passives, modifiers to primary actions, and skills that add secondary actions):
+- **Runes and slots:** a **Rune** is always a slotted skill (genuine passives, modifiers to primary actions, and skills that add secondary actions). Their containers are just called **slots**. A Rune held as an item is a **rune stone**. Runes must stay distinct from primary actions.
+- **Coloured slots replace SP** for Runes:
   - Slots come in **major and minor** sizes; a minor skill can go in a major slot.
   - Colours: **Offense** and **Support** (Battle split in two, so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
   - Support sits "in the middle": battle first, but some Support skills (e.g. a party speed buff) are also useful for exploration.
@@ -126,7 +127,8 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 ### Skills (open)
 
-- A name for the slots (agent idea: Facets). How do Runes relate to the Skill Rune items from the notes, and what teaches actions?
+- Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. More harmonious UI while keeping the concepts distinct.
+- What are primary actions called, and what teaches them?
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
 - Idea: a slotted skill that turns a specific core slot into a flex slot, one per core slot type.
 
