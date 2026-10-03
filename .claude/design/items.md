@@ -21,6 +21,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - Soulbound items can be dropped, held by other players and handed back, and recalled by the owner.
   - Another player holding your soulbound Class Crystal can't equip it, but can carry it and give it back.
   - Soulbound gear can be lent out freely, and other players can equip it. Once it returns to the owner, it counts as empty in the borrower's gear sets.
+  - **Only the owner can do anything destructive or transforming** to a soulbound item: sell, trade away, dismantle, use as a crafting input, upgrade, extract its Rune, or consume it. A soulbound consumable (e.g. a rune stone consumed to learn its Rune) can't be consumed by anyone else. Such items are nearly useless to hand around; the rule exists to keep items physical and the rules clear. Others can wear (gear), carry, store, drop and hand on soulbound items.
   - The owner can recall a soulbound item at any time, for free, wherever it is (held by another player, in a dropped bag, or lost after despawning). Recalling is done at a specific place: Storage or the Crystal Archives (which one is still to decide).
 - **Crystal borrowing is scrapped for now** (see Considering).
 - **Containers vs sets (adopted from an agent suggestion):**
@@ -43,7 +44,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - Rejected alternative: letting owner and borrower both use the same item (effectively a free copy of the gear, and double mastery on one item).
 - **Selling or trading a referenced item (agent suggestion):** warn first. Nothing auto-equips from the inventory.
 - **Lent soulbound gear (agent suggestions):**
-  - Only the owner can do destructive or transforming actions: sell, trade, dismantle, use as a crafting input, upgrade, or extract its Rune. A borrower can wear, carry, store, drop and hand it on.
   - Mastery builds on the item while a borrower wears it (mastery belongs to the item), so the owner benefits.
   - A recall of gear the borrower has equipped takes effect immediately; the slot reads as empty, like any other item that has left Storage. (Alternative: delay until the borrower leaves combat or the instance.)
   - The UI should make it obvious that an item is soulbound to someone else and recallable, since lending for payment and then recalling is a possible scam.
