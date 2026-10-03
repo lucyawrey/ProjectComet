@@ -51,6 +51,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **Companions** are their own system (see notes; not yet discussed).
   - Outfits stay real items, partly because unlocked outfits would become free, permanent sources of World Runes.
 - **Three separate data concepts:** items, learned flags, and an **item collection log** (records items a character has obtained). The collection UI can show flags and the item collection log together.
+  - Why the log is separate from flags: **the item collection log gives no mechanical benefit** (it's for showing off), while flags are real unlocks. Possible exceptions: re-obtaining items, or unlocking crafting recipes from collected items (see Open).
 
 ## Considering
 
@@ -73,4 +74,5 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
 - **Item collection log:** what counts as an entry (first acquisition? crafted quality and dye variants?).
 - **Re-obtaining** (the protection goal): what "easier ways to get it again" means, if anything, without becoming a duplication source. Droppable if it conflicts with the economy.
+- **Recipes from the collection log:** could obtaining an item unlock (or help unlock) its crafting recipe?
 - **Which things are flags:** are dyes items or learned flags? Anything else on the boundary?
