@@ -1,0 +1,31 @@
+# Glossary
+
+Working terms agreed with the project lead (2026-10-03). Terminology may change but must stay distinct. Details live in the topic files.
+
+| Term | Meaning |
+| --- | --- |
+| **Class Crystal** | An item that grants permission to use one of its soulbound owner's class entries, and holds a gear set, outfit, appearance and a loadout reference. Always one equipped. |
+| **Class entry** | A character's permanent record of a class: current XP and highest level. |
+| **Crystal Archives** | All of a character's class entries. |
+| **Bought / granted crystal** | Granted crystals (quests, starting class, first Freelancer) are free and don't raise the rising crystal price. |
+| **Freelancer** | Root of the promotion tree; no core kit, so every primary slot is flex. |
+| **Class promotion** | Converting a crystal to a higher-tier class. |
+| **Loadout** | A per-character saved skill setup, assigned to a crystal. |
+| **Soul Experience (Soul XP)** | XP that grows your soul; overflow from maxed classes and crafts, and all XP a borrower earns. |
+| **Soul Ascension** | A soul milestone (may upgrade Anima Capacity and slots together). |
+| **Anima / Anima Capacity** | The magic of your soul: an energy resource gained over time, spent on teleports, crystals and locked content. Capacity is how much you can store. Never sold for real money. |
+| **Skills** | Primary actions: ~10 slots, a designer-made core kit plus flex slots. Jump, crouch, dodge and sprint are class Skills on dedicated controls. |
+| **Core kit / core slot** | A class's locked Skills. Core slots may be typed or untyped. |
+| **Flex slot** | An open primary slot, filled from the class's optional Skills or other held classes' untyped core and flex Skills. |
+| **Abilities** | All secondary actions (from classes, Runes, the base system, character-wide unlocks). Outside the primary control scheme. |
+| **Rune** | A slotted skill: passive, modifier to a Skill, or grant of an Ability. |
+| **Rune stone** | A Rune as a tradeable item. |
+| **Slots (rune)** | Same-size coloured slots: Offense, Support, World. Primary slots have their own colour. |
+| **Variant Rune** | Swaps a core Skill for a designer-made alternative. |
+| **Unbound Rune** | Unlocks a core slot of its type so any allowed Skill can go there. |
+| **Gear / class Runes** | Runes built into gear (free while worn) or classes (locked, shown in a slot). |
+| **Mastery / extraction** | Mastery builds up on worn gear (stored on the item) or on a class's Runes (stored on the class entry); extraction yields a rune stone and resets mastery. |
+| **Outfit Magic** | Using gear as an outfit; the outfit's World Runes replace the gear's. |
+| **Region › Zone › Shard; Dungeon › Instance** | Server hierarchy. Worlds are labels inside a region. |
+| **Height zones** | Vertical layers (digging, crouching, standing, jumping, flying) used in hit checks. |
+| **Invulnerability / pierce** | Defender's invuln level vs attack's pierce level. |
