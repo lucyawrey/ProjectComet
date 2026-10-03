@@ -15,7 +15,8 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - Only the **equipped** crystal's gear can be edited in the field.
   - **No gear changes in combat**, either directly or onto a crystal. Switching crystals in combat (with a cast) is still allowed and swaps class, loadout, gear and outfit together.
   - **Gear and outfit sets can have empty slots.**
-  - **Unique-equipped is universal:** a set can never hold two items of the same type (e.g. two copies of one ring), matching how a duplicate Rune can't be slotted.
+  - **Unique-equipped is universal:** a set can never hold two items of the same type (e.g. two copies of one ring), matching how a duplicate Rune can't be slotted. Checked per set: the gear set and outfit set are checked separately.
+- **No per-character ownership limit:** there are no "unique" items limited to one held per character (it would clash with physical items and traders holding stock). Special cases like one-off story items are handled by quest logic.
   - **The tutorial's gear moves automatically** to the first real crystal when it's unlocked.
   - **One item can be in several gear sets.** Lore: class crystals resonate and share the same physical gear piece. Double equipping is impossible anyway, since only one crystal is equipped.
 - **Outfit sets work the same way as gear sets.** An outfit is the actual gear piece worn over the top (like a cosmetic slot in other games), not a copied "glamour".
@@ -79,7 +80,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - Rejected alternative: letting owner and borrower both use the same item (effectively a free copy of the gear, and double mastery on one item).
 - **Active vs inactive mastery:** any worn item's Runes build mastery at the full rate while active and more slowly while inactive. This covers an outfit item's non-World Runes, and also gear's World Runes while an outfit's World Runes override them.
 - **Mastery per Rune (agent suggestion):** since gear can have multiple Runes, track mastery per Rune on the item. Extracting one Rune resets only that Rune's mastery.
-- **No per-character ownership limit (agent suggestion):** skip "unique" items (at most one held per character); it clashes with physical items (every trade, pickup and reward would need a refusal path) and with traders holding stock. Special cases like one-off story items are handled by quest logic.
 - **Selling or trading a referenced item (agent suggestion):** warn first. Nothing auto-equips from the inventory.
 - **Lent soulbound gear (agent suggestions):**
   - Mastery builds on the item while a borrower wears it (mastery belongs to the item), so the owner benefits.
@@ -88,7 +88,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 ## Open
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
-- **Re-obtaining cost:** free, or a fee at the NPC?
+- **Re-obtaining cost** (intentionally undecided): free, or a fee at the NPC.
 - **Remaining item/flag boundaries (agent leans, not discussed):**
   - Keys: items for ones you can hand over (a house key for a friend), flags for one-off access unlocks.
   - Teleport and flight attunements, titles, achievements: flags (attunements belong to unlockables, not yet discussed).
