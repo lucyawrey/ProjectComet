@@ -68,6 +68,12 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Story items:** when the story needs an item to make sense (a letter to deliver), it's a real item, for physicality: you have to make space for the letter. Plenty of quest progress is simply flags.
   - Most story items are untradeable (always soulbound).
   - Quest drops from monsters may be ordinary, non-soulbound items, but can't be listed on the market: **direct player trades only**.
+- **Keys:** mixed. Keys you hand around are items, but a lot of access becomes a flag once unlocked (a dungeon door might need a literal key item to unlock it once, and is then flagged).
+  - **Instance items:** inside a dungeon instance, items can unlock doors; they're disposed of when used or when the dungeon ends. Redoing the dungeon resets everything.
+- **Titles and achievements are flags**, granted directly.
+- **Music and decorative collectables** (like FFXIV orchestrion rolls) are found as items and consumed to learn them as flags, like dyes.
+- **Crafting and gathering tools:** a single dedicated tool slot per class (in the gear set).
+  - Not every craft has an associated class, and some crafts may be about forcing an unsuited class to work for it (a fun challenge).
 
 ## Considering
 
@@ -89,9 +95,5 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
 - **Re-obtaining cost** (intentionally undecided): free, or a fee at the NPC.
-- **Remaining item/flag boundaries (agent leans, not discussed):**
-  - Keys: items for ones you can hand over (a house key for a friend), flags for one-off access unlocks.
-  - Teleport and flight attunements, titles, achievements: flags (attunements belong to unlockables, not yet discussed).
-  - Music and decorative collectables (like FFXIV orchestrion rolls): flags learned by consuming an item, like dyes.
-  - Crafting and gathering tools: gear in the gear set (needs tool slots, or uses weapon slots). Touches the most systems.
+- **Remaining item/flag boundaries (agent lean, not discussed):**
   - Companion items (eggs, capture items): items until hatched or registered; details wait for companions.
