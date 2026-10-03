@@ -50,6 +50,17 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Shard size:** 150–300 players would be an impressive upper limit; may be forced lower.
 - **Vehicles:** boats and airships cross zones on fixed routes. The only player-steered vehicles are 2–4 seat mounts with near-normal movement. Vehicles and their riders cross borders as one group.
 
+### Netcode (adopted from agent suggestions 2026-10-03)
+
+- **Lenient PvE hit validation:** accept player hits on monsters as seen by the client, within sanity limits; honour dodges that started before a hit landed on the client, up to ~150–200 ms.
+- Height zones as bitmasks; the terrain-height offset shifts the mask. Invuln vs pierce compared as integers.
+- Sync actions as events ("player X started skill Y at tick T facing Z") rather than continuous state; prioritise updates by relevance; cap displayed characters.
+- Movement skills and knockback as fixed curves in frame data, predicted by the client.
+- Nudging: server-enforced against monsters/NPCs, client-only between players.
+- Border visibility: near a border the client also listens to the neighbouring shard (ticket via the Gateway) but only sends input to the owner; handoff happens a few metres past the line to avoid ping-pong.
+- Fixed-route vehicles are positioned from route + clock, so only passengers are handed off; riders' positions are relative to the vehicle.
+- A named load test after the 100-bot milestone: one shard, 100 players, one boss.
+
 ## Considering
 
 - **Backend:** plan for two approaches:
@@ -57,15 +68,6 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - B. A product like SpacetimeDB. The project lead is slightly biased against it because of the self-hosting requirement; verify current license terms before weighing it.
   - C (unlikely). A systems-language backend written with help from another developer, if neither A nor B works.
 - **Art techniques:** palette/gradient texturing and a shared humanoid rig (agent suggestions).
-- **Netcode suggestions (agent, not yet decided):**
-  - Lenient PvE hit validation: accept player hits on monsters as seen by the client, within sanity limits; honour dodges that started before a hit landed on the client, up to ~150–200 ms.
-  - Height zones as bitmasks; the terrain-height offset shifts the mask. Invuln vs pierce compared as integers.
-  - Sync actions as events ("player X started skill Y at tick T facing Z") rather than continuous state; prioritise updates by relevance; cap displayed characters.
-  - Movement skills and knockback as fixed curves in frame data, predicted by the client.
-  - Nudging: server-enforced against monsters/NPCs, client-only between players.
-  - Border visibility: near a border the client also listens to the neighbouring shard (ticket via the Gateway) but only sends input to the owner; handoff happens a few metres past the line to avoid ping-pong.
-  - Fixed-route vehicles are positioned from route + clock, so only passengers are handed off; riders' positions are relative to the vehicle.
-  - A named load test after the 100-bot milestone: one shard, 100 players, one boss.
 
 ## Open questions
 
