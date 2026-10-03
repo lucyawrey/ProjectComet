@@ -22,6 +22,9 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - Another player holding your soulbound Class Crystal can't equip it, but can carry it and give it back.
   - Soulbound gear can be lent out freely, and other players can equip it. Once it returns to the owner, it counts as empty in the borrower's gear sets.
   - **Only the owner can do anything destructive or transforming** to a soulbound item: sell, trade away, dismantle, use as a crafting input, upgrade, extract its Rune, or consume it. A soulbound consumable (e.g. a rune stone consumed to learn its Rune) can't be consumed by anyone else. Such items are nearly useless to hand around; the rule exists to keep items physical and the rules clear. Others can wear (gear), carry, store, drop and hand on soulbound items.
+  - **Handing soulbound items over:** the trade UI can be used, but the owner can never receive anything in return: a trade with soulbound items is always only soulbound items on one side and nothing on the other. Dropping and picking up also works. Scams are still possible this way, but harder.
+  - **Picked-up soulbound items are clearly marked** as belonging to someone else and say they will return to their owner eventually.
+  - **Finite rune stones use the soulbound rule:** the first copy a character receives is soulbound to them; later copies are ordinary items that can be traded, broken down or sold to NPCs.
   - The owner can recall a soulbound item at any time, for free, wherever it is (held by another player, in a dropped bag, or lost after despawning). Recalling is done at a specific place: Storage or the Crystal Archives (which one is still to decide).
 - **Crystal borrowing is scrapped for now** (see Considering).
 - **Containers vs sets (adopted from an agent suggestion):**
@@ -29,6 +32,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **Gear and outfit sets are reference lists, not containers:** typed slots that each point at an item or are empty. Several sets can point at the same item.
   - Both share data-driven **slot rules** (what a slot accepts), so a helmet slot and a herb-only bag use the same "does this fit?" check.
   - **Equipping in the field** = new item inventory → Storage, old item Storage → inventory, and the equipped set's reference updated. Other sets referencing the old item read that slot as empty until it's back in Storage.
+  - **Slots read as empty; references are never cleared** when an item leaves Storage (withdrawn by the owner, swapped out in the field, lent, dropped). When the item returns to Storage (deposited or recalled), every set that references it has it again automatically.
   - **Effective state** (what you're actually wearing) is derived from the equipped sets' references plus whether each item is currently in Storage. The same check covers lent soulbound gear returning to its owner.
 - **Bags** can sit in the inventory or be dropped on the ground, and keep their contents either way. Depositing a bag into Storage empties its contents into Storage.
 - **There are no soulbound bags.** A soulbound item inside a dropped bag can still be recalled out of it by its owner.
@@ -46,7 +50,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Lent soulbound gear (agent suggestions):**
   - Mastery builds on the item while a borrower wears it (mastery belongs to the item), so the owner benefits.
   - A recall of gear the borrower has equipped takes effect immediately; the slot reads as empty, like any other item that has left Storage. (Alternative: delay until the borrower leaves combat or the instance.)
-  - The UI should make it obvious that an item is soulbound to someone else and recallable, since lending for payment and then recalling is a possible scam.
 
 ## Open
 
@@ -55,5 +58,4 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - Where else is Storage available: housing, guild halls, tents or camps?
 - Despawn timing: how long do dropped items last, and do they survive a shard restart (temporary structures don't)?
 - Recall location: Storage or the Crystal Archives?
-- Is the finite rune stone rule (never trade away your first copy) the same thing as soulbound? (The backend suggestion already marks that first copy soulbound.)
 - Collection (not yet discussed): what counts as collected (first acquisition? crafted quality and dye variants?), and what "easier ways to get it again" means in practice without becoming a duplication source.
