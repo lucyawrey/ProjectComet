@@ -92,8 +92,8 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Jump, crouch and dodge** have dedicated buttons but are class skills: each class can change their effect (dodge timing, jump height for a dragoon-style class, a rogue's crouch doubling as a faster sneak) while they always remain jump, crouch and dodge.
 - **Coloured slots replace SP** for slotted skills (genuine passives, modifiers to primary actions, and skills that add secondary actions):
   - Slots come in **major and minor** sizes; a minor skill can go in a major slot.
-  - Colours to start: **Battle** and **World**. Crafting falls under World, so a battle class's World slots decide how good a crafter it is (and many players won't craft).
-  - More colours may come later (e.g. more than one World or Battle type, not split along crafting lines), but the total should stay small.
+  - Colours: **Offense** and **Support** (Battle split in two, so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
+  - World stays one colour for now: splitting off an "Industry" colour would waste slots for players who don't craft. The total number of colours should stay small.
 - **The shape-based grid idea is dropped.**
 
 ### Netcode (adopted from agent suggestions 2026-10-03)
