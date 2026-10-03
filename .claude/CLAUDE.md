@@ -93,7 +93,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Jump, crouch, dodge and sprint** have dedicated controls but are class skills: each class can change their effect (dodge timing, jump height for a dragoon-style class, a rogue's crouch doubling as a faster sneak) while they always remain jump, crouch, dodge and sprint.
 - **Runes and slots:** a **Rune** is always a slotted skill (genuine passives, modifiers to primary actions, and skills that add secondary actions). Their containers are just called **slots**. A Rune held as an item is a **rune stone**. Runes must stay distinct from primary actions.
 - **Coloured slots replace SP** for Runes:
-  - Slots come in **major and minor** sizes; a minor skill can go in a major slot.
+  - **All slots are the same size** (major/minor sizes dropped to limit complexity). Designers can balance powerful Runes in other ways, e.g. requiring a base Rune.
   - Colours: **Offense** and **Support** (Battle split in two, so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
   - Support sits "in the middle": battle first, but some Support skills (e.g. a party speed buff) are also useful for exploration.
   - World stays one colour for now: splitting off an "Industry" colour would waste slots for players who don't craft. The total number of colours should stay small.
