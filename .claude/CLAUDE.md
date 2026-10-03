@@ -74,6 +74,6 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 
 ## Next steps
 
-1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills and crafts are done** (see `.claude/design/`). **Items/inventory is in progress** (`items.md`): inventory, Storage, bags, gear/outfit sets and soulbound items are settled; resume with collection, which needs rethinking from scratch. Remaining areas after that: companions, unlockables, aesthetic, database tables.
+1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills and crafts are done** (see `.claude/design/`). **Items/inventory is in progress** (`items.md`): inventory, Storage, bags, gear/outfit sets and soulbound items are settled; collection's core split is settled (items vs learned flags vs item collection log); resume with collection's Open questions. Remaining areas after that: companions, unlockables, aesthetic, database tables.
 2. Research documented real-world MMO backends to sanity-check the architecture, including the Gateway/Data Center split.
 3. Agree on the doc structure, then write human-readable docs.

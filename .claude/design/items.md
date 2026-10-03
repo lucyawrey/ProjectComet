@@ -44,6 +44,13 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **There are no soulbound bags.** A soulbound item inside a dropped bag can still be recalled out of it by its owner.
 - **Dropped items and bags despawn after one hour, and all of them vanish on a shard restart.** This is the main way most items are destroyed.
 - **Timers are easy server configuration**, not hard-coded: the despawn time and the soulbound return times can be tuned (e.g. to manage server load, or by private server hosts).
+- **Collection goals:** showing off, using things (outfits, hairstyles…) and protection against losing things. Protection can be dropped if it conflicts with the economy.
+- **Things are items; knowledge is a flag** (adopted from an agent suggestion):
+  - **Items:** gear and outfits (actual pieces), materials, consumables, Class Crystals, rune stones, bags.
+  - **Learned flags** (character-wide unlocks): e.g. hairstyles, recipes, Rune unlocks, emotes. Usually unlocked by consuming an item, which stays tradeable until someone learns it.
+  - **Companions** are their own system (see notes; not yet discussed).
+  - Outfits stay real items, partly because unlocked outfits would become free, permanent sources of World Runes.
+- **Three separate data concepts:** items, learned flags, and an **item collection log** (records items a character has obtained). The collection UI can show flags and the item collection log together.
 
 ## Considering
 
@@ -64,4 +71,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 ## Open
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
-- **Collection needs a lot of rethinking**, not just filling in from the notes. Gear is now strictly a real item that is either equipped or an outfit in one place at a time, which doesn't fit all of the notes' collection ideas. Starting points: what counts as collected (first acquisition? crafted quality and dye variants?), and what "easier ways to get it again" means without becoming a duplication source.
+- **Item collection log:** what counts as an entry (first acquisition? crafted quality and dye variants?).
+- **Re-obtaining** (the protection goal): what "easier ways to get it again" means, if anything, without becoming a duplication source. Droppable if it conflicts with the economy.
+- **Which things are flags:** are dyes items or learned flags? Anything else on the boundary?
