@@ -53,7 +53,11 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Three separate data concepts:** items, learned flags, and an **item collection log** (records items a character has obtained). The collection UI can show flags and the item collection log together.
   - Why the log is separate from flags: **the item collection log gives no mechanical benefit** (it's for showing off), while flags are real unlocks. Possible exceptions: re-obtaining items, or unlocking crafting recipes from collected items (see Open).
 - **The item collection log has one entry per item type**, set the first time you obtain it (quality and dye variants don't count separately).
-- **Untradeable is a content-design flag on an item type**, and it means every instance is always soulbound to whichever player receives it. The relationship only goes that way: soulbound items are not implicitly untradeable. For example, finite rune stones are a tradeable type even though your first copy is soulbound.
+- **Tradeability is a three-tier content setting on each item type** (adopted from the old .NET DataCenter's `ContentItemTradeability`):
+  - **Market** (default): tradeable and listable on the market.
+  - **Direct:** player-to-player trades only, never on the market (e.g. quest drops from monsters).
+  - **Untradeable:** every instance is always soulbound to whichever player receives it.
+- **Soulbound is a separate per-instance state.** The Untradeable tier always sets it, but soulbound items are not implicitly untradeable. For example, finite rune stones are a Market type even though your first copy is soulbound.
 - **Some recipes are learned from the item collection log** (first obtaining an item grants the recipe flag). The log itself still gives no other benefit.
 - **Re-obtaining** applies only to destroyed items of untradeable types, and only if you don't currently have a soulbound copy of that type. It's done at an NPC.
 - **Currency works like Animal Crossing:** a wallet number that normally takes no inventory slots. Players can take money out of the wallet as coin stacks (items), and drop them on the ground, where another player might pick them up. Picked-up coins go straight into the wallet by default; a player setting can keep them as coin stacks instead.
@@ -83,7 +87,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
 - **Re-obtaining cost:** free, or a fee at the NPC?
-- **Direct-trade-only items:** a content flag for items that can be traded player to player but never listed on the market. Which other item types use it?
 - **Remaining item/flag boundaries (agent leans, not discussed):**
   - Keys: items for ones you can hand over (a house key for a friend), flags for one-off access unlocks.
   - Teleport and flight attunements, titles, achievements: flags (attunements belong to unlockables, not yet discussed).
