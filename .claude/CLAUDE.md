@@ -89,6 +89,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Two tiers of actions:**
   - **Primary:** a small set used for normal rotations and combat, with proper default bindings on controller and keyboard.
   - **Secondary:** used less often but do cool things (long-term buffs, teleports, transformations). On controller, a context menu (hold a button, pick with the D-pad). On keyboard, players can optionally put both tiers on one hotbar.
+  - The secondary menu has two pages: **character-wide** Abilities (teleports, emergency teleport, mounts, companions) that never change, and **loadout** Abilities (class Abilities and Abilities from Runes) that swap with the crystal.
 - **Core kit + flex slots** for primary actions: each class has a designer-made core kit, plus a few flex slots. Easy to understand; complexity can be added on top later.
 - **About 10 primary slots in total, including flex** (a goal: lower it if no good controller scheme is found). Exact bindings are deferred.
 - **Jump, crouch, dodge and sprint** have dedicated controls but are class skills: each class can change their effect (dodge timing, jump height for a dragoon-style class, a rogue's crouch doubling as a faster sneak) while they always remain jump, crouch, dodge and sprint.
@@ -106,6 +107,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - "Classes you have" means classes with a crystal **soulbound to you**, wherever it is (Storage, lent out, traded), not every unlocked class. Lending a crystal never breaks your loadouts, and a borrower can't take its Skills into their own crystals.
   - Destroying a crystal whose Skills are used by other loadouts gives a warning, then removes those Skills: a locked core slot resets to its base Skill and its Unbound Rune is removed; a flex slot is simply emptied (empty slots are always allowed).
 - **Rune stones are tradeable items.** Finite rune stones (only from major quests or fixed loot) never let you trade away your first one, even if more than one can be obtained. Duplicates (anything but your first finite instance) can be traded, broken down into materials, or sold to NPCs.
+  - Every extra rune stone, including ones extracted from gear, must be able to leave the economy: broken down into materials or sold to NPCs.
 - **Gear Runes:** Runes granted by worn gear are free (they don't use slots). You can't slot a duplicate of a Rune your worn gear currently grants.
   - **Extraction** works like FFXIV materia extraction, but yields the gear's specific (complex, fixed) Rune rather than a simple stat materia. It's non-destructive (the gear keeps its Rune) and only possible after the gear is worn enough. Mastery progress belongs to the item, not the character. Extracting produces a tradeable rune stone and resets the item's mastery, so it can be repeated after wearing the gear in again.
 - **Outfit Magic** (similar to FFXIV glamours) always uses the outfit's **World** Runes instead of the underlying gear's World Runes. Gear is chosen for battle; the outfit carries world utility (e.g. temperature regulation). This means active World Runes from gear always match the character's visible appearance.
@@ -146,7 +148,6 @@ Experienced web developer with shipped production apps; strong in deployments, o
 ### Skills (open)
 
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
-- Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
 - Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
 
 
