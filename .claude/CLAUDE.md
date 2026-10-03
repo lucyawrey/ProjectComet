@@ -93,6 +93,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Coloured slots replace SP** for slotted skills (genuine passives, modifiers to primary actions, and skills that add secondary actions):
   - Slots come in **major and minor** sizes; a minor skill can go in a major slot.
   - Colours: **Offense** and **Support** (Battle split in two, so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
+  - Support sits "in the middle": battle first, but some Support skills (e.g. a party speed buff) are also useful for exploration.
   - World stays one colour for now: splitting off an "Industry" colour would waste slots for players who don't craft. The total number of colours should stay small.
 - **The shape-based grid idea is dropped.**
 
