@@ -50,7 +50,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - The borrower gets the crystal's gear. While the crystal is lent, its items count as "lent out" and the owner's other gear and outfit sets show those slots as empty.
   - "Classes you have" for flex Skills would still mean crystals soulbound to you wherever they are; lending must never break the owner's loadouts, and a borrower can't take its Skills into their own crystals.
   - Rejected alternative: letting owner and borrower both use the same item (effectively a free copy of the gear, and double mastery on one item).
-- **Mastery on an outfit item's other Runes:** maybe builds up too, but slower, even though those Runes aren't active.
+- **Active vs inactive mastery:** any worn item's Runes build mastery at the full rate while active and more slowly while inactive. This covers an outfit item's non-World Runes, and also gear's World Runes while an outfit's World Runes override them.
 - **Mastery per Rune (agent suggestion):** since gear can have multiple Runes, track mastery per Rune on the item. Extracting one Rune resets only that Rune's mastery.
 - **Selling or trading a referenced item (agent suggestion):** warn first. Nothing auto-equips from the inventory.
 - **Lent soulbound gear (agent suggestions):**
