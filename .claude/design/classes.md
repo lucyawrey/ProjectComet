@@ -7,7 +7,7 @@ Agent notes on classes, crystals, XP and Anima. Decisions made with the project 
 - **A Class Crystal is a key plus references.** It holds no class data itself: it grants permission to use one of its soulbound owner's permanent class entries, and references a loadout, gear set, outfit set and appearance data, all stored separately (see `items.md`). Several crystals can point to the same class (different loadouts). Separate Gear, Outfit and Appearance Crystals are dropped.
 - **The crystal is the only thing a character equips.** Crystals are not containers (this replaces the earlier "one shared container system for bags, Class Crystals and Storage").
 - **Crystals are soulbound and only the owner can equip them.** Other players can hold one and hand it back (see soulbound items in `items.md`). **Crystal borrowing is scrapped for now**; its details are kept under Considering in `items.md` in case it returns.
-- **A crystal is always equipped.** The tutorial's "unclassed" state is a hidden crystal with its own gear set.
+- **A crystal is always equipped.** The tutorial's "unclassed" state is a hidden crystal with its own gear set; that gear moves automatically to the first real crystal when it's unlocked.
 - **No fixed crystal limit.** Instead:
   - Each new crystal for a class you don't already hold costs more Anima (never XP), possibly plus materials like raw crystal (mined, or bought with in-game currency; never plain currency directly). The goal is soft pressure to specialise; doing everything stays possible.
   - Cost is based on what you hold now, **never lifetime totals**.
