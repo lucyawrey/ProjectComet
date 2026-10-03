@@ -72,14 +72,14 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **Instance items:** inside a dungeon instance, items can unlock doors; they're disposed of when used or when the dungeon ends. Redoing the dungeon resets everything.
 - **Titles and achievements are flags**, granted directly.
 - **Music and decorative collectables** (like FFXIV orchestrion rolls) are found as items and consumed to learn them as flags, like dyes.
-- **Crafting and gathering tools:** a single dedicated tool slot in each gear set.
+- **Crafting and gathering tools:** each gear set has **3 tool slots** (the number stays open to reconsideration). Never enough for every craft, so crystals set up for crafting or gathering still specialise.
   - Not every craft has an associated class, and some crafts may be about forcing an unsuited class to work for it (a fun challenge).
 
 ## Considering
 
 - **Storage in tents or camps:** maybe, perhaps only for higher-tier camps.
 - **Recall stations:** soul recall could be its own kind of station, separate from Storage and the Crystal Archives. "Extra large" stations might combine all three (Storage, Crystal Archives, recall).
-- **Multiple tool slots per gear set:** instead of one, a few tool slots per gear set, but never enough for every craft in the game, so a crystal still specialises.
+- **Tool slot count:** 3 is decided for now but open to reconsideration (e.g. if tool Runes make extra slots too strong).
 - **Crystal borrowing (on hold).** Unique, but removed for simplicity. Bring it back if a feature this unusual becomes worth the complexity. If it returns, use the **lockout** rule:
   - A borrower uses the owner's class level and skill setup (they can rearrange hotbar/controller bindings), never earns XP for the owner, and all XP they earn goes to their own Soul XP. Borrowing a friend's crystal to farm Soul XP was a welcome trick.
   - The borrower gets the crystal's gear. While the crystal is lent, its items count as "lent out" and the owner's other gear and outfit sets show those slots as empty.
