@@ -17,6 +17,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **One item can be in several gear sets.** Lore: class crystals resonate and share the same physical gear piece. Double equipping is impossible anyway, since only one crystal is equipped.
 - **Outfit sets work the same way as gear sets.** An outfit is the actual gear piece worn over the top (like a cosmetic slot in other games), not a copied "glamour".
   - If the same item is in the same slot of both the equipped gear set and the outfit set, the outfit slot counts as empty and the item just shows in the gear slot.
+  - **Mastery builds up on an outfit item's World Runes** (they're active while worn as an outfit).
 - **Soulbound items** exist to make items feel physical: every item is "real" and can be handed around.
   - Soulbound items can be dropped, held by other players and handed back, and recalled by the owner.
   - Another player holding your soulbound Class Crystal can't equip it, but can carry it and give it back.
@@ -49,6 +50,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - The borrower gets the crystal's gear. While the crystal is lent, its items count as "lent out" and the owner's other gear and outfit sets show those slots as empty.
   - "Classes you have" for flex Skills would still mean crystals soulbound to you wherever they are; lending must never break the owner's loadouts, and a borrower can't take its Skills into their own crystals.
   - Rejected alternative: letting owner and borrower both use the same item (effectively a free copy of the gear, and double mastery on one item).
+- **Mastery on an outfit item's other Runes:** maybe builds up too, but slower, even though those Runes aren't active.
 - **Selling or trading a referenced item (agent suggestion):** warn first. Nothing auto-equips from the inventory.
 - **Lent soulbound gear (agent suggestions):**
   - Mastery builds on the item while a borrower wears it (mastery belongs to the item), so the owner benefits.
@@ -56,7 +58,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 ## Open
 
-- Does mastery build up on outfit items? Their World Runes are active, so it may be natural.
 - Bags: keep both kinds from the notes (several slots of a limited range of item types, or bundle-style any type up to a total quantity)? Bags inside bags (agent: no)? Does a bag deposited into Storage stay as an empty bag?
 - Where else is Storage available: housing, guild halls, tents or camps?
 - Do dropped items survive a shard restart (temporary structures don't)? If not, soulbound ones simply become lost.
