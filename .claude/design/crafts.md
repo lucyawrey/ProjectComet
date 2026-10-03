@@ -1,6 +1,6 @@
 # Crafts, gathering and housing
 
-Agent notes on crafts (Crafting, Building, Gathering, Fishing) and housing. Decisions made with the project lead on 2026-10-03.
+Agent notes on crafts (Crafting, Building, Gathering, Fishing) and housing. Decisions made with the project lead on 2026-10-03. Topic covered; no open questions recorded yet.
 
 ## Decided
 
