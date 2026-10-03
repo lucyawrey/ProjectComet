@@ -26,6 +26,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **Picked-up soulbound items are clearly marked** as belonging to someone else and say they will return to their owner eventually.
   - **Finite rune stones use the soulbound rule:** the first copy a character receives is soulbound to them; later copies are ordinary items that can be traded, broken down or sold to NPCs.
   - The owner can recall a soulbound item at any time, for free, wherever it is (held by another player, in a dropped bag, or lost after despawning). Recalling is done at a specific place: Storage or the Crystal Archives (which one is still to decide).
+  - **Soulbound items also return on their own** after a set time away from the owner, to the same place recalls deliver to. Picked-up soulbound items say so.
 - **Crystal borrowing is scrapped for now** (see Considering).
 - **Containers vs sets (adopted from an agent suggestion):**
   - **Containers** are physical locations: inventory, Storage and bags. Each item is in exactly one, and every move is one transaction.
@@ -58,4 +59,5 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - Where else is Storage available: housing, guild halls, tents or camps?
 - Despawn timing: how long do dropped items last, and do they survive a shard restart (temporary structures don't)?
 - Recall location: Storage or the Crystal Archives?
+- Auto-return: how long, and when does the timer start (when the item leaves the owner's possession)? Does it also apply to lost (despawned) soulbound items, or do those still need a manual recall?
 - Collection (not yet discussed): what counts as collected (first acquisition? crafted quality and dye variants?), and what "easier ways to get it again" means in practice without becoming a duplication source.
