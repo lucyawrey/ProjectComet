@@ -121,6 +121,9 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 ### Crafts (in progress 2026-10-03)
 
+- **No craft attunement.** Any player can level every craft freely, all to the same level cap. (Replaces both the Craft Crystal and class-linked craft ideas in the notes.)
+- **Runes make you better at specific crafts.**
+- **Classes can include locked Runes** that are masterable and extractable, like gear Runes. Some are craft World Runes (e.g. an Alchemist class with alchemy Runes built in).
 - **Building means housing and guild structures**, not building in the open world.
 - **Housing and guild halls are instanced**, reached through gateways, doors or even vehicles in the seamless world (using transition rooms, no loading screens). Designers can fall back on teleports in the worst case.
 - **Gathering and fishing nodes** support both per-player and shared modes, chosen per node by designers. Fine if one pattern wins out later based on how players respond.
