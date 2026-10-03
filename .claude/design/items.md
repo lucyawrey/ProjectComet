@@ -56,6 +56,12 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Untradeable is a content-design flag on an item type**, and it means every instance is always soulbound to whichever player receives it. The relationship only goes that way: soulbound items are not implicitly untradeable. For example, finite rune stones are a tradeable type even though your first copy is soulbound.
 - **Some recipes are learned from the item collection log** (first obtaining an item grants the recipe flag). The log itself still gives no other benefit.
 - **Re-obtaining** applies only to destroyed items of untradeable types, and only if you don't currently have a soulbound copy of that type. It's done at an NPC.
+- **Currency works like Animal Crossing:** a wallet number that normally takes no inventory slots. Players can take money out of the wallet as coin stacks (items), and drop them on the ground, where another player might pick them up.
+- **Dropping over destroying:** players generally get rid of things by dropping them rather than destroying them, so someone else might pick them up. This adds interactions.
+- **Housing furniture is items**, and goes in the item collection log. **Placed in a house** is a new item location alongside inventory, Storage, bag and ground.
+- **Story progress is always an item**, for physicality (you have to make space for the letter).
+  - Most story items are untradeable (always soulbound).
+  - Quest drops from monsters may be ordinary, non-soulbound items, but can't be listed on the market: **direct player trades only**.
 
 ## Considering
 
@@ -77,4 +83,11 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
 - **Re-obtaining cost:** free, or a fee at the NPC?
-- **Which things are flags:** anything else on the boundary between items and learned flags?
+- **Coin stacks:** do picked-up coins go straight into the wallet, or stay as coin stacks until deposited?
+- **Direct-trade-only items:** a content flag for items that can be traded player to player but never listed on the market. Which other item types use it?
+- **Remaining item/flag boundaries (agent leans, not discussed):**
+  - Keys: items for ones you can hand over (a house key for a friend), flags for one-off access unlocks.
+  - Teleport and flight attunements, titles, achievements: flags (attunements belong to unlockables, not yet discussed).
+  - Music and decorative collectables (like FFXIV orchestrion rolls): flags learned by consuming an item, like dyes.
+  - Crafting and gathering tools: gear in the gear set (needs tool slots, or uses weapon slots). Touches the most systems.
+  - Companion items (eggs, capture items): items until hatched or registered; details wait for companions.
