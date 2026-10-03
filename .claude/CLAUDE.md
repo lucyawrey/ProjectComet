@@ -103,6 +103,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - Some classes have extra optional class Skills for their flex slots.
   - Most flex Skills come from other classes: a character can use the untyped core Skills and optional flex Skills of any other class they have, as long as they can equip the required weapon.
   - The system can explicitly ban specific Skills for specific classes, but rarely (only for broken builds).
+- **Rune stones are tradeable items.** Finite rune stones (only from major quests or fixed loot) never let you trade away your first one, even if more than one can be obtained. Duplicates (anything but your first finite instance) can be traded, broken down into materials, or sold to NPCs.
 - **Variant and Unbound Runes** customise the core kit:
   - **Variant Runes** swap a core action for a designer-made alternative; the slot stays locked.
   - **Unbound Runes** (rare, hard to get) unlock a core slot so any allowed action can go there; one per core slot type. They're alternatives to the (often better for the class) Variant for that slot; using both costs two slots.
