@@ -1,0 +1,2 @@
+**Lucifer**
+You may wonder how a soul, a form of inherent meaning, arises from electrical signals running through a machine of silicon and copper. As I see it, it is no more or less absurd than a soul derived from electrical signals running through meat.
