@@ -62,7 +62,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Soulbound is a separate per-instance state.** The Untradeable tier always sets it, but soulbound items are not implicitly untradeable. For example, finite rune stones are a Market type even though your first copy is soulbound.
 - **Some recipes are learned from the item collection log** (first obtaining an item grants the recipe flag). The log itself still gives no other benefit.
 - **Re-obtaining** applies only to destroyed items of untradeable types, and only if you don't currently have a soulbound copy of that type. It's done at an NPC.
-- **Currency works like Animal Crossing:** a wallet number that normally takes no inventory slots. Players can take money out of the wallet as coin stacks (items), and drop them on the ground, where another player might pick them up. Picked-up coins go straight into the wallet by default; a player setting can keep them as coin stacks instead.
 - **Dropping over destroying:** players generally get rid of things by dropping them rather than destroying them, so someone else might pick them up. This adds interactions.
 - **Housing furniture is items**, and goes in the item collection log. **Placed in a house** is a new item location alongside inventory, Storage, bag and ground.
 - **Story items:** when the story needs an item to make sense (a letter to deliver), it's a real item, for physicality: you have to make space for the letter. Plenty of quest progress is simply flags.
@@ -77,7 +76,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Wear and repair:** gear, tools and outfit pieces wear out with use and can be repaired (by crafters or NPCs). Outfit pieces wear out more slowly than gear. Furniture doesn't wear.
   - At zero durability an item keeps working at **reduced stats** until repaired; it's never destroyed by wear.
   - **Borrowers can repair lent soulbound gear** (repair restores rather than destroys or transforms).
-- **Currencies:** gold lives in the wallet; special tokens are ordinary stackable items. Token item types are marked as currencies in their content data, and Storage has a special currency viewer for them.
+- **Gold and tokens always use the same system** (which one is open). Currency item types are marked as currencies in their content data, and a currency view shows totals.
 - **Dyes:** once a colour is learned, applying it is free. The colour is stored on the item.
 - **Crafter signatures are optional:** crafters choose whether to sign each item with their name.
 
@@ -85,8 +84,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **Storage in tents or camps:** maybe, perhaps only for higher-tier camps.
 - **Recall stations:** soul recall could be its own kind of station, separate from Storage and the Crystal Archives. "Extra large" stations might combine all three (Storage, Crystal Archives, recall).
-- **Gold as items (alternative to the wallet):** gold also takes inventory slots as coin stacks, like tokens. A currency UI in both Storage and the inventory shows currency totals at a glance.
-- **Tokens in the wallet:** move special tokens into the wallet if the physicality isn't worth the inconvenience.
 - **Tool slot count:** 3 is decided for now but open to reconsideration (e.g. if tool Runes make extra slots too strong).
 - **Crystal borrowing (on hold).** Unique, but removed for simplicity. Bring it back if a feature this unusual becomes worth the complexity. If it returns, use the **lockout** rule:
   - A borrower uses the owner's class level and skill setup (they can rearrange hotbar/controller bindings), never earns XP for the owner, and all XP they earn goes to their own Soul XP. Borrowing a friend's crystal to farm Soul XP was a welcome trick.
@@ -102,6 +99,9 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 ## Open
 
+- **Currency system, for gold and tokens alike:**
+  - **Wallet (like Animal Crossing):** currency is a wallet number that takes no inventory slots. Players can take it out as coin stacks (items) to drop or hand over; picked-up coins go straight into the wallet by default, with a player setting to keep them as stacks.
+  - **Items:** currency is always stackable items that take inventory slots, with a currency UI in both Storage and the inventory showing totals.
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
 - **Re-obtaining cost** (intentionally undecided): free, or a fee at the NPC.
 - **Remaining item/flag boundaries (agent lean, not discussed):**
