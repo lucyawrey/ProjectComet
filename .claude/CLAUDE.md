@@ -100,6 +100,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Variant and Unbound Runes** customise the core kit:
   - **Variant Runes** swap a core action for a designer-made alternative; the slot stays locked.
   - **Unbound Runes** (rare, hard to get) unlock a core slot so any allowed action can go there; one per core slot type. They're alternatives to the (often better for the class) Variant for that slot; using both costs two slots.
+  - Some core slots may be **untyped**. There is only one untyped Unbound Rune per player, so at most one untyped core slot can be unbound.
   - No extra limit for now. A player unbinding most of their core kit to play like Freelancer (which generally has fewer Battle rune slots) is fine. Add a limit later if the game becomes a mess.
 - **The shape-based grid idea is dropped.**
 
@@ -134,7 +135,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
 - What are primary actions called, and what teaches them?
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
-- Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility).
+- Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
 
 ### Classes (open)
 
