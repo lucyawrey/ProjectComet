@@ -98,6 +98,11 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - Colours: **Offense** and **Support** (Battle split in two, so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
   - Support sits "in the middle": battle first, but some Support skills (e.g. a party speed buff) are also useful for exploration.
   - World stays one colour for now: splitting off an "Industry" colour would waste slots for players who don't craft. The total number of colours should stay small.
+- **Learning Skills:** from levelling and class tutors (tutors should be hard to miss). Some non-class Skills come from special tutors, items or quest rewards.
+- **What goes in flex slots:**
+  - Some classes have extra optional class Skills for their flex slots.
+  - Most flex Skills come from other classes: a character can use the untyped core Skills and optional flex Skills of any other class they have, as long as they can equip the required weapon.
+  - The system can explicitly ban specific Skills for specific classes, but rarely (only for broken builds).
 - **Variant and Unbound Runes** customise the core kit:
   - **Variant Runes** swap a core action for a designer-made alternative; the slot stays locked.
   - **Unbound Runes** (rare, hard to get) unlock a core slot so any allowed action can go there; one per core slot type. They're alternatives to the (often better for the class) Variant for that slot; using both costs two slots.
@@ -134,7 +139,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 ### Skills (open)
 
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
-- What teaches Skills?
+- Does "classes you have" (for borrowing Skills into flex slots) mean every unlocked class entry, or only classes you currently hold a crystal for?
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
 - Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
 
