@@ -76,7 +76,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Wear and repair:** gear, tools and outfit pieces wear out with use and can be repaired (by crafters or NPCs). Outfit pieces wear out more slowly than gear. Furniture doesn't wear.
   - At zero durability an item keeps working at **reduced stats** until repaired; it's never destroyed by wear.
   - **Borrowers can repair lent soulbound gear** (repair restores rather than destroys or transforms).
-- **Currency is items, with a coin purse** (purse adopted from an agent suggestion). Gold and tokens always use the same system.
+- **Currency is items, with a coin purse** (purse adopted from an agent suggestion). All currencies are simply currencies: gold has no special status over other currency types (no separate "tokens" concept).
   - Currencies are stackable items, marked as currencies in their content data. They can be dropped and picked up like anything else.
   - A **coin purse** is an ordinary limited-variety bag that holds every currency type in one inventory slot.
   - A currency UI in both the inventory and Storage shows totals.
