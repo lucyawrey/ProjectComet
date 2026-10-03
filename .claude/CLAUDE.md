@@ -85,6 +85,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 ### Skills (decided 2026-10-03)
 
+- **Working terminology** (may change, but must stay distinct): **Skills** are primary actions; **Abilities** are secondary actions (e.g. granted by Runes); **Runes** are slotted skills; **rune stones** are Runes as items.
 - **Two tiers of actions:**
   - **Primary:** a small set used for normal rotations and combat, with proper default bindings on controller and keyboard.
   - **Secondary:** used less often but do cool things (long-term buffs, teleports, transformations). On controller, a context menu (hold a button, pick with the D-pad). On keyboard, players can optionally put both tiers on one hotbar.
@@ -133,7 +134,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 ### Skills (open)
 
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
-- What are primary actions called, and what teaches them?
+- What teaches Skills? Are all secondary actions Abilities, whatever their source (class, character-wide, Rune)?
 - Should the secondary menu be split into character-wide actions (teleports, mounts) and loadout actions? (agent suggestion)
 - Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
 
