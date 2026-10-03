@@ -52,6 +52,9 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - Outfits stay real items, partly because unlocked outfits would become free, permanent sources of World Runes.
 - **Three separate data concepts:** items, learned flags, and an **item collection log** (records items a character has obtained). The collection UI can show flags and the item collection log together.
   - Why the log is separate from flags: **the item collection log gives no mechanical benefit** (it's for showing off), while flags are real unlocks. Possible exceptions: re-obtaining items, or unlocking crafting recipes from collected items (see Open).
+- **The item collection log has one entry per item type**, set the first time you obtain it (quality and dye variants don't count separately).
+- **Untradeable item types:** an item type is untradeable when every instance of it is soulbound (none can be permanently traded). Types like finite rune stones, where only your first copy is soulbound, count as tradeable.
+- **Re-obtaining** applies only to destroyed items of untradeable types, and only if you don't currently have a soulbound copy of that type.
 
 ## Considering
 
@@ -72,7 +75,6 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 ## Open
 
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
-- **Item collection log:** what counts as an entry (first acquisition? crafted quality and dye variants?).
-- **Re-obtaining** (the protection goal): what "easier ways to get it again" means, if anything, without becoming a duplication source. Droppable if it conflicts with the economy.
+- **Re-obtaining mechanics:** where and how (an NPC? a collection UI button?), and does it cost anything?
 - **Recipes from the collection log:** could obtaining an item unlock (or help unlock) its crafting recipe?
 - **Which things are flags:** are dyes items or learned flags? Anything else on the boundary?
