@@ -50,6 +50,29 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Shard size:** 150–300 players would be an impressive upper limit; may be forced lower.
 - **Vehicles:** boats and airships cross zones on fixed routes. The only player-steered vehicles are 2–4 seat mounts with near-normal movement. Vehicles and their riders cross borders as one group.
 
+### Classes and Class Crystals (decided 2026-10-03)
+
+- **A Class Crystal is a key plus a loadout.** It holds no class data itself: it grants permission to use one of its soulbound owner's permanent class entries, and contains a gear set, outfit and appearance. Several crystals can point to the same class (different loadouts). Separate Gear, Outfit and Appearance Crystals are dropped.
+- **One shared container system** for bags, Class Crystals and Storage.
+- **Crystals can be traded or lent.** The class level always belongs to the soulbound owner. A borrower uses the owner's class level and the owner's skill setup (they can rearrange hotbar/controller bindings), never earns XP for the owner, and all XP they earn goes to their own Soul XP. Borrowing a friend's crystal as a way to farm Soul XP is a welcome trick.
+- **A crystal is always equipped.** The tutorial's "unclassed" state is a hidden crystal with its own gear set.
+- **No fixed crystal limit.** Instead:
+  - Each new crystal for a class you don't already hold costs more of a non-XP resource. The goal is soft pressure to specialise; doing everything stays possible.
+  - Cost is based on what you hold now, **never lifetime totals**.
+  - Crystals are flagged bought or granted. Quest-granted crystals (starting class, DLC classes) are free and don't raise the price; claiming a granted crystal again is free.
+  - Extra loadout crystals for a class you already hold cost a flat amount.
+  - Every character's first Freelancer crystal is granted; extra Freelancer crystals cost a small flat amount.
+  - A hard cap on total crystals, higher than the number of classes.
+- **Promotion ("ascending"):** most classes sit in a promotion tree rooted at Freelancer (Freelancer → base → high tier). Ascending converts a crystal for a small fixed resource cost.
+  - The first time a class is unlocked by ascending, XP moves from the base class (or fully from Soul XP; designers may revisit). The new class needs a lot of XP to reach level 1, so the base class drops. Ascending into an already unlocked class costs no XP.
+  - Ascending a granted crystal produces a bought one.
+  - Ascending one crystal while you still hold others of that class charges the rising price (awkward, but worth it for game feel).
+- **The Crystal Archives** keep every class entry's current XP and highest level.
+- **Class changes** work almost anywhere, in and out of combat. Cooldowns don't reset on swap and need some scaling. Zones can block class changes entirely or only in combat.
+- **XP:** all XP goes to the equipped class. Overflow from a maxed class or a maxed craft becomes Soul XP. An unlockable toggle may send XP to Soul instead of a non-maxed class. No percentage splits; Freelancer no longer takes an automatic share.
+- **Names:** Soul Experience grows your soul in size and power; Anima is the magic of your soul (Soul XP buys Anima Capacity).
+- **Outfit dispelling by other players is dropped.**
+
 ### Netcode (adopted from agent suggestions 2026-10-03)
 
 - **Lenient PvE hit validation:** accept player hits on monsters as seen by the client, within sanity limits; honour dodges that started before a hit landed on the client, up to ~150–200 ms.
@@ -68,11 +91,20 @@ Experienced web developer with shipped production apps; strong in deployments, o
   - B. A product like SpacetimeDB. The project lead is slightly biased against it because of the self-hosting requirement; verify current license terms before weighing it.
   - C (unlikely). A systems-language backend written with help from another developer, if neither A nor B works.
 - **Art techniques:** palette/gradient texturing and a shared humanoid rig (agent suggestions).
+- **Class swap cooldowns (agent suggestion):** share cooldowns by action category (dash, burst, big heal) as a fraction, so the new class's skill continues at the same fraction of its own length; add a short swap cooldown; carry HP and resources over as percentages. Client preloads skill data for crystals in the inventory.
+- **Class status derived from data (agent suggestion):** Locked = no class entry; Archived = entry but no crystal; Stored = crystal elsewhere (Storage or another character); Attuned = crystal in inventory or equipped.
 
 ## Open questions
 
 - **Gateway and Data Center: one service or two?** In the custom .NET approach, should the Gateway server (public-facing, primarily HTTP API) and the Data Center server (database API layer) be the same thing or separate?
 - **Are the plans sensible?** Find real-world examples of documented MMO backends (talks, postmortems, open-source servers, engineering blogs) and compare our architecture against them.
+
+### Classes (open)
+
+- Swapping between two crystals of the same class: a class change or a lighter gear swap?
+- Can the class-swap cast be interrupted? Zone-level rules only, or per area/encounter too?
+- Can a high-tier class have more than one parent? Level cap and ascension level?
+- What is the crystal cost resource?
 
 ## Risks
 
@@ -104,6 +136,6 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 
 ## Next steps
 
-1. Go through the notes together, one area at a time. **Combat and world structure are done** (see Decided). Remaining areas: classes and Class Crystals, skills, crafts, items/inventory/collection, companions, unlockables, aesthetic, database tables.
+1. Go through the notes together, one area at a time. **Combat, world structure, and classes are done** (see Decided; some class questions remain open). Remaining areas: skills, crafts, items/inventory/collection, companions, unlockables, aesthetic, database tables.
 2. Research documented real-world MMO backends to sanity-check the architecture, including the Gateway/Data Center split.
 3. Agree on the doc structure, then write human-readable docs.
