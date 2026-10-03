@@ -79,7 +79,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Anima** is the magic of your soul: an energy resource gained over time and from rare items and quests, never purchasable with real money. Anima Capacity is how much you can store. It doesn't discourage playing; it encourages playing in certain ways by centralising gates MMOs already have:
   - Teleports (to encourage natural travel). An emergency teleport to the nearest safe zone works even at zero Anima.
   - Crystals (to encourage specialisation).
-  - Entry to certain content, like high-end raids that shouldn't be cleared too quickly.
+  - Entry to certain content, like high-end raids that shouldn't be cleared too quickly. Charged immediately on entry (animated as using magic to enter) and refunded if you don't clear. Clears should reliably give loot, with little RNG.
   - Maybe crafting certain endgame items that shouldn't flood the market.
 - **Outfit dispelling by other players is dropped.**
 
