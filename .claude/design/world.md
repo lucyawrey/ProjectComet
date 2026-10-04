@@ -4,6 +4,8 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 
 ## Decided
 
+- **Most areas can be reached without the story** (project lead, 2026-10-04), through less convenient routes (e.g. a very long walk instead of a story carriage ride). Free players also meet in-world barriers at later-part borders (see `proposal.md`, business model).
+
 - **Zone borders: chokepoint handoff with a little overlap.** Borders can be wide (e.g. a valley between mountains) but each border joins exactly two zones; if more meet by accident, only the closest transition is synced. Near a border, players see a read-only view of the neighbouring zone.
 - **No effects across borders:** attacks, AoEs, heals and buffs only affect entities on the same server.
 - **Monsters stay in their zone;** border areas are designed with little or no combat.
