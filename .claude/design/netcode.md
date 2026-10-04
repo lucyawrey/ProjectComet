@@ -9,9 +9,9 @@ Agent notes on networking. These were agent suggestions adopted by the project l
 - Sync actions as events ("player X started skill Y at tick T facing Z") rather than continuous state; prioritise updates by relevance; cap displayed characters.
 - Movement skills and knockback as fixed curves in frame data, predicted by the client.
 - Nudging: server-enforced against monsters/NPCs, client-only between players.
-- Border visibility: near a border the client also listens to the neighbouring shard (ticket via the Login server) but only sends input to the owner; handoff happens a few metres past the line to avoid ping-pong.
+- Border visibility: near a border the client also listens to the neighbouring layer (ticket via the Login server) but only sends input to the owner; handoff happens a few metres past the line to avoid ping-pong.
 - Fixed-route vehicles are positioned from route + clock, so only passengers are handed off; riders' positions are relative to the vehicle.
-- A named load test after the 100-bot milestone: one shard, 100 players, one boss.
+- A named load test after the 100-bot milestone: one layer, 100 players, one boss.
 
 - **Movement authority: the client sends its position and the server validates it** (2026-10-04, WoW-style). The server rejects impossible moves (speed, walls) and snaps the player back. Movement skills and knockback stay fixed curves from frame data. Chosen for PvE-only play, cheap server CPU at 100+ players, and tolerance of WebSocket stalls; cheat defence depends on good validation rules.
 - **Three message kinds** (2026-10-04): client *inputs*; server *events* (skill started, damage, spawns, items), never dropped or merged; server *state* (positions, HP), latest-only, so a newer update replaces an unsent older one in the send queue.

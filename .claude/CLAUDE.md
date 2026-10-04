@@ -27,7 +27,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Low-poly art.**
 - **Content is roughly an even split** between community-driven play (economy, crafting, trading, housing, guilds, player events) and developer-made content. Smaller in scope than an MMO from a larger team.
 - **Action combat, not tab-target.** Skills have real hitboxes; there's an optional lock-on. Should be more forgiving of latency than an FPS. (Detailed design in the project lead's notes: 2D hitboxes with "height zones".)
-- **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Zone shards and dungeon instances still exist on the server side; only teleportation hides loading.
+- **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Layers (copies of open zones) and dungeon instances still exist on the server side; only teleportation hides loading.
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
 - **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#. Netcode is designed for WebSocket, and all clients start on it. Dropping web was considered and rejected: browser play (think RuneScape's Java-applet days) is the project's main appeal.
 - **First milestone (adopted from an agent suggestion):** a vertical slice with one zone, the core loop, bot clients load-testing 100+ simulated players, and simulated latency from day one.
@@ -40,7 +40,7 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | --- | --- | --- |
 | `glossary.md` | Working terms (Skills, Abilities, Runes, Anima…) | Agreed |
 | `combat.md` | Hit checks, height zones, invulnerability, frame data, fight sizes | Done |
-| `world.md` | Zone borders, hierarchy, shards, flying, vehicles | Done |
+| `world.md` | Zone borders, hierarchy, layers and instances, dungeons, flying, vehicles | Done |
 | `classes.md` | Class Crystals, promotion, XP and Soul XP, Anima | Done; a few open questions |
 | `skills.md` | Skills, Abilities, Runes, slots, gear Runes, Outfit Magic | Done; a few open questions |
 | `crafts.md` | Crafting, gathering, housing | Done |

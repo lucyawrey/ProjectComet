@@ -9,9 +9,10 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 - **Monsters stay in their zone;** border areas are designed with little or no combat.
 - **Many zones are reached only by teleport or a single door** (e.g. dungeon entrances) and need no border sync.
 - **Flying can cross zone borders.** Little flying-to-ground interaction and no aerial combat; far-away players are culled.
-- **Hierarchy:** Region › Zone › Shard, and Region › Dungeon › Instance. **Worlds** are labels inside a region: they decide default shard placement and organize guilds. Several Worlds share shards in a region. (A private server would be one region.)
-- **Shard preference when entering a zone:** party's shard, then home World's shard, then any shard with room.
-- **Shard size:** 150–300 players would be an impressive upper limit; may be forced lower.
+- **Hierarchy:** Region › Zone › Layer, and Region › Dungeon › Dungeon instance. **Worlds** are labels inside a region: they decide default layer placement and organize guilds. Several Worlds share layers in a region. (A private server would be one region.)
+- **Terminology** (2026-10-04): a **zone** is any zone file (kinds: open zone, dungeon, house). An **instance** is any running copy of a zone on a game server: a **layer** (copy of an open zone, many players), a **dungeon instance** (one party) or a **house instance** (one owner; guild halls too). "Layer" replaced "shard", which clashes with the MMO sense (Ultima Online's shards, "single-shard" games like EVE, where a shard is a whole world, like our region) and with database sharding.
+- **Layer preference when entering a zone:** party's layer, then home World's layer, then any layer with room.
+- **Layer size:** 150–300 players would be an impressive upper limit; may be forced lower.
 - **Teleport scene** (2026-10-04): a fixed-length scene where the player's soul travels along the leylines on the world map to the destination. If the destination hasn't finished loading when the travel animation ends (likely on web), the soul pulses at the destination on the map until it has. It hides loading; its details are gameplay design, not backend (handoff in `backend.md`).
 - **Teleport casts can be cancelled, and enemies can interrupt them. Teleporting in combat is allowed** (2026-10-04), but cast times are long enough that trying it mid-fight will usually get you killed.
 - **Dungeon loading rooms** (2026-10-04): the whole party has to be physically present (in the spirit of classic MMOs). Once the whole party is in the loading room and one member steps into the dungeon proper, the loading room's entrance closes and the dungeon starts. Everyone else still walks in on their own.
@@ -21,7 +22,7 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
   - Someone new can take a removed player's place.
 - **When an instance closes** (2026-10-04): if everyone has left through gameplay (walking out of an exit, teleporting away, or clearing the dungeon and leaving), it closes instantly. If any player is missing because of a disconnect, it stays open for a few minutes so they can return. The game server can tell the two apart: leaving is a handoff, a disconnect is a dropped connection.
 - **Dungeon exits vary by design** (2026-10-04): a separate exit, a tunnel back to the entrance, or a teleport at the end (to the entrance or elsewhere).
-- **Leaving a dungeon into an outdoor zone uses the shard preference rule** (2026-10-04), preferring the shard the party came from when it has room.
+- **Leaving a dungeon into an outdoor zone uses the layer preference rule** (2026-10-04), preferring the layer the party came from when it has room.
 - **No dungeon lockouts** (2026-10-04): the Anima cost of locked content and gathering the party are the only limits on reruns.
 - **If a game server crashes mid-dungeon** (2026-10-04), everyone is placed back at the dungeon entrance, the Anima spent on entry is refunded, and loot already taken stays taken (it was saved immediately).
 - **Loading rooms need not look like rooms** (2026-10-04): they can appear to be part of the open world (a mountain top, a grove past a narrow gap in the trees). Their static scenery may show up in open-world LODs, but players and other live entities are only synced across the official entrance, never across the rest of the room's edge.
@@ -30,7 +31,7 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 ## Considering
 
 - **Unstable teleport stations** (project lead idea, 2026-10-04): a cheap way to gather a party at a dungeon, with consent. Unlike the stable stations in settlements, they start unstable; one player stabilises the station, then every party member is prompted to leyline-teleport there.
-- **Data model (agent suggestion):** Region is the real unit (one database scope, owns shards and instances; a private server is one region). World is an attribute: each character has a home World, guilds belong to a World, and shard placement uses it as a preference. Changing World is a cheap data update, not a server transfer.
+- **Data model (agent suggestion):** Region is the real unit (one database scope, owns all its instances; a private server is one region). World is an attribute: each character has a home World, guilds belong to a World, and layer placement uses it as a preference. Changing World is a cheap data update, not a server transfer.
 
 ## Open
 

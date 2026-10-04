@@ -9,8 +9,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **No headless Unity server and no Unity networking package (Mirror, FishNet, Netcode…) for now** (2026-10-04). The server is plain .NET using a message-level library. Fallback if rolling our own proves too hard: FishNet with headless Unity servers (FishNet seems to scale well).
 - **Three-part service map** (2026-10-04, for approach A):
   - **Login server** (renamed from Gateway): public HTTP. Accounts, auth, character select, signed tickets for joining a game server or listening across a border. Clients connect to game servers directly; the Login server doesn't relay game traffic.
-  - **Region server** (renamed from Data Center): one logical Region server per region, which may run as more than one process for scaling (2026-10-04). Coordinates everything that spans shards: shard and instance placement and lifecycle, parties, guilds, friends, chat routing, and the cross-shard economy (market, mail, trades between shards). Split pieces out only if load forces it.
-  - **Game servers:** live simulation and in-memory state of one or more shards or dungeon instances.
+  - **Region server** (renamed from Data Center): one logical Region server per region, which may run as more than one process for scaling (2026-10-04). Coordinates everything that spans instances: instance placement and lifecycle (layers and dungeon instances), parties, guilds, friends, chat routing, and the cross-layer economy (market, mail, trades between layers). Split pieces out only if load forces it.
+  - **Game servers:** live simulation and in-memory state of one or more instances (layers, dungeon instances, house instances).
   - PostgreSQL and a static host for the web client and streamed assets sit alongside these.
 - **No central data service; a shared database/model library instead** (2026-10-04, replacing the earlier Region-server-owns-the-database decision). Game servers and the Region server both use one C# model/data library and talk to PostgreSQL directly, as Albion, EVE and AzerothCore do. Trade-offs accepted: every process holds database credentials, and schema migrations must be coordinated across processes.
 - **Seamless handoff: pre-warm + delta** (2026-10-04). When the client starts listening across a border, the new game server preloads the character from the database (the same path as login). At the crossing only the live-state delta moves. Items and currency never travel in a handoff because they're already persisted.
@@ -19,11 +19,12 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Teleports reuse the border handoff** (2026-10-04). When the cast starts, the destination server preloads the character and the client starts streaming the destination. When the cast finishes, ownership is claimed and the live-state delta moves, behind the teleport scene. The scene lasts a fixed time even if loading finishes early; the character may already be at the destination as far as the backend is concerned. Cancelling the cast drops the destination server's preload. A teleport carries the same state as a border crossing (below).
 - **Dungeon loading rooms are part of the instance** (2026-10-04). The instance is created when the first party member reaches the dungeon entrance; the entrance acts as a small border into it, and the client streams the dungeon while the party gathers in the room. If everyone leaves the loading room before the dungeon starts, the instance is disposed of quickly.
 - **Instances must be very cheap to create and dispose of** (2026-10-04): not a heavy concept like a Unity scene. One game server runs many instances.
+- **Layers and dungeon or house instances are one concept in code** (2026-10-04): an instance is a running copy of a zone file on a game server. Layer, dungeon instance and house instance are policies on top of it: who may enter, placement, borders, lifetime.
 - **A region is a separate world copy** (2026-10-04), like a classic MMO server: its own characters, economy and guilds. This holds especially for prototypes; a single shared world could be approached much later. **A region always shares one database**, even when it runs several Region server processes.
 - **Plan for 5,000–10,000 peak concurrent players per region** (2026-10-04).
 - **Region server scaling** (2026-10-04):
-  - **Stateless Region server processes.** Durable state (parties, friends, guilds, market, mail, shard and instance placement) lives in PostgreSQL; processes keep only caches, and presence is rebuilt from the character ownership rows. Any process can serve any client. (A single Region process per region is still worth considering; see Considering.)
-  - **Singleton jobs run on whichever Region process holds a PostgreSQL advisory lock:** placing shards and instances, cleaning up dead instances, refunding Anima escrow after a crash. If that process dies, another takes the lock. Placement is an atomic database write, so nothing is placed twice.
+  - **Stateless Region server processes.** Durable state (parties, friends, guilds, market, mail, instance placement) lives in PostgreSQL; processes keep only caches, and presence is rebuilt from the character ownership rows. Any process can serve any client. (A single Region process per region is still worth considering; see Considering.)
+  - **Singleton jobs run on whichever Region process holds a PostgreSQL advisory lock:** placing instances, cleaning up dead instances, refunding Anima escrow after a crash. If that process dies, another takes the lock. Placement is an atomic database write, so nothing is placed twice.
   - **Valkey** (the BSD-licensed Redis fork) is the SignalR backplane for multi-process regions. A single-process region (e.g. a private server) needs no backplane.
   - **One PostgreSQL primary per region;** read replicas are the first step if reads become a bottleneck.
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
@@ -73,7 +74,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
   - **Finite rune stones:** the first copy a character receives is marked soulbound on acquisition; later copies are ordinary items.
   - **Anima escrow for locked content:** entry moves Anima into a hold tied to the instance; a clear finalises it, anything else refunds it. On startup, holds from crashed instances are refunded.
   - **Per-player gathering nodes:** per-player records of which nodes have been used.
-  - **Temporary structures** (campfires, pitched tents) exist only on the shard; nothing is persisted.
+  - **Temporary structures** (campfires, pitched tents) exist only on the layer; nothing is persisted.
 
 ## Open
 
@@ -93,10 +94,10 @@ Agent web research to sanity-check the architecture. These are findings, not dec
 - **Albion Online:** Unity client, C# servers on Photon. ~600 world "clusters" (~1 km² each) spread over game servers; separate Login, Chat, World (guilds), Marketplace and other servers. Cassandra for game data, PostgreSQL for accounts and markets. Game servers keep player state in memory, write every change immediately, and read only on login or server change; handoff between servers goes through the database. Lesson from a Cassandra bug that wiped all buildings in alpha: be careful with cutting-edge tech.
 - **New World:** a seamless world split into grid squares spread across 7 stateless "hub" servers (non-adjacent squares per hub). State is batch-written to DynamoDB (~800k writes per 30 s).
 - **EVE Online:** client → load balancer → Proxy nodes (sessions, public-facing) → SOL nodes (single-threaded simulation) → one large SQL Server database.
-- **Guild Wars 2 megaserver:** a weighted load balancer scores every copy of a map by party, guild, language and home World. Matches our decided shard preference.
+- **Guild Wars 2 megaserver:** a weighted load balancer scores every copy of a map by party, guild, language and home World. Matches our decided layer preference.
 - **FFXIV (from emulators):** Lobby; a World server for everything global (zoning, linkshells, friends); Zone servers for battle and events.
 - **AzerothCore (WoW emulator):** authserver + worldserver + MySQL, shipped as one docker-compose file. A benchmark for easy self-hosting.
-- **Ryzom (open source):** many small services per shard; a shard that needed 8 machines in 2004 now runs on one.
+- **Ryzom (open source):** many small services per shard (Ryzom's term for a whole world copy, like our region); a shard that needed 8 machines in 2004 now runs on one.
 
 ### Patterns
 
