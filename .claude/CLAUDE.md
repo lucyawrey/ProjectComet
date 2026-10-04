@@ -27,7 +27,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Low-poly art.**
 - **Content is roughly an even split** between community-driven play (economy, crafting, trading, housing, guilds, player events) and developer-made content. Smaller in scope than an MMO from a larger team.
 - **Action combat, not tab-target.** Skills have real hitboxes; there's an optional lock-on. Should be more forgiving of latency than an FPS. (Detailed design in the project lead's notes: 2D hitboxes with "height zones".)
-- **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Layers (copies of open zones) and dungeon instances still exist on the server side; only teleportation hides loading.
+- **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Channels (copies of open zones) and dungeon instances still exist on the server side; only teleportation hides loading.
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
 - **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#. Netcode is designed for WebSocket, and all clients start on it. Dropping web was considered and rejected: browser play (think RuneScape's Java-applet days) is the project's main appeal.
 - **First milestone (adopted from an agent suggestion):** a vertical slice with one zone, the core loop, bot clients load-testing 100+ simulated players, and simulated latency from day one.
@@ -40,7 +40,7 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | --- | --- | --- |
 | `glossary.md` | Working terms (Skills, Abilities, Runes, Anima…) | Agreed |
 | `combat.md` | Hit checks, height zones, invulnerability, frame data, fight sizes | Done |
-| `world.md` | Zone borders, hierarchy, layers and instances, dungeons, flying, vehicles | Done |
+| `world.md` | Zone borders, hierarchy, channels and instances, dungeons, flying, vehicles | Done |
 | `classes.md` | Class Crystals, promotion, XP and Soul XP, Anima | Done; a few open questions |
 | `skills.md` | Skills, Abilities, Runes, slots, gear Runes, Outfit Magic | Done; a few open questions |
 | `crafts.md` | Crafting, gathering, housing | Done |
@@ -48,7 +48,7 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | `companions.md` | Companion identity, locations, tasks, levelling, mounts, trading | Done; a few open questions |
 | `unlockables.md` | Unlockables as flags, attunements, Anima Capacity | Done |
 | `netcode.md` | Adopted netcode approach | Done |
-| `art.md` | Art direction (not yet discussed) | Not started |
+| `art.md` | Art direction | Started; questions listed |
 | `backend.md` | Engine, backend options, research on real MMO backends, data-model suggestions | In progress |
 
 ## Risks
@@ -78,10 +78,11 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 
 - `main` was reset on 2026-10-03 to a fresh history containing only `.claude/`. The old .NET code and its history live on `archive/dotnet-datacenter`. Human-readable design docs will be added to `main` as they're written.
 - No tags are wanted.
+- **Work lands on `main`.** On 2026-10-04 a session's work sat unmerged on `claude/determined-cori-8mpjme` and the next session started from stale notes. At the start of a session, run `git fetch` and check for remote branches ahead of `main` before trusting these notes.
 
 ## Next steps
 
-1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts, items, companions and unlockables are done** (see `.claude/design/`); everything will likely be reviewed again later. Gameplay is paused for backend architecture (2026-10-04); resume gameplay with aesthetic. Remaining area after that: database tables.
-2. Backend architecture (see `backend.md`): research, service map, persistence, handoff, transport, library stack, the two-stage load test, shared libraries (Protocol, Content, Simulation, Data), content as files in git, and an engine-neutral zone format are decided. Teleports and instances are also done (gameplay rules in `world.md`, mechanics in `backend.md`). The game-server message layer is designed too (`netcode.md`). Region server scaling is decided too, and layer lifecycle mostly (2026-10-04). **Pick up next session:** whether "layer" is a good name (may be confused with WoW's layering), then ground items on a layer merge (both in `world.md` Open). Remaining topics: ops tooling, and the parked zone-format and content-file details.
+1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts, items, companions and unlockables are done** (see `.claude/design/`); everything will likely be reviewed again later. Gameplay is paused for backend architecture (2026-10-04); **resume with aesthetic next** (started 2026-10-04: the project lead's notes are summarised and discussion questions are listed in `art.md`; start with question 1). Remaining area after that: database tables.
+2. Backend architecture (see `backend.md`): research, service map, persistence, handoff, transport, library stack, the two-stage load test, shared libraries (Protocol, Content, Simulation, Data), content as files in git, and an engine-neutral zone format are decided. Teleports and instances are also done (gameplay rules in `world.md`, mechanics in `backend.md`). The game-server message layer is designed too (`netcode.md`). Region server scaling, channel lifecycle and channel social design are decided (2026-10-04): "layer" was renamed "channel", channels are named and visible, Worlds were dropped in favour of constellations, characters can join several guilds, and `world.md` has nothing open. Remaining backend topics: ops tooling, and the parked zone-format and content-file details.
 3. **Todo:** find open-source or royalty-free low-poly assets for prototypes. They must be human-made (no AI-generated assets): check each pack's licence and authorship. Starting points to check: Kenney, Quaternius and KayKit (CC0 packs), Poly Pizza and OpenGameArt (mixed licences, check per asset).
 4. Agree on the doc structure, then write human-readable docs.

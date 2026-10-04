@@ -32,7 +32,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - **Finite rune stones use the soulbound rule:** the first copy a character receives is soulbound to them; later copies are ordinary items that can be traded, broken down or sold to NPCs.
   - The owner can recall a soulbound item at any time, for free, wherever it is (held by another player or in a dropped bag). Recalling is done at a specific place (intentionally undecided for now; see Open).
   - **Soulbound items also return on their own** 24 hours after leaving the owner's possession, to the same place recalls deliver to. Picked-up soulbound items say so.
-  - **No lost state:** a soulbound item that despawns (or is on the ground at a layer restart) returns to its owner immediately, through the same return mechanic.
+  - **No lost state:** a soulbound item that despawns (or is on the ground at a channel restart) returns to its owner immediately, through the same return mechanic.
 - **Crystal borrowing is scrapped for now** (see Considering).
 - **Containers vs sets (adopted from an agent suggestion):**
   - **Containers** are physical locations: inventory, Storage and bags. Each item is in exactly one, and every move is one transaction.
@@ -49,7 +49,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - Bags can optionally be hidden from the main inventory grid; an indicator then shows how many inventory slots bags are using.
   - When bags are shown in the inventory, they can be opened either from the selector or by clicking them in the main inventory.
 - **There are no soulbound bags.** A soulbound item inside a dropped bag can still be recalled out of it by its owner.
-- **Dropped items and bags despawn after one hour, and all of them vanish on a layer restart.** This is the main way most items are destroyed.
+- **Dropped items and bags despawn after one hour, and all of them vanish on a channel restart.** On a channel merge they carry over instead (see `world.md`). This is the main way most items are destroyed.
 - **Timers are easy server configuration**, not hard-coded: the despawn time and the soulbound return times can be tuned (e.g. to manage server load, or by private server hosts).
 - **Collection goals:** showing off, using things (outfits, hairstyles…) and protection against losing things. Protection can be dropped if it conflicts with the economy.
 - **Things are items; knowledge is a flag** (adopted from an agent suggestion):
