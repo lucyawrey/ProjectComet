@@ -9,6 +9,7 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
 - **World Runes from gear always match the character's visible appearance** (see `skills.md`, Outfit Magic).
 - **Crystals can change a character's base design** on top of their real base form (see `classes.md`).
 - **No screen-wide pixelation filter** (project lead, 2026-10-04). Players could add one through client-side mods (see `backend.md`).
+- **Fidelity leans slightly towards PS1, and at most GameCube** (project lead, 2026-10-04).
 - **Low-poly characters with low-res textures** (project lead, 2026-10-04). The texturing technique is open (question 3).
 - **Cute, but not overly chibi** (project lead, 2026-10-04): mostly human proportions, even if not realistic.
 - **No character features are gender-locked** (project lead, 2026-10-04).
@@ -17,7 +18,8 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
 
 ## Considering
 
-- **Palette/gradient texturing** (agent suggestion; the project lead is interested, 2026-10-04). Discussed under question 3. (The shared humanoid rig, suggested alongside it, is now decided above.)
+- **Texturing: leaning towards a mix** (project lead, 2026-10-04, pending a better understanding of the tech and workflows): painted trim sheets (reusable strips of painted material detail) plus vertex-colour shading for environments and most outfits, and per-asset painting for faces, hero gear and showpiece outfits. Palette/gradient texturing (agent suggestion) was explained as the flatter, cheapest option. (The shared humanoid rig, suggested alongside it, is now decided above.)
+- **Texture filtering: prototype both** crisp (nearest-neighbour) and soft (bilinear) before deciding (project lead, 2026-10-04).
 
 ## References
 
