@@ -22,6 +22,11 @@ Agent notes on networking. These were agent suggestions adopted by the project l
 - **Clients track the server tick** (2026-10-04): regular pings estimate the current server tick; inputs and events are stamped with ticks, so dodge grace and hit validation compare ticks rather than arrival times.
 - **Reconnect is a fresh snapshot** (2026-10-04): no resuming the stream; a reconnecting client gets full state for everything in view, the same path as entering a zone.
 
+- **Framing** (2026-10-04): one binary WebSocket frame per client per tick: the server tick, then a list of messages, each a numeric message ID, a length and a MessagePack payload. The length lets older clients skip unknown message types. State messages are keyed by message ID plus entity, so the send queue can replace superseded ones. Clients do the same: one frame per client tick, only when there's something to send.
+- **Client position reports** (2026-10-04): position, velocity, facing and the client's server-tick estimate, about 15 Hz while moving (tuned in the load test), sent immediately on starting, stopping or turning sharply, and not at all while standing still.
+- **Movement validation** (2026-10-04, tolerances tuned in the prototype): distance since the last report must fit max speed × elapsed ticks with ~20% tolerance, allowing for active movement skills, knockback curves and mounts; after a stall, a burst of reports is checked against the total elapsed time so hiccups don't cause snap-backs. The path between reports must not cross a collision volume, and the position must fit the player's state (grounded, or flying with mount and attunement). On failure the server sends a correction and the client blends to it over a few frames.
+- **Repeated movement violations are logged and flagged for moderation**, never auto-banned (2026-10-04).
+
 ## Considering
 
 - **Techniques for WebSocket as the worst case (agent suggestions, 2026-10-04):** server send queues that keep only the latest state (superseded position updates are replaced, not queued); clients jump to the latest state after a stall instead of replaying; the server accepts timestamped inputs arriving in bursts, within limits; ~100–150 ms interpolation buffers for other players; `TCP_NODELAY` on the server.
