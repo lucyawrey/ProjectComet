@@ -23,6 +23,12 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 - **Character names are unique per region, ignoring case** (2026-10-04, adopted from an agent suggestion). **Soft-deleted characters hold their name for a retention period** before it's freed. Names can contain spaces, which count for uniqueness: trimmed, with no leading or trailing spaces and at most one space between words; length limits apply (project lead).
 - **Base appearance is one JSONB document per character** (2026-10-04, adopted from an agent suggestion). Crystal appearance overrides belong to the classes area.
 
+### Classes, crystals, loadouts, gear and outfit sets (region database)
+
+- **A crystal is an `item` row plus a one-to-one `crystal` row** (2026-10-04, adopted from an agent suggestion). Location, owner and soulbinding come from the item; the crystal row holds the class entry, bought or granted, loadout, gear and outfit sets, and the appearance override.
+- **Unique-equipped is enforced by the database** (2026-10-04, adopted from an agent suggestion): `set_slot` also stores the item's type (safe, since an item's type never changes), with a unique index on (set, item type).
+- **Loadout slots are rows** (2026-10-04, adopted from an agent suggestion), with foreign keys to the content lookup tables.
+
 ## Draft tables (agent proposals)
 
 ### Accounts and staff (account database)
@@ -48,6 +54,18 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 | `character_owner` | character_id, game_server_id, instance_id, version, claimed_at | Versioned ownership row (handoff and fencing); the Region server watches it for presence. |
 | `character_progress` | character_id, soul_xp, anima, anima_updated_at, anima_capacity | Immediate transactions. |
 | `anima_hold` | id, character_id, instance_id, amount, created_at, status | Escrow for locked content. |
+
+### Classes, crystals, loadouts, gear and outfit sets (region database)
+
+| Table | Key columns | Notes |
+| --- | --- | --- |
+| `class_entry` | id, character_id, class (content number), xp, highest_level, unlocked_at | The Crystal Archives; current level derived from XP. |
+| `class_rune_mastery` | class_entry_id, rune (content number), progress | Class Rune mastery lives on the class entry. |
+| `crystal` | item_id (1:1 with `item`), class_entry_id, acquired (bought or granted), loadout_id, gear_set_id, outfit_set_id, appearance_override (JSONB) | |
+| `loadout` | id, character_id, name | Survives a crystal's deletion. |
+| `loadout_slot` | loadout_id, index, kind (Skill or Rune), colour, content number, binding, locked | |
+| `gear_set` / `outfit_set` | id, character_id | Reference lists, not containers. |
+| `set_slot` | set_id, slot (body, ring, tool…), item_id, item_type | Unique (set_id, item_type). Slots read as empty when the item isn't in Storage; never cleared. |
 
 ## Open
 
