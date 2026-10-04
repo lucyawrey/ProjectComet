@@ -1,6 +1,6 @@
 # Project Comet: agent context
 
-Handoff notes for agent sessions on Project Comet. Last updated 2026-10-03.
+Handoff notes for agent sessions on Project Comet. Last updated 2026-10-04.
 
 ## Working agreement
 
@@ -26,6 +26,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Action combat, not tab-target.** Skills have real hitboxes; there's an optional lock-on. Should be more forgiving of latency than an FPS. (Detailed design in the project lead's notes: 2D hitboxes with "height zones".)
 - **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Zone shards and dungeon instances still exist on the server side; only teleportation hides loading.
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
+- **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server; the game server will likely be pure C#.
 - **First milestone (adopted from an agent suggestion):** a vertical slice with one zone, the core loop, bot clients load-testing 100+ simulated players, and simulated latency from day one.
 
 ## Design notes by topic
@@ -45,7 +46,7 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | `unlockables.md` | Unlockables as flags, attunements, Anima Capacity | Done |
 | `netcode.md` | Adopted netcode approach | Done |
 | `art.md` | Art direction (not yet discussed) | Not started |
-| `backend.md` | Backend options, data-model suggestions, open architecture questions | Mostly open |
+| `backend.md` | Engine, backend options, research on real MMO backends, data-model suggestions | In progress: service map next |
 
 ## Risks
 
@@ -77,6 +78,6 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 
 ## Next steps
 
-1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts, items, companions and unlockables are done** (see `.claude/design/`); everything will likely be reviewed again later. **Resume with aesthetic.** Remaining area after that: database tables.
-2. Research documented real-world MMO backends to sanity-check the architecture, including the Gateway/Data Center split.
+1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts, items, companions and unlockables are done** (see `.claude/design/`); everything will likely be reviewed again later. Gameplay is paused for backend architecture (2026-10-04); resume gameplay with aesthetic. Remaining area after that: database tables.
+2. Backend architecture: research is done (see `backend.md`); now discussing the service map, naming, Data Center as library or service, and persistence style.
 3. Agree on the doc structure, then write human-readable docs.
