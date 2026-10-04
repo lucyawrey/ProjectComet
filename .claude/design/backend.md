@@ -14,6 +14,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **No central data service; a shared database/model library instead** (2026-10-04, replacing the earlier Region-server-owns-the-database decision). Game servers and the Region server both use one C# model/data library and talk to PostgreSQL directly, as Albion, EVE and AzerothCore do. Trade-offs accepted: every process holds database credentials, and schema migrations must be coordinated across processes.
   - PostgreSQL and a static host for the web client and streamed assets sit alongside these.
 - **Seamless handoff: pre-warm + delta** (2026-10-04). When the client starts listening across a border, the new game server preloads the character from the database (the same path as login). At the crossing only the live-state delta moves. Items and currency never travel in a handoff because they're already persisted.
+- **Character ownership is a versioned database row** (2026-10-04). At handoff the old game server freezes the character, then the new one claims it atomically (`UPDATE … SET owner = new, version = v + 1 WHERE version = v`). Every character write carries the version its server holds, so late writes from the old server fail (fencing). The Region server subscribes to ownership changes for presence (placement, parties, chat routing) but isn't on the handoff path.
+- **The live-state delta travels directly** from the old game server to the new one (2026-10-04).
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro, and a skill in progress (see Open).
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
@@ -39,7 +41,6 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Where the character-ownership record lives** (reopened 2026-10-04 after the switch to direct database access): Region server, or a database row with a version number?
 - **Skill in progress at a border:** it doesn't carry over, so does crossing cancel it, or does the handoff wait until it finishes? (Agent suggestion: delay the handoff, since it already happens a few metres past the line.)
 
 ## Research (2026-10-04)
