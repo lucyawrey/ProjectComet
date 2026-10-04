@@ -27,11 +27,17 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
   - **The 100-player test is the gate for this stack** (project lead, 2026-10-04). If it fails, that may mean the tech isn't there yet for browser MMOs, or that we should consider switching languages (FishNet + headless Unity is also still the fallback).
   - **The test is split so a failure points at its cause** (decided 2026-10-04, from an agent suggestion; all experimental): first a stack-only benchmark (bare Kestrel sending position-sized MessagePack messages to 100–300 WebSocket bots at the planned tick rate, with simulated loss, no game logic), then the full game test (simulation, interest management, our message layer). Stack fails → the stack or language is the problem; only the full test fails → our code is. Watch garbage-collection pauses specifically and tune .NET (server GC, low-latency modes, fewer allocations in the send path) before blaming the language.
 - **Bot load tests run over the baseline transport (currently WebSocket) with simulated packet loss** (2026-10-04), so TCP stalls show up early.
+- **Shared libraries** (2026-10-04):
+  - **Three libraries.** *Simulation* (client, game servers, bots: frame data, hitboxes and height-zone masks, movement and knockback curves, hit checks, rules, tick maths). *Protocol* (client, game servers, bots: MessagePack message definitions, message IDs, the transport interface, shared constants). *Data* (game, Region and Login servers, never Unity: EF Core entities, `DbContext`, migrations, transactional operations).
+  - **Unity consumes Simulation and Protocol as a shared source package:** one source folder that is both a .NET project (targeting `netstandard2.1` and `net10.0` until Unity 6.8) and a local Unity package with an assembly definition, so Unity compiles the same files. To be checked against Unity 6 in a prototype.
+  - **Content (items, skills, classes, monsters) is authored outside Unity** and imported into both the client and the servers. Format not yet chosen (see Open).
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
 ## Considering
 
+- **World data export (2026-10-04, to verify in a prototype):** a Unity editor tool exports per-zone data the server needs (terrain heightmap, simple collision shapes, navmesh, spawn points, border volumes, transition rooms). DotRecast (MIT C# port of Recast/Detour; active, 2026.1.3) builds navmeshes and handles server pathfinding and crowds, with streaming for large worlds.
+- **Shared-library details (agent suggestions, 2026-10-04):** shared code uses `System.Numerics` types and converts to Unity types at the edges; no exact determinism or fixed-point maths (client predicts, server corrects); bots are plain .NET console apps using Simulation, Protocol and .NET's WebSocket client; a content version hash is checked at login; schema changes follow expand/contract, with a migrator tool run before each deploy (as FishMMO does).
 - **Dropping web was considered and rejected (2026-10-04).** The project lead weighed desktop-first with UDP (for netcode quality, less browser complexity, and engine freedom) but kept web as a main goal: in-browser play, in the spirit of RuneScape's Java-applet days, is the project's main appeal right now.
 - **Game server:** likely a pure C# server, sharing a simulation library with the Unity client and bot clients (project lead, 2026-10-04).
 - **Current planning focus is approach A** (custom .NET stack); SpacetimeDB is still under consideration.
@@ -52,6 +58,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
+- **Content format and tooling:** spreadsheets, JSON/YAML files in git, or a content database (with an admin UI)? How it reaches Unity (import step) and the servers (load at startup).
 - **Ops tooling** (added 2026-10-04, prompted by FishMMO): patcher and update server for desktop, health monitoring, server discovery, a community bot (e.g. Discord). Not yet discussed.
 - **No battle-tested library does game-state replication for a pure C# server over WebSocket.** The game-server message layer is ours to write; FishNet + headless Unity remains the fallback if that proves too hard.
 - **WebTransport upgrade paths (for later):** (1) Kestrel's experimental WebTransport using independent streams instead of datagrams (pure C#; preview feature); (2) our own WebTransport handshake on MsQuic via its C# interop (gets datagrams; protocol work); (3) wrap libwtf (MIT, C, on MsQuic); (4) wait for the open `System.Net.Quic` datagram API proposal. A Go/Rust proxy is ruled out by the C#-only rule. WebTransport's `serverCertificateHashes` might let private servers skip a domain and certificate for game traffic (unverified).
