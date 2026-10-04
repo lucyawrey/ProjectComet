@@ -13,6 +13,10 @@ Agent notes on networking. These were agent suggestions adopted by the project l
 - Fixed-route vehicles are positioned from route + clock, so only passengers are handed off; riders' positions are relative to the vehicle.
 - A named load test after the 100-bot milestone: one shard, 100 players, one boss.
 
+- **Movement authority: the client sends its position and the server validates it** (2026-10-04, WoW-style). The server rejects impossible moves (speed, walls) and snaps the player back. Movement skills and knockback stay fixed curves from frame data. Chosen for PvE-only play, cheap server CPU at 100+ players, and tolerance of WebSocket stalls; cheat defence depends on good validation rules.
+- **Three message kinds** (2026-10-04): client *inputs*; server *events* (skill started, damage, spawns, items), never dropped or merged; server *state* (positions, HP), latest-only, so a newer update replaces an unsent older one in the send queue.
+- **Entity replication: spawn, field deltas, despawn** (2026-10-04): full state when an entity becomes visible to a client, then only changed fields, then a despawn.
+
 ## Considering
 
 - **Techniques for WebSocket as the worst case (agent suggestions, 2026-10-04):** server send queues that keep only the latest state (superseded position updates are replaced, not queued); clients jump to the latest state after a stall instead of replaying; the server accepts timestamped inputs arriving in bursts, within limits; ~100–150 ms interpolation buffers for other players; `TCP_NODELAY` on the server.
