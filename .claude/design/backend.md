@@ -54,7 +54,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 - **No battle-tested library does game-state replication for a pure C# server over WebSocket.** The game-server message layer is ours to write; FishNet + headless Unity remains the fallback if that proves too hard.
 - **WebTransport upgrade paths (for later):** (1) Kestrel's experimental WebTransport using independent streams instead of datagrams (pure C#; preview feature); (2) our own WebTransport handshake on MsQuic via its C# interop (gets datagrams; protocol work); (3) wrap libwtf (MIT, C, on MsQuic); (4) wait for the open `System.Net.Quic` datagram API proposal. A Go/Rust proxy is ruled out by the C#-only rule. WebTransport's `serverCertificateHashes` might let private servers skip a domain and certificate for game traffic (unverified).
-- **FishMMO** (https://www.fishmmo.com/): an open-source (MIT) MMO template on FishNet + Unity with Login, World and Scene servers, close to our Login/Region/game split. Not a base (no shipped games, not very actively developed), but a good reference codebase. FishNet itself is the fallback if we go back to headless Unity.
+- **FishMMO** (https://www.fishmmo.com/): an MIT-licensed MMO template on FishNet + Unity. Not a base (no shipped games, not very actively developed) but a good reference codebase; see Research. FishNet itself is the fallback if we go back to headless Unity.
 
 ## Research (2026-10-04)
 
@@ -96,3 +96,15 @@ From search summaries; verify before relying on them.
 | **MagicOnion** (Cysharp) | RPC plus real-time StreamingHub over gRPC | Poor: gRPC needs HTTP/2 framing that browsers don't expose; WebGL builds have open issues | Active. Better fit for HTTP APIs than real-time play. |
 | **Photon Server** | Reliable UDP (ENet-based), TCP and WebSocket; C# server SDK | Yes (WebSocket) | Proprietary, licensed. The only C# stack found proven at MMO scale (Albion). v5 runs only on Windows Server with .NET Framework 4.6/4.8; Linux/.NET Core was promised for v6 in 2020, with no release found. Free licence: 100 CCU, non-commercial, one machine. Paid self-hosted: ~$500/month (500 CCU, one node) or ~$1,500/month (5,000 CCU, +$0.30 per extra CCU). Private servers would each need a licence (a redistribution licence exists but is negotiated). |
 | **DarkRift 2** | Message layer with a standalone server | Unclear | Community-maintained; last repo update January 2024. |
+
+### FishMMO (read 2026-10-04)
+
+Agent read of the repository (github.com/jimdroberts/FishMMO, MIT). Reference only; see Considering.
+
+- **Stack:** Unity 6.2, FishNet with headless Unity servers. Transports via FishNet's Multipass: Tugboat (UDP, built on LiteNetLib) for desktop and Bayou (WebSocket) for WebGL, at the same time. A small ASP.NET Core server hosts the WebGL build.
+- **Servers:** Login; World (relays between scene servers, balances load, tracks servers); Scene servers (all game logic, scene stacking and instances, ~100 players per scene). Scene-based, not a seamless world.
+- **Database:** PostgreSQL + EF Core in a shared `FishMMO-DB` library with a separate migrator project; every server uses it directly, through static service classes. Redis is also wired in. This matches our shared-library decision.
+- **Cross-server social features** (guilds, parties) work by scene servers polling "update" tables in PostgreSQL on a timer, using the database as a message bus. Our plan uses SignalR on the Region server instead.
+- **Data model:** around 30 entities (character attributes, inventory, equipment, bank, hotkeys, item cooldowns, buffs, abilities and known abilities, skills, quests, achievements, factions, friends, mail, pets, guilds, parties, chat, server registries). Useful reference for the database-tables topic.
+- **Ops tooling:** patcher and update server, app health monitor, Discord bot, IP-fetch service for server discovery.
+- **Activity:** ~150 commits June–October 2025, then quiet until a few small community PRs in August 2026.
