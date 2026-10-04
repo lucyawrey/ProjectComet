@@ -72,3 +72,15 @@ Agent web research to sanity-check the architecture. These are findings, not dec
 - **Unity's web networking lags:** Unity Transport supports only WebSocket on web (and only to other Unity Transport peers); Netcode for Entities doesn't support web. WebTransport from Unity likely means our own `.jslib` bridge.
 - **Unity is moving to CoreCLR:** Unity 6.8 (later in 2026) drops Mono and targets .NET 10; CoreCLR dedicated-server builds are experimental in 6.7. This would let the client and a pure C# server share modern C#. How this applies to web builds (IL2CPP → WebAssembly) is unverified.
 - **SpacetimeDB licence:** BSL 1.1, converting to AGPL v3 with a linking exception in 2031. The Additional Use Grant allows free production use of a single instance if not resold as a database service. A private server (one region) probably fits; the official multi-region setup may not. BitCraft (Unity client) runs its whole backend on it, split into global and region modules. Licence text not yet read directly.
+
+### Plain .NET networking libraries (2026-10-04)
+
+From search summaries; verify before relying on them.
+
+| Library | Level | Web support | Status |
+| --- | --- | --- | --- |
+| **LiteNetLib** | Reliable UDP transport | None (UDP only) | Active: v2.1.4, May 2026. Used in 7 Days to Die. Built-in loss/latency simulation. |
+| **LiteEntitySystem** (same author) | High-level: entities, synced variables, RPCs, client prediction, lag compensation, delta-compressed state | Custom transports supported, so a WebSocket transport could be written | Engine-agnostic (Unity, Godot, plain .NET). Aimed at fast-paced shooters and action RPGs. Unknown: interest management at MMO scale, licence. |
+| **Riptide** | Message layer over UDP (TCP fallback) | None ("no web transport") | Maintained: v2.2.x. |
+| **MagicOnion** (Cysharp) | RPC plus real-time StreamingHub over gRPC | Poor: gRPC needs HTTP/2 framing that browsers don't expose; WebGL builds have open issues | Active. Better fit for HTTP APIs than real-time play. |
+| **DarkRift 2** | Message layer with a standalone server | Unclear | Community-maintained; last repo update January 2024. |
