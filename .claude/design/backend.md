@@ -17,6 +17,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Character ownership is a versioned database row** (2026-10-04). At handoff the old game server freezes the character, then the new one claims it atomically (`UPDATE … SET owner = new, version = v + 1 WHERE version = v`). Every character write carries the version its server holds, so late writes from the old server fail (fencing). The Region server subscribes to ownership changes for presence (placement, parties, chat routing) but isn't on the handoff path.
 - **The live-state delta travels directly** from the old game server to the new one (2026-10-04).
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
+- **Bot load tests use both transports** (2026-10-04): bots on the browser transport too, with simulated loss, so its problems show up early.
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
@@ -41,7 +42,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Transport:** WebTransport vs WebSocket for the browser, UDP for desktop, and whether to write our own Unity bridge (in discussion).
+- **Networking library (in discussion), then transport.** Pick the library first, since libraries bring their own transports. Constraint: the server is pure C#, and the high-level Unity libraries (Mirror, FishNet, Netcode for GameObjects/Entities) run their servers inside Unity. Agent findings: Kestrel's WebTransport is still experimental in .NET 10 and lacks datagrams; LiteNetLib (reliable UDP, .NET Standard 2.1, works in Unity and plain .NET, built-in loss/latency simulation) has no web transport; WebSocket works today on both sides.
+- **FishMMO** (https://www.fishmmo.com/), raised by the project lead to discuss later: an open-source MMO template on FishNet + Unity with Login, World and Scene servers, close to our Login/Region/game split. Its servers run as headless Unity, which we've ruled out, so its value is likely as reference (systems, structure) rather than a base.
 
 ## Research (2026-10-04)
 
