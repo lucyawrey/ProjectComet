@@ -36,6 +36,12 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 - **Per-item state is columns** (durability, quality, crafter signature, soulbound_to), with JSONB only for dye colours, and **gear Rune mastery in its own table** (`item_rune_mastery`) (2026-10-04, adopted from an agent suggestion).
 - Storage is per character for now (multiple characters are ignored in this phase).
 
+### Flags, collection, crafts and companions (region database)
+
+- **Learned flags are rows** (`character_id`, `flag`) with foreign keys to the content lookups (2026-10-04, adopted from an agent suggestion; a per-character bitset was considered).
+- **Companion cosmetic gear is items located on the companion** (`location = companion`, `container_id` = the companion) (2026-10-04, adopted from an agent suggestion), so trading, dyes and the ledger work unchanged.
+- **One ledger covers items and companions** (2026-10-04, adopted from an agent suggestion), with an entity-kind column.
+
 ## Draft tables (agent proposals)
 
 ### Accounts and staff (account database)
@@ -78,9 +84,20 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `item` | id, type, quantity, holder_character_id, location (inventory, Storage, bag, ground, house, market listing, mail, guild storage), container_id, slot, soulbound_to, durability, quality, crafter_id, dye (JSONB), created_at | |
+| `item` | id, type, quantity, holder_character_id, location (inventory, Storage, bag, ground, house, companion, market listing, mail, guild storage), container_id, slot, soulbound_to, durability, quality, crafter_id, dye (JSONB), created_at | |
 | `item_rune_mastery` | item_id, rune, progress | |
-| `item_movement` | id, at, item_id, item_type, quantity, from, to, reason, actor, instance | The ledger; monthly partitions (see `backend.md`). |
+| `item_movement` | id, at, entity_kind (item or companion), entity_id, type, quantity, from, to, reason, actor, instance | The ledger; monthly partitions (see `backend.md`). |
+
+### Flags, collection, crafts and companions (region database)
+
+| Table | Key columns | Notes |
+| --- | --- | --- |
+| `learned_flag` | character_id, flag, learned_at | Hairstyles, dyes, recipes, Rune unlocks, emotes, attunements, titles, quest progress, once-per-character items. |
+| `item_collection` | character_id, item_type, first_obtained_at | One entry per item type. |
+| `craft_entry` | character_id, craft, xp, highest_level | Like `class_entry`. |
+| `auto_craft_unlock` | character_id, item_type, unlocked_at | Fast crafting unlocked at the quality threshold. |
+| `gathering_node_use` | character_id, node, used_at | Per-player nodes; could expire like the chat buffer. |
+| `companion` | id, species, kind, name, holder_character_id, location (active, carried, stabled), slot, soulbound_to, xp, dye (JSONB), released_at | Mirrors `item`. |
 
 ## Open
 
