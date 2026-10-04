@@ -20,5 +20,4 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 ## Considering
 
 - **Unstable teleport stations** (project lead idea, 2026-10-04): a cheap way to gather a party at a dungeon, with consent. Unlike the stable stations in settlements, they start unstable; one player stabilises the station, then every party member is prompted to leyline-teleport there.
-
 - **Data model (agent suggestion):** Region is the real unit (one database scope, owns shards and instances; a private server is one region). World is an attribute: each character has a home World, guilds belong to a World, and shard placement uses it as a preference. Changing World is a cheap data update, not a server transfer.
