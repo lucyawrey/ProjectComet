@@ -18,6 +18,16 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 
 *Placeholder: elevator pitch (project lead).*
 
+### Business model
+
+- **Free-to-play with membership** (project lead, 2026-10-04).
+- **The game is split into parts; free players are always locked to an earlier part than members** (project lead, 2026-10-04). The initial release has two parts (early and late game); future parts are expansions. Free players get each part eventually, as long as new parts keep coming. This means lower level caps for free players, classes added in later parts locked, and so on. **No overall features are barred from free players.** To discuss further (see Open).
+- **Expansions are included in membership** (project lead, 2026-10-04); nothing is sold separately.
+- **A tradeable membership item (like Old School RuneScape's bonds) is the only thing bought with real money** (project lead, 2026-10-04): bought with money, sold on the market for in-game currency. Sometimes disliked, but better than a cash shop or loot boxes, and one of the better ways to fund the game.
+- **No item shop** (project lead, 2026-10-04): nothing else sold for money becomes an item, protecting "every item is real" and the economy.
+- **No loot boxes or other paid randomness** (project lead, 2026-10-04).
+- Already decided elsewhere: Anima is never sold for real money (`classes.md`).
+
 ## Considering
 
 ## Open
