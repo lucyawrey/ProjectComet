@@ -29,6 +29,13 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 - **Unique-equipped is enforced by the database** (2026-10-04, adopted from an agent suggestion): `set_slot` also stores the item's type (safe, since an item's type never changes), with a unique index on (set, item type).
 - **Loadout slots are rows** (2026-10-04, adopted from an agent suggestion), with foreign keys to the content lookup tables.
 
+### Items, containers and the ledger (region database)
+
+- **One `item` table for every container** (2026-10-04, adopted from an agent suggestion): one row is one physical item or stack in exactly one place (location, container_id, slot), so being in two places is impossible by construction. A partial unique index on (location, container, slot) protects slotted positions; Storage has no slots. Moves within one owner are plain updates and aren't logged; owner changes also write a ledger row in the same transaction.
+- **Dropped items are persisted** (2026-10-04, adopted from an agent suggestion): location = ground, with the instance. Pickups are ordinary owner changes in the ledger; despawn and channel restarts delete them (soulbound items return). Dungeon instance items and temporary structures stay in memory.
+- **Per-item state is columns** (durability, quality, crafter signature, soulbound_to), with JSONB only for dye colours, and **gear Rune mastery in its own table** (`item_rune_mastery`) (2026-10-04, adopted from an agent suggestion).
+- Storage is per character for now (multiple characters are ignored in this phase).
+
 ## Draft tables (agent proposals)
 
 ### Accounts and staff (account database)
@@ -66,6 +73,14 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 | `loadout_slot` | loadout_id, index, kind (Skill or Rune), colour, content number, binding, locked | |
 | `gear_set` / `outfit_set` | id, character_id | Reference lists, not containers. |
 | `set_slot` | set_id, slot (body, ring, tool…), item_id, item_type | Unique (set_id, item_type). Slots read as empty when the item isn't in Storage; never cleared. |
+
+### Items, containers and the ledger (region database)
+
+| Table | Key columns | Notes |
+| --- | --- | --- |
+| `item` | id, type, quantity, holder_character_id, location (inventory, Storage, bag, ground, house, market listing, mail, guild storage), container_id, slot, soulbound_to, durability, quality, crafter_id, dye (JSONB), created_at | |
+| `item_rune_mastery` | item_id, rune, progress | |
+| `item_movement` | id, at, item_id, item_type, quantity, from, to, reason, actor, instance | The ledger; monthly partitions (see `backend.md`). |
 
 ## Open
 
