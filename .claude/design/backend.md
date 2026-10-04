@@ -64,6 +64,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
+- **Zone format details** (parked 2026-10-04): chunk size and layout (fixed grid or variable, relation to zone borders); terrain editing (our own heightmap tools or conversion to and from Unity terrain); lighting (realtime and vertex colour only, or some baking per chunk); scope of the first Unity editor tools. Overlaps with art direction.
 - **Content file details:** JSON or YAML; schema tooling; how the build step produces the compact file and how it reaches web clients (bundled or streamed).
 - **Ops tooling** (added 2026-10-04, prompted by FishMMO): patcher and update server for desktop, health monitoring, server discovery, a community bot (e.g. Discord). Not yet discussed.
 - **No battle-tested library does game-state replication for a pure C# server over WebSocket.** The game-server message layer is ours to write; FishNet + headless Unity remains the fallback if that proves too hard.
