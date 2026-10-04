@@ -18,6 +18,7 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 - **Re-entering an instance** (2026-10-04): a player who disconnects or leaves can re-enter the same instance.
   - Instances with no player limit: re-entry is allowed any time until the instance no longer exists.
   - Instances with a fixed player limit: the player's place is held, but the party can vote to remove them. Removal is for disconnected players and for troublesome ones alike, and carries no negative connotation. Problematic players are reported through the separate report feature. (Avoid the term "kick".)
+- **When an instance closes** (2026-10-04): if everyone has left through gameplay (walking out of an exit, teleporting away, or clearing the dungeon and leaving), it closes instantly. If any player is missing because of a disconnect, it stays open for a few minutes so they can return. The game server can tell the two apart: leaving is a handoff, a disconnect is a dropped connection.
 - **Loading rooms need not look like rooms** (2026-10-04): they can appear to be part of the open world (a mountain top, a grove past a narrow gap in the trees). Their static scenery may show up in open-world LODs, but players and other live entities are only synced across the official entrance, never across the rest of the room's edge.
 - **Vehicles:** boats and airships cross zones on fixed routes. The only player-steered vehicles are 2–4 seat mounts with near-normal movement. Vehicles and their riders cross borders as one group.
 
