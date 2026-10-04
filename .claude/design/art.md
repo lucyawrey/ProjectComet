@@ -9,7 +9,7 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
 - **World Runes from gear always match the character's visible appearance** (see `skills.md`, Outfit Magic).
 - **Crystals can change a character's base design** on top of their real base form (see `classes.md`).
 - **No screen-wide pixelation filter** (project lead, 2026-10-04). Players could add one through client-side mods (see `backend.md`).
-- **Fidelity leans slightly towards PS1, and at most GameCube** (project lead, 2026-10-04).
+- **Fidelity leans slightly towards PS1, and at most GameCube** (project lead, 2026-10-04). **PS1 quirks (affine texture warping, vertex jitter) are not recreated**; only the resolution and polygon budget are borrowed.
 - **Low-poly characters with low-res textures** (project lead, 2026-10-04). The texturing technique is open (question 3).
 - **Cute, but not overly chibi** (project lead, 2026-10-04): mostly human proportions, even if not realistic.
 - **No character features are gender-locked** (project lead, 2026-10-04).
