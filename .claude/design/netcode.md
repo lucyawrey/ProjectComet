@@ -9,7 +9,7 @@ Agent notes on networking. These were agent suggestions adopted by the project l
 - Sync actions as events ("player X started skill Y at tick T facing Z") rather than continuous state; prioritise updates by relevance; cap displayed characters.
 - Movement skills and knockback as fixed curves in frame data, predicted by the client.
 - Nudging: server-enforced against monsters/NPCs, client-only between players.
-- Border visibility: near a border the client also listens to the neighbouring shard (ticket via the Gateway) but only sends input to the owner; handoff happens a few metres past the line to avoid ping-pong.
+- Border visibility: near a border the client also listens to the neighbouring shard (ticket via the Login server) but only sends input to the owner; handoff happens a few metres past the line to avoid ping-pong.
 - Fixed-route vehicles are positioned from route + clock, so only passengers are handed off; riders' positions are relative to the vehicle.
 - A named load test after the 100-bot milestone: one shard, 100 players, one boss.
 

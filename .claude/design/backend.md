@@ -7,14 +7,21 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
 - **Unity is the engine** (decided 2026-10-04). Web export is a main project goal (classic in-browser MMO play), and Unity is the only engine where that isn't difficult or too limited.
 - **No headless Unity server** (2026-10-04).
+- **Three-part service map** (2026-10-04, for approach A):
+  - **Login server** (renamed from Gateway): public HTTP. Accounts, auth, character select, signed tickets for joining a game server or listening across a border. Clients connect to game servers directly; the Login server doesn't relay game traffic.
+  - **Region server** (renamed from Data Center): one per region and the only process that talks to PostgreSQL. Also owns everything that spans shards: shard and instance placement and lifecycle, parties, guilds, friends, chat routing, and the cross-shard economy (market, mail, trades between shards). Split pieces out only if load forces it.
+  - **Game servers:** live simulation and in-memory state of one or more shards or dungeon instances. They load a character from the Region server on arrival and send changes back through it.
+  - PostgreSQL and a static host for the web client and streamed assets sit alongside these.
+- **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate transactions through the Region server, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
 ## Considering
 
 - **Game server:** likely a pure C# server, sharing a simulation library with the Unity client and bot clients (project lead, 2026-10-04).
 - **Current planning focus is approach A** (custom .NET stack); SpacetimeDB is still under consideration.
+- **Self-hosting (agent suggestion):** a private server runs all three parts in one process, with Region server calls becoming plain method calls, plus PostgreSQL and a reverse proxy that handles TLS automatically (e.g. Caddy), shipped as one docker-compose file.
 - **Backend:** plan for two approaches:
-  - A. A custom .NET stack (Gateway server, Data Center server with PostgreSQL, headless game server, game client).
+  - A. A custom .NET stack (Login server, Region server with PostgreSQL, pure C# game servers, Unity client).
   - B. A product like SpacetimeDB. The project lead is slightly biased against it because of the self-hosting requirement; verify current license terms before weighing it.
   - C (unlikely). A systems-language backend written with help from another developer, if neither A nor B works.
 - **Data model (agent suggestions, not agreed):**
@@ -29,8 +36,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Gateway and Data Center: one service or two?** In the custom .NET approach, should the Gateway server (public-facing, primarily HTTP API) and the Data Center server (database API layer) be the same thing or separate?
-- **Are the plans sensible?** Find real-world examples of documented MMO backends (talks, postmortems, open-source servers, engineering blogs) and compare our architecture against them.
+- **Seamless handoff between game servers.** Albion hands off through the database behind a loading screen; we can't. How does a character move between game servers without a visible pause?
 
 ## Research (2026-10-04)
 
@@ -49,7 +55,7 @@ Agent web research to sanity-check the architecture. These are findings, not dec
 ### Patterns
 
 - Everyone has three layers: a thin public front door (login/proxy), simulation servers, and a few global services (guilds, chat, friends, market).
-- Almost none put a database-API service between game servers and the database; game servers talk to the database directly. A standalone Data Center service would be unusual.
+- The Western examples (Albion, EVE, AzerothCore) have game servers talk to the database directly. The BigWorld lineage (World of Tanks; open-source KBEngine) instead has a `dbmgr` process that owns all database access, with simulation processes backing up state through it. Our Region server follows the second pattern.
 - Two persistence styles: write every change (Albion) or stateless servers with batched writes (New World). Both read state only when a player arrives on a server.
 - PostgreSQL is a proven choice for anything transactional or query-heavy.
 
