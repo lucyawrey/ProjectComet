@@ -21,7 +21,14 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
 
 ## References
 
-Specific games, kept separate from decisions (project lead, 2026-10-04). From the project lead's notes: Phantasy Star Online, Crystal Chronicles and Signalis are the closest jumping-off points; FFXIV for the variety in character sizes, shapes and unique outfits, though slightly more high-res than wanted. What each is a reference for is still open (question 2).
+Specific games, kept separate from decisions (project lead, 2026-10-04). Phantasy Star Online, Crystal Chronicles and Signalis are the closest jumping-off points. What each is a reference for (project lead, 2026-10-04):
+
+| Game | Reference for |
+| --- | --- |
+| Phantasy Star Online | Textures, character design |
+| Crystal Chronicles | Textures, character design, lighting and mood |
+| Signalis | Textures, character design |
+| FFXIV | Variety in character sizes, shapes and unique outfits; outfit design; ancestry design. Slightly more high-res than wanted. |
 
 ## Open
 
@@ -30,7 +37,7 @@ Discussion started 2026-10-04; resume here. The project lead's notes (Quick Note
 Agent-drafted questions, in rough order:
 
 1. ~~Which of the note points are decisions?~~ Answered 2026-10-04 (see Decided and References).
-2. What is Signalis a reference for: texture resolution, lighting and UI, proportions, or tone?
+2. ~~What is each reference for?~~ Answered 2026-10-04 (see References).
 3. Texture approach: hand-painted low-res textures (PSO/Crystal Chronicles) or flat palette textures? Affects the cost of each outfit.
 4. Ancestries and body types: one skeleton is decided; still open is how far ancestries differ within it (proportions, extra parts such as tails, ears or wings) and how outfits fit each body type and ancestry.
 5. Environment and world tone: bright and storybook, moody, or varying by zone?
