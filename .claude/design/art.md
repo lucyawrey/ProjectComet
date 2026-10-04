@@ -19,6 +19,8 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
   - **Non-humanoid body plans are out of scope for player ancestries** (2026-10-04, adopted from an agent suggestion): all use two-armed, plantigrade humanoid bodies (no digitigrade legs or extra limbs). Monsters and companions are unaffected.
   - **How far proportions vary is decided with the ancestry designs** (project lead, 2026-10-04). Moderate differences share animations well; a very small or big-headed ancestry would need extra animation and fitting work or a variant skeleton.
 
+- **World tone: a bright, warm storybook baseline, with zones varying** (project lead, 2026-10-04): some zones go moody, eerie or harsh for contrast (marshes, ruins, dungeons). Crystal Chronicles is the lighting and mood reference.
+
 ## Considering
 
 - **Texturing: leaning towards a mix** (project lead, 2026-10-04, pending a better understanding of the tech and workflows): painted trim sheets (reusable strips of painted material detail) plus vertex-colour shading for environments and most outfits, and per-asset painting for faces, hero gear and showpiece outfits. Palette/gradient texturing (agent suggestion) was explained as the flatter, cheapest option. (The shared humanoid rig, suggested alongside it, is now decided above.)
@@ -45,5 +47,5 @@ Agent-drafted questions, in rough order:
 2. ~~What is each reference for?~~ Answered 2026-10-04 (see References).
 3. Texture approach: hand-painted low-res textures (PSO/Crystal Chronicles) or flat palette textures? Affects the cost of each outfit.
 4. ~~How far ancestries vary on one skeleton?~~ Answered 2026-10-04 (see Decided); proportions wait for ancestry designs. Still open: how outfits fit each body type and ancestry (separate meshes or blend shapes), best tested in a prototype.
-5. Environment and world tone: bright and storybook, moody, or varying by zone?
+5. ~~Environment and world tone?~~ Answered 2026-10-04 (see Decided).
 6. Rendering constraints from the seamless world (draw distance, LODs, fog or haze hiding streaming): should they shape the look? Overlaps with the parked zone-format details in `backend.md` (lighting, distant-zone LODs).
