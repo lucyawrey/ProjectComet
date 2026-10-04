@@ -20,6 +20,7 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
   - **How far proportions vary is decided with the ancestry designs** (project lead, 2026-10-04). Moderate differences share animations well; a very small or big-headed ancestry would need extra animation and fitting work or a variant skeleton.
 
 - **World tone: a bright, warm storybook baseline, with zones varying** (project lead, 2026-10-04): some zones go moody, eerie or harsh for contrast (marshes, ruins, dungeons). Crystal Chronicles is the lighting and mood reference.
+- **Fog and haze: a light touch** (project lead, 2026-10-04): mostly clear sightlines, with fog only where a zone's mood calls for it. Streaming and LOD changes therefore can't rely on fog to hide them, which puts more weight on distant-zone LODs (see the parked zone-format details in `backend.md`).
 
 ## Considering
 
@@ -48,4 +49,4 @@ Agent-drafted questions, in rough order:
 3. Texture approach: hand-painted low-res textures (PSO/Crystal Chronicles) or flat palette textures? Affects the cost of each outfit.
 4. ~~How far ancestries vary on one skeleton?~~ Answered 2026-10-04 (see Decided); proportions wait for ancestry designs. Still open: how outfits fit each body type and ancestry (separate meshes or blend shapes), best tested in a prototype.
 5. ~~Environment and world tone?~~ Answered 2026-10-04 (see Decided).
-6. Rendering constraints from the seamless world (draw distance, LODs, fog or haze hiding streaming): should they shape the look? Overlaps with the parked zone-format details in `backend.md` (lighting, distant-zone LODs).
+6. ~~Should rendering constraints shape the look?~~ Answered 2026-10-04 (fog and haze a light touch; see Decided). The technical side stays with the parked zone-format details in `backend.md`.
