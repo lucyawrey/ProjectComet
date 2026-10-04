@@ -8,10 +8,19 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
 - **Low-poly art.**
 - **World Runes from gear always match the character's visible appearance** (see `skills.md`, Outfit Magic).
 - **Crystals can change a character's base design** on top of their real base form (see `classes.md`).
+- **Low-poly characters with low-res textures** (project lead, 2026-10-04). The texturing technique is open (question 3).
+- **Cute, but not overly chibi** (project lead, 2026-10-04): mostly human proportions, even if not realistic.
+- **No character features are gender-locked** (project lead, 2026-10-04).
+- **Body types: feminine and masculine, and maybe androgynous** (project lead, 2026-10-04). Clothing may have feminine or masculine variants, but no clothing is restricted by body type.
+- **Ancestries will differ a lot, but we try to keep one humanoid skeleton for all player characters** (project lead, 2026-10-04).
 
 ## Considering
 
-- **Art techniques:** palette/gradient texturing and a shared humanoid rig (agent suggestions).
+- **Palette/gradient texturing** (agent suggestion; the project lead is interested, 2026-10-04). Discussed under question 3. (The shared humanoid rig, suggested alongside it, is now decided above.)
+
+## References
+
+Specific games, kept separate from decisions (project lead, 2026-10-04). From the project lead's notes: Phantasy Star Online, Crystal Chronicles and Signalis are the closest jumping-off points; FFXIV for the variety in character sizes, shapes and unique outfits, though slightly more high-res than wanted. What each is a reference for is still open (question 2).
 
 ## Open
 
@@ -19,9 +28,9 @@ Discussion started 2026-10-04; resume here. The project lead's notes (Quick Note
 
 Agent-drafted questions, in rough order:
 
-1. Which of the note points are decisions (non-gender-locked clothing and hair, more than two body types, no pixel filter)?
+1. ~~Which of the note points are decisions?~~ Answered 2026-10-04 (see Decided and References). Still open from it: the pixel filter (the notes say "probably" none).
 2. What is Signalis a reference for: texture resolution, lighting and UI, proportions, or tone?
 3. Texture approach: hand-painted low-res textures (PSO/Crystal Chronicles) or flat palette textures? Affects the cost of each outfit.
-4. Ancestries and body types: one shared rig (cheap, outfits fit everyone) or some separate rigs (more distinct, outfits need refitting)?
+4. Ancestries and body types: one skeleton is decided; still open is how far ancestries differ within it (proportions, extra parts such as tails, ears or wings) and how outfits fit each body type and ancestry.
 5. Environment and world tone: bright and storybook, moody, or varying by zone?
 6. Rendering constraints from the seamless world (draw distance, LODs, fog or haze hiding streaming): should they shape the look? Overlaps with the parked zone-format details in `backend.md` (lighting, distant-zone LODs).
