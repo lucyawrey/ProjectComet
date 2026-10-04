@@ -50,6 +50,12 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 - **Placed furniture positions live in a separate `item_placement` table** (one-to-one with `item`) (2026-10-04, adopted from an agent suggestion).
 - Constellations are content entries; direct trades are short-lived sessions ending in one transaction, with no table.
 
+### World and moderation (region database)
+
+- **An `instance` table is the placement record** for channels, dungeon and house instances (2026-10-04, adopted from an agent suggestion). Channel names are unique per zone among live instances (partial unique index on (zone, name) where not closed).
+- **Report chat is rows copied from the buffer** into `report_chat` when a report is made, deleted on resolution unless the report's `keep_evidence` flag is set (2026-10-04, adopted from an agent suggestion). A report's recent ledger movements and violations are looked up at review time, not copied.
+- **Automatic violations (`violation`) are kept like the ledger:** about 6 months, partitioned by month (2026-10-04, adopted from an agent suggestion). Named to avoid confusion with learned flags.
+
 ## Draft tables (agent proposals)
 
 ### Accounts and staff (account database)
@@ -122,6 +128,20 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 | `house` | id, owner (character or guild), zone | Housing and guild halls are instances. |
 | `item_placement` | item_id, position, rotation | Placed furniture. |
 
+### World and moderation (region database)
+
+| Table | Key columns | Notes |
+| --- | --- | --- |
+| `game_server` | id, address, status, capacity, heartbeat_at | Live game-server processes. |
+| `instance` | id, zone, kind (channel, dungeon, house), name, constellation, owner (party or house), game_server_id, status (starting, running, draining, closed), created_at, closed_at | Placement is one atomic write. |
+| `report` | id, reporter_id, reported_id, category, text, zone, instance, position, created_at, status, keep_evidence, resolved_at, resolved_by, outcome, sanction_id | History kept after its chat is deleted; `resolved_by` and `sanction_id` point into the account database as plain numbers. |
+| `report_chat` | report_id, at, sender, chat kind, text | |
+| `chat_buffer` | at, chat kind, sender, target, text | Hourly partitions, 24 hours. |
+| `violation` | id, character_id, kind, details (JSONB), at | Monthly partitions, about 6 months. |
+
 ## Open
 
-- Remaining areas (see the order above).
+- All areas have a first pass (2026-10-04). The project lead turns these into the final schema.
+- Quest state beyond flags (multi-step progress, counters) has no table yet.
+- Settings (account and character client settings, likely JSONB) have no table yet.
+- How the Region server watches `character_owner` for presence (PostgreSQL LISTEN/NOTIFY, logical replication, or polling) is open.
