@@ -69,6 +69,12 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
   Phase 2 proves the biggest risk (the seamless world) before content production.
 - **Budget: hosting costs only** (project lead, 2026-10-04); development budget is left to the team. Cost categories (adopted from an agent suggestion): game servers (most of it), Region server processes, PostgreSQL with backups, Valkey for larger regions, and CDN bandwidth for web client, asset and content downloads (every new browser player downloads them). *Placeholder: numbers after phase 0 (players per CPU core from the load test).*
 
+### Comparable games
+
+- **Comparables in the proposal** (project lead, 2026-10-04): Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
+- **Candidates to research before deciding** (project lead, 2026-10-04; the project lead doesn't know them personally): Albion Online (player-driven economy; looks like an interesting comparable), Brighter Shores, Mabinogi, TERA and Blue Protocol. A comparable-research pass is a todo.
+- *Placeholder: what makes this game different (project lead).*
+
 ## Considering
 
 ## Open
