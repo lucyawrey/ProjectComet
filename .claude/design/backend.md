@@ -12,6 +12,9 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
   - **Region server** (renamed from Data Center): one per region and the only process that talks to PostgreSQL. Also owns everything that spans shards: shard and instance placement and lifecycle, parties, guilds, friends, chat routing, and the cross-shard economy (market, mail, trades between shards). Split pieces out only if load forces it.
   - **Game servers:** live simulation and in-memory state of one or more shards or dungeon instances. They load a character from the Region server on arrival and send changes back through it.
   - PostgreSQL and a static host for the web client and streamed assets sit alongside these.
+- **Seamless handoff: pre-warm + delta** (2026-10-04). When the client starts listening across a border, the new game server preloads the character from the Region server (the same path as login). At the crossing only the live-state delta moves. Items and currency never travel in a handoff because they're already persisted.
+- **The Region server owns the character-ownership record** (2026-10-04): the old game server freezes the character, the Region server flips ownership, the new game server activates it. A crash on either side is resolved from that one record.
+- **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro, and a skill in progress (see Open).
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate transactions through the Region server, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
@@ -36,7 +39,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Seamless handoff between game servers.** Albion hands off through the database behind a loading screen; we can't. How does a character move between game servers without a visible pause?
+- **Skill in progress at a border:** it doesn't carry over, so does crossing cancel it, or does the handoff wait until it finishes? (Agent suggestion: delay the handoff, since it already happens a few metres past the line.)
 
 ## Research (2026-10-04)
 

@@ -46,7 +46,7 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | `unlockables.md` | Unlockables as flags, attunements, Anima Capacity | Done |
 | `netcode.md` | Adopted netcode approach | Done |
 | `art.md` | Art direction (not yet discussed) | Not started |
-| `backend.md` | Engine, backend options, research on real MMO backends, data-model suggestions | In progress: handoff next |
+| `backend.md` | Engine, backend options, research on real MMO backends, data-model suggestions | In progress |
 
 ## Risks
 
@@ -79,5 +79,5 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 ## Next steps
 
 1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts, items, companions and unlockables are done** (see `.claude/design/`); everything will likely be reviewed again later. Gameplay is paused for backend architecture (2026-10-04); resume gameplay with aesthetic. Remaining area after that: database tables.
-2. Backend architecture: research is done (see `backend.md`); service map, naming (Login server, Region server, game servers) and persistence are decided. Next: seamless handoff between game servers.
+2. Backend architecture: research is done (see `backend.md`); service map, naming (Login server, Region server, game servers) and persistence are decided. Seamless handoff is decided too.
 3. Agree on the doc structure, then write human-readable docs.
