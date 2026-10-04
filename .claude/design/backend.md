@@ -16,7 +16,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Seamless handoff: pre-warm + delta** (2026-10-04). When the client starts listening across a border, the new game server preloads the character from the database (the same path as login). At the crossing only the live-state delta moves. Items and currency never travel in a handoff because they're already persisted.
 - **Character ownership is a versioned database row** (2026-10-04). At handoff the old game server freezes the character, then the new one claims it atomically (`UPDATE … SET owner = new, version = v + 1 WHERE version = v`). Every character write carries the version its server holds, so late writes from the old server fail (fencing). The Region server subscribes to ownership changes for presence (placement, parties, chat routing) but isn't on the handoff path.
 - **The live-state delta travels directly** from the old game server to the new one (2026-10-04).
-- **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro, and a skill in progress (see Open).
+- **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
@@ -41,7 +41,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Skill in progress at a border:** it doesn't carry over, so does crossing cancel it, or does the handoff wait until it finishes? (Agent suggestion: delay the handoff, since it already happens a few metres past the line.)
+- **Transport:** WebTransport vs WebSocket for the browser, UDP for desktop, and whether to write our own Unity bridge (in discussion).
 
 ## Research (2026-10-04)
 
