@@ -16,6 +16,13 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 - **Staff roles can be scoped to one region or to all regions** (2026-10-04, adopted from an agent suggestion).
 - **Character select queries the region databases** (2026-10-04, adopted from an agent suggestion): the Login server asks each region database for the account's characters through the Data library, with no copied directory. A region that's down shows as unavailable.
 
+### Characters (region database)
+
+- **Character data is split by how often it changes** (2026-10-04, adopted from an agent suggestion): identity, status, ownership and progress are separate tables, so periodic saves and ownership claims only rewrite small rows (PostgreSQL writes a new row version on every update).
+- **Anima is stored as an amount plus a timestamp** (2026-10-04, adopted from an agent suggestion); regeneration is computed when it's read or spent. Works whether or not Anima builds up offline (open in `classes.md`).
+- **Character names are unique per region, ignoring case** (2026-10-04, adopted from an agent suggestion). **Soft-deleted characters hold their name for a retention period** before it's freed. Names can contain spaces, which count for uniqueness: trimmed, with no leading or trailing spaces and at most one space between words; length limits apply (project lead).
+- **Base appearance is one JSONB document per character** (2026-10-04, adopted from an agent suggestion). Crystal appearance overrides belong to the classes area.
+
 ## Draft tables (agent proposals)
 
 ### Accounts and staff (account database)
@@ -30,6 +37,17 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 | `moderator_action` | id, actor_account_id, action, target, region_id, details (JSONB), at | The moderator action log; append-only. |
 | `pending_approval` | id, action, requested_by, approved_by, status | Configurable two-person rule. |
 | `region` | id, name, endpoints, status | Region list handed out by the Login server. |
+
+### Characters (region database)
+
+| Table | Key columns | Notes |
+| --- | --- | --- |
+| `character` | id, account_id, name, created_at, ancestry (content number), body_type, constellation (nullable), constellation_hidden, deleted_at | Identity; rarely changes. |
+| `character_appearance` | character_id, appearance (JSONB) | Base form, read as a whole. |
+| `character_status` | character_id, equipped_crystal_id, zone, instance, position, facing, hp, buffs (JSONB), cooldowns (JSONB), saved_at | Saved periodically and on handoff. |
+| `character_owner` | character_id, game_server_id, instance_id, version, claimed_at | Versioned ownership row (handoff and fencing); the Region server watches it for presence. |
+| `character_progress` | character_id, soul_xp, anima, anima_updated_at, anima_capacity | Immediate transactions. |
+| `anima_hold` | id, character_id, instance_id, amount, created_at, status | Escrow for locked content. |
 
 ## Open
 
