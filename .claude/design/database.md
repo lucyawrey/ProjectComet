@@ -42,6 +42,14 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 - **Companion cosmetic gear is items located on the companion** (`location = companion`, `container_id` = the companion) (2026-10-04, adopted from an agent suggestion), so trading, dyes and the ledger work unchanged.
 - **One ledger covers items and companions** (2026-10-04, adopted from an agent suggestion), with an entity-kind column.
 
+### Social, market and housing (region database)
+
+- **Friendships are mutual, with requests** (2026-10-04, adopted from an agent suggestion). Friends affect channel placement, so both sides consent.
+- **One primary guild per character is enforced by a partial unique index** on primary memberships; guild ranks are a per-guild table with permission flags (2026-10-04, adopted from an agent suggestion).
+- **The market plans on one currency, but listings store a currency type plus amount** so any currency stays possible (project lead, 2026-10-04).
+- **Placed furniture positions live in a separate `item_placement` table** (one-to-one with `item`) (2026-10-04, adopted from an agent suggestion).
+- Constellations are content entries; direct trades are short-lived sessions ending in one transaction, with no table.
+
 ## Draft tables (agent proposals)
 
 ### Accounts and staff (account database)
@@ -98,6 +106,21 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 | `auto_craft_unlock` | character_id, item_type, unlocked_at | Fast crafting unlocked at the quality threshold. |
 | `gathering_node_use` | character_id, node, used_at | Per-player nodes; could expire like the chat buffer. |
 | `companion` | id, species, kind, name, holder_character_id, location (active, carried, stabled), slot, soulbound_to, xp, dye (JSONB), released_at | Mirrors `item`. |
+
+### Social, market and housing (region database)
+
+| Table | Key columns | Notes |
+| --- | --- | --- |
+| `friendship` / `friend_request` | character pair, created_at | Mutual. |
+| `block` | character_id, blocked_id | Also feeds moderator conflict-of-interest checks. |
+| `guild` | id, name (unique per region), leader_id, created_at | |
+| `guild_rank` | guild_id, rank, name, permissions | |
+| `guild_member` | guild_id, character_id, rank, joined_at, is_primary | Partial unique index: one primary per character. |
+| `party` / `party_member` | party id, leader; character_id (unique) | One party at a time. |
+| `mail` | id, from (null = system), to, subject, body, sent_at, read_at, expires_at | Attachments are items with `location = mail`. |
+| `market_listing` | id, seller_id, item_id, price_type, price_amount, listed_at, expires_at | Sales go to the ledger. |
+| `house` | id, owner (character or guild), zone | Housing and guild halls are instances. |
+| `item_placement` | item_id, position, rotation | Placed furniture. |
 
 ## Open
 

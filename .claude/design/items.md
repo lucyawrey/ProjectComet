@@ -109,6 +109,8 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 ## Open
 
+- **Untradeable currencies are wanted** (project lead, 2026-10-04). They fit the existing Untradeable tier, which makes every instance soulbound; how soulbound rules (dropping, handing back, recall) apply to currency stacks is open.
+
 - **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
 - **Re-obtaining cost** (intentionally undecided): free, or a fee at the NPC.
 - **Remaining item/flag boundaries (agent lean, not discussed):**
