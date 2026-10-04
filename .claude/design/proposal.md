@@ -39,6 +39,36 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 - **Platforms** (project lead, 2026-10-04): desktop browsers (the main goal) and a desktop app. Mobile browsers and consoles are not targeted.
 - **Sessions: short and long** (2026-10-04, adopted from an agent suggestion): meaningful progress in 15–30 minutes (crafting, gathering, a quick dungeon), with longer sessions for raids and events.
 
+### Scope, team, roadmap and budget
+
+- **Team: the proposal lists roles needed, not people** (project lead, 2026-10-04). Roles (adopted from an agent draft, with the project lead's correction; in a small team one person covers several):
+
+  | Area | Roles |
+  | --- | --- |
+  | Programming | Unity client and gameplay; server and networking; tools (zone editor, content build, admin panel) |
+  | Art | Low-poly character artist (modelling and texturing); environment artist; animator for the shared skeleton |
+  | Design | Systems and economy designer; combat and boss-encounter designer; UI/UX designer |
+  | Writing | Narrative and quest writer (human-written content only) |
+  | Audio | Composer and sound designer (later) |
+  | Community | Community manager and moderation lead (coordinates volunteer moderators) |
+  | QA | Testing and playtesting |
+  | Operations | Deployments, databases, monitoring (the project lead's strength) |
+
+- **Roadmap: phases with goals and exit criteria, no dates** (2026-10-04, adopted from an agent draft):
+
+  | Phase | Goal | Done when |
+  | --- | --- | --- |
+  | 0. Prototypes | Two-stage load test; shared source packages in Unity; TOML 1.1 editor support; texture filtering comparison | The load test meets thresholds written down beforehand |
+  | 1. Vertical slice | One zone, core loop, 100+ bots, simulated latency (the decided first milestone) | The core loop is fun under latency and performance meets thresholds |
+  | 2. Seamless-world proof | Two or more zones with border handoff, channels, a dungeon instance, a teleport | Crossing borders is invisible under simulated latency |
+  | 3. Closed alpha | The early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
+  | 4. Open beta | Early part complete, late part in progress, membership and bonds, ops tooling | Scale and economy hold up with a real population |
+  | 5. Launch | Early part (free) and late part (members) | |
+  | 6. Expansions | New parts; free players move up a part | |
+
+  Phase 2 proves the biggest risk (the seamless world) before content production.
+- **Budget: hosting costs only** (project lead, 2026-10-04); development budget is left to the team. Cost categories (adopted from an agent suggestion): game servers (most of it), Region server processes, PostgreSQL with backups, Valkey for larger regions, and CDN bandwidth for web client, asset and content downloads (every new browser player downloads them). *Placeholder: numbers after phase 0 (players per CPU core from the load test).*
+
 ## Considering
 
 ## Open
