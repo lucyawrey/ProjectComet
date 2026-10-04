@@ -17,7 +17,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Character ownership is a versioned database row** (2026-10-04). At handoff the old game server freezes the character, then the new one claims it atomically (`UPDATE … SET owner = new, version = v + 1 WHERE version = v`). Every character write carries the version its server holds, so late writes from the old server fail (fencing). The Region server subscribes to ownership changes for presence (placement, parties, chat routing) but isn't on the handoff path.
 - **The live-state delta travels directly** from the old game server to the new one (2026-10-04).
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
-- **Bot load tests use both transports** (2026-10-04): bots on the browser transport too, with simulated loss, so its problems show up early.
+- **Bot load tests include the browser transport** (2026-10-04): some bots use whatever transport web clients use, with simulated loss, so its problems show up early. (The transport itself is still open.)
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
