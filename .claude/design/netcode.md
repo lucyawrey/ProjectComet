@@ -17,6 +17,11 @@ Agent notes on networking. These were agent suggestions adopted by the project l
 - **Three message kinds** (2026-10-04): client *inputs*; server *events* (skill started, damage, spawns, items), never dropped or merged; server *state* (positions, HP), latest-only, so a newer update replaces an unsent older one in the send queue.
 - **Entity replication: spawn, field deltas, despawn** (2026-10-04): full state when an entity becomes visible to a client, then only changed fields, then a despawn.
 
+- **State send rate: priority accumulator, capped at 30 Hz** (2026-10-04). Each tick, every entity a client can see adds its priority (distance, threat, party membership…) to a running score; the server sends the highest scores that fit the client's budget and resets them. The cap is one update per tick (30 Hz, the simulation rate). Events go out every tick regardless. Prior art: Unreal's per-actor update frequency and Replication Graph, the Tribes/Torque networking model, Halo: Reach's prioritisation, Glenn Fiedler's priority accumulator (from memory, not verified).
+- **Grid interest management with a per-client budget** (2026-10-04): zones are split into cells of a few dozen metres (size tuned in the prototype); a client sees entities in its own and the surrounding cells; the priority accumulator fills its send budget. The client-side display cap draws cheap placeholders (or nothing) past the cap.
+- **Clients track the server tick** (2026-10-04): regular pings estimate the current server tick; inputs and events are stamped with ticks, so dodge grace and hit validation compare ticks rather than arrival times.
+- **Reconnect is a fresh snapshot** (2026-10-04): no resuming the stream; a reconnecting client gets full state for everything in view, the same path as entering a zone.
+
 ## Considering
 
 - **Techniques for WebSocket as the worst case (agent suggestions, 2026-10-04):** server send queues that keep only the latest state (superseded position updates are replaced, not queued); clients jump to the latest state after a stall instead of replaying; the server accepts timestamped inputs arriving in bursts, within limits; ~100–150 ms interpolation buffers for other players; `TCP_NODELAY` on the server.
