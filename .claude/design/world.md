@@ -15,6 +15,7 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 - **Teleport scene** (2026-10-04): a fixed-length scene where the player's soul travels along the leylines on the world map to the destination. If the destination hasn't finished loading when the travel animation ends (likely on web), the soul pulses at the destination on the map until it has. It hides loading; its details are gameplay design, not backend (handoff in `backend.md`).
 - **Teleport casts can be cancelled, and teleporting in combat is allowed** (2026-10-04), but cast times are long enough that trying it mid-fight will usually get you killed.
 - **Dungeon loading rooms** (2026-10-04): the whole party has to be physically present (in the spirit of classic MMOs). Once the whole party is in the loading room and one member steps into the dungeon proper, the loading room's entrance closes and the dungeon starts. Everyone else still walks in on their own.
+- **Loading rooms need not look like rooms** (2026-10-04): they can appear to be part of the open world (a mountain top, a grove past a narrow gap in the trees). Their static scenery may show up in open-world LODs, but players and other live entities are only synced across the official entrance, never across the rest of the room's edge.
 - **Vehicles:** boats and airships cross zones on fixed routes. The only player-steered vehicles are 2–4 seat mounts with near-normal movement. Vehicles and their riders cross borders as one group.
 
 ## Considering
