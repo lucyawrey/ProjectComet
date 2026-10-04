@@ -82,4 +82,5 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 
 1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts, items, companions and unlockables are done** (see `.claude/design/`); everything will likely be reviewed again later. Gameplay is paused for backend architecture (2026-10-04); resume gameplay with aesthetic. Remaining area after that: database tables.
 2. Backend architecture (see `backend.md`): research, service map, persistence, handoff, transport, library stack, the two-stage load test, shared libraries (Protocol, Content, Simulation, Data), content as files in git, and an engine-neutral zone format are decided. Remaining topics: teleports and instances, Region server scaling, the game-server message layer, ops tooling, and the parked zone-format and content-file details.
-3. Agree on the doc structure, then write human-readable docs.
+3. **Todo:** find open-source or royalty-free low-poly assets for prototypes. They must be human-made (no AI-generated assets): check each pack's licence and authorship. Starting points to check: Kenney, Quaternius and KayKit (CC0 packs), Poly Pizza and OpenGameArt (mixed licences, check per asset).
+4. Agree on the doc structure, then write human-readable docs.
