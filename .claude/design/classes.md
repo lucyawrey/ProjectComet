@@ -27,7 +27,9 @@ Agent notes on classes, crystals, XP and Anima. Decisions made with the project 
 - **Swap casts can be interrupted.**
 - **Promotion tree:** the system allows a class to have multiple parents, even if class design never uses it.
 - **XP:** all XP goes to the equipped class. Overflow from a maxed class or a maxed craft becomes Soul XP. An unlockable toggle may send XP to Soul instead of a non-maxed class. No percentage splits; Freelancer no longer takes an automatic share.
-- **Names:** Soul Experience grows your soul in size and power. "Class promotion" for classes; "Soul Ascension" for soul milestones (which may upgrade Anima Capacity and skill slots together, though they stay separate concepts).
+- **Names:** Soul Experience grows your soul in size and power. "Class promotion" for classes.
+- **Soul XP is a spendable currency**, spent on class promotions and other permanent unlocks. **Soul Ascension (soul milestones) is dropped.**
+  - **Everything bought with Soul XP is permanent:** a character unlock or a soulbound item, never something that can be consumed, thrown away or traded.
 - **Anima** is the magic of your soul: an energy resource gained over time and from rare items and quests, never purchasable with real money. Anima Capacity is how much you can store. It doesn't discourage playing; it encourages playing in certain ways by centralising gates MMOs already have:
   - Teleports (to encourage natural travel). An emergency teleport to the nearest safe zone works even at zero Anima.
   - Crystals (to encourage specialisation).

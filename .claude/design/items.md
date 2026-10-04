@@ -55,6 +55,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Things are items; knowledge is a flag** (adopted from an agent suggestion):
   - **Items:** gear and outfits (actual pieces), materials, consumables, Class Crystals, rune stones, bags.
   - **Learned flags** (character-wide unlocks): e.g. hairstyles, dyes, recipes, Rune unlocks, emotes. Usually unlocked by consuming an item, which stays tradeable until someone learns it.
+  - **Unlockables are learned flags too** (e.g. Flight and Teleportation Attunements), not a separate progression system.
   - **Companions** are their own system (see notes; not yet discussed).
   - Outfits stay real items, partly because unlocked outfits would become free, permanent sources of World Runes.
 - **Three separate data concepts:** items, learned flags, and an **item collection log** (records items a character has obtained). The collection UI can show flags and the item collection log together.

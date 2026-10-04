@@ -37,6 +37,10 @@ Agent notes on the skill system. Decisions made with the project lead on 2026-10
   - No extra limit for now. A player unbinding most of their core kit to play like Freelancer (which generally has fewer Battle rune slots) is fine. Add a limit later if the game becomes a mess.
 - **The shape-based grid idea is dropped.**
 
+## Considering
+
+- **Skill slots may depend on class level** rather than being unlocked separately.
+
 ## Open
 
 - Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.

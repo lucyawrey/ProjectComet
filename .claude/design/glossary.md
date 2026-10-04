@@ -11,8 +11,7 @@ Working terms agreed with the project lead (2026-10-03). Terminology may change 
 | **Freelancer** | Root of the promotion tree; no core kit, so every primary slot is flex. |
 | **Class promotion** | Converting a crystal to a higher-tier class. |
 | **Loadout** | A per-character saved skill setup, assigned to a crystal. |
-| **Soul Experience (Soul XP)** | XP that grows your soul; overflow from maxed classes and crafts. |
-| **Soul Ascension** | A soul milestone (may upgrade Anima Capacity and slots together). |
+| **Soul Experience (Soul XP)** | A spendable XP currency: overflow from maxed classes and crafts, spent on promotions and permanent unlocks. |
 | **Anima / Anima Capacity** | The magic of your soul: an energy resource gained over time, spent on teleports, crystals and locked content. Capacity is how much you can store. Never sold for real money. |
 | **Skills** | Primary actions: ~10 slots, a designer-made core kit plus flex slots. Jump, crouch, dodge and sprint are class Skills on dedicated controls. |
 | **Core kit / core slot** | A class's locked Skills. Core slots may be typed or untyped. |
