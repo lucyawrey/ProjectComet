@@ -15,6 +15,9 @@ Agent notes on art direction. Not yet discussed in detail; the project lead's no
 - **No character features are gender-locked** (project lead, 2026-10-04).
 - **Body types: feminine and masculine, and maybe androgynous** (project lead, 2026-10-04). Clothing may have feminine or masculine variants, but no clothing is restricted by body type.
 - **Ancestries will differ a lot, but we try to keep one humanoid skeleton for all player characters** (project lead, 2026-10-04).
+  - **Extra parts are optional extra bones on the shared skeleton** (2026-10-04, adopted from an agent suggestion): tails, long ears, wings and horns, ignored by ancestries without them and moved by simple physics or extra animations. Outfits account for them (e.g. tail holes).
+  - **Non-humanoid body plans are out of scope for player ancestries** (2026-10-04, adopted from an agent suggestion): all use two-armed, plantigrade humanoid bodies (no digitigrade legs or extra limbs). Monsters and companions are unaffected.
+  - **How far proportions vary is decided with the ancestry designs** (project lead, 2026-10-04). Moderate differences share animations well; a very small or big-headed ancestry would need extra animation and fitting work or a variant skeleton.
 
 ## Considering
 
@@ -41,6 +44,6 @@ Agent-drafted questions, in rough order:
 1. ~~Which of the note points are decisions?~~ Answered 2026-10-04 (see Decided and References).
 2. ~~What is each reference for?~~ Answered 2026-10-04 (see References).
 3. Texture approach: hand-painted low-res textures (PSO/Crystal Chronicles) or flat palette textures? Affects the cost of each outfit.
-4. Ancestries and body types: one skeleton is decided; still open is how far ancestries differ within it (proportions, extra parts such as tails, ears or wings) and how outfits fit each body type and ancestry.
+4. ~~How far ancestries vary on one skeleton?~~ Answered 2026-10-04 (see Decided); proportions wait for ancestry designs. Still open: how outfits fit each body type and ancestry (separate meshes or blend shapes), best tested in a prototype.
 5. Environment and world tone: bright and storybook, moody, or varying by zone?
 6. Rendering constraints from the seamless world (draw distance, LODs, fog or haze hiding streaming): should they shape the look? Overlaps with the parked zone-format details in `backend.md` (lighting, distant-zone LODs).
