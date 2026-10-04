@@ -26,7 +26,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Action combat, not tab-target.** Skills have real hitboxes; there's an optional lock-on. Should be more forgiving of latency than an FPS. (Detailed design in the project lead's notes: 2D hitboxes with "height zones".)
 - **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Zone shards and dungeon instances still exist on the server side; only teleportation hides loading.
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
-- **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#.
+- **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#. Netcode is designed for WebSocket, and all clients start on it.
 - **First milestone (adopted from an agent suggestion):** a vertical slice with one zone, the core loop, bot clients load-testing 100+ simulated players, and simulated latency from day one.
 
 ## Design notes by topic
@@ -79,5 +79,5 @@ The archive branches are abandoned, but any of them can be mined for ideas: data
 ## Next steps
 
 1. Go through the notes together, one area at a time. **Combat, world structure, classes, skills, crafts, items, companions and unlockables are done** (see `.claude/design/`); everything will likely be reviewed again later. Gameplay is paused for backend architecture (2026-10-04); resume gameplay with aesthetic. Remaining area after that: database tables.
-2. Backend architecture: research is done (see `backend.md`); service map, naming (Login server, Region server, game servers) and persistence are decided. Seamless handoff is decided too.
+2. Backend architecture: research is done (see `backend.md`); service map, naming (Login server, Region server, game servers) and persistence are decided. Seamless handoff and transport (WebSocket first) are decided too.
 3. Agree on the doc structure, then write human-readable docs.

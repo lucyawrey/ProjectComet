@@ -15,4 +15,6 @@ Agent notes on networking. These were agent suggestions adopted by the project l
 
 ## Considering
 
+- **Techniques for WebSocket as the worst case (agent suggestions, 2026-10-04):** server send queues that keep only the latest state (superseded position updates are replaced, not queued); clients jump to the latest state after a stall instead of replaying; the server accepts timestamped inputs arriving in bursts, within limits; ~100–150 ms interpolation buffers for other players; `TCP_NODELAY` on the server.
+
 - **Context for the 100-player boss:** sending full state 30 times a second to 100 players would be roughly 0.5 Mbps down per player and ~50 Mbps up from the server. Event-based actions, relevance prioritisation and display caps are how this gets cut down.

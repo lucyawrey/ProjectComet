@@ -17,7 +17,9 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Character ownership is a versioned database row** (2026-10-04). At handoff the old game server freezes the character, then the new one claims it atomically (`UPDATE … SET owner = new, version = v + 1 WHERE version = v`). Every character write carries the version its server holds, so late writes from the old server fail (fencing). The Region server subscribes to ownership changes for presence (placement, parties, chat routing) but isn't on the handoff path.
 - **The live-state delta travels directly** from the old game server to the new one (2026-10-04).
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
-- **Bot load tests include the browser transport** (2026-10-04): some bots use whatever transport web clients use, with simulated loss, so its problems show up early. (The transport itself is still open.)
+- **Netcode is designed for WebSocket as the worst case** (2026-10-04). WebTransport would need a WebSocket fallback anyway (some networks block UDP), so the game must play acceptably over TCP; better transports only make hiccups rarer.
+- **All clients start on WebSocket** (2026-10-04), desktop included: one code path to build and load-test. UDP for desktop and WebTransport for web are possible later upgrades behind one transport interface, added only if load tests show stalls hurt.
+- **Bot load tests run over WebSocket with simulated packet loss** (2026-10-04), so TCP stalls show up early.
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
@@ -42,7 +44,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Networking library (in discussion), then transport.** Pick the library first, since libraries bring their own transports. Candidates that run as plain .NET servers: LiteNetLib, Riptide, MagicOnion, DarkRift 2 (and the proprietary Photon Server SDK). Agent findings: Kestrel's WebTransport is still experimental in .NET 10 and lacks datagrams; LiteNetLib (reliable UDP, .NET Standard 2.1, works in Unity and plain .NET, built-in loss/latency simulation) has no web transport; WebSocket works today on both sides.
+- **WebSocket stack details:** server side is likely ASP.NET Core (Kestrel) WebSockets; client side needs a `.jslib` bridge on web (or a package such as NativeWebSocket) and a native socket on desktop. Our own message layer sits on top; LiteEntitySystem's source is a possible reference.
+- **WebTransport upgrade paths (for later):** (1) Kestrel's experimental WebTransport using independent streams instead of datagrams (pure C#; preview feature); (2) our own WebTransport handshake on MsQuic via its C# interop (gets datagrams; protocol work); (3) wrap libwtf (MIT, C, on MsQuic); (4) wait for the open `System.Net.Quic` datagram API proposal. A Go/Rust proxy is ruled out by the C#-only rule. WebTransport's `serverCertificateHashes` might let private servers skip a domain and certificate for game traffic (unverified).
 - **FishMMO** (https://www.fishmmo.com/): an open-source (MIT) MMO template on FishNet + Unity with Login, World and Scene servers, close to our Login/Region/game split. Not a base (no shipped games, not very actively developed), but a good reference codebase. FishNet itself is the fallback if we go back to headless Unity.
 
 ## Research (2026-10-04)
