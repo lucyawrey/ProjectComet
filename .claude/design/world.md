@@ -41,4 +41,6 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 
 ## Open
 
+- **Is "layer" a good name?** The project lead wants to revisit it (2026-10-04): it may be confused with WoW's layering, which players disliked.
+- **Ground items when a layer is merged away:** vanish as on a layer restart, or carry over to the destination layer.
 - **How a replacement player gets into a started dungeon** once the loading room's entrance has closed (perhaps via an unstable teleport station).
