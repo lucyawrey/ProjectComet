@@ -5,7 +5,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 ## Decided
 
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
-- **Unity is the engine** (decided 2026-10-04; *under reconsideration*, see Considering). Web export is a main project goal (classic in-browser MMO play), and Unity is the only engine where that isn't difficult or too limited.
+- **Unity is the engine** (decided 2026-10-04; reaffirmed the same day). Web export is a main project goal (classic in-browser MMO play), and Unity is the only engine where that isn't difficult or too limited.
 - **No headless Unity server and no Unity networking package (Mirror, FishNet, Netcode…) for now** (2026-10-04). The server is plain .NET using a message-level library. Fallback if rolling our own proves too hard: FishNet with headless Unity servers (FishNet seems to scale well).
 - **Three-part service map** (2026-10-04, for approach A):
   - **Login server** (renamed from Gateway): public HTTP. Accounts, auth, character select, signed tickets for joining a game server or listening across a border. Clients connect to game servers directly; the Login server doesn't relay game traffic.
@@ -17,15 +17,15 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Character ownership is a versioned database row** (2026-10-04). At handoff the old game server freezes the character, then the new one claims it atomically (`UPDATE … SET owner = new, version = v + 1 WHERE version = v`). Every character write carries the version its server holds, so late writes from the old server fail (fencing). The Region server subscribes to ownership changes for presence (placement, parties, chat routing) but isn't on the handoff path.
 - **The live-state delta travels directly** from the old game server to the new one (2026-10-04).
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
-- **Netcode is designed for WebSocket as the worst case** (2026-10-04; *under reconsideration*, see Considering). WebTransport would need a WebSocket fallback anyway (some networks block UDP), so the game must play acceptably over TCP; better transports only make hiccups rarer.
-- **All clients start on WebSocket** (2026-10-04; *under reconsideration*), desktop included: one code path to build and load-test. UDP for desktop and WebTransport for web are possible later upgrades behind one transport interface, added only if load tests show stalls hurt.
+- **Netcode is designed for WebSocket as the worst case** (2026-10-04). WebTransport would need a WebSocket fallback anyway (some networks block UDP), so the game must play acceptably over TCP; better transports only make hiccups rarer.
+- **All clients start on WebSocket** (2026-10-04), desktop included: one code path to build and load-test. UDP for desktop and WebTransport for web are possible later upgrades behind one transport interface, added only if load tests show stalls hurt.
 - **Bot load tests run over the baseline transport (currently WebSocket) with simulated packet loss** (2026-10-04), so TCP stalls show up early.
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
 ## Considering
 
-- **Desktop first, web later (project lead's current lean, 2026-10-04).** Design netcode for UDP and launch on desktop; web becomes a later target via WebTransport, with WebSocket as a degraded-but-playable fallback rather than the design target. Reasons: netcode quality, browser complexity for a small team, in-browser play matters less than it did, and a wish to reopen the engine question. If adopted, it replaces the WebSocket-first decisions above. Tension to resolve: keeping web as a later goal is what keeps Unity the natural choice, while reopening the engine (e.g. Godot with C#, whose gap was web export) points the other way.
+- **Dropping web was considered and rejected (2026-10-04).** The project lead weighed desktop-first with UDP (for netcode quality, less browser complexity, and engine freedom) but kept web as a main goal: in-browser play, in the spirit of RuneScape's Java-applet days, is the project's main appeal right now.
 - **Game server:** likely a pure C# server, sharing a simulation library with the Unity client and bot clients (project lead, 2026-10-04).
 - **Current planning focus is approach A** (custom .NET stack); SpacetimeDB is still under consideration.
 - **Self-hosting (agent suggestion):** a private server runs all three parts in one process, with Region server calls becoming plain method calls, plus PostgreSQL and a reverse proxy that handles TLS automatically (e.g. Caddy), shipped as one docker-compose file.

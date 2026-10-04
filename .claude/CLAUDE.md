@@ -26,7 +26,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Action combat, not tab-target.** Skills have real hitboxes; there's an optional lock-on. Should be more forgiving of latency than an FPS. (Detailed design in the project lead's notes: 2D hitboxes with "height zones".)
 - **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Zone shards and dungeon instances still exist on the server side; only teleportation hides loading.
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
-- **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#. Netcode is designed for WebSocket, and all clients start on it. *Under reconsideration (2026-10-04): leaning towards desktop first with UDP and web later, which may reopen the engine choice; see `backend.md`.*
+- **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#. Netcode is designed for WebSocket, and all clients start on it. Dropping web was considered and rejected: browser play (think RuneScape's Java-applet days) is the project's main appeal.
 - **First milestone (adopted from an agent suggestion):** a vertical slice with one zone, the core loop, bot clients load-testing 100+ simulated players, and simulated latency from day one.
 
 ## Design notes by topic
