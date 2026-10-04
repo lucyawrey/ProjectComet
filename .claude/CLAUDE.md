@@ -14,6 +14,8 @@ Handoff notes for agent sessions on Project Comet. Last updated 2026-10-04.
 
 Planning only. Don't hash out precise UI and control details yet. Multiple characters per account will exist, but this design phase ignores multi-character flows for simplicity. The project lead is drafting plans for fun, and eventually to present to a small indie team they've joined. No hiring, no development yet.
 
+The goal of the whole project is a proposal, not a game. Even so, the project lead may want to actually build small vertical prototypes (for example, the two-stage 100-player load test in `backend.md`). Planning work should keep that in mind; don't start building anything without discussing it first.
+
 ## Project lead
 
 Experienced web developer with shipped production apps; strong in deployments, orchestration and database design. Hobbyist game developer with little experience in real-time game networking. C# / .NET is the only language they're confident maintaining a critical backend in.
