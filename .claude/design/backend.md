@@ -79,8 +79,9 @@ From search summaries; verify before relying on them.
 
 | Library | Level | Web support | Status |
 | --- | --- | --- | --- |
-| **LiteNetLib** | Reliable UDP transport | None (UDP only) | Active: v2.1.4, May 2026. Used in 7 Days to Die. Built-in loss/latency simulation. |
+| **LiteNetLib** | Reliable UDP transport | None (UDP only) | Active: v2.1.4, May 2026. Largest known user is 7 Days to Die (co-op survival, small servers); otherwise mostly mods (Nitrox, Cities: Skylines, RimWorld). No MMO found. Built-in loss/latency simulation. |
 | **LiteEntitySystem** (same author) | High-level: entities, synced variables, RPCs, client prediction, lag compensation, delta-compressed state | Custom transports supported, so a WebSocket transport could be written | Engine-agnostic (Unity, Godot, plain .NET). Aimed at fast-paced shooters and action RPGs. Unknown: interest management at MMO scale, licence. |
 | **Riptide** | Message layer over UDP (TCP fallback) | None ("no web transport") | Maintained: v2.2.x. |
 | **MagicOnion** (Cysharp) | RPC plus real-time StreamingHub over gRPC | Poor: gRPC needs HTTP/2 framing that browsers don't expose; WebGL builds have open issues | Active. Better fit for HTTP APIs than real-time play. |
+| **Photon Server** | Reliable UDP (ENet-based), TCP and WebSocket; C# server SDK | Yes (WebSocket) | Proprietary, licensed. The only C# stack found proven at MMO scale (Albion). |
 | **DarkRift 2** | Message layer with a standalone server | Unclear | Community-maintained; last repo update January 2024. |
