@@ -4,6 +4,8 @@ Agent notes on combat design. Decisions made with the project lead on 2026-10-03
 
 ## Decided
 
+- **Feel** (project lead, 2026-10-04): action combat should feel a little like ARPGs and a little like tab-target games, but be extremely approachable for casual players.
+
 - **PvE only for the first major version.** No PvP system is planned, so no PvP netcode.
 - **Every class can dodge, but invulnerability varies by class and skill.** Defenders have invulnerability levels (none / dodge / a rarer "true" invuln); attacks have pierce levels, and some attacks hit through normal invuln.
 - **Height zones are separate from invulnerability.** Zones (digging, crouching, standing, jumping, flying) are vertical position; invulnerability is defensive state. Both feed one shared "is this hit valid?" check.

@@ -50,6 +50,7 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | `netcode.md` | Adopted netcode approach | Done |
 | `art.md` | Art direction, references | Done; texture approach leaning, a few prototype questions |
 | `database.md` | Table designs per area (the project lead decides the final schema) | First pass done for all areas; the project lead writes the final schema |
+| `proposal.md` | Vision, pillars, business model, audience, scope and other proposal-level topics | In progress (started 2026-10-04) |
 | `backend.md` | Engine, backend options, research on real MMO backends, data-model suggestions | In progress |
 
 ## Risks
