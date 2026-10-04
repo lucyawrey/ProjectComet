@@ -14,8 +14,11 @@ Agent notes on world structure and server hierarchy. Decisions made with the pro
 - **Shard size:** 150–300 players would be an impressive upper limit; may be forced lower.
 - **Teleport scene** (2026-10-04): a fixed-length scene where the player's soul travels along the leylines on the world map to the destination. If the destination hasn't finished loading when the travel animation ends (likely on web), the soul pulses at the destination on the map until it has. It hides loading; its details are gameplay design, not backend (handoff in `backend.md`).
 - **Teleport casts can be cancelled, and teleporting in combat is allowed** (2026-10-04), but cast times are long enough that trying it mid-fight will usually get you killed.
+- **Dungeon loading rooms** (2026-10-04): the whole party has to be physically present (in the spirit of classic MMOs). Once the whole party is in the loading room and one member steps into the dungeon proper, the loading room's entrance closes and the dungeon starts. Everyone else still walks in on their own.
 - **Vehicles:** boats and airships cross zones on fixed routes. The only player-steered vehicles are 2–4 seat mounts with near-normal movement. Vehicles and their riders cross borders as one group.
 
 ## Considering
+
+- **Unstable teleport stations** (project lead idea, 2026-10-04): a cheap way to gather a party at a dungeon, with consent. Unlike the stable stations in settlements, they start unstable; one player stabilises the station, then every party member is prompted to leyline-teleport there.
 
 - **Data model (agent suggestion):** Region is the real unit (one database scope, owns shards and instances; a private server is one region). World is an attribute: each character has a home World, guilds belong to a World, and shard placement uses it as a preference. Changing World is a cheap data update, not a server transfer.
