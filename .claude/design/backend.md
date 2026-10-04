@@ -30,7 +30,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Shared libraries** (2026-10-04):
   - **Three libraries.** *Simulation* (client, game servers, bots: frame data, hitboxes and height-zone masks, movement and knockback curves, hit checks, rules, tick maths). *Protocol* (client, game servers, bots: MessagePack message definitions, message IDs, the transport interface, shared constants). *Data* (game, Region and Login servers, never Unity: EF Core entities, `DbContext`, migrations, transactional operations).
   - **Unity consumes Simulation and Protocol as a shared source package:** one source folder that is both a .NET project (targeting `netstandard2.1` and `net10.0` until Unity 6.8) and a local Unity package with an assembly definition, so Unity compiles the same files. To be checked against Unity 6 in a prototype.
-  - **Content (items, skills, classes, monsters) is authored outside Unity** and imported into both the client and the servers. Format not yet chosen (see Open).
+  - **Content (items, skills, classes, monsters) is authored outside Unity, as files in git** (2026-10-04): JSON or YAML (not yet chosen) validated by a schema, reviewed in pull requests. A build step turns them into one compact file that the client and servers both load. A small web editor can be added on top later.
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
@@ -58,7 +58,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Content format and tooling:** spreadsheets, JSON/YAML files in git, or a content database (with an admin UI)? How it reaches Unity (import step) and the servers (load at startup).
+- **Content file details:** JSON or YAML; schema tooling; how the build step produces the compact file and how it reaches web clients (bundled or streamed).
 - **Ops tooling** (added 2026-10-04, prompted by FishMMO): patcher and update server for desktop, health monitoring, server discovery, a community bot (e.g. Discord). Not yet discussed.
 - **No battle-tested library does game-state replication for a pure C# server over WebSocket.** The game-server message layer is ours to write; FishNet + headless Unity remains the fallback if that proves too hard.
 - **WebTransport upgrade paths (for later):** (1) Kestrel's experimental WebTransport using independent streams instead of datagrams (pure C#; preview feature); (2) our own WebTransport handshake on MsQuic via its C# interop (gets datagrams; protocol work); (3) wrap libwtf (MIT, C, on MsQuic); (4) wait for the open `System.Net.Quic` datagram API proposal. A Go/Rust proxy is ruled out by the C#-only rule. WebTransport's `serverCertificateHashes` might let private servers skip a domain and certificate for game traffic (unverified).
