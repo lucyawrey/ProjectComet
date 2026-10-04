@@ -33,6 +33,12 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 - **No loot boxes or other paid randomness** (project lead, 2026-10-04).
 - Already decided elsewhere: Anima is never sold for real money (`classes.md`).
 
+### Audience and platforms
+
+- **Audience** (project lead, 2026-10-04): cosy and social MMO players; MMO nostalgics in general, from browser RuneScape to classic WoW; and high-end raiders. The combat system is simple to understand and hard to master, with complex boss mechanics like FFXIV's or Rabbit and Steel's (see `combat.md`).
+- **Platforms** (project lead, 2026-10-04): desktop browsers (the main goal) and a desktop app. Mobile browsers and consoles are not targeted.
+- **Sessions: short and long** (2026-10-04, adopted from an agent suggestion): meaningful progress in 15–30 minutes (crafting, gathering, a quick dungeon), with longer sessions for raids and events.
+
 ## Considering
 
 ## Open

@@ -5,6 +5,7 @@ Agent notes on combat design. Decisions made with the project lead on 2026-10-03
 ## Decided
 
 - **Feel** (project lead, 2026-10-04): action combat should feel a little like ARPGs and a little like tab-target games, but be extremely approachable for casual players.
+- **Simple to understand, hard to master** (project lead, 2026-10-04), with **complex boss mechanics** like FFXIV's and Rabbit and Steel's (FFXIV-inspired raid mechanics without tab-targeting, using shape-based collision as we do). High-end raiding is part of the audience.
 
 - **PvE only for the first major version.** No PvP system is planned, so no PvP netcode.
 - **Every class can dodge, but invulnerability varies by class and skill.** Defenders have invulnerability levels (none / dodge / a rarer "true" invuln); attacks have pierce levels, and some attacks hit through normal invuln.
