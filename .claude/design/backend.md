@@ -6,7 +6,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
 - **Unity is the engine** (decided 2026-10-04). Web export is a main project goal (classic in-browser MMO play), and Unity is the only engine where that isn't difficult or too limited.
-- **No headless Unity server** (2026-10-04).
+- **No headless Unity server and no Unity networking package (Mirror, FishNet, Netcode…) for now** (2026-10-04). The server is plain .NET using a message-level library. Fallback if rolling our own proves too hard: FishNet with headless Unity servers (FishNet seems to scale well).
 - **Three-part service map** (2026-10-04, for approach A):
   - **Login server** (renamed from Gateway): public HTTP. Accounts, auth, character select, signed tickets for joining a game server or listening across a border. Clients connect to game servers directly; the Login server doesn't relay game traffic.
   - **Region server** (renamed from Data Center): one per region. Coordinates everything that spans shards: shard and instance placement and lifecycle, parties, guilds, friends, chat routing, and the cross-shard economy (market, mail, trades between shards). Split pieces out only if load forces it.
@@ -42,8 +42,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **Networking library (in discussion), then transport.** Pick the library first, since libraries bring their own transports. Constraint: the server is pure C#, and the high-level Unity libraries (Mirror, FishNet, Netcode for GameObjects/Entities) run their servers inside Unity. Agent findings: Kestrel's WebTransport is still experimental in .NET 10 and lacks datagrams; LiteNetLib (reliable UDP, .NET Standard 2.1, works in Unity and plain .NET, built-in loss/latency simulation) has no web transport; WebSocket works today on both sides.
-- **FishMMO** (https://www.fishmmo.com/), raised by the project lead to discuss later: an open-source MMO template on FishNet + Unity with Login, World and Scene servers, close to our Login/Region/game split. Its servers run as headless Unity, which we've ruled out, so its value is likely as reference (systems, structure) rather than a base.
+- **Networking library (in discussion), then transport.** Pick the library first, since libraries bring their own transports. Candidates that run as plain .NET servers: LiteNetLib, Riptide, MagicOnion, DarkRift 2 (and the proprietary Photon Server SDK). Agent findings: Kestrel's WebTransport is still experimental in .NET 10 and lacks datagrams; LiteNetLib (reliable UDP, .NET Standard 2.1, works in Unity and plain .NET, built-in loss/latency simulation) has no web transport; WebSocket works today on both sides.
+- **FishMMO** (https://www.fishmmo.com/): an open-source (MIT) MMO template on FishNet + Unity with Login, World and Scene servers, close to our Login/Region/game split. Not a base (no shipped games, not very actively developed), but a good reference codebase. FishNet itself is the fallback if we go back to headless Unity.
 
 ## Research (2026-10-04)
 

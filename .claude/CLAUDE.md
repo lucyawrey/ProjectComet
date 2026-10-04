@@ -26,7 +26,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Action combat, not tab-target.** Skills have real hitboxes; there's an optional lock-on. Should be more forgiving of latency than an FPS. (Detailed design in the project lead's notes: 2D hitboxes with "height zones".)
 - **Seamless world with no loading screens.** A firm requirement and the project's biggest challenge. Zone shards and dungeon instances still exist on the server side; only teleportation hides loading.
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
-- **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server; the game server will likely be pure C#.
+- **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#.
 - **First milestone (adopted from an agent suggestion):** a vertical slice with one zone, the core loop, bot clients load-testing 100+ simulated players, and simulated latency from day one.
 
 ## Design notes by topic
