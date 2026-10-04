@@ -19,6 +19,10 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
 - **Netcode is designed for WebSocket as the worst case** (2026-10-04). WebTransport would need a WebSocket fallback anyway (some networks block UDP), so the game must play acceptably over TCP; better transports only make hiccups rarer.
 - **All clients start on WebSocket** (2026-10-04), desktop included: one code path to build and load-test. UDP for desktop and WebTransport for web are possible later upgrades behind one transport interface, added only if load tests show stalls hurt.
+- **Libraries (2026-10-04):**
+  - **Social traffic uses SignalR to the Region server.** Clients hold two connections: a raw WebSocket to their game server (gameplay only) and SignalR to the Region server (chat, parties, guilds, friends, presence), using its groups, reconnection and Redis scale-out.
+  - **MessagePack-CSharp for serialisation** (SignalR's own binary format; IL2CPP-safe via source generators). MemoryPack stays an option for hot paths later.
+  - **gRPC (ASP.NET Core) for server-to-server calls** (Region ↔ game servers, the handoff delta between game servers).
 - **Bot load tests run over the baseline transport (currently WebSocket) with simulated packet loss** (2026-10-04), so TCP stalls show up early.
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
@@ -45,7 +49,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 
 ## Open
 
-- **WebSocket stack details:** server side is likely ASP.NET Core (Kestrel) WebSockets; client side needs a `.jslib` bridge on web (or a package such as NativeWebSocket) and a native socket on desktop. Our own message layer sits on top; LiteEntitySystem's source is a possible reference.
+- **Rest of the stack (leading candidates, 2026-10-04):** ASP.NET Core (Kestrel) WebSockets on game servers, with our own message layer (framing, latest-only send queues, dispatch; LiteEntitySystem's source as a possible reference); NativeWebSocket on the Unity client (web via its built-in `.jslib`; used by Colyseus's Unity SDK), plus the SignalR JavaScript client behind a `.jslib` on web; Npgsql + EF Core (Dapper for hot paths), with EF concurrency tokens on PostgreSQL's `xmin` for the versioned ownership row; ASP.NET Core minimal APIs with Identity or JWT bearer tokens for the Login server.
+- **No battle-tested library does game-state replication for a pure C# server over WebSocket.** The game-server message layer is ours to write; FishNet + headless Unity remains the fallback if that proves too hard.
 - **WebTransport upgrade paths (for later):** (1) Kestrel's experimental WebTransport using independent streams instead of datagrams (pure C#; preview feature); (2) our own WebTransport handshake on MsQuic via its C# interop (gets datagrams; protocol work); (3) wrap libwtf (MIT, C, on MsQuic); (4) wait for the open `System.Net.Quic` datagram API proposal. A Go/Rust proxy is ruled out by the C#-only rule. WebTransport's `serverCertificateHashes` might let private servers skip a domain and certificate for game traffic (unverified).
 - **FishMMO** (https://www.fishmmo.com/): an open-source (MIT) MMO template on FishNet + Unity with Login, World and Scene servers, close to our Login/Region/game split. Not a base (no shipped games, not very actively developed), but a good reference codebase. FishNet itself is the fallback if we go back to headless Unity.
 
