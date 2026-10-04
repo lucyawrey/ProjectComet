@@ -75,6 +75,10 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 - **Candidates to research before deciding** (project lead, 2026-10-04; the project lead doesn't know them personally): Albion Online (player-driven economy; looks like an interesting comparable), Brighter Shores, Mabinogi, TERA and Blue Protocol. A comparable-research pass is a todo.
 - *Placeholder: what makes this game different (project lead).*
 
+### Setting and story
+
+- **The project lead writes the lore themselves** (2026-10-04). The agent distilled what gameplay already implies into `lore-hooks.md` as raw material. *Placeholder: setting (project lead).*
+
 ## Considering
 
 ## Open
