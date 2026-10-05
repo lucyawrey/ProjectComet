@@ -177,6 +177,15 @@ Added 2026-10-05 as a 13th topic. Mostly base (Comet): these are mechanisms ever
 - **Minimal data, no third parties** (2026-10-05, adopted from an agent suggestion): email and login data, IP addresses for security with short retention, an age bracket rather than a birthdate, no real names. First-party analytics only; no ad or tracking SDKs, so no cookie consent beyond essentials.
 - **Private-server hosts handle their own players' data, with good defaults** (2026-10-05, adopted from an agent suggestion): Comet ships with retention jobs and deletion tools switched on by default, and the hosting docs say so.
 
+### Security and anti-cheat
+
+Added 2026-10-05 as a 14th topic. Base (Comet).
+
+- **Two-factor authentication is optional and encouraged, with no reward** (project lead, 2026-10-05): authenticator apps and passkeys. **Required for staff accounts** (adopted from an agent suggestion).
+- **Logins: email and password, and passkeys only** (project lead's pick, 2026-10-05): no third-party login providers; simplest and fully self-hostable.
+- **Anti-cheat is server authority only** (2026-10-05, adopted from an agent suggestion): no client-side anti-cheat, since the web client can't run one and the client source is open anyway. The server validates everything that matters (movement, hits, cooldowns, items); PvE-only play keeps client hacks low-stakes.
+- **Bots and automation: heuristic flags, human review** (2026-10-05, adopted from an agent suggestion): server-side heuristics (play patterns, inhuman timing, ledger flows to known sellers) flag accounts for moderators, as with movement violations; never auto-banned. Bonds and free-account limits already reduce the payoff.
+
 ### Comparable games
 
 - **Comparables in the proposal** (project lead, 2026-10-04): Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
