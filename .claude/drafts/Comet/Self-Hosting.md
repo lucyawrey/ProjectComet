@@ -1,6 +1,6 @@
 # Self-Hosting
 
-Anyone should be able to run their own server easily, without a large proprietary dependency. This is a commitment rather than a pillar: it shapes the technology and the business model more than how the game feels.
+Anyone should be able to run their own server easily, without a large proprietary dependency. This commitment shapes the technology and the business model throughout.
 
 ## What a private server runs
 

@@ -23,7 +23,7 @@ While playing, a client holds two connections: a raw WebSocket to its current ga
 ## Data
 
 - **One account database per deployment** (accounts, logins, staff, sanctions, the moderator log) and **one database per region** (characters and everything they own, social data, the ledger, the chat buffer, reports, instance placement).
-- **No central data service.** Game servers and the Region server share one C# data library and talk to PostgreSQL directly, as several shipped MMOs do.
+- **One shared data library.** Game servers and the Region server use the same C# data library and talk to PostgreSQL directly, as several shipped MMOs do.
 - **Mixed persistence.** Item, currency and progression changes are saved in a database transaction before the game confirms them. Position, health and buffs are saved periodically and on handoff.
 - **Character ownership is a versioned row.** When a character moves between game servers, the new server claims it atomically and late writes from the old one are rejected. This is what makes handoff safe.
 - **Conventions:** 64-bit time-ordered IDs, UTC timestamps, plain columns by default and JSONB only for data read as a whole.
@@ -47,7 +47,7 @@ Everything lives in one repository:
 
 - **Comet** as libraries, server code and a Unity package (networking, replication, prediction, zone streaming, input).
 - **Each game as its own Unity project** with its own UI, rendering and art.
-- **Each game's own server programs** (for example `Anima.GameServer`, `ShapeLand.GameServer`) built from Comet's libraries plus the game's modules. There are no generic servers that load games at runtime.
+- **Each game's own server programs** (for example `Anima.GameServer`, `ShapeLand.GameServer`) built from Comet's libraries plus the game's modules.
 - **Content per game**, merged with Comet's own content by the build.
 - **Bots:** a bot framework in Comet, with behaviours written per game. Bots are headless clients used to load-test with hundreds of simulated players.
 

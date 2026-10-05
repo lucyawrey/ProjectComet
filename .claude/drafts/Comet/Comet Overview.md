@@ -40,7 +40,7 @@ A clean split in one codebase costs a little more up front; building a true prod
 
 - **Extract, don't pre-build.** Something moves into Comet only once two games actually use it. Until then it lives in the game.
 - **One repository, no API promises.** Comet and its games live together. Breaking changes are fine; both games are fixed in the same commit. Comet becomes a product only if a second real game exists.
-- **Extension points only when needed.** Plain C# interfaces and registration by key, added when something needs them. No plugin loader.
+- **Extension points only when needed.** Plain C# interfaces and registration by key, added when something needs them.
 - **A tiny reference game.** ShapeLand, a game of coloured shapes, exercises Comet in the early phases and stays small on purpose (see [ShapeLand](ShapeLand.md)).
 
 ## Reusing Comet

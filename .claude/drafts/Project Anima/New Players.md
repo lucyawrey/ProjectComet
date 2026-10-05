@@ -22,7 +22,7 @@ A short prologue teaches the basics in the character's home area:
 2. Partway through, they receive **Freelancer**, the first Class Crystal, and learn how crystals work.
 3. At the end, they promote Freelancer into their first real class.
 
-Choosing a class doesn't move the character away from home, though a class's quests may invite them to travel.
+A class's quests may invite the character to travel beyond their home area.
 
 ## Learning the rest
 

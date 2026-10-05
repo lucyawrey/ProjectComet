@@ -13,7 +13,7 @@ A Class Crystal is the only thing a character equips. It's a key that grants the
 
 ### Getting more crystals
 
-There's no fixed limit on crystals. Instead, each new crystal for a class you don't already hold costs more Anima, possibly plus materials. The cost depends on what you hold now, never on your history, so letting a crystal go makes the next one cheaper. Crystals from quests are free and don't raise the price. A generous hard cap sits above the number of classes.
+Each new crystal for a class you don't already hold costs more Anima, possibly plus materials. The cost depends on what you hold now, never on your history, so letting a crystal go makes the next one cheaper. Crystals from quests are free and don't raise the price. A generous hard cap sits above the number of classes.
 
 ## Promotion
 
