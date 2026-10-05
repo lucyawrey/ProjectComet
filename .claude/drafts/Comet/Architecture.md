@@ -14,6 +14,8 @@ Alongside them sit PostgreSQL and a static host (or CDN) for the large files: th
 
 A **region** is a separate copy of the world, like a classic MMO server: its own characters, economy and guilds. We plan for 5,000–10,000 peak players per region.
 
+A **deployment** is one complete installation: a single Login server (and its account system) plus all the regions it lists. One account works across every region in its deployment. The official game is one deployment with several regions; a private server is its own deployment, usually with one region. Accounts never cross deployments.
+
 ## How a client connects
 
 While playing, a client holds two connections: a raw WebSocket to its current game server for gameplay, and a SignalR connection to the Region server for chat, parties, guilds and presence. It also talks to the Login server over ordinary HTTP requests (not a held connection) for signing in, character select, and the tickets that let it join game servers. Moving between zones or instances hands the character from one game server to another without a loading screen (see [World and Zones](World%20and%20Zones.md)).

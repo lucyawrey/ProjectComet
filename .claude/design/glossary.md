@@ -39,6 +39,7 @@ Working terms agreed with the project lead (2026-10-03). Terminology may change 
 | **Soulbound** | An item tied to its owner: it can be dropped, carried by others and handed back, and recalled by the owner. Only the owner can equip a soulbound crystal. |
 | **Region › Zone › Channel; Dungeon › Dungeon instance** | Server hierarchy. No Worlds: the region is the player-facing "server". |
 | **Zone** | Any zone file: open zone, dungeon or house. |
+| **Deployment** | One complete installation: a Login server with its account database, plus every region it lists. The official game is one deployment; each private server is another. Accounts work across regions within a deployment, never across deployments. |
 | **Instance** | Any running copy of a zone on a game server: a channel, dungeon instance or house instance. |
 | **Channel** | A copy of an open zone shared by many players (formerly "layer", before that "shard"). Named and visible to players. |
 | **Constellation** | An official grouping a character may join (one or none); only affects channel placement. Each can have one associated channel per open zone. |
