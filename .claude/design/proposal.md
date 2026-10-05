@@ -135,6 +135,39 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 - **Economy monitoring: dashboards only** (project lead's pick, 2026-10-04): faucets, sinks and money supply per region, charted from the ledger for designers; no automated alerts.
 - **Sinks** (project lead, 2026-10-04, from an agent-proposed list): market tax; repairs and NPC services (re-obtaining fees, housing upkeep, guild hall costs); crafting consumption, salvage and breakdown; cosmetic and prestige purchases from NPCs for coin (cosmetics, furniture, housing plots, titles).
 
+### New-player experience
+
+- **Guest play, upgrade later** (2026-10-05, adopted from an agent suggestion): new players play the prologue as a guest straight from a link; making an account keeps the character. Guests get the free-account limits plus no trading and no public chat.
+- **A short prologue teaches the basics and introduces Class Crystals with Freelancer** (project lead, 2026-10-05): movement, dodging and basic combat, then crystals through Freelancer, the only tier 1 class. **At the end of the prologue the player promotes Freelancer to a tier 2 class.** The prologue opens in the unclassed state (the hidden crystal, `classes.md`) and grants Freelancer partway through (project lead).
+- **The prologue happens where the character will stay** (project lead, 2026-10-05): choosing a class doesn't move them, but they may be encouraged to travel to a class-specific quest's location. (The notes' "starting location suited to class" no longer applies as such, since the class is chosen at the end of the prologue.)
+- **Systems are mostly unlocked by side quests, not the main story** (project lead, 2026-10-05): each part has a main story, but it rarely gates systems. Most systems sit behind a quest the main story brings you near, and players can travel to those quests to unlock a system early. The content guide shows where they are.
+- **New players are shown with a visible marker, and helping them gives a bonus** (project lead's pick, 2026-10-05); no dedicated new-player channel or mentor system.
+
+### Age rating and minors
+
+- **Aim for a teen rating (PEGI 12 / ESRB T)** (2026-10-05, adopted from an agent suggestion): fantasy violence, mild language, player interaction; room for moody zones and darker story moments. Bonds-only monetisation with no loot boxes avoids the main rating and regulatory issue.
+- **Accounts are 13+** (2026-10-05, adopted from an agent suggestion): avoids COPPA's under-13 rules in the US. EU countries set the digital consent age between 13 and 16, so some players there need parental consent or a higher local minimum (to check with a lawyer before launch).
+- **The rating applies to public player text** (2026-10-05, adopted from an agent suggestion): public chat, names, RP profiles and shared spaces stay within the rating; private chats aren't monitored, but can be reported and are judged by the same rules of conduct.
+- **Safety defaults** (2026-10-05, adopted from an agent suggestion): the profanity filter is on by default and adults can turn it off. Players aged 13–17, from a neutral age prompt, also default to friends-only private messages. *Agent note:* guests would answer the same prompt when starting the prologue.
+
+### Private-server licence
+
+- **Comet and ShapeLand are MIT-licensed** (project lead, 2026-10-05; MIT picked over Apache-2.0 and dual licensing from agent options): the shortest licence, and the most common in the .NET ecosystem.
+- **Project Anima's code is source-available, non-commercial** (project lead, 2026-10-05). The exact licence (e.g. PolyForm Noncommercial or a custom one) is chosen with legal advice before release (adopted from an agent suggestion).
+- **Private servers may run Anima's official content and art non-commercially** (2026-10-05, adopted from an agent suggestion): free to host with official content and the official client, as long as they don't charge or sell items, and don't present themselves as official.
+- **Private servers may host only the free (non-member) parts in the initial version** (project lead, 2026-10-05). **Enforced by free-only packages plus the licence** (adopted from an agent suggestion): private-server packages ship only the free parts' content (content builds can already be split per part), and the licence forbids hosting member content.
+
+### Accessibility and translation
+
+- **Launch in English, ready for more languages** (2026-10-05, adopted from an agent suggestion): the translation pipeline (`backend.md`) is in place at launch, and the UI is built for longer text and other scripts; languages are added by demand.
+- **Community translations are welcome and reviewed** (2026-10-05, adopted from an agent suggestion): volunteers translate through a contributor workflow (string files in git or a translation platform), with official review before shipping. Also useful for private servers.
+- **Accessibility baseline** (project lead, 2026-10-05, all four agent-proposed areas):
+  - **Controls:** full rebinding on keyboard and controller, hold or toggle options, one-handed-friendly layouts.
+  - **Vision:** colourblind-safe design (shapes and icons alongside colour on Rune slots, telegraphs and markers), UI scale and text size, high-contrast telegraphs.
+  - **Hearing:** subtitles and visual cues for important audio (boss cues, nearby threats).
+  - **Motion and flashing:** options to reduce camera shake, motion and flashing effects.
+- **Difficulty scaling for content everyone must clear** (project lead, 2026-10-05): the main story is several interconnected quest chains, so any battle content meant to be cleared by all players can be marked as difficulty-scalable (an easier setting or NPC support). Dungeons, raids and hard bosses keep one difficulty (adopted from an agent suggestion).
+
 ### Comparable games
 
 - **Comparables in the proposal** (project lead, 2026-10-04): Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
@@ -149,5 +182,4 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 
 ## Open
 
-- **Licensing per layer** (raised by the agent, 2026-10-04, for item 11, the private-server licence): Comet and Project Anima could have different licences, e.g. an open-source Comet with Anima's content kept closed.
-
+- Nothing open right now.
