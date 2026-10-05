@@ -8,7 +8,7 @@ Working terms agreed with the project lead (2026-10-03). Terminology may change 
 | --- | --- |
 | **Comet** | The shared base: libraries, servers, Unity package and tools for a family of similar MMOs. MIT-licensed. Not the Unity engine. |
 | **Project Anima** | Working name of the game built on Comet (formerly "Project Comet"). |
-| **ShapeLand** | Comet's tiny demo and reference game: coloured shapes that slide, chat and fight with magic. Used for phases 0–2. |
+| **ShapeLand** | Comet's tiny demo and reference game: coloured shapes (cube, diamond, pyramid) that slide, chat and fight curved shape monsters with magic. Used for phases 0–2. |
 | **Base / game (layer)** | Whether something belongs to Comet or to a game built on it. Each design file has a Layer line; game policy sits on thin base mechanisms. |
 | **Class Crystal** | A soulbound item that grants permission to use one of its owner's class entries, and references a loadout, gear set, outfit set and appearance. The only thing a character equips; always one equipped. |
 | **Class entry** | A character's permanent record of a class: current XP and highest level. |
