@@ -31,6 +31,9 @@ Agent notes on companions: creatures that follow you, fight with you or carry yo
 - **Companions come from capturing wild creatures, and from rewards and shops** (quests, dungeons, NPC vendors).
 - **Releasing a companion removes it.** Story-wise it's set free, not destroyed. It doesn't become a wild, capturable creature.
   - **A released soulbound companion** stops showing in the stable until it's reclaimed, the same way soulbound items are recalled. This is mostly useless, but it keeps the soulbound rules consistent everywhere.
+- **A fixed, small number of companion slots** (project lead's pick, 2026-10-05), e.g. 4, the same for everyone and never raised.
+- **Levels improve task skill** (2026-10-05, adopted from an agent suggestion): companions level up to a species cap, and levels raise their effectiveness at their tasks (mount speed and stamina, combat strength for class-bound tasks). Cosmetics stay separate; no stat gear.
+- **Reclaiming happens at recall stations**, like item recall (2026-10-05, following `items.md`).
 - **Tradeability and soulbound work the same as for items:** a Market / Direct / Untradeable tier per species, plus a per-companion soulbound state.
 
 ## Considering
@@ -40,7 +43,4 @@ Agent notes on companions: creatures that follow you, fight with you or carry yo
 
 ## Open
 
-- How many companion slots there are.
-- Capture details per species.
-- How companion levelling works (caps, what levels change).
-- Where reclaiming happens (tied to the item recall location, which is also open).
+- Capture details per species (content design).

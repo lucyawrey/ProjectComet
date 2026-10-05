@@ -38,6 +38,7 @@ Agent notes on the skill system. Decisions made with the project lead on 2026-10
   - Some core slots may be **untyped**. There is only one untyped Unbound Rune per player, so at most one untyped core slot can be unbound.
   - No extra limit for now. A player unbinding most of their core kit to play like Freelancer (which generally has fewer Battle rune slots) is fine. Add a limit later if the game becomes a mess.
 - **The shape-based grid idea is dropped.**
+- **Primary actions are shown as another colour of rune slot** (project lead's idea, adopted 2026-10-05): each tied to a control, with core slots shown as locked to the class. Primary slots share one colour of their own; classes don't get their own slot colours. Skills and Runes stay distinct concepts underneath.
 
 ## Considering
 
@@ -45,5 +46,4 @@ Agent notes on the skill system. Decisions made with the project lead on 2026-10
 
 ## Open
 
-- Idea (project lead): present primary actions as if they were another colour of rune slot, each tied to a control, with core slots shown as "locked" to the class. Primary slots share one colour of their own; classes don't get their own slot colours. More harmonious UI while keeping the concepts distinct.
-- Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped.
+- Core slot types (agent idea: Basic, Skill, Burst, Defensive, Mobility). Some slots stay untyped. Kept open on purpose (2026-10-05): decide with the first class designs.

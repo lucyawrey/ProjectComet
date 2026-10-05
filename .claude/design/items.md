@@ -89,13 +89,16 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - A **coin purse** is an ordinary limited-variety bag that holds every currency type in one inventory slot.
   - A currency UI in both the inventory and Storage shows totals.
   - Spending (shops, repairs, the market) takes from the inventory and purse, and from Storage wherever Storage is available.
+- **Untradeable currencies are wanted** (project lead, 2026-10-04) and **never leave their owner** (2026-10-05, adopted from an agent suggestion, with the project lead's addition): they can't be dropped, handed over or lent, which avoids splitting and recalling stacks. They live in the inventory, bags (the coin purse is just a bag) or Storage.
+- **Recall goes to recall stations** (project lead, 2026-10-05): soul recall is its own kind of station. **The Crystal Archives include Storage and recall**, making them the large, combined station.
+- **Re-obtaining costs a coin fee at the NPC** (project lead's pick, 2026-10-05): a small sink.
+- **Companion items (eggs, capture items) are ordinary items** until used or registered, when they become a companion record (2026-10-05, adopted from an agent suggestion).
 - **Dyes:** once a colour is learned, applying it is free. The colour is stored on the item.
 - **Crafter signatures are optional:** crafters choose whether to sign each item with their name.
 
 ## Considering
 
 - **Storage in tents or camps:** maybe, perhaps only for higher-tier camps.
-- **Recall stations:** soul recall could be its own kind of station, separate from Storage and the Crystal Archives. "Extra large" stations might combine all three (Storage, Crystal Archives, recall).
 - **Tool slot count:** 3 is decided for now but open to reconsideration (e.g. if tool Runes make extra slots too strong).
 - **Crystal borrowing (on hold).** Unique, but removed for simplicity. Bring it back if a feature this unusual becomes worth the complexity. If it returns, use the **lockout** rule:
   - A borrower uses the owner's class level and skill setup (they can rearrange hotbar/controller bindings), never earns XP for the owner, and all XP they earn goes to their own Soul XP. Borrowing a friend's crystal to farm Soul XP was a welcome trick.
@@ -111,9 +114,4 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 ## Open
 
-- **Untradeable currencies are wanted** (project lead, 2026-10-04). They fit the existing Untradeable tier, which makes every instance soulbound; how soulbound rules (dropping, handing back, recall) apply to currency stacks is open.
-
-- **Recall location** (intentionally undecided): Storage, the Crystal Archives, or separate recall stations (see Considering).
-- **Re-obtaining cost** (intentionally undecided): free, or a fee at the NPC.
-- **Remaining item/flag boundaries (agent lean, not discussed):**
-  - Companion items (eggs, capture items): items until hatched or registered; details wait for companions.
+- Nothing open right now.

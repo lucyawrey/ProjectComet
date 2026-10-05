@@ -38,6 +38,9 @@ Agent notes on classes, crystals, XP and Anima. Decisions made with the project 
   - Entry to certain content, like high-end raids that shouldn't be cleared too quickly. Charged immediately on entry (animated as using magic to enter) and refunded if you don't clear. Clears should reliably give loot, with little RNG. Anima-locked content only gives loot at the end; other content can drop loot anywhere.
   - Maybe crafting certain endgame items that shouldn't flood the market.
 - **Outfit dispelling by other players is dropped.**
+- **Level caps per part; numbers later** (2026-10-05, adopted from an agent suggestion): each part has a cap (e.g. early part ~30, late part ~50); tier 2 classes promote around the early part's cap, and high tiers level to the late cap. Exact numbers come from balancing.
+- **Anima builds up offline, up to capacity** (2026-10-05, adopted from an agent suggestion): same rate as online, capped at Anima Capacity, with no overflow.
+- **Party members without enough Anima for locked content are warned before entry** (2026-10-05, adopted from an agent suggestion): the party sees who lacks Anima while gathering at the entrance, before anyone is charged.
 
 ## Considering
 
@@ -46,6 +49,4 @@ Agent notes on classes, crystals, XP and Anima. Decisions made with the project 
 
 ## Open
 
-- Level cap, and the level at which a class can be promoted?
-- Does Anima build up while offline? (A full bar sitting unused while away can feel wasteful; rest-XP-style overflow is one fix.)
-- Party members without enough Anima for locked content should be warned at the door (agent suggestion).
+- Nothing open right now.

@@ -17,8 +17,9 @@ Agent notes on combat design. Decisions made with the project lead on 2026-10-03
 - **Fight sizes:** dedicated raids up to ~30 players; open-world bosses aim for ~100 in the worst case (revisit if not feasible).
 - **No body blocking** in the initial design. "Nudging" (moving slower through other bodies) is under consideration.
 - **Most attacks don't move anyone**, to keep some tab-target feel; a limited set of skills include movement.
+- **Attack patterns: mostly telegraphs, some bullets** (2026-10-05, adopted from an agent suggestion): mostly telegraphed swings and AoE shapes, with occasional moderate projectile patterns for raids. Bullet counts are capped for bandwidth, and patterns sync as events, not per-projectile state.
 - **Physicality without physics** is one of the game's largest goals, despite the simple graphics.
 
 ## Open
 
-- How dense can attack patterns get (Monster Hunter-style telegraphed swings vs Rabbit and Steel-style bullet patterns)? Affects projectile counts and bandwidth.
+- Nothing open right now.
