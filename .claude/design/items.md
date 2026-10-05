@@ -7,7 +7,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 ## Decided
 
 - **Inventory:** a fixed size per character, not upgradable by players (major updates may raise it). Each item type has its own stack size; going over it uses another slot, including for items with a stack size of 1.
-- **Storage** is reached at settlements, housing and guild halls, and holds a practically unlimited number of items.
+- **Storage** is reached at settlements, housing and guild halls, and holds a practically unlimited number of items. **The goal is that players can collect every item and gear piece in the game** (project lead, 2026-10-05). There are sane caps that warn players only at ridiculous numbers.
 - **Inventory and Storage share most of their systems.**
 - **The only thing a character equips is a Class Crystal.** There is no separate equipment layer.
   - A crystal **references** a class entry, a loadout, a gear set, an outfit set and appearance data. These are stored separately from the crystal (gear sets may end up as part of the loadout).
