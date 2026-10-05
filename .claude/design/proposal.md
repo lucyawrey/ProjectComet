@@ -107,6 +107,23 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
     - **Content and bots:** each game has its own content folder and ID registry, and the base has its own keys; the content build merges the base's content with one game's. The bot framework is in the base, with bot behaviours per game (adopted from an agent suggestion).
   - **Deliberately kept in the base as structural** (2026-10-04, adopted from an agent suggestion): currency as items (the ledger depends on it), learned flags, tradeability tiers, flying and fixed-route vehicles, height zones and frame data.
 
+### Core loop, endgame and content delivery
+
+- **Two intertwined loops** (2026-10-04, adopted from an agent suggestion): an adventure loop (quests, dungeons, bosses → drops and XP) and a life loop (gather, craft, trade, house), each feeding the other through materials and gear. Matches the even content split.
+- **Endgame** (project lead, 2026-10-04): raids and hard bosses; more classes (every class on one character, promotions, Soul XP unlocks); crafting and economy mastery; collection and housing; and **social systems**: multiple guilds, robust chat, lots of emotes, encouraging roleplay, and housing for building community spaces.
+- **Gear: a middle ground** (2026-10-04, adopted from an agent suggestion): new tiers each expansion, but older gear keeps uses (outfits, Runes, niche stats) and isn't instantly worthless. Protects "every item is real".
+- **RP profiles: simple** (2026-10-04, adopted from an agent suggestion): a short player-written profile (bio, RP status such as "in character" or "looking for RP", a few fields) others see by inspecting a character; reported and moderated like chat.
+- **Minigames: both kinds, but few in the initial scope** (project lead, 2026-10-04): activity minigames (OSRS-style instanced activities such as team games, fishing contests and races) and casual side games (Gold Saucer-style card and arcade games).
+- **Older content stays alive through level sync and fill bonuses** (2026-10-04, adopted from an agent suggestion based on the project lead's notes): players sync down to a dungeon's level, with XP bonuses for roulette or content fill and for helping new players.
+- **Player events: an event board and venues** (2026-10-04, adopted from an agent suggestion): an in-game event calendar or board (including guild events), with housing and guild halls as venues; hosts get no special powers.
+- **A content guide that helps players find everything** (project lead, 2026-10-04): not knowing where content is unlocked is frustrating. Details (2026-10-04):
+  - **Covers all unlockable content** (adopted from an agent suggestion): dungeons, raids, classes, crafts, minigames, attunements, companion capture, side story chains; anything gated behind a quest or condition, with where and how to unlock it.
+  - **Everything is listed, with details on demand** (project lead): every entry exists in the guide from the start; requirements and the starting NPC's location show on demand, with story spoilers hidden until reached. **The default view is closer to reveal-as-you-go**, so it isn't overwhelming.
+  - **Map markers and tracking** (adopted from an agent suggestion): choosing an entry puts its next step on the map and in the quest tracker, and shows what's blocking it (level, a prior quest, an attunement).
+- **No permanently missable rewards** (2026-10-04, adopted from an agent suggestion): seasonal events recur yearly and older rewards come back, in later runs or from a vendor. Friendly to casual players.
+- **Daily and weekly bonuses are optional and catch-up friendly** (2026-10-04, adopted from an agent suggestion): missed ones accumulate or don't matter much; no log-in-or-fall-behind pressure. Anima regeneration already paces play.
+- **Content delivery: expansions plus regular patches** (2026-10-04, adopted from an agent suggestion): expansions add parts; smaller patches every few months add story, dungeons, a raid tier and seasonal events. Fits maintenance-window deploys.
+
 ### Comparable games
 
 - **Comparables in the proposal** (project lead, 2026-10-04): Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
