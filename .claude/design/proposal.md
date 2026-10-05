@@ -61,7 +61,7 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
   | Phase | Goal | Done when |
   | --- | --- | --- |
   | 0. Prototypes | Two-stage load test; shared source packages in Unity; TOML 1.1 editor support; texture filtering comparison | The load test meets thresholds written down beforehand |
-  | 1. Vertical slice | One zone, core loop, 100+ bots, simulated latency (the decided first milestone) | The core loop is fun under latency and performance meets thresholds |
+  | 1. Vertical slice | One zone, core loop, 100+ bots, simulated latency (the decided first milestone) | Movement and combat feel responsive under simulated latency, and performance meets thresholds (2026-10-04, adopted from an agent suggestion; replaces "the core loop is fun", since the slice is ShapeLand; whether Project Anima is fun is tested at phase 3) |
   | 2. Seamless-world proof | Two or more zones with border handoff, channels, a dungeon instance, a teleport | Crossing borders is invisible under simulated latency |
   | 3. Closed alpha | The early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
   | 4. Open beta | Early part complete, late part in progress, membership and bonds, ops tooling | Scale and economy hold up with a real population |
@@ -101,6 +101,10 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
     - **Market:** player trading and the ledger stay in the base; the market itself (Grand Exchange, local markets, player shops…) is game code until another game wants the same kind.
     - **Housing:** the base keeps the house instance kind; placement, furniture, guild halls and temporary structures are game code.
     - **Smaller item systems:** wear and repair, dyes, the item collection log and the coin purse are game code.
+  - **How the code is laid out** (2026-10-04):
+    - **Client:** Comet is a Unity package (networking, entity replication, prediction, zone streaming, input plumbing); **each game is its own Unity project**, with its own UI, rendering and art, **all in the one monorepo** (project lead, adjusting an agent suggestion).
+    - **Servers:** each game builds its own server programs (e.g. `Anima.GameServer`, `ShapeLand.GameServer`) that reference Comet's libraries; there are no generic Comet servers loading game modules (adopted from an agent suggestion; fits "no plugin loader").
+    - **Content and bots:** each game has its own content folder and ID registry, and the base has its own keys; the content build merges the base's content with one game's. The bot framework is in the base, with bot behaviours per game (adopted from an agent suggestion).
   - **Deliberately kept in the base as structural** (2026-10-04, adopted from an agent suggestion): currency as items (the ledger depends on it), learned flags, tradeability tiers, flying and fixed-route vehicles, height zones and frame data.
 
 ### Comparable games
@@ -116,4 +120,6 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 ## Considering
 
 ## Open
+
+- **Licensing per layer** (raised by the agent, 2026-10-04, for item 11, the private-server licence): Comet and Project Anima could have different licences, e.g. an open-source Comet with Anima's content kept closed.
 
