@@ -1,5 +1,7 @@
 # Lore hooks
 
+**Layer: game (Project Anima).**
+
 Agent-distilled list of what gameplay decisions and the project lead's notes already imply about the setting (2026-10-04). **Raw material for the project lead's own lore writing, not lore.** Nothing here is decided as fiction; each line points at where it came from.
 
 ## Souls
@@ -51,7 +53,7 @@ Agent-distilled list of what gameplay decisions and the project lead's notes alr
 - Each character starts in a location suited to their class and ancestry, and the early game follows quest chains tied to that place and class; unlocking a new base class should feel somewhat like playing again (`notes/+ Quick Notes.md`).
 - Class tutors teach Skills and should be hard to miss (`skills.md`).
 - Settlements hold Storage, stables, teleport stations and possibly recall stations (`items.md`, `companions.md`).
-- Names already used: regions *Comet* and *Crystal*; zones *The City of Crystals* and *Silent Shore*; dungeons *Jail of the Lost* and *Corrupted Castle* (`notes/+ Quick Notes.md`).
+- Names already used: regions *Comet* (dropped 2026-10-04: Comet is now the base's name) and *Crystal*; zones *The City of Crystals* and *Silent Shore*; dungeons *Jail of the Lost* and *Corrupted Castle* (`notes/+ Quick Notes.md`).
 - Ari: a player NPC, "one of the other players" (`notes/Story Snippets.md`).
 - A world with a bright storybook baseline and some moody, eerie or harsh zones (`art.md`).
 

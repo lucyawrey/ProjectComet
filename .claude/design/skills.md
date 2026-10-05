@@ -1,5 +1,7 @@
 # Skills, Abilities and Runes
 
+**Layer: mixed** (project lead, 2026-10-04). Base (Comet): a thin skill base that only executes actions (frame data, hitboxes, cooldowns, effects; see `proposal.md`), not necessarily slots, so another game can build more traditional MMO skill advancement. Acquisition, slotting and advancement are game code. Game (Project Anima): everything else here, including the two action tiers, core kit and flex slots, coloured Rune slots, Runes, rune stones, gear Runes and extraction, Outfit Magic, Variant and Unbound Runes.
+
 Agent notes on the skill system. Decisions made with the project lead on 2026-10-03. See `glossary.md` for terms.
 
 ## Decided

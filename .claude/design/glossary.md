@@ -1,5 +1,7 @@
 # Glossary
 
+**Layer: mixed.** Base (Comet): region, zone, channel, instance, height zones, invulnerability, Storage, tradeability, learned flag. Game (Project Anima): constellation, soulbound rules, collection log, gear and outfit sets, Class Crystals, Crystal Archives, Soul XP, Anima, Runes, rune stones, mastery, Outfit Magic, the Freelancer tree.
+
 Working terms agreed with the project lead (2026-10-03). Terminology may change but must stay distinct. Details live in the topic files.
 
 | Term | Meaning |

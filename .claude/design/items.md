@@ -1,5 +1,7 @@
 # Items, inventory and collection
 
+**Layer: mixed** (2026-10-04, see `proposal.md`). Base (Comet): inventory, Storage and bags as containers, slot rules and "something is equipped", an owner or binding field on items, tradeability tiers, learned flags, currency as items, the ledger, crafter signatures. Game (Project Anima): crystals as the only equipped thing, gear and outfit sets as references, the outfit overlay, soulbound rules (recall, return, lending, re-obtaining), the item collection log, the coin purse, wear and repair, dyes, rune stones, World Rune mastery, housing furniture, crystal borrowing.
+
 Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items. Decisions made with the project lead on 2026-10-03. Topic covered; a few questions are left open, some intentionally.
 
 ## Decided

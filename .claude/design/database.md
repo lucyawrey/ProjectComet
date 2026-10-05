@@ -1,5 +1,7 @@
 # Database tables
 
+**Layer: mixed.** Project Anima's game tables (`<game>_` side tables, see `backend.md`): crystals and class entries, Soul XP, Anima, Runes, attunements, gear and outfit sets, the collection log, companions, the market, housing, constellations, membership and parts. The rest is base (Comet): accounts, characters, items and containers, the ledger, flags, social basics, instances, moderation.
+
 Agent notes on table design, per area. **The project lead decides the final schema**; the table drafts here are input. Architecture-level decisions (account and region databases, conventions, ledger, registry, chat buffer) live in `backend.md`.
 
 Depth for this phase: tables, key columns and relationships, and which rules the database enforces. No full DDL.

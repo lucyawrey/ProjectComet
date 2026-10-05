@@ -1,5 +1,7 @@
 # Netcode
 
+**Layer: base (Comet).**
+
 Agent notes on networking. These were agent suggestions adopted by the project lead on 2026-10-03.
 
 ## Decided

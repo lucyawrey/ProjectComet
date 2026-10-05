@@ -1,5 +1,7 @@
 # Classes, Class Crystals and Anima
 
+**Layer: game (Project Anima).** Class Crystals, Soul XP and Anima sit on the base's progression framework (XP, levels, unlock flags, basic skills).
+
 Agent notes on classes, crystals, XP and Anima. Decisions made with the project lead on 2026-10-03.
 
 ## Decided

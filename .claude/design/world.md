@@ -1,6 +1,8 @@
 # World structure
 
-Agent notes on world structure and server hierarchy. Decisions made with the project lead on 2026-10-03. Housing access is in `crafts.md`.
+**Layer: mixed** (2026-10-04, see `proposal.md`). Base (Comet): hierarchy, zone borders, flying and fixed-route vehicles, channel placement with a pluggable preference policy, soft and hard caps, draining and merges, instance lifecycle with entry and exit hooks, teleport handoff. Game (Project Anima): constellations and the channel preference order, channel naming, loading rooms, re-entry and replacement rules, no lockouts, the teleport scene and cast rules, leyline theming, Anima costs.
+
+Agent notes on world structure and server hierarchy. Decisions made with the project lead on 2026-10-03. Housing access is in `housing.md`.
 
 ## Decided
 

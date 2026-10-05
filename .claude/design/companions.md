@@ -1,5 +1,7 @@
 # Companions
 
+**Layer: game (Project Anima)** (2026-10-04, moved from the base). Comet keeps only movement and attachment: mounts as a movement mode, passengers, an entity following its owner (see `proposal.md`).
+
 Agent notes on companions: creatures that follow you, fight with you or carry you. Decisions made with the project lead on 2026-10-03. Topic covered; a few questions are left open.
 
 ## Decided

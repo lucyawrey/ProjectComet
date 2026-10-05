@@ -1,6 +1,8 @@
 # Project Comet: agent context
 
-Handoff notes for agent sessions on Project Comet. Last updated 2026-10-04.
+**Names (2026-10-04):** *Comet* is the shared base; *Project Anima* is the working name of the game built on it (older notes say "Project Comet" for the game). The repo keeps the name `ProjectComet`.
+
+Handoff notes for agent sessions on Comet and Project Anima. Last updated 2026-10-04.
 
 ## Working agreement
 
@@ -31,7 +33,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Private servers should be easy to self-host**, without a large proprietary dependency.
 - **Unity is the engine, and web export is a main goal** (classic in-browser MMO play). No headless Unity server or Unity networking package for now (FishNet + headless Unity is the fallback); the game server will likely be pure C#. Netcode is designed for WebSocket, and all clients start on it. Dropping web was considered and rejected: browser play (think RuneScape's Java-applet days) is the project's main appeal.
 - **First milestone (adopted from an agent suggestion):** a vertical slice with one zone, the core loop, bot clients load-testing 100+ simulated players, and simulated latency from day one. It uses ShapeLand, a minimal demo game on the base (coloured shapes that slide, chat and fight with magic), not Comet's own systems (2026-10-04).
-- **Two layers:** a shared base ("engine") for a family of similar MMOs, and Project Comet as one game on it (2026-10-04; details in `proposal.md`, database extension in `backend.md`). "Project Comet" is a placeholder; "Comet" may become the base's name.
+- **Two layers:** Comet, a shared base for a family of similar MMOs, and Project Anima as one game on it (2026-10-04; details in `proposal.md`, database extension in `backend.md`). Each design file starts with a **Layer** line (base, game or mixed).
 
 ## Design notes by topic
 
@@ -44,7 +46,8 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 | `world.md` | Zone borders, hierarchy, channels and instances, dungeons, flying, vehicles | Done |
 | `classes.md` | Class Crystals, promotion, XP and Soul XP, Anima | Done; a few open questions |
 | `skills.md` | Skills, Abilities, Runes, slots, gear Runes, Outfit Magic | Done; a few open questions |
-| `crafts.md` | Crafting, gathering, housing | Done |
+| `crafts.md` | Crafting and gathering | Done |
+| `housing.md` | Housing, guild halls, temporary structures | Done |
 | `items.md` | Inventory, Storage, bags, currency, gear and outfit sets, soulbound items, tradeability, collection | Done; a few open questions |
 | `companions.md` | Companion identity, locations, tasks, levelling, mounts, trading | Done; a few open questions |
 | `unlockables.md` | Unlockables as flags, attunements, Anima Capacity | Done |

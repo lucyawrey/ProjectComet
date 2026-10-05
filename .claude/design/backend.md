@@ -1,5 +1,7 @@
 # Backend and data model
 
+**Layer: base (Comet).** Game-layer details: Anima as the cost behind the entry-cost escrow for locked content (the base provides escrow; Project Anima charges Anima).
+
 Agent notes on backend architecture and data-model ideas. Almost everything here is still open or an agent suggestion.
 
 ## Decided

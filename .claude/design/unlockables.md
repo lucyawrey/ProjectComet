@@ -1,5 +1,7 @@
 # Unlockables
 
+**Layer: mixed.** Base (Comet): unlockables as learned flags; "soul" names as theming over ordinary values. Game (Project Anima, 2026-10-04): attunements, Anima Capacity, the XP-to-Soul toggle.
+
 Agent notes on unlockables: progression not tied to items, companions, or class and craft levels. Decisions made with the project lead on 2026-10-03. Topic covered.
 
 ## Decided

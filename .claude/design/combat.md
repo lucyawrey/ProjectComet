@@ -1,5 +1,7 @@
 # Combat
 
+**Layer: base (Comet).** Hit checks, height zones, invulnerability, frame data and fight sizes are shared by every game on the base.
+
 Agent notes on combat design. Decisions made with the project lead on 2026-10-03.
 
 ## Decided
