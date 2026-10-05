@@ -31,6 +31,10 @@ Working terms agreed with the project lead (2026-10-03). Terminology may change 
 | **Tradeability** | Per item type: Market (default), Direct (player trades only, no market) or Untradeable (every instance always soulbound). Soulbound items are not implicitly untradeable. |
 | **Item collection log** | A record of items a character has obtained; separate from the items themselves and from learned flags, but shown with flags in the collection UI. |
 | **Soulbound** | An item tied to its owner: it can be dropped, carried by others and handed back, and recalled by the owner. Only the owner can equip a soulbound crystal. |
-| **Region › Zone › Shard; Dungeon › Instance** | Server hierarchy. Worlds are labels inside a region. |
+| **Region › Zone › Channel; Dungeon › Dungeon instance** | Server hierarchy. No Worlds: the region is the player-facing "server". |
+| **Zone** | Any zone file: open zone, dungeon or house. |
+| **Instance** | Any running copy of a zone on a game server: a channel, dungeon instance or house instance. |
+| **Channel** | A copy of an open zone shared by many players (formerly "layer", before that "shard"). Named and visible to players. |
+| **Constellation** | An official grouping a character may join (one or none); only affects channel placement. Each can have one associated channel per open zone. |
 | **Height zones** | Vertical layers (digging, crouching, standing, jumping, flying) used in hit checks. |
 | **Invulnerability / pierce** | Defender's invuln level vs attack's pierce level. |
