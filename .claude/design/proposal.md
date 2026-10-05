@@ -168,6 +168,15 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
   - **Motion and flashing:** options to reduce camera shake, motion and flashing effects.
 - **Difficulty scaling for content everyone must clear** (project lead, 2026-10-05): the main story is several interconnected quest chains, so any battle content meant to be cleared by all players can be marked as difficulty-scalable (an easier setting or NPC support). Dungeons, raids and hard bosses keep one difficulty (adopted from an agent suggestion).
 
+### Privacy and data protection
+
+Added 2026-10-05 as a 13th topic. Mostly base (Comet): these are mechanisms every game on it gets. To check with a lawyer before launch.
+
+- **Account deletion: a grace period, then anonymisation** (2026-10-05, adopted from an agent suggestion): deletion takes effect after about 30 days and can be cancelled until then. Personal data (email, logins, profiles, chat) is deleted; ledger and moderation rows keep only an anonymous ID, so economy history and protection against ban evasion stay intact.
+- **Guest characters are deleted after about 30 days without play** (2026-10-05, adopted from an agent suggestion); guests are told this up front.
+- **Minimal data, no third parties** (2026-10-05, adopted from an agent suggestion): email and login data, IP addresses for security with short retention, an age bracket rather than a birthdate, no real names. First-party analytics only; no ad or tracking SDKs, so no cookie consent beyond essentials.
+- **Private-server hosts handle their own players' data, with good defaults** (2026-10-05, adopted from an agent suggestion): Comet ships with retention jobs and deletion tools switched on by default, and the hosting docs say so.
+
 ### Comparable games
 
 - **Comparables in the proposal** (project lead, 2026-10-04): Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
