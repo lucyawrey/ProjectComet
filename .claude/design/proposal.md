@@ -68,6 +68,17 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 
   Phase 2 proves the biggest risk (the seamless world) before content production.
 - **Budget: hosting costs only** (project lead, 2026-10-04); development budget is left to the team. Cost categories (adopted from an agent suggestion): game servers (most of it), Region server processes, PostgreSQL with backups, Valkey for larger regions, and CDN bandwidth for web client, asset and content downloads (every new browser player downloads them). *Placeholder: numbers after phase 0 (players per CPU core from the load test).*
+- **Two layers: an "engine" base and the game on top** (project lead, 2026-10-04). The base runs a family of similar MMOs that share most systems; Project Comet is one game built on it. If the indie team doesn't want this exact game vision, the base is still useful for a similar MMO that fits their goals better. **The base carries a lot of assumptions about the game** (project lead): how combat and transport work in general, and more, so everything built on it will feel similar in many ways. Don't describe it as a base for "any" game. Specific gameplay can vary: another game might not have Class Crystals, for example.
+  - **The proposal is one document in two parts** (2026-10-04, adopted from an agent suggestion): the base, then the game. The team can take the first part on its own.
+  - **Games plug in as C# code modules plus their own content** (2026-10-04, adopted from an agent suggestion), on top of the base's libraries and servers. Systems like crystals can't be expressed by content data alone.
+  - **In the base** (2026-10-04, picked by the project lead from an agent-proposed list), beyond the obviously shared parts (seamless world, zones, channels and instances, transport, netcode, action-combat core, content pipeline, accounts, ops and moderation tools, self-hosting): items and economy (inventory, storage, trading, market, currency, item ledger); a crafting and gathering framework (which crafts exist is game content); social and housing (guilds, parties, chat, friends, house instances); a progression framework (XP, levels, unlock flags, skill slots). Class Crystals, Soul XP, Anima and Runes sit on top as Comet's game layer.
+  - **Roadmap: phases 0–2 are marked as base milestones** (2026-10-04, adopted from an agent suggestion). Prototypes, the vertical slice and the seamless-world proof mostly build the base.
+  - **Early demos don't need to be Project Comet** (project lead, 2026-10-04): they can be very simple expressions of the base. **Phases 0–2 use a minimal demo game built on the base** (2026-10-04, adopted from an agent suggestion), e.g. fight, loot, craft and trade in one zone; Comet's own systems (crystals, Anima…) start at phase 3, the closed alpha. The early work stays useful whatever game the team picks.
+  - **The demo game is ShapeLand** (project lead, 2026-10-04): players are basic coloured shapes (cubes, pills, pyramids) in similarly basic shape environments, like prototype level geometry, who slide around, chat and engage in basic magical combat. Needs no art assets or animation. Details (2026-10-04):
+    - **Shapes are classes** (project lead's pick): each shape has its own spells and hitbox, a small test of the progression framework and combat variety.
+    - **It grows with the phases** (adopted from an agent suggestion): phase 0, sliding and chat; phase 1, combat plus a little loot and persistence, so the slice tests database writes; phase 2, several zones, a border, a channel, a dungeon instance and a teleport.
+    - **It stays as the base's reference game** (adopted from an agent suggestion): shown in the base part of the proposal, kept working as the base evolves, and shipped as the sample game for anyone building on the base or testing a private server.
+  - **Naming** (project lead, 2026-10-04): "Project Comet" is a placeholder for the game. If the game gets an official name, "Comet" might become the name of the base.
 
 ### Comparable games
 
@@ -82,3 +93,9 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 ## Considering
 
 ## Open
+
+- **Two-layer follow-ups** (raised by the agent, 2026-10-04, not yet discussed):
+  - A name for the base. "Engine" clashes with Unity being the engine; "Comet" is a candidate once the game has its own name (see Decided).
+  - Sorting the existing design notes into base and game. Most of `backend.md` and `netcode.md` is base already. Comet-specific details that would move to the game layer include Anima escrow in instances (`backend.md`) and the crystal, Anima and Rune tables (`database.md`).
+  - How game modules extend the base: database extension is decided (`backend.md`); still open are their own Simulation rules and their own message types in Protocol.
+  - Which business-model rules (parts, membership, bonds) belong to the base and which to the game.

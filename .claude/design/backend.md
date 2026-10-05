@@ -113,6 +113,10 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
   - **Columns by default; JSONB only for flexible data read as a whole and rarely queried** (e.g. appearance details, client settings).
   - **snake_case, singular table names** (`character`, `item`, `guild_member`), mapped with EFCore.NamingConventions.
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
+- **Game-specific data on top of the base** (see the two layers in `proposal.md`). **Adding non-default tables and rows in a game must not be painful** (project lead, 2026-10-04). How (2026-10-04, adopted from agent suggestions):
+  - **One combined EF Core model per game:** the base ships its entity classes and configurations, the game project registers its own alongside them in one `DbContext`, and the game owns the single migration history. Base upgrades show up as ordinary migrations in the game's repo; foreign keys and transactions across base and game tables just work.
+  - **Extra fields on base entities go in game-owned 1:1 side tables** keyed by the base row's id (e.g. a `<game>_character(character_id, anima_capacity, …)` table; the prefix is the game's name, and "comet" is avoided since it may become the base's name). Base tables never change shape per game.
+  - **Games add rows to base-defined lists (ledger reasons, flag kinds, container kinds, sanction types) through registry keys**, like content: string keys mapped to permanent numbers in a committed registry, with the same lookup tables and drift checks as `ids.toml`. The base ships its keys and the game adds its own.
 - **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
 ## Considering
