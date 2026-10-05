@@ -1,7 +1,5 @@
 # Project Anima and Comet: proposal
 
-*Written by the project lead.*
-
 <!-- Agent scaffolding: a checklist of what this page should cover, with links to the design notes. Delete items as you write. -->
 
 - [ ] Elevator pitch (project lead) ([`proposal.md`](../.claude/design/proposal.md))
