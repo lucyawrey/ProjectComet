@@ -66,6 +66,8 @@ Detailed agent notes live in `.claude/design/`. Each file keeps **Decided**, **C
 
 ## Source material
 
+`docs/notes/` holds the project lead's own notes (not agent output). Agents don't edit or commit it unless asked.
+
 The project lead's Obsidian notes (Quick Notes, Class Ideas, Technical Notes, Story Snippets, Conversations) cover game systems in detail: inventory and collection, companions, Class Crystals, Soul Experience, crafts, skills, world structure, aesthetic, server hierarchy, and database tables. Raw copies are in `.claude/notes/`. They are messy working notes, not decisions; check with the project lead before treating anything in them as final.
 
 ## Repository state

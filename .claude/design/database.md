@@ -60,86 +60,88 @@ Areas, in discussion order: accounts and staff; characters; classes, crystals, l
 
 ## Draft tables (agent proposals)
 
+The Layer column (2026-10-05, agent sorting following `proposal.md`) marks each table as base (Comet) or game (Project Anima). Game tables would become `anima_`-prefixed side tables (`backend.md`); names here are unprefixed for readability. Under "extract, don't pre-build", these are expectations, not build orders.
+
 ### Accounts and staff (account database)
 
-| Table | Key columns | Notes |
-| --- | --- | --- |
-| `account` (Identity user) | id, email, created_at, kind (player or staff), status | Staff powers live on separate staff accounts. |
-| Identity login and token tables | password hash, external logins, tokens | Renamed to snake_case. |
-| `staff_role` | account_id, role (moderator, GM, admin), region_id (null = all), granted_by, granted_at, revoked_at | Instant revocation sets revoked_at. |
-| `sanction` | id, account_id, kind, reason, starts_at, expires_at (null = permanent), issued_by, region_id and character_id involved, report_id, lifted_at, lifted_by | Account-wide. |
-| `appeal` | id, sanction_id (unique), text, status, reviewed_by | Reviewer must differ from the issuer (app rule or trigger). |
-| `moderator_action` | id, actor_account_id, action, target, region_id, details (JSONB), at | The moderator action log; append-only. |
-| `pending_approval` | id, action, requested_by, approved_by, status | Configurable two-person rule. |
-| `region` | id, name, endpoints, status | Region list handed out by the Login server. |
+| Table | Layer | Key columns | Notes |
+| --- | --- | --- | --- |
+| `account` (Identity user) | Base | id, email, created_at, kind (player or staff), status | Staff powers live on separate staff accounts. |
+| Identity login and token tables | Base | password hash, external logins, tokens | Renamed to snake_case. |
+| `staff_role` | Base | account_id, role (moderator, GM, admin), region_id (null = all), granted_by, granted_at, revoked_at | Instant revocation sets revoked_at. |
+| `sanction` | Base | id, account_id, kind, reason, starts_at, expires_at (null = permanent), issued_by, region_id and character_id involved, report_id, lifted_at, lifted_by | Account-wide. |
+| `appeal` | Base | id, sanction_id (unique), text, status, reviewed_by | Reviewer must differ from the issuer (app rule or trigger). |
+| `moderator_action` | Base | id, actor_account_id, action, target, region_id, details (JSONB), at | The moderator action log; append-only. |
+| `pending_approval` | Base | id, action, requested_by, approved_by, status | Configurable two-person rule. |
+| `region` | Base | id, name, endpoints, status | Region list handed out by the Login server. |
 
 ### Characters (region database)
 
-| Table | Key columns | Notes |
-| --- | --- | --- |
-| `character` | id, account_id, name, created_at, ancestry (content number), appearance_id, constellation (nullable), constellation_hidden, deleted_at | Identity; rarely changes. |
-| `appearance` | id, body_type, hairstyle, face_preset, ancestry parts, colours, sliders (JSONB) | Base rows (from `character.appearance_id`) and crystal override rows (null = use base). |
-| `character_status` | character_id, equipped_crystal_id, zone, instance, position, facing, hp, buffs (JSONB), cooldowns (JSONB), saved_at | Saved periodically and on handoff. |
-| `character_owner` | character_id, game_server_id, instance_id, version, claimed_at | Versioned ownership row (handoff and fencing); the Region server watches it for presence. |
-| `character_progress` | character_id, soul_xp, anima, anima_updated_at, anima_capacity | Immediate transactions. |
-| `anima_hold` | id, character_id, instance_id, amount, created_at, status | Escrow for locked content. |
+| Table | Layer | Key columns | Notes |
+| --- | --- | --- | --- |
+| `character` | Base; `constellation` columns are game | id, account_id, name, created_at, ancestry (content number), appearance_id, constellation (nullable), constellation_hidden, deleted_at | Identity; rarely changes. |
+| `appearance` | Base; crystal override rows are game | id, body_type, hairstyle, face_preset, ancestry parts, colours, sliders (JSONB) | Base rows (from `character.appearance_id`) and crystal override rows (null = use base). |
+| `character_status` | Base; `equipped_crystal_id` is game | character_id, equipped_crystal_id, zone, instance, position, facing, hp, buffs (JSONB), cooldowns (JSONB), saved_at | Saved periodically and on handoff. |
+| `character_owner` | Base | character_id, game_server_id, instance_id, version, claimed_at | Versioned ownership row (handoff and fencing); the Region server watches it for presence. |
+| `character_progress` | Game | character_id, soul_xp, anima, anima_updated_at, anima_capacity | Immediate transactions. |
+| `anima_hold` | Game | id, character_id, instance_id, amount, created_at, status | Escrow for locked content. |
 
 ### Classes, crystals, loadouts, gear and outfit sets (region database)
 
-| Table | Key columns | Notes |
-| --- | --- | --- |
-| `class_entry` | id, character_id, class (content number), xp, highest_level, unlocked_at | The Crystal Archives; current level derived from XP. |
-| `class_rune_mastery` | class_entry_id, rune (content number), progress | Class Rune mastery lives on the class entry. |
-| `crystal` | item_id (1:1 with `item`), class_entry_id, acquired (bought or granted), loadout_id, gear_set_id, outfit_set_id, appearance_id (nullable override) | |
-| `loadout` | id, character_id, name | Survives a crystal's deletion. |
-| `loadout_slot` | loadout_id, index, kind (Skill or Rune), colour, content number, binding, locked | |
-| `gear_set` / `outfit_set` | id, character_id | Reference lists, not containers. |
-| `set_slot` | set_id, slot (body, ring, tool…), item_id, item_type | Unique (set_id, item_type). Slots read as empty when the item isn't in Storage; never cleared. |
+| Table | Layer | Key columns | Notes |
+| --- | --- | --- | --- |
+| `class_entry` | Game | id, character_id, class (content number), xp, highest_level, unlocked_at | The Crystal Archives; current level derived from XP. |
+| `class_rune_mastery` | Game | class_entry_id, rune (content number), progress | Class Rune mastery lives on the class entry. |
+| `crystal` | Game | item_id (1:1 with `item`), class_entry_id, acquired (bought or granted), loadout_id, gear_set_id, outfit_set_id, appearance_id (nullable override) | |
+| `loadout` | Game | id, character_id, name | Survives a crystal's deletion. |
+| `loadout_slot` | Game | loadout_id, index, kind (Skill or Rune), colour, content number, binding, locked | |
+| `gear_set` / `outfit_set` | Game | id, character_id | Reference lists, not containers. |
+| `set_slot` | Game | set_id, slot (body, ring, tool…), item_id, item_type | Unique (set_id, item_type). Slots read as empty when the item isn't in Storage; never cleared. |
 
 ### Items, containers and the ledger (region database)
 
-| Table | Key columns | Notes |
-| --- | --- | --- |
-| `item` | id, type, quantity, holder_character_id, location (inventory, Storage, bag, ground, house, companion, market listing, mail, guild storage), container_id, slot, soulbound_to, durability, quality, crafter_id, dye (JSONB), created_at | |
-| `item_rune_mastery` | item_id, rune, progress | |
-| `item_movement` | id, at, entity_kind (item or companion), entity_id, type, quantity, from, to, reason, actor, instance | The ledger; monthly partitions (see `backend.md`). |
+| Table | Layer | Key columns | Notes |
+| --- | --- | --- | --- |
+| `item` | Base; `durability`, `quality` and game locations (house, companion, market listing) are game | id, type, quantity, holder_character_id, location (inventory, Storage, bag, ground, house, companion, market listing, mail, guild storage), container_id, slot, soulbound_to, durability, quality, crafter_id, dye (JSONB), created_at | |
+| `item_rune_mastery` | Game | item_id, rune, progress | |
+| `item_movement` | Base | id, at, entity_kind (item or companion), entity_id, type, quantity, from, to, reason, actor, instance | The ledger; monthly partitions (see `backend.md`). |
 
 ### Flags, collection, crafts and companions (region database)
 
-| Table | Key columns | Notes |
-| --- | --- | --- |
-| `learned_flag` | character_id, flag, learned_at | Hairstyles, dyes, recipes, Rune unlocks, emotes, attunements, titles, quest progress, once-per-character items. |
-| `item_collection` | character_id, item_type, first_obtained_at | One entry per item type. |
-| `craft_entry` | character_id, craft, xp, highest_level | Like `class_entry`. |
-| `auto_craft_unlock` | character_id, item_type, unlocked_at | Fast crafting unlocked at the quality threshold. |
-| `gathering_node_use` | character_id, node, used_at | Per-player nodes; could expire like the chat buffer. |
-| `companion` | id, species, kind, name, holder_character_id, location (active, carried, stabled), slot, soulbound_to, xp, dye (JSONB), released_at | Mirrors `item`. |
+| Table | Layer | Key columns | Notes |
+| --- | --- | --- | --- |
+| `learned_flag` | Base | character_id, flag, learned_at | Hairstyles, dyes, recipes, Rune unlocks, emotes, attunements, titles, quest progress, once-per-character items. |
+| `item_collection` | Game | character_id, item_type, first_obtained_at | One entry per item type. |
+| `craft_entry` | Base | character_id, craft, xp, highest_level | Like `class_entry`. |
+| `auto_craft_unlock` | Game | character_id, item_type, unlocked_at | Fast crafting unlocked at the quality threshold. |
+| `gathering_node_use` | Base | character_id, node, used_at | Per-player nodes; could expire like the chat buffer. |
+| `companion` | Game | id, species, kind, name, holder_character_id, location (active, carried, stabled), slot, soulbound_to, xp, dye (JSONB), released_at | Mirrors `item`. |
 
 ### Social, market and housing (region database)
 
-| Table | Key columns | Notes |
-| --- | --- | --- |
-| `friendship` / `friend_request` | character pair, created_at | Mutual. |
-| `block` | character_id, blocked_id | Also feeds moderator conflict-of-interest checks. |
-| `guild` | id, name (unique per region), leader_id, created_at | |
-| `guild_rank` | guild_id, rank, name, permissions | |
-| `guild_member` | guild_id, character_id, rank, joined_at, is_primary | Partial unique index: one primary per character. |
-| `party` / `party_member` | party id, leader; character_id (unique) | One party at a time. |
-| `mail` | id, from (null = system), to, subject, body, sent_at, read_at, expires_at | Attachments are items with `location = mail`. |
-| `market_listing` | id, seller_id, item_id, price_type, price_amount, listed_at, expires_at | Sales go to the ledger. |
-| `house` | id, owner (character or guild), zone | Housing and guild halls are instances. |
-| `item_placement` | item_id, position, rotation | Placed furniture. |
+| Table | Layer | Key columns | Notes |
+| --- | --- | --- | --- |
+| `friendship` / `friend_request` | Base | character pair, created_at | Mutual. |
+| `block` | Base | character_id, blocked_id | Also feeds moderator conflict-of-interest checks. |
+| `guild` | Base | id, name (unique per region), leader_id, created_at | |
+| `guild_rank` | Base | guild_id, rank, name, permissions | |
+| `guild_member` | Base; one primary guild is game policy | guild_id, character_id, rank, joined_at, is_primary | Partial unique index: one primary per character. |
+| `party` / `party_member` | Base | party id, leader; character_id (unique) | One party at a time. |
+| `mail` | Base | id, from (null = system), to, subject, body, sent_at, read_at, expires_at | Attachments are items with `location = mail`. |
+| `market_listing` | Game | id, seller_id, item_id, price_type, price_amount, listed_at, expires_at | Sales go to the ledger. |
+| `house` | Game | id, owner (character or guild), zone | Housing and guild halls are instances. |
+| `item_placement` | Game | item_id, position, rotation | Placed furniture. |
 
 ### World and moderation (region database)
 
-| Table | Key columns | Notes |
-| --- | --- | --- |
-| `game_server` | id, address, status, capacity, heartbeat_at | Live game-server processes. |
-| `instance` | id, zone, kind (channel, dungeon, house), name, constellation, owner (party or house), game_server_id, status (starting, running, draining, closed), created_at, closed_at | Placement is one atomic write. |
-| `report` | id, reporter_id, reported_id, category, text, zone, instance, position, created_at, status, keep_evidence, resolved_at, resolved_by, outcome, sanction_id | History kept after its chat is deleted; `resolved_by` and `sanction_id` point into the account database as plain numbers. |
-| `report_chat` | report_id, at, sender, chat kind, text | |
-| `chat_buffer` | at, chat kind, sender, target, text | Hourly partitions, 24 hours. |
-| `violation` | id, character_id, kind, details (JSONB), at | Monthly partitions, about 6 months. |
+| Table | Layer | Key columns | Notes |
+| --- | --- | --- | --- |
+| `game_server` | Base | id, address, status, capacity, heartbeat_at | Live game-server processes. |
+| `instance` | Base; `constellation` is game | id, zone, kind (channel, dungeon, house), name, constellation, owner (party or house), game_server_id, status (starting, running, draining, closed), created_at, closed_at | Placement is one atomic write. |
+| `report` | Base | id, reporter_id, reported_id, category, text, zone, instance, position, created_at, status, keep_evidence, resolved_at, resolved_by, outcome, sanction_id | History kept after its chat is deleted; `resolved_by` and `sanction_id` point into the account database as plain numbers. |
+| `report_chat` | Base | report_id, at, sender, chat kind, text | |
+| `chat_buffer` | Base | at, chat kind, sender, target, text | Hourly partitions, 24 hours. |
+| `violation` | Base | id, character_id, kind, details (JSONB), at | Monthly partitions, about 6 months. |
 
 ## Open
 

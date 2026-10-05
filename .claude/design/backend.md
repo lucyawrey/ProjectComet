@@ -1,6 +1,6 @@
 # Backend and data model
 
-**Layer: base (Comet).** Game-layer details: Anima as the cost behind the entry-cost escrow for locked content (the base provides escrow; Project Anima charges Anima).
+**Layer: base (Comet).** Comet provides generic mechanisms; where Project Anima is the user (Anima as the entry cost, crystals, the market, soulbound rules), the text says so (reworded 2026-10-05).
 
 Agent notes on backend architecture and data-model ideas. Almost everything here is still open or an agent suggestion.
 
@@ -11,7 +11,7 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **No headless Unity server and no Unity networking package (Mirror, FishNet, Netcode…) for now** (2026-10-04). The server is plain .NET using a message-level library. Fallback if rolling our own proves too hard: FishNet with headless Unity servers (FishNet seems to scale well).
 - **Three-part service map** (2026-10-04, for approach A):
   - **Login server** (renamed from Gateway): public HTTP. Accounts, auth, character select, signed tickets for joining a game server or listening across a border. Clients connect to game servers directly; the Login server doesn't relay game traffic.
-  - **Region server** (renamed from Data Center): one logical Region server per region, which may run as more than one process for scaling (2026-10-04). Coordinates everything that spans instances: instance placement and lifecycle (channels and dungeon instances), parties, guilds, friends, chat routing, and the cross-channel economy (market, mail, trades between channels). Split pieces out only if load forces it.
+  - **Region server** (renamed from Data Center): one logical Region server per region, which may run as more than one process for scaling (2026-10-04). Coordinates everything that spans instances: instance placement and lifecycle (channels and dungeon instances), parties, guilds, friends, chat routing, and the cross-channel economy (mail, trades between channels, and Project Anima's market as a game module running in the Region server). Split pieces out only if load forces it.
   - **Game servers:** live simulation and in-memory state of one or more instances (channels, dungeon instances, house instances).
   - PostgreSQL and a static host for the web client and streamed assets sit alongside these.
 - **No central data service; a shared database/model library instead** (2026-10-04, replacing the earlier Region-server-owns-the-database decision). Game servers and the Region server both use one C# model/data library and talk to PostgreSQL directly, as Albion, EVE and AzerothCore do. Trade-offs accepted: every process holds database credentials, and schema migrations must be coordinated across processes.
@@ -25,8 +25,8 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **A region is a separate world copy** (2026-10-04), like a classic MMO server: its own characters, economy and guilds. This holds especially for prototypes; a single shared world could be approached much later. **A region always shares one database**, even when it runs several Region server processes.
 - **Plan for 5,000–10,000 peak concurrent players per region** (2026-10-04).
 - **Region server scaling** (2026-10-04):
-  - **Stateless Region server processes.** Durable state (parties, friends, guilds, market, mail, instance placement) lives in PostgreSQL; processes keep only caches, and presence is rebuilt from the character ownership rows. Any process can serve any client. (A single Region process per region is still worth considering; see Considering.)
-  - **Singleton jobs run on whichever Region process holds a PostgreSQL advisory lock:** placing instances, cleaning up dead instances, refunding Anima escrow after a crash. If that process dies, another takes the lock. Placement is an atomic database write, so nothing is placed twice.
+  - **Stateless Region server processes.** Durable state (parties, friends, guilds, mail, instance placement, and game state such as Project Anima's market) lives in PostgreSQL; processes keep only caches, and presence is rebuilt from the character ownership rows. Any process can serve any client. (A single Region process per region is still worth considering; see Considering.)
+  - **Singleton jobs run on whichever Region process holds a PostgreSQL advisory lock:** placing instances, cleaning up dead instances, refunding entry-cost escrow after a crash (Anima, in Project Anima). If that process dies, another takes the lock. Placement is an atomic database write, so nothing is placed twice.
   - **Valkey** (the BSD-licensed Redis fork) is the SignalR backplane for multi-process regions. A single-process region (e.g. a private server) needs no backplane.
   - **One PostgreSQL primary per region;** read replicas are the first step if reads become a bottleneck.
 - **Carried across a border:** cooldowns, and buffs and debuffs with their remaining duration. **Not carried:** monster aggro. **A skill in progress delays the handoff** until it finishes (invisible, since handoff already happens a few metres past the line).
@@ -117,9 +117,9 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
 - **Mixed persistence** (2026-10-04): item, currency and progression changes are immediate database transactions, acknowledged before the game confirms them to the player. Position, HP and buffs are saved periodically and on handoff.
 - **Game-specific data on top of the base** (see the two layers in `proposal.md`). **Adding non-default tables and rows in a game must not be painful** (project lead, 2026-10-04). How (2026-10-04, adopted from agent suggestions):
   - **One combined EF Core model per game:** the base ships its entity classes and configurations, the game project registers its own alongside them in one `DbContext`, and the game owns the single migration history. Base upgrades show up as ordinary migrations in the game's repo; foreign keys and transactions across base and game tables just work.
-  - **Extra fields on base entities go in game-owned 1:1 side tables** keyed by the base row's id (e.g. a `<game>_character(character_id, anima_capacity, …)` table; the prefix is the game's name, and "comet" is avoided since it may become the base's name). Base tables never change shape per game.
+  - **Extra fields on base entities go in game-owned 1:1 side tables** keyed by the base row's id (e.g. `anima_character(character_id, anima_capacity, …)`; the prefix is the game's name). Base tables never change shape per game.
   - **Games add rows to base-defined lists (ledger reasons, flag kinds, container kinds, sanction types) through registry keys**, like content: string keys mapped to permanent numbers in a committed registry, with the same lookup tables and drift checks as `ids.toml`. The base ships its keys and the game adds its own.
-- **Inventory and Storage share most of their systems.** Crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
+- **Inventory and Storage share most of their systems.** In Project Anima, crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
 
 ## Considering
 
@@ -136,12 +136,12 @@ Agent notes on backend architecture and data-model ideas. Almost everything here
   - B. A product like SpacetimeDB. The project lead is slightly biased against it because of the self-hosting requirement; verify current license terms before weighing it.
   - C (unlikely). A systems-language backend written with help from another developer, if neither A nor B works.
 - **Data model (agent suggestions, not agreed):**
-  - **Items:** every item has an owner (a character, or account Storage) and a location: inventory slot, Storage, inside a bag, on the ground (until despawn), or placed in a house, plus a slot index; soulbound items return to their owner instead of despawning. Gear and outfit sets are reference lists, not locations (one item may be referenced by several sets; see `items.md`). Container rules are data. Moving, trading and equipping are all location changes in one database transaction, so an item can never be in two places.
-  - **Class entries:** current XP, highest level, when unlocked. A Class Crystal is an item with a soulbound owner, a reference to one of the owner's class entries, a bought/granted flag, and references to a loadout, gear set and outfit set. Promotion is one transaction: check requirement, move XP and create the entry if new, convert the crystal, charge resources.
+  - **Items:** every item has an owner (a character, or account Storage) and a location: inventory slot, Storage, inside a bag, on the ground (until despawn), or placed in a house, plus a slot index; in Project Anima, soulbound items return to their owner instead of despawning. Gear and outfit sets are reference lists, not locations (one item may be referenced by several sets; see `items.md`). Container rules are data. Moving, trading and equipping are all location changes in one database transaction, so an item can never be in two places.
+  - **Class entries (Project Anima):** current XP, highest level, when unlocked. A Class Crystal is an item with a soulbound owner, a reference to one of the owner's class entries, a bought/granted flag, and references to a loadout, gear set and outfit set. Promotion is one transaction: check requirement, move XP and create the entry if new, convert the crystal, charge resources.
   - **Loadouts:** one slot list per loadout; each slot has a kind (Skill or Rune), a colour, a binding if it's a Skill slot, and a locked flag.
   - **Mastery:** gear and class Runes share one mastery system; progress is stored per Rune on the item (gear, which can have multiple Runes) or on the class entry (class).
-  - **Finite rune stones:** the first copy a character receives is marked soulbound on acquisition; later copies are ordinary items.
-  - **Anima escrow for locked content:** entry moves Anima into a hold tied to the instance; a clear finalises it, anything else refunds it. On startup, holds from crashed instances are refunded.
+  - **Finite rune stones (Project Anima):** the first copy a character receives is marked soulbound on acquisition; later copies are ordinary items.
+  - **Entry-cost escrow for locked content** (Project Anima charges Anima): entry moves the cost into a hold tied to the instance; a clear finalises it, anything else refunds it. On startup, holds from crashed instances are refunded.
   - **Per-player gathering nodes:** per-player records of which nodes have been used.
   - **Temporary structures** (campfires, pitched tents) exist only on the channel; nothing is persisted.
 
