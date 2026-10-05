@@ -8,59 +8,57 @@ Depth for this phase: tables, key columns and relationships, and which rules the
 
 Starting material: the project lead's table list in `.claude/notes/+ Quick Notes.md` ("Database": Character, CharacterStatus, CharacterCraft, CharacterClass, CharacterAppearance, CharacterSkillset, CharacterGearset, CharacterOutfit, UnlockCollection, CompanionCollection, ItemCollection); the old schemas on the archive branches (`archive/dotnet-datacenter`: `docs/reference.sql`); the data-model suggestions under Considering in `backend.md`; FishMMO's ~30 entities (see `backend.md`, Research).
 
-Areas, in discussion order: accounts and staff; characters; classes, crystals, loadouts, gear and outfit sets; items, containers and the ledger; flags, collection, crafts, companions; social (friends, guilds, constellations, mail, market); world (instances and placement); moderation (region side).
-
 ## Decided
 
 ### Accounts and staff (account database)
 
-- **Accounts are built on ASP.NET Core Identity's tables** (2026-10-04, adopted from an agent suggestion), renamed to fit our conventions: password hashing, lockout, email confirmation and two-factor come built in.
-- **Staff roles can be scoped to one region or to all regions** (2026-10-04, adopted from an agent suggestion).
-- **Character select queries the region databases** (2026-10-04, adopted from an agent suggestion): the Login server asks each region database for the account's characters through the Data library, with no copied directory. A region that's down shows as unavailable.
+- **Accounts are built on ASP.NET Core Identity's tables**, renamed to fit our conventions: password hashing, lockout, email confirmation and two-factor come built in.
+- **Staff roles can be scoped to one region or to all regions**.
+- **Character select queries the region databases**: the Login server asks each region database for the account's characters through the Data library, with no copied directory. A region that's down shows as unavailable.
 
 ### Characters (region database)
 
-- **Character data is split by how often it changes** (2026-10-04, adopted from an agent suggestion): identity, status, ownership and progress are separate tables, so periodic saves and ownership claims only rewrite small rows (PostgreSQL writes a new row version on every update).
-- **Anima is stored as an amount plus a timestamp** (2026-10-04, adopted from an agent suggestion); regeneration is computed when it's read or spent. Works whether or not Anima builds up offline (open in `classes.md`).
-- **Character names are unique per region, ignoring case** (2026-10-04, adopted from an agent suggestion). **Soft-deleted characters hold their name for a retention period** before it's freed. Names can contain spaces, which count for uniqueness: trimmed, with no leading or trailing spaces and at most one space between words; length limits apply (project lead).
-- **Appearance is one shared `appearance` table with typed columns plus a JSONB column for numeric sliders** (2026-10-04, revised at the project lead's prompt; replaces an earlier one-JSONB-document decision). Referenced fields (body type, hairstyle, face preset, ancestry parts) and colours are columns with foreign keys to the content lookups; numeric face and body sliders are one JSONB column. A character points at its base appearance row; a crystal optionally points at an override row, where null columns mean "use the base".
+- **Character data is split by how often it changes**: identity, status, ownership and progress are separate tables, so periodic saves and ownership claims only rewrite small rows (PostgreSQL writes a new row version on every update).
+- **Anima is stored as an amount plus a timestamp**; regeneration is computed when it's read or spent. Anima builds up offline, up to capacity (`classes.md`).
+- **Character names are unique per region, ignoring case**. **Soft-deleted characters hold their name for a retention period** before it's freed. Names can contain spaces, which count for uniqueness: trimmed, with no leading or trailing spaces and at most one space between words; length limits apply (project lead).
+- **Appearance is one shared `appearance` table with typed columns plus a JSONB column for numeric sliders**. Referenced fields (body type, hairstyle, face preset, ancestry parts) and colours are columns with foreign keys to the content lookups; numeric face and body sliders are one JSONB column. A character points at its base appearance row; a crystal optionally points at an override row, where null columns mean "use the base".
 
 ### Classes, crystals, loadouts, gear and outfit sets (region database)
 
-- **A crystal is an `item` row plus a one-to-one `crystal` row** (2026-10-04, adopted from an agent suggestion). Location, owner and soulbinding come from the item; the crystal row holds the class entry, bought or granted, loadout, gear and outfit sets, and an optional override `appearance` row.
-- **Unique-equipped is enforced by the database** (2026-10-04, adopted from an agent suggestion): `set_slot` also stores the item's type (safe, since an item's type never changes), with a unique index on (set, item type).
-- **Loadout slots are rows** (2026-10-04, adopted from an agent suggestion), with foreign keys to the content lookup tables.
+- **A crystal is an `item` row plus a one-to-one `crystal` row**. Location, owner and soulbinding come from the item; the crystal row holds the class entry, bought or granted, loadout, gear and outfit sets, and an optional override `appearance` row.
+- **Unique-equipped is enforced by the database**: `set_slot` also stores the item's type (safe, since an item's type never changes), with a unique index on (set, item type).
+- **Loadout slots are rows**, with foreign keys to the content lookup tables.
 
 ### Items, containers and the ledger (region database)
 
-- **One `item` table for every container** (2026-10-04, adopted from an agent suggestion): one row is one physical item or stack in exactly one place (location, container_id, slot), so being in two places is impossible by construction. A partial unique index on (location, container, slot) protects slotted positions; Storage has no slots. Moves within one owner are plain updates and aren't logged; owner changes also write a ledger row in the same transaction.
-- **Dropped items are persisted** (2026-10-04, adopted from an agent suggestion): location = ground, with the instance. Pickups are ordinary owner changes in the ledger; despawn and channel restarts delete them (soulbound items return). Dungeon instance items and temporary structures stay in memory.
-- **Per-item state is columns** (durability, quality, crafter signature, soulbound_to), with JSONB only for dye colours, and **gear Rune mastery in its own table** (`item_rune_mastery`) (2026-10-04, adopted from an agent suggestion).
+- **One `item` table for every container**: one row is one physical item or stack in exactly one place (location, container_id, slot), so being in two places is impossible by construction. A partial unique index on (location, container, slot) protects slotted positions; Storage has no slots. Moves within one owner are plain updates and aren't logged; owner changes also write a ledger row in the same transaction.
+- **Dropped items are persisted**: location = ground, with the instance. Pickups are ordinary owner changes in the ledger; despawn and channel restarts delete them (soulbound items return). Dungeon instance items and temporary structures stay in memory.
+- **Per-item state is columns** (durability, quality, crafter signature, soulbound_to), with JSONB only for dye colours, and **gear Rune mastery in its own table** (`item_rune_mastery`).
 - Storage is per character for now (multiple characters are ignored in this phase).
 
 ### Flags, collection, crafts and companions (region database)
 
-- **Learned flags are rows** (`character_id`, `flag`) with foreign keys to the content lookups (2026-10-04, adopted from an agent suggestion; a per-character bitset was considered).
-- **Companion cosmetic gear is items located on the companion** (`location = companion`, `container_id` = the companion) (2026-10-04, adopted from an agent suggestion), so trading, dyes and the ledger work unchanged.
-- **One ledger covers items and companions** (2026-10-04, adopted from an agent suggestion), with an entity-kind column.
+- **Learned flags are rows** (`character_id`, `flag`) with foreign keys to the content lookups (a per-character bitset was considered).
+- **Companion cosmetic gear is items located on the companion** (`location = companion`, `container_id` = the companion), so trading, dyes and the ledger work unchanged.
+- **One ledger covers items and companions**, with an entity-kind column.
 
 ### Social, market and housing (region database)
 
-- **Friendships are mutual, with requests** (2026-10-04, adopted from an agent suggestion). Friends affect channel placement, so both sides consent.
-- **One primary guild per character is enforced by a partial unique index** on primary memberships; guild ranks are a per-guild table with permission flags (2026-10-04, adopted from an agent suggestion).
-- **The market plans on one currency, but listings store a currency type plus amount** so any currency stays possible (project lead, 2026-10-04).
-- **Placed furniture positions live in a separate `item_placement` table** (one-to-one with `item`) (2026-10-04, adopted from an agent suggestion).
+- **Friendships are mutual, with requests**. Friends affect channel placement, so both sides consent.
+- **One primary guild per character is enforced by a partial unique index** on primary memberships; guild ranks are a per-guild table with permission flags.
+- **The market plans on one currency, but listings store a currency type plus amount** so any currency stays possible (project lead).
+- **Placed furniture positions live in a separate `item_placement` table** (one-to-one with `item`).
 - Constellations are content entries; direct trades are short-lived sessions ending in one transaction, with no table.
 
 ### World and moderation (region database)
 
-- **An `instance` table is the placement record** for channels, dungeon and house instances (2026-10-04, adopted from an agent suggestion). Channel names are unique per zone among live instances (partial unique index on (zone, name) where not closed).
-- **Report chat is rows copied from the buffer** into `report_chat` when a report is made, deleted on resolution unless the report's `keep_evidence` flag is set (2026-10-04, adopted from an agent suggestion). A report's recent ledger movements and violations are looked up at review time, not copied.
-- **Automatic violations (`violation`) are kept like the ledger:** about 6 months, partitioned by month (2026-10-04, adopted from an agent suggestion). Named to avoid confusion with learned flags.
+- **An `instance` table is the placement record** for channels, dungeon and house instances. Channel names are unique per zone among live instances (partial unique index on (zone, name) where not closed).
+- **Report chat is rows copied from the buffer** into `report_chat` when a report is made, deleted on resolution unless the report's `keep_evidence` flag is set. A report's recent ledger movements and violations are looked up at review time, not copied.
+- **Automatic violations (`violation`) are kept like the ledger:** about 6 months, partitioned by month. Named to avoid confusion with learned flags.
 
 ## Draft tables (agent proposals)
 
-The Layer column (2026-10-05, agent sorting following `proposal.md`) marks each table as base (Comet) or game (Project Anima). Game tables would become `anima_`-prefixed side tables (`backend.md`); names here are unprefixed for readability. Under "extract, don't pre-build", these are expectations, not build orders.
+The Layer column (following `proposal.md`) marks each table as base (Comet) or game (Project Anima). Game tables would become `anima_`-prefixed side tables (`backend.md`); names here are unprefixed for readability. Under "extract, don't pre-build", these are expectations, not build orders.
 
 ### Accounts and staff (account database)
 
@@ -145,7 +143,7 @@ The Layer column (2026-10-05, agent sorting following `proposal.md`) marks each 
 
 ## Open
 
-- All areas have a first pass (2026-10-04). The project lead turns these into the final schema.
+- All areas have a first pass. The project lead turns these into the final schema.
 - Quest state beyond flags (multi-step progress, counters) has no table yet.
 - Settings (account and character client settings, likely JSONB) have no table yet.
 - How the Region server watches `character_owner` for presence (PostgreSQL LISTEN/NOTIFY, logical replication, or polling) is open.
