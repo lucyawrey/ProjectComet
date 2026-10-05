@@ -124,6 +124,17 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 - **Daily and weekly bonuses are optional and catch-up friendly** (2026-10-04, adopted from an agent suggestion): missed ones accumulate or don't matter much; no log-in-or-fall-behind pressure. Anima regeneration already paces play.
 - **Content delivery: expansions plus regular patches** (2026-10-04, adopted from an agent suggestion): expansions add parts; smaller patches every few months add story, dungeons, a raid tier and seasonal events. Fits maintenance-window deploys.
 
+### Economy design
+
+- **Market: a region-wide exchange with taxes** (project lead, 2026-10-04): one order-book market per region, reached at market boards in settlements. **Player stalls are a later feature.**
+- **Gear comes from a mix of crafting and drops** (project lead, 2026-10-04), with **co-crafting**: a player who has the right materials but not the crafting stats can have the item crafted with another player or an NPC.
+  - **With an NPC: fixed fee, capped quality** (2026-10-04, adopted from an agent suggestion): the NPC crafts for a coin fee (a sink) at a fixed, middling quality and can't make top-tier items; players remain the way to high quality and endgame pieces.
+  - **With a player: both credited** (project lead's pick, 2026-10-04): the signature shows both names and craft XP is split.
+- **Money faucets: between modest and classic** (project lead, 2026-10-04): quests, NPC selling and some monster coin, more generous than a mostly player-driven economy but less than a classic coin-drop MMO.
+- **Exchange buy limits on some items** (2026-10-04, adopted from an agent suggestion): per-item buy limits over a time window for scarce or volatile items, set in content data; most items have none.
+- **Economy monitoring: dashboards only** (project lead's pick, 2026-10-04): faucets, sinks and money supply per region, charted from the ledger for designers; no automated alerts.
+- **Sinks** (project lead, 2026-10-04, from an agent-proposed list): market tax; repairs and NPC services (re-obtaining fees, housing upkeep, guild hall costs); crafting consumption, salvage and breakdown; cosmetic and prestige purchases from NPCs for coin (cosmetics, furniture, housing plots, titles).
+
 ### Comparable games
 
 - **Comparables in the proposal** (project lead, 2026-10-04): Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
