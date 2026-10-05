@@ -143,6 +143,18 @@ Discussion order (agreed 2026-10-04, working down until the project lead decides
 - **Systems are mostly unlocked by side quests, not the main story** (project lead, 2026-10-05): each part has a main story, but it rarely gates systems. Most systems sit behind a quest the main story brings you near, and players can travel to those quests to unlock a system early. The content guide shows where they are.
 - **New players are shown with a visible marker, and helping them gives a bonus** (project lead's pick, 2026-10-05); no dedicated new-player channel or mentor system.
 
+### Character creation
+
+Added 2026-10-05. Game (Project Anima); appearance storage is in `database.md`, body and ancestry art rules in `art.md`.
+
+- **Ancestry is cosmetic and story only** (2026-10-05, adopted from an agent suggestion): it sets appearance options, the prologue location and some story flavour, with no stat differences, so no ancestry is wrong for a class (fits "Be anything"). This drops ancestry from the notes' Freelancer attribute formula.
+- **The creator uses presets plus some sliders** (2026-10-05, adopted from an agent suggestion): face, hair and body presets per ancestry, colours, and a handful of sliders (height, build). Fits low-poly art and keeps outfits fitting.
+- **The prologue location is set by ancestry** (2026-10-05, adopted from an agent suggestion): each ancestry has its own prologue area, a distinct first impression and story. Since the prologue happens where the character will stay, this is also their home area.
+- **Changing appearance later** (project lead, 2026-10-05):
+  - **Barbers charge coin for minor changes** (hair, makeup). They simply exist; no quest needed.
+  - **Magical changes cost Anima** and cover both minor and major changes: players use them for the expanded options, or to save coin at the cost of their limited Anima pool (Anima is usually for big magic). Unlocking magical changes takes a quest.
+  - **Changing ancestry costs Anima and needs its own, separate unlock quest.**
+
 ### Age rating and minors
 
 - **Aim for a teen rating (PEGI 12 / ESRB T)** (2026-10-05, adopted from an agent suggestion): fantasy violence, mild language, player interaction; room for moody zones and darker story moments. Bonds-only monetisation with no loot boxes avoids the main rating and regulatory issue.
