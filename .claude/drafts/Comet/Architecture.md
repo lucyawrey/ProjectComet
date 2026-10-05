@@ -16,7 +16,7 @@ A **region** is a separate copy of the world, like a classic MMO server: its own
 
 ## How a client connects
 
-A client holds two connections: a raw WebSocket to its current game server for gameplay, and a SignalR connection to the Region server for chat, parties, guilds and presence. Moving between zones or instances hands the character from one game server to another without a loading screen (see [World and Zones](World%20and%20Zones.md)).
+While playing, a client holds two connections: a raw WebSocket to its current game server for gameplay, and a SignalR connection to the Region server for chat, parties, guilds and presence. It also talks to the Login server over ordinary HTTP requests (not a held connection) for signing in, character select, and the tickets that let it join game servers. Moving between zones or instances hands the character from one game server to another without a loading screen (see [World and Zones](World%20and%20Zones.md)).
 
 ## Data
 
