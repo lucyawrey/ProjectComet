@@ -59,7 +59,7 @@ Agent notes on backend architecture and data-model ideas.
   - *Server:* tick duration (median, worst 1%, ticks over budget), garbage-collection pause count and length, allocation rate, send-queue depth per connection and messages replaced by latest-only queues, bytes in and out per player, CPU and memory.
   - *Bots:* round-trip time, the gap between received updates (where TCP stalls show first), correction count and connection failures.
   - **Tooling:** .NET's built-in metrics (`System.Diagnostics.Metrics`) exported with OpenTelemetry, from servers and bots alike; `dotnet-counters` for quick looks and the standalone .NET Aspire dashboard for test runs. Prometheus and Grafana are for real deployments later.
-  - **Pass/fail thresholds are written down before each stage runs** (numbers set once the tick rate is chosen).
+  - **Pass/fail thresholds are written down before each stage runs** (stage 1 numbers are in `prototype.md`).
 
 ### Shared libraries and code layout
 

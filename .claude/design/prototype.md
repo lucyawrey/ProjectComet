@@ -23,6 +23,28 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **First milestone: the stack benchmark passes** its thresholds, written down before the run. A failure tells us early that the stack or language is the problem.
 - **ShapeLand phase 0 runs on a game server only:** players connect straight to one game server with a name, no accounts; chat goes over the game connection. Login, Region and the database come in phase 1.
 - **The web build is tested early:** ShapeLand is built for web as soon as it slides, and the full load test includes real web clients alongside the bots.
+- **Repository layout: top-level folders per layer,** one solution:
+
+  ```
+  ProjectComet/
+    (one solution file)
+    comet/
+      src/       Protocol, Content, Simulation, Data, Bots, server hosting
+      unity/     the Comet Unity package
+      content/
+    shapeland/
+      server/  bots/  content/
+      unity/     its own Unity project
+    tools/       content build, benchmarks
+    docs/  .claude/  (as now)
+  ```
+
+- **Toolchain:** .NET 10 (LTS) for servers and tools; the newest supported Unity 6 release when work starts, moving to Unity 6.8 (CoreCLR, .NET 10) once it's out and web builds are confirmed working (`backend.md`, research).
+- **Stack benchmark thresholds** (starting numbers; 300 bots, 30 Hz, 1% simulated packet loss, one server core):
+  - *Server:* tick time median under 5 ms and worst 1% under 20 ms; under 0.1% of ticks over the 33 ms budget; worst garbage-collection pause under 10 ms; CPU under 50% of one core.
+  - *Bots:* worst 1% gap between updates under 150 ms; median round trip under 10 ms on a local run; no connection failures.
+  - *Bandwidth:* under 10 KB/s down per bot.
+- **Where the load test runs:** iterate locally; official runs use a cloud VM for the server and a separate machine for the bots, so bots don't take the server's CPU and the network is real.
 
 ## Considering
 
@@ -31,11 +53,9 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 ## Rejected
 
 - **Going past phase 0 in the early prototype** (combat, loot, levels): left for phase 1.
+- **A single `src/` tree** for all code: per-layer folders keep Comet and each game clearly apart.
 - **Login and Region servers in phase 0:** they come in phase 1, so phase 0 reaches the load test sooner.
 
 ## Open
 
-- **Repository layout** for code (where Comet, ShapeLand and tools live on `main`).
-- **Toolchain versions:** Unity version and .NET version.
-- **Load-test thresholds,** written down before the first run (`backend.md`).
-- **Where the load test runs:** a local machine, a cloud VM, or both.
+- **Full game load test thresholds** (stage 2), written down before it runs.
