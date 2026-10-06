@@ -13,7 +13,7 @@ if [ -n "$instances" ]; then
 fi
 for sg in $(aws ec2 describe-security-groups --filters Name=tag-key,Values=stackbench --query 'SecurityGroups[].GroupId' --output text); do
   echo "Deleting security group $sg"
-  aws ec2 delete-security-group --group-id "$sg"
+  aws ec2 delete-security-group --group-id "$sg" > /dev/null
 done
 for key in $(aws ec2 describe-key-pairs --filters Name=tag-key,Values=stackbench --query 'KeyPairs[].KeyName' --output text); do
   echo "Deleting key pair $key"
