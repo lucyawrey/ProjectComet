@@ -29,4 +29,27 @@ dotnet run -c Release --project tools/StackBench/StackBench.Bots -- --warmup 10 
 
 The server's window starts a warmup after its first connection; the bots' window starts a warmup after they launch. Start the bots right after the server so the two line up.
 
-Official runs use Docker with simulated network conditions (clean and impaired); that setup comes next.
+## Docker runs (simulated network)
+
+The official profiles run in Docker. The server is pinned to one CPU (`DOTNET_PROCESSOR_COUNT=1`), and the bots get every CPU outside that physical core. Network conditions apply to the bots container only, in both directions (`docker/netem.sh`):
+
+| Profile | Loss each way | Added delay each way |
+| --- | --- | --- |
+| `clean` | 1% | none |
+| `impaired` | 1% | 40 ms ± 10 ms (about 80 ms round trip) |
+
+```sh
+tools/StackBench/docker/run.sh clean
+tools/StackBench/docker/run.sh impaired
+```
+
+A full run takes about 12 minutes. For a quick check: `BENCH_WARMUP=15 BENCH_DURATION=60 tools/StackBench/docker/run.sh impaired`.
+
+**One-time host setup:** your user in the `docker` group, and the traffic-shaping kernel modules loaded at boot (containers can't load modules themselves):
+
+```sh
+printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' | sudo tee /etc/modules-load.d/stackbench.conf
+sudo systemctl restart systemd-modules-load
+```
+
+Official runs later put the server on a cloud VM and the bots on a separate machine, so the network is real.
