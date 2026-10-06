@@ -28,7 +28,7 @@ Agent notes on art direction. The project lead's working thoughts are in `.claud
 ## Considering
 
 - **Texturing: leaning towards a mix** (pending a better understanding of the tech and workflows): painted trim sheets (reusable strips of painted material detail) plus vertex-colour shading for environments and most outfits, and per-asset painting for faces, hero gear and showpiece outfits. Palette/gradient texturing is the flatter, cheapest alternative.
-- **Texture filtering: prototype both** crisp (nearest-neighbour) and soft (bilinear) before deciding.
+- **Texture filtering: prototype both** crisp (nearest-neighbour) and soft (bilinear) before deciding; the comparison plan is in `prototype.md`.
 
 ## References
 
