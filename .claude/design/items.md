@@ -13,7 +13,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 - **Inventory and Storage share most of their systems.**
 - **Containers vs sets:**
   - **Containers** are physical locations: inventory, Storage and bags. Each item is in exactly one, and every move is one transaction.
-  - **Gear and outfit sets are reference lists, not containers:** typed slots that each point at an item or are empty. Several sets can point at the same item.
+  - **Gear and outfit sets are reference lists:** typed slots that each point at an item or are empty. Several sets can point at the same item.
   - Both share data-driven **slot rules** (what a slot accepts), so a helmet slot and a herb-only bag use the same "does this fit?" check.
 - **Bags** come in two kinds: several slots' worth of a limited range of item types, or bundle-style any type up to a total quantity. Bags can't go inside bags.
 - Bags can sit in the inventory or be dropped on the ground, and keep their contents either way. Depositing a bag into Storage empties its contents into Storage; the bag stays in Storage, empty.
@@ -22,7 +22,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
   - A selector switches between the main inventory and any carried bag.
   - Bags can optionally be hidden from the main inventory grid; an indicator then shows how many inventory slots bags are using.
   - When bags are shown in the inventory, they can be opened either from the selector or by clicking them in the main inventory.
-- **There are no soulbound bags.** A soulbound item inside a dropped bag can still be recalled out of it by its owner.
+- **A soulbound item inside a dropped bag can be recalled out of it by its owner.**
 - **Dropped items and bags despawn after one hour, and all of them vanish on a channel restart.** On a channel merge they carry over instead (see `world.md`). This is the main way most items are destroyed.
 - **Dropping over destroying:** players generally get rid of things by dropping them rather than destroying them, so someone else might pick them up.
 - **Timers are easy server configuration**, not hard-coded: the despawn time and the soulbound return times can be tuned (e.g. to manage server load, or by private server hosts).
@@ -32,6 +32,7 @@ Agent notes on items, inventory, Storage, gear sets, outfits and soulbound items
 
 - **The only thing a character equips is a Class Crystal.**
   - A crystal **references** a class entry, a loadout, a gear set, an outfit set and appearance data, stored separately from the crystal (gear sets may end up as part of the loadout).
+  - **Crystals go in the base inventory, never in bags:** they don't hold items, but they work like bags themselves.
   - Each crystal takes one inventory slot, so carrying many slowly fills the inventory (gentle pressure to specialise). Storage holds any number, limited only by crystal cost.
 - **Gear sets:** items in a gear set technically live in Storage, but the UI and lore present them as being "in" the crystal.
   - **Gear can be equipped in the field**, with no cast. Under the hood it's a swap: the new item moves from the inventory into Storage, the old item moves from Storage into the inventory, and the equipped set's reference is updated. Other sets referencing the old item read that slot as empty until it's back in Storage.

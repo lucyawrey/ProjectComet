@@ -21,7 +21,7 @@ Busy zones run as several **channels**, copies of the same area. Channels are na
 
 When you enter a zone, the game tries to place you with people you know: your party first, then your primary guild and friends, then your **constellation**, then your other guilds, then players who speak your language, then the channel you were last on.
 
-A **constellation** is a loose grouping a character can join (one or none), chosen at creation and changeable for free at any time. Its only effect is placement: each constellation has a preferred channel in each zone, named after it, so you keep seeing familiar faces in a big region. There's no roster, chat or leader; guilds are the player-made groups.
+A **constellation** is a loose grouping a character can join (one or none), chosen at creation and changeable for free at any time. Its only effect is placement: each constellation has a preferred channel in each zone, named after it, so you keep seeing familiar faces in a big region. Guilds are the player-made groups.
 
 ## Dungeons
 

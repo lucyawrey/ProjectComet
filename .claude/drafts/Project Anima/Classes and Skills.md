@@ -9,11 +9,11 @@ A Class Crystal is the only thing a character equips. It's a key that grants the
 - **Swapping crystals** works almost anywhere, even in combat, with an interruptible cast. It changes class, skills, gear and outfit at once. Some areas or encounters can forbid it.
 - **Crystals are soulbound.** Others can carry yours and hand it back, but only you can use it.
 - **Several crystals can share a class**, for different builds of it.
-- **Crystals take inventory space**, so carrying many slowly fills your bags: a gentle push towards a focused set.
+- **Crystals take space in your base inventory** (they can't go in bags), so carrying many slowly fills it: a gentle push towards a focused set.
 
 ### Getting more crystals
 
-Each new crystal for a class you don't already hold costs more Anima, possibly plus materials. The cost depends on what you hold now, never on your history, so letting a crystal go makes the next one cheaper. Crystals from quests are free and don't raise the price. A generous hard cap sits above the number of classes.
+Each new crystal for a class you don't already hold costs more Anima plus a material that can be gathered, looted or bought. The cost depends on what you hold now, never on your history, so letting a crystal go makes the next one cheaper. Crystals from quests are free and don't raise the price. A generous hard cap sits above the number of classes.
 
 ## Promotion
 
@@ -29,7 +29,7 @@ The Crystal Archives keep every class's experience and highest level permanently
 
 ## Experience, Soul XP and Anima
 
-- **Experience** goes to the equipped class. Anything earned past a maxed class or craft becomes **Soul XP**, so no experience is wasted. An unlockable toggle can send experience to Soul XP directly.
+- **Experience** goes to the equipped class. Anything earned past a maxed class or craft becomes **Soul XP**, so no experience is wasted. A World Rune, unlocked through a quest, can send experience to Soul XP directly.
 - **Soul XP** is a currency for permanent unlocks: promotions, Anima Capacity and other lasting improvements. Everything bought with it is permanent.
 - **Anima** is the magic of your soul: an energy that refills over time (offline too, up to capacity), and comes from rare items and quests. It is never sold for real money. **Anima Capacity** is how much you can hold.
 
@@ -62,6 +62,7 @@ Primary Skills are shown the same way, as their own colour of slot tied to a con
 
 - **Rune stones** are Runes as tradeable items. Your first copy of a rare rune stone is soulbound to you; extras can be traded, broken down or sold.
 - **Gear Runes:** gear can carry Runes that are active while worn, for free. Wearing gear builds mastery, and a well-worn piece can have its Rune **extracted** into a rune stone without losing it.
+- **Quest Runes:** many of the game's mechanics are Runes given by quests.
 - **Variant Runes** swap a core Skill for a designed alternative. Rare **Unbound Runes** unlock a core slot entirely, so any allowed Skill can go there.
 
 ## Outfit Magic

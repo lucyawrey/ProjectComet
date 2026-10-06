@@ -9,11 +9,11 @@ Agent notes on classes, crystals, XP and Anima.
 ### Crystals
 
 - **A Class Crystal is a key plus references.** It holds no class data itself: it grants permission to use one of its soulbound owner's permanent class entries, and references a loadout, gear set, outfit set and appearance data, all stored separately (see `items.md`). Several crystals can point to the same class (different loadouts).
-- **The crystal is the only thing a character equips.** Crystals are not containers.
+- **The crystal is the only thing a character equips.**
 - **Crystals are soulbound and only the owner can equip them.** Other players can hold one and hand it back (see soulbound items in `items.md`).
 - **A crystal is always equipped.** The prologue's opening "unclassed" state (before Freelancer is granted; see `proposal.md`) is a hidden crystal with its own gear set; that gear moves automatically to the first real crystal when it's unlocked.
 - **Crystal cost:**
-  - Each new crystal for a class you don't already hold costs more Anima (never XP), possibly plus materials like raw crystal (mined, or bought with in-game currency; never plain currency directly). The goal is soft pressure to specialise; doing everything stays possible.
+  - Each new crystal for a class you don't already hold costs more Anima plus a material like raw crystal, which can be gathered, found as loot, or bought with in-game coin from NPCs or the market. The goal is soft pressure to specialise; doing everything stays possible.
   - Cost is based on what you hold now, **never lifetime totals**.
   - Crystals are flagged bought or granted. Quest-granted crystals (starting class, expansion classes) are free and don't raise the price; claiming a granted crystal again is free.
   - Extra loadout crystals for a class you already hold cost a flat amount.
@@ -40,7 +40,7 @@ Agent notes on classes, crystals, XP and Anima.
 
 ### XP, Soul XP and Anima
 
-- **XP:** all XP goes to the equipped class. Overflow from a maxed class or a maxed craft becomes Soul XP. An unlockable toggle may send XP to Soul instead of a non-maxed class. No percentage splits.
+- **XP:** all XP goes to the equipped class. Overflow from a maxed class or a maxed craft becomes Soul XP. An unlockable World Rune, granted by a quest, sends XP to Soul instead of a non-maxed class.
 - **Names:** Soul Experience grows your soul in size and power. "Class promotion" for classes.
 - **Soul XP is a spendable currency,** spent on class promotions and other permanent unlocks.
   - **Everything bought with Soul XP is permanent:** a character unlock or a soulbound item, never something that can be consumed, thrown away or traded.
@@ -55,6 +55,7 @@ Agent notes on classes, crystals, XP and Anima.
 
 ## Considering
 
+- **Craft-training class World Runes** (project lead's idea): some classes might have a World Rune that puts a portion of their combat XP into a craft (an Alchemist training alchemy). Related to locked class Runes in `crafts.md`.
 - **Class swap cooldowns:** share cooldowns by action category (dash, burst, big heal) as a fraction, so the new class's skill continues at the same fraction of its own length; add a short swap cooldown; carry HP and resources over as percentages. Client preloads skill data for crystals in the inventory.
 - **Class status derived from data:** Locked = no class entry; Archived = entry but no crystal; Stored = crystal elsewhere (Storage, or carried by another player); Attuned = crystal in inventory or equipped.
 
@@ -63,7 +64,7 @@ Agent notes on classes, crystals, XP and Anima.
 - **A fixed crystal limit** (e.g. three): replaced by rising Anima costs plus a high hard cap.
 - **Crystals as containers** (one shared container system for bags, crystals and Storage): crystals reference sets instead.
 - **Separate Gear, Outfit and Appearance Crystals:** folded into the Class Crystal's references.
-- **Percentage XP splits,** including Freelancer taking an automatic share.
+- **Percentage XP splits as a core system,** including Freelancer taking an automatic share. Runes may still split XP (see Considering).
 - **Soul Ascension** (soul milestones).
 - **Outfit dispelling** by other players.
 - **Crystal borrowing:** on hold for simplicity; details kept in `items.md` under Considering.

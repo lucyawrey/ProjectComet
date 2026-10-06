@@ -17,6 +17,8 @@ Actions are timed in simulation ticks (30 a second) with explicit startup, activ
 
 ## The skill base
 
+**Player hitboxes are small and identical:** a point at the player's centre, or a circle much smaller than the model, the same for every player whatever they look like.
+
 Comet only knows how to **execute** an action: its frame data, hitboxes, cooldowns and effects. How players learn skills, which slots they go in and how they improve is game code. That keeps Comet open to games with very different progression, from rune slots to traditional skill trees.
 
 ## Attack patterns

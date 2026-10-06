@@ -116,7 +116,7 @@ Agent notes on backend architecture and data-model ideas.
   - **One combined EF Core model per game:** Comet ships its entity classes and configurations, the game project registers its own alongside them in one `DbContext`, and the game owns the single migration history. Comet upgrades show up as ordinary migrations in the game's repo; foreign keys and transactions across Comet and game tables just work.
   - **Extra fields on Comet entities go in game-owned 1:1 side tables** keyed by the base row's id (e.g. `anima_character(character_id, anima_capacity, …)`; the prefix is the game's name). Comet tables never change shape per game.
   - **Games add rows to Comet-defined lists (ledger reasons, flag kinds, container kinds, sanction types) through registry keys,** like content: string keys mapped to permanent numbers in a committed registry, with the same lookup tables and drift checks as `ids.toml`.
-- **Inventory and Storage share most of their systems.** In Project Anima, crystals are not containers; they reference gear and outfit sets whose items live in Storage (see `items.md`).
+- **Inventory and Storage share most of their systems.** In Project Anima, crystals reference gear and outfit sets whose items live in Storage (see `items.md`).
 
 ### Moderation and operations
 

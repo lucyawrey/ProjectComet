@@ -18,9 +18,10 @@ Agent notes on Project Anima's skill system. See `glossary.md` for terms.
   - **All slots are the same size.** Designers can balance powerful Runes in other ways, e.g. requiring a base Rune.
   - Colours: **Offense** and **Support** (so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
   - Support sits "in the middle": battle first, but some Support skills (e.g. a party speed buff) are also useful for exploration.
-  - World stays one colour for now: splitting off an "Industry" colour would waste slots for players who don't craft. The total number of colours should stay small.
-- **Primary actions are shown as another colour of rune slot** (project lead's idea): each tied to a control, with core slots shown as locked to the class. Primary slots share one colour of their own; classes don't get their own slot colours. Skills and Runes stay distinct concepts underneath.
+  - The total number of colours should stay small.
+- **Primary actions are shown as another colour of rune slot** (project lead's idea): each tied to a control, with core slots shown as locked to the class. Primary slots share one colour of their own. Skills and Runes stay distinct concepts underneath.
 - **Learning Skills:** from levelling and class tutors (tutors should be hard to miss). Some non-class Skills come from special tutors, items or quest rewards.
+- **Quest Runes:** many game mechanics are Runes given by quests, such as the World Rune that sends XP to Soul XP (`classes.md`).
 - **What goes in flex slots:**
   - Some classes have extra optional class Skills for their flex slots.
   - Most flex Skills come from other classes: a character can use the untyped core Skills and optional flex Skills of any other class they have, as long as they can equip the required weapon.
@@ -37,7 +38,6 @@ Agent notes on Project Anima's skill system. See `glossary.md` for terms.
   - **Variant Runes** swap a core action for a designer-made alternative; the slot stays locked.
   - **Unbound Runes** (rare, hard to get) unlock a core slot so any allowed action can go there; one per core slot type. They're alternatives to the (often better for the class) Variant for that slot; using both costs two slots.
   - Some core slots may be **untyped**. There is only one untyped Unbound Rune per player, so at most one untyped core slot can be unbound.
-  - No extra limit for now. A player unbinding most of their core kit to play like Freelancer (which generally has fewer Battle rune slots) is fine. Add a limit later if the game becomes a mess.
 
 ## Considering
 
@@ -48,6 +48,8 @@ Agent notes on Project Anima's skill system. See `glossary.md` for terms.
 - **SP costs for Runes:** replaced by coloured slots.
 - **Major and minor slot sizes:** dropped to limit complexity.
 - **A single Battle colour:** split into Offense and Support.
+- **A separate Industry colour:** would waste slots for players who don't craft; crafting stays under World.
+- **Per-class slot colours.**
 - **A shape-based rune grid.**
 
 ## Open
