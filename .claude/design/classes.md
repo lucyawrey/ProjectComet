@@ -41,6 +41,7 @@ Agent notes on classes, crystals, XP and Anima.
 ### XP, Soul XP and Anima
 
 - **XP:** all XP goes to the equipped class. Overflow from a maxed class or a maxed craft becomes Soul XP. An unlockable World Rune, granted by a quest, sends XP to Soul instead of a non-maxed class.
+- **Craft-training World Runes** put a portion of combat XP into one craft (an Alchemist training alchemy). They can be locked class Runes (`crafts.md`) or ordinary slotted Runes. Once its craft is maxed, the Rune changes effect: it becomes a bonus for that craft (e.g. quality or gathering yield), chosen per Rune by designers.
 - **Names:** Soul Experience grows your soul in size and power. "Class promotion" for classes.
 - **Soul XP is a spendable currency,** spent on class promotions and other permanent unlocks.
   - **Everything bought with Soul XP is permanent:** a character unlock or a soulbound item, never something that can be consumed, thrown away or traded.
@@ -55,10 +56,6 @@ Agent notes on classes, crystals, XP and Anima.
 
 ## Considering
 
-- **Craft-training World Runes** (project lead's idea): some classes might have a World Rune that puts a portion of their combat XP into a craft (an Alchemist training alchemy). Related to locked class Runes in `crafts.md`.
-  - Each Rune trains one craft.
-  - They can be locked class Runes or ordinary slotted Runes.
-  - Once its craft is maxed, the Rune changes effect: it becomes a bonus for that craft (e.g. quality or gathering yield), chosen per Rune by designers.
 - **Class swap cooldowns:** share cooldowns by action category (dash, burst, big heal) as a fraction, so the new class's skill continues at the same fraction of its own length; add a short swap cooldown; carry HP and resources over as percentages. Client preloads skill data for crystals in the inventory.
 - **Class status derived from data:** Locked = no class entry; Archived = entry but no crystal; Stored = crystal elsewhere (Storage, or carried by another player); Attuned = crystal in inventory or equipped.
 
@@ -67,7 +64,7 @@ Agent notes on classes, crystals, XP and Anima.
 - **A fixed crystal limit** (e.g. three): replaced by rising Anima costs plus a high hard cap.
 - **Crystals as containers** (one shared container system for bags, crystals and Storage): crystals reference sets instead.
 - **Separate Gear, Outfit and Appearance Crystals:** folded into the Class Crystal's references.
-- **Percentage XP splits as a core system,** including Freelancer taking an automatic share. Runes may still split XP (see Considering).
+- **Percentage XP splits as a core system,** including Freelancer taking an automatic share. Runes may still split XP (craft-training World Runes).
 - **Soul Ascension** (soul milestones).
 - **Outfit dispelling** by other players.
 - **Crystal borrowing:** on hold for simplicity; details kept in `items.md` under Considering.

@@ -29,7 +29,7 @@ The Crystal Archives keep every class's experience and highest level permanently
 
 ## Experience, Soul XP and Anima
 
-- **Experience** goes to the equipped class. Anything earned past a maxed class or craft becomes **Soul XP**, so no experience is wasted. A World Rune, unlocked through a quest, can send experience to Soul XP directly.
+- **Experience** goes to the equipped class. Anything earned past a maxed class or craft becomes **Soul XP**, so no experience is wasted. A World Rune, unlocked through a quest, can send experience to Soul XP directly. Craft-training World Runes put part of your combat experience into one craft, such as an Alchemist training alchemy; once that craft is maxed, the Rune gives a bonus to it instead.
 - **Soul XP** is a currency for permanent unlocks: promotions, Anima Capacity and other lasting improvements. Everything bought with it is permanent.
 - **Anima** is the magic of your soul: an energy that refills over time (offline too, up to capacity), and comes from rare items and quests. It is never sold for real money. **Anima Capacity** is how much you can hold.
 

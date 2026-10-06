@@ -8,7 +8,7 @@ Agent notes on crafts (Crafting, Building, Gathering, Fishing). Housing, guild h
 
 - **Any player can level every craft freely,** all to the same level cap.
 - **Runes make you better at specific crafts.**
-- **Classes can include locked Runes** that are masterable and extractable, like gear Runes. Some are craft World Runes (e.g. an Alchemist class with alchemy Runes built in).
+- **Classes can include locked Runes** that are masterable and extractable, like gear Runes. Some are craft World Runes (e.g. an Alchemist class with alchemy Runes built in), including craft-training Runes that put part of combat XP into a craft (`classes.md`).
   - Locked class Runes visually occupy a slot (for simplicity), but designers don't count them against the class's slot budget.
   - Mastery builds up on the owner's class entry (character-bound).
   - Most Runes are extractable; the system also supports non-extractable Runes. Classes supplying their Runes to the market is fine (mastery may take a while).
