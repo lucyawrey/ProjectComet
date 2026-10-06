@@ -29,9 +29,12 @@ Console.WriteLine($"{options.Bots} bots → {options.Url}; measuring for {option
 var bots = Enumerable.Range(0, options.Bots).Select(i => new Bot(i, options, window)).ToArray();
 var rampDelay = TimeSpan.FromSeconds((double)options.RampSeconds / options.Bots);
 var running = new List<Task>(bots.Length);
+var launched = 0;
+var progress = ReportProgressAsync(stop.Token);
 foreach (var bot in bots)
 {
     running.Add(Task.Run(() => bot.RunAsync(stop.Token)));
+    Interlocked.Increment(ref launched);
     await Task.Delay(rampDelay);
 }
 
@@ -39,6 +42,7 @@ foreach (var bot in bots)
 var untilEnd = Stopwatch.GetElapsedTime(Stopwatch.GetTimestamp(), window.End);
 stop.CancelAfter(untilEnd + TimeSpan.FromSeconds(1));
 await Task.WhenAll(running);
+await progress;
 
 var roundTrip = new LatencyRecorder();
 var updateGap = new LatencyRecorder();
@@ -61,3 +65,29 @@ var result = new BotsResult
 
 Console.WriteLine($"Results written to {ResultFiles.Write(options.ResultsPath, result)}");
 return 0;
+
+// Prints where the run is every 30 s, so a long run shows it's alive. Reads nothing that's measured.
+async Task ReportProgressAsync(CancellationToken token)
+{
+    using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+    try
+    {
+        while (await timer.WaitForNextTickAsync(token))
+        {
+            var now = Stopwatch.GetTimestamp();
+            if (window.HasEnded(now))
+            {
+                return;
+            }
+            var phase = window.IsMeasuring(now)
+                ? $"measuring {Clock(Stopwatch.GetElapsedTime(window.Start, now))} / {Clock(TimeSpan.FromSeconds(options.DurationSeconds))}"
+                : $"warmup {Clock(TimeSpan.FromSeconds(options.WarmupSeconds) - Stopwatch.GetElapsedTime(now, window.Start))} / {Clock(TimeSpan.FromSeconds(options.WarmupSeconds))}";
+            Console.WriteLine($"{phase} · {Volatile.Read(ref launched)} bots started, {bots.Count(b => b.Failed)} failed");
+        }
+    }
+    catch (OperationCanceledException)
+    {
+    }
+}
+
+static string Clock(TimeSpan time) => $"{(int)time.TotalMinutes}:{time.Seconds:00}";

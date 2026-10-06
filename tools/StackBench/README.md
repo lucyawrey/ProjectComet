@@ -5,7 +5,7 @@ Stage 1 of the load test: Comet's message layer on bare Kestrel WebSockets, with
 | Project | What it does |
 | --- | --- |
 | `StackBench.Server` | A 30 Hz tick loop; one entity per bot, positioned from the bot's reports; each tick sends every bot about 10 entity updates. Measures tick times, GC pauses, CPU, allocation and bandwidth. |
-| `StackBench.Bots` | 300 WebSocket bots in one process. Each walks a seeded random path, reports its position at 15 Hz and pings twice a second. Measures round trips, gaps between updates and failures. |
+| `StackBench.Bots` | 300 WebSocket bots in one process. Each walks a seeded random path, reports its position at 15 Hz and pings twice a second. Measures round trips, gaps between updates and failures, and prints its progress every 30 s. |
 | `StackBench.Report` | Checks both results files against `thresholds.json` and prints pass or fail. |
 | `StackBench.Metrics` | Shared result types and HdrHistogram recording. |
 
