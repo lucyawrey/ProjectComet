@@ -28,7 +28,7 @@ A playful toy box: bright primary colours and simple props.
 
 | Phase | ShapeLand adds | Comet gets tested on |
 | --- | --- | --- |
-| 0. Prototypes | Sliding and chat | Connections, movement, chat |
+| 0. Prototypes | Sliding, jumping and chat | Connections, movement, chat |
 | 1. Vertical slice | Combat, paint drops that recolour your shape, XP and levels | Combat core, items and the ledger, trading, progression, persistence, 100+ bots |
 | 2. Seamless-world proof | Several zones, a border, channels, a dungeon, a teleport | Handoff, channels, instances, streaming |
 
