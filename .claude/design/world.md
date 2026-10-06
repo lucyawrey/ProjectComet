@@ -13,7 +13,8 @@ Agent notes on world structure and server hierarchy. Housing access is in `housi
 - **World traversal takes cues from Breath of the Wild** (project lead's reference).
 - **Per-player collectables are spread around the world** to improve world interaction: each player finds and collects their own, so nobody takes them from anyone else.
   - **Each is collected once per character.**
-  - **A mix, chosen per collectable by designers:** some only count towards a collection; others give items, which may be soulbound, or untradeable currencies (`items.md`).
+  - **Every collectable counts towards a collection,** and each placed instance is logged on its own. Some give nothing else; others also give items, which may be soulbound, or untradeable currencies (`items.md`), chosen per collectable by designers.
+  - Example: 100 pieces of a collectable currency spread through a region, spendable only at certain NPCs; each piece found is logged, so the collection shows 37/100 even after the currency is spent.
 - **The game has platforming elements.** Walls, travel and platforming use the player's world collider, not the small attack hitbox (`combat.md`).
 - **Most areas can be reached without the story,** through less convenient routes (e.g. a very long walk instead of a story carriage ride). Free players also meet in-world barriers at later-part borders (`proposal.md`, business model).
 
