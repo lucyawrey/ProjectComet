@@ -15,6 +15,9 @@ services:
       Bench__WarmupSeconds: ${BENCH_WARMUP:-60}
       Bench__DurationSeconds: ${BENCH_DURATION:-600}
       Bench__ResultsPath: /results/server.json
+    ports:
+      # Loopback only by default; the AWS run opens it to the bots VM.
+      - ${SERVER_PUBLISH:-127.0.0.1:5080}:5080
     volumes:
       - ../results:/results
     healthcheck:
@@ -36,7 +39,7 @@ services:
       NETEM_LOSS: ${NETEM_LOSS:-1%}
     command:
       - --url
-      - ws://server:5080/ws
+      - ${BENCH_URL:-ws://server:5080/ws}
       - --bots
       - ${BENCH_BOTS:-300}
       - --warmup

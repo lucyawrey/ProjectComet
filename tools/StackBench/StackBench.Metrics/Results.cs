@@ -58,6 +58,10 @@ public sealed record BotsResult
 
     /// <summary>Bots that failed to connect, or lost their connection before the window ended.</summary>
     public required int ConnectionFailures { get; init; }
+
+    /// <summary>CPU time the bots process used, in cores, and the CPUs it could use: a run is only valid if the bots weren't CPU-bound.</summary>
+    public required double CpuCores { get; init; }
+    public required int ProcessorCount { get; init; }
 }
 
 /// <summary>Pass/fail limits for one run profile: each value must be at most its limit. A null limit isn't checked.</summary>

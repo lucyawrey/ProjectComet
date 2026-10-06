@@ -52,4 +52,16 @@ printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' | sudo tee /etc
 sudo systemctl restart systemd-modules-load
 ```
 
-Official runs later put the server on a cloud VM and the bots on a separate machine, so the network is real.
+## AWS runs (official)
+
+The official runs put the server and the bots on two AWS VMs (`c7i-flex.large`, on the free plan), so the network between them is real; netem still adds the profile's conditions on the bots VM. The script creates everything it needs, tagged `stackbench`, and deletes it all when it exits, even on failure or Ctrl-C:
+
+```sh
+tools/StackBench/aws/run.sh clean
+tools/StackBench/aws/run.sh impaired
+tools/StackBench/aws/cleanup.sh   # deletes anything tagged stackbench, if a run was killed hard
+```
+
+It uses the AWS CLI's current profile and region, and copies the committed code (`HEAD`) to the VMs. Results go to `tools/StackBench/results/aws-<profile>/`. A run takes about 15 minutes; the same `BENCH_*` variables shorten it.
+
+The report also checks that the bots had CPU to spare: if they used over 80% of theirs, it prints INVALID (exit code 3), because their measurements would reflect the bots rather than the server.
