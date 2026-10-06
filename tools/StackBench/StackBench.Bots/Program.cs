@@ -59,6 +59,5 @@ var result = new BotsResult
     ConnectionFailures = bots.Count(b => b.Failed),
 };
 
-ResultFiles.Write(options.ResultsPath, result);
-Console.WriteLine($"Results written to {Path.GetFullPath(options.ResultsPath)}");
+Console.WriteLine($"Results written to {ResultFiles.Write(options.ResultsPath, result)}");
 return 0;

@@ -153,8 +153,8 @@ public sealed class ServerMeasurement : IDisposable
 
     private async Task FinishAsync(ServerResult result)
     {
-        ResultFiles.Write(_options.ResultsPath, result);
-        _logger.LogInformation("Measurement window ended; results written to {Path}", Path.GetFullPath(_options.ResultsPath));
+        var path = ResultFiles.Write(_options.ResultsPath, result);
+        _logger.LogInformation("Measurement window ended; results written to {Path}", path);
 
         var grace = Stopwatch.StartNew();
         while (_registry.Snapshot.Length > 0 && grace.Elapsed < TimeSpan.FromSeconds(_options.ShutdownGraceSeconds))

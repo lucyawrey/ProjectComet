@@ -6,8 +6,7 @@ using StackBench.Server;
 
 // Stack benchmark server: bare Kestrel WebSockets, a fixed-rate tick loop and Comet's message
 // layer, with no game logic. See .claude/design/prototype.md (Stack benchmark).
-// Settings load from the build output, so the server can be started from any folder (results
-// paths are relative to the current folder: run from the repository root).
+// Settings load from the build output, so the server can be started from any folder.
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,

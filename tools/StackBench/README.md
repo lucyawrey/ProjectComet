@@ -11,7 +11,7 @@ Stage 1 of the load test: Comet's message layer on bare Kestrel WebSockets, with
 
 ## Running locally (no simulated network)
 
-Run each command from the repository root, in separate terminals. Results go to `tools/StackBench/results/` (gitignored).
+Run each command in a separate terminal (the paths below assume the repository root). Results go to `tools/StackBench/results/` (gitignored); relative results paths are resolved from the repository root.
 
 ```sh
 dotnet run -c Release --project tools/StackBench/StackBench.Server
