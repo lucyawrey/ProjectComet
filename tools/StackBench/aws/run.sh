@@ -42,7 +42,7 @@ cleanup() {
     aws ec2 terminate-instances --instance-ids "${instances[@]}" > /dev/null
     aws ec2 wait instance-terminated --instance-ids "${instances[@]}"
   fi
-  [ -n "$sg" ] && aws ec2 delete-security-group --group-id "$sg"
+  [ -n "$sg" ] && aws ec2 delete-security-group --group-id "$sg" > /dev/null
   [ -n "$key_created" ] && aws ec2 delete-key-pair --key-name "$run_id" > /dev/null
   rm -rf "$work"
 }
