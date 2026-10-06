@@ -51,5 +51,15 @@ Console.WriteLine($"Also: server CPU {server.UserCpuCores} cores in its own code
     + $"tick lateness worst 1% {server.TickLateness.P99Ms} ms; {server.GcPauses.Count} GC pauses; "
     + $"{server.AllocatedBytesPerSecond / 1024:0} KB/s allocated; {server.FlushesSkipped} flushes skipped; "
     + $"{server.StateReplaced} state updates replaced; round trip worst 1% {bots.RoundTrip.P99Ms} ms.");
+
+// The bots must have had CPU to spare, or their gaps and round trips measure themselves, not the server.
+const double MaxBotsLoad = 0.8;
+var botsLoad = bots.CpuCores / bots.ProcessorCount;
+Console.WriteLine($"Bots CPU: {bots.CpuCores} of {bots.ProcessorCount} cores ({botsLoad:P0}).");
+if (botsLoad > MaxBotsLoad)
+{
+    Console.WriteLine($"INVALID: the bots used over {MaxBotsLoad:P0} of their CPUs; give them more and rerun.");
+    return 3;
+}
 Console.WriteLine(failed == 0 ? "PASSED" : $"FAILED ({failed} check{(failed == 1 ? "" : "s")})");
 return failed == 0 ? 0 : 1;

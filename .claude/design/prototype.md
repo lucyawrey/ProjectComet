@@ -45,6 +45,8 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   - *Bots:* worst 1% gap between updates under 150 ms; median round trip under 10 ms on a local run; no connection failures.
   - *Bandwidth:* under 10 KB/s down per bot.
 - **Where the load test runs:** on Linux machines. Iterate locally; official runs use a cloud VM for the server and a separate machine for the bots, so bots don't take the server's CPU and the network is real.
+- **Official stack benchmark runs on AWS,** on the new account's free plan (us-east-2): two `c7i-flex.large` VMs in one network, server and bots. `tools/StackBench/aws/run.sh` creates, runs and deletes everything. On this type the server's core is shared with the OS (2 vCPUs are one core's two threads), and "flex" only guarantees part of a core, so results may be noisier than locally; upgrading to the paid plan for `c7a` (one full core per vCPU) is the fallback.
+- **A run is invalid if the bots were CPU-bound** (over 80% of their CPUs): the report says so instead of pass or fail.
 
 ### Stack benchmark
 

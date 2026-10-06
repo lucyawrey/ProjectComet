@@ -28,6 +28,8 @@ Console.WriteLine($"{options.Bots} bots → {options.Url}; measuring for {option
 
 var bots = Enumerable.Range(0, options.Bots).Select(i => new Bot(i, options, window)).ToArray();
 var rampDelay = TimeSpan.FromSeconds((double)options.RampSeconds / options.Bots);
+var cpuAtStart = CpuAtAsync(window.Start);
+var cpuAtEnd = CpuAtAsync(window.End);
 var running = new List<Task>(bots.Length);
 var launched = 0;
 var progress = ReportProgressAsync(stop.Token);
@@ -61,6 +63,8 @@ var result = new BotsResult
     BytesReceivedPerBotPerSecond = Math.Round(bots.Sum(b => b.BytesReceived) / (seconds * options.Bots)),
     BytesSentPerBotPerSecond = Math.Round(bots.Sum(b => b.BytesSent) / (seconds * options.Bots)),
     ConnectionFailures = bots.Count(b => b.Failed),
+    CpuCores = Math.Round((await cpuAtEnd - await cpuAtStart).TotalSeconds / seconds, 3),
+    ProcessorCount = Environment.ProcessorCount,
 };
 
 Console.WriteLine($"Results written to {ResultFiles.Write(options.ResultsPath, result)}");
@@ -88,6 +92,18 @@ async Task ReportProgressAsync(CancellationToken token)
     catch (OperationCanceledException)
     {
     }
+}
+
+// The process's CPU time at a Stopwatch timestamp, for measuring over the window.
+static async Task<TimeSpan> CpuAtAsync(long timestamp)
+{
+    var wait = Stopwatch.GetElapsedTime(Stopwatch.GetTimestamp(), timestamp);
+    if (wait > TimeSpan.Zero)
+    {
+        await Task.Delay(wait);
+    }
+    using var process = Process.GetCurrentProcess();
+    return process.TotalProcessorTime;
 }
 
 static string Clock(TimeSpan time) => $"{(int)time.TotalMinutes}:{time.Seconds:00}";

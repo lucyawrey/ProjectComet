@@ -1,0 +1,14 @@
+#cloud-config
+# Prepares an Ubuntu 24.04 VM for the stack benchmark: Docker, and the traffic-shaping modules that
+# netem needs (Ubuntu's AWS kernel ships them in linux-modules-extra). Not AWS-specific beyond that
+# package name; any Linux host with Docker and these modules can run the benchmark.
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - docker-buildx
+runcmd:
+  - apt-get install -y "linux-modules-extra-$(uname -r)"
+  - printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' > /etc/modules-load.d/stackbench.conf
+  - systemctl restart systemd-modules-load
+  - usermod -aG docker ubuntu
