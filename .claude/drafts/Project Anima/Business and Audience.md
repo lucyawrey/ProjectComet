@@ -39,8 +39,7 @@ The proposal covers hosting costs only: game servers (the largest share), Region
 - **FFXIV:** boss and raid design, outfits, class variety.
 - **Classic WoW:** a seamless world and the social MMO feel.
 - **Rabbit and Steel:** readable, demanding boss mechanics.
-
-Albion Online, Brighter Shores, Mabinogi, TERA and Blue Protocol are candidates still to research.
+- **Albion Online:** a player-crafted economy in one world per region, on a Unity client with C# servers.
 
 ## Open questions
 

@@ -4,7 +4,7 @@ Project Anima's world is one seamless place per region: walk from a town across 
 
 ## Getting around
 
-- **On foot, or on a mount.** Natural travel is the default, and the world is built to reward it.
+- **On foot, or on a mount.** Natural travel is the default, and the world is built to reward it, including with platforming and collectables spread around the world for each player to find.
 - **Boats and airships** run fixed routes between zones; you ride them across borders.
 - **Flying** needs a flying mount and the region's **Flight Attunement**.
 - **Teleports** go to destinations you've attuned to (**Teleportation Attunements**, earned through exploration and quests) and cost Anima, so walking stays worthwhile. Teleporting takes a cast that can be cancelled or interrupted; it's allowed in combat, but the cast is long enough to be a bad idea mid-fight.

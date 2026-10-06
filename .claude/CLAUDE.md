@@ -65,6 +65,7 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 - **`docs/`** holds the human-readable proposal, in Markdown on `main`, one page per topic, **named by page title with spaces and capitals** (the docs don't follow the repo's lowercase convention). `docs/Proposal.md` is the front page; `docs/Roadmap.md`; `docs/Comet/` (Comet Overview, Architecture, Netcode, World and Zones, Combat Core, Content Pipeline, Operations, Self-Hosting, ShapeLand); `docs/Project Anima/` (Setting, Core Loop and Endgame, Classes and Skills, Combat, Items and Economy, Crafting and Housing, Companions, World and Travel, New Players, Community, Art and Audio, Accessibility and Translation, Business and Audience). Pages start as a title and an agent checklist (in an HTML comment marker) linking to `.claude/design/`, which the project lead deletes as they write.
 - **`docs/+ Notes/`** holds the project lead's own notes. Agents don't edit it.
 - **`.claude/drafts/`** holds agent drafts of every docs page, mirroring the layout (Setting has none). Agent drafts go here, never in `docs/`.
+- **`.claude/research/`** holds agent research passes (`comparables.md`: comparable and inspiration games, with the project lead's reasons for each).
 - **The repo is an Obsidian vault** (config in `.obsidian/` at the root, inline titles hidden), which the project lead uses to write the docs.
 
 ## Source material
@@ -86,7 +87,6 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 
 1. **The project lead writes the docs pages,** using the checklists and the drafts in `.claude/drafts/`.
 2. **Considering:** prototyping a basic Comet + ShapeLand before the human-readable proposal is done.
-3. **Todo:** a comparable-games research pass (Albion Online, Brighter Shores, Mabinogi, TERA, Blue Protocol, plus other inspirations in the Quick Notes: Monster Hunter, Path of Exile, Paper Mario, V Rising, Breath of the Wild, Infinity Nikki), so the project lead can decide which belong in the proposal.
-4. **Todo (from phase 3; ShapeLand needs no assets):** find human-made open-source or royalty-free low-poly assets, checking each pack's licence and authorship. Starting points: Kenney, Quaternius and KayKit (CC0), Poly Pizza and OpenGameArt (mixed licences).
-5. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
-6. Everything will likely be reviewed again later.
+3. **Todo (from phase 3; ShapeLand needs no assets):** find human-made open-source or royalty-free low-poly assets, checking each pack's licence and authorship. Starting points: Kenney, Quaternius and KayKit (CC0), Poly Pizza and OpenGameArt (mixed licences).
+4. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
+5. Everything will likely be reviewed again later.

@@ -92,7 +92,7 @@ The Layer column (following `proposal.md`) marks each table as base (Comet) or g
 | `class_rune_mastery` | Game | class_entry_id, rune (content number), progress | Class Rune mastery lives on the class entry. |
 | `crystal` | Game | item_id (1:1 with `item`), class_entry_id, acquired (bought or granted), loadout_id, gear_set_id, outfit_set_id, appearance_id (nullable override) | |
 | `loadout` | Game | id, character_id, name | Survives a crystal's deletion. |
-| `loadout_slot` | Game | loadout_id, index, kind (Skill or Rune), colour, content number, binding, locked | |
+| `loadout_slot` | Game | loadout_id, index, kind (Skill or Rune), category, content number, binding, locked | |
 | `gear_set` / `outfit_set` | Game | id, character_id | Reference lists, not containers. |
 | `set_slot` | Game | set_id, slot (body, ring, tool…), item_id, item_type | Unique (set_id, item_type). Slots read as empty when the item isn't in Storage; never cleared. |
 

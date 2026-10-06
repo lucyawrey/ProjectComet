@@ -16,7 +16,10 @@ Agent notes on combat design.
 - **Thin skill base:** Comet defines only what executes an action (frame data, hitboxes, cooldowns, effects). How skills are acquired, slotted and advanced is game code (`skills.md` for Project Anima).
 - **Attack patterns: mostly telegraphs, some bullets:** mostly telegraphed swings and AoE shapes, with occasional moderate projectile patterns for raids. Bullet counts are capped for bandwidth, and patterns sync as events, not per-projectile state.
 - **Fight sizes:** dedicated raids up to ~30 players; open-world bosses aim for ~100 in the worst case (revisit if not feasible).
-- **Player hitboxes are small and identical:** a point at the player's centre, or a circle much smaller than the model, the same for every ancestry and class. ShapeLand follows this.
+- **Player hitboxes are small and identical:** for attacks, a point at the player's centre, or a circle much smaller than the model, the same for every ancestry and class. ShapeLand follows this.
+  - **World collision is separate:** for moving through the world (terrain, walls, objects), players use a collider closer to a normal one, with a wider base. It matters for walls, travel and platforming (`world.md`).
+    - **The same for everyone,** whatever the ancestry, class or model size, so jumps, gaps and passages work identically for every player.
+    - **Starting size, tuned in the prototype:** an upright cylinder with a flat base, about 0.8 m wide and 1.7 m tall (standing). The flat base lets players stand on ledge edges instead of sliding off as a rounded capsule would. Level design keeps low ceilings above the tallest model so nothing visibly clips.
 - **No body blocking** in the initial design.
 - **Most attacks don't move anyone**, to keep some tab-target feel; a limited set of skills include movement.
 - **Physicality without physics** is one of the game's largest goals, despite the simple graphics.

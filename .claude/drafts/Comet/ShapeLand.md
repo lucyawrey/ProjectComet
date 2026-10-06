@@ -6,7 +6,7 @@ It needs no art assets or animation, so the early phases don't wait on art.
 
 ## Players
 
-Players choose one of three faceted shapes, and each shape is a class with its own spells. Like every player in Comet, all three share the same small hitbox, whatever their size:
+Players choose one of three faceted shapes, and each shape is a class with its own spells. Like every player in Comet, all three share the same small hitbox for attacks, whatever their size:
 
 | Shape | Body | Plays |
 | --- | --- | --- |

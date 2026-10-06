@@ -53,12 +53,12 @@ Skills are learned from levelling and from class tutors, plus some special tutor
 
 ## Runes
 
-**Runes** are slotted skills: passives, modifiers to Skills, and grants of extra Abilities. They go in coloured slots, and a class's slot layout says a lot about it:
+**Runes** are slotted skills: passives, modifiers to Skills, and grants of extra Abilities. They go in slots of different categories, each with its own colour, and a class's slot layout says a lot about it:
 
 - **Offense** and **Support** for battle (hybrid classes show both);
 - **World** for everything outside battle, including crafting, so a class's World slots decide how good a crafter it is.
 
-Primary Skills are shown the same way, as their own colour of slot tied to a control, with core slots shown as locked to the class. The concepts stay distinct; the interface just reads as one system.
+Primary Skills are shown the same way, as their own category of slot tied to a control, with core slots shown as locked to the class. The concepts stay distinct; the interface just reads as one system.
 
 - **Rune stones** are Runes as tradeable items. Your first copy of a rare rune stone is soulbound to you; extras can be traded, broken down or sold.
 - **Gear Runes:** gear can carry Runes that are active while worn, for free. Wearing gear builds mastery, and a well-worn piece can have its Rune **extracted** into a rune stone without losing it.

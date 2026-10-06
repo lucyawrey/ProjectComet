@@ -199,8 +199,8 @@ Comet mechanisms.
 
 ### Comparable games
 
-- **Comparables in the proposal:** Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
-- **Candidates to research before deciding** (the project lead doesn't know them personally): Albion Online (player-driven economy; looks like an interesting comparable), Brighter Shores, Mabinogi, TERA and Blue Protocol.
+- **Comparables in the proposal:** Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel, Albion Online. Art inspirations (PSO, Crystal Chronicles, Signalis) are in `art.md`.
+- **Researched candidates and inspirations** (Brighter Shores, TERA, Blue Protocol and the Quick Notes inspirations): see `.claude/research/comparables.md` for agent suggestions on using them as inspirations for single systems. Not yet decided.
 - *Placeholder: what makes this game different (project lead).*
 
 ### Setting and story
@@ -213,6 +213,8 @@ Comet mechanisms.
 
 ## Rejected
 
+- **Mabinogi as a comparable** (project lead).
+- **Paper Mario as a reference** (project lead).
 - **Self-hosting as a pillar:** it's a commitment underneath them instead.
 - **Business-model mechanisms in Comet:** ShapeLand would never use them, so membership, parts and bonds are game code.
 - **Generic Comet servers that load game modules** (a plugin loader): each game builds its own server programs.

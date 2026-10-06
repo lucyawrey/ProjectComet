@@ -18,6 +18,7 @@ Agent notes on art direction. The project lead's working thoughts are in `.claud
   - **Extra parts are optional extra bones on the shared skeleton:** tails, long ears, wings and horns, ignored by ancestries without them and moved by simple physics or extra animations. Outfits account for them (e.g. tail holes).
   - **Player ancestries all use two-armed, plantigrade humanoid bodies** (no digitigrade legs or extra limbs). Monsters and companions are unaffected.
   - **How far proportions vary is decided with the ancestry designs.** Moderate differences share animations well; a very small or big-headed ancestry would need extra animation and fitting work or a variant skeleton.
+- **Outfits are cute and functional:** they look good and do something, through their World Runes (Infinity Nikki is a reference).
 - **World Runes from gear always match the character's visible appearance** (see `skills.md`, Outfit Magic).
 - **Crystals can change a character's base design** on top of their real base form (see `classes.md`).
 - **World tone: a bright, warm storybook baseline, with zones varying:** some zones go moody, eerie or harsh for contrast (marshes, ruins, dungeons). Crystal Chronicles is the lighting and mood reference.
@@ -38,6 +39,7 @@ Specific games, kept separate from decisions. Phantasy Star Online, Crystal Chro
 | Crystal Chronicles | Textures, character design, lighting and mood |
 | Signalis | Textures, character design |
 | FFXIV | Variety in character sizes, shapes and unique outfits; outfit design; ancestry design. Slightly more high-res than wanted. |
+| Breath of the Wild | Overall aesthetic; also a reference for world traversal (`world.md`) |
 
 ## Rejected
 

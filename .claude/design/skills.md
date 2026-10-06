@@ -14,12 +14,12 @@ Agent notes on Project Anima's skill system. See `glossary.md` for terms.
 - **About 10 primary slots in total, including flex** (a goal: lower it if no good controller scheme is found). Exact bindings are deferred.
 - **Jump, crouch, dodge and sprint** have dedicated controls but are class skills: each class can change their effect (dodge timing, jump height for a dragoon-style class, a rogue's crouch doubling as a faster sneak) while they always remain jump, crouch, dodge and sprint.
 - **Runes and slots:** a **Rune** is always a slotted skill (genuine passives, modifiers to primary actions, and skills that add secondary actions). Their containers are just called **slots**. A Rune held as an item is a **rune stone**. Runes must stay distinct from primary actions.
-- **Coloured slots** for Runes:
+- **Slot categories** for Runes (each shown in the UI with its own colour, plus shapes and icons for accessibility):
   - **All slots are the same size.** Designers can balance powerful Runes in other ways, e.g. requiring a base Rune.
-  - Colours: **Offense** and **Support** (so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
+  - Categories: **Offense** and **Support** (so hybrid classes show in their slot layout), and **World**. Crafting falls under World, so a class's World slots decide how good a crafter it is.
   - Support sits "in the middle": battle first, but some Support skills (e.g. a party speed buff) are also useful for exploration.
-  - The total number of colours should stay small.
-- **Primary actions are shown as another colour of rune slot** (project lead's idea): each tied to a control, with core slots shown as locked to the class. Primary slots share one colour of their own. Skills and Runes stay distinct concepts underneath.
+  - The total number of categories should stay small.
+- **Primary actions are shown as another category of rune slot** (project lead's idea): each tied to a control, with core slots shown as locked to the class. Primary slots share one category of their own. Skills and Runes stay distinct concepts underneath.
 - **Learning Skills:** from levelling and class tutors (tutors should be hard to miss). Some non-class Skills come from special tutors, items or quest rewards.
 - **Quest Runes:** many game mechanics are Runes given by quests, such as the World Rune that sends XP to Soul XP (`classes.md`).
 - **What goes in flex slots:**
@@ -45,11 +45,11 @@ Agent notes on Project Anima's skill system. See `glossary.md` for terms.
 
 ## Rejected
 
-- **SP costs for Runes:** replaced by coloured slots.
+- **SP costs for Runes:** replaced by slot categories.
 - **Major and minor slot sizes:** dropped to limit complexity.
-- **A single Battle colour:** split into Offense and Support.
-- **A separate Industry colour:** would waste slots for players who don't craft; crafting stays under World.
-- **Per-class slot colours.**
+- **A single Battle category:** split into Offense and Support.
+- **A separate Industry category:** would waste slots for players who don't craft; crafting stays under World.
+- **Per-class slot categories.**
 - **A shape-based rune grid.**
 
 ## Open

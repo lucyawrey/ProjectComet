@@ -25,7 +25,7 @@ Working terms. They may change but must stay distinct. Details live in the topic
 | **Abilities** | All secondary actions (from classes, Runes, the base system, character-wide unlocks). Outside the primary control scheme. |
 | **Rune** | A slotted skill: passive, modifier to a Skill, or grant of an Ability. |
 | **Rune stone** | A Rune as a tradeable item. |
-| **Slots (rune)** | Same-size coloured slots: Offense, Support, World. Primary slots have their own colour. |
+| **Slots (rune)** | Same-size slots in categories: Offense, Support, World. Primary slots have their own category. Each category has a colour in the UI. |
 | **Variant Rune** | Swaps a core Skill for a designer-made alternative. |
 | **Unbound Rune** | Unlocks a core slot of its type so any allowed Skill can go there. |
 | **Gear / class Runes** | Runes built into gear (free while worn) or classes (locked, shown in a slot). |
