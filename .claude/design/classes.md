@@ -55,7 +55,10 @@ Agent notes on classes, crystals, XP and Anima.
 
 ## Considering
 
-- **Craft-training class World Runes** (project lead's idea): some classes might have a World Rune that puts a portion of their combat XP into a craft (an Alchemist training alchemy). Related to locked class Runes in `crafts.md`.
+- **Craft-training World Runes** (project lead's idea): some classes might have a World Rune that puts a portion of their combat XP into a craft (an Alchemist training alchemy). Related to locked class Runes in `crafts.md`.
+  - Each Rune trains one craft.
+  - They can be locked class Runes or ordinary slotted Runes.
+  - Once its craft is maxed, the Rune changes effect: it becomes a bonus for that craft (e.g. quality or gathering yield), chosen per Rune by designers.
 - **Class swap cooldowns:** share cooldowns by action category (dash, burst, big heal) as a fraction, so the new class's skill continues at the same fraction of its own length; add a short swap cooldown; carry HP and resources over as percentages. Client preloads skill data for crystals in the inventory.
 - **Class status derived from data:** Locked = no class entry; Archived = entry but no crystal; Stored = crystal elsewhere (Storage, or carried by another player); Attuned = crystal in inventory or equipped.
 
