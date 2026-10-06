@@ -47,7 +47,8 @@ foreach (var (name, value, limit) in checks)
 }
 
 Console.WriteLine();
-Console.WriteLine($"Also: tick lateness worst 1% {server.TickLateness.P99Ms} ms; {server.GcPauses.Count} GC pauses; "
+Console.WriteLine($"Also: server CPU {server.UserCpuCores} cores in its own code, {server.KernelCpuCores} in the kernel; "
+    + $"tick lateness worst 1% {server.TickLateness.P99Ms} ms; {server.GcPauses.Count} GC pauses; "
     + $"{server.AllocatedBytesPerSecond / 1024:0} KB/s allocated; {server.FlushesSkipped} flushes skipped; "
     + $"{server.StateReplaced} state updates replaced; round trip worst 1% {bots.RoundTrip.P99Ms} ms.");
 Console.WriteLine(failed == 0 ? "PASSED" : $"FAILED ({failed} check{(failed == 1 ? "" : "s")})");

@@ -86,7 +86,8 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | Connection failures | 0 | 0 | 0 |
   | Bytes down per bot | 10 KB/s | 7.6 KB/s | 7.6 KB/s |
 
-- **Server CPU is the tightest margin:** it doubles under the impaired network (0.21 to 0.44 cores) with the same traffic, so loss and delay cost the server real work. Worth explaining before the cloud runs.
+- **Server CPU is the tightest margin:** it doubles under the impaired network (0.21 to 0.45 cores) with the same traffic. Most of the increase is kernel time (0.11 to 0.29 cores; the server's own code goes from 0.10 to 0.16).
+- **Likely cause (unconfirmed): netem's own work, billed to the server.** On one host, the server's send call carries packets through the bridge into the bots' ingress emulator, and delayed packets cost netem a time-sorted queue and timers. Part may be real TCP cost at an 80 ms round trip. The cloud runs settle it: netem runs only on the bot machine there, so comparing the server's kernel time between profiles shows what a real server pays.
 
 ### Code layout and build
 

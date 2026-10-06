@@ -28,6 +28,12 @@ public sealed record ServerResult
     /// <summary>CPU time used, as a fraction of one core.</summary>
     public required double CpuCores { get; init; }
 
+    /// <summary>The part of <see cref="CpuCores"/> spent in the process's own code.</summary>
+    public required double UserCpuCores { get; init; }
+
+    /// <summary>The part of <see cref="CpuCores"/> spent in the kernel on the process's behalf (system calls, network stack).</summary>
+    public required double KernelCpuCores { get; init; }
+
     public required double WorkingSetMegabytes { get; init; }
     public required double AverageConnections { get; init; }
     public required double BytesSentPerConnectionPerSecond { get; init; }
