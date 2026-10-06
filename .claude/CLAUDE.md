@@ -87,6 +87,6 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 
 1. **The project lead writes the docs pages,** using the checklists and the drafts in `.claude/drafts/`.
 2. **Considering:** prototyping a basic Comet + ShapeLand before the human-readable proposal is done.
-3. **Later (from phase 3; ShapeLand needs no assets):** choose free low-poly assets, starting from the survey in `.claude/research/assets.md`.
+3. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
 4. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
 5. Everything will likely be reviewed again later.

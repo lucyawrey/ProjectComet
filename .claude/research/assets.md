@@ -2,7 +2,7 @@
 
 **Layer: mixed.** Placeholder and prototype assets serve both ShapeLand-adjacent tests and Project Anima's phase 3 onwards.
 
-Agent research, written 2026-10-06. A basic survey only: nothing here is decided, and no pack has been chosen.
+Agent research, written 2026-10-06. A basic survey. **Decided:** Kenney, Quaternius and KayKit are the starting sources for placeholder and prototype assets (`art.md`). No specific packs are chosen.
 
 ## What to check for each pack
 
