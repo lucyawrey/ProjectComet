@@ -59,6 +59,13 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   - *Impaired:* about 80 ms ± 20 ms latency plus 1% loss; checks everything except the round-trip median.
 - **10-minute runs after a 1-minute warmup.**
 
+### Shared packages and content (step 2)
+
+- **Four libraries from the start** (Protocol, Content, Simulation, Data; `backend.md`). Simulation and Data stay nearly empty in phase 0.
+- **The shared packages must compile in the Unity editor and in IL2CPP desktop and web builds,** where MessagePack's ahead-of-time needs (generated formatters) and .NET Standard 2.1 limits show up.
+- **Content pipeline, core path only:** TOML files read by Tomlyn into Content types, validated, compiled into a MessagePack file that the server and client load; a minimal ID registry with generated constants; a JSON Schema generated from the Content types so VS Code (Even Better TOML) autocompletes and flags errors while editing. Hash delivery, text extraction, CI drift checks and the rename command wait for phase 1.
+- **TOML editor support is checked in VS Code** only.
+
 ### ShapeLand phase 0
 
 - **Joining:** enter a name, pick cube, diamond or pyramid, get a random colour. Names are unique among players currently online; nothing is saved.
@@ -77,6 +84,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 - **Going past phase 0 in the early prototype** (combat, loot, levels): left for phase 1.
 - **A single `src/` tree** for all code: per-layer folders keep Comet and each game clearly apart.
+- **The full content pipeline in phase 0** (hash delivery, text extraction, drift checks, rename command): phase 1.
 - **Login and Region servers in phase 0:** they come in phase 1, so phase 0 reaches the load test sooner.
 
 ## Open
