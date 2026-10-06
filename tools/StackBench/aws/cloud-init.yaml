@@ -7,6 +7,7 @@ packages:
   - docker.io
   - docker-compose-v2
   - docker-buildx
+# runcmd must stay last: run.sh appends a shutdown timer to it.
 runcmd:
   - apt-get install -y "linux-modules-extra-$(uname -r)"
   - printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' > /etc/modules-load.d/stackbench.conf
