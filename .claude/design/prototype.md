@@ -89,7 +89,23 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | Bytes down per bot | 10 KB/s | 7.6 KB/s | 7.6 KB/s |
 
 - **Server CPU is the tightest margin:** it doubles under the impaired network (0.21 to 0.45 cores) with the same traffic. Most of the increase is kernel time (0.11 to 0.29 cores; the server's own code goes from 0.10 to 0.16).
-- **Likely cause (unconfirmed): netem's own work, billed to the server.** On one host, the server's send call carries packets through the bridge into the bots' ingress emulator, and delayed packets cost netem a time-sorted queue and timers. Part may be real TCP cost at an 80 ms round trip. The cloud runs settle it: netem runs only on the bot machine there, so comparing the server's kernel time between profiles shows what a real server pays.
+- **Most of that is TCP's real cost at a long round trip, not the emulator:** on AWS, with no netem on the server's machine, the server's kernel time still doubles under the impaired profile (0.13 to 0.26 cores). Players far away cost the server more CPU than nearby ones.
+- **AWS runs (2026-10-06; two `c7i-flex.large`, free plan, us-east-2, full 10-minute windows): clean passes, impaired misses one check.**
+
+  | Check | Limit | Clean | Impaired |
+  | --- | --- | --- | --- |
+  | Tick work, median | 5 ms | 0.53 ms | 0.65 ms |
+  | Tick work, worst 1% | 20 ms | 2.9 ms | 3.1 ms |
+  | Ticks over budget | 0.1% | 0 | 0 |
+  | Worst GC pause | 10 ms | 8.7 ms | **10.04 ms (fail)** |
+  | Server CPU | 0.5 cores | 0.28 | 0.47 |
+  | Gap between updates, worst 1% | 150 ms | 40 ms | 132 ms |
+  | Round trip, median | 10 ms (clean only) | 0.27 ms | 82 ms |
+  | Connection failures | 0 | 0 | 0 |
+  | Bytes down per bot | 10 KB/s | 7.6 KB/s | 7.6 KB/s |
+  | Bots CPU (validity) | 80% | 19% | 40% |
+
+- **The worst GC pause is always the run's single gen1 collection:** each AWS run has about nine gen0 pauses near 1.8 ms and one gen1 pause of 8.7–10.04 ms (5.7 ms locally). Being investigated locally (what survives into gen1) before deciding anything; the threshold stays as written.
 
 ### Code layout and build
 
