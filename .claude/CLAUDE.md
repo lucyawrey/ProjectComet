@@ -87,7 +87,7 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 ## Next steps
 
 1. **The project lead writes the docs pages,** using the checklists and the drafts in `.claude/drafts/`.
-2. **Decided:** prototype Comet + ShapeLand early, before the proposal is done. Phase 0 is fully planned in `prototype.md`; building starts when the project lead says so, beginning with the stack benchmark.
+2. **In progress: the stack benchmark** (prototype milestone 1). Local runs pass; on AWS, clean passes and impaired misses the GC pause limit by 0.04 ms. The GC investigation and the next runs are in `prototype.md` (stack benchmark results). After it, step 2a: the content pipeline (decisions in `prototype.md`).
 3. **Todo:** ingest the project lead's story and setting notes (a lot of them, covering two separate settings that will need adjusting to fit the mechanics) and give them summaries, so they can write the final story overview more easily. Summaries describe their notes; they aren't lore, and the setting itself stays the project lead's. Compare against `lore-hooks.md` to show where each setting fits or clashes with the mechanics. **Never check the summaries (or the notes) into this repo;** they go in the project lead's notes, outside the repo. Waiting on the project lead to share the notes.
 4. **Todo (research):** eventual WebTransport and UDP support, weighed against the benefits of keeping the number of transports low (one code path to build, test and load-test). Background in `backend.md` (transport, WebTransport upgrade paths).
 5. **Todo (research):** WebGPU against WebGL for Unity web builds (browser support, Unity 7 status, performance for low-poly scenes, fallbacks).

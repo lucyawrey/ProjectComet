@@ -105,7 +105,10 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | Bytes down per bot | 10 KB/s | 7.6 KB/s | 7.6 KB/s |
   | Bots CPU (validity) | 80% | 19% | 40% |
 
-- **The worst GC pause is always the run's single gen1 collection:** each AWS run has about nine gen0 pauses near 1.8 ms and one gen1 pause of 8.7–10.04 ms (5.7 ms locally). Being investigated locally (what survives into gen1) before deciding anything; the threshold stays as written.
+- **The worst GC pause is always the run's single gen1 collection:** each AWS run has about nine gen0 pauses near 1.8 ms and one gen1 pause of 8.7–10.04 ms (5.7 ms locally). The threshold stays as written.
+- **GC investigation so far** (local, per-pause runtime events): stopping threads takes about 0.01 ms, so the tick loop's spin-wait isn't a factor; steady-state collections take about 1.1 ms with about 30 KB surviving. The worst pause came from about 2.5 MB of startup objects (hosting, DI, runtime metadata) sitting in gen1 until one deeper collection promoted them inside the window.
+- **`Comet.Server.Heap.Settle()`:** one full, compacting collection once startup work is done, before players arrive; the bench server calls it when the host starts, and games call it again after loading content.
+- **Still open (in progress):** a quick local check with the settle still had a 7.4 ms pause in a 30 s window. Unverified hypothesis: the 300 connections' own long-lived state, created together during the 10 s ramp, is promoted in one collection. Next: rerun the per-pause diagnostics in Docker with the settle to confirm, then the AWS impaired run (`tools/StackBench/aws/run.sh impaired`, then `clean`).
 
 ### Code layout and build
 

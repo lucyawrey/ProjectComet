@@ -29,6 +29,8 @@ app.MapCometWebSocket("/ws");
 
 var tickLoop = app.Services.GetRequiredService<TickLoop>();
 app.Services.GetRequiredService<ServerMeasurement>();
+// Settle startup objects before bots connect, so their promotion isn't a pause in the window.
+app.Lifetime.ApplicationStarted.Register(Heap.Settle);
 app.Lifetime.ApplicationStarted.Register(tickLoop.Start);
 app.Lifetime.ApplicationStopping.Register(tickLoop.Stop);
 
