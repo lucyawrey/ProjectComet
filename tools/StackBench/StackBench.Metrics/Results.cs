@@ -76,13 +76,38 @@ public static class ResultFiles
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    public static void Write<T>(string path, T result)
+    /// <summary>Writes a results file and returns its full path.</summary>
+    public static string Write<T>(string path, T result)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        File.WriteAllText(path, JsonSerializer.Serialize(result, Options));
+        var fullPath = Resolve(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        File.WriteAllText(fullPath, JsonSerializer.Serialize(result, Options));
+        return fullPath;
     }
 
     public static T Read<T>(string path) =>
-        JsonSerializer.Deserialize<T>(File.ReadAllText(path), Options)
+        JsonSerializer.Deserialize<T>(File.ReadAllText(Resolve(path)), Options)
         ?? throw new InvalidDataException($"{path} is empty.");
+
+    /// <summary>
+    /// Relative paths are relative to the repository root (the folder holding ProjectComet.slnx,
+    /// searched upwards from the current folder), because <c>dotnet run</c> starts web projects in
+    /// their own folder and console projects in the current one. Outside the repository (e.g. in a
+    /// container) they're relative to the current folder.
+    /// </summary>
+    public static string Resolve(string path)
+    {
+        if (Path.IsPathRooted(path))
+        {
+            return path;
+        }
+        for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir is not null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
+            {
+                return Path.Combine(dir.FullName, path);
+            }
+        }
+        return Path.GetFullPath(path);
+    }
 }
