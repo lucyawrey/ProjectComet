@@ -88,7 +88,8 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 
 1. **The project lead writes the docs pages,** using the checklists and the drafts in `.claude/drafts/`.
 2. **Decided:** prototype Comet + ShapeLand early, before the proposal is done. Phase 0 is fully planned in `prototype.md`; building starts when the project lead says so, beginning with the stack benchmark.
-3. **Todo:** update the Roadmap draft (and other drafts) to reflect the prototype plan.
-4. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
-5. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
-6. Everything will likely be reviewed again later.
+3. **Todo:** ingest the project lead's story and setting notes (a lot of them, covering two separate settings that will need adjusting to fit the mechanics) and give them summaries, so they can write the final story overview more easily. Summaries describe their notes; they aren't lore, and the setting itself stays the project lead's. Compare against `lore-hooks.md` to show where each setting fits or clashes with the mechanics. **Never check the summaries (or the notes) into this repo;** they go in the project lead's notes, outside the repo. Waiting on the project lead to share the notes.
+4. **Todo:** update the Roadmap draft (and other drafts) to reflect the prototype plan.
+5. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
+6. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
+7. Everything will likely be reviewed again later.
