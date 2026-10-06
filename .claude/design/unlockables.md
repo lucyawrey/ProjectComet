@@ -7,6 +7,7 @@ Agent notes on unlockables: progression not tied to items, companions, or class 
 ## Decided
 
 - **Unlockables are learned flags** (see `items.md`).
+- **Found collectables are learned flags too,** one per placed collectable, grouped into collections that count them (`world.md`).
 - **"Soul" is theming:** Soul XP and Anima are player-facing names for ordinary character data.
 - **Anima Capacity is a number on the character.** It's raised by:
   - spending Soul XP,

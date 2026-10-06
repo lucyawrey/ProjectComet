@@ -108,12 +108,11 @@ The Layer column (following `proposal.md`) marks each table as base (Comet) or g
 
 | Table | Layer | Key columns | Notes |
 | --- | --- | --- | --- |
-| `learned_flag` | Base | character_id, flag, learned_at | Hairstyles, dyes, recipes, Rune unlocks, emotes, attunements, titles, quest progress, once-per-character items. |
+| `learned_flag` | Base | character_id, flag, learned_at | Hairstyles, dyes, recipes, Rune unlocks, emotes, attunements, titles, quest progress, once-per-character items, found collectables (one flag per placed collectable). |
 | `item_collection` | Game | character_id, item_type, first_obtained_at | One entry per item type. |
 | `craft_entry` | Base | character_id, craft, xp, highest_level | Like `class_entry`. |
 | `auto_craft_unlock` | Game | character_id, item_type, unlocked_at | Fast crafting unlocked at the quality threshold. |
 | `gathering_node_use` | Base | character_id, node, used_at | Per-player nodes; could expire like the chat buffer. |
-| `collectable_found` | Base | character_id, collectable (placed instance), found_at | One row per placed collectable found; never expires. Drives one-time pickup and collection counts. |
 | `companion` | Game | id, species, kind, name, holder_character_id, location (active, carried, stabled), slot, soulbound_to, xp, dye (JSONB), released_at | Mirrors `item`. |
 
 ### Social, market and housing (region database)
