@@ -17,6 +17,10 @@ public sealed class Bot(int index, BotOptions options, BenchWindow window)
     private const float HalfArea = 100f; // walks within a 200 m square
     private const int ReceiveBufferSize = 64 * 1024;
 
+    // How long a bot waits for the server's side of the close before aborting; a lost final packet
+    // must not leave it waiting forever.
+    private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(5);
+
     private readonly Random _random = new(HashCode.Combine(options.Seed, index));
     private readonly ClientWebSocket _socket = new();
     private float _x, _z, _facing;
@@ -57,7 +61,15 @@ public sealed class Bot(int index, BotOptions options, BenchWindow window)
         {
             MarkLostIfInWindow();
         }
-        await receiving;
+        try
+        {
+            await receiving.WaitAsync(CloseTimeout);
+        }
+        catch (TimeoutException)
+        {
+            _socket.Abort();
+            await receiving;
+        }
         _socket.Dispose();
     }
 

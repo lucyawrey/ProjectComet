@@ -87,7 +87,7 @@ server_ip=$(address "$server_id" PublicIpAddress)
 server_private=$(address "$server_id" PrivateIpAddress)
 bots_ip=$(address "$bots_id" PublicIpAddress)
 
-ssh_opts=(-i "$work/key" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$work/known_hosts" -o ConnectTimeout=5 -o LogLevel=ERROR)
+ssh_opts=(-i "$work/key" -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$work/known_hosts" -o ConnectTimeout=5 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o LogLevel=ERROR)
 on() { local host=$1; shift; ssh "${ssh_opts[@]}" "ubuntu@$host" "$@"; }
 
 echo "Waiting for both VMs to finish setup…"
@@ -115,8 +115,10 @@ wait "$server_build"; wait "$bots_build"
 
 echo "Running ($warmup s warmup, $duration s window)…"
 on "$server_ip" "$server_compose up -d --wait server"
-on "$bots_ip" "$bots_compose up --no-deps --abort-on-container-failure bots"
-on "$server_ip" 'docker wait $(docker ps -aqf name=server) > /dev/null'
+# A time limit, so a hang ends the run (and cleanup deletes the VMs) instead of leaving them running.
+limit=$((warmup + duration + 300))
+on "$bots_ip" "${bots_compose/docker compose/timeout $limit docker compose} up --no-deps --abort-on-container-failure bots"
+on "$server_ip" "timeout 120 docker wait \$(docker ps -aqf name=server) > /dev/null"
 
 mkdir -p "$results"
 scp "${ssh_opts[@]}" "ubuntu@$server_ip:bench/tools/StackBench/results/server.json" "$results/"
