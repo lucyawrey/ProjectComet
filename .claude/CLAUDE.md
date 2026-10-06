@@ -46,7 +46,7 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 | `glossary.md` | Working terms | — |
 | `proposal.md` | Two layers, ShapeLand, vision, business model, audience, roadmap, core loop, economy, new players, character creation, age rating, licences, accessibility, privacy, security, comparables | — |
 | `backend.md` | Services, handoff, transport, libraries, load testing, zones, content pipeline, database architecture, moderation and operations; research | Client mods, WebTransport, deferred ops items |
-| `prototype.md` | The early prototype: scope, who builds it, plan | Repo layout, toolchain, thresholds, where tests run, order of work, ShapeLand phase 0 details |
+| `prototype.md` | The early prototype: scope, who builds it, plan | Repo layout, toolchain, thresholds, where tests run |
 | `netcode.md` | Messages, replication, movement validation, interest management | — |
 | `world.md` | Hierarchy, borders, channels, constellations, teleports, dungeons | — |
 | `combat.md` | Hit checks, height zones, frame data, attack patterns, fight sizes | Nudging (considering) |

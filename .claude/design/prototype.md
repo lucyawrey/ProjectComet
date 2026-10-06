@@ -14,6 +14,15 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   - The texture filtering comparison: crisp against soft (`art.md`).
   - ShapeLand's phase 0: shapes sliding around and chatting.
 - **Built by the project lead with agents:** the project lead drives and reviews; agents write much of the code from agreed plans.
+- **Order of work:**
+  1. The bare stack benchmark (Kestrel and bots, no Unity), the biggest risk.
+  2. Shared packages compiling in Unity, and TOML support.
+  3. ShapeLand sliding and chat.
+  4. The full game load test on top of ShapeLand.
+  - The texture filtering comparison can happen any time, in parallel.
+- **First milestone: the stack benchmark passes** its thresholds, written down before the run. A failure tells us early that the stack or language is the problem.
+- **ShapeLand phase 0 runs on a game server only:** players connect straight to one game server with a name, no accounts; chat goes over the game connection. Login, Region and the database come in phase 1.
+- **The web build is tested early:** ShapeLand is built for web as soon as it slides, and the full load test includes real web clients alongside the bots.
 
 ## Considering
 
@@ -22,6 +31,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 ## Rejected
 
 - **Going past phase 0 in the early prototype** (combat, loot, levels): left for phase 1.
+- **Login and Region servers in phase 0:** they come in phase 1, so phase 0 reaches the load test sooner.
 
 ## Open
 
@@ -29,5 +39,3 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **Toolchain versions:** Unity version and .NET version.
 - **Load-test thresholds,** written down before the first run (`backend.md`).
 - **Where the load test runs:** a local machine, a cloud VM, or both.
-- **Order of work** and the first milestone.
-- **ShapeLand phase 0 details:** which servers it needs (Login, Region, game server), whether chat goes through SignalR from the start, and whether the web build is tested in phase 0.
