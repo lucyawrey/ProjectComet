@@ -39,10 +39,10 @@ Sending everything about 100 players to 100 players 30 times a second would be f
 
 The netcode stack is the project's biggest technical risk, so it is tested before anything else, in two stages:
 
-1. **Stack only:** a bare server sending position-sized messages to 100–300 bots over WebSocket at the planned rate, with simulated packet loss and no game logic.
+1. **Stack only:** a bare server sending position-sized messages to 300 bots over WebSocket at 30 Hz, with no game logic. It runs twice: once with 1% packet loss, and once with about 80 ms of added latency as well. Passing means steady tick times and short pauses on one server core, no long gaps between updates for the bots, and under 10 KB/s per player.
 2. **Full game:** the real simulation, interest management and message layer.
 
-If the first stage fails, the stack or language is the problem; if only the second fails, our code is. Pass/fail thresholds are written down before each run, and the metrics (tick time, garbage-collection pauses, queue depth, bandwidth, round-trip time, gaps between updates) are collected from the first run. A named test follows the 100-bot milestone: one channel, 100 players, one boss.
+If the first stage fails, the stack or language is the problem; if only the second fails, our code is. Pass/fail thresholds are written down before each run, and the metrics (tick time, garbage-collection pauses, queue depth, bandwidth, round-trip time, gaps between updates) are collected from the first run. A named test follows the 100-bot vertical slice in phase 1: one channel, 100 players, one boss.
 
 ## Open questions
 

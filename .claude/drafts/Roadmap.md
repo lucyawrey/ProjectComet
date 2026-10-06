@@ -4,9 +4,11 @@
 
 The roadmap has phases with goals and exit criteria, not dates. The first three build and prove Comet using ShapeLand; Project Anima's own systems start at the closed alpha. The biggest risk, the seamless world, is proven before any serious content production.
 
+Phase 0 starts before the proposal is finished. It runs on a single game server, with no accounts, Login server or Region server; those come in phase 1. The project lead builds it, with agents writing much of the code from agreed plans. Its first milestone is the stack benchmark passing.
+
 | Phase | Goal | Done when |
 | --- | --- | --- |
-| **0. Prototypes** | The two-stage load test; shared code compiling in Unity; editor support for content files; comparing texture filtering | The load test meets thresholds written down beforehand |
+| **0. Prototypes** | In order: the stack benchmark; shared code compiling in Unity, with editor support for content files; ShapeLand sliding, jumping and chatting, built for web; the full load test. Comparing texture filtering runs alongside | The full load test meets thresholds written down beforehand |
 | **1. Vertical slice** | ShapeLand in one zone with combat, loot and levels; 100+ bots; simulated latency from day one | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
 | **2. Seamless-world proof** | Two or more zones with border handoff, channels, a dungeon instance and a teleport | Crossing borders is invisible under simulated latency |
 | **3. Closed alpha** | Project Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
@@ -17,6 +19,8 @@ The roadmap has phases with goals and exit criteria, not dates. The first three 
 ## The load test
 
 The netcode stack is the gate for the whole technical plan, so it's tested first, in two stages: a bare stack benchmark (a server sending position-sized messages to 100–300 bots over WebSocket, with packet loss, no game logic), then the full game. A failure in the first stage points at the stack or language; a failure only in the second points at our code. If the stack fails, the fallback is FishNet with headless Unity servers.
+
+The stack benchmark runs 300 bots at 30 Hz against one server core, twice: once with 1% packet loss, and once with about 80 ms of added latency as well. Network conditions are simulated in Docker locally; official runs put the server on a cloud machine and the bots on a separate one. Passing means steady tick times, short garbage-collection pauses, the server using under half a core, no long gaps between updates for the bots, and under 10 KB/s per player.
 
 ## Team roles
 
@@ -49,5 +53,5 @@ The proposal covers hosting only; development budget is for the team to decide. 
 
 ## Open questions
 
-- Pass/fail thresholds for each phase, set once the tick rate is chosen.
+- Pass/fail thresholds for the full load test and later phases (the stack benchmark's are set).
 - Hosting cost numbers, after phase 0.

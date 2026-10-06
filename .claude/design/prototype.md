@@ -20,7 +20,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   3. ShapeLand sliding and chat.
   4. The full game load test on top of ShapeLand.
   - The texture filtering comparison can happen any time, in parallel.
-- **First milestone: the stack benchmark passes** its thresholds, written down before the run. A failure tells us early that the stack or language is the problem.
+- **The prototype's first milestone: the stack benchmark passes** its thresholds, written down before the run. A failure tells us early that the stack or language is the problem.
 - **ShapeLand phase 0 runs on a game server only:** players connect straight to one game server with a name, no accounts; chat goes over the game connection. Login, Region and the database come in phase 1.
 - **The web build is tested early:** ShapeLand is built for web as soon as it slides, and the full load test includes real web clients alongside the bots.
 - **Repository layout: top-level folders per layer,** one solution:

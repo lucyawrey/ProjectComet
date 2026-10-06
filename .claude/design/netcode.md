@@ -13,7 +13,7 @@ Agent notes on networking.
 - **Movement skills and knockback are fixed curves in frame data,** predicted by the client.
 - **Border visibility:** near a border the client also listens to the neighbouring channel (ticket via the Login server) but only sends input to the owner; handoff happens a few metres past the line to avoid ping-pong.
 - **Fixed-route vehicles are positioned from route + clock,** so only passengers are handed off; riders' positions are relative to the vehicle.
-- **A named load test after the 100-bot milestone:** one channel, 100 players, one boss.
+- **A named load test after phase 1's 100-bot vertical slice:** one channel, 100 players, one boss.
 - **Movement authority: the client sends its position and the server validates it** (WoW-style). The server rejects impossible moves (speed, walls) and snaps the player back. Chosen for PvE-only play, cheap server CPU at 100+ players, and tolerance of WebSocket stalls; cheat defence depends on good validation rules.
 - **Three message kinds:** client *inputs*; server *events* (skill started, damage, spawns, items), never dropped or merged; server *state* (positions, HP), latest-only, so a newer update replaces an unsent older one in the send queue.
 - **Entity replication: spawn, field deltas, despawn:** full state when an entity becomes visible to a client, then only changed fields, then a despawn.

@@ -21,7 +21,7 @@ All creative content is made by people: models, textures, readable in-game text,
 
 ## Texturing
 
-Leaning towards a mix: painted trim sheets and vertex-colour shading for environments and most outfits, with individually painted textures for faces, hero gear and showpiece outfits. Both crisp and soft texture filtering will be prototyped before choosing.
+Leaning towards a mix: painted trim sheets and vertex-colour shading for environments and most outfits, with individually painted textures for faces, hero gear and showpiece outfits. Texture filtering will be chosen by eye in a prototype that switches live between four variants: crisp, crisp with mipmaps, soft, and soft with trilinear and anisotropic filtering. Distance shimmer is the main weakness of crisp textures, and mipmaps decide whether it's acceptable.
 
 ## Audio
 
