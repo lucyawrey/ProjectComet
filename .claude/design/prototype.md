@@ -59,6 +59,16 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   - *Impaired:* about 80 ms ± 20 ms latency plus 1% loss; checks everything except the round-trip median.
 - **10-minute runs after a 1-minute warmup.**
 
+### ShapeLand phase 0
+
+- **Joining:** enter a name, pick cube, diamond or pyramid, get a random colour. Names are unique among players currently online; nothing is saved.
+- **World:** a flat plane with a few hard-coded blocks first; once TOML support works (step 2), a tiny zone file with a heightmap and props.
+- **Actions: slide and jump.** Jumping tests vertical movement and the world collider early; dodge and combat come in phase 1.
+- **Movement validation: speed check and snap-back:** distance against max speed with the ~20% tolerance and stall bursts, allowing for the jump arc, plus the correction-and-blend path (`netcode.md`). Collision checks come with zone files.
+- **Other players are drawn through a 100 ms interpolation buffer,** tuned under the impaired run (`netcode.md`).
+- **Chat: one shared channel:** everyone on the server sees every message; about 200 characters at most, a simple rate limit, nothing logged (`backend.md`). Messages show in a chat box and as a bubble over the shape.
+- **Bots in the full load test** mostly wander, sometimes clump into crowds (the worst case for interest management) and send occasional chat lines. Behaviour is seeded, so runs repeat.
+
 ## Considering
 
 - Nothing being considered right now.

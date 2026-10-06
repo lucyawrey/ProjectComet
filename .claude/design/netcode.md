@@ -25,10 +25,11 @@ Agent notes on networking.
 - **Client position reports:** position, velocity, facing and the client's server-tick estimate, about 15 Hz while moving (tuned in the load test), sent immediately on starting, stopping or turning sharply, and not at all while standing still.
 - **Movement validation** (tolerances tuned in the prototype): distance since the last report must fit max speed × elapsed ticks with ~20% tolerance, allowing for active movement skills, knockback curves and mounts; after a stall, a burst of reports is checked against the total elapsed time so hiccups don't cause snap-backs. The path between reports must not cross a collision volume, and the position must fit the player's state (grounded, or flying with mount and attunement). On failure the server sends a correction and the client blends to it over a few frames.
 - **Repeated movement violations are logged and flagged for moderation,** never auto-banned.
+- **Other players are drawn through an interpolation buffer,** starting at 100 ms and tuned in the prototype; after a stall the client jumps to the latest state instead of replaying.
 
 ## Considering
 
-- **Techniques for WebSocket as the worst case:** server send queues that keep only the latest state; clients jump to the latest state after a stall instead of replaying; the server accepts timestamped inputs arriving in bursts, within limits; ~100–150 ms interpolation buffers for other players; `TCP_NODELAY` on the server.
+- **Techniques for WebSocket as the worst case:** server send queues that keep only the latest state; the server accepts timestamped inputs arriving in bursts, within limits; `TCP_NODELAY` on the server.
 - **Nudging (if adopted, `combat.md`):** server-enforced against monsters and NPCs, client-only between players.
 - **Context for the 100-player boss:** sending full state 30 times a second to 100 players would be roughly 0.5 Mbps down per player and ~50 Mbps up from the server. Event-based actions, relevance prioritisation and display caps are how this gets cut down.
 
