@@ -1,0 +1,11 @@
+# Only the files the benchmark images need; the build context is the whole repository.
+*
+!global.json
+!Directory.Build.props
+!Directory.Packages.props
+!ProjectComet.slnx
+!comet/src/**
+!tools/StackBench/**
+tools/StackBench/results
+**/bin
+**/obj

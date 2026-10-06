@@ -1,0 +1,52 @@
+# Stack benchmark under simulated network conditions. Start it with run.sh, which sets the
+# variables below for a clean or impaired run.
+name: stackbench
+
+services:
+  server:
+    build:
+      context: ../../..
+      dockerfile: tools/StackBench/docker/Dockerfile
+      target: server
+    # One server core: pinned rather than a CPU quota, so the kernel never throttles it mid-tick.
+    cpuset: ${SERVER_CPUS:?set by run.sh}
+    environment:
+      DOTNET_PROCESSOR_COUNT: "1"
+      Bench__WarmupSeconds: ${BENCH_WARMUP:-60}
+      Bench__DurationSeconds: ${BENCH_DURATION:-600}
+      Bench__ResultsPath: /results/server.json
+    volumes:
+      - ../results:/results
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/5080"]
+      interval: 1s
+      retries: 30
+
+  bots:
+    build:
+      context: ../../..
+      dockerfile: tools/StackBench/docker/Dockerfile
+      target: bots
+    cpuset: ${BOT_CPUS:?set by run.sh}
+    cap_add:
+      - NET_ADMIN # for tc and the ifb device, inside this container's network namespace only
+    environment:
+      NETEM_DELAY: ${NETEM_DELAY:-0ms}
+      NETEM_JITTER: ${NETEM_JITTER:-0ms}
+      NETEM_LOSS: ${NETEM_LOSS:-1%}
+    command:
+      - --url
+      - ws://server:5080/ws
+      - --bots
+      - ${BENCH_BOTS:-300}
+      - --warmup
+      - ${BENCH_WARMUP:-60}
+      - --duration
+      - ${BENCH_DURATION:-600}
+      - --results
+      - /results/bots.json
+    volumes:
+      - ../results:/results
+    depends_on:
+      server:
+        condition: service_healthy

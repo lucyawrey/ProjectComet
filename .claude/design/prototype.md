@@ -68,6 +68,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **GC pauses are timed from runtime events** (`GCSuspendEEBegin` to `GCRestartEEEnd`) by an in-process listener.
 - **Percentiles come from HdrHistogram.**
 - **Network conditions apply both ways on the bots container:** egress, plus ingress through an ifb device (netem belongs on the receiver's ingress for realistic TCP). Loss 1% each way; the impaired run adds 40 ms ± 10 ms each way (about 80 ms round trip). A pfifo child qdisc stops jitter from reordering packets.
+- **In Docker, the server is pinned to one CPU** (cpuset, with `DOTNET_PROCESSOR_COUNT=1`) rather than given a CPU quota, whose throttling would freeze it mid-tick; the bots get every CPU outside that physical core. The host loads the traffic-shaping modules at boot (`/etc/modules-load.d/stackbench.conf`).
 
 ### Code layout and build
 
