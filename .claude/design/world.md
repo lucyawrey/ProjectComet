@@ -12,6 +12,8 @@ Agent notes on world structure and server hierarchy. Housing access is in `housi
 - **Terminology:** a **zone** is any zone file (kinds: open zone, dungeon, house). An **instance** is any running copy of a zone on a game server: a **channel** (copy of an open zone, many players), a **dungeon instance** (one party) or a **house instance** (one owner; guild halls too).
 - **World traversal takes cues from Breath of the Wild** (project lead's reference).
 - **Per-player collectables are spread around the world** to improve world interaction: each player finds and collects their own, so nobody takes them from anyone else.
+  - **Each is collected once per character.**
+  - **A mix, chosen per collectable by designers:** some only count towards a collection; others give items, which may be soulbound, or untradeable currencies (`items.md`).
 - **The game has platforming elements.** Walls, travel and platforming use the player's world collider, not the small attack hitbox (`combat.md`).
 - **Most areas can be reached without the story,** through less convenient routes (e.g. a very long walk instead of a story carriage ride). Free players also meet in-world barriers at later-part borders (`proposal.md`, business model).
 

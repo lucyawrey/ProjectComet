@@ -25,9 +25,11 @@ Working terms. They may change but must stay distinct. Details live in the topic
 | **Abilities** | All secondary actions (from classes, Runes, the base system, character-wide unlocks). Outside the primary control scheme. |
 | **Rune** | A slotted skill: passive, modifier to a Skill, or grant of an Ability. |
 | **Rune stone** | A Rune as a tradeable item. |
-| **Slots (rune)** | Same-size slots in categories: Offense, Support, World. Primary slots have their own category. Each category has a colour in the UI. |
+| **Slots (rune), slot category** | Same-size slots in categories: Offense, Support, World. Primary slots have their own category. Each category has a colour in the UI. |
 | **Variant Rune** | Swaps a core Skill for a designer-made alternative. |
 | **Unbound Rune** | Unlocks a core slot of its type so any allowed Skill can go there. |
+| **Quest Rune** | A Rune given by a quest; many game mechanics come this way (e.g. the World Rune that sends XP to Soul XP). |
+| **Craft-training Rune** | A World Rune that puts part of combat XP into one craft; once that craft is maxed, it gives a bonus to it instead. |
 | **Gear / class Runes** | Runes built into gear (free while worn) or classes (locked, shown in a slot). |
 | **Mastery / extraction** | Mastery builds up on worn gear (stored on the item) or on a class's Runes (stored on the class entry); extraction yields a rune stone and resets mastery. |
 | **Outfit Magic** | Wearing an actual gear piece over the top as an outfit; the outfit's World Runes replace the gear's. |
