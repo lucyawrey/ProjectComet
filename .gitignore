@@ -6,3 +6,10 @@
 .trash/
 
 *.DS_Store
+# .NET: all build output goes to artifacts/ (see Directory.Build.props)
+artifacts/
+*.user
+TestResults/
+
+# Stack benchmark results
+tools/StackBench/results/

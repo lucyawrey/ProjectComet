@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/comet/" />
+  <Folder Name="/comet/src/">
+    <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
+    <Project Path="comet/src/Comet.Server/Comet.Server.csproj" />
+  </Folder>
+  <Folder Name="/comet/tests/">
+    <Project Path="comet/tests/Comet.Protocol.Tests/Comet.Protocol.Tests.csproj" />
+    <Project Path="comet/tests/Comet.Server.Tests/Comet.Server.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/" />
+  <Folder Name="/tools/StackBench/">
+    <Project Path="tools/StackBench/StackBench.Bots/StackBench.Bots.csproj" />
+    <Project Path="tools/StackBench/StackBench.Metrics/StackBench.Metrics.csproj" />
+    <Project Path="tools/StackBench/StackBench.Report/StackBench.Report.csproj" />
+    <Project Path="tools/StackBench/StackBench.Server/StackBench.Server.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,23 @@
+{
+  "clean": {
+    "tickWorkMedianMs": 5,
+    "tickWorkP99Ms": 20,
+    "ticksOverBudgetFraction": 0.001,
+    "gcPauseMaxMs": 10,
+    "cpuCores": 0.5,
+    "updateGapP99Ms": 150,
+    "roundTripMedianMs": 10,
+    "connectionFailures": 0,
+    "bytesReceivedPerBotPerSecond": 10000
+  },
+  "impaired": {
+    "tickWorkMedianMs": 5,
+    "tickWorkP99Ms": 20,
+    "ticksOverBudgetFraction": 0.001,
+    "gcPauseMaxMs": 10,
+    "cpuCores": 0.5,
+    "updateGapP99Ms": 150,
+    "connectionFailures": 0,
+    "bytesReceivedPerBotPerSecond": 10000
+  }
+}
