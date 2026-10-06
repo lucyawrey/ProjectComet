@@ -141,7 +141,8 @@ public sealed class Bot(int index, BotOptions options, BenchWindow window)
                 }
             }
         }
-        catch (Exception e) when (e is WebSocketException or ProtocolException or ObjectDisposedException)
+        // OperationCanceledException: RunAsync aborted the socket after the close deadline.
+        catch (Exception e) when (e is WebSocketException or ProtocolException or ObjectDisposedException or OperationCanceledException)
         {
             MarkLostIfInWindow();
         }
