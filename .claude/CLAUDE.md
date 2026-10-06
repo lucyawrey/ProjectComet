@@ -1,6 +1,6 @@
 # Comet and Project Anima: agent context
 
-Handoff notes for agent sessions. Last updated 2026-10-05.
+Handoff notes for agent sessions. Last updated 2026-10-06.
 
 **Names:** *Comet* is the shared base (servers, libraries, Unity package, tools); *Project Anima* is the working name of the game built on it; *ShapeLand* is Comet's tiny demo and reference game. The repository is still called `ProjectComet`.
 
@@ -87,7 +87,8 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 ## Next steps
 
 1. **The project lead writes the docs pages,** using the checklists and the drafts in `.claude/drafts/`.
-2. **Decided:** prototype Comet + ShapeLand early, before the proposal is done; not started yet. Planning the prototype is under way.
-3. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
-4. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
-5. Everything will likely be reviewed again later.
+2. **Decided:** prototype Comet + ShapeLand early, before the proposal is done. Phase 0 is fully planned in `prototype.md`; building starts when the project lead says so, beginning with the stack benchmark.
+3. **Todo:** update the Roadmap draft (and other drafts) to reflect the prototype plan.
+4. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
+5. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
+6. Everything will likely be reviewed again later.
