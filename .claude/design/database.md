@@ -38,7 +38,7 @@ Starting material: the project lead's table list in `.claude/notes/+ Quick Notes
 
 ### Flags, collection, crafts and companions (region database)
 
-- **Learned flags are rows** (`character_id`, `flag`) with foreign keys to the content lookups (a per-character bitset was considered).
+- **Learned flags are rows** (`character_id`, `flag`) with foreign keys to the content lookups (a per-character bitset was considered). Flag tables will grow large (collectables alone add thousands per character); making them more efficient is a later optimisation, not a reason to split flags into separate systems now.
 - **Companion cosmetic gear is items located on the companion** (`location = companion`, `container_id` = the companion), so trading, dyes and the ledger work unchanged.
 - **One ledger covers items and companions**, with an entity-kind column.
 
