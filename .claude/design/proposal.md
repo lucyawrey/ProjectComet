@@ -93,6 +93,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
   | QA | Testing and playtesting |
   | Operations | Deployments, databases, monitoring (the project lead's strength) |
 
+- **Prototype Comet + ShapeLand early,** before the human-readable proposal is done. Not started yet; planning the prototype starts now.
 - **Roadmap: phases with goals and exit criteria, no dates.** Phases 0–2 build Comet using ShapeLand.
 
   | Phase | Goal | Done when |
@@ -209,7 +210,7 @@ Comet mechanisms.
 
 ## Considering
 
-- **Prototyping a basic Comet + ShapeLand before the human-readable proposal is done** (project lead, for later).
+- Nothing being considered right now.
 
 ## Rejected
 

@@ -44,8 +44,9 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 | File | Covers | Open items |
 | --- | --- | --- |
 | `glossary.md` | Working terms | — |
-| `proposal.md` | Two layers, ShapeLand, vision, business model, audience, roadmap, core loop, economy, new players, character creation, age rating, licences, accessibility, privacy, security, comparables | Prototyping early (considering) |
+| `proposal.md` | Two layers, ShapeLand, vision, business model, audience, roadmap, core loop, economy, new players, character creation, age rating, licences, accessibility, privacy, security, comparables | — |
 | `backend.md` | Services, handoff, transport, libraries, load testing, zones, content pipeline, database architecture, moderation and operations; research | Client mods, WebTransport, deferred ops items |
+| `prototype.md` | The early prototype: scope, who builds it, plan | Repo layout, toolchain, thresholds, where tests run, order of work, ShapeLand phase 0 details |
 | `netcode.md` | Messages, replication, movement validation, interest management | — |
 | `world.md` | Hierarchy, borders, channels, constellations, teleports, dungeons | — |
 | `combat.md` | Hit checks, height zones, frame data, attack patterns, fight sizes | Nudging (considering) |
@@ -86,7 +87,7 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 ## Next steps
 
 1. **The project lead writes the docs pages,** using the checklists and the drafts in `.claude/drafts/`.
-2. **Considering:** prototyping a basic Comet + ShapeLand before the human-readable proposal is done.
+2. **Decided:** prototype Comet + ShapeLand early, before the proposal is done; not started yet. Planning the prototype is under way.
 3. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
 4. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
 5. Everything will likely be reviewed again later.
