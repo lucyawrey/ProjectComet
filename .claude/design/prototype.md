@@ -6,7 +6,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 ## Decided
 
-- **Prototype early,** before the human-readable proposal is done. Not started yet; planning comes first.
+- **Prototype early,** before the human-readable proposal is done. Building has started with the stack benchmark.
 - **Scope: phase 0 only.**
   - The two-stage load test: a bare stack benchmark, then the full game test (`backend.md`, load testing).
   - Shared source packages (Protocol, Content, Simulation) compiling in Unity.
@@ -69,6 +69,24 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **Percentiles come from HdrHistogram.**
 - **Network conditions apply both ways on the bots container:** egress, plus ingress through an ifb device (netem belongs on the receiver's ingress for realistic TCP). Loss 1% each way; the impaired run adds 40 ms ± 10 ms each way (about 80 ms round trip). A pfifo child qdisc stops jitter from reordering packets.
 - **In Docker, the server is pinned to one CPU** (cpuset, with `DOTNET_PROCESSOR_COUNT=1`) rather than given a CPU quota, whose throttling would freeze it mid-tick; the bots get every CPU outside that physical core. The host loads the traffic-shaping modules at boot (`/etc/modules-load.d/stackbench.conf`).
+
+### Stack benchmark results
+
+- **Local Docker runs pass every threshold** (2026-10-06; AMD Ryzen 7 3700X, server pinned to one core, 300 bots, full 10-minute windows). The official runs on a cloud VM and a separate bot machine are still to do.
+
+  | Check | Limit | Clean | Impaired |
+  | --- | --- | --- | --- |
+  | Tick work, median | 5 ms | 0.32 ms | 0.36 ms |
+  | Tick work, worst 1% | 20 ms | 2.2 ms | 2.1 ms |
+  | Ticks over budget | 0.1% | 0 | 0 |
+  | Worst GC pause | 10 ms | 5.7 ms | 4.2 ms |
+  | Server CPU | 0.5 cores | 0.21 | 0.44 |
+  | Gap between updates, worst 1% | 150 ms | 39 ms | 127 ms |
+  | Round trip, median | 10 ms (clean only) | 0.08 ms | 82 ms |
+  | Connection failures | 0 | 0 | 0 |
+  | Bytes down per bot | 10 KB/s | 7.6 KB/s | 7.6 KB/s |
+
+- **Server CPU is the tightest margin:** it doubles under the impaired network (0.21 to 0.44 cores) with the same traffic, so loss and delay cost the server real work. Worth explaining before the cloud runs.
 
 ### Code layout and build
 
