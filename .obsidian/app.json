@@ -1,1 +1,8 @@
-{}
+{
+  "userIgnoreFilters": [
+    "artifacts/",
+    "comet/",
+    "shapeland/",
+    "tools/"
+  ]
+}

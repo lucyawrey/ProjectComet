@@ -39,7 +39,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
     docs/  .claude/  (as now)
   ```
 
-- **Toolchain:** .NET 10 (LTS) for servers and tools; the newest supported Unity 6 release when work starts, moving to Unity 6.8 (CoreCLR, .NET 10) once it's out and web builds are confirmed working (`backend.md`, research).
+- **Toolchain:** .NET 10 (LTS) for servers and tools; **the Unity 7 beta as soon as it's available** (Unity 7 replaced the planned 6.8 and brings CoreCLR and .NET 10; CoreCLR is a priority and this is a prototype, so a beta is fine). Until then, the newest Unity 6 release. Web builds on the beta still need confirming (`backend.md`, research).
 - **Stack benchmark thresholds** (starting numbers; 300 bots, 30 Hz, 1% simulated packet loss, one server core):
   - *Server:* tick time median under 5 ms and worst 1% under 20 ms; under 0.1% of ticks over the 33 ms budget; worst garbage-collection pause under 10 ms; CPU under 50% of one core.
   - *Bots:* worst 1% gap between updates under 150 ms; median round trip under 10 ms on a local run; no connection failures.
@@ -58,6 +58,25 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   - *Clean:* 1% loss only; checks every threshold, including the local round-trip median.
   - *Impaired:* about 80 ms ± 20 ms latency plus 1% loss; checks everything except the round-trip median.
 - **10-minute runs after a 1-minute warmup.**
+- **The message layer lives in Comet's libraries from the start:** framing, message IDs and messages in `Comet.Protocol`; connections, send queues and the tick loop in `Comet.Server`. `tools/StackBench/` only wires them up, so the benchmark tests the real code.
+- **Frame encoding:** the server tick as a fixed 4-byte number once per frame; each message's ID and length as varints (usually 1 byte each), then its MessagePack payload. Client frames use the same layout, with the client's server-tick estimate.
+- **MessagePack formatters are source-generated** (MessagePack 3), with no run-time code generation.
+- **Pings are answered immediately,** from the receive loop as their own small frame, not on the next tick, so round trips measure the network rather than the tick phase.
+- **Backpressure: at most one tick frame in flight per connection.** If it's still sending at the next tick, that flush is skipped and counted; state stays in the latest-only queue and events wait.
+- **The tick loop sleeps, then spins:** a dedicated thread sleeps until about 1 ms before each deadline, then spins, so ticks start on time (costs about 3% of a core).
+- **Bots' entities take their position from the bots' reports** (seeded random walks, no validation), so the inbound path is exercised too.
+- **GC pauses are timed from runtime events** (`GCSuspendEEBegin` to `GCRestartEEEnd`) by an in-process listener.
+- **Percentiles come from HdrHistogram.**
+- **Network conditions apply both ways on the bots container:** egress, plus ingress through an ifb device (netem belongs on the receiver's ingress for realistic TCP). Loss 1% each way; the impaired run adds 40 ms ± 10 ms each way (about 80 ms round trip). A pfifo child qdisc stops jitter from reordering packets.
+
+### Code layout and build
+
+- **One `src/` per layer, each project a self-contained folder named like the project** (`comet/src/Comet.Protocol/Comet.Protocol.csproj`; folder, project, assembly and namespace match). Shared packages are both a .NET project and a Unity package, so the project folder is the package root. Tests go in `comet/tests/`.
+- **All build output goes to `artifacts/`** at the root (.NET's artifacts output), so Unity never imports `bin/` or `obj/` from a shared package and the vault stays clean.
+- **One `ProjectComet.slnx` solution,** central package versions (`Directory.Packages.props`), shared defaults in `Directory.Build.props` (nullable on, warnings as errors), C# 9 for the Unity-shared libraries.
+- **Projects start from official templates** (`dotnet new`, Unity Hub), then get edited.
+- **Tests use xUnit v3.**
+- **Code folders are hidden in Obsidian.**
 
 ### Shared packages and content (step 2)
 

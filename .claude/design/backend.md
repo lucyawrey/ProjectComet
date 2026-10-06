@@ -68,8 +68,8 @@ Agent notes on backend architecture and data-model ideas.
   - *Content:* types and readers for content definitions (items, skills, classes, monsters) and the zone format (chunks, placements, collision volumes). No dependencies beyond MessagePack and `System.Numerics`. Used by everything, including the Unity editor tools and the content build tool.
   - *Simulation:* rules that must match on client and server: frame-data execution, hitboxes and height-zone masks, hit checks, movement and knockback curves, cooldowns and buffs, tick maths. Depends on Content. Used by the client, game servers and bots.
   - *Data:* EF Core entities, `DbContext`, migrations, transactional operations. Depends on Content. Server-only (game, Region and Login servers, migrator); never compiled by Unity, so it can use .NET 10.
-  - Protocol, Content and Simulation must compile under Unity (.NET Standard 2.1, roughly C# 9, until Unity 6.8). If the split feels like too much ceremony, Protocol and Content are the easiest pair to merge.
-- **Unity consumes Protocol, Content and Simulation as shared source packages:** one source folder that is both a .NET project (targeting `netstandard2.1` and `net10.0` until Unity 6.8) and a local Unity package with an assembly definition, so Unity compiles the same files. To be checked against Unity 6 in a prototype.
+  - Protocol, Content and Simulation must compile under Unity (.NET Standard 2.1, roughly C# 9, until Unity 7). If the split feels like too much ceremony, Protocol and Content are the easiest pair to merge.
+- **Unity consumes Protocol, Content and Simulation as shared source packages:** one source folder that is both a .NET project (targeting `netstandard2.1` and `net10.0` until Unity 7) and a local Unity package with an assembly definition, so Unity compiles the same files. To be checked against Unity 6 in a prototype.
 - **Monorepo layout, per-game server programs and per-game Unity projects:** see `proposal.md` (two layers).
 
 ### Zones
@@ -222,7 +222,7 @@ Agent web research to sanity-check the architecture. These are findings, not dec
 
 - **WebTransport is Baseline** since Safari 26.4 (March 2026), so unreliable datagrams are available in every major browser.
 - **Unity's web networking lags:** Unity Transport supports only WebSocket on web (and only to other Unity Transport peers); Netcode for Entities doesn't support web. WebTransport from Unity likely means our own `.jslib` bridge.
-- **Unity is moving to CoreCLR:** Unity 6.8 (later in 2026) drops Mono and targets .NET 10; CoreCLR dedicated-server builds are experimental in 6.7. This would let the client and a pure C# server share modern C#. How this applies to web builds (IL2CPP → WebAssembly) is unverified.
+- **Unity is moving to CoreCLR:** Unity 7 (which replaced the planned 6.8; a beta is due soon, per the project lead on 2026-10-06) drops Mono and targets .NET 10; CoreCLR dedicated-server builds are experimental in 6.7. This would let the client and a pure C# server share modern C#. How this applies to web builds (IL2CPP → WebAssembly) is unverified.
 - **SpacetimeDB licence:** BSL 1.1, converting to AGPL v3 with a linking exception in 2031. The Additional Use Grant allows free production use of a single instance if not resold as a database service. A private server (one region) probably fits; the official multi-region setup may not. BitCraft (Unity client) runs its whole backend on it, split into global and region modules. Licence text not yet read directly.
 
 ### Plain .NET networking libraries (2026-10-04)
