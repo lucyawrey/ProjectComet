@@ -1,3 +1,4 @@
+using System.Runtime;
 using Comet.Server;
 using Comet.Server.Connections;
 using Comet.Server.Ticking;
@@ -29,8 +30,17 @@ app.MapCometWebSocket("/ws");
 
 var tickLoop = app.Services.GetRequiredService<TickLoop>();
 app.Services.GetRequiredService<ServerMeasurement>();
+var bench = app.Services.GetRequiredService<IOptions<BenchOptions>>().Value;
 // Settle startup objects before bots connect, so their promotion isn't a pause in the window.
-app.Lifetime.ApplicationStarted.Register(Heap.Settle);
+if (bench.SettleHeap)
+{
+    app.Lifetime.ApplicationStarted.Register(Heap.Settle);
+}
+if (!string.IsNullOrEmpty(bench.GcLatencyMode))
+{
+    var latencyMode = Enum.Parse<GCLatencyMode>(bench.GcLatencyMode);
+    app.Lifetime.ApplicationStarted.Register(() => GCSettings.LatencyMode = latencyMode);
+}
 app.Lifetime.ApplicationStarted.Register(tickLoop.Start);
 app.Lifetime.ApplicationStopping.Register(tickLoop.Stop);
 
