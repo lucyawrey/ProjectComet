@@ -63,13 +63,14 @@ Agent notes on backend architecture and data-model ideas.
 
 ### Shared libraries and code layout
 
-- **Four libraries.** Boundaries follow who needs the code, how often it changes, and whether it must compile under Unity.
+- **Five libraries.** Boundaries follow who needs the code, how often it changes, and whether it must compile under Unity.
   - *Protocol:* the network contract. Message types and IDs, MessagePack setup, the transport interface, SignalR hub interfaces for the Region server. Messages are plain data and never reference simulation types. Used by the client, game servers, Region server (hubs), bots and network test tools. Kept separate because changes need client/server version coordination, and bots and tools need it without the rules.
   - *Content:* types and readers for content definitions (items, skills, classes, monsters) and the zone format (chunks, placements, collision volumes). No dependencies beyond MessagePack and `System.Numerics`. Used by everything, including the Unity editor tools and the content build tool.
   - *Simulation:* rules that must match on client and server: frame-data execution, hitboxes and height-zone masks, hit checks, movement and knockback curves, cooldowns and buffs, tick maths. Depends on Content. Used by the client, game servers and bots.
+  - *Client:* the client's network logic without Unity types: the session that sends and decodes frames, the server-tick estimate from pings, the interpolation buffer for other entities and the correction blend. Depends on Protocol. Used by the Unity client and the bots, so load tests exercise the real client's code.
   - *Data:* EF Core entities, `DbContext`, migrations, transactional operations. Depends on Content. Server-only (game, Region and Login servers, migrator); never compiled by Unity, so it can use .NET 10.
-  - Protocol, Content and Simulation must compile under Unity (.NET Standard 2.1, roughly C# 9, until Unity 7). If the split feels like too much ceremony, Protocol and Content are the easiest pair to merge.
-- **Unity consumes Protocol, Content and Simulation as shared source packages:** one source folder that is both a .NET project (targeting `netstandard2.1` and `net10.0` until Unity 7) and a local Unity package with an assembly definition, so Unity compiles the same files. To be checked against Unity 6 in a prototype.
+  - Protocol, Content, Simulation and Client must compile under Unity (.NET Standard 2.1, roughly C# 9, until Unity 7). If the split feels like too much ceremony, Protocol and Content are the easiest pair to merge.
+- **Unity consumes Protocol, Content, Simulation and Client as shared source packages:** one source folder that is both a .NET project (targeting `netstandard2.1` and `net10.0` until Unity 7) and a local Unity package with an assembly definition, so Unity compiles the same files. To be checked against Unity 6 in a prototype.
 - **Monorepo layout, per-game server programs and per-game Unity projects:** see `proposal.md` (two layers).
 
 ### Zones
