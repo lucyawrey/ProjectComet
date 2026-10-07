@@ -5,7 +5,7 @@ namespace Comet.Content
 {
     /// <summary>
     /// The raw heightmap file: the magic <c>CHGT</c>, a format version, the grid size in samples, the height scale and
-    /// offset, then little-endian uint16 samples row by row. Converting to or from a plain <c>.r16</c> file means
+    /// offset, then little-endian uint16 samples row by row, with 0 meaning no ground (<see cref="Heightmap.Hole"/>). Converting to or from a plain <c>.r16</c> file means
     /// stripping or adding the 18-byte header.
     /// </summary>
     public static class HeightmapFormat

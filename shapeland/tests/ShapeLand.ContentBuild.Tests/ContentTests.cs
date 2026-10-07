@@ -37,6 +37,18 @@ public class ContentTests
     }
 
     [Fact]
+    public void TerrainIsAFloatingDisc()
+    {
+        var terrain = TestTerrain.Generate(1);
+        const int centre = TestTerrain.Size / 2;
+
+        Assert.False(terrain.IsHole(centre, centre));
+        Assert.False(terrain.IsHole(centre + 13, centre));
+        Assert.True(terrain.IsHole(centre + 15, centre));
+        Assert.True(terrain.IsHole(0, 0));
+    }
+
+    [Fact]
     public void CorruptContentFailsClearly()
     {
         var error = Assert.Throws<ContentException>(() => ShapeLandContent.Load(new MemoryStream([0xc1, 0x00])));
