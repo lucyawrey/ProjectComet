@@ -43,6 +43,13 @@ namespace ShapeLand.Client.Editor
             Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web-join", JoinScene);
         }
 
+        [MenuItem("ShapeLand/Build/Web (Game Scene)")]
+        public static void WebGame()
+        {
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+            Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web-game", GameScene);
+        }
+
         /// <summary>Creates the check scene: a camera, a sun and the check component with the terrain material.</summary>
         [MenuItem("ShapeLand/Create Check Scene")]
         public static void CreateCheckScene()
