@@ -16,7 +16,10 @@ namespace ShapeLand.Client.Editor
     {
         private const string CheckScene = "Assets/Scenes/SharedPackageCheck.unity";
         private const string TerrainMaterial = "Assets/Materials/Terrain.mat";
+        private const string BlockMaterial = "Assets/Materials/Block.mat";
+        private const string ShapeMaterial = "Assets/Materials/Shape.mat";
         private const string JoinScene = "Assets/Scenes/Join.unity";
+        private const string GameScene = "Assets/Scenes/Game.unity";
 
         private static string RepoRoot => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
 
@@ -55,12 +58,7 @@ namespace ShapeLand.Client.Editor
             camera.backgroundColor = new Color(0.55f, 0.75f, 0.95f);
             camera.transform.SetPositionAndRotation(new Vector3(-40, 34, -40), Quaternion.Euler(30, 45, 0));
 
-            var sun = new GameObject("Sun", typeof(Light)).GetComponent<Light>();
-            sun.type = LightType.Directional;
-            sun.shadows = LightShadows.Soft;
-            sun.transform.rotation = Quaternion.Euler(50, -30, 0);
-            RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.45f, 0.5f, 0.6f);
+            AddSun();
 
             var check = new GameObject("Shared package check").AddComponent<SharedPackageCheck>();
             var serialized = new SerializedObject(check);
@@ -90,6 +88,34 @@ namespace ShapeLand.Client.Editor
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// Creates the game scene (step 3b, growing into the full client): a sun, the orbit camera, and the join
+        /// client with the game view, which draws the island, the blocks and the player's own shape.
+        /// </summary>
+        [MenuItem("ShapeLand/Create Game Scene")]
+        public static void CreateGameScene()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var camera = new GameObject("Camera", typeof(Camera), typeof(OrbitCamera)).GetComponent<Camera>();
+            camera.tag = "MainCamera";
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.55f, 0.75f, 0.95f);
+            camera.transform.SetPositionAndRotation(new Vector3(0, 20, -30), Quaternion.Euler(30, 0, 0));
+            AddSun();
+
+            var view = new GameObject("Game", typeof(Comet.Unity.CometConnection), typeof(JoinClient), typeof(GameView)).GetComponent<GameView>();
+            var serialized = new SerializedObject(view);
+            serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(TerrainMaterial);
+            serialized.FindProperty("blockMaterial").objectReferenceValue = LitMaterial(BlockMaterial, new Color(0.62f, 0.55f, 0.48f));
+            serialized.FindProperty("shapeMaterial").objectReferenceValue = LitMaterial(ShapeMaterial, Color.white);
+            serialized.FindProperty("orbitCamera").objectReferenceValue = camera.GetComponent<OrbitCamera>();
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            Directory.CreateDirectory("Assets/Scenes");
+            EditorSceneManager.SaveScene(scene, GameScene);
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>Copies the compiled content into StreamingAssets (gitignored), as the content build left it.</summary>
         [MenuItem("ShapeLand/Copy Content")]
         public static void CopyContent()
@@ -103,6 +129,31 @@ namespace ShapeLand.Client.Editor
             Directory.CreateDirectory(Application.streamingAssetsPath);
             File.Copy(source, Path.Combine(Application.streamingAssetsPath, "content.bin"), overwrite: true);
             AssetDatabase.Refresh();
+        }
+
+        private static void AddSun()
+        {
+            var sun = new GameObject("Sun", typeof(Light)).GetComponent<Light>();
+            sun.type = LightType.Directional;
+            sun.shadows = LightShadows.Soft;
+            sun.transform.rotation = Quaternion.Euler(50, -30, 0);
+            RenderSettings.ambientMode = AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.45f, 0.5f, 0.6f);
+        }
+
+        // A plain URP Lit material, created once and kept as an asset.
+        private static Material LitMaterial(string path, Color colour)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = colour };
+                material.SetFloat("_Smoothness", 0.1f);
+                AssetDatabase.CreateAsset(material, path);
+            }
+
+            return material;
         }
 
         private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene)

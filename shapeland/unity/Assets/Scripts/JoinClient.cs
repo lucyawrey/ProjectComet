@@ -13,8 +13,9 @@ using UnityEngine.Networking;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// The bare join scene (step 3b): loads the content, connects to a game server, joins as a random shape and
-    /// logs what the server says (welcome, spawns, despawns, chat). Nothing is drawn yet.
+    /// Joins ShapeLand: loads the content, connects to a game server, joins as a random shape and logs what the
+    /// server says (welcome, spawns, despawns, chat). On its own it's the bare join scene; the game scene draws
+    /// on top of it.
     /// </summary>
     [RequireComponent(typeof(CometConnection))]
     public sealed class JoinClient : MonoBehaviour
@@ -40,6 +41,15 @@ namespace ShapeLand.Client
             get => playerName;
             set => playerName = value;
         }
+
+        /// <summary>The loaded content, or null until it has loaded.</summary>
+        public ShapeLandContent Content => _content;
+
+        /// <summary>Raised once the content has loaded, before connecting.</summary>
+        public event Action<ShapeLandContent> ContentLoaded;
+
+        /// <summary>Raised when the server spawns this player (on joining, not on respawning).</summary>
+        public event Action<PlayerSpawn> OwnSpawned;
 
         /// <summary>True once the server has spawned this player.</summary>
         public bool Joined { get; private set; }
@@ -68,6 +78,8 @@ namespace ShapeLand.Client
 
                 _content = ShapeLandContent.Load(new MemoryStream(request.downloadHandler.data));
             }
+
+            ContentLoaded?.Invoke(_content);
 
             var serverUrl = new Uri(address.Contains("://") ? address : $"ws://{address}/ws");
             var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options);
@@ -116,6 +128,7 @@ namespace ShapeLand.Client
                     {
                         Joined = true;
                         Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}");
+                        OwnSpawned?.Invoke(spawn);
                     }
                     else
                     {
