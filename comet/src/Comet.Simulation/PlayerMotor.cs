@@ -47,7 +47,7 @@ namespace Comet.Simulation
             current += change;
             if (move.LengthSquared() > 0.0001f)
             {
-                state.Facing = MathF.Atan2(move.X, move.Y);
+                state.Facing = TurnTowards(state.Facing, MathF.Atan2(move.X, move.Y), rules.TurnSpeed * MathF.PI / 180 * seconds);
             }
 
             // Vertical: jump or fall.
@@ -98,6 +98,15 @@ namespace Comet.Simulation
 
             state.Position = position;
             state.Velocity = new Vector3(current.X, velocityY, current.Y);
+        }
+
+        // Turns a yaw angle the short way round towards another, by at most maxTurn radians; the result is in (-π, π].
+        private static float TurnTowards(float from, float to, float maxTurn)
+        {
+            var difference = to - from;
+            difference -= 2 * MathF.PI * MathF.Floor((difference + MathF.PI) / (2 * MathF.PI));
+            var turned = from + Math.Clamp(difference, -maxTurn, maxTurn);
+            return turned - 2 * MathF.PI * MathF.Floor((turned + MathF.PI) / (2 * MathF.PI));
         }
 
         private static Vector3 TryMoveAxis(Vector3 position, Vector3 delta, float stepUp, CollisionWorld world, MovementRules rules, ref float axisVelocity)

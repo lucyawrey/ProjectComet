@@ -18,6 +18,7 @@ namespace ShapeLand.Client.Editor
         private const string TerrainMaterial = "Assets/Materials/Terrain.mat";
         private const string BlockMaterial = "Assets/Materials/Block.mat";
         private const string ShapeMaterial = "Assets/Materials/Shape.mat";
+        private const string EyeMaterial = "Assets/Materials/Eyes.mat";
         private const string JoinScene = "Assets/Scenes/Join.unity";
         private const string GameScene = "Assets/Scenes/Game.unity";
 
@@ -108,6 +109,7 @@ namespace ShapeLand.Client.Editor
             serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(TerrainMaterial);
             serialized.FindProperty("blockMaterial").objectReferenceValue = LitMaterial(BlockMaterial, new Color(0.62f, 0.55f, 0.48f));
             serialized.FindProperty("shapeMaterial").objectReferenceValue = LitMaterial(ShapeMaterial, Color.white);
+            serialized.FindProperty("eyeMaterial").objectReferenceValue = LitMaterial(EyeMaterial, new Color(0.08f, 0.08f, 0.1f));
             serialized.FindProperty("orbitCamera").objectReferenceValue = camera.GetComponent<OrbitCamera>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
 

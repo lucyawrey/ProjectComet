@@ -8,7 +8,7 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// The game scene's view: draws the island and its blocks once the content has loaded, and the player's own
-    /// shape once the server spawns it, with the orbit camera following.
+    /// shape (with eyes, to show its facing) once the server spawns it, with the orbit camera following.
     /// </summary>
     [RequireComponent(typeof(JoinClient))]
     public sealed class GameView : MonoBehaviour
@@ -16,6 +16,7 @@ namespace ShapeLand.Client
         [SerializeField] private Material terrainMaterial;
         [SerializeField] private Material blockMaterial;
         [SerializeField] private Material shapeMaterial;
+        [SerializeField] private Material eyeMaterial;
         [SerializeField] private OrbitCamera orbitCamera;
 
         private JoinClient _join;
@@ -50,6 +51,7 @@ namespace ShapeLand.Client
             var shape = _join.Content.Shapes[spawn.Shape];
             var material = new Material(shapeMaterial) { color = Colour(spawn.Colour) };
             var body = AddMesh($"{spawn.Name} (you)", WorldMeshes.Shape(shape.Mesh, ShapeLandWorld.Rules), material, null);
+            AddMesh("Eyes", WorldMeshes.Eyes(shape.Mesh, ShapeLandWorld.Rules), eyeMaterial, body.transform);
             Player = body.AddComponent<LocalPlayer>();
             Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
             orbitCamera.Follow(Player.transform, _controls, _world);
