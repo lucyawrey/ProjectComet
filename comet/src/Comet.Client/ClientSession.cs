@@ -28,6 +28,7 @@ namespace Comet.Client
         private readonly MessageWriter _frame;
         private readonly double _interpolationDelay;
         private readonly double _pingInterval;
+        private readonly float _teleportSpeed;
         private ServerClock? _clock;
         private RemoteEntities? _entities;
         private double _nextPing;
@@ -36,7 +37,8 @@ namespace Comet.Client
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
         /// <param name="interpolationDelay">How far behind the newest arrivals other entities are drawn, in seconds.</param>
         /// <param name="pingInterval">Seconds between pings for the server-tick estimate.</param>
-        public ClientSession(IClientTransport transport, MessagePackSerializerOptions options, double interpolationDelay = 0.1, double pingInterval = 1)
+        /// <param name="teleportSpeed">Other entities moving faster than this jump instead of gliding (see <see cref="RemoteEntities"/>).</param>
+        public ClientSession(IClientTransport transport, MessagePackSerializerOptions options, double interpolationDelay = 0.1, double pingInterval = 1, float teleportSpeed = float.PositiveInfinity)
         {
             Transport = transport;
             _options = options;
@@ -44,6 +46,7 @@ namespace Comet.Client
             _frame = new MessageWriter(options: options);
             _interpolationDelay = interpolationDelay;
             _pingInterval = pingInterval;
+            _teleportSpeed = teleportSpeed;
         }
 
         public IClientTransport Transport { get; }
@@ -162,7 +165,7 @@ namespace Comet.Client
                         EntityId = welcome.EntityId;
                         _clock = new ServerClock(welcome.TickRate);
                         _clock.OnFrame(tick, now);
-                        _entities = new RemoteEntities(welcome.TickRate);
+                        _entities = new RemoteEntities(welcome.TickRate, teleportSpeed: _teleportSpeed);
                         _nextPing = now;
                         WelcomeArrived?.Invoke(welcome);
                         break;

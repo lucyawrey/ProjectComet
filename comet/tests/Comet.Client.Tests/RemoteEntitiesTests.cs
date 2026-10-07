@@ -23,6 +23,37 @@ public class RemoteEntitiesTests
     }
 
     [Fact]
+    public void JumpsInsteadOfGlidingWhenAMoveIsTooFastToWalk()
+    {
+        // 10 m/s allows 2/30 × 10 + 0.5 ≈ 1.17 m in two ticks: 1 m blends, 20 m (a respawn) jumps at its tick.
+        var entities = new RemoteEntities(tickRate: 30, teleportSpeed: 10);
+        entities.Spawn(1, 10, Vector3.Zero, 0);
+        entities.AddState(1, 12, new Vector3(1, 0, 0), 0);
+        entities.AddState(1, 14, new Vector3(20, 0, 0), 0);
+
+        Assert.True(entities.TrySample(1, 11, out var walking));
+        Assert.Equal(new Vector3(0.5f, 0, 0), walking.Position);
+        Assert.True(entities.TrySample(1, 13.9, out var before));
+        Assert.Equal(new Vector3(1, 0, 0), before.Position);
+        Assert.True(entities.TrySample(1, 14, out var after));
+        Assert.Equal(new Vector3(20, 0, 0), after.Position);
+    }
+
+    [Fact]
+    public void FallingFastIsBlendedButRisingFastJumps()
+    {
+        var entities = new RemoteEntities(tickRate: 30, teleportSpeed: 10);
+        entities.Spawn(1, 10, Vector3.Zero, 0);
+        entities.AddState(1, 12, new Vector3(0, -5, 0), 0);
+        entities.AddState(1, 14, new Vector3(0, 30, 0), 0);
+
+        Assert.True(entities.TrySample(1, 11, out var falling));
+        Assert.Equal(new Vector3(0, -2.5f, 0), falling.Position);
+        Assert.True(entities.TrySample(1, 13, out var rising));
+        Assert.Equal(new Vector3(0, -5, 0), rising.Position);
+    }
+
+    [Fact]
     public void HoldsAtTheNewestStateWithoutExtrapolating()
     {
         _entities.Spawn(1, 10, Vector3.Zero, 0);

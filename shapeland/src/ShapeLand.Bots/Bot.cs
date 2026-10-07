@@ -78,7 +78,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     public async Task RunAsync(Uri url, CancellationToken stop)
     {
         var transport = new WebSocketTransport(url);
-        _session = new ClientSession(transport, ShapeLandProtocol.Options);
+        _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content));
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
         _session.EntityDespawned += _ => Despawns++;

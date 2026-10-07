@@ -52,6 +52,12 @@ namespace ShapeLand.Client
         /// <summary>Raised when the server spawns this player (on joining, not on respawning).</summary>
         public event Action<PlayerSpawn> OwnSpawned;
 
+        /// <summary>Raised when another player comes into view, after the session starts tracking them.</summary>
+        public event Action<PlayerSpawn> OtherSpawned;
+
+        /// <summary>Raised when another player leaves view.</summary>
+        public event Action<uint> OtherLeft;
+
         /// <summary>True once the server has spawned this player.</summary>
         public bool Joined { get; private set; }
 
@@ -83,10 +89,14 @@ namespace ShapeLand.Client
             ContentLoaded?.Invoke(_content);
 
             var serverUrl = new Uri(address.Contains("://") ? address : $"ws://{address}/ws");
-            var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options);
+            var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content));
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
-            session.EntityDespawned += id => Log($"entity {id} left");
+            session.EntityDespawned += id =>
+            {
+                Log($"entity {id} left");
+                OtherLeft?.Invoke(id);
+            };
             session.Corrected += correction => Log($"corrected ({correction.Reason}) to ({correction.X:0.0}, {correction.Y:0.0}, {correction.Z:0.0})");
             Log($"connecting to {serverUrl}");
         }
@@ -142,6 +152,7 @@ namespace ShapeLand.Client
                     {
                         Session.Entities.Spawn(spawn.EntityId, tick, new System.Numerics.Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing);
                         Log($"{spawn.Name} (entity {spawn.EntityId}) is here");
+                        OtherSpawned?.Invoke(spawn);
                     }
 
                     break;
