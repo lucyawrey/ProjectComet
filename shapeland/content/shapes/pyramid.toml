@@ -1,0 +1,5 @@
+id = "shape.pyramid"
+display_name = "Pyramid"
+mesh = "pyramid"
+max_speed = 5.0
+jump_velocity = 8.5

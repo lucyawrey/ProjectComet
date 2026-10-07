@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Shared with Unity: netstandard2.1 and C# 9 until Unity 7 (CoreCLR, .NET 10). -->
+    <TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>
+    <LangVersion>9</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MessagePack" />
+  </ItemGroup>
+
+  <!-- Content types carry System.Text.Json attributes ([JsonRequired], [JsonIgnore]), read by Tomlyn and the schema export. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\comet\src\Comet.Content\Comet.Content.csproj" />
+  </ItemGroup>
+
+</Project>

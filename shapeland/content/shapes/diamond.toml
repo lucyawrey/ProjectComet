@@ -1,0 +1,5 @@
+id = "shape.diamond"
+display_name = "Diamond"
+mesh = "diamond"
+max_speed = 7.5
+jump_velocity = 6.0
