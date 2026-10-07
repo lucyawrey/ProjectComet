@@ -130,10 +130,17 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
+        if (Array.IndexOf(ShapeLandRules.BodyColours, request.Colour) < 0 || Array.IndexOf(ShapeLandRules.EyeColours, request.EyeColour) < 0)
+        {
+            Reject(JoinRejection.UnavailableColour);
+            return;
+        }
+
         player.Joined = true;
         player.Name = name;
         player.Shape = shape;
-        player.Colour = ShapeLandRules.Colours[_random.Next(ShapeLandRules.Colours.Length)];
+        player.Colour = request.Colour;
+        player.EyeColour = request.EyeColour;
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
         player.StateTick = player.Stamp.StampServer(tick);
@@ -286,6 +293,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         public uint Colour { get; set; }
 
+        public uint EyeColour { get; set; }
+
         public MovementValidator Validator { get; set; } = null!;
 
         public ChatLimiter ChatLimiter { get; } = new(tickRate);
@@ -314,6 +323,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             Name = Name,
             Shape = Shape.Number,
             Colour = Colour,
+            EyeColour = EyeColour,
             X = Validator.Position.X,
             Y = Validator.Position.Y,
             Z = Validator.Position.Z,

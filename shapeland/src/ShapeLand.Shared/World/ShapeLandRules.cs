@@ -9,8 +9,11 @@ namespace ShapeLand.Shared.World
         public const int MaxNameLength = 16;
         public const int MaxChatLength = 200;
 
-        /// <summary>The bright toy-box colours players are given at random, as 0xRRGGBB.</summary>
-        public static readonly uint[] Colours =
+        /// <summary>
+        /// The body colours every player can pick, as 0xRRGGBB. Placeholders: the project lead decides the final sets,
+        /// and more colours come from items later.
+        /// </summary>
+        public static readonly uint[] BodyColours =
         {
             0xE53935, // red
             0x1E88E5, // blue
@@ -20,6 +23,16 @@ namespace ShapeLand.Shared.World
             0x8E24AA, // purple
             0x00ACC1, // cyan
             0xEC407A, // pink
+        };
+
+        /// <summary>The eye colours every player can pick, as 0xRRGGBB. Placeholders, like <see cref="BodyColours"/>.</summary>
+        public static readonly uint[] EyeColours =
+        {
+            0x16161C, // ink
+            0xFFFFFF, // white
+            0x5D4037, // brown
+            0x1565C0, // deep blue
+            0x2E7D32, // deep green
         };
 
         private static readonly Regex NamePattern = new Regex("^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$");

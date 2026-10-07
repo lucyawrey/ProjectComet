@@ -85,6 +85,19 @@ public sealed class EndToEndTests : IAsyncLifetime
         Assert.Equal(Shared.Messages.JoinRejection.NameTaken, second.Rejected);
     }
 
+    [Fact]
+    public async Task ColoursMustBeAvailableToThePlayer()
+    {
+        var bot = NewBot("Ada", 1, new BotSettings { ChatEverySeconds = 0, Colour = 0x123456 });
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        stop.CancelAfter(TimeSpan.FromSeconds(1));
+
+        await bot.RunAsync(_url, stop.Token);
+
+        Assert.False(bot.Joined);
+        Assert.Equal(Shared.Messages.JoinRejection.UnavailableColour, bot.Rejected);
+    }
+
     private static string RepoRoot()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)

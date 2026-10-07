@@ -21,6 +21,9 @@ public sealed class BotSettings
 
     /// <summary>Stay within this distance of the island's centre, in metres.</summary>
     public float WanderRadius { get; set; } = 18;
+
+    /// <summary>Ask for this body colour (0xRRGGBB) instead of a random one from the starting set.</summary>
+    public uint? Colour { get; set; }
 }
 
 /// <summary>
@@ -92,7 +95,13 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 {
                     asked = true;
                     _shape = content.Shapes.All[_random.Next(content.Shapes.All.Count)];
-                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Name = name, Shape = _shape.Number });
+                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest
+                    {
+                        Name = name,
+                        Shape = _shape.Number,
+                        Colour = settings.Colour ?? ShapeLandRules.BodyColours[_random.Next(ShapeLandRules.BodyColours.Length)],
+                        EyeColour = ShapeLandRules.EyeColours[_random.Next(ShapeLandRules.EyeColours.Length)],
+                    });
                 }
 
                 _session.Update(now);

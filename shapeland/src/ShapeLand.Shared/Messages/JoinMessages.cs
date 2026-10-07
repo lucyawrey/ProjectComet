@@ -2,7 +2,7 @@ using MessagePack;
 
 namespace ShapeLand.Shared.Messages
 {
-    /// <summary>Client input: join the game with a name and a shape. Sent once after connecting, or again after a rejection.</summary>
+    /// <summary>Client input: join the game with a name, a shape and colours. Sent once after connecting, or again after a rejection.</summary>
     [MessagePackObject]
     public struct JoinRequest
     {
@@ -10,6 +10,12 @@ namespace ShapeLand.Shared.Messages
 
         /// <summary>The shape's content number.</summary>
         [Key(1)] public int Shape;
+
+        /// <summary>The body colour as 0xRRGGBB, one the player may use.</summary>
+        [Key(2)] public uint Colour;
+
+        /// <summary>The eye colour as 0xRRGGBB, one the player may use.</summary>
+        [Key(3)] public uint EyeColour;
     }
 
     /// <summary>Why a join was refused.</summary>
@@ -25,6 +31,9 @@ namespace ShapeLand.Shared.Messages
 
         /// <summary>This connection has already joined.</summary>
         AlreadyJoined = 4,
+
+        /// <summary>A body or eye colour the player may not use (not in the starting sets).</summary>
+        UnavailableColour = 5,
     }
 
     /// <summary>Server event: the join was refused; the client may try again.</summary>
@@ -47,12 +56,15 @@ namespace ShapeLand.Shared.Messages
         /// <summary>The shape's content number.</summary>
         [Key(2)] public int Shape;
 
-        /// <summary>The player's colour as 0xRRGGBB.</summary>
+        /// <summary>The player's body colour as 0xRRGGBB.</summary>
         [Key(3)] public uint Colour;
 
         [Key(4)] public float X;
         [Key(5)] public float Y;
         [Key(6)] public float Z;
         [Key(7)] public float Facing;
+
+        /// <summary>The player's eye colour as 0xRRGGBB.</summary>
+        [Key(8)] public uint EyeColour;
     }
 }
