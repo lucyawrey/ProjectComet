@@ -6,7 +6,9 @@
         "Comet.Protocol",
         "Comet.Unity",
         "Comet.Content",
-        "ShapeLand.Shared"
+        "ShapeLand.Shared",
+        "Comet.Simulation",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -6,6 +6,8 @@
         "Comet.Client",
         "Comet.Unity",
         "ShapeLand.Shared",
+        "Comet.Simulation",
+        "Unity.InputSystem",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

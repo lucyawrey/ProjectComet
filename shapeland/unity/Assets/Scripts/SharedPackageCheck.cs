@@ -9,6 +9,7 @@ using Comet.Protocol;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
 using ShapeLand.Shared.Content;
+using ShapeLand.Shared.World;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -71,7 +72,7 @@ namespace ShapeLand.Client
             var terrain = content.Terrain;
             var holes = terrain.Samples.Count(s => s == Heightmap.Hole);
             Expect(holes > 0 && holes < terrain.Samples.Length, "the test island should have both ground and holes");
-            var triangles = BuildIsland(terrain);
+            var triangles = BuildIsland(content);
             _lines.Add($"terrain: {terrain.SizeX}×{terrain.SizeZ} samples, {holes} holes, {triangles} triangles");
 
             var writer = new MessageWriter();
@@ -87,44 +88,13 @@ namespace ShapeLand.Client
             _lines.Add($"System.Text.Json: loaded; [JsonRequired] on Shape.Id {(required == 1 ? "kept" : "stripped (harmless at run time)")}");
         }
 
-        // A flat-shaded mesh: each triangle gets its own vertices, and exists only where all three samples are ground.
-        private int BuildIsland(Heightmap map)
+        private int BuildIsland(ShapeLandContent content)
         {
-            const float spacing = 2f;
-            var vertices = new List<Vector3>();
-            var origin = new Vector3(-(map.SizeX - 1) * spacing / 2, 0, -(map.SizeZ - 1) * spacing / 2);
-
-            void Triangle((int X, int Z) a, (int X, int Z) b, (int X, int Z) c)
-            {
-                if (!map.TryGetHeight(a.X, a.Z, out var ha) || !map.TryGetHeight(b.X, b.Z, out var hb) || !map.TryGetHeight(c.X, c.Z, out var hc))
-                {
-                    return;
-                }
-
-                vertices.Add(origin + new Vector3(a.X * spacing, ha, a.Z * spacing));
-                vertices.Add(origin + new Vector3(b.X * spacing, hb, b.Z * spacing));
-                vertices.Add(origin + new Vector3(c.X * spacing, hc, c.Z * spacing));
-            }
-
-            for (var z = 0; z < map.SizeZ - 1; z++)
-            {
-                for (var x = 0; x < map.SizeX - 1; x++)
-                {
-                    Triangle((x, z), (x, z + 1), (x + 1, z));
-                    Triangle((x + 1, z), (x, z + 1), (x + 1, z + 1));
-                }
-            }
-
-            var mesh = new Mesh { name = "Test island" };
-            mesh.SetVertices(vertices);
-            mesh.SetTriangles(Enumerable.Range(0, vertices.Count).ToArray(), 0);
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-
+            var mesh = WorldMeshes.Island(ShapeLandWorld.Create(content).Terrain);
             var island = new GameObject("Test island");
             island.AddComponent<MeshFilter>().sharedMesh = mesh;
             island.AddComponent<MeshRenderer>().sharedMaterial = terrainMaterial;
-            return vertices.Count / 3;
+            return mesh.vertexCount / 3;
         }
 
         private static void Expect(bool condition, string failure)
