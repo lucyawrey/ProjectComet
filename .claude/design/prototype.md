@@ -29,14 +29,16 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   ProjectComet/
     (one solution file)
     comet/
-      src/       Protocol, Content, Simulation, Data, Bots, server hosting
+      src/       Protocol, Content, ContentBuild, Simulation, Data, Bots, server hosting
+      tests/
       unity/     the Comet Unity package
       content/
     shapeland/
-      shared/    ShapeLand.Shared: its content types and messages
-      server/  bots/  content/  tools/
+      src/       ShapeLand.Shared (content types, messages), ContentBuild, server, bots
+      tests/
+      content/   shapes/, zones/, ids.toml
       unity/     its own Unity project
-    tools/       content build, benchmarks
+    tools/       benchmarks
     docs/  .claude/  (as now)
   ```
 
@@ -127,7 +129,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 ### Code layout and build
 
-- **One `src/` per layer, each project a self-contained folder named like the project** (`comet/src/Comet.Protocol/Comet.Protocol.csproj`; folder, project, assembly and namespace match). Shared packages are both a .NET project and a Unity package, so the project folder is the package root. Tests go in `comet/tests/`.
+- **One `src/` per layer, each project a self-contained folder named like the project** (`comet/src/Comet.Protocol/Comet.Protocol.csproj`; folder, project, assembly and namespace match). Every layer has the same shape: `src/` and `tests/` (a test project per project it tests, named `<Project>.Tests`), plus `content/` and `unity/`. Shared packages are both a .NET project and a Unity package, so the project folder is the package root. Tests go in `comet/tests/`.
 - **All build output goes to `artifacts/`** at the root (.NET's artifacts output), so Unity never imports `bin/` or `obj/` from a shared package and the vault stays clean.
 - **One `ProjectComet.slnx` solution,** central package versions (`Directory.Packages.props`), shared defaults in `Directory.Build.props` (nullable on, warnings as errors), C# 9 for the Unity-shared libraries.
 - **Projects start from official templates** (`dotnet new`, Unity Hub), then get edited.
@@ -147,8 +149,10 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **The shared packages must compile in the Unity editor and in IL2CPP desktop and web builds,** where MessagePack's ahead-of-time needs (generated formatters) and .NET Standard 2.1 limits show up.
 - **Content pipeline, core path only:** TOML files read by Tomlyn into Content types, validated, compiled into a MessagePack file that the server and client load; a minimal ID registry (no generated constants: code looks content up by key at load, failing loudly on unknown keys); a JSON Schema generated from the Content types so VS Code (Even Better TOML) autocompletes and flags errors while editing. Hash delivery, text extraction, CI drift checks and the rename command wait for phase 1.
 - **TOML editor support is checked in VS Code** only.
-- **The content build is a Comet library with a small console project per game:** `Comet.ContentBuild` (in `comet/src/`, server-side .NET only) reads, validates, assigns registry numbers, compiles and exports the schema; each game's console project (ShapeLand's is `shapeland/tools/ShapeLand.ContentBuild`) registers its own types and runs it, with `build`, `schema` and `terrain` commands. Game types stay out of Comet, and Tomlyn's and MessagePack's source generators work without reflection.
-- **ShapeLand's shared types live in `ShapeLand.Shared`** (`shapeland/shared/`): its content types now and its messages later, a .NET project and a Unity package like Comet's shared packages.
+- **The content build is a Comet library with a small console project per game:** `Comet.ContentBuild` (in `comet/src/`, server-side .NET only) reads, validates, assigns registry numbers, compiles and exports the schema; each game's console project (ShapeLand's is `shapeland/src/ShapeLand.ContentBuild`) registers its own types and runs it, with `build`, `schema` and `terrain` commands. Game types stay out of Comet, and Tomlyn's and MessagePack's source generators work without reflection.
+- **ShapeLand's shared types live in `ShapeLand.Shared`** (`shapeland/src/ShapeLand.Shared`): its content types now and its messages later, a .NET project and a Unity package like Comet's shared packages.
+- **Tomlyn ignores unknown keys,** so the content build checks every key against the type's System.Text.Json metadata (the same metadata the schema comes from) and reports typos at their line.
+- **Running the content build:** `dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build` checks `shapeland/content`, adds new keys to `ids.toml` (commit it) and writes `content.bin` and the editor schemas to `artifacts/content/shapeland/`; `terrain [--seed N]` regenerates the test heightmap. Errors use the compiler's `file(line,col): error:` format. VS Code finds the schemas through `.taplo.toml` at the root, after a first build.
 - **2a is done when** the build compiles ShapeLand's three shapes and the test terrain; a test loads the compiled file and finds each shape by key; bad files fail with clear errors; and VS Code autocompletes and flags errors in a shape file. A server loading the content comes with ShapeLand phase 0.
 
 ### Texture filtering comparison
@@ -175,6 +179,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 ## Rejected
 
 - **Going past phase 0 in the early prototype** (combat, loot, levels): left for phase 1.
+- **One generic content tool that loads a game's assembly by reflection** (instead of a small console project per game): run-time assembly loading and version conflicts, a two-step build, errors at run time instead of compile time, and the build serializing through a different MessagePack path than the client.
 - **A single `src/` tree** for all code: per-layer folders keep Comet and each game clearly apart.
 - **The full content pipeline in phase 0** (hash delivery, text extraction, drift checks, rename command): phase 1.
 - **Login and Region servers in phase 0:** they come in phase 1, so phase 0 reaches the load test sooner.

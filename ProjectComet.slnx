@@ -1,12 +1,23 @@
 <Solution>
   <Folder Name="/comet/" />
   <Folder Name="/comet/src/">
+    <Project Path="comet/src/Comet.Content/Comet.Content.csproj" />
+    <Project Path="comet/src/Comet.ContentBuild/Comet.ContentBuild.csproj" />
     <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
     <Project Path="comet/src/Comet.Server/Comet.Server.csproj" />
   </Folder>
   <Folder Name="/comet/tests/">
+    <Project Path="comet/tests/Comet.ContentBuild.Tests/Comet.ContentBuild.Tests.csproj" />
     <Project Path="comet/tests/Comet.Protocol.Tests/Comet.Protocol.Tests.csproj" />
     <Project Path="comet/tests/Comet.Server.Tests/Comet.Server.Tests.csproj" />
+  </Folder>
+  <Folder Name="/shapeland/" />
+  <Folder Name="/shapeland/src/">
+    <Project Path="shapeland/src/ShapeLand.ContentBuild/ShapeLand.ContentBuild.csproj" />
+    <Project Path="shapeland/src/ShapeLand.Shared/ShapeLand.Shared.csproj" />
+  </Folder>
+  <Folder Name="/shapeland/tests/">
+    <Project Path="shapeland/tests/ShapeLand.ContentBuild.Tests/ShapeLand.ContentBuild.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/" />
   <Folder Name="/tools/StackBench/">

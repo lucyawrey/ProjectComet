@@ -1,0 +1,7 @@
+# Content ID registry: each key's permanent number, per content type.
+# The content build adds new keys; numbers never change and are never reused. Commit this file.
+
+[shape]
+cube = 1
+diamond = 2
+pyramid = 3

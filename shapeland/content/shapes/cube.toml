@@ -1,0 +1,5 @@
+id = "shape.cube"
+display_name = "Cube"
+mesh = "cube"
+max_speed = 6.0
+jump_velocity = 7.0
