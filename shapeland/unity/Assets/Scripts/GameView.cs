@@ -13,6 +13,9 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(JoinClient))]
     public sealed class GameView : MonoBehaviour
     {
+        /// <summary>How high shapes are drawn above their feet, in metres. Only drawing: collision and movement are unchanged.</summary>
+        public const float HoverHeight = 0.15f;
+
         [SerializeField] private Material terrainMaterial;
         [SerializeField] private Material blockMaterial;
         [SerializeField] private Material shapeMaterial;
@@ -50,9 +53,12 @@ namespace ShapeLand.Client
         {
             var shape = _join.Content.Shapes[spawn.Shape];
             var material = new Material(shapeMaterial) { color = Colour(spawn.Colour) };
-            var body = AddMesh($"{spawn.Name} (you)", WorldMeshes.Shape(shape.Mesh, ShapeLandWorld.Rules), material, null);
-            AddMesh("Eyes", WorldMeshes.Eyes(shape.Mesh, ShapeLandWorld.Rules), eyeMaterial, body.transform);
-            Player = body.AddComponent<LocalPlayer>();
+            var player = new GameObject($"{spawn.Name} (you)");
+            var body = AddMesh("Shape", WorldMeshes.Shape(shape.Mesh, ShapeLandWorld.Rules), material, player.transform);
+            body.transform.localPosition = new Vector3(0, HoverHeight, 0);
+            var eyes = new Material(eyeMaterial) { color = Colour(spawn.EyeColour) };
+            AddMesh("Eyes", WorldMeshes.Eyes(shape.Mesh, ShapeLandWorld.Rules), eyes, body.transform);
+            Player = player.AddComponent<LocalPlayer>();
             Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
             orbitCamera.Follow(Player.transform, _controls, _world);
         }

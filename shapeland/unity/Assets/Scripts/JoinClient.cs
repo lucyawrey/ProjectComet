@@ -7,6 +7,7 @@ using Comet.Protocol.Messages;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
+using ShapeLand.Shared.World;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -112,7 +113,14 @@ namespace ShapeLand.Client
             {
                 _asked = true;
                 var shape = _content.Shapes.All[UnityEngine.Random.Range(0, _content.Shapes.All.Count)];
-                session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Name = playerName, Shape = shape.Number });
+                // Colours are random until the join screen lets players pick them.
+                session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest
+                {
+                    Name = playerName,
+                    Shape = shape.Number,
+                    Colour = ShapeLandRules.BodyColours[UnityEngine.Random.Range(0, ShapeLandRules.BodyColours.Length)],
+                    EyeColour = ShapeLandRules.EyeColours[UnityEngine.Random.Range(0, ShapeLandRules.EyeColours.Length)],
+                });
                 Log($"joining as {playerName}, a {shape.DisplayName}");
             }
         }
@@ -127,7 +135,7 @@ namespace ShapeLand.Client
                     if (spawn.EntityId == Session.EntityId)
                     {
                         Joined = true;
-                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}");
+                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}, eyes #{spawn.EyeColour:X6}");
                         OwnSpawned?.Invoke(spawn);
                     }
                     else

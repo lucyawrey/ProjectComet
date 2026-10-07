@@ -109,7 +109,7 @@ namespace ShapeLand.Client.Editor
             serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(TerrainMaterial);
             serialized.FindProperty("blockMaterial").objectReferenceValue = LitMaterial(BlockMaterial, new Color(0.62f, 0.55f, 0.48f));
             serialized.FindProperty("shapeMaterial").objectReferenceValue = LitMaterial(ShapeMaterial, Color.white);
-            serialized.FindProperty("eyeMaterial").objectReferenceValue = LitMaterial(EyeMaterial, new Color(0.08f, 0.08f, 0.1f));
+            serialized.FindProperty("eyeMaterial").objectReferenceValue = LitMaterial(EyeMaterial, Color.white);
             serialized.FindProperty("orbitCamera").objectReferenceValue = camera.GetComponent<OrbitCamera>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
