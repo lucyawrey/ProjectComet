@@ -83,9 +83,9 @@ public class ContentTests
         }
     }
 
-    // IL2CPP and web builds can't generate code at run time, so every content type needs a source-generated formatter.
+    // IL2CPP and web builds can't generate code at run time, so every content type and message needs a source-generated formatter.
     [Fact]
-    public void EveryContentTypeHasASourceGeneratedFormatter()
+    public void EveryMessagePackTypeHasASourceGeneratedFormatter()
     {
         var contentTypes = typeof(Shape).Assembly.GetTypes()
             .Concat(typeof(Heightmap).Assembly.GetTypes())
@@ -96,7 +96,8 @@ public class ContentTests
             .ToList();
         var getFormatter = typeof(IFormatterResolver).GetMethod(nameof(IFormatterResolver.GetFormatter))!;
 
-        Assert.Equal(3, contentTypes.Count);
+        Assert.Contains(typeof(Shape), contentTypes);
+        Assert.Contains(typeof(Shared.Messages.PlayerSpawn), contentTypes);
         Assert.All(contentTypes, t => Assert.Contains(resolvers, r => getFormatter.MakeGenericMethod(t).Invoke(r, null) is not null));
     }
 

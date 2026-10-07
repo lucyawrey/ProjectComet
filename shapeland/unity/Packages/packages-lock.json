@@ -12,6 +12,14 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.comet.simulation": {
+      "version": "file:../../../comet/src/Comet.Simulation",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.comet.content": "0.1.0"
+      }
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity#v4.5.0",
       "depth": 0,
@@ -24,7 +32,9 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.comet.content": "0.1.0"
+        "com.comet.content": "0.1.0",
+        "com.comet.protocol": "0.1.0",
+        "com.comet.simulation": "0.1.0"
       }
     },
     "com.unity.ai.navigation": {

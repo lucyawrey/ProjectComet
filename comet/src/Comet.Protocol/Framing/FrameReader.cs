@@ -61,11 +61,13 @@ namespace Comet.Protocol.Framing
             return true;
         }
 
-        public static T Decode<T>(ReadOnlyMemory<byte> payload)
+        /// <param name="payload">A message's payload, from <see cref="TryReadNext"/>.</param>
+        /// <param name="options">Serializer options; <see cref="ProtocolSerializer.Options"/> (Comet's messages only) if null.</param>
+        public static T Decode<T>(ReadOnlyMemory<byte> payload, MessagePackSerializerOptions? options = null)
         {
             try
             {
-                return MessagePackSerializer.Deserialize<T>(payload, ProtocolSerializer.Options);
+                return MessagePackSerializer.Deserialize<T>(payload, options ?? ProtocolSerializer.Options);
             }
             catch (MessagePackSerializationException e)
             {

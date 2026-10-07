@@ -6,6 +6,8 @@
   "unity": "6000.6",
   "license": "MIT",
   "dependencies": {
-    "com.comet.content": "0.1.0"
+    "com.comet.content": "0.1.0",
+    "com.comet.protocol": "0.1.0",
+    "com.comet.simulation": "0.1.0"
   }
 }

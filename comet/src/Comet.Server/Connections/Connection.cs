@@ -36,12 +36,12 @@ public sealed class Connection
         new UnboundedChannelOptions { SingleReader = true });
 
     // Tick thread.
-    private readonly MessageWriter _events = new();
-    private readonly MessageWriter _tickFrame = new();
+    private readonly MessageWriter _events;
+    private readonly MessageWriter _tickFrame;
     private int _tickFrameInFlight;
 
     // Receive flow.
-    private readonly MessageWriter _immediateFrame = new(64);
+    private readonly MessageWriter _immediateFrame;
     private readonly byte[] _receiveBuffer = new byte[MaxIncomingFrameSize];
 
     internal Connection(WebSocket socket, ConnectionRegistry registry, IConnectionHandler handler, TickLoop tickLoop)
@@ -50,6 +50,9 @@ public sealed class Connection
         _registry = registry;
         _handler = handler;
         _tickLoop = tickLoop;
+        _events = new MessageWriter(options: registry.SerializerOptions);
+        _tickFrame = new MessageWriter(options: registry.SerializerOptions);
+        _immediateFrame = new MessageWriter(64, registry.SerializerOptions);
         Id = registry.NextId();
     }
 

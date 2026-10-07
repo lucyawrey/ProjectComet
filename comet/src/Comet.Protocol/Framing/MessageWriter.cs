@@ -15,12 +15,16 @@ namespace Comet.Protocol.Framing
     {
         public const int TickSize = 4;
 
+        private readonly MessagePackSerializerOptions _options;
         private byte[] _buffer;
         private int _length;
 
-        public MessageWriter(int initialCapacity = 512)
+        /// <param name="initialCapacity">The starting buffer size; it grows as needed.</param>
+        /// <param name="options">Serializer options; <see cref="ProtocolSerializer.Options"/> (Comet's messages only) if null.</param>
+        public MessageWriter(int initialCapacity = 512, MessagePackSerializerOptions? options = null)
         {
             _buffer = new byte[initialCapacity];
+            _options = options ?? ProtocolSerializer.Options;
         }
 
         public int Length => _length;
@@ -56,7 +60,7 @@ namespace Comet.Protocol.Framing
             _length++;
             var payloadStart = _length;
 
-            MessagePackSerializer.Serialize(this, message, ProtocolSerializer.Options);
+            MessagePackSerializer.Serialize(this, message, _options);
 
             var payloadLength = _length - payloadStart;
             var extra = Varint.SizeOf((uint)payloadLength) - 1;
