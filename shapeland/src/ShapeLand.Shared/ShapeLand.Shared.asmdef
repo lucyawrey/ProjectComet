@@ -1,0 +1,14 @@
+{
+    "name": "ShapeLand.Shared",
+    "rootNamespace": "ShapeLand.Shared",
+    "references": ["Comet.Content"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

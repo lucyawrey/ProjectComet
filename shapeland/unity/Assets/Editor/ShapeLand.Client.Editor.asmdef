@@ -1,0 +1,18 @@
+{
+    "name": "ShapeLand.Client.Editor",
+    "rootNamespace": "ShapeLand.Client.Editor",
+    "references": [
+        "ShapeLand.Client"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

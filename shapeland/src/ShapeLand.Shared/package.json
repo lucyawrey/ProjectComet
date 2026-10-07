@@ -1,0 +1,11 @@
+{
+  "name": "com.shapeland.shared",
+  "version": "0.1.0",
+  "displayName": "ShapeLand Shared",
+  "description": "ShapeLand's content types and messages, shared by its client and servers.",
+  "unity": "6000.6",
+  "license": "MIT",
+  "dependencies": {
+    "com.comet.content": "0.1.0"
+  }
+}
