@@ -1,7 +1,6 @@
-using System.Collections.Concurrent;
-using System.Net.WebSockets;
+using System.Diagnostics;
 using System.Numerics;
-using Comet.Protocol;
+using Comet.Client;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
 using Comet.Simulation;
@@ -26,34 +25,30 @@ public sealed class BotSettings
 
 /// <summary>
 /// One simulated player: joins, wanders the island with the shared player motor, jumps now and then and chats
-/// occasionally. A cheating bot slides faster than its shape allows and should be snapped back. Counts what it
-/// sees, so tests and the bot program can check the server's behaviour.
+/// occasionally. A cheating bot slides faster than its shape allows and should be snapped back. Runs on the
+/// same client session as the Unity client (tick estimate, interpolation buffer, report schedule), so load
+/// tests exercise that code too. Counts what it sees, so tests and the bot program can check the server.
 /// </summary>
 public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, CollisionWorld world)
 {
     private const int StepsPerSecond = 30;
-    private const int StepsPerReport = 2; // ~15 Hz while moving
 
     private static readonly string[] ChatLines = ["hello!", "nice island", "anyone up for a race?", "look, I can jump", "wheee", "brb"];
 
     private readonly Random _random = new(seed);
-    private readonly ClientWebSocket _socket = new();
-    private readonly ConcurrentQueue<byte[]> _frames = new();
-    private readonly MessageWriter _frame = new(options: ShapeLandProtocol.Options);
     private readonly HashSet<uint> _seen = [];
+    private readonly PositionReporter _reporter = new();
+    private ClientSession _session = null!;
     private MotorState _motor;
     private Shape _shape = null!;
-    private uint _serverTick;
-    private uint _correctionSequence;
     private Vector2 _target;
     private int _step;
-    private bool _wasMoving;
     private double _nextJump;
     private double _nextChat;
 
     public string Name => name;
 
-    public uint EntityId { get; private set; }
+    public uint EntityId => _session.EntityId;
 
     public bool Joined { get; private set; }
 
@@ -62,7 +57,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     /// <summary>Other players this bot has seen spawn.</summary>
     public IReadOnlyCollection<uint> SeenPlayers => _seen;
 
-    public int StatesReceived { get; private set; }
+    public int StatesReceived => _session.StatesReceived;
 
     public int SnapBacks { get; private set; }
 
@@ -74,74 +69,55 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public int Despawns { get; private set; }
 
+    /// <summary>The connection failed or was lost, rather than being closed by the bot.</summary>
     public bool Failed { get; private set; }
 
     public async Task RunAsync(Uri url, CancellationToken stop)
     {
-        try
-        {
-            await _socket.ConnectAsync(url, stop);
-        }
-        catch (Exception e) when (e is WebSocketException or HttpRequestException or OperationCanceledException)
-        {
-            Failed = !stop.IsCancellationRequested;
-            return;
-        }
+        var transport = new WebSocketTransport(url);
+        _session = new ClientSession(transport, ShapeLandProtocol.Options);
+        _session.GameMessage += OnGameMessage;
+        _session.Corrected += OnCorrected;
+        _session.EntityDespawned += _ => Despawns++;
 
-        var receiving = ReceiveLoopAsync();
+        var clock = Stopwatch.StartNew();
+        var asked = false;
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1.0 / StepsPerSecond));
         try
         {
-            _shape = content.Shapes.All[_random.Next(content.Shapes.All.Count)];
-            _frame.BeginFrame(0);
-            _frame.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Name = name, Shape = _shape.Number });
-            await SendAsync(stop);
-            await SimulateAsync(stop);
-            await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+            while (transport.State != TransportState.Closed && await timer.WaitForNextTickAsync(stop))
+            {
+                var now = clock.Elapsed.TotalSeconds;
+                if (!asked && transport.State == TransportState.Open)
+                {
+                    asked = true;
+                    _shape = content.Shapes.All[_random.Next(content.Shapes.All.Count)];
+                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Name = name, Shape = _shape.Number });
+                }
+
+                _session.Update(now);
+                if (Joined)
+                {
+                    Step(now, 1f / StepsPerSecond);
+                }
+
+                _session.Flush(now);
+            }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
-            await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-        }
-        catch (Exception e) when (e is WebSocketException or ObjectDisposedException)
-        {
-            Failed = true;
         }
 
-        if (await Task.WhenAny(receiving, Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None)) != receiving)
-        {
-            _socket.Abort();
-        }
-
-        _socket.Dispose();
+        transport.Close();
+        await transport.Completion;
+        transport.Dispose();
+        Failed = _session.Error is not null;
     }
 
-    private async Task SimulateAsync(CancellationToken stop)
+    private void Step(double now, float seconds)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1.0 / StepsPerSecond));
-        while (await timer.WaitForNextTickAsync(stop))
-        {
-            while (_frames.TryDequeue(out var frame))
-            {
-                Handle(frame);
-            }
-
-            if (!Joined)
-            {
-                continue;
-            }
-
-            _step++;
-            Step(1f / StepsPerSecond);
-            if (_frame.MessageCount > 0)
-            {
-                await SendAsync(stop);
-            }
-        }
-    }
-
-    private void Step(float seconds)
-    {
-        var now = _step / (double)StepsPerSecond;
+        _step++;
+        var elapsed = _step / (double)StepsPerSecond;
         var position = new Vector2(_motor.Position.X, _motor.Position.Z);
         if (Vector2.Distance(position, _target) < 1.5f)
         {
@@ -149,97 +125,78 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         }
 
         var move = Vector2.Normalize(_target - position);
-        var jump = _motor.Grounded && now >= _nextJump;
+        var jump = _motor.Grounded && elapsed >= _nextJump;
         if (jump)
         {
-            _nextJump = now + 3 + _random.NextDouble() * 5;
+            _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
         PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity, world, ShapeLandWorld.Rules);
-
-        _frame.BeginFrame(_serverTick);
-        var moving = _motor.Velocity.LengthSquared() > 0.01f;
-        if (moving && (_step % StepsPerReport == 0 || !_wasMoving) || !moving && _wasMoving)
+        if (_reporter.ShouldReport(_motor.Velocity, now))
         {
-            _frame.Write(MessageIds.PositionReport, new PositionReport
-            {
-                X = _motor.Position.X,
-                Y = _motor.Position.Y,
-                Z = _motor.Position.Z,
-                VelocityX = _motor.Velocity.X,
-                VelocityY = _motor.Velocity.Y,
-                VelocityZ = _motor.Velocity.Z,
-                Facing = _motor.Facing,
-                CorrectionSequence = _correctionSequence,
-            });
+            _session.ReportPosition(_motor.Position, _motor.Velocity, _motor.Facing);
         }
 
-        _wasMoving = moving;
-        if (settings.ChatEverySeconds > 0 && now >= _nextChat)
+        if (settings.ChatEverySeconds > 0 && elapsed >= _nextChat)
         {
-            _frame.Write(ShapeLandMessageIds.ChatSend, new ChatSend { Text = ChatLines[_random.Next(ChatLines.Length)] });
+            _session.Write(ShapeLandMessageIds.ChatSend, new ChatSend { Text = ChatLines[_random.Next(ChatLines.Length)] });
             ChatsSent++;
-            _nextChat = now + settings.ChatEverySeconds * (0.5 + _random.NextDouble());
+            _nextChat = elapsed + settings.ChatEverySeconds * (0.5 + _random.NextDouble());
+        }
+
+        // Draw the others, as a real client would, so the interpolation buffer runs under load.
+        var renderTick = _session.RenderTick(now);
+        foreach (var id in _session.Entities.Ids)
+        {
+            _session.Entities.TrySample(id, renderTick, out _);
         }
     }
 
-    private void Handle(byte[] data)
+    private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
     {
-        var reader = FrameReader.Create(data);
-        _serverTick = reader.Tick;
         var options = ShapeLandProtocol.Options;
-        while (reader.TryReadNext(out var messageId, out var payload))
+        switch (messageId)
         {
-            switch (messageId)
-            {
-                case MessageIds.Welcome:
-                    EntityId = FrameReader.Decode<Welcome>(payload, options).EntityId;
-                    break;
-                case ShapeLandMessageIds.PlayerSpawn:
-                    var spawn = FrameReader.Decode<PlayerSpawn>(payload, options);
-                    if (spawn.EntityId == EntityId)
-                    {
-                        Joined = true;
-                        _motor = new MotorState { Position = new Vector3(spawn.X, spawn.Y, spawn.Z), Grounded = true, Facing = spawn.Facing };
-                        _target = RandomPoint();
-                        _nextJump = 2 + _random.NextDouble() * 4;
-                        _nextChat = settings.ChatEverySeconds * _random.NextDouble();
-                    }
-                    else
-                    {
-                        _seen.Add(spawn.EntityId);
-                    }
+            case ShapeLandMessageIds.PlayerSpawn:
+                var spawn = FrameReader.Decode<PlayerSpawn>(payload, options);
+                var position = new Vector3(spawn.X, spawn.Y, spawn.Z);
+                if (_session.Welcomed && spawn.EntityId == _session.EntityId)
+                {
+                    Joined = true;
+                    _motor = new MotorState { Position = position, Grounded = true, Facing = spawn.Facing };
+                    _target = RandomPoint();
+                    _nextJump = 2 + _random.NextDouble() * 4;
+                    _nextChat = settings.ChatEverySeconds * _random.NextDouble();
+                }
+                else
+                {
+                    _seen.Add(spawn.EntityId);
+                    _session.Entities.Spawn(spawn.EntityId, tick, position, spawn.Facing);
+                }
 
-                    break;
-                case ShapeLandMessageIds.JoinRejected:
-                    Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;
-                    break;
-                case MessageIds.EntityState:
-                    StatesReceived++;
-                    break;
-                case MessageIds.EntityDespawn:
-                    Despawns++;
-                    break;
-                case MessageIds.PositionCorrection:
-                    var correction = FrameReader.Decode<PositionCorrection>(payload, options);
-                    _correctionSequence = correction.Sequence;
-                    _motor.Position = new Vector3(correction.X, correction.Y, correction.Z);
-                    _motor.Velocity = Vector3.Zero;
-                    _motor.Grounded = false;
-                    if (correction.Reason == CorrectionReason.Respawn)
-                    {
-                        Respawns++;
-                    }
-                    else
-                    {
-                        SnapBacks++;
-                    }
+                break;
+            case ShapeLandMessageIds.JoinRejected:
+                Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;
+                break;
+            case ShapeLandMessageIds.ChatMessage:
+                ChatsReceived++;
+                break;
+        }
+    }
 
-                    break;
-                case ShapeLandMessageIds.ChatMessage:
-                    ChatsReceived++;
-                    break;
-            }
+    private void OnCorrected(PositionCorrection correction)
+    {
+        _motor.Position = new Vector3(correction.X, correction.Y, correction.Z);
+        _motor.Velocity = Vector3.Zero;
+        _motor.Grounded = false;
+        _reporter.Reset();
+        if (correction.Reason == CorrectionReason.Respawn)
+        {
+            Respawns++;
+        }
+        else
+        {
+            SnapBacks++;
         }
     }
 
@@ -248,39 +205,5 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         var angle = _random.NextDouble() * Math.Tau;
         var distance = settings.WanderRadius * Math.Sqrt(_random.NextDouble());
         return new Vector2((float)(Math.Cos(angle) * distance), (float)(Math.Sin(angle) * distance));
-    }
-
-    private async Task SendAsync(CancellationToken stop) =>
-        await _socket.SendAsync(_frame.WrittenMemory, WebSocketMessageType.Binary, endOfMessage: true, stop);
-
-    private async Task ReceiveLoopAsync()
-    {
-        var buffer = new byte[64 * 1024];
-        var length = 0;
-        try
-        {
-            while (true)
-            {
-                var result = await _socket.ReceiveAsync(buffer.AsMemory(length), CancellationToken.None);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    return;
-                }
-
-                length += result.Count;
-                if (result.EndOfMessage)
-                {
-                    _frames.Enqueue(buffer.AsSpan(0, length).ToArray());
-                    length = 0;
-                }
-                else if (length == buffer.Length)
-                {
-                    throw new ProtocolException("Server frame too large.");
-                }
-            }
-        }
-        catch (Exception e) when (e is WebSocketException or ProtocolException or ObjectDisposedException or OperationCanceledException)
-        {
-        }
     }
 }

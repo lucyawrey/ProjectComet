@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.comet.client": {
+      "version": "file:../../../comet/src/Comet.Client",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.comet.protocol": "0.1.0"
+      }
+    },
     "com.comet.content": {
       "version": "file:../../../comet/src/Comet.Content",
       "depth": 0,

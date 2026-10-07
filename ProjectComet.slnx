@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/comet/" />
   <Folder Name="/comet/src/">
+    <Project Path="comet/src/Comet.Client/Comet.Client.csproj" />
     <Project Path="comet/src/Comet.Content/Comet.Content.csproj" />
     <Project Path="comet/src/Comet.ContentBuild/Comet.ContentBuild.csproj" />
     <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
@@ -8,6 +9,7 @@
     <Project Path="comet/src/Comet.Simulation/Comet.Simulation.csproj" />
   </Folder>
   <Folder Name="/comet/tests/">
+    <Project Path="comet/tests/Comet.Client.Tests/Comet.Client.Tests.csproj" />
     <Project Path="comet/tests/Comet.ContentBuild.Tests/Comet.ContentBuild.Tests.csproj" />
     <Project Path="comet/tests/Comet.Protocol.Tests/Comet.Protocol.Tests.csproj" />
     <Project Path="comet/tests/Comet.Server.Tests/Comet.Server.Tests.csproj" />

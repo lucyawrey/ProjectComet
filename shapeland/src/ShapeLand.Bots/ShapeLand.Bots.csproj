@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\comet\src\Comet.Client\Comet.Client.csproj" />
     <ProjectReference Include="..\ShapeLand.Shared\ShapeLand.Shared.csproj" />
   </ItemGroup>
 
