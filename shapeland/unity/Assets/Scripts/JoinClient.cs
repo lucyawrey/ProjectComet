@@ -1,0 +1,146 @@
+using System;
+using System.Collections;
+using System.IO;
+using Comet.Client;
+using Comet.Protocol.Framing;
+using Comet.Protocol.Messages;
+using Comet.Unity;
+using ShapeLand.Shared.Content;
+using ShapeLand.Shared.Messages;
+using UnityEngine;
+using UnityEngine.Networking;
+
+namespace ShapeLand.Client
+{
+    /// <summary>
+    /// The bare join scene (step 3b): loads the content, connects to a game server, joins as a random shape and
+    /// logs what the server says (welcome, spawns, despawns, chat). Nothing is drawn yet.
+    /// </summary>
+    [RequireComponent(typeof(CometConnection))]
+    public sealed class JoinClient : MonoBehaviour
+    {
+        public const string LogPrefix = "JOIN";
+
+        [SerializeField] private string address = "localhost:5080";
+        [SerializeField] private string playerName = "Player";
+
+        private CometConnection _connection;
+        private ShapeLandContent _content;
+        private bool _asked;
+
+        /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
+        public string Address
+        {
+            get => address;
+            set => address = value;
+        }
+
+        public string PlayerName
+        {
+            get => playerName;
+            set => playerName = value;
+        }
+
+        /// <summary>True once the server has spawned this player.</summary>
+        public bool Joined { get; private set; }
+
+        public JoinRejection? Rejected { get; private set; }
+
+        /// <summary>Why the client stopped: content that wouldn't load, or the connection's error.</summary>
+        public string Error { get; private set; }
+
+        public ClientSession Session => _connection.Session;
+
+        private void Awake() => _connection = GetComponent<CometConnection>();
+
+        private IEnumerator Start()
+        {
+            var path = Path.Combine(Application.streamingAssetsPath, "content.bin");
+            var url = path.Contains("://") ? path : "file://" + path;
+            using (var request = UnityWebRequest.Get(url))
+            {
+                yield return request.SendWebRequest();
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    Fail($"Couldn't load {url}: {request.error}");
+                    yield break;
+                }
+
+                _content = ShapeLandContent.Load(new MemoryStream(request.downloadHandler.data));
+            }
+
+            var serverUrl = new Uri(address.Contains("://") ? address : $"ws://{address}/ws");
+            var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options);
+            session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
+            session.GameMessage += OnGameMessage;
+            session.EntityDespawned += id => Log($"entity {id} left");
+            session.Corrected += correction => Log($"corrected ({correction.Reason}) to ({correction.X:0.0}, {correction.Y:0.0}, {correction.Z:0.0})");
+            Log($"connecting to {serverUrl}");
+        }
+
+        private void Update()
+        {
+            var session = _connection.Session;
+            if (session == null || _content == null)
+            {
+                return;
+            }
+
+            if (session.Closed)
+            {
+                if (Error == null)
+                {
+                    Fail(session.Error ?? "The connection closed.");
+                }
+
+                return;
+            }
+
+            if (!_asked && session.Transport.State == TransportState.Open)
+            {
+                _asked = true;
+                var shape = _content.Shapes.All[UnityEngine.Random.Range(0, _content.Shapes.All.Count)];
+                session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Name = playerName, Shape = shape.Number });
+                Log($"joining as {playerName}, a {shape.DisplayName}");
+            }
+        }
+
+        private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
+        {
+            var options = ShapeLandProtocol.Options;
+            switch (messageId)
+            {
+                case ShapeLandMessageIds.PlayerSpawn:
+                    var spawn = FrameReader.Decode<PlayerSpawn>(payload, options);
+                    if (spawn.EntityId == Session.EntityId)
+                    {
+                        Joined = true;
+                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}");
+                    }
+                    else
+                    {
+                        Session.Entities.Spawn(spawn.EntityId, tick, new System.Numerics.Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing);
+                        Log($"{spawn.Name} (entity {spawn.EntityId}) is here");
+                    }
+
+                    break;
+                case ShapeLandMessageIds.JoinRejected:
+                    Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;
+                    Log($"join rejected: {Rejected}");
+                    break;
+                case ShapeLandMessageIds.ChatMessage:
+                    var chat = FrameReader.Decode<ChatMessage>(payload, options);
+                    Log($"chat from entity {chat.EntityId}: {chat.Text}");
+                    break;
+            }
+        }
+
+        private void Fail(string error)
+        {
+            Error = error;
+            Debug.LogWarning($"{LogPrefix}: {error}");
+        }
+
+        private static void Log(string line) => Debug.Log($"{LogPrefix}: {line}");
+    }
+}

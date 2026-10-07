@@ -4,6 +4,7 @@
     "com.comet.content": "file:../../../comet/src/Comet.Content",
     "com.comet.protocol": "file:../../../comet/src/Comet.Protocol",
     "com.comet.simulation": "file:../../../comet/src/Comet.Simulation",
+    "com.comet.unity": "file:../../../comet/unity",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity#v4.5.0",
     "com.shapeland.shared": "file:../../src/ShapeLand.Shared",
     "com.unity.ai.navigation": "2.0.14",

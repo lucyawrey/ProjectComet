@@ -1,13 +1,7 @@
 {
-    "name": "ShapeLand.Client",
-    "rootNamespace": "ShapeLand.Client",
-    "references": [
-        "Comet.Client",
-        "Comet.Protocol",
-        "Comet.Unity",
-        "Comet.Content",
-        "ShapeLand.Shared"
-    ],
+    "name": "Comet.Unity",
+    "rootNamespace": "Comet.Unity",
+    "references": ["Comet.Client", "Comet.Protocol"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
