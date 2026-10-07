@@ -31,6 +31,29 @@ public class PlayerMotorTests
     }
 
     [Fact]
+    public void TurnsToFaceTheMoveAtTheTurnRateWhileMovingThatWayAtOnce()
+    {
+        // Facing +Z, then moving -Z: 900°/s turns the 180° in 0.2 s, but the body heads -Z from the first step.
+        var state = Run(Standing(1, 1), new Vector2(0, -1), 0.1f);
+        Assert.True(state.Velocity.Z < 0);
+        Assert.Equal(90f, MathF.Abs(state.Facing) * 180 / MathF.PI, 0);
+
+        state = Run(state, new Vector2(0, -1), 0.15f);
+        Assert.Equal(180f, MathF.Abs(state.Facing) * 180 / MathF.PI, 3);
+    }
+
+    [Fact]
+    public void TurnsTheShortWayRoundAcrossTheBack()
+    {
+        // From just left of behind (-170°) to just right of it (170°) is 20° the short way.
+        var state = Standing(1, 1);
+        state.Facing = -170 * MathF.PI / 180;
+        var target = 170 * MathF.PI / 180;
+        state = Run(state, new Vector2(MathF.Sin(target), MathF.Cos(target)), Step);
+        Assert.Equal(-185f + 360, state.Facing * 180 / MathF.PI, 0);
+    }
+
+    [Fact]
     public void FollowsSlopesUphill()
     {
         var state = Run(Standing(13, 1), new Vector2(1, 0), 0.4f);

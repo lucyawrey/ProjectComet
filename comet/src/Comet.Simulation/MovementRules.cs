@@ -23,6 +23,9 @@ namespace Comet.Simulation
 
         public float AirAcceleration { get; set; } = 15f;
 
+        /// <summary>How fast a player turns to face the way it's moving, in degrees per second. Only facing turns; movement changes direction at once.</summary>
+        public float TurnSpeed { get; set; } = 900f;
+
         /// <summary>The highest a jump rises: v² / 2g.</summary>
         public float JumpApex(float jumpVelocity) => jumpVelocity * jumpVelocity / (2 * Gravity);
     }

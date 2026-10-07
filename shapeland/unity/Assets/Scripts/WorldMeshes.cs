@@ -57,7 +57,7 @@ namespace ShapeLand.Client
                 case MeshKind.Diamond:
                     var top = new Vector3(0, h, 0);
                     var bottom = Vector3.zero;
-                    var ring = new[] { new Vector3(r, h / 2, 0), new Vector3(0, h / 2, r), new Vector3(-r, h / 2, 0), new Vector3(0, h / 2, -r) };
+                    var ring = new[] { new Vector3(-r, h / 2, -r), new Vector3(r, h / 2, -r), new Vector3(r, h / 2, r), new Vector3(-r, h / 2, r) };
                     return Solid("Diamond", ring.SelectMany((p, i) => new[] { top, p, ring[(i + 1) % 4], bottom, p, ring[(i + 1) % 4] }));
                 case MeshKind.Pyramid:
                     var apex = new Vector3(0, h, 0);
@@ -69,20 +69,37 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>A box mesh around <paramref name="centre"/>.</summary>
-        public static Mesh Cuboid(string name, Vector3 centre, Vector3 size)
+        /// <summary>
+        /// Two eyes on the shape's front face (+Z), so its facing shows: small boxes standing slightly out of the
+        /// surface and tilted with it.
+        /// </summary>
+        public static Mesh Eyes(MeshKind kind, MovementRules rules)
         {
-            var e = size / 2;
-            var c = new Vector3[8];
-            for (var i = 0; i < 8; i++)
+            var r = rules.BodyRadius;
+            var h = rules.BodyHeight;
+
+            // Each shape's front face on its centre line: a height on it, how far forward it is there, and how far it leans back.
+            var (y, z, lean) = kind switch
             {
-                c[i] = centre + new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
+                MeshKind.Diamond => (0.65f * h, r * 0.7f, Mathf.Atan2(r, h / 2)),
+                MeshKind.Pyramid => (0.4f * h, r * 0.6f, Mathf.Atan2(r, h)),
+                _ => (1.2f * r, r, 0f),
+            };
+
+            var size = new Vector3(0.1f * r / 0.4f, 0.14f * r / 0.4f, 0.06f);
+            var rotation = Quaternion.Euler(-lean * Mathf.Rad2Deg, 0, 0);
+            var triangles = new List<Vector3>();
+            foreach (var side in new[] { -1, 1 })
+            {
+                var centre = new Vector3(side * 0.3f * r, y, z) + rotation * new Vector3(0, 0, size.z / 4);
+                triangles.AddRange(Oriented(BoxTriangles(size).Select(v => centre + rotation * v).ToList(), centre));
             }
 
-            int[][] faces = { new[] { 0, 1, 3, 2 }, new[] { 4, 5, 7, 6 }, new[] { 0, 1, 5, 4 }, new[] { 2, 3, 7, 6 }, new[] { 0, 2, 6, 4 }, new[] { 1, 3, 7, 5 } };
-            var triangles = faces.SelectMany(f => new[] { c[f[0]], c[f[1]], c[f[2]], c[f[0]], c[f[2]], c[f[3]] });
-            return Solid(name, triangles, centre);
+            return Build("Eyes", triangles);
         }
+
+        /// <summary>A box mesh around <paramref name="centre"/>.</summary>
+        public static Mesh Cuboid(string name, Vector3 centre, Vector3 size) => Solid(name, BoxTriangles(size).Select(v => centre + v), centre);
 
         /// <summary>A box mesh for one of the world's blocks, in world space.</summary>
         public static Mesh Block(Box box) => Cuboid("Block", ToUnity(box.Centre), ToUnity(box.Size));
@@ -91,11 +108,30 @@ namespace ShapeLand.Client
 
         public static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
-        // A closed convex solid from loose triangles in any winding: each is turned to face away from the middle.
+        // The twelve triangles of a box centred on the origin, in no particular winding.
+        private static IEnumerable<Vector3> BoxTriangles(Vector3 size)
+        {
+            var e = size / 2;
+            var c = new Vector3[8];
+            for (var i = 0; i < 8; i++)
+            {
+                c[i] = new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
+            }
+
+            int[][] faces = { new[] { 0, 1, 3, 2 }, new[] { 4, 5, 7, 6 }, new[] { 0, 1, 5, 4 }, new[] { 2, 3, 7, 6 }, new[] { 0, 2, 6, 4 }, new[] { 1, 3, 7, 5 } };
+            return faces.SelectMany(f => new[] { c[f[0]], c[f[1]], c[f[2]], c[f[0]], c[f[2]], c[f[3]] });
+        }
+
+        // A closed convex solid from loose triangles in any winding.
         private static Mesh Solid(string name, IEnumerable<Vector3> triangles, Vector3? middle = null)
         {
             var vertices = triangles.ToList();
-            var inside = middle ?? vertices.Aggregate(Vector3.zero, (sum, v) => sum + v) / vertices.Count;
+            return Build(name, Oriented(vertices, middle ?? vertices.Aggregate(Vector3.zero, (sum, v) => sum + v) / vertices.Count));
+        }
+
+        // Turns each triangle of a convex solid to face away from a point inside it.
+        private static List<Vector3> Oriented(List<Vector3> vertices, Vector3 inside)
+        {
             for (var i = 0; i < vertices.Count; i += 3)
             {
                 var (a, b, c) = (vertices[i], vertices[i + 1], vertices[i + 2]);
@@ -106,7 +142,7 @@ namespace ShapeLand.Client
                 }
             }
 
-            return Build(name, vertices);
+            return vertices;
         }
 
         // Unity's front faces wind clockwise seen from outside: the normal is (b - a) × (c - a).
