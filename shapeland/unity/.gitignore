@@ -1,0 +1,24 @@
+# Unity: generated folders and files
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Bb]uild/
+/[Bb]uilds/
+*.csproj
+*.sln
+*.slnx
+.vsconfig
+/.vscode/
+
+# Burst output from player builds
+/[Dd]ata/
+
+# NuGetForUnity restores these from Assets/packages.config
+/Assets/Packages/
+/Assets/Packages.meta
+
+# Copied from artifacts/ by the build script
+/Assets/StreamingAssets/content.bin
+/Assets/StreamingAssets/content.bin.meta

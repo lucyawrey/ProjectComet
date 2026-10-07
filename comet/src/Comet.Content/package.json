@@ -1,0 +1,8 @@
+{
+  "name": "com.comet.content",
+  "version": "0.1.0",
+  "displayName": "Comet Content",
+  "description": "Comet's content runtime: compiled content lookup and the heightmap format. Shared with the servers as a .NET project.",
+  "unity": "6000.6",
+  "license": "MIT"
+}
