@@ -21,13 +21,26 @@ public class HeightmapFormatTests
     }
 
     [Fact]
-    public void HeightAtUsesScaleAndOffset()
+    public void HeightsUseScaleAndOffset()
     {
         var map = Sample();
 
-        Assert.Equal(-10f, map.HeightAt(0, 0));
-        Assert.Equal(-8f, map.HeightAt(1, 1));
-        Assert.Equal(-10f + 65535 * 0.5f, map.HeightAt(2, 1));
+        Assert.True(map.TryGetHeight(1, 0, out var low));
+        Assert.Equal(-9.5f, low);
+        Assert.True(map.TryGetHeight(1, 1, out var mid));
+        Assert.Equal(-8f, mid);
+        Assert.True(map.TryGetHeight(2, 1, out var high));
+        Assert.Equal(-10f + 65535 * 0.5f, high);
+    }
+
+    [Fact]
+    public void ZeroSamplesAreHoles()
+    {
+        var map = Sample();
+
+        Assert.True(map.IsHole(0, 0));
+        Assert.False(map.TryGetHeight(0, 0, out _));
+        Assert.False(map.IsHole(1, 0));
     }
 
     [Fact]

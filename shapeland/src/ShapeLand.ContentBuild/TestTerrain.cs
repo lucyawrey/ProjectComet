@@ -2,12 +2,17 @@ using Comet.Content;
 
 namespace ShapeLand.ContentBuild;
 
-/// <summary>A seeded test terrain: one 64 m chunk of gentle hills, the same for the same seed on every machine.</summary>
+/// <summary>
+/// A seeded test terrain: a floating disc of gentle hills in one 64 m chunk, dropping off into open sky at its edge.
+/// The same for the same seed on every machine.
+/// </summary>
 public static class TestTerrain
 {
     public const int Size = 33; // 64 m at 2 m spacing
     public const float Scale = 1f / 256; // about 4 mm steps
     public const float Offset = -64f; // heights from -64 m to 192 m
+    public const float Radius = 28f; // the disc's edge, in metres from the chunk's centre
+    public const float Spacing = 2f;
 
     public static Heightmap Generate(int seed)
     {
@@ -16,8 +21,15 @@ public static class TestTerrain
         {
             for (var x = 0; x < Size; x++)
             {
+                var fromCentre = MathF.Sqrt(MathF.Pow((x - (Size - 1) / 2f) * Spacing, 2) + MathF.Pow((z - (Size - 1) / 2f) * Spacing, 2));
+                if (fromCentre > Radius)
+                {
+                    samples[z * Size + x] = Heightmap.Hole;
+                    continue;
+                }
+
                 var height = 4f + 3f * Noise(seed, x / 12f, z / 12f) + 1f * Noise(seed + 1, x / 5f, z / 5f);
-                samples[z * Size + x] = (ushort)Math.Clamp(MathF.Round((height - Offset) / Scale), 0, ushort.MaxValue);
+                samples[z * Size + x] = (ushort)Math.Clamp(MathF.Round((height - Offset) / Scale), 1, ushort.MaxValue);
             }
         }
 

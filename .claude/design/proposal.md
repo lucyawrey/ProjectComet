@@ -55,7 +55,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
 - **Shapes are classes** with four spells and the same small hitbox as every player (`combat.md`): the cube is wide and sturdy with short range; the diamond tall, thin and fast with mid range; the pyramid low and wide and ranged. Each has a projectile, an area spell, a dash and one signature spell. All can jump and dodge, so height zones and invulnerability get exercised.
 - **Enemies: shape monsters and one boss:** simple curved enemy shapes with a few attack patterns, plus one big boss for the named 100-player boss load test. PvE, like Comet.
 - **It grows with the phases:** phase 0, sliding, jumping and chat (`prototype.md`); phase 1, combat plus paint items that recolour your shape (items, inventory, the ledger, trading) and XP and levels (the progression framework), all persisted; phase 2, several zones, a border, a channel, a dungeon instance and a teleport.
-- **World look: a playful toy box:** bright primary colours and simple props.
+- **World look: a playful toy box of floating geometric islands:** bright primary colours and simple props; terrain sits on islands such as large floating discs that drop off abruptly into open sky.
 
 ### Business model
 
