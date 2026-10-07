@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using Comet.Unity;
 using NUnit.Framework;
@@ -11,13 +12,16 @@ using UnityEngine.TestTools;
 namespace ShapeLand.Client.Tests
 {
     // The game view against the real game server (step 3b): with a simulated keyboard, the player walks forward
-    // and jumps in place, the camera follows, and the server accepts every report (no snap-backs).
+    // and jumps in place, the camera follows, and the server accepts every report (no snap-backs); real bots
+    // are drawn moving and removed when they leave.
     public class GameTests
     {
         private TestGameServer _server;
         private GameObject _game;
         private GameObject _camera;
         private Keyboard _keyboard;
+        private JoinClient _join;
+        private GameView _view;
         private InputSettings.EditorInputBehaviorInPlayMode _editorInput;
         private InputSettings.BackgroundBehavior _background;
 
@@ -49,6 +53,10 @@ namespace ShapeLand.Client.Tests
             InputSystem.settings.backgroundBehavior = _background;
 
             _server?.Dispose();
+            _server = null;
+            _game = null;
+            _camera = null;
+            _keyboard = null;
         }
 
         [TestCase(0, 0, 1, 0, 1)]
@@ -65,31 +73,9 @@ namespace ShapeLand.Client.Tests
         [UnityTest]
         public IEnumerator WalksAndJumpsWithoutSnapBacks()
         {
-            Assert.That(File.Exists(Path.Combine(Application.streamingAssetsPath, "content.bin")), "No content in StreamingAssets; run ShapeLand > Copy Content.");
-
-            _server = new TestGameServer();
-            yield return _server.Start();
-
-            _camera = new GameObject("Camera", typeof(Camera), typeof(OrbitCamera));
-            _game = new GameObject("Game");
-            _game.SetActive(false);
-            _game.AddComponent<CometConnection>();
-            var join = _game.AddComponent<JoinClient>();
-            join.Address = _server.Address;
-            join.PlayerName = "Unity test";
-            var view = _game.AddComponent<GameView>();
-            var serialized = new SerializedObject(view);
-            serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Terrain.mat");
-            serialized.FindProperty("blockMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Block.mat");
-            serialized.FindProperty("shapeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Shape.mat");
-            serialized.FindProperty("eyeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Eyes.mat");
-            serialized.FindProperty("orbitCamera").objectReferenceValue = _camera.GetComponent<OrbitCamera>();
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            _game.SetActive(true);
-
-            yield return TestGameServer.WaitFor(() => view.Player != null || join.Error != null, 15);
-            Assert.That(join.Error, Is.Null);
-            Assert.That(view.Player, Is.Not.Null, "Never spawned.");
+            yield return StartGame();
+            var view = _view;
+            var join = _join;
             var player = view.Player;
             var start = player.transform.position;
 
@@ -121,6 +107,60 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.Respawns, Is.EqualTo(0), "The player fell off.");
             Assert.That(Vector3.Distance(_camera.transform.position, player.transform.position), Is.LessThan(10f), "The camera didn't follow.");
             Debug.Log($"Walked {walked:0.0} m and jumped {highest - ground:0.00} m; {join.Session.StatesReceived} states received.");
+        }
+
+        [UnityTest]
+        public IEnumerator DrawsOtherPlayersMovingAndLeaving()
+        {
+            yield return StartGame();
+            yield return _server.StartBots(2, 8);
+
+            yield return TestGameServer.WaitFor(() => _view.Others.Count == 2, 15);
+            Assert.That(_view.Others.Count, Is.EqualTo(2), "The bots never appeared.");
+            var others = new List<Transform>(_view.Others.Values);
+            var starts = others.ConvertAll(o => o.position);
+            yield return Wait(2);
+            var moved = 0f;
+            for (var i = 0; i < others.Count; i++)
+            {
+                moved = Mathf.Max(moved, Vector3.Distance(starts[i], others[i].position));
+            }
+
+            Assert.That(moved, Is.GreaterThan(1f), "The bots weren't drawn moving.");
+
+            yield return TestGameServer.WaitFor(() => _view.Others.Count == 0, 30);
+            Assert.That(_view.Others.Count, Is.EqualTo(0), "The bots weren't removed after leaving.");
+            Debug.Log($"Saw 2 bots; the furthest moved {moved:0.0} m in 2 s.");
+        }
+
+        // Builds the game view (connection, join client, view and orbit camera) against a fresh server.
+        private IEnumerator StartGame()
+        {
+            Assert.That(File.Exists(Path.Combine(Application.streamingAssetsPath, "content.bin")), "No content in StreamingAssets; run ShapeLand > Copy Content.");
+
+            _server = new TestGameServer();
+            yield return _server.Start();
+
+            _camera = new GameObject("Camera", typeof(Camera), typeof(OrbitCamera));
+            _game = new GameObject("Game");
+            _game.SetActive(false);
+            _game.AddComponent<CometConnection>();
+            _join = _game.AddComponent<JoinClient>();
+            _join.Address = _server.Address;
+            _join.PlayerName = "Unity test";
+            _view = _game.AddComponent<GameView>();
+            var serialized = new SerializedObject(_view);
+            serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Terrain.mat");
+            serialized.FindProperty("blockMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Block.mat");
+            serialized.FindProperty("shapeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Shape.mat");
+            serialized.FindProperty("eyeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Eyes.mat");
+            serialized.FindProperty("orbitCamera").objectReferenceValue = _camera.GetComponent<OrbitCamera>();
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            _game.SetActive(true);
+
+            yield return TestGameServer.WaitFor(() => _view.Player != null || _join.Error != null, 15);
+            Assert.That(_join.Error, Is.Null);
+            Assert.That(_view.Player, Is.Not.Null, "Never spawned.");
         }
 
         private static IEnumerator Wait(float seconds) => TestGameServer.WaitFor(() => false, seconds);

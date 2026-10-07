@@ -24,6 +24,7 @@ namespace ShapeLand.Client.Tests
             }
 
             _server?.Dispose();
+            _server = null;
         }
 
         [UnityTest]

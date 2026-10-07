@@ -22,7 +22,8 @@ namespace Comet.Unity
 
         /// <summary>Starts a new session to <paramref name="url"/>, closing any current one.</summary>
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
-        public ClientSession Connect(Uri url, MessagePackSerializerOptions options)
+        /// <param name="teleportSpeed">Other entities moving faster than this jump instead of gliding (see <see cref="RemoteEntities"/>).</param>
+        public ClientSession Connect(Uri url, MessagePackSerializerOptions options, float teleportSpeed = float.PositiveInfinity)
         {
             Disconnect();
             if (GetComponent<CometFlush>() == null)
@@ -30,7 +31,7 @@ namespace Comet.Unity
                 gameObject.AddComponent<CometFlush>().hideFlags = HideFlags.HideInInspector;
             }
 
-            Session = new ClientSession(CreateTransport(url), options);
+            Session = new ClientSession(CreateTransport(url), options, teleportSpeed: teleportSpeed);
             return Session;
         }
 

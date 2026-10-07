@@ -56,6 +56,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
 - **Enemies: shape monsters and one boss:** simple curved enemy shapes with a few attack patterns, plus one big boss for the named 100-player boss load test. PvE, like Comet.
 - **It grows with the phases:** phase 0, sliding, jumping and chat (`prototype.md`); phase 1, combat plus paint items that recolour your shape (items, inventory, the ledger, trading) and XP and levels (the progression framework), all persisted; phase 2, several zones, a border, a channel, a dungeon instance and a teleport.
 - **Props are built from primitives in Unity** by the project lead: a prop tool in the editor combines primitive shapes (box, wedge, cylinder, sphere…) with colours into a saved prop, and generates its mesh and collision. No external modelling.
+- **Feel reference** (project lead): NieR: Automata's hacking minigames, but multiplayer.
 - **World look: a playful toy box of floating geometric islands:** bright primary colours and simple props; terrain sits on islands such as large floating discs that drop off abruptly into open sky.
 
 ### Business model

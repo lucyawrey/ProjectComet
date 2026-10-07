@@ -16,6 +16,7 @@ namespace ShapeLand.Client.Tests
         private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
 
         private Process _process;
+        private Process _bots;
 
         /// <summary>The server's address, once <see cref="Start"/> has finished.</summary>
         public string Address { get; private set; }
@@ -47,14 +48,50 @@ namespace ShapeLand.Client.Tests
             Address = $"127.0.0.1:{port}";
         }
 
-        public void Dispose()
+        /// <summary>Runs the bot program against this server: <paramref name="count"/> honest bots for <paramref name="seconds"/>.</summary>
+        public IEnumerator StartBots(int count, double seconds)
         {
-            if (_process != null && !_process.HasExited)
+            using (var build = Run("build shapeland/src/ShapeLand.Bots --nologo -v quiet"))
             {
-                _process.Kill();
+                while (!build.HasExited)
+                {
+                    yield return null;
+                }
+
+                Assert.That(build.ExitCode, Is.EqualTo(0), "The bots didn't build.");
             }
 
-            _process?.Dispose();
+            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --url ws://{Address}/ws --count {count} --seconds {seconds}");
+        }
+
+        public void Dispose()
+        {
+            Stop(ref _bots);
+            Stop(ref _process);
+        }
+
+        // Kills a process if it's still running (it may exit on its own at any moment) and forgets it.
+        private static void Stop(ref Process process)
+        {
+            if (process == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill();
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // It exited between the check and the kill.
+            }
+
+            process.Dispose();
+            process = null;
         }
 
         public static IEnumerator WaitFor(Func<bool> done, float seconds)

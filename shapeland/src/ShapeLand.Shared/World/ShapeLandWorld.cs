@@ -23,6 +23,21 @@ namespace ShapeLand.Shared.World
             return new Vector3(0, ground, 0);
         }
 
+        /// <summary>
+        /// Other players moving faster than this (across the ground, or upwards) are drawn jumping rather than
+        /// gliding: half again the fastest shape's top speed or jump speed, so only respawns and snap-backs exceed it.
+        /// </summary>
+        public static float TeleportSpeed(ShapeLandContent content)
+        {
+            var fastest = 0f;
+            foreach (var shape in content.Shapes.All)
+            {
+                fastest = System.Math.Max(fastest, System.Math.Max(shape.MaxSpeed, shape.JumpVelocity));
+            }
+
+            return 1.5f * fastest;
+        }
+
         public static CollisionWorld Create(ShapeLandContent content)
         {
             var terrain = TerrainGround.Centred(content.Terrain, TerrainSpacing, Vector3.Zero);
