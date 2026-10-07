@@ -41,7 +41,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         var options = ShapeLandProtocol.Options;
         Input? input = messageId switch
         {
-            MessageIds.PositionReport => new Input(connection, InputKind.Report) { Report = FrameReader.Decode<PositionReport>(payload, options) },
+            MessageIds.PositionReport => new Input(connection, InputKind.Report) { Report = FrameReader.Decode<PositionReport>(payload, options), ClientTick = clientTick },
             ShapeLandMessageIds.JoinRequest => new Input(connection, InputKind.Join) { Join = FrameReader.Decode<JoinRequest>(payload, options) },
             ShapeLandMessageIds.ChatSend => new Input(connection, InputKind.Chat) { Chat = FrameReader.Decode<ChatSend>(payload, options) },
             _ => null, // unknown or not for the server: ignored, so older servers tolerate newer clients
@@ -69,7 +69,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
                     Join(_players[input.Connection], input.Join, tick);
                     break;
                 case InputKind.Report:
-                    Move(_players[input.Connection], input.Report, tick);
+                    Move(_players[input.Connection], input.Report, input.ClientTick, tick);
                     break;
                 case InputKind.Chat:
                     Chat(_players[input.Connection], input.Chat, tick);
@@ -136,6 +136,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         player.Colour = ShapeLandRules.Colours[_random.Next(ShapeLandRules.Colours.Length)];
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
+        player.StateTick = player.Stamp.StampServer(tick);
 
         var connection = player.Connection;
         connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
@@ -156,7 +157,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             player.Connection.SendEvent(ShapeLandMessageIds.JoinRejected, new JoinRejected { Reason = reason });
     }
 
-    private void Move(Player player, PositionReport report, uint tick)
+    private void Move(Player player, PositionReport report, uint clientTick, uint tick)
     {
         if (!player.Joined)
         {
@@ -167,12 +168,14 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         switch (verdict)
         {
             case MovementVerdict.Accepted:
+                player.StateTick = player.Stamp.Stamp(clientTick, tick);
                 player.Moved = true;
                 break;
             case MovementVerdict.Stale:
                 break;
             case MovementVerdict.FellOut:
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
+                player.StateTick = player.Stamp.StampServer(tick);
                 player.Moved = true;
                 break;
             default:
@@ -264,6 +267,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         public PositionReport Report { get; init; }
 
         public ChatSend Chat { get; init; }
+
+        /// <summary>The report frame's header: the client's estimate of the server tick when it sent the report.</summary>
+        public uint ClientTick { get; init; }
     }
 
     private sealed class Player(Connection connection, int tickRate)
@@ -284,6 +290,11 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         public ChatLimiter ChatLimiter { get; } = new(tickRate);
 
+        public StateStamp Stamp { get; } = new(tickRate);
+
+        /// <summary>The tick the current position is from (see <see cref="StateStamp"/>).</summary>
+        public uint StateTick { get; set; }
+
         /// <summary>Accepted a new position this tick, to send to everyone else.</summary>
         public bool Moved { get; set; }
 
@@ -294,6 +305,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             Y = Validator.Position.Y,
             Z = Validator.Position.Z,
             Facing = Validator.Facing,
+            Tick = StateTick,
         };
 
         public PlayerSpawn Spawn() => new()
