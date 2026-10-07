@@ -192,6 +192,7 @@ Agent notes on backend architecture and data-model ideas.
 
 ## Open
 
+- **Collision against meshes, with or without a physics engine** (decide with the zone format): gameplay movement is our own kinematic code in `Comet.Simulation` (heightmap and boxes in phase 0), shared by client and server. Per-asset collision meshes and raycasts need real collision queries on both sides: our own simple mesh raycasts, or a pure C# library such as BepuPhysics v2 (Apache-2.0). The project lead leans towards **no physics engine**, except later in Project Anima for client-side-only props and gear (cosmetic, never gameplay).
 - **Generated content ID constants (revisit later):** skipped for now; code looks content up by key. If adopted, likely only for entries marked in their TOML. Generated files aren't checked into git without a very good reason (project lead).
 - **Client-side mods** (far down the line, not yet discussed): what mods may change (UI, visuals and shaders, sounds, new behaviour); how they load on web and IL2CPP builds, which can't load new compiled C# at runtime (so likely data, assets or a scripting language); fairness and cheating limits, and how the server stays authoritative; whether private servers can push server-side content to clients.
 - **Volunteer moderation and the law:** lesson from Ultima Online's Counselors and EverQuest's Guides (scaled back after the AOL volunteer lawsuit, settled 2010): keep volunteer powers limited and check labour law before it becomes real.
