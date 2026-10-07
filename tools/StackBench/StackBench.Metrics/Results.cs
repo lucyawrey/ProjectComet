@@ -25,6 +25,12 @@ public sealed record ServerResult
     public required int Gen2Collections { get; init; }
     public required double AllocatedBytesPerSecond { get; init; }
 
+    /// <summary>The GC's configuration at startup (GC.GetConfigurationVariables), such as server GC, concurrent GC and heap count.</summary>
+    public IReadOnlyDictionary<string, string>? GcSettings { get; init; }
+
+    /// <summary>Every GC pause from server start to the window's end, including startup's and the warmup's.</summary>
+    public IReadOnlyList<GcPauseRecord>? GcPauseLog { get; init; }
+
     /// <summary>CPU time used, as a fraction of one core.</summary>
     public required double CpuCores { get; init; }
 
@@ -41,6 +47,27 @@ public sealed record ServerResult
     public required long FlushesSkipped { get; init; }
     public required long StateReplaced { get; init; }
     public required long ProtocolErrors { get; init; }
+}
+
+/// <summary>
+/// One GC pause. <see cref="AtSeconds"/> is when it ended, from the window's start (negative in
+/// the warmup). Generation, reason and type describe the deepest collection that started in this pause, or,
+/// when <see cref="StartedInPause"/> is false, the latest one before it.
+/// </summary>
+public sealed record GcPauseRecord
+{
+    public required double AtSeconds { get; init; }
+    public required double Ms { get; init; }
+    public ulong? Collection { get; init; }
+    public int? Generation { get; init; }
+    public string? Reason { get; init; }
+    public string? Type { get; init; }
+    public required bool StartedInPause { get; init; }
+    public double? PromotedKb { get; init; }
+    public double? Gen0Kb { get; init; }
+    public double? Gen1Kb { get; init; }
+    public double? Gen2Kb { get; init; }
+    public double? LargeObjectKb { get; init; }
 }
 
 /// <summary>What the bots measured during the measurement window, all bots merged.</summary>
