@@ -19,6 +19,12 @@ namespace Comet.Protocol.Messages
 
         /// <summary>Facing as a yaw angle in radians.</summary>
         [Key(6)] public float Facing;
+
+        /// <summary>
+        /// The last <see cref="PositionCorrection.Sequence"/> the client applied. The server ignores reports
+        /// sent before its latest correction arrived.
+        /// </summary>
+        [Key(7)] public uint CorrectionSequence;
     }
 
     /// <summary>
@@ -35,5 +41,38 @@ namespace Comet.Protocol.Messages
 
         /// <summary>Facing as a yaw angle in radians.</summary>
         [Key(4)] public float Facing;
+    }
+
+    /// <summary>Server event: an entity is no longer visible to this client (left, or out of view).</summary>
+    [MessagePackObject]
+    public struct EntityDespawn
+    {
+        [Key(0)] public uint EntityId;
+    }
+
+    /// <summary>Why the server moved a player.</summary>
+    public enum CorrectionReason : byte
+    {
+        /// <summary>The move broke a movement rule (too fast, too high); the player is put back.</summary>
+        SnapBack = 1,
+
+        /// <summary>The player fell below the world and is put back on safe ground.</summary>
+        Respawn = 2,
+    }
+
+    /// <summary>
+    /// Server event: the server overrides the client's own position. The client moves there (blending
+    /// a snap-back, fading a respawn) and echoes <see cref="Sequence"/> in its later reports.
+    /// </summary>
+    [MessagePackObject]
+    public struct PositionCorrection
+    {
+        /// <summary>Increases with each correction to this player.</summary>
+        [Key(0)] public uint Sequence;
+        [Key(1)] public CorrectionReason Reason;
+        [Key(2)] public float X;
+        [Key(3)] public float Y;
+        [Key(4)] public float Z;
+        [Key(5)] public float Facing;
     }
 }

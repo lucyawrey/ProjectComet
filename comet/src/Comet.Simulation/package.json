@@ -1,0 +1,11 @@
+{
+  "name": "com.comet.simulation",
+  "version": "0.1.0",
+  "displayName": "Comet Simulation",
+  "description": "Rules that must match on client and server: ground and collision queries, movement and jump maths. Shared with the servers as a .NET project.",
+  "unity": "6000.6",
+  "license": "MIT",
+  "dependencies": {
+    "com.comet.content": "0.1.0"
+  }
+}
