@@ -16,9 +16,6 @@ public sealed class BenchOptions
     /// <summary>How long to keep serving after the window, so bots can finish theirs.</summary>
     public int ShutdownGraceSeconds { get; set; } = 30;
 
-    /// <summary>Whether to run <c>Heap.Settle()</c> when the server has started.</summary>
-    public bool SettleHeap { get; set; } = true;
-
     /// <summary>A <c>GCLatencyMode</c> name to set when the server has started, e.g. SustainedLowLatency; empty keeps the default.</summary>
     public string? GcLatencyMode { get; set; }
 

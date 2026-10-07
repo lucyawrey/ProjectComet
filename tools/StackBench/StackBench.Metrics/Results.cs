@@ -25,7 +25,7 @@ public sealed record ServerResult
     public required int Gen2Collections { get; init; }
     public required double AllocatedBytesPerSecond { get; init; }
 
-    /// <summary>The GC's configuration at startup (GC.GetConfigurationVariables), such as server GC, concurrent GC and heap count, plus the latency mode and whether the heap was settled.</summary>
+    /// <summary>The GC's configuration at startup (GC.GetConfigurationVariables), such as server GC, concurrent GC and heap count, plus the latency mode.</summary>
     public IReadOnlyDictionary<string, string>? GcSettings { get; init; }
 
     /// <summary>Every GC pause from server start to the window's end, including startup's and the warmup's.</summary>

@@ -7,7 +7,7 @@
 #
 # Uses the AWS CLI's current profile and region (AWS_PROFILE, AWS_REGION to override).
 # Optional: BENCH_BOTS (300), BENCH_RAMP (10), BENCH_WARMUP (60), BENCH_DURATION (600) seconds,
-# BENCH_SETTLE_HEAP (true), BENCH_GC_LATENCY_MODE (e.g. SustainedLowLatency; default unset),
+# BENCH_GC_LATENCY_MODE (e.g. SustainedLowLatency; default unset),
 # INSTANCE_TYPE (c7i-flex.large), BENCH_RESULTS (results folder name, default aws-<profile>).
 set -euo pipefail
 
@@ -127,7 +127,7 @@ done
 # Each VM runs one service from the same compose file. Both have 2 vCPUs, the two threads of one
 # core: the server is pinned to one thread (the OS has the other), the bots get both.
 common="BENCH_WARMUP=$warmup BENCH_DURATION=$duration BENCH_BOTS=$bots BENCH_RAMP=${BENCH_RAMP:-10}"
-common+=" BENCH_SETTLE_HEAP=${BENCH_SETTLE_HEAP:-true} BENCH_GC_LATENCY_MODE=${BENCH_GC_LATENCY_MODE:-}"
+common+=" BENCH_GC_LATENCY_MODE=${BENCH_GC_LATENCY_MODE:-}"
 server_compose="cd bench && $common SERVER_CPUS=1 BOT_CPUS=0 SERVER_PUBLISH=0.0.0.0:5080 docker compose -f tools/StackBench/docker/compose.yaml"
 bots_compose="cd bench && $common SERVER_CPUS=0 BOT_CPUS=0,1 BENCH_URL=ws://$server_private:5080/ws \
   NETEM_DELAY=$delay NETEM_JITTER=$jitter NETEM_LOSS=1% docker compose -f tools/StackBench/docker/compose.yaml"

@@ -33,7 +33,8 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
       unity/     the Comet Unity package
       content/
     shapeland/
-      server/  bots/  content/
+      shared/    ShapeLand.Shared: its content types and messages
+      server/  bots/  content/  tools/
       unity/     its own Unity project
     tools/       content build, benchmarks
     docs/  .claude/  (as now)
@@ -105,27 +106,23 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | Bytes down per bot | 10 KB/s | 7.6 KB/s | 7.6 KB/s |
   | Bots CPU (validity) | 80% | 19% | 40% |
 
-- **Without the settle, the worst GC pause is always the run's single gen1 collection:** each AWS run has about nine gen0 pauses near 1.8 ms and one gen1 pause of 8.7–10.04 ms (5.7 ms locally). The threshold stays as written.
-- **GC investigation so far** (local, per-pause runtime events): stopping threads takes about 0.01 ms, so the tick loop's spin-wait isn't a factor; steady-state collections take about 1.1 ms with about 30 KB surviving. The worst pause came from about 2.5 MB of startup objects (hosting, DI, runtime metadata) sitting in gen1 until one deeper collection promoted them inside the window.
-- **`Comet.Server.Heap.Settle()`:** one full, compacting collection once startup work is done, before players arrive; the bench server calls it when the host starts, and games call it again after loading content.
-- **AWS runs with the settle (2026-10-06, same setup): both profiles now fail the GC pause limit.** Everything else is within a few percent of the runs above.
+- **Milestone 1 passes, with one known issue** (project lead, 2026-10-06): every check passes except the worst GC pause on AWS, a one-off pause when players join. It never caused a missed tick. Its likely fix is the connection slot pool (Considering), before the stage 2 load test. The GC limit keeps counting pauses from players joining (project lead): a restart or a crowd teleporting in looks similar in real play.
+- **The known issue: one or two blocking collections of 10–20 ms on AWS as players join,** copying their connections' state, about 7 MB for 300 (about 22 KB each), out of gen0 and then gen1. Locally the same pause is 6–10 ms: copying costs about 2.8 ms per MB on `c7i-flex.large` against 1–1.6 ms per MB locally. Every other pause is a gen0 under 3 ms with about 80 KB surviving; nothing deep recurs in steady state.
+- **What the GC investigation found** (AWS, per-pause log; the network profile makes no difference):
+  - *The GC:* workstation GC with background GC on, one heap. `DOTNET_PROCESSOR_COUNT=1` makes the runtime fall back from the Web SDK's server GC, so DATAS is off too.
+  - *No setting fixes it* (clean profile, worst pause in the window):
 
-  | Check | Limit | Clean | Impaired |
-  | --- | --- | --- | --- |
-  | Worst GC pause | 10 ms | **15.6 ms (fail)** | **17.5 ms (fail)** |
-  | Server CPU | 0.5 cores | 0.28 | 0.45 |
-  | Gap between updates, worst 1% | 150 ms | 40 ms | 133 ms |
+    | Run | Worst pause |
+    | --- | --- |
+    | Defaults | 8.7–10.1 ms (blocking gen1) |
+    | One full collection after startup (a heap settle) | 15.6–18.0 ms (blocking gen2) |
+    | `SustainedLowLatency` mode | 10.1 ms (blocking gen1); with the settle 15.2 ms |
+    | Bots joining over 50 s instead of 10 s | 13.5 ms (blocking gen0, then gen1); with the settle 19.9 ms |
 
-- **The settle turns the deep collection into a gen2:** each run still has nine gen0 pauses near 1.9 ms, but the one deep collection is now a gen2 (the counters show one gen1 and one gen2, and gen1's count includes gen2s). A short impaired check (20 s warmup, 2-minute window) had a gen2 pause of 23.9 ms. Unverified hypothesis: after the forced full collection the GC sizes gen2's budget from the small surviving heap, and the connections' state promoted during the ramp overflows it.
-- **Why it matters:** the pause doesn't hurt this bench (no tick went over its 33 ms budget; tick work's worst 1% is about 3 ms), but the bench holds almost no long-lived state. A real zone server holds far more (entities, AI, items, zone data, content), and if a deep blocking collection grows with that, it becomes missed ticks, which action combat feels most. The 10 ms limit is the early warning for that.
-- **Still open (in progress): the GC investigation.** Questions, in order:
-  1. *Which GC is running?* Locally: workstation GC with background (concurrent) GC on, one heap. `DOTNET_PROCESSOR_COUNT=1` makes the runtime fall back from the Web SDK's server GC, so DATAS is off too. The AWS runs set the same variable; their results will confirm it.
-  2. *Is the deep pause blocking or background?* Locally, the deep pause is a blocking gen1 while the bots join, not a gen2: a 2-minute local run (20 s warmup) had a 6.0–10.5 ms blocking gen1 about 5 s before the window, promoting about 6.5 MB. The only gen2 in the window was a background collection, with pauses of 2.5 ms and 0.6 ms. AWS still to check.
-  3. *One-off or recurring?* Each run has one deep collection; it may come only from all 300 bots joining within 10 s, which real players won't do. Recurring gen2s in steady state would be the real problem.
-  4. *How much is the VM?* The same gen1 took 5.7 ms locally and 8.7 ms on AWS; `c7i-flex` only guarantees part of a core.
-- **Facts for the investigation:** `GC.CollectionCount(1)` includes gen2 collections. About 900 KB/s is allocated in steady state. The earlier per-pause findings came from a local diagnostic run whose code wasn't committed; a quick local check of the settle with it still had a 7.4 ms pause in a 30 s window. The bench records only pause durations and collection counts. `Heap.Settle()` (`comet/src/Comet.Server/Heap.cs`) is called from `tools/StackBench/StackBench.Server/Program.cs` when the host starts.
-- **The server results now log every GC pause** from startup to the window's end (`gcPauseLog`: time from the window's start, duration, collection, generation, reason, type, sizes after it), plus the GC's configuration (`gcSettings`).
-- **Next:** run both profiles on AWS with the pause log. Answer the questions before changing GC settings or Settle. Changes to Comet's own code (beyond the bench and diagnostics) are discussed with the project lead first.
+  - *A heap settle makes it worse:* a full collection after startup leaves gen2 under 1 MB, so the joins overflow gen2's budget and the next deep collection is a blocking gen2. Rejected.
+  - *A slower ramp doesn't spread the cost:* gen0 holds about 9 s of allocation (about 900 KB/s in steady state), so 50 s of joins still land in one or two collections.
+- **Why it matters later:** the bench holds almost no long-lived state. A real zone server holds far more (entities, AI, items, zone data, content), and if a deep blocking collection grows with that, it becomes missed ticks, which action combat feels most. The heavy-heap variant (Considering) tests that.
+- **The server results log every GC pause** from startup to the window's end (`gcPauseLog`: time from the window's start, duration, collection, generation, reason, type, sizes after it) and the GC's configuration (`gcSettings`, with the latency mode). `BENCH_GC_LATENCY_MODE` and `BENCH_RAMP` switch the latency mode and the bots' ramp; `BENCH_RESULTS` names an AWS run's results folder. `GC.CollectionCount(1)` includes gen2 collections.
 - **AWS runs:** `tools/StackBench/aws/run.sh` needs the AWS CLI logged in (`aws login`), region us-east-2. A dropped SSH connection ends a run (cleanup still runs); keep the machine awake for the 15 minutes.
 
 ### Code layout and build
@@ -149,6 +146,9 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **The shared packages must compile in the Unity editor and in IL2CPP desktop and web builds,** where MessagePack's ahead-of-time needs (generated formatters) and .NET Standard 2.1 limits show up.
 - **Content pipeline, core path only:** TOML files read by Tomlyn into Content types, validated, compiled into a MessagePack file that the server and client load; a minimal ID registry (no generated constants: code looks content up by key at load, failing loudly on unknown keys); a JSON Schema generated from the Content types so VS Code (Even Better TOML) autocompletes and flags errors while editing. Hash delivery, text extraction, CI drift checks and the rename command wait for phase 1.
 - **TOML editor support is checked in VS Code** only.
+- **The content build is a Comet library with a small console project per game:** `Comet.ContentBuild` (in `comet/src/`, server-side .NET only) reads, validates, assigns registry numbers, compiles and exports the schema; each game's console project (ShapeLand's is `shapeland/tools/ShapeLand.ContentBuild`) registers its own types and runs it, with `build`, `schema` and `terrain` commands. Game types stay out of Comet, and Tomlyn's and MessagePack's source generators work without reflection.
+- **ShapeLand's shared types live in `ShapeLand.Shared`** (`shapeland/shared/`): its content types now and its messages later, a .NET project and a Unity package like Comet's shared packages.
+- **2a is done when** the build compiles ShapeLand's three shapes and the test terrain; a test loads the compiled file and finds each shape by key; bad files fail with clear errors; and VS Code autocompletes and flags errors in a shape file. A server loading the content comes with ShapeLand phase 0.
 
 ### Texture filtering comparison
 
@@ -168,7 +168,8 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 ## Considering
 
-- **A heavy-heap variant of the stack benchmark** (agent suggestion; to follow the GC investigation): the server also holds synthetic long-lived zone state, about 100–300 MB, in a mix of plain struct arrays and ordinary object graphs, so we can measure how deep GC pauses scale with a real zone's state, which the bench as it stands can't show. It decides whether the GC is a real risk for zone servers: switching away from C# would only be worth weighing if blocking collections recur in steady state and approach the 33 ms tick budget even after per-tick allocation is reduced.
+- **A heavy-heap variant of the stack benchmark** (agent suggestion; later, before the stage 2 load test, not part of milestone 1): the server also holds synthetic long-lived zone state, about 100–300 MB, in a mix of plain struct arrays and ordinary object graphs, so we can measure how deep GC pauses scale with a real zone's state, which the bench as it stands can't show. It decides whether the GC is a real risk for zone servers: switching away from C# would only be worth weighing if blocking collections recur in steady state and approach the 33 ms tick budget even after per-tick allocation is reduced.
+- **A connection slot pool in Comet** (agent suggestion; later, with the heavy-heap variant, not part of milestone 1): a zone server allocates per-connection state and buffers up front at startup, up to the channel's hard cap, so players joining reuse long-lived objects instead of creating about 22 KB each to promote. First measure what that state is (heap dumps idle and with 300 bots, by type), since Kestrel's and the WebSocket's share can't be pooled.
 
 ## Rejected
 
@@ -176,6 +177,8 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **A single `src/` tree** for all code: per-layer folders keep Comet and each game clearly apart.
 - **The full content pipeline in phase 0** (hash delivery, text extraction, drift checks, rename command): phase 1.
 - **Login and Region servers in phase 0:** they come in phase 1, so phase 0 reaches the load test sooner.
+- **A heap settle after startup** (one full, compacting collection before players arrive): it made the join pause worse in every AWS run, turning a gen1 into a gen2.
+- **`SustainedLowLatency` mode and a slower bot ramp as fixes for the join pause:** neither brought it under 10 ms.
 
 ## Open
 
