@@ -83,7 +83,7 @@ Agent notes on backend architecture and data-model ideas.
 - **Distant LODs are automatic and hierarchical:** the content build merges and simplifies each chunk's terrain and scenery into LOD meshes, then merges groups of chunks (2×2, 4×4) into coarser levels for distance. LOD files are delivered by hash, like content. Artists can override a landmark's far LOD by hand. Fog is only a light touch (`art.md`), so LOD changes must hide well on their own.
 - **Outdoor zones can show LODs of other zones' static scenery,** including far-away zones that aren't neighbours and outdoor-looking dungeon loading rooms. Only scenery: live entities only sync across borders and official entrances.
 - **Collision: per-asset collision meshes plus the heightmap:** each kit piece and prop ships a simple collision mesh authored with it; terrain collision comes from the heightmap; hand-placed volumes cover special cases (invisible walls, water). Feeds movement validation and the navmesh.
-- **First editor tools (phases 0–2): a minimal set:** open and save chunks; sculpt the heightmap and paint vertex colours; place and snap assets; mark spawns, borders, entrances and transition rooms. Navmesh and LOD previews come later.
+- **First editor tools (phases 0–2): a minimal set:** open and save chunks; sculpt the heightmap, paint holes and paint vertex colours; place and snap assets; mark spawns, borders, entrances and transition rooms. Navmesh and LOD previews come later. **ShapeLand needs them too:** the project lead builds its levels and props by hand with these tools; generated content (such as the test island) is only a stand-in for tests.
 - **View distance is set in the prototype,** from web performance measurements in phase 2; LOD levels are sized to match.
 
 ### Content
