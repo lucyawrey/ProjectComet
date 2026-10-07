@@ -6,7 +6,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 ## Decided
 
-- **Prototype early,** before the human-readable proposal is done. Building has started with the stack benchmark.
+- **Prototype early,** before the human-readable proposal is done. Building has started with the stack benchmark. **All of ShapeLand phase 0 (3a–3c) comes before returning to the docs** (project lead): it shows whether the project could go anywhere before more time goes into the proposal; the full game load test (step 4) waits until after.
 - **Scope: phase 0 only.**
   - The two-stage load test: a bare stack benchmark, then the full game test (`backend.md`, load testing).
   - Shared source packages (Protocol, Content, Simulation) compiling in Unity.
@@ -180,6 +180,10 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   - *Shared movement* (`Comet.Simulation`): ground height follows the terrain mesh's own triangles (holes included); the player motor (used by bots now and the Unity client in 3b) slides, jumps, falls, walks up 0.35 m steps and slopes up to ~63°, and slides along blocks. Gameplay movement is our own kinematic code, with no physics engine (`backend.md`, open).
   - *Joining and chat:* names are 1–16 letters, digits, '-', '_' and single spaces, unique online ignoring case; chat is trimmed, up to 200 characters, with a burst of 3 and then one every 2 seconds.
 - **3b, the Unity client:**
+  - *GameObjects for phase 0* (MonoBehaviours and prefabs); `Comet.Client` stays engine-free, so GameObjects or ECS (Entities) is revisited for Project Anima's client.
+  - *A browser check right after the join scene:* a web build of the join scene connects to a local server in Firefox (checked by hand) before movement is built on top; the full check at the end of 3b stays. A web build of the join scene (ShapeLand > Build > Web (Join Scene), to `artifacts/unity/shapeland/web-join`) joined a local server alongside bots from headless Firefox, and the server saw it leave; the check by hand is still to do.
+  - *Entity states carry the mover's own tick:* the server stamps each state with the tick in the mover's report frame header (its server-tick estimate), clamped to no later than the arrival tick, no more than 0.5 s before it and never before that player's previous stamp; `EntityState` has a `Tick` and clients buffer by it. Otherwise senders' network jitter would show as wobble on everyone else's screen.
+  - *Placeholders tuned in 3c* (agent picks): the snap-back blend (150 ms, smoothstep), the sharp-turn report angle (45°), the idle-gap restamp (200 ms), frames assumed sent mid-tick for the clock, and the 64 KB frame limit.
   - *Progress:* `Comet.Client` is built and tested (xunit), and the bots run on it. The Comet Unity package (browser transport, `CometConnection` driver) and the bare join scene (`Assets/Scenes/Join.unity`, `JoinClient`, created by ShapeLand > Create Join Scene) are in; `JoinTests` joins the real server from Play mode on Linux. Next: own movement and camera.
   - *Client logic in a shared `Comet.Client` package* (`backend.md`, shared libraries): the session, server-tick estimate, interpolation buffer and correction blend, tested with xunit; the bots move onto it. `comet/unity` holds only the transport and Unity glue.
     - *One polled session on every platform:* the caller runs `Update(now)` on its own thread (Unity's main thread), passing the time in, so tests control the clock. Only the transports differ, behind one interface: desktop and bots use an async `ClientWebSocket` that receives on a background thread into a queue (in `Comet.Client`); the web uses a `.jslib` that queues frames from the browser (in the Unity package). Unity 6 web builds have no C# threads (Unity's web multithreading covers only engine code and Burst jobs, and needs COOP/COEP headers), and Unity objects belong to the main thread anyway, so web threading later would change only the web transport. Timers and `CancellationTokenSource` don't work on the web either, so code the web build runs keeps time only through `Update(now)`.
@@ -228,4 +232,3 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 - **Full game load test thresholds** (stage 2), written down before it runs.
 - **Whether a newer NuGetForUnity CLI writes current `.meta` files** (project lead: check later); if so, `tools/unity-restore.sh` can drop its rewrite.
-- **GameObjects or ECS (Entities) for the Unity client** (project lead, for later): Unity is moving towards "ECS for all", which brings the two workflows closer. `Comet.Client` has no Unity types, so either sits on top of it; the choice first matters for 3b's Unity glue (spawning and moving other players' shapes).

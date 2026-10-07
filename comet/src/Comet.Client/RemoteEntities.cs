@@ -20,8 +20,8 @@ namespace Comet.Client
     }
 
     /// <summary>
-    /// The interpolation buffer for other entities: each one's recent states, stamped with the server tick of
-    /// the frame that carried them, drawn at a render tick a little behind the newest arrivals so there is
+    /// The interpolation buffer for other entities: each one's recent states, stamped with the server tick they
+    /// are from (for players, when they sent them), drawn at a render tick a little behind the newest arrivals so there is
     /// usually a state on either side to blend between.
     /// </summary>
     /// <remarks>

@@ -92,12 +92,13 @@ public class ClientSessionTests
     public void StatesFeedTheBufferOnceTheGameSpawnsTheEntity()
     {
         Welcome(now: 0);
-        ServerSends(103, MessageIds.EntityState, new EntityState { EntityId = 9, X = 1 });
+        ServerSends(103, MessageIds.EntityState, new EntityState { EntityId = 9, X = 1, Tick = 103 });
         _session.Update(0.1);
         Assert.False(_session.Entities.Contains(9));
 
         _session.Entities.Spawn(9, 103, Vector3.Zero, 0);
-        ServerSends(105, MessageIds.EntityState, new EntityState { EntityId = 9, X = 2 });
+        // Buffered by the state's own tick, not the tick of the frame that carried it.
+        ServerSends(108, MessageIds.EntityState, new EntityState { EntityId = 9, X = 2, Tick = 105 });
         _session.Update(0.2);
 
         Assert.Equal(2, _session.StatesReceived);

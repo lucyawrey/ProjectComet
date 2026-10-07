@@ -172,7 +172,7 @@ namespace Comet.Client
                     case MessageIds.EntityState:
                         var state = FrameReader.Decode<EntityState>(payload, _options);
                         StatesReceived++;
-                        _entities?.AddState(state.EntityId, tick, new Vector3(state.X, state.Y, state.Z), state.Facing);
+                        _entities?.AddState(state.EntityId, state.Tick, new Vector3(state.X, state.Y, state.Z), state.Facing);
                         break;
                     case MessageIds.EntityDespawn:
                         var despawn = FrameReader.Decode<EntityDespawn>(payload, _options);

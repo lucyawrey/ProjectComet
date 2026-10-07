@@ -31,6 +31,14 @@ namespace ShapeLand.Client.Editor
             Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web");
         }
 
+        /// <summary>A web build of the bare join scene (step 3b's early browser check), connecting to localhost:5080.</summary>
+        [MenuItem("ShapeLand/Build/Web (Join Scene)")]
+        public static void WebJoin()
+        {
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+            Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web-join", JoinScene);
+        }
+
         /// <summary>Creates the check scene: a camera, a sun and the check component with the terrain material.</summary>
         [MenuItem("ShapeLand/Create Check Scene")]
         public static void CreateCheckScene()
@@ -97,13 +105,13 @@ namespace ShapeLand.Client.Editor
             AssetDatabase.Refresh();
         }
 
-        private static void Build(BuildTarget target, BuildTargetGroup group, string output)
+        private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene)
         {
             CopyContent();
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group), ScriptingImplementation.IL2CPP);
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new[] { CheckScene },
+                scenes = new[] { scene },
                 target = target,
                 targetGroup = group,
                 locationPathName = Path.Combine(RepoRoot, "artifacts", "unity", "shapeland", output),

@@ -41,6 +41,12 @@ namespace Comet.Protocol.Messages
 
         /// <summary>Facing as a yaw angle in radians.</summary>
         [Key(4)] public float Facing;
+
+        /// <summary>
+        /// The server tick this state is from: for a player, when it sent the report (bounded by the server),
+        /// so clients interpolate on the sender's timing rather than on when the report happened to arrive.
+        /// </summary>
+        [Key(5)] public uint Tick;
     }
 
     /// <summary>Server event: an entity is no longer visible to this client (left, or out of view).</summary>
