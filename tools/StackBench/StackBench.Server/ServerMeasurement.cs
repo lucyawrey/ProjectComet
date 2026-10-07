@@ -25,9 +25,13 @@ public sealed class ServerMeasurement : IDisposable
     private readonly LatencyRecorder _tickWork = new();
     private readonly LatencyRecorder _tickLateness = new();
     private readonly LatencyRecorder _gcPauses = new();
+    private readonly List<GcPause> _gcPauseLog = [];
+    private readonly IReadOnlyDictionary<string, string> _gcSettings =
+        GC.GetConfigurationVariables().ToDictionary(setting => setting.Key, setting => Convert.ToString(setting.Value) ?? "");
 
     private long _windowStart;
     private long _windowEnd;
+    private DateTime _windowStartUtc;
     private volatile bool _measuring;
     private bool _done;
     private long _ticks;
@@ -60,19 +64,28 @@ public sealed class ServerMeasurement : IDisposable
     {
         var now = Stopwatch.GetTimestamp();
         var windowStart = now + (long)(_options.WarmupSeconds * (double)Stopwatch.Frequency);
+        lock (_gcLock)
+        {
+            _windowStartUtc = DateTime.UtcNow.AddSeconds(_options.WarmupSeconds);
+        }
         Volatile.Write(ref _windowEnd, windowStart + (long)(_options.DurationSeconds * (double)Stopwatch.Frequency));
         Volatile.Write(ref _windowStart, windowStart);
         _logger.LogInformation("First connection; measuring for {Duration} s after a {Warmup} s warmup",
             _options.DurationSeconds, _options.WarmupSeconds);
     }
 
-    private void OnGcPause(TimeSpan pause)
+    private void OnGcPause(GcPause pause)
     {
-        if (_measuring)
+        if (_done)
         {
-            lock (_gcLock)
+            return;
+        }
+        lock (_gcLock)
+        {
+            _gcPauseLog.Add(pause);
+            if (_measuring)
             {
-                _gcPauses.Record(pause);
+                _gcPauses.Record(pause.Duration);
             }
         }
     }
@@ -122,9 +135,11 @@ public sealed class ServerMeasurement : IDisposable
         var averageConnections = _ticks == 0 ? 0 : _connectionSum / _ticks;
         var perConnectionSecond = Math.Max(averageConnections, 1) * seconds;
         LatencySummary gcPauses;
+        List<GcPauseRecord> gcPauseLog;
         lock (_gcLock)
         {
             gcPauses = _gcPauses.Summarize();
+            gcPauseLog = _gcPauseLog.Select(ToRecord).ToList();
         }
 
         return new ServerResult
@@ -140,6 +155,8 @@ public sealed class ServerMeasurement : IDisposable
             Gen1Collections = end.Gen1 - start.Gen1,
             Gen2Collections = end.Gen2 - start.Gen2,
             AllocatedBytesPerSecond = Math.Round((end.Allocated - start.Allocated) / seconds),
+            GcSettings = _gcSettings,
+            GcPauseLog = gcPauseLog,
             CpuCores = Math.Round((end.Cpu - start.Cpu).TotalSeconds / seconds, 3),
             UserCpuCores = Math.Round((end.UserCpu - start.UserCpu).TotalSeconds / seconds, 3),
             KernelCpuCores = Math.Round((end.KernelCpu - start.KernelCpu).TotalSeconds / seconds, 3),
@@ -152,6 +169,24 @@ public sealed class ServerMeasurement : IDisposable
             ProtocolErrors = end.ProtocolErrors - start.ProtocolErrors,
         };
     }
+
+    private GcPauseRecord ToRecord(GcPause pause) => new()
+    {
+        AtSeconds = Math.Round((pause.End - _windowStartUtc).TotalSeconds, 2),
+        Ms = Math.Round(pause.Duration.TotalMilliseconds, 3),
+        Collection = pause.Collection?.Number,
+        Generation = pause.Collection?.Generation,
+        Reason = pause.Collection?.Reason.ToString(),
+        Type = pause.Collection?.Type.ToString(),
+        StartedInPause = pause.StartedInPause,
+        PromotedKb = Kilobytes(pause.HeapStats?.PromotedBytes),
+        Gen0Kb = Kilobytes(pause.HeapStats?.Gen0Bytes),
+        Gen1Kb = Kilobytes(pause.HeapStats?.Gen1Bytes),
+        Gen2Kb = Kilobytes(pause.HeapStats?.Gen2Bytes),
+        LargeObjectKb = Kilobytes(pause.HeapStats?.LargeObjectBytes),
+    };
+
+    private static double? Kilobytes(ulong? bytes) => bytes is { } value ? Math.Round(value / 1024.0, 1) : null;
 
     private async Task FinishAsync(ServerResult result)
     {

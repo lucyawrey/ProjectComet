@@ -119,12 +119,13 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **The settle turns the deep collection into a gen2:** each run still has nine gen0 pauses near 1.9 ms, but the one deep collection is now a gen2 (the counters show one gen1 and one gen2, and gen1's count includes gen2s). A short impaired check (20 s warmup, 2-minute window) had a gen2 pause of 23.9 ms. Unverified hypothesis: after the forced full collection the GC sizes gen2's budget from the small surviving heap, and the connections' state promoted during the ramp overflows it.
 - **Why it matters:** the pause doesn't hurt this bench (no tick went over its 33 ms budget; tick work's worst 1% is about 3 ms), but the bench holds almost no long-lived state. A real zone server holds far more (entities, AI, items, zone data, content), and if a deep blocking collection grows with that, it becomes missed ticks, which action combat feels most. The 10 ms limit is the early warning for that.
 - **Still open (in progress): the GC investigation.** Questions, in order:
-  1. *Which GC is running?* ASP.NET Core defaults to server GC, but the container sets `DOTNET_PROCESSOR_COUNT=1`, and nothing has checked `GCSettings.IsServerGC`, `GCSettings.LatencyMode` or whether background (concurrent) GC is on.
-  2. *Is the deep pause blocking or background?* The listener times every suspension (`GCSuspendEEBegin` to `GCRestartEEEnd`), which includes background GC's short pauses, but records no generation, reason or type.
+  1. *Which GC is running?* Locally: workstation GC with background (concurrent) GC on, one heap. `DOTNET_PROCESSOR_COUNT=1` makes the runtime fall back from the Web SDK's server GC, so DATAS is off too. The AWS runs set the same variable; their results will confirm it.
+  2. *Is the deep pause blocking or background?* Locally, the deep pause is a blocking gen1 while the bots join, not a gen2: a 2-minute local run (20 s warmup) had a 6.0–10.5 ms blocking gen1 about 5 s before the window, promoting about 6.5 MB. The only gen2 in the window was a background collection, with pauses of 2.5 ms and 0.6 ms. AWS still to check.
   3. *One-off or recurring?* Each run has one deep collection; it may come only from all 300 bots joining within 10 s, which real players won't do. Recurring gen2s in steady state would be the real problem.
   4. *How much is the VM?* The same gen1 took 5.7 ms locally and 8.7 ms on AWS; `c7i-flex` only guarantees part of a core.
 - **Facts for the investigation:** `GC.CollectionCount(1)` includes gen2 collections. About 900 KB/s is allocated in steady state. The earlier per-pause findings came from a local diagnostic run whose code wasn't committed; a quick local check of the settle with it still had a 7.4 ms pause in a 30 s window. The bench records only pause durations and collection counts. `Heap.Settle()` (`comet/src/Comet.Server/Heap.cs`) is called from `tools/StackBench/StackBench.Server/Program.cs` when the host starts.
-- **Next:** record each pause's generation, reason, type and time since the window started, plus the GC mode at startup, in the server results (from the runtime's `GCStart`/`GCEnd` events); run it locally, then on AWS. Answer the questions before changing GC settings or Settle. Changes to Comet's own code (beyond the bench and diagnostics) are discussed with the project lead first.
+- **The server results now log every GC pause** from startup to the window's end (`gcPauseLog`: time from the window's start, duration, collection, generation, reason, type, sizes after it), plus the GC's configuration (`gcSettings`).
+- **Next:** run both profiles on AWS with the pause log. Answer the questions before changing GC settings or Settle. Changes to Comet's own code (beyond the bench and diagnostics) are discussed with the project lead first.
 - **AWS runs:** `tools/StackBench/aws/run.sh` needs the AWS CLI logged in (`aws login`), region us-east-2. A dropped SSH connection ends a run (cleanup still runs); keep the machine awake for the 15 minutes.
 
 ### Code layout and build
@@ -167,7 +168,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 ## Considering
 
-- Nothing being considered right now.
+- **A heavy-heap variant of the stack benchmark** (agent suggestion; to follow the GC investigation): the server also holds synthetic long-lived zone state, about 100–300 MB, in a mix of plain struct arrays and ordinary object graphs, so we can measure how deep GC pauses scale with a real zone's state, which the bench as it stands can't show. It decides whether the GC is a real risk for zone servers: switching away from C# would only be worth weighing if blocking collections recur in steady state and approach the 33 ms tick budget even after per-tick allocation is reduced.
 
 ## Rejected
 
