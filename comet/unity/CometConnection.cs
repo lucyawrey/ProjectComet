@@ -1,0 +1,64 @@
+using System;
+using Comet.Client;
+using MessagePack;
+using UnityEngine;
+
+namespace Comet.Unity
+{
+    /// <summary>
+    /// Drives a client session from Unity's frame loop: it handles received frames before any other script's
+    /// Update, and a <see cref="CometFlush"/> on the same object sends what the frame wrote after every other
+    /// script's LateUpdate. Game scripts subscribe to <see cref="Session"/>'s events and write their messages
+    /// to it during the frame.
+    /// </summary>
+    [DefaultExecutionOrder(-1000)]
+    public sealed class CometConnection : MonoBehaviour
+    {
+        /// <summary>The current session, or null before <see cref="Connect"/>.</summary>
+        public ClientSession? Session { get; private set; }
+
+        /// <summary>Seconds on the clock the session runs on: real time, unaffected by pausing or time scale.</summary>
+        public static double Now => Time.realtimeSinceStartupAsDouble;
+
+        /// <summary>Starts a new session to <paramref name="url"/>, closing any current one.</summary>
+        /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
+        public ClientSession Connect(Uri url, MessagePackSerializerOptions options)
+        {
+            Disconnect();
+            if (GetComponent<CometFlush>() == null)
+            {
+                gameObject.AddComponent<CometFlush>().hideFlags = HideFlags.HideInInspector;
+            }
+
+            Session = new ClientSession(CreateTransport(url), options);
+            return Session;
+        }
+
+        /// <summary>Closes the current session, if any.</summary>
+        public void Disconnect()
+        {
+            if (Session == null)
+            {
+                return;
+            }
+
+            Session.Transport.Close();
+            Session.Transport.Dispose();
+            Session = null;
+        }
+
+        /// <summary>The platform's transport: the browser's WebSocket on the web, .NET's elsewhere.</summary>
+        public static IClientTransport CreateTransport(Uri url)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return new BrowserWebSocketTransport(url);
+#else
+            return new WebSocketTransport(url);
+#endif
+        }
+
+        private void Update() => Session?.Update(Now);
+
+        private void OnDestroy() => Disconnect();
+    }
+}

@@ -16,6 +16,7 @@ namespace ShapeLand.Client.Editor
     {
         private const string CheckScene = "Assets/Scenes/SharedPackageCheck.unity";
         private const string TerrainMaterial = "Assets/Materials/Terrain.mat";
+        private const string JoinScene = "Assets/Scenes/Join.unity";
 
         private static string RepoRoot => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
 
@@ -61,6 +62,23 @@ namespace ShapeLand.Client.Editor
             Directory.CreateDirectory("Assets/Scenes");
             EditorSceneManager.SaveScene(scene, CheckScene);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(CheckScene, true) };
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>Creates the bare join scene (step 3b): a camera and the join client, which logs what the server says.</summary>
+        [MenuItem("ShapeLand/Create Join Scene")]
+        public static void CreateJoinScene()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var camera = new GameObject("Camera", typeof(Camera)).GetComponent<Camera>();
+            camera.tag = "MainCamera";
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.55f, 0.75f, 0.95f);
+
+            new GameObject("Join client", typeof(Comet.Unity.CometConnection), typeof(JoinClient));
+
+            Directory.CreateDirectory("Assets/Scenes");
+            EditorSceneManager.SaveScene(scene, JoinScene);
             AssetDatabase.SaveAssets();
         }
 

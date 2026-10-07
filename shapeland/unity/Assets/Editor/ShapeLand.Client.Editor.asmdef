@@ -2,6 +2,7 @@
     "name": "ShapeLand.Client.Editor",
     "rootNamespace": "ShapeLand.Client.Editor",
     "references": [
+        "Comet.Unity",
         "ShapeLand.Client"
     ],
     "includePlatforms": [

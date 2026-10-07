@@ -1,0 +1,11 @@
+{
+  "name": "com.comet.unity",
+  "version": "0.1.0",
+  "displayName": "Comet Unity",
+  "description": "Comet's Unity glue: the browser WebSocket transport and the component that drives a client session each frame.",
+  "unity": "6000.6",
+  "license": "MIT",
+  "dependencies": {
+    "com.comet.client": "0.1.0"
+  }
+}

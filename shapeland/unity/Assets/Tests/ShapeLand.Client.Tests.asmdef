@@ -3,6 +3,9 @@
     "rootNamespace": "ShapeLand.Client.Tests",
     "references": [
         "ShapeLand.Client",
+        "Comet.Client",
+        "Comet.Unity",
+        "ShapeLand.Shared",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

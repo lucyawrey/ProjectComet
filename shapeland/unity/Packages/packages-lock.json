@@ -28,6 +28,14 @@
         "com.comet.content": "0.1.0"
       }
     },
+    "com.comet.unity": {
+      "version": "file:../../../comet/unity",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.comet.client": "0.1.0"
+      }
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity#v4.5.0",
       "depth": 0,
