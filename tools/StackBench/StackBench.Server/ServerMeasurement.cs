@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime;
 using Comet.Server.Connections;
 using Comet.Server.Diagnostics;
 using Comet.Server.Ticking;
@@ -155,7 +156,11 @@ public sealed class ServerMeasurement : IDisposable
             Gen1Collections = end.Gen1 - start.Gen1,
             Gen2Collections = end.Gen2 - start.Gen2,
             AllocatedBytesPerSecond = Math.Round((end.Allocated - start.Allocated) / seconds),
-            GcSettings = _gcSettings,
+            GcSettings = new Dictionary<string, string>(_gcSettings)
+            {
+                ["LatencyMode"] = GCSettings.LatencyMode.ToString(),
+                ["HeapSettled"] = _options.SettleHeap.ToString(),
+            },
             GcPauseLog = gcPauseLog,
             CpuCores = Math.Round((end.Cpu - start.Cpu).TotalSeconds / seconds, 3),
             UserCpuCores = Math.Round((end.UserCpu - start.UserCpu).TotalSeconds / seconds, 3),

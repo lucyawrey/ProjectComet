@@ -3,7 +3,8 @@
 #
 #   tools/StackBench/docker/run.sh clean|impaired
 #
-# Optional: BENCH_BOTS (300), BENCH_WARMUP (60), BENCH_DURATION (600) seconds,
+# Optional: BENCH_BOTS (300), BENCH_RAMP (10), BENCH_WARMUP (60), BENCH_DURATION (600) seconds,
+# BENCH_SETTLE_HEAP (true), BENCH_GC_LATENCY_MODE (e.g. SustainedLowLatency; default unset),
 # SERVER_CPU (2): the CPU the server is pinned to; bots get every CPU except that core.
 set -euo pipefail
 

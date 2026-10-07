@@ -14,6 +14,8 @@ services:
       DOTNET_PROCESSOR_COUNT: "1"
       Bench__WarmupSeconds: ${BENCH_WARMUP:-60}
       Bench__DurationSeconds: ${BENCH_DURATION:-600}
+      Bench__SettleHeap: ${BENCH_SETTLE_HEAP:-true}
+      Bench__GcLatencyMode: ${BENCH_GC_LATENCY_MODE:-}
       Bench__ResultsPath: /results/server.json
     ports:
       # Loopback only by default; the AWS run opens it to the bots VM.
@@ -42,6 +44,8 @@ services:
       - ${BENCH_URL:-ws://server:5080/ws}
       - --bots
       - ${BENCH_BOTS:-300}
+      - --ramp
+      - ${BENCH_RAMP:-10}
       - --warmup
       - ${BENCH_WARMUP:-60}
       - --duration
