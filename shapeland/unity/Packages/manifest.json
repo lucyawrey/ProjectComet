@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.comet.client": "file:../../../comet/src/Comet.Client",
     "com.comet.content": "file:../../../comet/src/Comet.Content",
     "com.comet.protocol": "file:../../../comet/src/Comet.Protocol",
     "com.comet.simulation": "file:../../../comet/src/Comet.Simulation",
