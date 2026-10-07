@@ -159,7 +159,6 @@ public sealed class ServerMeasurement : IDisposable
             GcSettings = new Dictionary<string, string>(_gcSettings)
             {
                 ["LatencyMode"] = GCSettings.LatencyMode.ToString(),
-                ["HeapSettled"] = _options.SettleHeap.ToString(),
             },
             GcPauseLog = gcPauseLog,
             CpuCores = Math.Round((end.Cpu - start.Cpu).TotalSeconds / seconds, 3),

@@ -14,7 +14,6 @@ services:
       DOTNET_PROCESSOR_COUNT: "1"
       Bench__WarmupSeconds: ${BENCH_WARMUP:-60}
       Bench__DurationSeconds: ${BENCH_DURATION:-600}
-      Bench__SettleHeap: ${BENCH_SETTLE_HEAP:-true}
       Bench__GcLatencyMode: ${BENCH_GC_LATENCY_MODE:-}
       Bench__ResultsPath: /results/server.json
     ports:
