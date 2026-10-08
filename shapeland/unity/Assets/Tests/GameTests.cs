@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Comet.Unity;
 using NUnit.Framework;
 using UnityEditor;
@@ -8,6 +9,10 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
+using ShapeLand.Shared.Content;
+using ShapeLand.Shared.Messages;
+using ShapeLand.Shared.World;
 
 namespace ShapeLand.Client.Tests
 {
@@ -23,6 +28,7 @@ namespace ShapeLand.Client.Tests
         private Keyboard _keyboard;
         private JoinClient _join;
         private GameView _view;
+        private JoinScreen _screen;
         private InputSettings.EditorInputBehaviorInPlayMode _editorInput;
         private InputSettings.BackgroundBehavior _background;
 
@@ -58,6 +64,7 @@ namespace ShapeLand.Client.Tests
             _game = null;
             _camera = null;
             _keyboard = null;
+            _screen = null;
         }
 
         [TestCase(0, 0, 1, 0, 1)]
@@ -220,6 +227,98 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.SnapBacks, Is.EqualTo(0), "The server snapped the player back.");
         }
 
+        [Test]
+        public void ShapeStatsAreSpeedAndJumpHeight()
+        {
+            var (speed, jump) = JoinScreen.Stats(new Shape { MaxSpeed = 5, JumpVelocity = 8.5f });
+            Assert.That(speed, Is.EqualTo(5));
+            Assert.That(jump, Is.EqualTo(8.5f * 8.5f / (2 * ShapeLandWorld.Rules.Gravity)).Within(1e-4f));
+        }
+
+        [UnityTest]
+        public IEnumerator JoinScreenJoinsWithTheChosenShapeAndColours()
+        {
+            yield return StartGame(joinScreen: true);
+            Assert.That(_view.Player, Is.Null, "Joined before pressing Join.");
+
+            _screen.Root.Q<TextField>("name").value = "Pebble";
+            Click(ShapeButton(MeshKind.Cube));
+            Click(Swatch("colours", ShapeLandRules.BodyColours[1]));
+            Click(Swatch("eyes", ShapeLandRules.EyeColours[3]));
+            // From content, so tuning the cube doesn't break the test.
+            var cube = _join.Content.Shapes.All.First(shape => shape.Mesh == MeshKind.Cube);
+            var jump = cube.JumpVelocity * cube.JumpVelocity / (2 * ShapeLandWorld.Rules.Gravity);
+            Assert.That(StatValues(), Is.EqualTo(new[] { $"{cube.MaxSpeed:0.#} m/s", $"{jump:0.0} m" }), "The stats don't show the cube's.");
+            Click(_screen.Root.Q<Button>("join-button"));
+
+            yield return TestGameServer.WaitFor(() => _view.Player != null || _screen.Error != null, 15);
+            Assert.That(_screen.Error, Is.Null);
+            Assert.That(_view.Player, Is.Not.Null, "Never spawned.");
+            Assert.That(_screen.Showing, Is.False, "The join screen stayed up.");
+            var spawn = _join.Spawn.Value;
+            Assert.That(spawn.Name, Is.EqualTo("Pebble"));
+            Assert.That(_join.Content.Shapes[spawn.Shape].Mesh, Is.EqualTo(MeshKind.Cube));
+            Assert.That(spawn.Colour, Is.EqualTo(ShapeLandRules.BodyColours[1]));
+            Assert.That(spawn.EyeColour, Is.EqualTo(ShapeLandRules.EyeColours[3]));
+        }
+
+        [UnityTest]
+        public IEnumerator JoinScreenShowsRefusalsAndTriesAgain()
+        {
+            yield return StartGame(joinScreen: true);
+            yield return _server.StartBots(1, 30);
+            yield return Wait(3); // time for the bot to join; this client can't see it before joining
+
+            var name = _screen.Root.Q<TextField>("name");
+            var join = _screen.Root.Q<Button>("join-button");
+            name.value = "no!";
+            Click(join);
+            Assert.That(_screen.Error, Does.Contain("letters, digits"), "A bad name wasn't caught before sending.");
+
+            name.value = "bot 01";
+            Click(join);
+            yield return TestGameServer.WaitFor(() => _screen.Error != null, 10);
+            Assert.That(_screen.Error, Does.Contain("already called"), "A taken name wasn't reported.");
+            Assert.That(join.enabledSelf, Is.True, "Join stayed disabled after a refusal.");
+
+            name.value = "Pebble";
+            Click(join);
+            yield return TestGameServer.WaitFor(() => _view.Player != null, 10);
+            Assert.That(_view.Player, Is.Not.Null, "Didn't join on the second try.");
+            Assert.That(_screen.Showing, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator JoinScreenReportsAnUnreachableServer()
+        {
+            yield return StartGame(joinScreen: true);
+            _screen.Root.Q<TextField>("name").value = "Pebble";
+            _screen.Root.Q<TextField>("server").value = "127.0.0.1:9";
+            Click(_screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => _screen.Error != null, 15);
+            Assert.That(_screen.Error, Does.Contain("Couldn't reach the server at 127.0.0.1:9"));
+            Assert.That(_screen.Showing, Is.True);
+        }
+
+        // Presses a button the way a keyboard or gamepad submit does.
+        private static void Click(VisualElement button)
+        {
+            using (var submit = NavigationSubmitEvent.GetPooled())
+            {
+                submit.target = button;
+                button.SendEvent(submit);
+            }
+        }
+
+        private VisualElement ShapeButton(MeshKind kind) =>
+            _screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Mesh == kind);
+
+        private VisualElement Swatch(string row, uint colour) =>
+            _screen.Root.Q(row).Children().First(b => (uint)b.userData == colour);
+
+        private string[] StatValues() =>
+            _screen.Root.Q("stats").Query<Label>().ToList().Where(l => !l.ClassListContains("stat-name")).Select(l => l.text).ToArray();
+
         [UnityTest]
         public IEnumerator DrawsOtherPlayersMovingAndLeaving()
         {
@@ -244,8 +343,9 @@ namespace ShapeLand.Client.Tests
             Debug.Log($"Saw 2 bots; the furthest moved {moved:0.0} m in 2 s.");
         }
 
-        // Builds the game view (connection, join client, view and orbit camera) against a fresh server.
-        private IEnumerator StartGame()
+        // Builds the game view (connection, join client, view and orbit camera) against a fresh server. Without
+        // the join screen it joins at once; with it, it waits for the screen to come up.
+        private IEnumerator StartGame(bool joinScreen = false)
         {
             Assert.That(File.Exists(Path.Combine(Application.streamingAssetsPath, "content.bin")), "No content in StreamingAssets; run ShapeLand > Copy Content.");
 
@@ -269,6 +369,21 @@ namespace ShapeLand.Client.Tests
             serialized.FindProperty("eyeFadeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/EyesFade.mat");
             serialized.FindProperty("orbitCamera").objectReferenceValue = _camera.GetComponent<OrbitCamera>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            if (joinScreen)
+            {
+                _join.JoinOnStart = false;
+                var document = _game.AddComponent<UIDocument>();
+                document.panelSettings = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/UI/ShapeLandPanel.asset");
+                document.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/JoinScreen.uxml");
+                _screen = _game.AddComponent<JoinScreen>();
+                _screen.Remember = false;
+                _game.SetActive(true);
+                yield return TestGameServer.WaitFor(() => _screen.Showing, 15);
+                Assert.That(_screen.Showing, Is.True, "The join screen never came up.");
+                _screen.Root.Q<TextField>("server").value = _server.Address;
+                yield break;
+            }
+
             _game.SetActive(true);
 
             yield return TestGameServer.WaitFor(() => _view.Player != null || _join.Error != null, 15);

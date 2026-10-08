@@ -1,0 +1,98 @@
+/*
+ * ShapeLand's UI in the plain look: dark see-through panels, one blue accent, Atkinson Hyperlegible. Ported from
+ * the mockup (.claude/drafts/ui/shapeland-phase-0.html). Laid out at 960 x 600; the panel scales with the screen.
+ * USS has no text-transform, so upper-case labels are written in capitals.
+ */
+
+.hidden { display: none; }
+
+.backdrop {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(10, 16, 30, 0.32);
+    align-items: center; justify-content: center;
+    -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf");
+    font-size: 15px;
+    color: rgb(238, 241, 246);
+}
+.backdrop.hidden { display: none; }
+
+.card {
+    width: 580px;
+    padding: 18px 22px;
+    background-color: rgba(18, 22, 30, 0.9);
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.1); border-radius: 6px;
+}
+
+Label { padding: 0; margin: 0; }
+.title { font-size: 28px; margin-bottom: 8px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.body { flex-direction: row; }
+.fields { flex-grow: 1; }
+.field { margin-bottom: 10px; }
+.label-row { flex-direction: row; align-items: flex-end; margin-bottom: 5px; }
+.label { font-size: 12px; letter-spacing: 1px; color: rgb(169, 178, 196); }
+.field > .label { margin-bottom: 5px; }
+.hint { font-size: 12px; margin-left: 6px; color: rgb(141, 151, 171); }
+
+.input { margin: 0; }
+/* Centred by padding, not a fixed height: Unity draws an empty field's caret at the top of the text box. */
+.input .unity-base-text-field__input {
+    padding: 8px 10px; margin: 0;
+    -unity-text-align: upper-left;
+    --unity-cursor-color: rgb(238, 241, 246);
+    --unity-selection-color: rgba(106, 161, 255, 0.45);
+    background-color: rgba(255, 255, 255, 0.08);
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.16); border-radius: 4px;
+    color: rgb(238, 241, 246); font-size: 15px;
+    -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf");
+}
+.input:focus .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
+
+.row { flex-direction: row; flex-wrap: wrap; }
+
+.shape-button {
+    flex-direction: row; align-items: center;
+    height: 34px; padding: 0 10px 0 6px; margin: 0 6px 0 0;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.16); border-radius: 4px;
+    color: rgb(238, 241, 246); font-size: 14px;
+}
+.shape-button:hover { background-color: rgba(255, 255, 255, 0.06); }
+.shape-button.on { border-color: rgb(106, 161, 255); background-color: rgba(106, 161, 255, 0.18); }
+.shape-icon { width: 26px; height: 26px; margin-right: 4px; }
+
+.swatch {
+    width: 26px; height: 26px; padding: 0; margin: 0 6px 4px 0;
+    border-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 3px;
+}
+.swatch.on { border-color: rgb(255, 255, 255); }
+
+.preview-column { width: 150px; margin-left: 18px; align-items: center; justify-content: center; }
+.preview { width: 128px; height: 128px; margin-bottom: 10px; }
+.stats { width: 150px; }
+.stat { margin-bottom: 7px; }
+.stat-top { flex-direction: row; justify-content: space-between; margin-bottom: 3px; }
+.stat-top > Label { font-size: 13px; }
+.stat-name { color: rgb(169, 178, 196); }
+.bar { height: 6px; background-color: rgba(255, 255, 255, 0.12); border-radius: 3px; }
+.bar-fill { height: 6px; background-color: rgb(106, 161, 255); border-radius: 3px; transition-property: width; transition-duration: 0.25s; }
+
+.error {
+    display: none;
+    padding: 7px 10px; margin-bottom: 10px;
+    background-color: rgba(229, 57, 53, 0.18);
+    border-left-width: 3px; border-color: rgb(255, 107, 103);
+    color: rgb(255, 212, 211); font-size: 14px; white-space: normal;
+}
+.error.shown { display: flex; }
+
+.actions { flex-direction: row; align-items: flex-end; }
+.server { width: 300px; margin-bottom: 0; }
+.spacer { flex-grow: 1; }
+.join-button {
+    height: 40px; padding: 0 26px; margin: 0;
+    background-color: rgb(61, 124, 240);
+    border-width: 0; border-radius: 4px;
+    color: rgb(255, 255, 255); font-size: 16px;
+    -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
+}
+.join-button:hover { background-color: rgb(83, 141, 247); }

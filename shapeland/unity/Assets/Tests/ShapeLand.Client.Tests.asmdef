@@ -7,6 +7,7 @@
         "Comet.Unity",
         "ShapeLand.Shared",
         "Comet.Simulation",
+        "Comet.Content",
         "Unity.InputSystem",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

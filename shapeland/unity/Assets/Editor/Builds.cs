@@ -5,6 +5,7 @@ using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Editor
 {
@@ -21,6 +22,9 @@ namespace ShapeLand.Client.Editor
         private const string EyeMaterial = "Assets/Materials/Eyes.mat";
         private const string ShapeFadeMaterial = "Assets/Materials/ShapeFade.mat";
         private const string EyeFadeMaterial = "Assets/Materials/EyesFade.mat";
+        private const string PanelSettingsPath = "Assets/UI/ShapeLandPanel.asset";
+        private const string ThemePath = "Assets/UI/ShapeLandTheme.tss";
+        private const string JoinScreenPath = "Assets/UI/JoinScreen.uxml";
         private const string JoinScene = "Assets/Scenes/Join.unity";
         private const string GameScene = "Assets/Scenes/Game.unity";
 
@@ -100,7 +104,7 @@ namespace ShapeLand.Client.Editor
 
         /// <summary>
         /// Creates the game scene (step 3b, growing into the full client): a sun, the orbit camera, and the join
-        /// client with the game view, which draws the island, the blocks and the player's own shape.
+        /// client with the game view, which draws the island, the blocks and the players, and the join screen.
         /// </summary>
         [MenuItem("ShapeLand/Create Game Scene")]
         public static void CreateGameScene()
@@ -113,7 +117,14 @@ namespace ShapeLand.Client.Editor
             camera.transform.SetPositionAndRotation(new Vector3(0, 20, -30), Quaternion.Euler(30, 0, 0));
             AddSun();
 
-            var view = new GameObject("Game", typeof(Comet.Unity.CometConnection), typeof(JoinClient), typeof(GameView)).GetComponent<GameView>();
+            var game = new GameObject("Game", typeof(Comet.Unity.CometConnection), typeof(JoinClient), typeof(GameView), typeof(UIDocument), typeof(JoinScreen));
+            var view = game.GetComponent<GameView>();
+            var document = game.GetComponent<UIDocument>();
+            document.panelSettings = Panel();
+            document.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(JoinScreenPath);
+            var join = new SerializedObject(game.GetComponent<JoinClient>());
+            join.FindProperty("joinOnStart").boolValue = false;
+            join.ApplyModifiedPropertiesWithoutUndo();
             var serialized = new SerializedObject(view);
             serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(TerrainMaterial);
             serialized.FindProperty("blockMaterial").objectReferenceValue = LitMaterial(BlockMaterial, new Color(0.62f, 0.55f, 0.48f));
@@ -167,6 +178,26 @@ namespace ShapeLand.Client.Editor
             }
 
             return material;
+        }
+
+        /// <summary>
+        /// The UI's panel settings, created once: laid out at the mockups' 960 x 600 and scaled with the screen.
+        /// </summary>
+        public static PanelSettings Panel()
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath);
+            if (settings == null)
+            {
+                settings = ScriptableObject.CreateInstance<PanelSettings>();
+                settings.themeStyleSheet = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(ThemePath);
+                settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+                settings.referenceResolution = new Vector2Int(960, 600);
+                settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
+                settings.match = 0.5f;
+                AssetDatabase.CreateAsset(settings, PanelSettingsPath);
+            }
+
+            return settings;
         }
 
         // A transparent copy of a Lit material, for shapes fading out and in. Kept as an asset so builds keep the

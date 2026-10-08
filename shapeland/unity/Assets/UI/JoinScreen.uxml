@@ -1,0 +1,46 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="ShapeLand.uss" />
+    <ui:VisualElement name="join" class="backdrop hidden">
+        <ui:VisualElement class="card">
+            <ui:Label text="ShapeLand" class="title" />
+            <ui:VisualElement class="body">
+                <ui:VisualElement class="fields">
+                    <ui:VisualElement class="field">
+                        <ui:VisualElement class="label-row">
+                            <ui:Label text="NAME" class="label" />
+                            <ui:Label text="up to 16 letters, digits, spaces, - and _" class="hint" />
+                        </ui:VisualElement>
+                        <ui:TextField name="name" max-length="16" class="input" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="field">
+                        <ui:Label text="SHAPE" class="label" />
+                        <ui:VisualElement name="shapes" class="row" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="field">
+                        <ui:Label text="COLOUR" class="label" />
+                        <ui:VisualElement name="colours" class="row" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="field">
+                        <ui:Label text="EYES" class="label" />
+                        <ui:VisualElement name="eyes" class="row" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="preview-column">
+                    <ui:VisualElement name="preview" class="preview" />
+                    <ui:VisualElement name="stats" class="stats" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="error" class="error" />
+            <ui:VisualElement class="actions">
+                <ui:VisualElement name="server-field" class="field server">
+                    <ui:VisualElement class="label-row">
+                        <ui:Label text="SERVER" class="label" />
+                    </ui:VisualElement>
+                    <ui:TextField name="server" class="input" />
+                </ui:VisualElement>
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="join-button" text="Join" class="join-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
