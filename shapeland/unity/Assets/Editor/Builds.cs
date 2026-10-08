@@ -25,6 +25,7 @@ namespace ShapeLand.Client.Editor
         private const string PanelSettingsPath = "Assets/UI/ShapeLandPanel.asset";
         private const string ThemePath = "Assets/UI/ShapeLandTheme.tss";
         private const string JoinScreenPath = "Assets/UI/JoinScreen.uxml";
+        private const string HudPath = "Assets/UI/Hud.uxml";
         private const string JoinScene = "Assets/Scenes/Join.unity";
         private const string GameScene = "Assets/Scenes/Game.unity";
 
@@ -104,7 +105,8 @@ namespace ShapeLand.Client.Editor
 
         /// <summary>
         /// Creates the game scene (step 3b, growing into the full client): a sun, the orbit camera, and the join
-        /// client with the game view, which draws the island, the blocks and the players, and the join screen.
+        /// client with the game view, which draws the island, the blocks and the players, the join screen, and the
+        /// in-game overlay (chat, name tags, bubbles).
         /// </summary>
         [MenuItem("ShapeLand/Create Game Scene")]
         public static void CreateGameScene()
@@ -125,6 +127,16 @@ namespace ShapeLand.Client.Editor
             var join = new SerializedObject(game.GetComponent<JoinClient>());
             join.FindProperty("joinOnStart").boolValue = false;
             join.ApplyModifiedPropertiesWithoutUndo();
+
+            // Its own object, not a child of Game: a UIDocument under another one is added inside that one's tree.
+            var hud = new GameObject("Hud", typeof(UIDocument), typeof(Hud));
+            var hudDocument = hud.GetComponent<UIDocument>();
+            hudDocument.panelSettings = Panel();
+            hudDocument.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(HudPath);
+            var hudLinks = new SerializedObject(hud.GetComponent<Hud>());
+            hudLinks.FindProperty("join").objectReferenceValue = game.GetComponent<JoinClient>();
+            hudLinks.FindProperty("view").objectReferenceValue = view;
+            hudLinks.ApplyModifiedPropertiesWithoutUndo();
             var serialized = new SerializedObject(view);
             serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(TerrainMaterial);
             serialized.FindProperty("blockMaterial").objectReferenceValue = LitMaterial(BlockMaterial, new Color(0.62f, 0.55f, 0.48f));

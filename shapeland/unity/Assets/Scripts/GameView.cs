@@ -36,6 +36,7 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, Transform> _others = new Dictionary<uint, Transform>();
         private readonly Dictionary<uint, ShapeFade> _fades = new Dictionary<uint, ShapeFade>();
+        private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
         private readonly Dictionary<Shape, (Mesh Body, Mesh Eyes)> _meshes = new Dictionary<Shape, (Mesh Body, Mesh Eyes)>();
 
         /// <summary>The player's own shape, once spawned.</summary>
@@ -49,6 +50,18 @@ namespace ShapeLand.Client
 
         /// <summary>The overlay for the player's own respawn fade.</summary>
         public ScreenFade ScreenFade => _screenFade;
+
+        /// <summary>Every player in view, this one included, as the server spawned them (name, shape, colours), by entity ID.</summary>
+        public IReadOnlyDictionary<uint, PlayerSpawn> Spawns => _spawns;
+
+        public ShapeLandControls Controls => _controls;
+
+        public Camera Camera => orbitCamera.GetComponent<Camera>();
+
+        /// <summary>A player's drawn shape (this one's too), or null.</summary>
+        public Transform ShapeOf(uint entityId) =>
+            Player != null && entityId == _join.Session?.EntityId ? Player.transform
+            : _others.TryGetValue(entityId, out var other) ? other : null;
 
         private void Awake()
         {
@@ -104,6 +117,7 @@ namespace ShapeLand.Client
 
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
+            _spawns[spawn.EntityId] = spawn;
             var shape = _join.Content.Shapes[spawn.Shape];
             Player = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Colour, spawn.EyeColour, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
             Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
@@ -113,6 +127,7 @@ namespace ShapeLand.Client
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
             OnOtherLeft(spawn.EntityId);
+            _spawns[spawn.EntityId] = spawn;
             var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Colour, spawn.EyeColour, $"{spawn.Name} ({spawn.EntityId})", out var fade);
             other.transform.SetPositionAndRotation(new Vector3(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
             _others[spawn.EntityId] = other.transform;
@@ -123,6 +138,7 @@ namespace ShapeLand.Client
         {
             if (_others.TryGetValue(entityId, out var other))
             {
+                _spawns.Remove(entityId);
                 _others.Remove(entityId);
                 DestroyShape(other.gameObject, _fades[entityId]);
                 _fades.Remove(entityId);

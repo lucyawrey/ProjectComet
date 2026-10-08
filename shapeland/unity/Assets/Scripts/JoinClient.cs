@@ -90,6 +90,12 @@ namespace ShapeLand.Client
         /// <summary>Raised when the content won't load or the connection fails or closes, with the reason.</summary>
         public event Action<string> Failed;
 
+        /// <summary>Raised for each chat line, the player's own included (the server echoes it, so everyone sees one order).</summary>
+        public event Action<ChatMessage> ChatReceived;
+
+        /// <summary>Raised when the server doesn't deliver this player's chat line.</summary>
+        public event Action<ChatRejection> ChatRefused;
+
         /// <summary>True once the server has spawned this player.</summary>
         public bool Joined { get; private set; }
 
@@ -158,6 +164,15 @@ namespace ShapeLand.Client
             }
 
             _pending = request;
+        }
+
+        /// <summary>Says <paramref name="text"/> in chat, once joined; the line arrives back through <see cref="ChatReceived"/>.</summary>
+        public void Say(string text)
+        {
+            if (Joined && Session != null && !Session.Closed)
+            {
+                Session.Write(ShapeLandMessageIds.ChatSend, new ChatSend { Text = text });
+            }
         }
 
         private void Connect(Uri serverUrl)
@@ -256,6 +271,12 @@ namespace ShapeLand.Client
                 case ShapeLandMessageIds.ChatMessage:
                     var chat = FrameReader.Decode<ChatMessage>(payload, options);
                     Log($"chat from entity {chat.EntityId}: {chat.Text}");
+                    ChatReceived?.Invoke(chat);
+                    break;
+                case ShapeLandMessageIds.ChatRejected:
+                    var refusal = FrameReader.Decode<ChatRejected>(payload, options).Reason;
+                    Log($"chat rejected: {refusal}");
+                    ChatRefused?.Invoke(refusal);
                     break;
             }
         }

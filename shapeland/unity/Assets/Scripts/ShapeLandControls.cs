@@ -6,7 +6,7 @@ namespace ShapeLand.Client
     /// <summary>
     /// ShapeLand's bindings, all in one place: WASD or the arrows and Space, the mouse turning the camera while
     /// the right button is held; the left stick, the right stick and the south button on a gamepad. In development
-    /// builds and the editor, holding C is a speed cheat, to see a snap-back by eye.
+    /// builds and the editor, holding C is a speed cheat, to see a snap-back by eye. Enter opens chat.
     /// </summary>
     public sealed class ShapeLandControls : IDisposable
     {
@@ -25,6 +25,8 @@ namespace ShapeLand.Client
             MouseLook = new InputAction("Mouse look", InputActionType.PassThrough, "<Mouse>/delta", expectedControlType: "Vector2");
             StickLook = new InputAction("Stick look", InputActionType.Value, "<Gamepad>/rightStick", expectedControlType: "Vector2");
             SpeedCheat = new InputAction("Speed cheat", InputActionType.Button, "<Keyboard>/c");
+            OpenChat = new InputAction("Open chat", InputActionType.Button, "<Keyboard>/enter");
+            OpenChat.AddBinding("<Keyboard>/numpadEnter");
 
             foreach (var action in All)
             {
@@ -49,7 +51,10 @@ namespace ShapeLand.Client
         /// <summary>While held, in development builds and the editor, the player moves too fast and gets snapped back.</summary>
         public InputAction SpeedCheat { get; }
 
-        private InputAction[] All => new[] { Move, Jump, OrbitHeld, MouseLook, StickLook, SpeedCheat };
+        /// <summary>Opens the chat input (Enter); while it's open, the text field handles Enter and Esc.</summary>
+        public InputAction OpenChat { get; }
+
+        private InputAction[] All => new[] { Move, Jump, OrbitHeld, MouseLook, StickLook, SpeedCheat, OpenChat };
 
         public void Dispose()
         {

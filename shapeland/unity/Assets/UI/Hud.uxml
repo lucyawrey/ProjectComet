@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="ShapeLand.uss" />
+    <ui:VisualElement name="hud" class="hud hidden" picking-mode="Ignore">
+        <ui:VisualElement name="tags" class="tags" picking-mode="Ignore" />
+        <ui:VisualElement name="chat" class="chat" picking-mode="Ignore">
+            <ui:VisualElement name="log" class="chat-log empty" picking-mode="Ignore" />
+            <ui:VisualElement name="chat-input-row" class="chat-input-row hidden">
+                <ui:TextField name="chat-input" max-length="200" class="input chat-input" />
+                <ui:Label text="Enter sends · Esc closes" class="chat-keys" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:Label name="chat-hint" text="Enter to chat" class="chat-hint" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

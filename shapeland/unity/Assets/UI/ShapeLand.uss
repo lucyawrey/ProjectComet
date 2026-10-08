@@ -96,3 +96,60 @@ Label { padding: 0; margin: 0; }
     -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
 }
 .join-button:hover { background-color: rgb(83, 141, 247); }
+
+/* ---- In game: chat, name tags and speech bubbles ---- */
+
+.hud {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf");
+    font-size: 15px;
+    color: rgb(238, 241, 246);
+}
+.hud.hidden { display: none; }
+.tags { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+
+/* The chat box and its hint fade in code (Hud), not with USS transitions. */
+.chat { position: absolute; left: 16px; bottom: 16px; width: 380px; }
+.chat-log { padding: 8px 10px; background-color: rgba(18, 22, 30, 0.7); border-radius: 6px; }
+.chat-log.empty { display: none; }
+.chat-line { flex-direction: row; align-items: flex-start; margin-bottom: 3px; }
+.chat-line .shape-icon { width: 14px; height: 14px; margin-right: 5px; margin-top: 3px; flex-shrink: 0; }
+.chat-name { font-size: 14px; margin-right: 6px; flex-shrink: 0; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.chat-text { font-size: 14px; flex-shrink: 1; white-space: normal; }
+.chat-note { font-size: 14px; color: rgb(169, 178, 196); white-space: normal; }
+
+.chat-input-row {
+    margin-top: 6px; padding-right: 10px;
+    flex-direction: row; align-items: center;
+    background-color: rgba(18, 22, 30, 0.9);
+    border-width: 1px; border-color: rgb(61, 124, 240); border-radius: 4px;
+}
+.chat-input-row.hidden { display: none; }
+.chat-input { flex-grow: 1; }
+.chat-input .unity-base-text-field__input { background-color: rgba(0, 0, 0, 0); border-width: 0; font-size: 14px; }
+.chat-keys { font-size: 12px; color: rgb(141, 151, 171); }
+
+.chat-hint {
+    position: absolute; left: 16px; bottom: 16px;
+    padding: 4px 9px; font-size: 13px;
+    background-color: rgba(18, 22, 30, 0.6); border-radius: 3px;
+    opacity: 0;
+}
+
+.name-tag {
+    position: absolute; translate: -50% -100%;
+    padding: 2px 8px; font-size: 13px;
+    background-color: rgba(18, 22, 30, 0.75); border-radius: 3px;
+}
+.bubble {
+    position: absolute; translate: -50% -100%;
+    max-width: 220px; padding: 6px 11px;
+    background-color: rgba(18, 22, 30, 0.88); border-radius: 6px;
+}
+.bubble > Label { font-size: 14px; white-space: normal; -unity-text-align: middle-center; }
+.bubble-tail {
+    position: absolute; left: 50%; bottom: -6px;
+    width: 11px; height: 11px; margin-left: -6px;
+    rotate: 45deg;
+    background-color: rgba(18, 22, 30, 0.88);
+}

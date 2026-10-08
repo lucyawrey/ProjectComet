@@ -29,6 +29,7 @@ namespace ShapeLand.Client.Tests
         private JoinClient _join;
         private GameView _view;
         private JoinScreen _screen;
+        private Hud _hud;
         private InputSettings.EditorInputBehaviorInPlayMode _editorInput;
         private InputSettings.BackgroundBehavior _background;
 
@@ -51,6 +52,11 @@ namespace ShapeLand.Client.Tests
                 Object.Destroy(_camera);
             }
 
+            if (_hud != null)
+            {
+                Object.Destroy(_hud.gameObject);
+            }
+
             if (_keyboard != null)
             {
                 InputSystem.RemoveDevice(_keyboard);
@@ -65,6 +71,7 @@ namespace ShapeLand.Client.Tests
             _camera = null;
             _keyboard = null;
             _screen = null;
+            _hud = null;
         }
 
         [TestCase(0, 0, 1, 0, 1)]
@@ -281,6 +288,12 @@ namespace ShapeLand.Client.Tests
             Assert.That(_join.Content.Shapes[spawn.Shape].Mesh, Is.EqualTo(MeshKind.Cube));
             Assert.That(spawn.Colour, Is.EqualTo(ShapeLandRules.BodyColours[1]));
             Assert.That(spawn.EyeColour, Is.EqualTo(ShapeLandRules.EyeColours[3]));
+
+            // The overlay fills the screen next to the join screen (a nested UIDocument once gave it no height).
+            yield return null;
+            var screen = _hud.Root.panel.visualTree.worldBound;
+            Assert.That(_hud.Root.worldBound.height, Is.EqualTo(screen.height).Within(1), "The overlay doesn't fill the screen.");
+            Assert.That(_hud.Root.Q("chat").worldBound.yMax, Is.LessThanOrEqualTo(screen.yMax).And.GreaterThan(screen.height / 2), "The chat box isn't in the lower part of the screen.");
         }
 
         [UnityTest]
@@ -319,6 +332,76 @@ namespace ShapeLand.Client.Tests
             yield return TestGameServer.WaitFor(() => _screen.Error != null, 15);
             Assert.That(_screen.Error, Does.Contain("Couldn't reach the server at 127.0.0.1:9"));
             Assert.That(_screen.Showing, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator ChatGoesRoundWithALogLineAndABubble()
+        {
+            yield return StartGame();
+            var player = _view.Player;
+            _hud.OpenChat();
+            Assert.That(player.InputEnabled, Is.False, "The shape can still move while typing.");
+            _hud.Typed = "  hello island  ";
+            _hud.SendChat();
+            Assert.That(_hud.ChatOpen, Is.False);
+            Assert.That(player.InputEnabled, Is.True);
+
+            yield return TestGameServer.WaitFor(() => _hud.LogLines().Count > 0, 10);
+            Assert.That(_hud.LogLines(), Is.EqualTo(new[] { "Unity test hello island" }));
+            Assert.That(_hud.BubbleOf(_join.Session.EntityId), Is.EqualTo("hello island"), "No bubble over the player's own shape.");
+            yield return Wait(0.6f);
+            Assert.That(_hud.ChatOpacity, Is.EqualTo(1), "The log isn't showing after a message.");
+        }
+
+        [UnityTest]
+        public IEnumerator EnterOpensChatAndTheShapeStaysPut()
+        {
+            yield return StartGame();
+            var player = _view.Player;
+            _keyboard = InputSystem.AddDevice<Keyboard>();
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.Enter));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState());
+            yield return Wait(0.3f);
+            Assert.That(_hud.ChatOpen, Is.True, "Enter didn't open chat.");
+
+            var start = player.transform.position;
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.W));
+            yield return Wait(1);
+            Assert.That(Vector3.Distance(start, player.transform.position), Is.LessThan(0.1f), "The shape moved while typing.");
+
+            _hud.CloseChat();
+            yield return Wait(1);
+            Assert.That(Vector3.Distance(start, player.transform.position), Is.GreaterThan(1f), "The shape didn't move after chat closed.");
+        }
+
+        [UnityTest]
+        public IEnumerator OthersChatInTheLogAndInBubbles()
+        {
+            yield return StartGame();
+            yield return _server.StartBots(1, 20);
+            yield return TestGameServer.WaitFor(() => _hud.LogLines().Any(line => line.StartsWith("Bot 01 ")), 15);
+            var line = _hud.LogLines().FirstOrDefault(l => l.StartsWith("Bot 01 "));
+            Assert.That(line, Is.Not.Null, "The bot's chat never reached the log.");
+            var bot = _view.Spawns.First(p => p.Value.Name == "Bot 01").Key;
+            Assert.That("Bot 01 " + _hud.BubbleOf(bot), Is.EqualTo(line), "The bot's bubble doesn't show its line.");
+        }
+
+        [UnityTest]
+        public IEnumerator ChattingTooFastIsExplained()
+        {
+            yield return StartGame();
+            for (var i = 0; i < 5; i++)
+            {
+                _hud.OpenChat();
+                _hud.Typed = $"line {i}";
+                _hud.SendChat();
+            }
+
+            yield return TestGameServer.WaitFor(() => _hud.LogLines().Any(l => l.Contains("too quickly")), 10);
+            Assert.That(_hud.LogLines().Count(l => l.StartsWith("Unity test line")), Is.EqualTo(3), "The server's burst of three wasn't delivered.");
+            Assert.That(_hud.LogLines().Any(l => l.Contains("too quickly")), Is.True, "Sending too fast wasn't explained.");
         }
 
         // Presses a button the way a keyboard or gamepad submit does.
@@ -390,6 +473,15 @@ namespace ShapeLand.Client.Tests
             serialized.FindProperty("eyeFadeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/EyesFade.mat");
             serialized.FindProperty("orbitCamera").objectReferenceValue = _camera.GetComponent<OrbitCamera>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            // Not a child of the game object, as in the scene: a UIDocument under another one is added inside its tree.
+            var hud = new GameObject("Hud");
+            hud.SetActive(false);
+            var hudDocument = hud.AddComponent<UIDocument>();
+            hudDocument.panelSettings = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/UI/ShapeLandPanel.asset");
+            hudDocument.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Hud.uxml");
+            _hud = hud.AddComponent<Hud>();
+            _hud.Attach(_join, _view);
+            hud.SetActive(true);
             if (joinScreen)
             {
                 _join.JoinOnStart = false;
