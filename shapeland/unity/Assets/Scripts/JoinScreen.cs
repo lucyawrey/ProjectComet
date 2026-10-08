@@ -164,7 +164,7 @@ namespace ShapeLand.Client
                 swatch.EnableInClassList("on", (uint)swatch.userData == _eyeColour);
             }
 
-            _preview.Show(_shape.Mesh, _colour, _eyeColour);
+            _preview.Show(_shape, _colour, _eyeColour);
 
             var best = _content.Shapes.All.Select(Stats).ToList();
             var (speed, jump) = Stats(_shape);
@@ -314,11 +314,11 @@ namespace ShapeLand.Client
                 target.style.backgroundImage = Background.FromRenderTexture(_texture);
             }
 
-            public void Show(MeshKind kind, uint colour, uint eyeColour)
+            public void Show(Shape shape, uint colour, uint eyeColour)
             {
                 var facing = _shape != null ? _shape.transform.localRotation : Quaternion.Euler(0, 200, 0);
                 Clear();
-                _shape = _view.BuildShape(kind, colour, eyeColour, "Previewed shape", out _materials);
+                _shape = _view.BuildShape(shape, colour, eyeColour, "Previewed shape", out _materials);
                 _shape.transform.SetParent(_stand.transform, false);
                 _shape.transform.localRotation = facing;
                 foreach (var renderer in _shape.GetComponentsInChildren<Renderer>())

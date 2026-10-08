@@ -1,5 +1,16 @@
 id = "shape.cube"
 display_name = "Cube"
 mesh = "cube"
-max_speed = 6.0
-jump_velocity = 7.0
+max_speed = 6.5
+jump_velocity = 8.5
+
+# How it's drawn, in metres. Looks only: every shape collides as the same body (MovementRules).
+[look]
+width = 0.7
+depth = 0.7
+height = 0.7
+hover = 0.10
+eye_width = 0.1
+eye_height = 0.14
+eye_spacing = 0.24
+eye_level = 0.48  # height of the eyes' centres above the bottom
