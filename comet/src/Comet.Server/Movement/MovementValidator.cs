@@ -15,7 +15,7 @@ public enum MovementVerdict
     /// <summary>Moved further than the speed budget allows.</summary>
     TooFast,
 
-    /// <summary>Rose higher than a jump from the last ground can reach.</summary>
+    /// <summary>Higher than gravity allows: above the arc of a jump from the last ground at this point in it.</summary>
     TooHigh,
 
     /// <summary>The body overlaps a solid box.</summary>
@@ -25,6 +25,22 @@ public enum MovementVerdict
     UnderGround,
 
     /// <summary>Fell below the world's kill height; respawn.</summary>
+    FellOut,
+}
+
+/// <summary>What <see cref="MovementValidator.Fall"/> did this tick.</summary>
+public enum FallResult
+{
+    /// <summary>Nothing: the player is on the ground, or still reporting.</summary>
+    None,
+
+    /// <summary>The server moved a silent airborne player; send their new state.</summary>
+    Moved,
+
+    /// <summary>The server's fall landed; send the state, and the client the correction from <see cref="MovementValidator.Landing"/>.</summary>
+    Landed,
+
+    /// <summary>The server's fall went below the kill height; respawn.</summary>
     FellOut,
 }
 
@@ -43,6 +59,15 @@ public sealed class MovementTolerances
     /// <summary>Allowed jump height as a multiple of the shape's jump apex.</summary>
     public float JumpFactor { get; set; } = 1.2f;
 
+    /// <summary>
+    /// How long, in seconds, a takeoff may come after the last report on the ground: reports are paced, so the
+    /// gravity arc starts this much later than that report, which only ever makes it more lenient.
+    /// </summary>
+    public float AirTimeSlack { get; set; } = 0.3f;
+
+    /// <summary>Seconds without a report before the server moves an airborne player itself.</summary>
+    public float SilenceSeconds { get; set; } = 0.5f;
+
     /// <summary>Extra height always allowed above a jump, in metres.</summary>
     public float HeightSlack { get; set; } = 0.3f;
 
@@ -54,8 +79,11 @@ public sealed class MovementTolerances
 /// Checks one player's position reports (the client is the authority on its own movement, within these rules;
 /// netcode.md). Speed uses a distance budget: each server tick earns max speed × the speed factor, each report
 /// spends the distance it moved, and the budget is capped, so a burst of reports after a stall passes but
-/// banking movement for a dash doesn't. Height is limited to a jump from the last ground the player stood on.
-/// Used from the tick thread only.
+/// banking movement for a dash doesn't. Height follows gravity: in the air, a report must stay under the arc of
+/// a jump from the last ground the player stood on, at that point in time (the report's stamp). The server never
+/// steers, but it knows gravity: a player silent in the air for <see cref="MovementTolerances.SilenceSeconds"/>
+/// is moved down that arc by the server (<see cref="Fall"/>) until they land, and their client is corrected
+/// there; on the ground, silence just means standing still. Used from the tick thread only.
 /// </summary>
 public sealed class MovementValidator
 {
@@ -66,6 +94,13 @@ public sealed class MovementValidator
     private float _budget;
     private uint _lastTick;
     private float _groundY;
+    private uint _groundTick;
+    private uint _lastReportTick;
+    private bool _airborne;
+    private Vector3 _velocity;
+    private bool _serverFalling;
+    private MotorState _fall;
+    private Vector2 _fallMove;
 
     public MovementValidator(CollisionWorld world, MovementRules rules, MovementTolerances tolerances, int tickRate)
     {
@@ -89,6 +124,9 @@ public sealed class MovementValidator
     /// <summary>Rejected reports so far (not counting stale ones or falls).</summary>
     public int Violations { get; private set; }
 
+    /// <summary>True while the server is moving the player down a fall, because their client went silent in the air.</summary>
+    public bool ServerFalling => _serverFalling;
+
     /// <summary>Places the player, standing on the ground at <paramref name="position"/>, e.g. at spawn.</summary>
     public void Reset(Vector3 position, float facing, uint tick)
     {
@@ -96,12 +134,21 @@ public sealed class MovementValidator
         SafePosition = position;
         Facing = facing;
         _groundY = position.Y;
+        _groundTick = tick;
         _lastTick = tick;
+        _lastReportTick = tick;
+        _airborne = false;
+        _serverFalling = false;
+        _velocity = Vector3.Zero;
         _budget = _tolerances.DistanceSlack;
     }
 
-    /// <summary>Checks a report received at server tick <paramref name="tick"/>, accepting it if it passes.</summary>
-    public MovementVerdict Check(in PositionReport report, uint tick, float maxSpeed, float jumpVelocity)
+    /// <summary>
+    /// Checks a report received at server tick <paramref name="tick"/>, accepting it if it passes.
+    /// <paramref name="stamp"/> is when the client sent it (bounded by <see cref="StateStamp"/>), which times the
+    /// gravity arc, so late reports after a stall aren't judged by when they arrived; it defaults to the arrival.
+    /// </summary>
+    public MovementVerdict Check(in PositionReport report, uint tick, float maxSpeed, float jumpVelocity, uint? stamp = null)
     {
         if (report.CorrectionSequence != CorrectionSequence)
         {
@@ -113,6 +160,13 @@ public sealed class MovementValidator
         _lastTick = tick;
         _budget = MathF.Min(_budget + allowedSpeed * elapsed, allowedSpeed * _tolerances.MaxBurstSeconds + _tolerances.DistanceSlack);
 
+        // Standing still sends nothing, and the first report after it is sent as the player starts moving, so a
+        // player last seen on the ground was still there when this report was sent.
+        if (!_airborne)
+        {
+            _groundTick = Math.Max(_groundTick, stamp ?? tick);
+        }
+
         var position = new Vector3(report.X, report.Y, report.Z);
         if (position.Y < _world.KillHeight)
         {
@@ -122,7 +176,7 @@ public sealed class MovementValidator
         var distance = Vector2.Distance(new Vector2(Position.X, Position.Z), new Vector2(position.X, position.Z));
         var verdict =
             distance > _budget ? MovementVerdict.TooFast
-            : position.Y > _groundY + _rules.JumpApex(jumpVelocity) * _tolerances.JumpFactor + _tolerances.HeightSlack ? MovementVerdict.TooHigh
+            : position.Y > _groundY + AllowedRise(stamp ?? tick, jumpVelocity) ? MovementVerdict.TooHigh
             : _world.IsBlocked(position, _rules.BodyRadius, _rules.BodyHeight) ? MovementVerdict.InsideBox
             : _world.Terrain != null && _world.Terrain.TryGetHeight(position.X, position.Z, out var terrain) && position.Y < terrain - _tolerances.GroundSlack ? MovementVerdict.UnderGround
             : MovementVerdict.Accepted;
@@ -136,14 +190,108 @@ public sealed class MovementValidator
         _budget -= distance;
         Position = position;
         Facing = report.Facing;
+        _velocity = new Vector3(report.VelocityX, report.VelocityY, report.VelocityZ);
+        _lastReportTick = tick;
+        _airborne = !Land(position, stamp ?? tick);
+        return MovementVerdict.Accepted;
+    }
+
+    // Notes the ground under an accepted position, if it's standing on some; returns whether it is.
+    private bool Land(Vector3 position, uint tick)
+    {
         if (_world.TryGetGround(position, _rules.BodyRadius, position.Y + _tolerances.HeightSlack, out var ground) && position.Y - ground <= _tolerances.HeightSlack)
         {
             _groundY = ground;
+            _groundTick = Math.Max(_groundTick, tick);
             SafePosition = position;
+            return true;
         }
 
-        return MovementVerdict.Accepted;
+        return false;
     }
+
+    // Seconds since the last ground, less the takeoff slack: how far into a jump a moment at tick can be.
+    private float AirTime(uint tick) =>
+        MathF.Max(0, (tick > _groundTick ? tick - _groundTick : 0) / (float)_tickRate - _tolerances.AirTimeSlack);
+
+    /// <summary>
+    /// How far above the last ground a player can be at <paramref name="tick"/>: a full jump (with the tolerances)
+    /// until it would peak, then falling under gravity from there.
+    /// </summary>
+    private float AllowedRise(uint tick, float jumpVelocity)
+    {
+        var top = _rules.JumpApex(jumpVelocity) * _tolerances.JumpFactor + _tolerances.HeightSlack;
+        var falling = AirTime(tick) - jumpVelocity / _rules.Gravity;
+        return falling <= 0 ? top : top - 0.5f * _rules.Gravity * falling * falling;
+    }
+
+    /// <summary>
+    /// Called every server tick. Once an airborne player has been silent for
+    /// <see cref="MovementTolerances.SilenceSeconds"/>, moves them down their fall with the shared movement code:
+    /// from their last reported velocity (its upward part capped by the arc), sideways as if they still held the
+    /// keys, until they land or fall out. Reports sent before the landing correction are ignored meanwhile.
+    /// </summary>
+    public FallResult Fall(uint tick, float maxSpeed, float jumpVelocity)
+    {
+        if (!_airborne)
+        {
+            return FallResult.None;
+        }
+
+        if (!_serverFalling)
+        {
+            if (tick - _lastReportTick < _tolerances.SilenceSeconds * _tickRate)
+            {
+                return FallResult.None;
+            }
+
+            _serverFalling = true;
+            CorrectionSequence++; // the silent client's reports from before the landing correction are stale
+            var maxUp = jumpVelocity - _rules.Gravity * AirTime(tick);
+            _fall = new MotorState
+            {
+                Position = Position,
+                Velocity = new Vector3(_velocity.X, MathF.Min(_velocity.Y, maxUp), _velocity.Z),
+                Grounded = false,
+                Facing = Facing,
+            };
+            _fallMove = maxSpeed > 0 ? new Vector2(_velocity.X, _velocity.Z) / maxSpeed : Vector2.Zero;
+        }
+
+        PlayerMotor.Step(ref _fall, _fallMove, jump: false, 1f / _tickRate, maxSpeed, jumpVelocity, _world, _rules);
+        Position = _fall.Position;
+        Facing = _fall.Facing;
+        if (Position.Y < _world.KillHeight)
+        {
+            _serverFalling = false;
+            return FallResult.FellOut;
+        }
+
+        if (!_fall.Grounded)
+        {
+            return FallResult.Moved;
+        }
+
+        _serverFalling = false;
+        _airborne = false;
+        _velocity = Vector3.Zero;
+        Land(Position, tick);
+        _lastTick = tick;
+        _lastReportTick = tick;
+        _budget = _tolerances.DistanceSlack;
+        return FallResult.Landed;
+    }
+
+    /// <summary>The correction after a server fall lands: to where it landed, with the sequence it began.</summary>
+    public PositionCorrection Landing() => new()
+    {
+        Sequence = CorrectionSequence,
+        Reason = CorrectionReason.SnapBack,
+        X = Position.X,
+        Y = Position.Y,
+        Z = Position.Z,
+        Facing = Facing,
+    };
 
     /// <summary>
     /// Builds the correction for a rejected report or a fall: back to the last accepted position, or for a fall to

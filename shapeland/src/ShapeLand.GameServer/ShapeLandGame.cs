@@ -80,6 +80,15 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             }
         }
 
+        // The server knows gravity: players silent in the air fall (netcode.md).
+        foreach (var player in _players.Values)
+        {
+            if (player.Joined)
+            {
+                Fall(player, tick);
+            }
+        }
+
         foreach (var mover in _players.Values)
         {
             if (!mover.Moved)
@@ -171,11 +180,12 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        var verdict = player.Validator.Check(report, tick, player.Shape.MaxSpeed, player.Shape.JumpVelocity);
+        var stamp = player.Stamp.Stamp(clientTick, tick);
+        var verdict = player.Validator.Check(report, tick, player.Shape.MaxSpeed, player.Shape.JumpVelocity, stamp);
         switch (verdict)
         {
             case MovementVerdict.Accepted:
-                player.StateTick = player.Stamp.Stamp(clientTick, tick);
+                player.StateTick = stamp;
                 player.Moved = true;
                 break;
             case MovementVerdict.Stale:
@@ -196,6 +206,27 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
                 }
 
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick));
+                break;
+        }
+    }
+
+    private void Fall(Player player, uint tick)
+    {
+        switch (player.Validator.Fall(tick, player.Shape.MaxSpeed, player.Shape.JumpVelocity))
+        {
+            case FallResult.Moved:
+                player.StateTick = player.Stamp.StampServer(tick);
+                player.Moved = true;
+                break;
+            case FallResult.Landed:
+                player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Landing());
+                player.StateTick = player.Stamp.StampServer(tick);
+                player.Moved = true;
+                break;
+            case FallResult.FellOut:
+                player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
+                player.StateTick = player.Stamp.StampServer(tick);
+                player.Moved = true;
                 break;
         }
     }

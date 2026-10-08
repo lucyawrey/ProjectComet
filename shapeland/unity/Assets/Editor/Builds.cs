@@ -34,6 +34,13 @@ namespace ShapeLand.Client.Editor
         [MenuItem("ShapeLand/Build/macOS (IL2CPP)")]
         public static void MacOS() => Build(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, "macos/ShapeLand.app");
 
+        /// <summary>
+        /// A desktop build of the game scene. A development build, so the speed-cheat key (hold C) works for
+        /// seeing a snap-back blend; the server field on the join screen picks the server.
+        /// </summary>
+        [MenuItem("ShapeLand/Build/macOS (Game Scene)")]
+        public static void MacOSGame() => Build(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, "macos-game/ShapeLand.app", GameScene, BuildOptions.Development);
+
         [MenuItem("ShapeLand/Build/Web")]
         public static void Web()
         {
@@ -233,7 +240,7 @@ namespace ShapeLand.Client.Editor
             return material;
         }
 
-        private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene)
+        private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene, BuildOptions options = BuildOptions.None)
         {
             CopyContent();
 
@@ -247,6 +254,7 @@ namespace ShapeLand.Client.Editor
                 target = target,
                 targetGroup = group,
                 locationPathName = Path.Combine(RepoRoot, "artifacts", "unity", "shapeland", output),
+                options = options,
             });
 
             Debug.Log($"Build {report.summary.result}: {report.summary.outputPath} ({report.summary.totalErrors} errors)");
