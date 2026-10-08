@@ -10,8 +10,9 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// The player's own shape: moves it with the shared <see cref="PlayerMotor"/> on a fixed step, reports its
-    /// position, and draws it between the last two steps. A correction from the server moves it at once (the
-    /// blend comes later).
+    /// position, and draws it between the last two steps. A snap-back from the server moves the simulation at once
+    /// and blends the drawn shape after it; a respawn moves both, behind the screen fade, which starts while
+    /// falling (<see cref="RespawnFade"/>).
     /// </summary>
     public sealed class LocalPlayer : MonoBehaviour
     {
@@ -21,8 +22,12 @@ namespace ShapeLand.Client
         /// </summary>
         public const int StepsPerSecond = 60;
 
+        /// <summary>How much faster than the shape allows the speed cheat moves (development builds and the editor only), like the cheating bots.</summary>
+        public const float SpeedCheat = 2.5f;
+
         private readonly FixedStep _step = new FixedStep(StepsPerSecond);
         private readonly PositionReporter _reporter = new PositionReporter();
+        private readonly CorrectionBlend _blend = new CorrectionBlend();
         private ClientSession _session;
         private CollisionWorld _world;
         private Shape _shape;
@@ -31,6 +36,7 @@ namespace ShapeLand.Client
         private MotorState _motor;
         private MotorState _previous;
         private bool _jumpQueued;
+        private System.Numerics.Vector3 _drawn;
 
         /// <summary>The motor's state after the latest step.</summary>
         public MotorState Motor => _motor;
@@ -38,6 +44,12 @@ namespace ShapeLand.Client
         public int SnapBacks { get; private set; }
 
         public int Respawns { get; private set; }
+
+        /// <summary>How far the drawn shape still trails the simulation after a snap-back, in metres.</summary>
+        public float BlendDistance => _blend.Offset.Length();
+
+        /// <summary>How dark the screen should be for the respawn fade: 0 clear, 1 black.</summary>
+        public float Darkness { get; private set; }
 
         public void Begin(ClientSession session, CollisionWorld world, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)
         {
@@ -75,11 +87,17 @@ namespace ShapeLand.Client
             _jumpQueued |= _controls.Jump.WasPressedThisFrame();
 
             var now = CometConnection.Now;
+            var maxSpeed = _shape.MaxSpeed;
+            if (Debug.isDebugBuild && _controls.SpeedCheat.IsPressed())
+            {
+                maxSpeed *= SpeedCheat;
+            }
+
             var steps = _step.Advance(now);
             for (var i = 0; i < steps; i++)
             {
                 _previous = _motor;
-                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, _shape.MaxSpeed, _shape.JumpVelocity, _world, ShapeLandWorld.Rules);
+                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, ShapeLandWorld.Rules);
                 _jumpQueued = false;
                 if (_reporter.ShouldReport(_motor.Velocity, now))
                 {
@@ -87,14 +105,16 @@ namespace ShapeLand.Client
                 }
             }
 
+            _blend.Advance(Time.unscaledDeltaTime);
             Draw(_step.Alpha);
+            Darkness = RespawnFade.Step(Darkness, _drawn.Y, _world.KillHeight, Time.unscaledDeltaTime);
         }
 
         private void Draw(float alpha)
         {
-            var position = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha);
+            _drawn = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha) + _blend.Offset;
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
-            transform.SetPositionAndRotation(WorldMeshes.ToUnity(position), Quaternion.Euler(0, facing, 0));
+            transform.SetPositionAndRotation(WorldMeshes.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
         }
 
         private void OnCorrected(PositionCorrection correction)
@@ -106,12 +126,18 @@ namespace ShapeLand.Client
             _reporter.Reset();
             if (correction.Reason == CorrectionReason.Respawn)
             {
+                // Usually dark already from the fall; if not, cut to black rather than show the jump.
+                _blend.Clear();
+                Darkness = 1;
                 Respawns++;
             }
             else
             {
+                _blend.Begin(_drawn, _motor.Position);
                 SnapBacks++;
             }
+
+            Draw(1);
         }
 
         private void OnDestroy()
