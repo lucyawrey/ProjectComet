@@ -25,7 +25,7 @@ Agent notes on networking.
 - **Client position reports:** position, velocity, facing and the client's server-tick estimate, about 15 Hz while moving (tuned in the load test), sent immediately on starting, stopping or turning sharply, and not at all while standing still.
 - **Movement validation** (tolerances tuned in the prototype): distance since the last report must fit max speed × elapsed ticks with ~20% tolerance, allowing for active movement skills, knockback curves and mounts; after a stall, a burst of reports is checked against the total elapsed time so hiccups don't cause snap-backs. The path between reports must not cross a collision volume, and the position must fit the player's state (grounded, or flying with mount and attunement). On failure the server sends a correction and the client blends to it over a few frames.
 - **Repeated movement violations are logged and flagged for moderation,** never auto-banned.
-- **Other players are drawn through an interpolation buffer,** starting at 100 ms and tuned in the prototype; after a stall the client jumps to the latest state instead of replaying.
+- **Other players are drawn through an interpolation buffer** with an adaptive delay (about two report intervals or more, from what arriving states need; `prototype.md`); after a stall the client jumps to the latest state instead of replaying.
 
 ## Considering
 

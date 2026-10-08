@@ -98,6 +98,18 @@ public class RemoteEntitiesTests
     }
 
     [Fact]
+    public void ReportsThePreviousStampOnlyWhileMoving()
+    {
+        Assert.Null(_entities.AddState(1, 10, Vector3.One, 0));
+
+        _entities.Spawn(1, 10, Vector3.Zero, 0);
+        Assert.Equal(10, _entities.AddState(1, 12, new Vector3(2, 0, 0), 0));
+        Assert.Null(_entities.AddState(1, 12, new Vector3(3, 0, 0), 0));
+        // Past the idle gap the entity stood still, so the gap says nothing about the delay needed.
+        Assert.Null(_entities.AddState(1, 100, new Vector3(4, 0, 0), 0));
+    }
+
+    [Fact]
     public void IgnoresUnknownEntitiesAndOldStates()
     {
         _entities.AddState(2, 10, Vector3.One, 0);
