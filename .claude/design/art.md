@@ -6,7 +6,7 @@ Agent notes on art direction. The project lead's working thoughts are in `.claud
 
 ## Decided
 
-- **Human-made creative content only.** No AI-generated models, textures, readable in-game text, music or sound.
+- **Human-made creative content only.** No AI-generated models, textures, readable in-game text, music or sound. Plain interface text (labels, buttons, error messages) isn't creative content, so agents may write it (`ui.md`).
 - **Low-poly art.**
 - **Fidelity leans slightly towards PS1, and at most GameCube.** **PS1 quirks (affine texture warping, vertex jitter) are not recreated**; only the resolution and polygon budget are borrowed.
 - **No screen-wide pixelation filter.** Players could add one through client-side mods (see `backend.md`).
