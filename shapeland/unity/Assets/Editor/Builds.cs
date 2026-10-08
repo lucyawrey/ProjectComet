@@ -193,6 +193,10 @@ namespace ShapeLand.Client.Editor
         private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene)
         {
             CopyContent();
+
+            // The web client loads its content over plain HTTP from whichever server served the page, such as
+            // the game server on another machine on the network; Unity otherwise allows that only from localhost.
+            PlayerSettings.insecureHttpOption = InsecureHttpOption.AlwaysAllowed;
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group), ScriptingImplementation.IL2CPP);
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
