@@ -47,25 +47,52 @@ namespace ShapeLand.Client
             return Build("Island", vertices);
         }
 
-        /// <summary>A shape's mesh, standing on its origin and filling the player's collision body.</summary>
-        public static Mesh Shape(MeshKind kind, MovementRules rules)
+        /// <summary>How far the eyes stand out of the face, in metres.</summary>
+        private const float EyeDepth = 0.06f;
+
+        /// <summary>A shape's mesh, standing on its origin, sized by its look in content.</summary>
+        public static Mesh Shape(MeshKind kind, ShapeLook look)
         {
-            var r = rules.BodyRadius;
-            var h = rules.BodyHeight;
+            var x = look.Width / 2;
+            var z = look.Depth / 2;
+            var h = look.Height;
             switch (kind)
             {
                 case MeshKind.Diamond:
                     var top = new Vector3(0, h, 0);
                     var bottom = Vector3.zero;
-                    var ring = new[] { new Vector3(-r, h / 2, -r), new Vector3(r, h / 2, -r), new Vector3(r, h / 2, r), new Vector3(-r, h / 2, r) };
-                    return Solid("Diamond", ring.SelectMany((p, i) => new[] { top, p, ring[(i + 1) % 4], bottom, p, ring[(i + 1) % 4] }));
+                    var w = look.Waist;
+                    var ring = new[] { new Vector3(-x, w, -z), new Vector3(x, w, -z), new Vector3(x, w, z), new Vector3(-x, w, z) };
+                    return Solid("Diamond", ring.SelectMany((p, i) => new[] { top, p, ring[(i + 1) % 4], bottom, p, ring[(i + 1) % 4] }), new Vector3(0, w, 0));
                 case MeshKind.Pyramid:
                     var apex = new Vector3(0, h, 0);
-                    var corners = new[] { new Vector3(-r, 0, -r), new Vector3(r, 0, -r), new Vector3(r, 0, r), new Vector3(-r, 0, r) };
+                    var corners = new[] { new Vector3(-x, 0, -z), new Vector3(x, 0, -z), new Vector3(x, 0, z), new Vector3(-x, 0, z) };
                     var sides = corners.SelectMany((p, i) => new[] { apex, p, corners[(i + 1) % 4] });
                     return Solid("Pyramid", sides.Concat(new[] { corners[0], corners[1], corners[2], corners[0], corners[2], corners[3] }));
                 default:
-                    return Cuboid("Cube", new Vector3(0, r, 0), new Vector3(2 * r, 2 * r, 2 * r));
+                    return Cuboid("Cube", new Vector3(0, h / 2, 0), new Vector3(look.Width, h, look.Depth));
+            }
+        }
+
+        /// <summary>
+        /// Where a shape's front face (+Z) is on its centre line at height <paramref name="y"/>: how far forward,
+        /// and how far it leans back from upright, in radians (negative leans forward, as under a diamond's waist).
+        /// </summary>
+        public static (float Forward, float Lean) FrontFace(MeshKind kind, ShapeLook look, float y)
+        {
+            var z = look.Depth / 2;
+            var h = look.Height;
+            switch (kind)
+            {
+                case MeshKind.Pyramid:
+                    return (z * (1 - y / h), Mathf.Atan2(z, h));
+                case MeshKind.Diamond:
+                    var w = look.Waist;
+                    return y >= w
+                        ? (z * (h - y) / (h - w), Mathf.Atan2(z, h - w))
+                        : (z * y / w, -Mathf.Atan2(z, w));
+                default:
+                    return (z, 0);
             }
         }
 
@@ -73,25 +100,16 @@ namespace ShapeLand.Client
         /// Two eyes on the shape's front face (+Z), so its facing shows: small boxes standing slightly out of the
         /// surface and tilted with it.
         /// </summary>
-        public static Mesh Eyes(MeshKind kind, MovementRules rules)
+        public static Mesh Eyes(MeshKind kind, ShapeLook look)
         {
-            var r = rules.BodyRadius;
-            var h = rules.BodyHeight;
-
-            // Each shape's front face on its centre line: a height on it, how far forward it is there, and how far it leans back.
-            var (y, z, lean) = kind switch
-            {
-                MeshKind.Diamond => (0.65f * h, r * 0.7f, Mathf.Atan2(r, h / 2)),
-                MeshKind.Pyramid => (0.4f * h, r * 0.6f, Mathf.Atan2(r, h)),
-                _ => (1.2f * r, r, 0f),
-            };
-
-            var size = new Vector3(0.1f * r / 0.4f, 0.14f * r / 0.4f, 0.06f);
+            var y = look.EyeLevel;
+            var (z, lean) = FrontFace(kind, look, y);
+            var size = new Vector3(look.EyeWidth, look.EyeHeight, EyeDepth);
             var rotation = Quaternion.Euler(-lean * Mathf.Rad2Deg, 0, 0);
             var triangles = new List<Vector3>();
             foreach (var side in new[] { -1, 1 })
             {
-                var centre = new Vector3(side * 0.3f * r, y, z) + rotation * new Vector3(0, 0, size.z / 4);
+                var centre = new Vector3(side * look.EyeSpacing / 2, y, z) + rotation * new Vector3(0, 0, size.z / 4);
                 triangles.AddRange(Oriented(BoxTriangles(size).Select(v => centre + rotation * v).ToList(), centre));
             }
 

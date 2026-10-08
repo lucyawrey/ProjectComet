@@ -60,21 +60,37 @@ public class ContentTests
     [InlineData("jump_velocity = 99.0", "jump_velocity: 99 is out of range")]
     [InlineData("display_name = \" \"", "display_name: must not be empty")]
     [InlineData("mesh = \"sphere\"", "Invalid enum name `sphere`")]
-    public void ShapeRulesAreChecked(string line, string message)
+    [InlineData("height = 0.0", "look.height: 0 is out of range")]
+    [InlineData("hover = -1.0", "look.hover: -1 is out of range")]
+    [InlineData("eye_level = 5.0", "look.eye_level: 5 is out of range")]
+    [InlineData("waist = 0.3", "look.waist: only diamonds have a waist")]
+    [InlineData("waist = 1.5", "look.waist: 1.5 is out of range", "diamond")]
+    public void ShapeRulesAreChecked(string line, string message, string shape = "cube")
     {
         var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
         try
         {
             CopyDirectory(ContentRoot, root);
-            var cube = Path.Combine(root, "shapes", "cube.toml");
+            var file = Path.Combine(root, "shapes", shape + ".toml");
             var key = line[..line.IndexOf(' ')];
-            File.WriteAllLines(cube, File.ReadAllLines(cube).Select(l => l.StartsWith(key + " ") ? line : l));
+            var lines = File.ReadAllLines(file).ToList();
+            var at = lines.FindIndex(l => l.StartsWith(key + " "));
+            if (at >= 0)
+            {
+                lines[at] = line;
+            }
+            else
+            {
+                lines.Add(line); // a key the file doesn't have goes in its last table, [look]
+            }
+
+            File.WriteAllLines(file, lines);
 
             var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false);
 
             Assert.Null(built);
             var error = Assert.Single(errors);
-            Assert.EndsWith("cube.toml", error.File);
+            Assert.EndsWith(shape + ".toml", error.File);
             Assert.Contains(message, error.Message);
         }
         finally

@@ -56,6 +56,53 @@ public static class ShapeLandBuild
         {
             validation.Error(nameof(Shape.JumpVelocity), $"{shape.JumpVelocity} is out of range (above 0, at most 30 m/s).");
         }
+
+        ValidateLook(shape, validation);
+    }
+
+    private static void ValidateLook(Shape shape, ContentValidation validation)
+    {
+        var look = shape.Look;
+        bool Range(string field, float value, float min, float max, bool minAllowed = false)
+        {
+            if (value > max || value < min || (value == min && !minAllowed))
+            {
+                validation.Error(nameof(Shape.Look), field, $"{value} is out of range ({(minAllowed ? "at least" : "above")} {min}, at most {max} m).");
+                return false;
+            }
+
+            return true;
+        }
+
+        // Checks against the width or height only once those are valid, so one mistake gives one error.
+        var widthOk = Range(nameof(ShapeLook.Width), look.Width, 0, 4);
+        Range(nameof(ShapeLook.Depth), look.Depth, 0, 4);
+        var heightOk = Range(nameof(ShapeLook.Height), look.Height, 0, 4);
+        Range(nameof(ShapeLook.Hover), look.Hover, 0, 2, minAllowed: true);
+        Range(nameof(ShapeLook.EyeWidth), look.EyeWidth, 0, 1);
+        Range(nameof(ShapeLook.EyeHeight), look.EyeHeight, 0, 1);
+        if (widthOk)
+        {
+            Range(nameof(ShapeLook.EyeSpacing), look.EyeSpacing, 0, look.Width, minAllowed: true);
+        }
+
+        if (!heightOk)
+        {
+            return;
+        }
+
+        Range(nameof(ShapeLook.EyeLevel), look.EyeLevel, 0, look.Height, minAllowed: true);
+        if (shape.Mesh == MeshKind.Diamond)
+        {
+            if (look.Waist <= 0 || look.Waist >= look.Height)
+            {
+                validation.Error(nameof(Shape.Look), nameof(ShapeLook.Waist), $"{look.Waist} is out of range (a diamond needs one above 0 and below its height, {look.Height} m).");
+            }
+        }
+        else if (look.Waist != 0)
+        {
+            validation.Error(nameof(Shape.Look), nameof(ShapeLook.Waist), "only diamonds have a waist.");
+        }
     }
 }
 

@@ -227,6 +227,27 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.SnapBacks, Is.EqualTo(0), "The server snapped the player back.");
         }
 
+        [TestCase(MeshKind.Cube)]
+        [TestCase(MeshKind.Diamond)]
+        [TestCase(MeshKind.Pyramid)]
+        public void ShapeMeshesFollowTheirLook(MeshKind kind)
+        {
+            var look = new ShapeLook { Width = 1.2f, Depth = 0.6f, Height = 0.5f, Waist = 0.2f, EyeWidth = 0.1f, EyeHeight = 0.1f, EyeSpacing = 0.4f, EyeLevel = 0.25f };
+            var body = WorldMeshes.Shape(kind, look).bounds;
+            Assert.That(body.size.x, Is.EqualTo(1.2f).Within(1e-4f));
+            Assert.That(body.size.y, Is.EqualTo(0.5f).Within(1e-4f));
+            Assert.That(body.size.z, Is.EqualTo(0.6f).Within(1e-4f));
+            Assert.That(body.min.y, Is.EqualTo(0).Within(1e-4f), "The shape doesn't stand on its origin.");
+
+            // The eyes sit on the front face at their level, either side of the centre line.
+            var eyes = WorldMeshes.Eyes(kind, look).bounds;
+            var (forward, _) = WorldMeshes.FrontFace(kind, look, look.EyeLevel);
+            Assert.That(eyes.center.y, Is.EqualTo(look.EyeLevel).Within(0.02f));
+            Assert.That(eyes.center.x, Is.EqualTo(0).Within(1e-4f));
+            Assert.That(eyes.size.x, Is.EqualTo(look.EyeSpacing + look.EyeWidth).Within(0.01f));
+            Assert.That(eyes.center.z, Is.EqualTo(forward).Within(0.04f));
+        }
+
         [Test]
         public void ShapeStatsAreSpeedAndJumpHeight()
         {

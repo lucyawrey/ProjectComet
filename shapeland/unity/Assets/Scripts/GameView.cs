@@ -17,9 +17,6 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(JoinClient))]
     public sealed class GameView : MonoBehaviour
     {
-        /// <summary>How high shapes are drawn above their feet, in metres. Only drawing: collision and movement are unchanged.</summary>
-        public const float HoverHeight = 0.15f;
-
         /// <summary>A layer the main camera doesn't draw, for the join screen's shape preview.</summary>
         public const int PreviewLayer = 31;
 
@@ -39,7 +36,7 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, Transform> _others = new Dictionary<uint, Transform>();
         private readonly Dictionary<uint, ShapeFade> _fades = new Dictionary<uint, ShapeFade>();
-        private readonly Dictionary<MeshKind, (Mesh Body, Mesh Eyes)> _meshes = new Dictionary<MeshKind, (Mesh Body, Mesh Eyes)>();
+        private readonly Dictionary<Shape, (Mesh Body, Mesh Eyes)> _meshes = new Dictionary<Shape, (Mesh Body, Mesh Eyes)>();
 
         /// <summary>The player's own shape, once spawned.</summary>
         public LocalPlayer Player { get; private set; }
@@ -108,7 +105,7 @@ namespace ShapeLand.Client
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
             var shape = _join.Content.Shapes[spawn.Shape];
-            Player = BuildShape(_join.Content.Shapes[spawn.Shape].Mesh, spawn.Colour, spawn.EyeColour, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
+            Player = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Colour, spawn.EyeColour, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
             Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
             orbitCamera.Follow(Player.transform, _controls, _world);
         }
@@ -116,7 +113,7 @@ namespace ShapeLand.Client
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
             OnOtherLeft(spawn.EntityId);
-            var other = BuildShape(_join.Content.Shapes[spawn.Shape].Mesh, spawn.Colour, spawn.EyeColour, $"{spawn.Name} ({spawn.EntityId})", out var fade);
+            var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Colour, spawn.EyeColour, $"{spawn.Name} ({spawn.EntityId})", out var fade);
             other.transform.SetPositionAndRotation(new Vector3(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
             _others[spawn.EntityId] = other.transform;
             _fades[spawn.EntityId] = fade;
@@ -133,20 +130,21 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// A player's shape: the body and eyes in their colours (0xRRGGBB), hovering, on an object standing at
-        /// their feet. <paramref name="fade"/> owns the materials made for it; destroy them with it.
+        /// A player's shape: the body and eyes in their colours (0xRRGGBB), sized and hovering as its look in
+        /// content says, on an object standing at their feet. <paramref name="fade"/> owns the materials made for
+        /// it; destroy them with it.
         /// </summary>
-        public GameObject BuildShape(MeshKind kind, uint colour, uint eyeColour, string name, out ShapeFade fade)
+        public GameObject BuildShape(Shape shape, uint colour, uint eyeColour, string name, out ShapeFade fade)
         {
-            if (!_meshes.TryGetValue(kind, out var meshes))
+            if (!_meshes.TryGetValue(shape, out var meshes))
             {
-                meshes = (WorldMeshes.Shape(kind, ShapeLandWorld.Rules), WorldMeshes.Eyes(kind, ShapeLandWorld.Rules));
-                _meshes[kind] = meshes;
+                meshes = (WorldMeshes.Shape(shape.Mesh, shape.Look), WorldMeshes.Eyes(shape.Mesh, shape.Look));
+                _meshes[shape] = meshes;
             }
 
             var player = new GameObject(name);
             var body = AddMesh("Shape", meshes.Body, new Material(shapeMaterial) { color = Colour(colour) }, player.transform);
-            body.transform.localPosition = new Vector3(0, HoverHeight, 0);
+            body.transform.localPosition = new Vector3(0, shape.Look.Hover, 0);
             var eyes = AddMesh("Eyes", meshes.Eyes, new Material(eyeMaterial) { color = Colour(eyeColour) }, body.transform);
             fade = new ShapeFade(body.GetComponent<MeshRenderer>(), eyes.GetComponent<MeshRenderer>(), shapeFadeMaterial, eyeFadeMaterial);
             return player;

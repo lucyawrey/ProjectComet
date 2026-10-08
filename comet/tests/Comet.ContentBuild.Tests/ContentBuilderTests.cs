@@ -78,6 +78,28 @@ public class ContentBuilderTests
         Assert.Matches(@"a\.toml\(2,8\): error: size: must not be negative\.$", error.ToString());
     }
 
+    [Theory]
+    [InlineData("id = \"widget.a\"\nsize = 1\n\n[colour]\nred = 1\nblue = -1\n", 6, 8)]
+    [InlineData("id = \"widget.a\"\nsize = 1\ncolour.blue = -1\n", 3, 15)]
+    [InlineData("id = \"widget.a\"\nsize = 1\ncolour = { red = 1, blue = -1 }\n", 3, 28)]
+    public void ValidationErrorsInATablePointAtTheField(string toml, int line, int column)
+    {
+        using var folder = new ContentFolder();
+        folder.Write("widgets/a.toml", toml);
+
+        var result = folder.Build((widget, validation) =>
+        {
+            if (widget.Colour?.Blue < 0)
+            {
+                validation.Error(nameof(Widget.Colour), nameof(Colour.Blue), "must not be negative.");
+            }
+        });
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal((line, column), (error.Line, error.Column));
+        Assert.Equal("colour.blue: must not be negative.", error.Message);
+    }
+
     [Fact]
     public void ReportsErrorsFromEveryFile()
     {
