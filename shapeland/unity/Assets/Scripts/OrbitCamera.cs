@@ -28,14 +28,21 @@ namespace ShapeLand.Client
         [Tooltip("The least height kept above the ground, in metres.")]
         [SerializeField] private float groundClearance = 0.3f;
 
+        [Tooltip("Before joining: distance, pitch and turning speed (degrees per second) of the slow orbit around the island.")]
+        [SerializeField] private Vector3 showcase = new Vector3(30, 25, 6);
+
         private float _pitch = 20;
         private ShapeLandControls _controls;
         private CollisionWorld _world;
+        private Vector3? _showcaseCentre;
 
         /// <summary>The camera's heading in degrees, clockwise from +Z seen from above: movement is relative to it.</summary>
         public float Yaw { get; private set; }
 
         public Transform Target { get; private set; }
+
+        /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="centre"/> (behind the join screen).</summary>
+        public void Showcase(Vector3 centre) => _showcaseCentre = centre;
 
         /// <summary>Starts following <paramref name="target"/>, from behind it.</summary>
         public void Follow(Transform target, ShapeLandControls controls, CollisionWorld world)
@@ -50,6 +57,14 @@ namespace ShapeLand.Client
         {
             if (Target == null)
             {
+                if (_showcaseCentre is Vector3 centre)
+                {
+                    Yaw = Mathf.Repeat(Yaw + showcase.z * Time.unscaledDeltaTime, 360);
+                    var orbit = Quaternion.Euler(showcase.y, Yaw, 0);
+                    var middle = centre + Vector3.up * 2;
+                    transform.SetPositionAndRotation(middle - orbit * Vector3.forward * showcase.x, orbit);
+                }
+
                 return;
             }
 

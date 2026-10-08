@@ -20,6 +20,9 @@ namespace ShapeLand.Client
         /// <summary>How high shapes are drawn above their feet, in metres. Only drawing: collision and movement are unchanged.</summary>
         public const float HoverHeight = 0.15f;
 
+        /// <summary>A layer the main camera doesn't draw, for the join screen's shape preview.</summary>
+        public const int PreviewLayer = 31;
+
         [SerializeField] private Material terrainMaterial;
         [SerializeField] private Material blockMaterial;
         [SerializeField] private Material shapeMaterial;
@@ -59,6 +62,7 @@ namespace ShapeLand.Client
             _join.OtherLeft += OnOtherLeft;
             _controls = new ShapeLandControls();
             _screenFade = gameObject.AddComponent<ScreenFade>();
+            orbitCamera.GetComponent<Camera>().cullingMask &= ~(1 << PreviewLayer);
         }
 
         // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
@@ -97,12 +101,14 @@ namespace ShapeLand.Client
             {
                 AddMesh("Block", WorldMeshes.Block(box), blockMaterial, blocks);
             }
+
+            orbitCamera.Showcase(WorldMeshes.ToUnity(ShapeLandWorld.SpawnPoint(_world)));
         }
 
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
             var shape = _join.Content.Shapes[spawn.Shape];
-            Player = CreateShape(spawn, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
+            Player = BuildShape(_join.Content.Shapes[spawn.Shape].Mesh, spawn.Colour, spawn.EyeColour, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
             Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
             orbitCamera.Follow(Player.transform, _controls, _world);
         }
@@ -110,7 +116,7 @@ namespace ShapeLand.Client
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
             OnOtherLeft(spawn.EntityId);
-            var other = CreateShape(spawn, $"{spawn.Name} ({spawn.EntityId})", out var fade);
+            var other = BuildShape(_join.Content.Shapes[spawn.Shape].Mesh, spawn.Colour, spawn.EyeColour, $"{spawn.Name} ({spawn.EntityId})", out var fade);
             other.transform.SetPositionAndRotation(new Vector3(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
             _others[spawn.EntityId] = other.transform;
             _fades[spawn.EntityId] = fade;
@@ -126,10 +132,12 @@ namespace ShapeLand.Client
             }
         }
 
-        // A player's shape: the body and eyes in their colours, hovering, on an object standing at their feet.
-        private GameObject CreateShape(PlayerSpawn spawn, string name, out ShapeFade fade)
+        /// <summary>
+        /// A player's shape: the body and eyes in their colours (0xRRGGBB), hovering, on an object standing at
+        /// their feet. <paramref name="fade"/> owns the materials made for it; destroy them with it.
+        /// </summary>
+        public GameObject BuildShape(MeshKind kind, uint colour, uint eyeColour, string name, out ShapeFade fade)
         {
-            var kind = _join.Content.Shapes[spawn.Shape].Mesh;
             if (!_meshes.TryGetValue(kind, out var meshes))
             {
                 meshes = (WorldMeshes.Shape(kind, ShapeLandWorld.Rules), WorldMeshes.Eyes(kind, ShapeLandWorld.Rules));
@@ -137,9 +145,9 @@ namespace ShapeLand.Client
             }
 
             var player = new GameObject(name);
-            var body = AddMesh("Shape", meshes.Body, new Material(shapeMaterial) { color = Colour(spawn.Colour) }, player.transform);
+            var body = AddMesh("Shape", meshes.Body, new Material(shapeMaterial) { color = Colour(colour) }, player.transform);
             body.transform.localPosition = new Vector3(0, HoverHeight, 0);
-            var eyes = AddMesh("Eyes", meshes.Eyes, new Material(eyeMaterial) { color = Colour(spawn.EyeColour) }, body.transform);
+            var eyes = AddMesh("Eyes", meshes.Eyes, new Material(eyeMaterial) { color = Colour(eyeColour) }, body.transform);
             fade = new ShapeFade(body.GetComponent<MeshRenderer>(), eyes.GetComponent<MeshRenderer>(), shapeFadeMaterial, eyeFadeMaterial);
             return player;
         }
@@ -160,7 +168,8 @@ namespace ShapeLand.Client
             return thing;
         }
 
-        private static Color Colour(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
+        /// <summary>A 0xRRGGBB colour as Unity's.</summary>
+        public static Color Colour(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
 
         private void OnDestroy()
         {
