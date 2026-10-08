@@ -26,25 +26,23 @@ namespace Comet.Client
         private readonly MessagePackSerializerOptions _options;
         private readonly MessageWriter _messages;
         private readonly MessageWriter _frame;
-        private readonly double _interpolationDelay;
         private readonly double _pingInterval;
         private readonly float _teleportSpeed;
         private ServerClock? _clock;
         private RemoteEntities? _entities;
+        private InterpolationDelay? _delay;
         private double _nextPing;
         private string? _protocolError;
 
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
-        /// <param name="interpolationDelay">How far behind the newest arrivals other entities are drawn, in seconds.</param>
         /// <param name="pingInterval">Seconds between pings for the server-tick estimate.</param>
         /// <param name="teleportSpeed">Other entities moving faster than this jump instead of gliding (see <see cref="RemoteEntities"/>).</param>
-        public ClientSession(IClientTransport transport, MessagePackSerializerOptions options, double interpolationDelay = 0.1, double pingInterval = 1, float teleportSpeed = float.PositiveInfinity)
+        public ClientSession(IClientTransport transport, MessagePackSerializerOptions options, double pingInterval = 1, float teleportSpeed = float.PositiveInfinity)
         {
             Transport = transport;
             _options = options;
             _messages = new MessageWriter(options: options);
             _frame = new MessageWriter(options: options);
-            _interpolationDelay = interpolationDelay;
             _pingInterval = pingInterval;
             _teleportSpeed = teleportSpeed;
         }
@@ -61,6 +59,9 @@ namespace Comet.Client
 
         /// <summary>Other entities, drawn through the interpolation buffer. The game spawns them from its own messages.</summary>
         public RemoteEntities Entities => _entities ?? throw NotWelcomed();
+
+        /// <summary>How far behind the receive timeline other entities are drawn, adapted to arriving states.</summary>
+        public InterpolationDelay InterpolationDelay => _delay ?? throw NotWelcomed();
 
         /// <summary>The last correction applied, echoed in position reports.</summary>
         public uint CorrectionSequence { get; private set; }
@@ -85,7 +86,7 @@ namespace Comet.Client
         public event GameMessageHandler? GameMessage;
 
         /// <summary>The tick other entities are drawn at, at <paramref name="now"/>.</summary>
-        public double RenderTick(double now) => Clock.ReceiveTick(now) - _interpolationDelay * Clock.TickRate;
+        public double RenderTick(double now) => Clock.ReceiveTick(now) - InterpolationDelay.Ticks;
 
         /// <summary>Handles received frames, moves the tick estimate and queues a ping when one is due.</summary>
         public void Update(double now)
@@ -109,6 +110,7 @@ namespace Comet.Client
             }
 
             _clock.Advance(now);
+            _delay!.Advance(now);
             if (now >= _nextPing)
             {
                 _nextPing = now + _pingInterval;
@@ -166,6 +168,7 @@ namespace Comet.Client
                         _clock = new ServerClock(welcome.TickRate);
                         _clock.OnFrame(tick, now);
                         _entities = new RemoteEntities(welcome.TickRate, teleportSpeed: _teleportSpeed);
+                        _delay = new InterpolationDelay(welcome.TickRate);
                         _nextPing = now;
                         WelcomeArrived?.Invoke(welcome);
                         break;
@@ -175,7 +178,11 @@ namespace Comet.Client
                     case MessageIds.EntityState:
                         var state = FrameReader.Decode<EntityState>(payload, _options);
                         StatesReceived++;
-                        _entities?.AddState(state.EntityId, state.Tick, new Vector3(state.X, state.Y, state.Z), state.Facing);
+                        var previous = _entities?.AddState(state.EntityId, state.Tick, new Vector3(state.X, state.Y, state.Z), state.Facing);
+                        if (previous.HasValue && _clock!.Synced)
+                        {
+                            _delay!.AddSample(_clock.ReceiveTick(now) - previous.Value, now);
+                        }
                         break;
                     case MessageIds.EntityDespawn:
                         var despawn = FrameReader.Decode<EntityDespawn>(payload, _options);

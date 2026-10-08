@@ -76,28 +76,34 @@ namespace Comet.Client
 
         public bool Despawn(uint entityId) => _tracks.Remove(entityId);
 
-        /// <summary>Adds a state; ignored for entities not spawned, and for states older than the newest.</summary>
-        public void AddState(uint entityId, uint tick, Vector3 position, float facing)
+        /// <summary>
+        /// Adds a state; ignored for entities not spawned, and for states older than the newest. Returns the
+        /// previous state's stamp when this one continues a move (no idle gap between them), else null, for
+        /// <see cref="InterpolationDelay"/>.
+        /// </summary>
+        public double? AddState(uint entityId, uint tick, Vector3 position, float facing)
         {
             if (!_tracks.TryGetValue(entityId, out var states))
             {
-                return;
+                return null;
             }
 
             var newest = states[states.Count - 1];
             if (tick < newest.Tick)
             {
-                return;
+                return null;
             }
 
             if (tick == newest.Tick)
             {
                 states[states.Count - 1] = new State(tick, position, facing);
-                return;
+                return null;
             }
 
+            double? previous = newest.Tick;
             if (tick - newest.Tick > IdleGapTicks)
             {
+                previous = null;
                 states.Add(new State(tick - ReportIntervalTicks, newest.Position, newest.Facing));
             }
 
@@ -106,6 +112,8 @@ namespace Comet.Client
             {
                 states.RemoveRange(0, states.Count - MaxStates);
             }
+
+            return previous;
         }
 
         /// <summary>
