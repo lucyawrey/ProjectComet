@@ -98,7 +98,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         Assert.Equal(Shared.Messages.JoinRejection.UnavailableColour, bot.Rejected);
     }
 
-    private static string RepoRoot()
+    internal static string RepoRoot()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {

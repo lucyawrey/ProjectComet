@@ -88,7 +88,11 @@ namespace ShapeLand.Client
 
             ContentLoaded?.Invoke(_content);
 
-            var serverUrl = new Uri(address.Contains("://") ? address : $"ws://{address}/ws");
+            var serverAddress = address;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            serverAddress = AddressForPage(Application.absoluteURL, address);
+#endif
+            var serverUrl = new Uri(serverAddress.Contains("://") ? serverAddress : $"ws://{serverAddress}/ws");
             var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content));
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
@@ -99,6 +103,28 @@ namespace ShapeLand.Client
             };
             session.Corrected += correction => Log($"corrected ({correction.Reason}) to ({correction.X:0.0}, {correction.Y:0.0}, {correction.Z:0.0})");
             Log($"connecting to {serverUrl}");
+        }
+
+        /// <summary>
+        /// The server a web build connects to: the one named by the page's <c>?server=</c> (a host and port, or a
+        /// full ws:// URL), else the host the page came from. A page not served over HTTP uses <paramref name="fallback"/>.
+        /// </summary>
+        public static string AddressForPage(string pageUrl, string fallback)
+        {
+            if (!Uri.TryCreate(pageUrl, UriKind.Absolute, out var page) || (page.Scheme != "http" && page.Scheme != "https"))
+            {
+                return fallback;
+            }
+
+            foreach (var pair in page.Query.TrimStart('?').Split('&'))
+            {
+                if (pair.StartsWith("server=", StringComparison.Ordinal) && pair.Length > "server=".Length)
+                {
+                    return Uri.UnescapeDataString(pair.Substring("server=".Length));
+                }
+            }
+
+            return $"{(page.Scheme == "https" ? "wss" : "ws")}://{page.Authority}/ws";
         }
 
         private void Update()
@@ -123,7 +149,13 @@ namespace ShapeLand.Client
             {
                 _asked = true;
                 var shape = _content.Shapes.All[UnityEngine.Random.Range(0, _content.Shapes.All.Count)];
-                // Colours are random until the join screen lets players pick them.
+                // Colours, and a number after the default name so several clients can join, are random until
+                // the join screen lets players pick them.
+                if (playerName == "Player")
+                {
+                    playerName = $"Player {UnityEngine.Random.Range(100, 1000)}";
+                }
+
                 session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest
                 {
                     Name = playerName,

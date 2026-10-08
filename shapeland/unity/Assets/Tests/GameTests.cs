@@ -110,6 +110,16 @@ namespace ShapeLand.Client.Tests
             Debug.Log($"Walked {walked:0.0} m and jumped {highest - ground:0.00} m; {join.Session.StatesReceived} states received.");
         }
 
+        [TestCase("http://localhost:5080/", "ws://localhost:5080/ws")]
+        [TestCase("https://example.org/play/index.html", "wss://example.org/ws")]
+        [TestCase("https://example.org/?server=game.example.org%3A5080", "game.example.org:5080")]
+        [TestCase("http://localhost:8000/?debug=1&server=wss://game.example.org/ws", "wss://game.example.org/ws")]
+        [TestCase("file:///tmp/index.html", "localhost:5080")]
+        public void WebBuildsConnectToTheServerTheyCameFrom(string page, string expected)
+        {
+            Assert.That(JoinClient.AddressForPage(page, "localhost:5080"), Is.EqualTo(expected));
+        }
+
         [Test]
         public void FallingFadesBeforeTheKillHeightAndEasesBack()
         {
