@@ -12,8 +12,9 @@ using UnityEngine.TestTools;
 namespace ShapeLand.Client.Tests
 {
     // The game view against the real game server (step 3b): with a simulated keyboard, the player walks forward
-    // and jumps in place, the camera follows, and the server accepts every report (no snap-backs); real bots
-    // are drawn moving and removed when they leave.
+    // and jumps in place, the camera follows, and the server accepts every report (no snap-backs); the speed
+    // cheat is snapped back with a blend; walking off the island darkens the screen before the respawn and
+    // lightens it after; real bots are drawn moving and removed when they leave.
     public class GameTests
     {
         private TestGameServer _server;
@@ -109,6 +110,106 @@ namespace ShapeLand.Client.Tests
             Debug.Log($"Walked {walked:0.0} m and jumped {highest - ground:0.00} m; {join.Session.StatesReceived} states received.");
         }
 
+        [Test]
+        public void FallingFadesBeforeTheKillHeightAndEasesBack()
+        {
+            const float kill = -30;
+            Assert.That(RespawnFade.FromFalling(kill + RespawnFade.FadeDistance, kill), Is.EqualTo(0));
+            Assert.That(RespawnFade.FromFalling(kill + RespawnFade.FadeDistance / 2, kill), Is.EqualTo(0.5f).Within(1e-5f));
+            Assert.That(RespawnFade.FromFalling(kill - 5, kill), Is.EqualTo(1));
+
+            // Back on the ground after a respawn, it eases out over the fade-in time.
+            var faded = 1f;
+            faded = RespawnFade.Step(faded, 3, kill, RespawnFade.FadeInSeconds / 2);
+            Assert.That(faded, Is.EqualTo(0.5f).Within(1e-5f));
+            faded = RespawnFade.Step(faded, 3, kill, RespawnFade.FadeInSeconds);
+            Assert.That(faded, Is.EqualTo(0));
+
+            // Falling darkens at once, with no easing.
+            Assert.That(RespawnFade.Step(0, kill, kill, 0.01f), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ShapesSwapToTransparentMaterialsWhileFading()
+        {
+            var body = new GameObject("Body").AddComponent<MeshRenderer>();
+            var eyes = new GameObject("Eyes").AddComponent<MeshRenderer>();
+            body.sharedMaterial = new Material(AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Shape.mat")) { color = Color.red };
+            eyes.sharedMaterial = new Material(AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Eyes.mat")) { color = Color.blue };
+            var opaque = body.sharedMaterial;
+            var fade = new ShapeFade(body, eyes, AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/ShapeFade.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/EyesFade.mat"));
+            try
+            {
+                fade.Set(0.25f);
+                Assert.That(body.sharedMaterial, Is.Not.SameAs(opaque));
+                Assert.That(body.sharedMaterial.renderQueue, Is.EqualTo((int)UnityEngine.Rendering.RenderQueue.Transparent));
+                Assert.That(body.sharedMaterial.color.r, Is.EqualTo(1));
+                Assert.That(body.sharedMaterial.color.a, Is.EqualTo(0.75f).Within(1e-5f));
+                Assert.That(eyes.sharedMaterial.color.b, Is.EqualTo(1));
+
+                fade.Set(1);
+                Assert.That(body.enabled || eyes.enabled, Is.False, "A shape fully faded is still drawn.");
+
+                fade.Set(0);
+                Assert.That(body.enabled && eyes.enabled, Is.True);
+                Assert.That(body.sharedMaterial, Is.SameAs(opaque));
+            }
+            finally
+            {
+                fade.Destroy();
+                Object.Destroy(body.gameObject);
+                Object.Destroy(eyes.gameObject);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator SpeedCheatIsSnappedBackWithABlend()
+        {
+            yield return StartGame();
+            var player = _view.Player;
+
+            _keyboard = InputSystem.AddDevice<Keyboard>();
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.W, Key.C));
+            yield return TestGameServer.WaitFor(() => player.SnapBacks > 0, 5);
+            Assert.That(player.SnapBacks, Is.GreaterThan(0), "The speed cheat was never snapped back.");
+            var trailing = player.BlendDistance;
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState());
+
+            // The drawn shape trails the corrected position, then catches up within the blend.
+            Assert.That(trailing, Is.GreaterThan(0.05f), "The snap-back wasn't blended.");
+            yield return Wait(0.3f);
+            Assert.That(player.BlendDistance, Is.EqualTo(0), "The blend didn't finish.");
+            Debug.Log($"Snapped back {player.SnapBacks} times; the drawn shape trailed by {trailing:0.00} m after the first.");
+        }
+
+        [UnityTest]
+        public IEnumerator FallingOffDarkensBeforeTheRespawnAndLightensAfter()
+        {
+            yield return StartGame();
+            var player = _view.Player;
+
+            // Walk straight on until off the edge, noting how dark the screen was just before the respawn arrived.
+            _keyboard = InputSystem.AddDevice<Keyboard>();
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.W));
+            var darknessBefore = 0f;
+            var deadline = Time.realtimeSinceStartup + 20;
+            while (player.Respawns == 0 && Time.realtimeSinceStartup < deadline)
+            {
+                darknessBefore = player.Darkness;
+                yield return null;
+            }
+
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState());
+            Assert.That(player.Respawns, Is.EqualTo(1), "Never fell off.");
+            Assert.That(darknessBefore, Is.GreaterThan(0.99f), "The screen wasn't dark before the respawn arrived.");
+
+            yield return Wait(RespawnFade.FadeInSeconds + 0.3f);
+            Assert.That(player.Darkness, Is.EqualTo(0), "The screen didn't lighten again.");
+            Assert.That(_view.ScreenFade.Darkness, Is.EqualTo(0));
+            Assert.That(player.Motor.Position.Y, Is.GreaterThan(0), "Not back on the island.");
+            Assert.That(player.SnapBacks, Is.EqualTo(0), "The server snapped the player back.");
+        }
+
         [UnityTest]
         public IEnumerator DrawsOtherPlayersMovingAndLeaving()
         {
@@ -154,6 +255,8 @@ namespace ShapeLand.Client.Tests
             serialized.FindProperty("blockMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Block.mat");
             serialized.FindProperty("shapeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Shape.mat");
             serialized.FindProperty("eyeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Eyes.mat");
+            serialized.FindProperty("shapeFadeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/ShapeFade.mat");
+            serialized.FindProperty("eyeFadeMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/EyesFade.mat");
             serialized.FindProperty("orbitCamera").objectReferenceValue = _camera.GetComponent<OrbitCamera>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
             _game.SetActive(true);

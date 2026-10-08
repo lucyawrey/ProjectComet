@@ -19,6 +19,8 @@ namespace ShapeLand.Client.Editor
         private const string BlockMaterial = "Assets/Materials/Block.mat";
         private const string ShapeMaterial = "Assets/Materials/Shape.mat";
         private const string EyeMaterial = "Assets/Materials/Eyes.mat";
+        private const string ShapeFadeMaterial = "Assets/Materials/ShapeFade.mat";
+        private const string EyeFadeMaterial = "Assets/Materials/EyesFade.mat";
         private const string JoinScene = "Assets/Scenes/Join.unity";
         private const string GameScene = "Assets/Scenes/Game.unity";
 
@@ -117,6 +119,8 @@ namespace ShapeLand.Client.Editor
             serialized.FindProperty("blockMaterial").objectReferenceValue = LitMaterial(BlockMaterial, new Color(0.62f, 0.55f, 0.48f));
             serialized.FindProperty("shapeMaterial").objectReferenceValue = LitMaterial(ShapeMaterial, Color.white);
             serialized.FindProperty("eyeMaterial").objectReferenceValue = LitMaterial(EyeMaterial, Color.white);
+            serialized.FindProperty("shapeFadeMaterial").objectReferenceValue = FadeMaterial(ShapeFadeMaterial, ShapeMaterial);
+            serialized.FindProperty("eyeFadeMaterial").objectReferenceValue = FadeMaterial(EyeFadeMaterial, EyeMaterial);
             serialized.FindProperty("orbitCamera").objectReferenceValue = camera.GetComponent<OrbitCamera>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -159,6 +163,27 @@ namespace ShapeLand.Client.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 material = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = colour };
                 material.SetFloat("_Smoothness", 0.1f);
+                AssetDatabase.CreateAsset(material, path);
+            }
+
+            return material;
+        }
+
+        // A transparent copy of a Lit material, for shapes fading out and in. Kept as an asset so builds keep the
+        // shader's transparent variant. URP completes the rest of its transparent setup when it imports the asset
+        // (no depth writes or shadows; shapes are convex, so sorting back to front is enough).
+        private static Material FadeMaterial(string path, string opaquePath)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(AssetDatabase.LoadAssetAtPath<Material>(opaquePath));
+                material.SetFloat("_Surface", 1);
+                material.SetFloat("_Blend", 0);
+                material.SetFloat("_ZWrite", 0);
+                material.SetOverrideTag("RenderType", "Transparent");
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.renderQueue = (int)RenderQueue.Transparent;
                 AssetDatabase.CreateAsset(material, path);
             }
 
