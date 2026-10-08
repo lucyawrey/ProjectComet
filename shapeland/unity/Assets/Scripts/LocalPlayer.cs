@@ -38,6 +38,9 @@ namespace ShapeLand.Client
         private bool _jumpQueued;
         private System.Numerics.Vector3 _drawn;
 
+        /// <summary>Whether the controls move the shape; off while typing in chat.</summary>
+        public bool InputEnabled { get; set; } = true;
+
         /// <summary>The motor's state after the latest step.</summary>
         public MotorState Motor => _motor;
 
@@ -83,12 +86,12 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var move = CameraRelative(_controls.Move.ReadValue<Vector2>(), _camera.Yaw);
-            _jumpQueued |= _controls.Jump.WasPressedThisFrame();
+            var move = InputEnabled ? CameraRelative(_controls.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
+            _jumpQueued |= InputEnabled && _controls.Jump.WasPressedThisFrame();
 
             var now = CometConnection.Now;
             var maxSpeed = _shape.MaxSpeed;
-            if (Debug.isDebugBuild && _controls.SpeedCheat.IsPressed())
+            if (Debug.isDebugBuild && InputEnabled && _controls.SpeedCheat.IsPressed())
             {
                 maxSpeed *= SpeedCheat;
             }
