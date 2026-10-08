@@ -10,7 +10,7 @@ Agent notes on backend architecture and data-model ideas.
 
 - **Private servers should be easy to self-host,** without a large proprietary dependency.
 - **Unity is the engine.** Web export is a main project goal (classic in-browser MMO play), and Unity is the only engine where that isn't difficult or too limited.
-- **High-quality web play is a goal down the line:** WebGPU rendering and WebTransport networking on web, both if possible (project lead). Each keeps a fallback (WebGL 2; WebSocket), so neither is needed to play.
+- **High-quality web play is a goal down the line:** WebGPU rendering and WebTransport networking on web, both if possible (project lead). Each keeps a fallback (WebGL 2; WebSocket), so neither is needed to play. WebGPU gets a trial after phase 0; WebTransport is out of scope for now.
 - **The server is plain .NET using a message-level library:** no headless Unity server and no Unity networking package (Mirror, FishNet, Netcode…) for now. Fallback if rolling our own proves too hard: FishNet with headless Unity servers (FishNet seems to scale well).
 - **Keep the number of separate services small at this stage.** New tooling goes into an existing service unless load or security forces a split.
 
@@ -45,7 +45,7 @@ Agent notes on backend architecture and data-model ideas.
 ### Transport and libraries
 
 - **Netcode is designed for WebSocket as the worst case.** WebTransport would need a WebSocket fallback anyway (some networks block UDP), so the game must play acceptably over TCP; better transports only make hiccups rarer.
-- **All clients start on WebSocket,** desktop included: one code path to build and load-test. WebTransport for web is a later goal (see Engine and approach) and UDP for desktop a possible later upgrade, both behind one transport interface.
+- **All clients start on WebSocket,** desktop included: one code path to build and load-test. WebTransport for web is a later goal (see Engine and approach) and UDP for desktop a possible later upgrade. Both, and supporting several transports behind one interface, are out of scope for now.
 - **Connections:** clients hold two connections: a raw WebSocket to their game server (gameplay only) and SignalR to the Region server (chat, parties, guilds, friends, presence), using its groups, reconnection and scale-out backplane. They also make ordinary HTTP requests to the Login server (not a held connection): sign-in, character select, join tickets.
 - **MessagePack-CSharp for serialisation** (SignalR's own binary format; IL2CPP-safe via source generators). MemoryPack stays an option for hot paths later.
 - **gRPC (ASP.NET Core) for server-to-server calls** (Region ↔ game servers, the handoff delta between game servers).
