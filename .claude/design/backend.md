@@ -191,6 +191,7 @@ Agent notes on backend architecture and data-model ideas.
 - **Baked lightmaps:** heavy tooling, and rules out a day/night cycle.
 - **Rolling updates.**
 - **Free-form border polygons and per-zone coordinates:** zones own whole chunks on one world grid instead.
+- **WebTransport on desktop:** once there's an abstraction over several transports, desktop would use plain UDP; WebTransport is only for web (project lead).
 
 ## Open
 
