@@ -1,0 +1,383 @@
+<title>ShapeLand UI Drafts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600&family=Lexend:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: a quiet review page; each mockup is a 960 x 600 game screen (the UI's reference resolution), scaled to fit. */
+:root {
+  --page: #f3f4f7;
+  --ink: #1b1e27;
+  --muted: #5d6475;
+  --line: #d9dce5;
+  --panel: #ffffff;
+  --accent: #2f6fe4;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page: #14161c; --ink: #e8eaf0; --muted: #9aa1b2; --line: #2b2f3a; --panel: #1c1f27; --accent: #7aa5ff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --page: #14161c; --ink: #e8eaf0; --muted: #9aa1b2; --line: #2b2f3a; --panel: #1c1f27; --accent: #7aa5ff; color-scheme: dark; }
+
+body { background: var(--page); color: var(--ink); font: 15px/1.55 var(--sans); }
+.page { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 64px; display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { margin: 0; font-size: 28px; font-weight: 600; text-wrap: balance; }
+h2 { margin: 0; font-size: 18px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.meta { font: 13px/1.4 var(--mono); color: var(--muted); }
+.lede { color: var(--muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--page); padding-block: 10px; border-bottom: 1px solid var(--line); }
+.toolbar .label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { font: 600 14px var(--sans); color: var(--ink); background: none; border: 0; padding: 7px 14px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.seg.small button { font-size: 13px; padding: 5px 10px; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.figtop { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+figcaption { color: var(--muted); font-size: 14px; max-width: 72ch; }
+.stage { position: relative; width: 100%; aspect-ratio: 960 / 600; max-width: 100%; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: #8bbef2; }
+.screen { position: absolute; left: 0; top: 0; width: 960px; height: 600px; transform-origin: 0 0; overflow: hidden; }
+.scene { position: absolute; left: 0; top: 0; width: 960px; height: 600px; max-width: none; display: block; }
+
+.notes { display: flex; flex-direction: column; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+.notes ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.notes code { font: 13px var(--mono); }
+.look-note { display: none; }
+body[data-look="plain"] .look-note.plain, body[data-look="toy"] .look-note.toy, body[data-look="glass"] .look-note.glass { display: block; }
+
+@media (prefers-reduced-motion: reduce) { .screen * { transition: none !important; } }
+
+/* ===================================================================================================
+   The mockup UI. Everything from here down sticks to what USS can do: flexbox (no gap, so margins),
+   absolute positions, borders per side, border-radius, rgba colours, opacity, text-shadow, translate and
+   rotate, transitions. No box-shadow, gradients, blur, grid or pseudo-elements.
+   =================================================================================================== */
+.ui { position: absolute; left: 0; top: 0; width: 960px; height: 600px; font-size: 15px; }
+.ui-backdrop { position: absolute; left: 0; top: 0; width: 960px; height: 600px; background-color: rgba(10, 16, 30, 0.32); display: flex; align-items: center; justify-content: center; }
+.ui-card { width: 580px; display: flex; flex-direction: column; padding: 18px 22px; }
+.ui-title { font-size: 28px; margin-bottom: 8px; }
+.ui-body { display: flex; flex-direction: row; }
+.ui-fields { flex-grow: 1; display: flex; flex-direction: column; }
+.ui-field { display: flex; flex-direction: column; margin-bottom: 10px; }
+.ui-label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+.ui-label .ui-hint { text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.ui-input { height: 34px; padding: 0 10px; display: flex; align-items: center; font-size: 15px; }
+.ui-row { display: flex; flex-direction: row; flex-wrap: wrap; }
+.ui-shape { display: flex; flex-direction: row; align-items: center; padding: 4px 10px 4px 6px; margin-right: 6px; cursor: pointer; font-size: 14px; }
+.ui-shape svg { width: 26px; height: 26px; margin-right: 4px; }
+.ui-swatch { width: 26px; height: 26px; margin-right: 6px; margin-bottom: 4px; cursor: pointer; }
+.ui-preview { width: 150px; margin-left: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ui-preview svg { width: 120px; height: 120px; }
+.ui-preview .ui-hint { font-size: 12px; margin-top: 2px; margin-bottom: 10px; text-align: center; }
+.ui-stats { width: 150px; display: flex; flex-direction: column; }
+.ui-stat { display: flex; flex-direction: column; margin-bottom: 7px; }
+.ui-stat-top { display: flex; flex-direction: row; justify-content: space-between; font-size: 13px; margin-bottom: 3px; }
+.ui-bar { height: 6px; display: flex; flex-direction: row; }
+.ui-bar-fill { height: 6px; transition: width 0.25s; }
+.ui-error { font-size: 14px; padding: 7px 10px; margin-bottom: 10px; display: none; }
+.join-error .ui-error { display: flex; }
+.ui-actions { display: flex; flex-direction: row; align-items: flex-end; justify-content: space-between; }
+.ui-actions .ui-field { margin-bottom: 0; width: 300px; }
+.ui-button { height: 40px; padding: 0 26px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; }
+
+.ui-label-name { position: absolute; transform: translate(-50%, -100%); font-size: 13px; padding: 2px 8px; white-space: nowrap; }
+.ui-bubble { position: absolute; transform: translate(-50%, -100%); max-width: 220px; padding: 6px 11px; font-size: 14px; display: flex; flex-direction: column; align-items: center; }
+.ui-bubble-tail { position: absolute; left: 50%; bottom: -6px; width: 11px; height: 11px; margin-left: -6px; transform: rotate(45deg); }
+
+.ui-chat { position: absolute; left: 16px; bottom: 16px; width: 380px; display: flex; flex-direction: column; transition: opacity 0.4s; }
+.ui-chat-log { display: flex; flex-direction: column; padding: 8px 10px; }
+.ui-line { display: flex; flex-direction: row; align-items: flex-start; font-size: 14px; margin-bottom: 3px; }
+.ui-line svg { width: 14px; height: 14px; margin-right: 5px; margin-top: 3px; flex-shrink: 0; }
+.ui-line b { margin-right: 6px; flex-shrink: 0; }
+.ui-chat-input { height: 34px; margin-top: 6px; padding: 0 10px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; font-size: 14px; }
+.ui-caret { width: 2px; height: 16px; margin-left: 1px; }
+.ui-chat-hint { position: absolute; left: 16px; bottom: 16px; font-size: 13px; padding: 4px 9px; opacity: 0; transition: opacity 0.4s; }
+.chat-idle .ui-chat { opacity: 0; }
+.chat-idle .ui-chat-hint { opacity: 0.85; }
+
+/* ---- Look: plain ---- */
+.look-plain .ui { font-family: "Atkinson Hyperlegible", system-ui, sans-serif; color: #eef1f6; }
+.look-plain .ui-card { background-color: rgba(18, 22, 30, 0.9); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); }
+.look-plain .ui-title { font-weight: 700; }
+.look-plain .ui-label { color: #a9b2c4; }
+.look-plain .ui-hint { color: #8d97ab; }
+.look-plain .ui-input { background-color: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 4px; }
+.look-plain .ui-shape { border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 4px; }
+.look-plain .ui-shape.on { border-color: #6aa1ff; background-color: rgba(106, 161, 255, 0.18); }
+.look-plain .ui-swatch { border-radius: 3px; border: 2px solid rgba(0, 0, 0, 0); }
+.look-plain .ui-swatch.on { border-color: #ffffff; }
+.look-plain .ui-error { background-color: rgba(229, 57, 53, 0.18); border-left: 3px solid #ff6b67; color: #ffd4d3; }
+.look-plain .ui-button { background-color: #3d7cf0; border-radius: 4px; font-weight: 700; color: #ffffff; }
+.look-plain .ui-stat-top span:first-child { color: #a9b2c4; }
+.look-plain .ui-bar { background-color: rgba(255, 255, 255, 0.12); border-radius: 3px; }
+.look-plain .ui-bar-fill { background-color: #6aa1ff; border-radius: 3px; }
+.look-plain .ui-label-name { background-color: rgba(18, 22, 30, 0.75); border-radius: 3px; color: #eef1f6; }
+.look-plain .ui-bubble, .look-plain .ui-bubble-tail { background-color: rgba(18, 22, 30, 0.88); color: #eef1f6; }
+.look-plain .ui-bubble { border-radius: 6px; }
+.look-plain .ui-chat-log { background-color: rgba(18, 22, 30, 0.7); border-radius: 6px; }
+.look-plain .ui-chat-input { background-color: rgba(18, 22, 30, 0.9); border-radius: 4px; border: 1px solid #3d7cf0; }
+.look-plain .ui-caret { background-color: #eef1f6; }
+.look-plain .ui-chat-hint { background-color: rgba(18, 22, 30, 0.6); border-radius: 3px; }
+
+/* ---- Look: toy box ---- */
+.look-toy .ui { font-family: "Fredoka", system-ui, sans-serif; font-weight: 500; color: #23263a; }
+.look-toy .ui-card { background-color: #ffffff; border: 4px solid #23263a; border-bottom-width: 9px; border-radius: 20px; }
+.look-toy .ui-title { font-weight: 600; font-size: 32px; }
+.look-toy .t1 { color: #e53935; } .look-toy .t2 { color: #1e88e5; } .look-toy .t3 { color: #fb8c00; } .look-toy .t4 { color: #43a047; } .look-toy .t5 { color: #8e24aa; }
+.look-toy .ui-label { color: #5b6077; font-weight: 600; }
+.look-toy .ui-hint { color: #7c8197; }
+.look-toy .ui-input { background-color: #f1f3fa; border: 3px solid #23263a; border-radius: 10px; }
+.look-toy .ui-shape { background-color: #f1f3fa; border: 3px solid #23263a; border-bottom-width: 5px; border-radius: 12px; }
+.look-toy .ui-shape.on { background-color: #fdd835; }
+.look-toy .ui-swatch { border-radius: 9px; border: 3px solid #23263a; }
+.look-toy .ui-swatch.on { border-width: 3px 3px 7px; translate: 0 -2px; }
+.look-toy .ui-error { background-color: #ffe3e2; border: 3px solid #c62828; border-radius: 10px; color: #8e1b1b; }
+.look-toy .ui-button { background-color: #fdd835; border: 3px solid #23263a; border-bottom-width: 7px; border-radius: 14px; font-weight: 600; font-size: 19px; }
+.look-toy .ui-label-name { background-color: #23263a; color: #ffffff; border-radius: 10px; padding: 2px 10px; }
+.look-toy .ui-bubble { background-color: #ffffff; border: 3px solid #23263a; border-radius: 14px; }
+.look-toy .ui-bubble-tail { background-color: #ffffff; border: 3px solid #23263a; border-top-width: 0; border-left-width: 0; bottom: -8px; }
+.look-toy .ui-chat-log { background-color: rgba(255, 255, 255, 0.92); border: 3px solid #23263a; border-radius: 14px; }
+.look-toy .ui-chat-input { background-color: #ffffff; border: 3px solid #23263a; border-bottom-width: 6px; border-radius: 12px; }
+.look-toy .ui-caret { background-color: #23263a; }
+.look-toy .ui-chat-hint { background-color: #ffffff; border: 3px solid #23263a; border-radius: 10px; }
+
+/* ---- Look: translucent ---- */
+.look-glass .ui { font-family: "Lexend", system-ui, sans-serif; color: #ffffff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.look-glass .ui-backdrop { background-color: rgba(10, 16, 30, 0.18); }
+.look-glass .ui-card { background-color: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.55); border-radius: 16px; }
+.look-glass .ui-title { font-weight: 600; letter-spacing: 1px; }
+.look-glass .ui-label { color: rgba(255, 255, 255, 0.85); }
+.look-glass .ui-hint { color: rgba(255, 255, 255, 0.75); }
+.look-glass .ui-input { background-color: rgba(10, 16, 30, 0.28); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 10px; }
+.look-glass .ui-shape { border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 18px; }
+.look-glass .ui-shape.on { background-color: rgba(255, 255, 255, 0.85); color: #1b2333; text-shadow: none; }
+.look-glass .ui-swatch { border-radius: 13px; border: 2px solid rgba(255, 255, 255, 0.35); }
+.look-glass .ui-swatch.on { border-color: #ffffff; border-width: 3px; }
+.look-glass .ui-error { background-color: rgba(198, 40, 40, 0.55); border-radius: 10px; }
+.look-glass .ui-button { background-color: rgba(255, 255, 255, 0.92); color: #1b2333; text-shadow: none; border-radius: 20px; font-weight: 600; }
+.look-glass .ui-label-name { padding: 0 4px; }
+.look-glass .ui-bubble, .look-glass .ui-bubble-tail { background-color: rgba(255, 255, 255, 0.88); color: #1b2333; text-shadow: none; }
+.look-glass .ui-bubble { border-radius: 14px; }
+.look-glass .ui-chat-log { background-color: rgba(10, 16, 30, 0.22); border-radius: 12px; }
+.look-glass .ui-chat-input { background-color: rgba(10, 16, 30, 0.4); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 12px; }
+.look-glass .ui-caret { background-color: #ffffff; }
+</style>
+
+<div class="page">
+  <header>
+    <span class="meta">ShapeLand · phase 0 · UI draft for review</span>
+    <h1>ShapeLand UI Drafts</h1>
+    <p class="lede">The join screen, chat log, name labels and speech bubbles. <strong>Plain is the chosen look;</strong> the other two stay for comparison. The shape and colour buttons and the toggles above each screen work. The island behind is a real screenshot of the web build.</p>
+  </header>
+
+  <div class="toolbar" role="group" aria-label="Look">
+    <span class="label">Look</span>
+    <div class="seg" id="looks">
+      <button type="button" data-look="plain" aria-pressed="true">Plain (chosen)</button>
+      <button type="button" data-look="toy" aria-pressed="false">Toy box</button>
+      <button type="button" data-look="glass" aria-pressed="false">Translucent</button>
+    </div>
+  </div>
+
+  <figure>
+    <div class="figtop">
+      <h2>Joining</h2>
+      <div class="seg small" id="errorToggle" role="group" aria-label="Error message">
+        <button type="button" data-error="off" aria-pressed="true">No error</button>
+        <button type="button" data-error="on" aria-pressed="false">Name taken</button>
+      </div>
+    </div>
+    <div class="stage"><div class="screen look-plain" id="joinScreen">
+      <img class="scene" src="island.jpg" alt="The ShapeLand island with two shapes, behind the join card">
+      <div class="ui">
+        <div class="ui-backdrop">
+          <div class="ui-card">
+            <div class="ui-title"><span class="t1">Shape</span><span class="t2">L</span><span class="t3">a</span><span class="t4">n</span><span class="t5">d</span></div>
+            <div class="ui-body">
+              <div class="ui-fields">
+                <div class="ui-field">
+                  <div class="ui-label">Name<span class="ui-hint">up to 16 letters, digits, spaces, - and _</span></div>
+                  <div class="ui-input">Pebble</div>
+                </div>
+                <div class="ui-field">
+                  <div class="ui-label">Shape</div>
+                  <div class="ui-row" id="shapes"></div>
+                </div>
+                <div class="ui-field">
+                  <div class="ui-label">Colour</div>
+                  <div class="ui-row" id="bodies"></div>
+                </div>
+                <div class="ui-field">
+                  <div class="ui-label">Eyes</div>
+                  <div class="ui-row" id="eyes"></div>
+                </div>
+              </div>
+              <div class="ui-preview">
+                <svg id="preview" viewBox="0 0 100 100" aria-label="Preview of the chosen shape"></svg>
+                <div class="ui-hint">turns slowly in 3D</div>
+                <div class="ui-stats" id="stats"></div>
+              </div>
+            </div>
+            <div class="ui-error">Someone online is already called Pebble. Pick another name.</div>
+            <div class="ui-actions">
+              <div class="ui-field">
+                <div class="ui-label">Server<span class="ui-hint">desktop only</span></div>
+                <div class="ui-input">localhost:5080</div>
+              </div>
+              <div class="ui-button">Join</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <figcaption>A card over a slowly orbiting view of the island. Under the preview, the chosen shape's speed and jump height, each with a bar against the best shape, so the trade-offs show at a glance. The server field is desktop only: the web page joins the server it came from. The colour sets are placeholders until you pick the final ones.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="figtop">
+      <h2>Playing</h2>
+      <div class="seg small" id="chatToggle" role="group" aria-label="Chat state">
+        <button type="button" data-chat="open" aria-pressed="true">Chat open</button>
+        <button type="button" data-chat="idle" aria-pressed="false">Chat idle</button>
+      </div>
+    </div>
+    <div class="stage"><div class="screen look-plain" id="playScreen">
+      <img class="scene" src="island.jpg" alt="The ShapeLand island seen over the player's red pyramid, with a purple pyramid ahead">
+      <div class="ui">
+        <div class="ui-bubble" style="left: 459px; top: 144px;">look, I can jump<div class="ui-bubble-tail"></div></div>
+        <div class="ui-label-name" style="left: 459px; top: 180px;">Bot 01</div>
+        <div class="ui-chat">
+          <div class="ui-chat-log" id="log"></div>
+          <div class="ui-chat-input"><span style="display: flex; flex-direction: row; align-items: center;">race you to the platform<span class="ui-caret"></span></span><span class="ui-hint" style="font-size: 12px;">Enter sends · Esc closes</span></div>
+        </div>
+        <div class="ui-chat-hint">Enter to chat</div>
+      </div>
+    </div></div>
+    <figcaption>Others get a name label and, while they talk, a bubble with their line; your own shape has no label. The log fades out after a while without messages and comes back when one arrives or you press Enter. Each line starts with the speaker's shape in their colour, so names don't rely on colour alone.</figcaption>
+  </figure>
+
+  <section class="notes">
+    <h2>Carrying it over to UI Toolkit</h2>
+    <p class="look-note plain">Plain: dark see-through panels, one blue accent, Atkinson Hyperlegible (designed for legibility; free licence). Cheapest to build and the easiest to read over any background.</p>
+    <p class="look-note toy">Toy box: white panels with thick ink outlines and a thicker bottom edge for a pressable, chunky feel, done with per-side border widths. Fredoka (free licence). Matches the shapes; the most work to keep consistent.</p>
+    <p class="look-note glass">Translucent: light, see-through panels with white text and a text shadow, Lexend (free licence). UI Toolkit can't blur what's behind a panel, so this is plain transparency; it reads worst over bright sky.</p>
+    <ul>
+      <li>Everything in the screens uses only what USS supports: flexbox with margins (USS has no <code>gap</code>), borders per side, rounded corners, transparency, text shadow, translate and rotate, and fades through transitions. No drop shadows, gradients, blur or grid.</li>
+      <li>Laid out at a 960 × 600 reference resolution; in Unity the panel scales with the screen, and a UI scale setting can multiply it later.</li>
+      <li>Shape icons and the bubble tail (a rotated square) port as they are; the preview is a render texture of the real shape mesh, not a drawing.</li>
+      <li>Name labels and bubbles are world-space panels that follow each shape and keep a fixed size on screen.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const BODY = [0xE53935, 0x1E88E5, 0xFDD835, 0x43A047, 0xFB8C00, 0x8E24AA, 0x00ACC1, 0xEC407A];
+  const EYES = [0x16161C, 0xFFFFFF, 0x5D4037, 0x1565C0, 0x2E7D32];
+  const SHAPES = [["cube", "Cube"], ["diamond", "Diamond"], ["pyramid", "Pyramid"]];
+  // From content (max_speed, jump_velocity) and MovementRules.Gravity (25 m/s²): jump height is v² / 2g.
+  const STATS = { cube: [6.0, 7.0], diamond: [7.5, 6.0], pyramid: [5.0, 8.5] };
+  const GRAVITY = 25, jumpHeight = v => v * v / (2 * GRAVITY);
+  const BEST_SPEED = Math.max(...Object.values(STATS).map(s => s[0]));
+  const BEST_JUMP = Math.max(...Object.values(STATS).map(s => jumpHeight(s[1])));
+  const state = { shape: "pyramid", body: 0xE53935, eyes: 0x16161C };
+
+  const hex = c => "#" + c.toString(16).padStart(6, "0");
+  const mix = (c, to, t) => {
+    const ch = s => Math.round(((c >> s) & 255) * (1 - t) + ((to >> s) & 255) * t);
+    return hex((ch(16) << 16) | (ch(8) << 8) | ch(0));
+  };
+
+  // Flat drawings of the three shapes: a lit face, a shaded side, and optional eyes on the front.
+  function shapeSvg(kind, body, eyes) {
+    const lit = hex(body), dark = mix(body, 0, 0.3), light = mix(body, 0xFFFFFF, 0.25), eye = eyes == null ? "" : hex(eyes);
+    let s = "", e = "";
+    if (kind === "cube") {
+      s = `<polygon points="18,36 34,20 84,20 68,36" fill="${light}"/><polygon points="68,36 84,20 84,70 68,86" fill="${dark}"/><rect x="18" y="36" width="50" height="50" fill="${lit}"/>`;
+      e = `<rect x="30" y="52" width="8" height="12" fill="${eye}"/><rect x="48" y="52" width="8" height="12" fill="${eye}"/>`;
+    } else if (kind === "diamond") {
+      s = `<polygon points="50,6 18,50 50,94" fill="${lit}"/><polygon points="50,6 82,50 50,94" fill="${dark}"/><polygon points="18,50 50,58 82,50 50,42" fill="${light}" opacity="0.35"/>`;
+      e = `<rect x="29" y="42" width="6" height="10" fill="${eye}"/><rect x="40" y="42" width="6" height="10" fill="${eye}"/>`;
+    } else {
+      s = `<polygon points="50,10 14,86 64,86" fill="${lit}"/><polygon points="50,10 64,86 86,76" fill="${dark}"/>`;
+      e = `<rect x="32" y="62" width="6" height="10" fill="${eye}"/><rect x="44" y="62" width="6" height="10" fill="${eye}"/>`;
+    }
+    return s + (eyes == null ? "" : e);
+  }
+  const icon = (kind, body) => `<svg viewBox="0 0 100 100" aria-hidden="true">${shapeSvg(kind, body, null)}</svg>`;
+
+  function render() {
+    document.getElementById("shapes").innerHTML = SHAPES.map(([k, n]) =>
+      `<div class="ui-shape${k === state.shape ? " on" : ""}" data-shape="${k}" role="button" tabindex="0">${icon(k, state.body)}${n}</div>`).join("");
+    document.getElementById("bodies").innerHTML = BODY.map(c =>
+      `<div class="ui-swatch${c === state.body ? " on" : ""}" data-body="${c}" role="button" tabindex="0" aria-label="Colour ${hex(c)}" style="background-color:${hex(c)}"></div>`).join("");
+    document.getElementById("eyes").innerHTML = EYES.map(c =>
+      `<div class="ui-swatch${c === state.eyes ? " on" : ""}" data-eyes="${c}" role="button" tabindex="0" aria-label="Eyes ${hex(c)}" style="background-color:${hex(c)}"></div>`).join("");
+    document.getElementById("preview").innerHTML = shapeSvg(state.shape, state.body, state.eyes);
+    const [speed, jumpV] = STATS[state.shape], jump = jumpHeight(jumpV);
+    const stat = (name, value, share) =>
+      `<div class="ui-stat"><div class="ui-stat-top"><span>${name}</span><span>${value}</span></div><div class="ui-bar"><div class="ui-bar-fill" style="width:${Math.round(share * 100)}%"></div></div></div>`;
+    document.getElementById("stats").innerHTML =
+      stat("Speed", `${speed} m/s`, speed / BEST_SPEED) + stat("Jump", `${jump.toFixed(1)} m`, jump / BEST_JUMP);
+  }
+  function pick(t) {
+    const el = t.closest("[data-shape],[data-body],[data-eyes]");
+    if (!el) return;
+    if (el.dataset.shape) state.shape = el.dataset.shape;
+    if (el.dataset.body) state.body = +el.dataset.body;
+    if (el.dataset.eyes) state.eyes = +el.dataset.eyes;
+    render();
+  }
+  const join = document.getElementById("joinScreen");
+  join.addEventListener("click", e => pick(e.target));
+  join.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(e.target); } });
+  render();
+
+  const LOG = [
+    ["cube", 0x1E88E5, "Bot 03", "hello!"],
+    ["diamond", 0x43A047, "Bot 05", "anyone up for a race?"],
+    ["pyramid", 0xE53935, "Pebble", "me! where to?"],
+    ["diamond", 0x43A047, "Bot 05", "the long platform, by the hill"],
+    ["pyramid", 0x8E24AA, "Bot 01", "look, I can jump"],
+  ];
+  document.getElementById("log").innerHTML = LOG.map(([k, c, n, t]) =>
+    `<div class="ui-line">${icon(k, c)}<b>${n}</b><span>${t}</span></div>`).join("");
+
+  // Segmented controls: one button pressed at a time.
+  function seg(id, onPick) {
+    const root = document.getElementById(id);
+    root.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      root.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      onPick(b);
+    });
+    return root;
+  }
+  const screens = [join, document.getElementById("playScreen")];
+  function setLook(look) {
+    document.body.dataset.look = look;
+    screens.forEach(s => { s.classList.remove("look-plain", "look-toy", "look-glass"); s.classList.add("look-" + look); });
+    document.querySelectorAll("#looks button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.look === look)));
+    try { localStorage.setItem("look", look); } catch (e) {}
+  }
+  seg("looks", b => setLook(b.dataset.look));
+  seg("errorToggle", b => join.classList.toggle("join-error", b.dataset.error === "on"));
+  seg("chatToggle", b => document.getElementById("playScreen").classList.toggle("chat-idle", b.dataset.chat === "idle"));
+  let saved = "plain";
+  try { saved = localStorage.getItem("look") || "plain"; } catch (e) {}
+  setLook(["plain", "toy", "glass"].includes(saved) ? saved : "plain");
+
+  // Scale each 960 x 600 screen to its stage.
+  const fit = () => document.querySelectorAll(".stage").forEach(st => {
+    st.firstElementChild.style.transform = `scale(${st.clientWidth / 960})`;
+  });
+  new ResizeObserver(fit).observe(document.querySelector(".page"));
+  fit();
+})();
+</script>

@@ -11,7 +11,7 @@
 - **Mockups live in `.claude/drafts/ui/`** (agent drafts) and are published as private claude.ai pages for review, so they can be opened anywhere and commented on.
 - **Plain interface text may be written by agents:** labels, buttons and error messages are functional, not creative content. The human-made rule (`art.md`) still covers creative text such as lore, item descriptions and dialogue.
 - **ShapeLand's UI all lives in the ShapeLand Unity project for now:** screens, styles, and the world-space label and bubble code, like chat itself. Pieces move into the Comet Unity package once Project Anima needs them.
-- **ShapeLand's look is picked from variants** in the mockups (two or three looks).
+- **ShapeLand's look is picked from variants** in the mockups: the plain look was chosen (`prototype.md`).
 
 ## Considering
 
