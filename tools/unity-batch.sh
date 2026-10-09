@@ -6,7 +6,7 @@
 #   tools/unity-batch.sh [-p project] [-l logfile] [-t minutes] -- <Unity arguments>
 #
 #   tools/unity-batch.sh -- -runTests -testPlatform PlayMode -testResults Logs/results.xml
-#   tools/unity-batch.sh -- -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
+#   tools/unity-batch.sh -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
 #
 # The project defaults to shapeland/unity, the log to Logs/batch.log and the time limit to 30 minutes. Relative
 # paths, in the log and in Unity arguments, are relative to the project. Exit code: the editor's (tests: 0 passed,

@@ -197,9 +197,17 @@ namespace ShapeLand.Client
                 DestroyShape(Player.gameObject, _playerFade);
             }
 
+            // While quitting, Unity may have destroyed the shapes already; their faded materials still need freeing.
             foreach (var other in _others)
             {
-                DestroyShape(other.Value.gameObject, _fades[other.Key]);
+                if (other.Value != null)
+                {
+                    DestroyShape(other.Value.gameObject, _fades[other.Key]);
+                }
+                else
+                {
+                    _fades[other.Key].Destroy();
+                }
             }
         }
     }

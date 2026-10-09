@@ -62,7 +62,7 @@ if [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
     echo "The Unity editor has the project open; close it first (or use --no-build)." >&2
     exit 1
   fi
-  "$repo/tools/unity-batch.sh" -l Logs/web.log -- -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
+  "$repo/tools/unity-batch.sh" -l Logs/web.log -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
   touch "$web/index.html"
 elif [ ! -f "$web/index.html" ]; then
   echo "No web build yet; run without --no-build." >&2
