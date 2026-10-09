@@ -11,7 +11,7 @@ namespace ShapeLand.Client.Editor
 {
     /// <summary>
     /// Builds for step 2b's shared package check, runnable from the menu or in batch mode
-    /// (<c>-executeMethod ShapeLand.Client.Editor.Builds.MacOS</c>). Output goes to the repository's <c>artifacts/</c>.
+    /// (<c>-buildTarget OSXUniversal -executeMethod ShapeLand.Client.Editor.Builds.MacOS</c>). Output goes to the repository's <c>artifacts/</c>.
     /// </summary>
     public static class Builds
     {
@@ -246,6 +246,15 @@ namespace ShapeLand.Client.Editor
 
         private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene, BuildOptions options = BuildOptions.None)
         {
+            // Switching platforms inside a batch run builds with the starting platform's shader setup: a web build
+            // from a Linux-targeted editor failed every draw. Batch runs start on the target (-buildTarget) instead.
+            if (Application.isBatchMode && EditorUserBuildSettings.activeBuildTarget != target)
+            {
+                Debug.LogError($"Build Failed: the editor is on {EditorUserBuildSettings.activeBuildTarget}; start it with -buildTarget for {target}");
+                EditorApplication.Exit(1);
+                return;
+            }
+
             CopyContent();
 
             // The web client loads its content over plain HTTP from whichever server served the page, such as
