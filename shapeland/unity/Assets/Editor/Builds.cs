@@ -41,6 +41,13 @@ namespace ShapeLand.Client.Editor
         [MenuItem("ShapeLand/Build/macOS (Game Scene)")]
         public static void MacOSGame() => Build(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, "macos-game/ShapeLand.app", GameScene, BuildOptions.Development);
 
+        /// <summary>
+        /// The Linux counterpart of <see cref="MacOSGame"/>, for a desktop client on Linux. Mono, since IL2CPP on
+        /// Linux needs Unity's Linux sysroot package, which nothing else here uses.
+        /// </summary>
+        [MenuItem("ShapeLand/Build/Linux (Game Scene)")]
+        public static void LinuxGame() => Build(BuildTarget.StandaloneLinux64, BuildTargetGroup.Standalone, "linux-game/ShapeLand", GameScene, BuildOptions.Development, ScriptingImplementation.Mono2x);
+
         [MenuItem("ShapeLand/Build/Web")]
         public static void Web()
         {
@@ -240,22 +247,34 @@ namespace ShapeLand.Client.Editor
             return material;
         }
 
-        private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene, BuildOptions options = BuildOptions.None)
+        private static void Build(BuildTarget target, BuildTargetGroup group, string output, string scene = CheckScene, BuildOptions options = BuildOptions.None,
+            ScriptingImplementation backend = ScriptingImplementation.IL2CPP)
         {
             CopyContent();
 
             // The web client loads its content over plain HTTP from whichever server served the page, such as
             // the game server on another machine on the network; Unity otherwise allows that only from localhost.
             PlayerSettings.insecureHttpOption = InsecureHttpOption.AlwaysAllowed;
-            PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group), ScriptingImplementation.IL2CPP);
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            // Put back afterwards, so a Mono build doesn't leave the project setting changed.
+            var namedTarget = UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group);
+            var previousBackend = PlayerSettings.GetScriptingBackend(namedTarget);
+            PlayerSettings.SetScriptingBackend(namedTarget, backend);
+            BuildReport report;
+            try
             {
-                scenes = new[] { scene },
-                target = target,
-                targetGroup = group,
-                locationPathName = Path.Combine(RepoRoot, "artifacts", "unity", "shapeland", output),
-                options = options,
-            });
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { scene },
+                    target = target,
+                    targetGroup = group,
+                    locationPathName = Path.Combine(RepoRoot, "artifacts", "unity", "shapeland", output),
+                    options = options,
+                });
+            }
+            finally
+            {
+                PlayerSettings.SetScriptingBackend(namedTarget, previousBackend);
+            }
 
             Debug.Log($"Build {report.summary.result}: {report.summary.outputPath} ({report.summary.totalErrors} errors)");
             if (Application.isBatchMode && report.summary.result != BuildResult.Succeeded)
