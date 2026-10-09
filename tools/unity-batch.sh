@@ -43,10 +43,11 @@ cd "$project"
 "$unity" -batchmode -projectPath "$project" -logFile "$log" "$@" < /dev/null > /dev/null 2>&1 &
 pid=$!
 
-# The line that ends a run, and the exit code it means.
+# The line that ends a run, and the exit code it means. "Build Failed:" is the Builds class's own line: a failed
+# build exits through EditorApplication.Exit, which logs none of the others, and can hang there.
 result() {
   local line
-  line=$(grep -m 1 -E 'Test run completed\. Exiting with code [0-9]+|Batchmode quit successfully invoked|Aborting batchmode|Scripts have compiler errors' "$log" || true)
+  line=$(grep -m 1 -E 'Test run completed\. Exiting with code [0-9]+|Batchmode quit successfully invoked|Aborting batchmode|Scripts have compiler errors|^Build Failed: ' "$log" || true)
   case "$line" in
     *"Exiting with code"*) echo "$line" | sed -E 's/.*Exiting with code ([0-9]+).*/\1/' ;;
     *"Batchmode quit successfully"*) echo 0 ;;
