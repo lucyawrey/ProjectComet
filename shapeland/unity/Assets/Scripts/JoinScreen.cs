@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Comet.Client;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -32,6 +33,11 @@ namespace ShapeLand.Client
         private Label _error;
         private Button _joinButton;
         private ShapePreview _preview;
+        private float? _lostAt;
+
+        // How long after a lost connection a taken name is probably the player's own old session: the server notices a
+        // dead connection within about 30 s (keep-alive).
+        private const float OldSessionSeconds = 40;
         private ShapeLandContent _content;
         private Shape _shape;
         private uint _colour;
@@ -70,6 +76,7 @@ namespace ShapeLand.Client
             _join.OwnSpawned += OnOwnSpawned;
             _join.JoinRefused += OnRefused;
             _join.Failed += OnFailed;
+            _join.ConnectionLost += OnConnectionLost;
         }
 
         private void OnEnable()
@@ -236,7 +243,31 @@ namespace ShapeLand.Client
             _join.Join(server, new JoinRequest { Name = name, Shape = _shape.Number, Colour = _colour, EyeColour = _eyeColour });
         }
 
-        private void OnRefused(JoinRejection reason) => Retry(RefusalMessage(reason, _join.PlayerName));
+        private void OnRefused(JoinRejection reason)
+        {
+            var message = RefusalMessage(reason, _join.PlayerName);
+            if (reason == JoinRejection.NameTaken && _lostAt is float lostAt && Time.unscaledTime - lostAt < OldSessionSeconds)
+            {
+                // Likely this player's own old session, which the server hasn't noticed is gone yet.
+                message = $"The server still has your last session as {_join.PlayerName}. Try again in a few seconds.";
+            }
+
+            Retry(message);
+        }
+
+        // The card comes back with the reason, and the choices made before.
+        private void OnConnectionLost(string reason)
+        {
+            _lostAt = Time.unscaledTime;
+            _preview ??= new ShapePreview(_view, _root.Q("preview"));
+            Refresh();
+            _root.RemoveFromClassList("hidden");
+            Retry(LostMessage(reason));
+        }
+
+        /// <summary>What the card says after the connection was lost for <paramref name="reason"/>.</summary>
+        public static string LostMessage(string reason) =>
+            reason == ClientSession.LostMessage ? reason : $"{ClientSession.LostMessage} {reason}";
 
         private void OnFailed(string error)
         {
@@ -245,7 +276,7 @@ namespace ShapeLand.Client
                 return; // the content didn't load; nothing to show the card with
             }
 
-            if (_join.BadAddress)
+            if (_join.BadAddress || error == JoinClient.JoinUnanswered)
             {
                 Retry(error);
                 return;
@@ -284,6 +315,7 @@ namespace ShapeLand.Client
             _join.OwnSpawned -= OnOwnSpawned;
             _join.JoinRefused -= OnRefused;
             _join.Failed -= OnFailed;
+            _join.ConnectionLost -= OnConnectionLost;
             _preview?.Dispose();
         }
 

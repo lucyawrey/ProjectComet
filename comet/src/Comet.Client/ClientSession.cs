@@ -44,7 +44,7 @@ namespace Comet.Client
         private long _lastPingSent;
         private long? _oldestUnansweredPing;
         private (uint Tick, Vector3 Position, Vector3 Velocity, float Facing)? _heldReport;
-        private string? _protocolError;
+        private string? _closeReason;
 
         /// <summary>
         /// A ping unanswered for this long, in seconds, means our sends are stuck (e.g. wifi roaming): position
@@ -52,6 +52,14 @@ namespace Comet.Client
         /// when the link recovers and trip its flood limit.
         /// </summary>
         public const double ReportHoldSeconds = 2;
+
+        /// <summary>
+        /// A ping unanswered for this long, in seconds, means the server is gone (a machine that vanished closes
+        /// nothing, and TCP takes minutes to notice): the session closes with <see cref="LostMessage"/>.
+        /// </summary>
+        public const double LostSeconds = 10;
+
+        public const string LostMessage = "Lost the connection to the game server.";
 
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
         /// <param name="pingInterval">Seconds between pings for the server-tick estimate.</param>
@@ -94,9 +102,10 @@ namespace Comet.Client
         public int StatesReceived { get; private set; }
 
         /// <summary>Why the session ended: a protocol error here, or the transport's error.</summary>
-        public string? Error => _protocolError ?? Transport.Error;
+        public string? Error => _closeReason ?? Transport.Error;
 
-        public bool Closed => Transport.State == TransportState.Closed;
+        /// <summary>Closed by either side, or given up on (a protocol error, or the server gone quiet); <see cref="Error"/> says why.</summary>
+        public bool Closed => _closeReason != null || Transport.State == TransportState.Closed;
 
         /// <summary>The server's welcome arrived; <see cref="Clock"/> and <see cref="Entities"/> are ready.</summary>
         public event Action<Welcome>? WelcomeArrived;
@@ -119,7 +128,7 @@ namespace Comet.Client
             // before now, so they say nothing about the network's delay; don't let them push the delay up.
             _catchingUp = now - _lastUpdate > LocalStallSeconds;
             _lastUpdate = now;
-            while (_protocolError == null && Transport.TryReceive(out var frame))
+            while (_closeReason == null && Transport.TryReceive(out var frame))
             {
                 try
                 {
@@ -127,7 +136,7 @@ namespace Comet.Client
                 }
                 catch (ProtocolException e)
                 {
-                    _protocolError = e.Message;
+                    _closeReason = e.Message;
                     Transport.Close();
                 }
             }
@@ -147,8 +156,17 @@ namespace Comet.Client
                 _messages.Write(MessageIds.Ping, new Ping { ClientTime = _lastPingSent });
             }
 
+            // Pongs handled above came first, so frames that waited through a stall of our own count as answers.
+            var unanswered = _oldestUnansweredPing is { } oldest ? now - oldest / 1_000_000.0 : 0;
+            ReportsHeld = unanswered > ReportHoldSeconds;
+            if (unanswered > LostSeconds && _closeReason == null)
+            {
+                _closeReason = LostMessage;
+                Transport.Close();
+                return;
+            }
+
             // Answers are back: send where the player is now, once, in place of what was held.
-            ReportsHeld = _oldestUnansweredPing is { } oldest && now - oldest / 1_000_000.0 > ReportHoldSeconds;
             if (!ReportsHeld && _heldReport is { } held)
             {
                 _heldReport = null;

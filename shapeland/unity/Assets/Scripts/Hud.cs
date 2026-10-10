@@ -89,6 +89,7 @@ namespace ShapeLand.Client
             join.OtherLeft += OnLeft;
             join.ChatReceived += OnChat;
             join.ChatRefused += OnRefused;
+            join.ConnectionLost += OnConnectionLost;
         }
 
         private void OnDisable()
@@ -97,9 +98,29 @@ namespace ShapeLand.Client
             join.OtherLeft -= OnLeft;
             join.ChatReceived -= OnChat;
             join.ChatRefused -= OnRefused;
+            join.ConnectionLost -= OnConnectionLost;
         }
 
         private void OnOwnSpawned(PlayerSpawn spawn) => _root.RemoveFromClassList("hidden");
+
+        // Back to the join screen: the HUD hides, and its tags and chat are for a world that's gone.
+        private void OnConnectionLost(string reason)
+        {
+            if (ChatOpen)
+            {
+                CloseChat();
+            }
+
+            foreach (var tag in _tags.Values)
+            {
+                tag.Remove();
+            }
+
+            _tags.Clear();
+            _log.Clear();
+            _log.AddToClassList("empty");
+            _root.AddToClassList("hidden");
+        }
 
         private void Update()
         {

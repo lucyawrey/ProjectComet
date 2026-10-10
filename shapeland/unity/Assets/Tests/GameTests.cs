@@ -312,6 +312,28 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
+        public IEnumerator ALostConnectionGoesBackToTheJoinScreen()
+        {
+            yield return StartGame(joinScreen: true);
+            _screen.Root.Q<TextField>("name").value = "Pebble";
+            Click(ShapeButton(MeshKind.Diamond));
+            Click(_screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => _view.Player != null, 15);
+            Assert.That(_view.Player, Is.Not.Null, "Never spawned.");
+
+            _server.StopServer();
+            yield return TestGameServer.WaitFor(() => _screen.Showing, 10);
+
+            Assert.That(_screen.Showing, Is.True, "The join screen didn't come back.");
+            Assert.That(_screen.Error, Does.StartWith("Lost the connection"));
+            Assert.That(_view.Player, Is.Null, "The player's shape is still in the world.");
+            Assert.That(_join.Joined, Is.False);
+            Assert.That(_hud.Root.ClassListContains("hidden"), Is.True, "The overlay is still showing.");
+            Assert.That(_screen.Root.Q<TextField>("name").value, Is.EqualTo("Pebble"), "The name wasn't kept.");
+            Assert.That(_screen.Root.Q<Button>("join-button").enabledSelf, Is.True, "Join isn't enabled for another try.");
+        }
+
+        [UnityTest]
         public IEnumerator JoinScreenShowsRefusalsAndTriesAgain()
         {
             yield return StartGame(joinScreen: true);

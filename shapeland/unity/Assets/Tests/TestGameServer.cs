@@ -64,6 +64,9 @@ namespace ShapeLand.Client.Tests
             _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --url ws://{Address}/ws --count {count} --seconds {seconds} --chat");
         }
 
+        /// <summary>Kills the game server, as if it crashed; its connections close.</summary>
+        public void StopServer() => Stop(ref _process);
+
         public void Dispose()
         {
             Stop(ref _bots);
