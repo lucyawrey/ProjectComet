@@ -298,4 +298,37 @@ public class MovementValidatorTests
         Assert.Equal(FallResult.Landed, result);
         Assert.True(float.IsFinite(_validator.Position.Y));
     }
+
+    [Fact]
+    public void AReportGuessingTheNextSequenceDuringAServerFallIsStale()
+    {
+        // Off the edge and silent, so the server takes the fall over; a report then guessing the sequence the landing
+        // will carry is still stale, so the fall isn't left half-finished (the code review's S4).
+        _validator.Reset(new Vector3(31.6f, 0, 4), 0, 108);
+        Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(32.4f, -0.2f, 4), new Vector3(MaxSpeed, -2, 0), tick: 112));
+        var tick = 113u;
+        while (_validator.Fall(tick, MaxSpeed, JumpVelocity) != FallResult.Moved)
+        {
+            tick++;
+        }
+
+        Assert.Equal(MovementVerdict.Stale, Report(new Vector3(4, 0, 4), Vector3.Zero, tick + 1, sequence: _validator.CorrectionSequence));
+        Assert.Equal(FallResult.Moved, _validator.Fall(tick + 1, MaxSpeed, JumpVelocity));
+    }
+
+    [Theory]
+    [InlineData(float.MaxValue)]
+    [InlineData(-float.MaxValue)]
+    [InlineData(100f)]
+    public void FacingIsHeldToOneTurn(float facing)
+    {
+        Assert.Equal(MovementVerdict.Accepted, _validator.Check(new PositionReport { X = 4.1f, Z = 4, Facing = facing }, 102, MaxSpeed, JumpVelocity));
+        Assert.InRange(_validator.Facing, -MathF.PI, MathF.PI);
+        if (MathF.Abs(facing) < 1000)
+        {
+            // Huge values have no meaningful direction left; smaller ones keep theirs.
+            Assert.Equal(MathF.Sin(facing), MathF.Sin(_validator.Facing), 0.001f);
+            Assert.Equal(MathF.Cos(facing), MathF.Cos(_validator.Facing), 0.001f);
+        }
+    }
 }

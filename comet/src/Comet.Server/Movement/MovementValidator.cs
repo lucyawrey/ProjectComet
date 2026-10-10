@@ -159,7 +159,8 @@ public sealed class MovementValidator
     /// </summary>
     public MovementVerdict Check(in PositionReport report, uint tick, float maxSpeed, float jumpVelocity, uint? stamp = null)
     {
-        if (report.CorrectionSequence != CorrectionSequence)
+        // While the server finishes a fall, every report is stale, even one that guesses the landing's sequence.
+        if (report.CorrectionSequence != CorrectionSequence || _serverFalling)
         {
             return MovementVerdict.Stale;
         }
@@ -204,7 +205,7 @@ public sealed class MovementValidator
 
         _budget -= distance;
         Position = position;
-        Facing = report.Facing;
+        Facing = WrapAngle(report.Facing);
         _velocity = AllowedVelocity(report, allowedSpeed, jumpVelocity, stamp ?? tick);
         _lastReportTick = tick;
         _airborne = !Land(position, stamp ?? tick);
@@ -215,6 +216,9 @@ public sealed class MovementValidator
         float.IsFinite(report.X) && float.IsFinite(report.Y) && float.IsFinite(report.Z)
         && float.IsFinite(report.VelocityX) && float.IsFinite(report.VelocityY) && float.IsFinite(report.VelocityZ)
         && float.IsFinite(report.Facing);
+
+    // Into [-π, π], so a huge facing can't make viewers' angle interpolation overflow.
+    private static float WrapAngle(float radians) => (float)Math.IEEERemainder(radians, 2 * Math.PI);
 
     /// <summary>
     /// The reported velocity, held to what the rules allow: the server starts silent players' falls from it and
