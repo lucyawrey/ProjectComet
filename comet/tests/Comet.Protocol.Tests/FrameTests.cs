@@ -32,13 +32,18 @@ public class FrameTests
     [Fact]
     public void EntityStateFitsTheBudget()
     {
-        // About 10 updates in ~300 bytes per frame (prototype.md).
+        // The stack benchmark budgeted about 10 updates in ~300 bytes per frame (prototype.md); the state has since
+        // gained the mover's tick and velocity (for dead reckoning), so about 10 now fit in ~480.
         var writer = new MessageWriter();
         writer.Clear();
 
-        writer.Write(MessageIds.EntityState, new EntityState { EntityId = 299, X = 123.456f, Y = 7.89f, Z = -98.7f, Facing = 3.1f });
+        writer.Write(MessageIds.EntityState, new EntityState
+        {
+            EntityId = 299, X = 123.456f, Y = 7.89f, Z = -98.7f, Facing = 3.1f, Tick = 1_000_000,
+            VelocityX = 4.2f, VelocityY = -3.3f, VelocityZ = 1.1f,
+        });
 
-        Assert.InRange(writer.Length, 1, 30);
+        Assert.InRange(writer.Length, 1, 48);
     }
 
     [Fact]

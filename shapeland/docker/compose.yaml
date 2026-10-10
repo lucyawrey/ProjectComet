@@ -23,6 +23,7 @@ services:
       - http://+:5080
       - --ShapeLand:ContentFile=/app/content/content.bin
       - --ShapeLand:WebRoot=${SHAPELAND_WEBROOT-/app/web} # empty for none
+      - --Comet:Connections:MaxConnectionsPerAddress=1000 # the bots all come from one address
     ports:
       - ${SHAPELAND_PUBLISH:-127.0.0.1:5080}:5080
     volumes:

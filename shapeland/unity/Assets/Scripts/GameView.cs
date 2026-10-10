@@ -54,6 +54,9 @@ namespace ShapeLand.Client
         /// <summary>Every player in view, this one included, as the server spawned them (name, shape, colours), by entity ID.</summary>
         public IReadOnlyDictionary<uint, PlayerSpawn> Spawns => _spawns;
 
+        /// <summary>The same as a concrete dictionary, so looping over it every frame doesn't box an enumerator.</summary>
+        internal Dictionary<uint, PlayerSpawn> SpawnTable => _spawns;
+
         public ShapeLandControls Controls => _controls;
 
         public Camera Camera => orbitCamera.GetComponent<Camera>();

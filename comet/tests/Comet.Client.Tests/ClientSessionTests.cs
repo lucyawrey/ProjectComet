@@ -107,6 +107,28 @@ public class ClientSessionTests
     }
 
     [Fact]
+    public void StatesWaitingThroughALocalStallDontRaiseTheDelay()
+    {
+        Welcome(now: 5);
+        ServerSends(102, MessageIds.Pong, new Pong { ClientTime = 5_000_000 });
+        _session.Update(5.08);
+        Assert.True(_session.Clock.Synced);
+        _session.Entities.Spawn(9, 102, Vector3.Zero, 0);
+        var target = _session.InterpolationDelay.Target;
+
+        // A hidden tab: states kept arriving for 10 s, but the session only sees them all when it runs again.
+        for (uint tick = 104; tick < 404; tick += 2)
+        {
+            ServerSends(tick, MessageIds.EntityState, new EntityState { EntityId = 9, X = tick / 100f, Tick = tick });
+        }
+
+        _session.Update(15.1);
+
+        Assert.Equal(150, _session.StatesReceived);
+        Assert.Equal(target, _session.InterpolationDelay.Target);
+    }
+
+    [Fact]
     public void DespawnRemovesTheEntity()
     {
         uint despawned = 0;
@@ -172,6 +194,74 @@ public class ClientSessionTests
         _session.Write(MessageIds.FirstGameMessage, new Pong { ClientTime = 1 });
         _session.Flush(0.1);
         Assert.NotEqual(142u, Assert.Single(Sent()).Tick);
+    }
+
+    [Fact]
+    public void ReportsAreHeldWhilePingsGoUnansweredThenTheLatestIsSent()
+    {
+        // The upload stalls: pings at 0, 1, 2 and 3 s get no answer, so reports stop rather than queue up for the
+        // server to receive all at once (the code review's S8).
+        Welcome(now: 0);
+        for (var i = 0; i <= 30; i++)
+        {
+            var now = i * 0.1;
+            _session.Update(now);
+            _session.ReportPosition((uint)(100 + 3 * i), new Vector3(i, 0, 0), Vector3.UnitX, 0);
+            _session.Flush(now);
+        }
+
+        var reports = Sent().Where(m => m.Id == MessageIds.PositionReport).ToList();
+        Assert.True(_session.ReportsHeld);
+        Assert.InRange(reports.Count, 20, 22); // up to just past 2 s
+        Assert.Equal(reports.Count - 1, FrameReader.Decode<PositionReport>(reports[^1].Payload).X);
+
+        // The pongs arrive, in order: the latest held report goes out once, and reporting carries on.
+        foreach (var sent in new[] { 0.0, 1, 2, 3 })
+        {
+            ServerSends(200, MessageIds.Pong, new Pong { ClientTime = (long)(sent * 1_000_000) });
+        }
+
+        _session.Update(3.1);
+        _session.Flush(3.1);
+        Assert.False(_session.ReportsHeld);
+        var resumed = Assert.Single(Sent(), m => m.Id == MessageIds.PositionReport);
+        Assert.Equal(30, FrameReader.Decode<PositionReport>(resumed.Payload).X);
+        Assert.Equal(190u, resumed.Tick);
+    }
+
+    [Fact]
+    public void AnAnsweredPingNeverHoldsReports()
+    {
+        // Times that don't fit microseconds exactly (frames at 60 Hz from an odd start): each pong answers the latest
+        // ping, so a later pong a second late must not hold reports (the final review's finding).
+        const double start = 5.123456789;
+        Welcome(now: start);
+        var lastPing = 0L;
+        for (var frame = 0; frame < 6 * 60; frame++)
+        {
+            var now = start + frame / 60.0;
+            _session.Update(now);
+            _session.Flush(now);
+            foreach (var (_, id, payload) in Sent())
+            {
+                if (id == MessageIds.Ping)
+                {
+                    lastPing = FrameReader.Decode<Ping>(payload).ClientTime;
+                    if (frame < 3 * 60)
+                    {
+                        ServerSends(200, MessageIds.Pong, new Pong { ClientTime = lastPing });
+                    }
+                }
+            }
+
+            // From 3 s, pongs stop: reports are held only once that ping has waited 2 s (a frame either side is
+            // left out, for rounding).
+            var waited = now - (start + 3);
+            if (Math.Abs(waited - ClientSession.ReportHoldSeconds) > 0.02)
+            {
+                Assert.True(waited > ClientSession.ReportHoldSeconds == _session.ReportsHeld, $"held: {_session.ReportsHeld} at {now - start:0.000} s");
+            }
+        }
     }
 
     [Fact]

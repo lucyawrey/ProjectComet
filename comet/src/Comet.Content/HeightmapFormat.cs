@@ -44,7 +44,20 @@ namespace Comet.Content
                     throw new ContentException($"Heightmap is {map.SizeX}×{map.SizeZ} samples; it needs at least 2×2.");
                 }
 
-                map.Samples = new ushort[map.SizeX * map.SizeZ];
+                if (!float.IsFinite(map.Scale) || map.Scale <= 0 || !float.IsFinite(map.Offset))
+                {
+                    throw new ContentException($"Heightmap's scale ({map.Scale}) must be a positive number and its offset ({map.Offset}) a number.");
+                }
+
+                // Up to 65535 × 65535 samples overflows an int; and a header claiming more than the file holds
+                // shouldn't allocate for it.
+                var count = (long)map.SizeX * map.SizeZ;
+                if (count > int.MaxValue || (stream.CanSeek && stream.Length - stream.Position < 2 * count))
+                {
+                    throw new ContentException("Heightmap file is truncated.");
+                }
+
+                map.Samples = new ushort[count];
                 for (var i = 0; i < map.Samples.Length; i++)
                 {
                     map.Samples[i] = reader.ReadUInt16();

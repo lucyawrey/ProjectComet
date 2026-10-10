@@ -29,6 +29,10 @@ public class ContentBuilderTests
     [InlineData("id = \"widget.a\"\nsize = \n", 2, "")]
     [InlineData("id = \"thing.a\"\nsize = 1\n", 1, "'thing.a' isn't a valid widget id")]
     [InlineData("id = \"widget.Bad-Name\"\nsize = 1\n", 1, "isn't a valid widget id")]
+    [InlineData("id = \"widget.a\"\nsize = 1\nnumber = 5\n", 3, "Unknown key 'number' in widget")]
+    [InlineData("id = \"widget.a\"\nsize = 1\nweight = nan\n", 3, "content numbers must be finite")]
+    [InlineData("id = \"widget.a\"\nsize = 1\nweight = -inf\n", 3, "content numbers must be finite")]
+    [InlineData("id = \"widget.a\"\nsize = 1\n\n[[parts]]\nname = \"p\"\nlength = +inf\n", 6, "content numbers must be finite")]
     public void BadFilesFailWithTheirLine(string toml, int line, string message)
     {
         using var folder = new ContentFolder();

@@ -245,6 +245,12 @@ namespace ShapeLand.Client
                 return; // the content didn't load; nothing to show the card with
             }
 
+            if (_join.BadAddress)
+            {
+                Retry(error);
+                return;
+            }
+
             Retry(Application.platform == RuntimePlatform.WebGLPlayer
                 ? "Couldn't reach the game server. It may not be running right now."
                 : $"Couldn't reach the server at {_server.value.Trim()}. Check the address, or whether it's running.");

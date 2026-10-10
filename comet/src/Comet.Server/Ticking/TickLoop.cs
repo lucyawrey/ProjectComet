@@ -42,6 +42,13 @@ public sealed class TickLoop
     /// <summary>Called on the tick thread after each tick.</summary>
     public event Action<TickTiming>? TickCompleted;
 
+    /// <summary>
+    /// Called on the tick thread if a tick throws, with the tick and the exception; the loop has stopped. The game's
+    /// state can't be trusted after that, so the server should log it and stop (fail fast, but with the error
+    /// logged). With no handler, the exception ends the process.
+    /// </summary>
+    public event Action<uint, Exception>? Failed;
+
     public void Start() => _thread.Start();
 
     public void Stop()
@@ -66,7 +73,16 @@ public sealed class TickLoop
             var tick = Volatile.Read(ref _tick) + 1;
             Volatile.Write(ref _tick, tick);
 
-            _onTick(tick);
+            try
+            {
+                _onTick(tick);
+            }
+            catch (Exception e) when (Failed is not null)
+            {
+                _stopping = true;
+                Failed(tick, e);
+                return;
+            }
 
             var tickEnd = Stopwatch.GetTimestamp();
             TickCompleted?.Invoke(new TickTiming(

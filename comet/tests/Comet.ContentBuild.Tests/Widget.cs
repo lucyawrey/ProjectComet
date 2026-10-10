@@ -18,6 +18,8 @@ public sealed class Widget : IContentEntry
 
     public string[] Tags { get; set; } = [];
 
+    public float Weight { get; set; }
+
     public Colour? Colour { get; set; }
 
     public Part[] Parts { get; set; } = [];
@@ -35,6 +37,8 @@ public sealed class Colour
 public sealed class Part
 {
     public string Name { get; set; } = "";
+
+    public float Length { get; set; }
 
     public Dictionary<string, int> Stats { get; set; } = new();
 }
