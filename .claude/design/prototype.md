@@ -224,7 +224,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | good | 235 ms (187–287), 7 ms/s; was 201 | 8 ms/s, was 26 | 0.7%, 45 ms each; was 1.4%, 43 | 0 |
   | bad | 447 ms (370–643), 13 ms/s; was 388 | 21 ms/s, was 92 | 0.9%, 82 ms each; was 2.3%, 65 | 0 |
 
-  Good passes every criterion. Bad fails only on hold length (82 ms against 60): holds are less than half as frequent, but those left are the long stalls the 95th percentile doesn't cover, so the average length rose while the total time held halved (about 0.7 ms per move, from 1.5).
+  Good passes every criterion. Bad fails only on hold length (82 ms against 60): holds are less than half as frequent, but those left are the long stalls the 95th percentile doesn't cover, so the average length rose while the total time held halved (about 0.7 ms per move, from 1.5). A second seed under bad (seed 2, with Unity builds sharing the CPU) agreed: delay median 431 ms, target moving 18 ms/s, holds 0.8% and 0.56 ms held per move, no honest snap-backs.
 - **3c's pass criteria are written down before the tuning runs** (project lead), as the stack benchmark's thresholds were: the agent proposes numbers and the project lead approves them.
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
   1. *Fairness* (none, good, bad): no snap-backs on honest bots, of either kind (rule violations or falls the server finishes).
