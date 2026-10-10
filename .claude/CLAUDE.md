@@ -73,7 +73,7 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 
 ## Source material
 
-The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Notes, Story Snippets, Conversations) are copied raw into `.claude/notes/`. They are messy working notes, not decisions, and some of their ideas have since been rejected; check the design notes first.
+The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Notes, Story Snippets, Conversations) live in their own Obsidian vault, outside the repo; ask the project lead for anything needed from them. They are messy working notes, not decisions, and some of their ideas have since been rejected; check the design notes first.
 
 ## Risks
 
