@@ -217,6 +217,14 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | good, 3 far of 14 | 212 ms (174–262), was 358 | 1.3%, 43 ms each | 29 ms/s | 0 |
 
   The far players' own view (about 300 ms with both profiles' loss): delay about 500 ms (was about 590), holds 2.8–3.6%; with 3 of them, 1 too-fast and 1 finished fall among them, beyond the bad profile the criteria cover. Still failing under bad: steadiness (92 ms/s) and, narrowly, smoothness; fix B next.
+- **Fix B, the delay's target holds its peaks for 5 s** (`InterpolationDelay.HoldSeconds`): every quarter second the 95th percentile of the last 2 s gives a raw target, and the target is the highest raw target of the last 5 s, so it rises at once for a stall but falls only 5 s after it; the delay follows at 4% and 2% as before. The run report now also shows how fast the delay itself moves.
+
+  | Profile | Delay median (5th–95th), moving | Target moving | Holds | Honest snap-backs |
+  | --- | --- | --- | --- | --- |
+  | good | 235 ms (187–287), 7 ms/s; was 201 | 8 ms/s, was 26 | 0.7%, 45 ms each; was 1.4%, 43 | 0 |
+  | bad | 447 ms (370–643), 13 ms/s; was 388 | 21 ms/s, was 92 | 0.9%, 82 ms each; was 2.3%, 65 | 0 |
+
+  Good passes every criterion. Bad fails only on hold length (82 ms against 60): holds are less than half as frequent, but those left are the long stalls the 95th percentile doesn't cover, so the average length rose while the total time held halved (about 0.7 ms per move, from 1.5).
 - **3c's pass criteria are written down before the tuning runs** (project lead), as the stack benchmark's thresholds were: the agent proposes numbers and the project lead approves them.
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
   1. *Fairness* (none, good, bad): no snap-backs on honest bots, of either kind (rule violations or falls the server finishes).
