@@ -236,7 +236,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | bad | 2.2 (about 6 before, every hold a stop and a jump) | 76 | 536 | 10 | 451 ms |
   | good | 1.2 | 17 | 326 | 0 | 243 ms |
 
-  What's left is mostly eased corrections where a bot turned or jumped during a stall. Time held per move now measures time dead-reckoned, which isn't visible (1.26 ms under bad), so the smoothness criterion moves to visible hitches; the numbers wait for the project lead's look. The 10 jumps under bad aren't traced yet. By eye (project lead, web build under bad): "it finally looks smooth, even on bad".
+  What's left is mostly eased corrections where a bot turned or jumped during a stall. Time held per move now measures time dead-reckoned, which isn't visible (1.26 ms under bad), so the smoothness criterion moves to visible hitches; the numbers wait for the project lead's look. The 10 jumps under bad aren't traced yet. By eye (project lead, web build under bad): "it finally looks smooth, even on bad". **Criterion 7 signed off** (project lead): under bad and good, in the web build and the Linux desktop build, other players move smoothly, and holding C gets a snap-back.
 - **Bots stay quiet unless `--chat` is given** (`tools/shapeland-web.sh --bots-chat`), so playtests with several people aren't drowned out; the Play mode tests pass it.
 - **3c's pass criteria are written down before the tuning runs** (project lead), as the stack benchmark's thresholds were: the agent proposes numbers and the project lead approves them.
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
