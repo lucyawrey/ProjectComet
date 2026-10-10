@@ -41,6 +41,7 @@ namespace Comet.Client
         private const float TeleportMargin = 0.5f;
 
         private readonly Dictionary<uint, List<State>> _tracks = new Dictionary<uint, List<State>>();
+        private double _renderTick = double.NegativeInfinity;
 
         /// <param name="tickRate">Server ticks per second.</param>
         /// <param name="reportInterval">How often moving entities are updated, in seconds.</param>
@@ -67,6 +68,18 @@ namespace Comet.Client
         public IEnumerable<uint> Ids => _tracks.Keys;
 
         public bool Contains(uint entityId) => _tracks.ContainsKey(entityId);
+
+        /// <summary>States so far that continued a move (no idle gap before them).</summary>
+        public long MoveStates { get; private set; }
+
+        /// <summary>
+        /// Of <see cref="MoveStates"/>, those that arrived after the render tick had passed the state before them:
+        /// the entity ran out of states mid-move, so it was drawn standing until this one came, then jumped.
+        /// </summary>
+        public long Holds { get; private set; }
+
+        /// <summary>How far, in ticks, the render tick had passed the previous state when each hold ended, summed.</summary>
+        public double HeldTicks { get; private set; }
 
         /// <summary>Starts tracking an entity at its spawn state.</summary>
         public void Spawn(uint entityId, uint tick, Vector3 position, float facing)
@@ -106,6 +119,15 @@ namespace Comet.Client
                 previous = null;
                 states.Add(new State(tick - ReportIntervalTicks, newest.Position, newest.Facing));
             }
+            else
+            {
+                MoveStates++;
+                if (_renderTick > newest.Tick)
+                {
+                    Holds++;
+                    HeldTicks += _renderTick - newest.Tick;
+                }
+            }
 
             states.Add(new State(tick, position, facing));
             if (states.Count > MaxStates)
@@ -122,6 +144,7 @@ namespace Comet.Client
         /// </summary>
         public bool TrySample(uint entityId, double renderTick, out EntityPose pose)
         {
+            _renderTick = Math.Max(_renderTick, renderTick);
             if (!_tracks.TryGetValue(entityId, out var states))
             {
                 pose = default;

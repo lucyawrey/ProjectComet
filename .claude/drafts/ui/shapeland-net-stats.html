@@ -1,0 +1,188 @@
+<title>ShapeLand Network Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Atkinson+Hyperlegible+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: the same quiet review page as shapeland-phase-0.html; each mockup is a 960 x 600 game screen, scaled to fit. */
+:root {
+  --page: #f3f4f7;
+  --ink: #1b1e27;
+  --muted: #5d6475;
+  --line: #d9dce5;
+  --panel: #ffffff;
+  --accent: #2f6fe4;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page: #14161c; --ink: #e8eaf0; --muted: #9aa1b2; --line: #2b2f3a; --panel: #1c1f27; --accent: #7aa5ff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --page: #14161c; --ink: #e8eaf0; --muted: #9aa1b2; --line: #2b2f3a; --panel: #1c1f27; --accent: #7aa5ff; color-scheme: dark; }
+
+body { background: var(--page); color: var(--ink); font: 15px/1.55 var(--sans); }
+.page { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 64px; display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { margin: 0; font-size: 28px; font-weight: 600; text-wrap: balance; }
+h2 { margin: 0; font-size: 18px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.meta { font: 13px/1.4 var(--mono); color: var(--muted); }
+.lede { color: var(--muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--page); padding-block: 10px; border-bottom: 1px solid var(--line); }
+.toolbar .label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { font: 600 14px var(--sans); color: var(--ink); background: none; border: 0; padding: 7px 14px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+figcaption { color: var(--muted); font-size: 14px; max-width: 72ch; }
+.stage { position: relative; width: 100%; aspect-ratio: 960 / 600; max-width: 100%; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: #8bbef2; }
+.screen { position: absolute; left: 0; top: 0; width: 960px; height: 600px; transform-origin: 0 0; overflow: hidden; }
+.scene { position: absolute; left: 0; top: 0; width: 960px; height: 600px; max-width: none; display: block; }
+
+.notes { display: flex; flex-direction: column; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+.notes ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.notes code { font: 13px var(--mono); }
+
+/* ===================================================================================================
+   The mockup UI, in the plain look. USS-compatible only: flexbox with margins (no gap), absolute
+   positions, borders, border-radius, rgba colours. No grid, box-shadow or tabular-nums, so the numbers
+   use a monospace face (Atkinson Hyperlegible Mono, OFL) to keep them from jittering as they change.
+   =================================================================================================== */
+.ui { position: absolute; left: 0; top: 0; width: 960px; height: 600px; font-family: "Atkinson Hyperlegible", system-ui, sans-serif; color: #eef1f6; font-size: 15px; }
+.ui-label-name { position: absolute; transform: translate(-50%, -100%); font-size: 14px; padding: 1px 7px; background-color: rgba(18, 22, 30, 0.55); border-radius: 3px; }
+.ui-chat-hint { position: absolute; left: 16px; bottom: 16px; font-size: 13px; padding: 4px 9px; background-color: rgba(18, 22, 30, 0.6); border-radius: 3px; opacity: 0.85; }
+.num { font-family: "Atkinson Hyperlegible Mono", ui-monospace, monospace; }
+.dim { color: #a9b2c4; }
+
+/* A: four lines of plain text. */
+.ns-lines { position: absolute; left: 12px; top: 12px; padding: 7px 10px; background-color: rgba(18, 22, 30, 0.7); border-radius: 4px; font-size: 13px; line-height: 19px; }
+
+/* B: label and value rows, with a dot for each row's state. */
+.ns-table { position: absolute; left: 12px; top: 12px; padding: 8px 10px 6px 10px; background-color: rgba(18, 22, 30, 0.78); border-radius: 4px; font-size: 13px; width: 238px; }
+.ns-row { display: flex; flex-direction: row; align-items: center; margin-bottom: 3px; }
+.ns-dot { width: 7px; height: 7px; border-radius: 4px; margin-right: 7px; flex-shrink: 0; }
+.ns-dot.ok { background-color: #5cc98a; }
+.ns-dot.warn { background-color: #f0b54a; }
+.ns-dot.bad { background-color: #f06a5e; }
+.ns-key { width: 78px; color: #a9b2c4; flex-shrink: 0; }
+.ns-val { flex-grow: 1; }
+.ns-foot { margin-top: 3px; padding-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.12); font-size: 11px; color: #8d97ab; }
+
+/* C: one strip across the top. */
+.ns-strip { position: absolute; left: 0; right: 0; top: 0; height: 26px; padding: 0 12px; display: flex; flex-direction: row; align-items: center; background-color: rgba(18, 22, 30, 0.62); font-size: 12px; }
+.ns-strip .ns-item { margin-right: 22px; display: flex; flex-direction: row; }
+.ns-strip .ns-item .dim { margin-right: 5px; }
+.ns-strip .ns-key-hint { margin-left: auto; color: #8d97ab; }
+</style>
+
+<div class="page">
+  <header>
+    <p class="meta">ShapeLand · phase 0 · 3c tuning</p>
+    <h1>Network stats overlay</h1>
+    <p class="lede">A development overlay for tuning under simulated network conditions. F3 shows or hides it, and the choice is remembered. Three layouts with the same four numbers; pick one or mix them.</p>
+  </header>
+
+  <div class="toolbar">
+    <span class="label">Example numbers</span>
+    <div class="seg" id="profileToggle" role="group" aria-label="Example network profile">
+      <button type="button" data-profile="good" aria-pressed="true">Good (~80 ms)</button>
+      <button type="button" data-profile="bad" aria-pressed="false">Bad (~200 ms)</button>
+    </div>
+  </div>
+
+  <figure>
+    <h2>A · Plain lines</h2>
+    <div class="stage"><div class="screen">
+      <img class="scene" src="island.jpg" alt="The ShapeLand island seen over the player's red pyramid, with a purple pyramid ahead">
+      <div class="ui">
+        <div class="ui-label-name" style="left: 459px; top: 180px;">Bot 01</div>
+        <div class="ns-lines">
+          <div>Ping <span class="num" data-v="ping"></span> ms <span class="dim">(best <span class="num" data-v="best"></span>)</span></div>
+          <div>Delay <span class="num" data-v="delay"></span> ms <span class="dim">→ <span class="num" data-v="target"></span></span></div>
+          <div>Holds <span class="num" data-v="holds"></span>% <span class="dim">of <span class="num" data-v="moves"></span> moves, <span class="num" data-v="held"></span> ms each</span></div>
+          <div>Snap-backs <span class="num" data-v="snaps"></span> <span class="dim">· respawns <span class="num" data-v="respawns"></span></span></div>
+        </div>
+        <div class="ui-chat-hint">Enter to chat</div>
+      </div>
+    </div></div>
+    <figcaption>The smallest change: four lines in a corner, like an engine's debug text. The figures in grey give context; the white ones are the ones to watch. The hold numbers cover the last 5 seconds.</figcaption>
+  </figure>
+
+  <figure>
+    <h2>B · Rows with a state dot</h2>
+    <div class="stage"><div class="screen">
+      <img class="scene" src="island.jpg" alt="The same island scene">
+      <div class="ui">
+        <div class="ui-label-name" style="left: 459px; top: 180px;">Bot 01</div>
+        <div class="ns-table">
+          <div class="ns-row"><div class="ns-dot" data-s="ping"></div><span class="ns-key">Ping</span><span class="ns-val"><span class="num" data-v="ping"></span> ms <span class="dim">best <span class="num" data-v="best"></span></span></span></div>
+          <div class="ns-row"><div class="ns-dot" data-s="delay"></div><span class="ns-key">Delay</span><span class="ns-val"><span class="num" data-v="delay"></span> ms <span class="dim">→ <span class="num" data-v="target"></span></span></span></div>
+          <div class="ns-row"><div class="ns-dot" data-s="holds"></div><span class="ns-key">Holds</span><span class="ns-val"><span class="num" data-v="holds"></span>% <span class="dim"><span class="num" data-v="held"></span> ms each</span></span></div>
+          <div class="ns-row"><div class="ns-dot" data-s="snaps"></div><span class="ns-key">Snap-backs</span><span class="ns-val"><span class="num" data-v="snaps"></span> <span class="dim">respawns <span class="num" data-v="respawns"></span></span></span></div>
+          <div class="ns-foot">Holds over the last 5 s · F3 hides</div>
+        </div>
+        <div class="ui-chat-hint">Enter to chat</div>
+      </div>
+    </div></div>
+    <figcaption>Aligned rows, with a dot that turns amber or red when a number crosses a line, so trouble shows at a glance while you're watching the game rather than the text. The lines would come from 3c's pass criteria once you've approved them; the ones here are placeholders (ping over 150 ms amber; holds over 3% amber, over 8% red; any snap-back without the speed cheat red).</figcaption>
+  </figure>
+
+  <figure>
+    <h2>C · Strip across the top</h2>
+    <div class="stage"><div class="screen">
+      <img class="scene" src="island.jpg" alt="The same island scene">
+      <div class="ui">
+        <div class="ui-label-name" style="left: 459px; top: 180px;">Bot 01</div>
+        <div class="ns-strip">
+          <div class="ns-item"><span class="dim">Ping</span><span class="num" data-v="ping"></span></div>
+          <div class="ns-item"><span class="dim">Delay</span><span class="num" data-v="delay"></span><span class="dim">&nbsp;→&nbsp;</span><span class="num" data-v="target"></span></div>
+          <div class="ns-item"><span class="dim">Holds</span><span class="num" data-v="holds"></span>%</div>
+          <div class="ns-item"><span class="dim">Snap-backs</span><span class="num" data-v="snaps"></span></div>
+          <span class="ns-key-hint">F3</span>
+        </div>
+        <div class="ui-chat-hint">Enter to chat</div>
+      </div>
+    </div></div>
+    <figcaption>One thin line, out of the way of the game and the chat. It fits fewer numbers: the best ping, hold length, move count and respawns drop out.</figcaption>
+  </figure>
+
+  <section class="notes">
+    <h2>What the numbers mean</h2>
+    <ul>
+      <li><b>Ping:</b> the latest round trip to the server, and the lowest of the last ten (the one the clock trusts).</li>
+      <li><b>Delay:</b> how far behind the server's moves other players are drawn, and the delay it's growing or shrinking towards. Under a worse network it should settle higher.</li>
+      <li><b>Holds:</b> the share of other players' moves where their next update came too late, so they stood still briefly and then jumped. This is the number tuning tries to keep low without a large delay.</li>
+      <li><b>Snap-backs:</b> how often the server corrected your own position. Without the speed cheat (hold C) this should stay at 0; any snap-back means a validation margin is too tight for the network.</li>
+      <li>Shown in every build, not just development builds, so it also works in the web build and, later, the public test build. Off until F3 is pressed.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const examples = {
+  good: { ping: 84, best: 79, delay: 192, target: 198, holds: "1.2", moves: 410, held: 35, snaps: 0, respawns: 1 },
+  bad: { ping: 231, best: 204, delay: 341, target: 365, holds: "6.8", moves: 395, held: 120, snaps: 0, respawns: 1 },
+};
+const state = (key, v) => {
+  if (key === "ping") return v.ping > 150 ? "warn" : "ok";
+  if (key === "holds") return v.holds > 8 ? "bad" : v.holds > 3 ? "warn" : "ok";
+  if (key === "snaps") return v.snaps > 0 ? "bad" : "ok";
+  return "ok";
+};
+function show(profile) {
+  const v = examples[profile];
+  document.querySelectorAll("[data-v]").forEach((el) => { el.textContent = v[el.dataset.v]; });
+  document.querySelectorAll("[data-s]").forEach((el) => { el.className = "ns-dot " + state(el.dataset.s, v); });
+  document.querySelectorAll("#profileToggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.profile === profile)));
+}
+document.querySelectorAll("#profileToggle button").forEach((b) => b.addEventListener("click", () => show(b.dataset.profile)));
+function fit() {
+  document.querySelectorAll(".stage").forEach((st) => { st.firstElementChild.style.transform = `scale(${st.clientWidth / 960})`; });
+}
+addEventListener("resize", fit);
+fit();
+show("good");
+</script>
