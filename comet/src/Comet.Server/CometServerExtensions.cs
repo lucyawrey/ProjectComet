@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Comet.Server;
 
@@ -31,6 +32,8 @@ public static class CometServerExtensions
                 services.GetRequiredService<ConnectionRegistry>(),
                 services.GetRequiredService<IConnectionHandler>(),
                 services.GetRequiredService<TickLoop>());
+            // Close connections as the server stops, rather than leave them for the host's shutdown timeout.
+            using var stopping = services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(connection.Shutdown);
             await connection.RunAsync(context.RequestAborted);
         });
 }

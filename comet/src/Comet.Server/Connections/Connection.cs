@@ -21,8 +21,8 @@ namespace Comet.Server.Connections;
 /// rather than the wait for the next tick.
 /// </para>
 /// <para>
-/// Limits (a client's traffic is never trusted): incoming messages are rate-limited, and a client over the limit
-/// is dropped; at most <see cref="MaxPendingImmediate"/> immediate frames wait to send, beyond which pongs are
+/// Limits (a client's traffic is never trusted): incoming messages are rate-limited (each frame, or piece of
+/// one, costs at least a message), and a client over the limit is dropped; at most <see cref="MaxPendingImmediate"/> immediate frames wait to send, beyond which pongs are
 /// dropped; a client that stops reading is dropped once its unsent events pass <see cref="MaxPendingEventBytes"/>
 /// or a send has waited <see cref="SendTimeout"/>.
 /// </para>
@@ -79,6 +79,7 @@ public sealed class Connection
 
     // Both.
     private int _pendingImmediate;
+    private volatile bool _shuttingDown;
 
     internal Connection(WebSocket socket, ConnectionRegistry registry, IConnectionHandler handler, TickLoop tickLoop)
     {
@@ -199,6 +200,17 @@ public sealed class Connection
         }
     }
 
+    /// <summary>
+    /// Closes the connection because the server is stopping: sends what's queued, then a close frame, and
+    /// aborts if the client hasn't answered within the close timeout.
+    /// </summary>
+    internal void Shutdown()
+    {
+        _shuttingDown = true;
+        _outgoing.Writer.TryComplete();
+        _ = Task.Delay(CloseTimeout).ContinueWith(_ => _socket.Abort(), TaskScheduler.Default);
+    }
+
     internal async Task RunAsync(CancellationToken cancellationToken)
     {
         // The handler sets up its data before the tick thread can see the connection.
@@ -235,7 +247,7 @@ public sealed class Connection
             _socket.Abort();
             await sending;
         }
-        else if (clientClosed)
+        else if (clientClosed && _socket.State == WebSocketState.CloseReceived)
         {
             await CloseQuietlyAsync(WebSocketCloseStatus.NormalClosure);
         }
@@ -247,6 +259,9 @@ public sealed class Connection
         while (true)
         {
             var result = await _socket.ReceiveAsync(_receiveBuffer.AsMemory(length), cancellationToken);
+
+            // Each piece of a frame costs a message, so floods of empty frames or tiny fragments are limited too.
+            Charge();
             if (result.MessageType == WebSocketMessageType.Close)
             {
                 return;
@@ -272,16 +287,16 @@ public sealed class Connection
     private void HandleFrame(ReadOnlyMemory<byte> frame)
     {
         _registry.Stats.AddReceived(frame.Length);
-        var now = Stopwatch.GetTimestamp();
-        _messageAllowance = Math.Min(MessageBurst, _messageAllowance + Stopwatch.GetElapsedTime(_allowanceTime, now).TotalSeconds * MaxMessagesPerSecond);
-        _allowanceTime = now;
         var reader = FrameReader.Create(frame);
+        var first = true;
         while (reader.TryReadNext(out var messageId, out var payload))
         {
-            if (--_messageAllowance < 0)
+            // The frame's first message was paid for when it arrived.
+            if (!first)
             {
-                throw new ProtocolException("Too many messages.");
+                Charge();
             }
+            first = false;
 
             if (messageId == MessageIds.Ping)
             {
@@ -292,6 +307,18 @@ public sealed class Connection
             {
                 _handler.OnMessage(this, reader.Tick, messageId, payload);
             }
+        }
+    }
+
+    /// <summary>Takes one message from the allowance, which refills at <see cref="MaxMessagesPerSecond"/>.</summary>
+    private void Charge()
+    {
+        var now = Stopwatch.GetTimestamp();
+        _messageAllowance = Math.Min(MessageBurst, _messageAllowance + Stopwatch.GetElapsedTime(_allowanceTime, now).TotalSeconds * MaxMessagesPerSecond);
+        _allowanceTime = now;
+        if (--_messageAllowance < 0)
+        {
+            throw new ProtocolException("Too many messages.");
         }
     }
 
@@ -326,6 +353,12 @@ public sealed class Connection
                     }
                 }
             }
+
+            if (_shuttingDown)
+            {
+                // The client answers the close, which ends the receive loop.
+                await CloseQuietlyAsync(WebSocketCloseStatus.EndpointUnavailable, "The server is shutting down.");
+            }
         }
         catch (Exception e) when (e is WebSocketException or OperationCanceledException or ObjectDisposedException)
         {
@@ -345,11 +378,11 @@ public sealed class Connection
         }
     }
 
-    private async Task CloseQuietlyAsync(WebSocketCloseStatus status)
+    private async Task CloseQuietlyAsync(WebSocketCloseStatus status, string? reason = null)
     {
         try
         {
-            await _socket.CloseOutputAsync(status, null, CancellationToken.None);
+            await _socket.CloseOutputAsync(status, reason, CancellationToken.None);
         }
         catch (Exception e) when (e is WebSocketException or ObjectDisposedException)
         {

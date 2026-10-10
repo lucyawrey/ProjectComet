@@ -16,6 +16,7 @@ public sealed class ConnectionTests : IAsyncLifetime
     private TcpClient _clientTcp = null!;
     private TcpClient _serverTcp = null!;
     private WebSocket _client = null!;
+    private readonly ConnectionRegistry _registry = new();
     private Connection _connection = null!;
     private Task _running = null!;
 
@@ -30,7 +31,7 @@ public sealed class ConnectionTests : IAsyncLifetime
 
         _client = WebSocket.CreateFromStream(_clientTcp.GetStream(), new WebSocketCreationOptions { IsServer = false });
         var server = WebSocket.CreateFromStream(_serverTcp.GetStream(), new WebSocketCreationOptions { IsServer = true });
-        _connection = new Connection(server, new ConnectionRegistry(), new NoHandler(), new TickLoop(30, _ => { }));
+        _connection = new Connection(server, _registry, new NoHandler(), new TickLoop(30, _ => { }));
         _running = _connection.RunAsync(TestContext.Current.CancellationToken);
     }
 
@@ -87,6 +88,27 @@ public sealed class ConnectionTests : IAsyncLifetime
         }
 
         Assert.Equal(Enumerable.Range(0, events).Select(i => long.MaxValue - i), received);
+    }
+
+    [Fact]
+    public async Task AFloodOfEmptyFramesDropsTheClient()
+    {
+        // Frames with only a header carry no messages, but still cost the server to receive (the code review's S7).
+        var empty = new byte[MessageWriter.TickSize];
+        try
+        {
+            for (var i = 0; i < 2 * Connection.MessageBurst; i++)
+            {
+                await _client.SendAsync(empty, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
+            }
+        }
+        catch (WebSocketException)
+        {
+            // Dropped while still sending.
+        }
+
+        await _running.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Equal(1, _registry.Stats.ProtocolErrors);
     }
 
     private async Task<int> ReceiveFrame(byte[] buffer)

@@ -103,6 +103,33 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task StoppingTheServerClosesConnectionsPromptly()
+    {
+        // Rather than leaving clients frozen until the host's shutdown timeout (the code review's S5).
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        var buffer = new byte[64 * 1024];
+        var receiving = Task.Run(async () =>
+        {
+            while (true)
+            {
+                var result = await socket.ReceiveAsync(buffer, TestContext.Current.CancellationToken);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, TestContext.Current.CancellationToken);
+                    return result.CloseStatus;
+                }
+            }
+        }, TestContext.Current.CancellationToken);
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        await _server.StopAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"stopping took {stopwatch.Elapsed}");
+        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, await receiving.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task AFloodOfMessagesDropsTheClient()
     {
         // Far more pings than any honest client sends, all at once: the server drops the connection rather than
