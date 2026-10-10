@@ -68,7 +68,7 @@ public class MovementValidatorTests
     {
         // Standing still for 10 s earns at most one second of movement.
         Assert.Equal(MovementVerdict.TooFast, Report(4 + 10, 0, 4, 400));
-        Assert.Equal(MovementVerdict.Accepted, Report(4 + 7, 0, 4, 401));
+        Assert.Equal(MovementVerdict.Accepted, Report(4 + 6.5f, 0, 4, 401)); // 1 s at 1.1 x 6 m/s, plus slack
     }
 
     [Fact]
