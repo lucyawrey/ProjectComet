@@ -7,7 +7,7 @@ Working terms. They may change but must stay distinct. Details live in the topic
 | Term | Meaning |
 | --- | --- |
 | **Comet** | The shared base: libraries, servers, Unity package and tools for a family of similar MMOs. MIT-licensed. Not the Unity engine. |
-| **Anima** | Working name of the game built on Comet. |
+| **Anima (game)** | Working name of the game built on Comet. Also the name of its soul-magic resource (below); the notes rely on context, adding "(game)" only where it's ambiguous. |
 | **ProjectComet** | Working name of the whole project, covering Comet and Anima; also the repository's name. |
 | **ShapeLand** | Comet's tiny demo and reference game: coloured shapes (cube, diamond, pyramid) that slide, chat and fight curved shape monsters with magic. Used for phases 0–2. |
 | **Base / game (layer)** | Whether something belongs to Comet or to a game built on it. Each design file has a Layer line; game policy sits on thin base mechanisms. |
