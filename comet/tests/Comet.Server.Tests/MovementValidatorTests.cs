@@ -68,7 +68,7 @@ public class MovementValidatorTests
     {
         // Standing still for 10 s earns at most one second of movement.
         Assert.Equal(MovementVerdict.TooFast, Report(4 + 10, 0, 4, 400));
-        Assert.Equal(MovementVerdict.Accepted, Report(4 + 7, 0, 4, 401));
+        Assert.Equal(MovementVerdict.Accepted, Report(4 + 6.5f, 0, 4, 401)); // 1 s at 1.1 x 6 m/s, plus slack
     }
 
     [Fact]
@@ -330,5 +330,33 @@ public class MovementValidatorTests
             Assert.Equal(MathF.Sin(facing), MathF.Sin(_validator.Facing), 0.001f);
             Assert.Equal(MathF.Cos(facing), MathF.Cos(_validator.Facing), 0.001f);
         }
+    }
+
+    [Fact]
+    public void HeadroomMeasuresTheBurstAStallNeeded()
+    {
+        // Walking at exactly max speed (0.4 m every 2 ticks) needs no banked movement at any speed factor.
+        for (var i = 1; i <= 15; i++)
+        {
+            Assert.Equal(MovementVerdict.Accepted, Report(4 + 0.4f * i, 0, 4, (uint)(100 + 2 * i)));
+        }
+        Assert.Equal(0, _validator.Headroom.BurstSecondsNeeded(0), 3);
+
+        // Then 0.5 s of reports arrive at once, after the stall that held them: at max speed that's 0.5 s banked.
+        for (var i = 1; i <= 7; i++)
+        {
+            Assert.Equal(MovementVerdict.Accepted, Report(10 + 0.4f * i, 0, 4, 145));
+        }
+        var factor1 = _validator.Headroom.BurstSecondsNeeded(0);
+        Assert.InRange(factor1, 0.4f, 0.5f);
+        Assert.True(_validator.Headroom.BurstSecondsNeeded(MovementHeadroom.SpeedFactors.Length - 1) < factor1);
+    }
+
+    [Fact]
+    public void HeadroomMeasuresHeightAboveAnExactJump()
+    {
+        var apex = new MovementRules().JumpApex(JumpVelocity);
+        Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(4, apex + 0.1f, 4), Vector3.Zero, tick: 112));
+        Assert.Equal(0.1f, _validator.Headroom.MaxRiseOverApex, 3);
     }
 }
