@@ -21,6 +21,8 @@ namespace Comet.Client
         private readonly SemaphoreSlim _sendSignal = new SemaphoreSlim(0);
         private readonly int _maxFrameSize;
         private readonly TimeSpan _closeTimeout;
+        private readonly TimeSpan _connectTimeout;
+        private long _queuedBytes;
         private volatile TransportState _state = TransportState.Connecting;
         private volatile string? _error;
         private volatile bool _closing;
@@ -28,10 +30,12 @@ namespace Comet.Client
         /// <summary>Starts connecting to <paramref name="url"/>.</summary>
         /// <param name="maxFrameSize">Larger frames from the server close the connection.</param>
         /// <param name="closeTimeout">How long a close waits for the server's answer before giving up (default 5 s).</param>
-        public WebSocketTransport(Uri url, int maxFrameSize = FrameReader.MaxServerFrameSize, TimeSpan? closeTimeout = null)
+        /// <param name="connectTimeout">How long connecting may take before it fails (default <see cref="TransportLimits.ConnectTimeoutSeconds"/>).</param>
+        public WebSocketTransport(Uri url, int maxFrameSize = FrameReader.MaxServerFrameSize, TimeSpan? closeTimeout = null, TimeSpan? connectTimeout = null)
         {
             _maxFrameSize = maxFrameSize;
             _closeTimeout = closeTimeout ?? TimeSpan.FromSeconds(5);
+            _connectTimeout = connectTimeout ?? TimeSpan.FromSeconds(TransportLimits.ConnectTimeoutSeconds);
             Completion = RunAsync(url);
         }
 
@@ -53,7 +57,16 @@ namespace Comet.Client
             _sendSignal.Release();
         }
 
-        public bool TryReceive(out byte[] frame) => _received.TryDequeue(out frame!);
+        public bool TryReceive(out byte[] frame)
+        {
+            if (!_received.TryDequeue(out frame!))
+            {
+                return false;
+            }
+
+            Interlocked.Add(ref _queuedBytes, -frame.Length);
+            return true;
+        }
 
         public void Close()
         {
@@ -69,17 +82,20 @@ namespace Comet.Client
 
         private async Task RunAsync(Uri url)
         {
-            try
+            using (var timeout = new CancellationTokenSource(_connectTimeout))
             {
-                await _socket.ConnectAsync(url, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                // Any failure to connect (refused, a bad address such as an http:// URL, disposed meanwhile) ends
-                // the connection with its reason, never leaving it Connecting.
-                _socket.Dispose();
-                Finish(e.Message);
-                return;
+                try
+                {
+                    await _socket.ConnectAsync(url, timeout.Token).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    // Any failure to connect (refused, a bad address such as an http:// URL, an address that never
+                    // answers, disposed meanwhile) ends the connection with its reason, never leaving it Connecting.
+                    _socket.Dispose();
+                    Finish(timeout.IsCancellationRequested ? TransportLimits.ConnectTimedOut : e.Message);
+                    return;
+                }
             }
 
             _state = TransportState.Open;
@@ -156,7 +172,8 @@ namespace Comet.Client
                     {
                         if (!_closing)
                         {
-                            _error ??= "The server closed the connection.";
+                            // The server's reason, if it gave one (e.g. that it's shutting down).
+                            _error ??= string.IsNullOrEmpty(result.CloseStatusDescription) ? "The server closed the connection." : result.CloseStatusDescription;
                         }
 
                         return;
@@ -165,6 +182,19 @@ namespace Comet.Client
                     length += result.Count;
                     if (result.EndOfMessage)
                     {
+                        // Frames pile up while nothing takes them (a paused editor); past the cap, give up rather than
+                        // keep everything.
+                        if (Interlocked.Add(ref _queuedBytes, length) > TransportLimits.MaxQueuedBytes)
+                        {
+                            // Drop what's waiting too, so it isn't all handled at once on the game's return.
+                            while (_received.TryDequeue(out _))
+                            {
+                            }
+
+                            Interlocked.Exchange(ref _queuedBytes, 0);
+                            throw new ProtocolException(TransportLimits.FellBehind);
+                        }
+
                         _received.Enqueue(buffer.AsSpan(0, length).ToArray());
                         length = 0;
                     }

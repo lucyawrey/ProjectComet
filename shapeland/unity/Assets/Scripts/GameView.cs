@@ -73,6 +73,7 @@ namespace ShapeLand.Client
             _join.OwnSpawned += OnOwnSpawned;
             _join.OtherSpawned += OnOtherSpawned;
             _join.OtherLeft += OnOtherLeft;
+            _join.ConnectionLost += OnConnectionLost;
             _controls = new ShapeLandControls();
             _screenFade = gameObject.AddComponent<ScreenFade>();
             orbitCamera.GetComponent<Camera>().cullingMask &= ~(1 << PreviewLayer);
@@ -137,6 +138,25 @@ namespace ShapeLand.Client
             _fades[spawn.EntityId] = fade;
         }
 
+        // Everyone leaves the world, this player too, and the camera goes back to orbiting the island.
+        private void OnConnectionLost(string reason)
+        {
+            foreach (var id in new List<uint>(_others.Keys))
+            {
+                OnOtherLeft(id);
+            }
+
+            if (Player != null)
+            {
+                orbitCamera.Release();
+                DestroyShape(Player.gameObject, _playerFade);
+                Player = null;
+            }
+
+            _spawns.Clear(); // this player's own entry too, or a rejoin would tag someone with the old name
+            _screenFade.Darkness = 0;
+        }
+
         private void OnOtherLeft(uint entityId)
         {
             if (_others.TryGetValue(entityId, out var other))
@@ -194,6 +214,7 @@ namespace ShapeLand.Client
             _join.OwnSpawned -= OnOwnSpawned;
             _join.OtherSpawned -= OnOtherSpawned;
             _join.OtherLeft -= OnOtherLeft;
+            _join.ConnectionLost -= OnConnectionLost;
             _controls.Dispose();
             if (Player != null)
             {
