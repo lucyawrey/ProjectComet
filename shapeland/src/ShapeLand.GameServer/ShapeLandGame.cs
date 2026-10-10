@@ -212,7 +212,15 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
     private void Fall(Player player, uint tick)
     {
-        switch (player.Validator.Fall(tick, player.Shape.MaxSpeed, player.Shape.JumpVelocity))
+        var wasFalling = player.Validator.ServerFalling;
+        var result = player.Validator.Fall(tick, player.Shape.MaxSpeed, player.Shape.JumpVelocity);
+        if (!wasFalling && player.Validator.ServerFalling)
+        {
+            player.ServerFalls++;
+            logger.LogInformation("Finishing the fall of {Name}, silent in the air, {Count} so far", player.Name, player.ServerFalls);
+        }
+
+        switch (result)
         {
             case FallResult.Moved:
                 player.StateTick = player.Stamp.StampServer(tick);
@@ -286,7 +294,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             }
         }
 
-        logger.LogInformation("{Name} left ({Players} online)", player.Name, _players.Values.Count(p => p.Joined));
+        logger.LogInformation(
+            "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server",
+            player.Name, _players.Values.Count(p => p.Joined), player.Validator.Violations, player.ServerFalls);
     }
 
     private enum InputKind
@@ -334,6 +344,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         /// <summary>The tick the current position is from (see <see cref="StateStamp"/>).</summary>
         public uint StateTick { get; set; }
+
+        /// <summary>How often the server has taken over this player's fall because they went silent in the air.</summary>
+        public int ServerFalls { get; set; }
 
         /// <summary>Accepted a new position this tick, to send to everyone else.</summary>
         public bool Moved { get; set; }

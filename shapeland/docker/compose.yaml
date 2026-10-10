@@ -22,14 +22,14 @@ services:
       - --urls
       - http://+:5080
       - --ShapeLand:ContentFile=/app/content/content.bin
-      - --ShapeLand:WebRoot=/app/web
+      - --ShapeLand:WebRoot=${SHAPELAND_WEBROOT-/app/web} # empty for none
     ports:
       - ${SHAPELAND_PUBLISH:-127.0.0.1:5080}:5080
     volumes:
       - ../../tools/docker:/netem:ro
       - ../../artifacts/bin:/app/bin:ro
       - ../../artifacts/content/shapeland:/app/content:ro
-      - ../../artifacts/unity/shapeland/web-game:/app/web:ro
+      - ${SHAPELAND_WEB_DIR:-../../artifacts/unity/shapeland/web-game}:/app/web:ro
     healthcheck:
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/5080"]
       interval: 1s

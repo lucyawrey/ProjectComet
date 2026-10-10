@@ -19,8 +19,8 @@
 #                  bad (about 200 ms, 2% loss) or awful (about 200 ms, 5% loss). Desktop builds join it too.
 #   --bots-net P   with --net, a profile the bots get on top of it (default none), e.g. for high-ping bots
 #
-# Each profile is netem's delay and jitter each way plus loss each way; see net_profile below. Docker needs the
-# traffic-shaping kernel modules loaded (tools/StackBench/README.md, Docker runs).
+# The profiles are in tools/shapeland-net-profiles.sh. Docker needs the traffic-shaping kernel modules loaded
+# (tools/StackBench/README.md, Docker runs).
 # The Unity build fails while the editor has the project open; close it first. ShapeLand only: Project Anima's
 # page comes from the Login server.
 set -euo pipefail
@@ -55,27 +55,12 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Sets PREFIX_DELAY, PREFIX_JITTER and PREFIX_LOSS (netem's one-way delay, jitter and loss) for a profile.
-net_profile() {
-  local delay jitter loss
-  case "$2" in
-    none)  delay=0ms   jitter=0ms  loss=0% ;;
-    good)  delay=40ms  jitter=10ms loss=1% ;;
-    bad)   delay=100ms jitter=25ms loss=2% ;;
-    awful) delay=100ms jitter=25ms loss=5% ;;
-    *) echo "Unknown network profile $2 (none, good, bad or awful)." >&2; exit 2 ;;
-  esac
-  export "$1_DELAY=$delay" "$1_JITTER=$jitter" "$1_LOSS=$loss"
-}
+# shellcheck source=tools/shapeland-net-profiles.sh
+. "$repo/tools/shapeland-net-profiles.sh"
 if [ -n "$net" ]; then
   net_profile NETEM "$net"
   net_profile BOTS_NETEM "$bots_net"
-  for module in ifb sch_netem sch_ingress act_mirred cls_matchall; do
-    if [ "$(uname)" != Darwin ] && [ ! -d "/sys/module/$module" ]; then
-      echo "Kernel module $module isn't loaded; see tools/StackBench/README.md (Docker runs)." >&2
-      exit 1
-    fi
-  done
+  check_net_modules
 elif [ "$bots_net" != none ]; then
   echo "--bots-net needs --net." >&2
   exit 2
