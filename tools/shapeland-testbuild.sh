@@ -260,8 +260,17 @@ page() {
   cp "$repo/shapeland/deploy/vercel.json" "$out/vercel.json"
   printf 'window.shapelandServer = "wss://%s/ws";\n' "$server_host" > "$out/config.js"
 
+  # The page's name needs its own record: once server.shapeland exists, the domain's wildcard no longer covers
+  # shapeland itself (it has a name under it).
+  if ! vercel dns ls "$domain" 2> /dev/null | awk '$2 == "shapeland" { found = 1 } END { exit !found }'; then
+    vercel dns add "$domain" shapeland CNAME cname.vercel-dns.com > /dev/null
+    vercel domains add "$page_host" "$vercel_project" > /dev/null 2>&1 || true
+  fi
+
   echo "== Publishing on Vercel"
-  url=$(cd "$out" && vercel deploy --prod --yes 2> /dev/null | tail -n 1)
+  # The deployment's address is the last vercel.app URL in its output (the rest varies between CLI versions).
+  url=$(cd "$out" && vercel deploy --prod --yes 2>&1 | grep -o 'https://[a-z0-9.-]*\.vercel\.app' | tail -n 1)
+  [ -n "$url" ] || { echo "Vercel didn't report a deployment." >&2; exit 1; }
   vercel alias set "$url" "$page_host" > /dev/null
   echo "Published: https://$page_host"
 }
