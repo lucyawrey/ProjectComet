@@ -7,6 +7,7 @@ Agent notes on combat design.
 ## Decided
 
 - **Feel:** action combat that feels a little like ARPGs and a little like tab-target games, but is extremely approachable for casual players. Optional lock-on.
+- **Timing between a GCD system and fighting-game frame data** (project lead, Anima): most attacks share the same total time between actions (a GCD-like rhythm), but the timing inside that window varies per action (startup, active and recovery frames). The GCD doesn't need to be in Comet: it's a shared cooldown group plus each Action's frame data.
 - **Simple to understand, hard to master,** with **complex boss mechanics** like FFXIV's and Rabbit and Steel's (raid mechanics without tab-targeting, using shape-based collision). High-end raiding is part of the audience.
 - **PvE only for the first major version.** No PvP system is planned, so no PvP netcode.
 - **Every class can dodge, but invulnerability varies by class and skill.** Defenders have invulnerability levels (none / dodge / a rarer "true" invuln); attacks have pierce levels, and some attacks hit through normal invuln.
@@ -28,6 +29,7 @@ Agent notes on combat design.
 
 ## Considering
 
+- **The Action base's mechanisms** (agent suggestion), from which kinds like GCD, oGCD, casts and stances are combinations rather than types: cooldown groups (one of which a game can use as its GCD); charges (several stored uses that recharge); phases (cast, channel, charge-up) with their interrupt rules; cancel windows on recovery frames (dodge- or jump-cancel); use conditions (combo steps, procs, follow-ups); toggles with an upkeep cost from a resource pool; input queueing (a press during an Action's lock fires when it can); targeting modes (self, target, direction, ground point, cone). Which of these Anima uses is a design question for later.
 - **Nudging:** moving slower through other bodies (`netcode.md` has how it would sync).
 
 ## Open
