@@ -365,6 +365,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             Z = Validator.Position.Z,
             Facing = Validator.Facing,
             Tick = StateTick,
+            VelocityX = Validator.Velocity.X,
+            VelocityY = Validator.Velocity.Y,
+            VelocityZ = Validator.Velocity.Z,
         };
 
         public PlayerSpawn Spawn() => new()

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Comet.Simulation;
@@ -27,6 +28,13 @@ namespace ShapeLand.Shared.World
         /// Other players moving faster than this (across the ground, or upwards) are drawn jumping rather than
         /// gliding: half again the fastest shape's top speed or jump speed, so only respawns and snap-backs exceed it.
         /// </summary>
+        /// <summary>
+        /// The highest ground under a position at or below it (terrain, or a block's top under the shared body), or
+        /// null over a hole or past the edge: for dead-reckoning other players (Comet.Client's RemoteEntities).
+        /// </summary>
+        public static Func<Vector3, float?> GroundHeight(CollisionWorld world) =>
+            feet => world.TryGetGround(feet, Rules.BodyRadius, feet.Y, out var height) ? height : null;
+
         public static float TeleportSpeed(ShapeLandContent content)
         {
             var fastest = 0f;

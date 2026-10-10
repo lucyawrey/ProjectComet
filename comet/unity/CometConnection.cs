@@ -23,7 +23,10 @@ namespace Comet.Unity
         /// <summary>Starts a new session to <paramref name="url"/>, closing any current one.</summary>
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
         /// <param name="teleportSpeed">Other entities moving faster than this jump instead of gliding (see <see cref="RemoteEntities"/>).</param>
-        public ClientSession Connect(Uri url, MessagePackSerializerOptions options, float teleportSpeed = float.PositiveInfinity)
+        /// <param name="gravity">For dead-reckoning other entities in the air.</param>
+        /// <param name="groundHeight">The highest ground under a position at or below it, so dead reckoning never goes below it.</param>
+        public ClientSession Connect(Uri url, MessagePackSerializerOptions options, float teleportSpeed = float.PositiveInfinity,
+            float gravity = 0, Func<System.Numerics.Vector3, float?> groundHeight = null)
         {
             Disconnect();
             if (GetComponent<CometFlush>() == null)
@@ -31,7 +34,7 @@ namespace Comet.Unity
                 gameObject.AddComponent<CometFlush>().hideFlags = HideFlags.HideInInspector;
             }
 
-            Session = new ClientSession(CreateTransport(url), options, teleportSpeed: teleportSpeed);
+            Session = new ClientSession(CreateTransport(url), options, teleportSpeed: teleportSpeed, gravity: gravity, groundHeight: groundHeight);
             return Session;
         }
 

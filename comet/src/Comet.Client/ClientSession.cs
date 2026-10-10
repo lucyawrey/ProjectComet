@@ -27,6 +27,8 @@ namespace Comet.Client
         private readonly MessageWriter _messages;
         private readonly MessageWriter _frame;
         private uint? _reportTick;
+        private readonly float _gravity;
+        private readonly Func<Vector3, float?>? _groundHeight;
         private double _lastUpdate;
         private readonly double _pingInterval;
         private readonly float _teleportSpeed;
@@ -39,8 +41,13 @@ namespace Comet.Client
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
         /// <param name="pingInterval">Seconds between pings for the server-tick estimate.</param>
         /// <param name="teleportSpeed">Other entities moving faster than this jump instead of gliding (see <see cref="RemoteEntities"/>).</param>
-        public ClientSession(IClientTransport transport, MessagePackSerializerOptions options, double pingInterval = 1, float teleportSpeed = float.PositiveInfinity)
+        /// <param name="gravity">For dead-reckoning other entities in the air (<see cref="RemoteEntities"/>).</param>
+        /// <param name="groundHeight">The highest ground under a position at or below it, so dead reckoning never goes below it.</param>
+        public ClientSession(IClientTransport transport, MessagePackSerializerOptions options, double pingInterval = 1, float teleportSpeed = float.PositiveInfinity,
+            float gravity = 0, Func<Vector3, float?>? groundHeight = null)
         {
+            _gravity = gravity;
+            _groundHeight = groundHeight;
             Transport = transport;
             _options = options;
             _messages = new MessageWriter(options: options);
@@ -215,7 +222,7 @@ namespace Comet.Client
                         EntityId = welcome.EntityId;
                         _clock = new ServerClock(welcome.TickRate);
                         _clock.OnFrame(tick, now);
-                        _entities = new RemoteEntities(welcome.TickRate, teleportSpeed: _teleportSpeed);
+                        _entities = new RemoteEntities(welcome.TickRate, teleportSpeed: _teleportSpeed, gravity: _gravity) { GroundHeight = _groundHeight };
                         _delay = new InterpolationDelay(welcome.TickRate);
                         _nextPing = now;
                         WelcomeArrived?.Invoke(welcome);
@@ -226,7 +233,7 @@ namespace Comet.Client
                     case MessageIds.EntityState:
                         var state = FrameReader.Decode<EntityState>(payload, _options);
                         StatesReceived++;
-                        var previous = _entities?.AddState(state.EntityId, state.Tick, new Vector3(state.X, state.Y, state.Z), state.Facing);
+                        var previous = _entities?.AddState(state.EntityId, state.Tick, new Vector3(state.X, state.Y, state.Z), state.Facing, new Vector3(state.VelocityX, state.VelocityY, state.VelocityZ));
                         if (previous.HasValue && _clock!.Synced)
                         {
                             _delay!.AddSample(_clock.ReceiveTick(now) - previous.Value, now);

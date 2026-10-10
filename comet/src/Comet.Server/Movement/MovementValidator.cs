@@ -116,6 +116,9 @@ public sealed class MovementValidator
     /// <summary>The last accepted position (where a snap-back returns to).</summary>
     public Vector3 Position { get; private set; }
 
+    /// <summary>The player's velocity: as last reported, or the server's own while it moves them down a fall.</summary>
+    public Vector3 Velocity => _serverFalling ? _fall.Velocity : _velocity;
+
     public float Facing { get; private set; }
 
     /// <summary>The last accepted position standing on solid ground (where a respawn returns to).</summary>
