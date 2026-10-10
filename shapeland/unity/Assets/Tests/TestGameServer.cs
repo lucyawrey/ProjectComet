@@ -48,7 +48,7 @@ namespace ShapeLand.Client.Tests
             Address = $"127.0.0.1:{port}";
         }
 
-        /// <summary>Runs the bot program against this server: <paramref name="count"/> honest bots for <paramref name="seconds"/>.</summary>
+        /// <summary>Runs the bot program against this server: <paramref name="count"/> honest, chatting bots for <paramref name="seconds"/>.</summary>
         public IEnumerator StartBots(int count, double seconds)
         {
             using (var build = Run("build shapeland/src/ShapeLand.Bots --nologo -v quiet"))
@@ -61,7 +61,7 @@ namespace ShapeLand.Client.Tests
                 Assert.That(build.ExitCode, Is.EqualTo(0), "The bots didn't build.");
             }
 
-            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --url ws://{Address}/ws --count {count} --seconds {seconds}");
+            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --url ws://{Address}/ws --count {count} --seconds {seconds} --chat");
         }
 
         public void Dispose()

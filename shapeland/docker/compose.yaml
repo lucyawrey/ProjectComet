@@ -57,6 +57,8 @@ services:
       - ${BOTS_CHEATERS:-0}
       - --content
       - /app/content/content.bin
+      - --chat
+      - ${BOTS_CHAT:-0} # average seconds between lines; 0 for quiet
     volumes:
       - ../../tools/docker:/netem:ro
       - ../../artifacts/bin:/app/bin:ro
