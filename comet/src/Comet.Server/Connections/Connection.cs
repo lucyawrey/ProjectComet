@@ -14,7 +14,9 @@ namespace Comet.Server.Connections;
 /// <para>
 /// Outgoing: each tick, <see cref="Flush"/> builds one frame from the queued events and the
 /// latest-only state queues. At most one tick frame is in flight; if the previous one is still
-/// sending, the flush is skipped and the state keeps being replaced with newer updates.
+/// sending, the flush is skipped and the state keeps being replaced with newer updates. A tick frame
+/// stays under the clients' frame limit: events past <see cref="TickFrameEventBudget"/>, and states
+/// that don't fit, wait for the next tick, in order.
 /// Pings are answered immediately in their own frame, so round trips measure the network
 /// rather than the wait for the next tick.
 /// </para>
@@ -45,6 +47,12 @@ public sealed class Connection
     /// <summary>Unsent event bytes before the client is taken to have stopped reading and is dropped.</summary>
     public const int MaxPendingEventBytes = 256 * 1024;
 
+    /// <summary>Event bytes one tick frame carries at most, half the clients' frame limit.</summary>
+    public const int TickFrameEventBudget = FrameReader.MaxServerFrameSize / 2;
+
+    /// <summary>A tick frame takes no more entity states past this size, which leaves room for the last one under the clients' limit.</summary>
+    public const int TickFrameStateLimit = FrameReader.MaxServerFrameSize - 1024;
+
     public static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(10);
 
     private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(5);
@@ -58,6 +66,7 @@ public sealed class Connection
 
     // Tick thread.
     private readonly MessageWriter _events;
+    private readonly Queue<int> _eventSizes = new();
     private readonly MessageWriter _tickFrame;
     private int _tickFrameInFlight;
     private bool _dropped;
@@ -88,6 +97,9 @@ public sealed class Connection
     /// <summary>The game's own data for this connection.</summary>
     public object? Tag { get; set; }
 
+    /// <summary>Whether the last tick frame is still sending (a flush now would be skipped).</summary>
+    internal bool TickFrameInFlight => Volatile.Read(ref _tickFrameInFlight) != 0;
+
     /// <summary>Pending entity updates, latest only. Tick thread.</summary>
     public LatestOnlyQueue<EntityState> EntityStates { get; } = new();
 
@@ -104,12 +116,15 @@ public sealed class Connection
             // The client has stopped reading: drop it rather than keep everything for it.
             _dropped = true;
             _events.Clear();
+            _eventSizes.Clear();
             _registry.Stats.AddSlowClientDropped();
             _socket.Abort();
             return;
         }
 
+        var length = _events.Length;
         _events.Write(messageId, message);
+        _eventSizes.Enqueue(_events.Length - length);
     }
 
     /// <summary>Sends a message now, in its own frame. Receive flow only (handler callbacks).</summary>
@@ -142,14 +157,45 @@ public sealed class Connection
         }
 
         _tickFrame.BeginFrame(tick);
-        _tickFrame.Append(_events);
-        _events.Clear();
+        AppendEvents();
         _registry.Stats.AddStateReplaced(EntityStates.TakeReplacedCount());
-        EntityStates.Drain(_tickFrame, static (frame, state) => frame.Write(MessageIds.EntityState, state));
+        EntityStates.Drain(_tickFrame, static (frame, state) =>
+        {
+            if (frame.Length > TickFrameStateLimit)
+            {
+                return false;
+            }
+            frame.Write(MessageIds.EntityState, state);
+            return true;
+        });
 
         if (_tickFrame.MessageCount == 0 || !_outgoing.Writer.TryWrite(new Outgoing(null, _tickFrame.Length)))
         {
             Volatile.Write(ref _tickFrameInFlight, 0);
+        }
+    }
+
+    /// <summary>Moves the oldest events, up to <see cref="TickFrameEventBudget"/> bytes, into the tick frame.</summary>
+    private void AppendEvents()
+    {
+        var length = 0;
+        var count = 0;
+        foreach (var size in _eventSizes)
+        {
+            // A single event over the budget still goes, alone, rather than blocking the queue.
+            if (count > 0 && length + size > TickFrameEventBudget)
+            {
+                break;
+            }
+            length += size;
+            count++;
+        }
+
+        _tickFrame.Append(_events, length, count);
+        _events.RemoveStart(length, count);
+        for (var i = 0; i < count; i++)
+        {
+            _eventSizes.Dequeue();
         }
     }
 

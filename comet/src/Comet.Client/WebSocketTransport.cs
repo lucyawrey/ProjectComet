@@ -4,6 +4,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Comet.Protocol;
+using Comet.Protocol.Framing;
 
 namespace Comet.Client
 {
@@ -27,7 +28,7 @@ namespace Comet.Client
         /// <summary>Starts connecting to <paramref name="url"/>.</summary>
         /// <param name="maxFrameSize">Larger frames from the server close the connection.</param>
         /// <param name="closeTimeout">How long a close waits for the server's answer before giving up (default 5 s).</param>
-        public WebSocketTransport(Uri url, int maxFrameSize = 64 * 1024, TimeSpan? closeTimeout = null)
+        public WebSocketTransport(Uri url, int maxFrameSize = FrameReader.MaxServerFrameSize, TimeSpan? closeTimeout = null)
         {
             _maxFrameSize = maxFrameSize;
             _closeTimeout = closeTimeout ?? TimeSpan.FromSeconds(5);
