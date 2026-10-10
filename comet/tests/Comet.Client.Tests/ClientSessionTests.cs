@@ -230,6 +230,41 @@ public class ClientSessionTests
     }
 
     [Fact]
+    public void AnAnsweredPingNeverHoldsReports()
+    {
+        // Times that don't fit microseconds exactly (frames at 60 Hz from an odd start): each pong answers the latest
+        // ping, so a later pong a second late must not hold reports (the final review's finding).
+        const double start = 5.123456789;
+        Welcome(now: start);
+        var lastPing = 0L;
+        for (var frame = 0; frame < 6 * 60; frame++)
+        {
+            var now = start + frame / 60.0;
+            _session.Update(now);
+            _session.Flush(now);
+            foreach (var (_, id, payload) in Sent())
+            {
+                if (id == MessageIds.Ping)
+                {
+                    lastPing = FrameReader.Decode<Ping>(payload).ClientTime;
+                    if (frame < 3 * 60)
+                    {
+                        ServerSends(200, MessageIds.Pong, new Pong { ClientTime = lastPing });
+                    }
+                }
+            }
+
+            // From 3 s, pongs stop: reports are held only once that ping has waited 2 s (a frame either side is
+            // left out, for rounding).
+            var waited = now - (start + 3);
+            if (Math.Abs(waited - ClientSession.ReportHoldSeconds) > 0.02)
+            {
+                Assert.True(waited > ClientSession.ReportHoldSeconds == _session.ReportsHeld, $"held: {_session.ReportsHeld} at {now - start:0.000} s");
+            }
+        }
+    }
+
+    [Fact]
     public void GameMessagesAreHandedOn()
     {
         const ushort chat = MessageIds.FirstGameMessage + 1;

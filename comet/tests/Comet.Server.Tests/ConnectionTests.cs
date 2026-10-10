@@ -82,6 +82,8 @@ public sealed class ConnectionTests : IAsyncLifetime
                 }
                 else if (id == MessageIds.EntityState)
                 {
+                    // Never ahead of the events queued before them.
+                    Assert.Equal(events, received.Count);
                     states++;
                 }
             }

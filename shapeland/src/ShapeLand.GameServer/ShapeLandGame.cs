@@ -28,9 +28,6 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
     private readonly Dictionary<Connection, Player> _players = [];
     private readonly Random _random = new();
 
-    /// <summary>Seconds a connection has to join; the client reconnects for a later try.</summary>
-    public const int JoinDeadlineSeconds = 10;
-
     public ShapeLandContent Content => content;
 
     public CollisionWorld World => _world;
@@ -91,7 +88,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             {
                 Fall(player, tick);
             }
-            else if (tick - player.ConnectedTick > JoinDeadlineSeconds * ShapeLandRules.TickRate)
+            else if (tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate)
             {
                 player.Connection.Disconnect();
             }
@@ -365,7 +362,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
 
-        /// <summary>The tick the connection arrived; it must join within <see cref="JoinDeadlineSeconds"/>.</summary>
+        /// <summary>The tick the connection arrived; it must join within <see cref="ShapeLandRules.JoinDeadlineSeconds"/>.</summary>
         public uint ConnectedTick { get; init; }
 
         public StateStamp Stamp { get; } = new(tickRate);

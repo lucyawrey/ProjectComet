@@ -16,7 +16,7 @@ namespace Comet.Server.Connections;
 /// latest-only state queues. At most one tick frame is in flight; if the previous one is still
 /// sending, the flush is skipped and the state keeps being replaced with newer updates. A tick frame
 /// stays under the clients' frame limit: events past <see cref="TickFrameEventBudget"/>, and states
-/// that don't fit, wait for the next tick, in order.
+/// that don't fit, wait for the next tick, in order; states wait while any events do.
 /// Pings are answered immediately in their own frame, so round trips measure the network
 /// rather than the wait for the next tick.
 /// </para>
@@ -160,15 +160,20 @@ public sealed class Connection
         _tickFrame.BeginFrame(tick);
         AppendEvents();
         _registry.Stats.AddStateReplaced(EntityStates.TakeReplacedCount());
-        EntityStates.Drain(_tickFrame, static (frame, state) =>
+
+        // States wait while events do, so an entity's state never arrives before the events about it (its spawn).
+        if (_eventSizes.Count == 0)
         {
-            if (frame.Length > TickFrameStateLimit)
+            EntityStates.Drain(_tickFrame, static (frame, state) =>
             {
-                return false;
-            }
-            frame.Write(MessageIds.EntityState, state);
-            return true;
-        });
+                if (frame.Length > TickFrameStateLimit)
+                {
+                    return false;
+                }
+                frame.Write(MessageIds.EntityState, state);
+                return true;
+            });
+        }
 
         if (_tickFrame.MessageCount == 0 || !_outgoing.Writer.TryWrite(new Outgoing(null, _tickFrame.Length)))
         {

@@ -184,7 +184,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
 
-        Assert.False(await Dropped(socket, TimeSpan.FromSeconds(ShapeLandGame.JoinDeadlineSeconds - 1)));
+        Assert.False(await Dropped(socket, TimeSpan.FromSeconds(ShapeLandRules.JoinDeadlineSeconds - 1)));
         Assert.True(await Dropped(socket, TimeSpan.FromSeconds(2)));
     }
 

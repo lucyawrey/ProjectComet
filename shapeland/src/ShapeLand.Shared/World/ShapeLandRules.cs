@@ -11,6 +11,9 @@ namespace ShapeLand.Shared.World
         public const int MaxNameLength = 16;
         public const int MaxChatLength = 200;
 
+        /// <summary>Seconds a connection has to join before the server drops it; clients reconnect for a later try.</summary>
+        public const int JoinDeadlineSeconds = 10;
+
         /// <summary>
         /// The body colours every player can pick, as 0xRRGGBB. Placeholders: the project lead decides the final sets,
         /// and more colours come from items later.

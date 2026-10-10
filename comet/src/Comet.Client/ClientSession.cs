@@ -40,8 +40,9 @@ namespace Comet.Client
         /// <summary>A gap between updates longer than this, in seconds, is a stall on this side rather than the network's.</summary>
         public const double LocalStallSeconds = 0.25;
         private double _nextPing;
-        private double _lastPingSent;
-        private double? _oldestUnansweredPing;
+        // Ping times as sent, in whole microseconds, so a pong's echo compares exactly.
+        private long _lastPingSent;
+        private long? _oldestUnansweredPing;
         private (uint Tick, Vector3 Position, Vector3 Velocity, float Facing)? _heldReport;
         private string? _protocolError;
 
@@ -141,13 +142,13 @@ namespace Comet.Client
             if (now >= _nextPing)
             {
                 _nextPing = now + _pingInterval;
-                _lastPingSent = now;
-                _oldestUnansweredPing ??= now;
-                _messages.Write(MessageIds.Ping, new Ping { ClientTime = (long)(now * 1_000_000) });
+                _lastPingSent = (long)(now * 1_000_000);
+                _oldestUnansweredPing ??= _lastPingSent;
+                _messages.Write(MessageIds.Ping, new Ping { ClientTime = _lastPingSent });
             }
 
             // Answers are back: send where the player is now, once, in place of what was held.
-            ReportsHeld = _oldestUnansweredPing is { } oldest && now - oldest > ReportHoldSeconds;
+            ReportsHeld = _oldestUnansweredPing is { } oldest && now - oldest / 1_000_000.0 > ReportHoldSeconds;
             if (!ReportsHeld && _heldReport is { } held)
             {
                 _heldReport = null;
@@ -267,12 +268,12 @@ namespace Comet.Client
                         WelcomeArrived?.Invoke(welcome);
                         break;
                     case MessageIds.Pong:
-                        var sent = FrameReader.Decode<Pong>(payload, _options).ClientTime / 1_000_000.0;
-                        _clock?.OnPong(tick, sent, now);
+                        var sent = FrameReader.Decode<Pong>(payload, _options).ClientTime;
+                        _clock?.OnPong(tick, sent / 1_000_000.0, now);
                         if (sent >= _oldestUnansweredPing)
                         {
                             // Pongs come back in order, so any ping since this one is the oldest still unanswered.
-                            _oldestUnansweredPing = _lastPingSent > sent ? _lastPingSent : (double?)null;
+                            _oldestUnansweredPing = _lastPingSent > sent ? _lastPingSent : (long?)null;
                         }
 
                         break;

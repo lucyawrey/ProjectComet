@@ -33,6 +33,7 @@ namespace ShapeLand.Client
         private Uri _url;
         private JoinRequest? _pending;
         private bool _awaitingAnswer;
+        private double _connectedAt;
 
         /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
         public string Address
@@ -168,8 +169,10 @@ namespace ShapeLand.Client
                 return;
             }
 
+            // A connection kept from a refused join is reused, unless the server is about to drop it for not joining.
             var session = _connection.Session;
-            if (session == null || session.Closed || url != _url)
+            var nearDeadline = Time.realtimeSinceStartupAsDouble - _connectedAt > ShapeLandRules.JoinDeadlineSeconds - 3;
+            if (session == null || session.Closed || url != _url || nearDeadline)
             {
                 Connect(url);
             }
@@ -189,6 +192,7 @@ namespace ShapeLand.Client
         private void Connect(Uri serverUrl)
         {
             _url = serverUrl;
+            _connectedAt = Time.realtimeSinceStartupAsDouble;
             var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
                 ShapeLandWorld.Rules.Gravity, ShapeLandWorld.GroundHeight(ShapeLandWorld.Create(_content)));
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
