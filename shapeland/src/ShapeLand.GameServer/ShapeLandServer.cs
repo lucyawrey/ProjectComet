@@ -1,6 +1,7 @@
 using Comet.Server;
 using Comet.Server.Connections;
 using Comet.Server.Ticking;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
@@ -32,9 +33,20 @@ public static class ShapeLandServer
         builder.Services.AddSingleton(services => new TickLoop(ShapeLandRules.TickRate, services.GetRequiredService<ShapeLandGame>().Tick));
 
         var app = builder.Build();
+        // Behind a proxy on this machine (Caddy, in the public test build), the client's address comes from
+        // X-Forwarded-For, so the per-address connection cap counts players, not the proxy. Only a loopback proxy
+        // is trusted (ASP.NET's default), so no client can set the header for itself.
+        app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor });
         ServeWebBuild(app, app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.WebRoot);
         app.UseWebSockets();
         app.MapCometWebSocket("/ws");
+
+        // Whether the server is up, for the web page on another host (it may be served from a CDN): any page may ask.
+        app.MapGet("/health", (HttpContext context) =>
+        {
+            context.Response.Headers.AccessControlAllowOrigin = "*";
+            return "ok";
+        });
 
         var tickLoop = app.Services.GetRequiredService<TickLoop>();
         app.Services.GetRequiredService<ShapeLandGame>(); // load content and build the world before accepting players

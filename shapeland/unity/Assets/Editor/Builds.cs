@@ -72,6 +72,8 @@ namespace ShapeLand.Client.Editor
             // sends it to browsers that ask for br.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = true;
+            // ShapeLand's own page (Assets/WebGLTemplates/ShapeLand) in place of Unity's.
+            PlayerSettings.WebGL.template = "PROJECT:ShapeLand";
             Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web-game", GameScene);
         }
 
