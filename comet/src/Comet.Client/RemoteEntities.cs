@@ -91,6 +91,9 @@ namespace Comet.Client
         /// <summary>How far up or down an entity on the ground is followed over a short move, in metres: a step's height.</summary>
         public const float StepReach = 0.5f;
 
+        // How far above an entity on the ground to look for walls.
+        private const float WallProbe = 100f;
+
         /// <summary>A blend-back further than this, in metres, counts as a visible hitch (<see cref="VisibleBlendBacks"/>).</summary>
         public float VisibleError { get; set; } = 0.2f;
 
@@ -323,11 +326,15 @@ namespace Comet.Client
         }
 
         // Where an entity moving at a state's velocity is after a while: under gravity while moving vertically,
-        // never below the ground; on the ground, following it up and down slopes and steps (up to 45 degrees, or
-        // StepReach), and falling under gravity once it walks off a drop steeper than that.
+        // never below the ground; on the ground, see Walk.
         private Vector3 Extrapolate(State from, double seconds)
         {
             var t = (float)seconds;
+            if (MathF.Abs(from.Velocity.Y) <= 0.01f && GroundHeight != null)
+            {
+                return Walk(from, t);
+            }
+
             var position = from.Position + new Vector3(from.Velocity.X, 0, from.Velocity.Z) * t;
             if (MathF.Abs(from.Velocity.Y) > 0.01f)
             {
@@ -338,15 +345,46 @@ namespace Comet.Client
                     position.Y = ground;
                 }
             }
-            else if (GroundHeight != null)
-            {
-                var reach = Math.Max(StepReach, new Vector2(position.X - from.Position.X, position.Z - from.Position.Z).Length());
-                var ground = GroundHeight(new Vector3(position.X, from.Position.Y + reach, position.Z));
-                var fallen = from.Position.Y - 0.5f * Gravity * t * t;
-                position.Y = ground is { } walked && walked >= from.Position.Y - reach ? walked : Math.Max(fallen, ground ?? fallen);
-            }
 
             return position;
+        }
+
+        // An entity on the ground, walked along its path in pieces of at most StepReach: each piece follows the
+        // ground up or down by at most StepReach (slopes and steps); ground any higher is a wall, which stops it;
+        // a drop any lower is walked off, and it falls under gravity from there, keeping its sideways speed. Ground
+        // anywhere above counts as a wall, since the ground probe can't see past a block's top; an overhang
+        // stops it too, until the next state.
+        private Vector3 Walk(State from, float t)
+        {
+            var move = new Vector2(from.Velocity.X, from.Velocity.Z) * t;
+            var pieces = Math.Max(1, (int)MathF.Ceiling(move.Length() / StepReach));
+            var at = from.Position;
+            for (var i = 1; i <= pieces; i++)
+            {
+                var along = move * ((float)i / pieces);
+                var next = new Vector3(from.Position.X + along.X, at.Y, from.Position.Z + along.Y);
+                if (GroundHeight!(next + new Vector3(0, WallProbe, 0)) is { } top && top > at.Y + StepReach)
+                {
+                    return at;
+                }
+
+                var ground = GroundHeight(next + new Vector3(0, StepReach, 0));
+                if (ground is { } walked && walked >= at.Y - StepReach)
+                {
+                    at = new Vector3(next.X, walked, next.Z);
+                    continue;
+                }
+
+                // Off the edge partway through this piece; it falls for the rest of the time.
+                var fall = t * (1 - (float)(i - 1) / pieces);
+                var end = new Vector3(from.Position.X + move.X, at.Y, from.Position.Z + move.Y);
+                var fallen = at.Y - 0.5f * Gravity * fall * fall;
+                var landing = GroundHeight(end);
+                end.Y = Math.Max(fallen, landing ?? fallen);
+                return end;
+            }
+
+            return at;
         }
 
         private float GroundSpeed(State from, State to)

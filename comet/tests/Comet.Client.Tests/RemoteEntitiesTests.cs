@@ -132,6 +132,43 @@ public class RemoteEntitiesTests
     }
 
     [Fact]
+    public void DeadReckoningOnTheGroundStopsAtABlockTooHighToStepOnto()
+    {
+        // Running at a 1 m block from x = 1 during a hold: it stops at the block's side rather than popping up onto
+        // it once it has gone far enough (the code review's C1).
+        var entities = new RemoteEntities(tickRate: 30, gravity: 25) { GroundHeight = feet => feet.X >= 1 ? MathF.Min(feet.Y, 1) is var top && top >= 1 ? 1 : 0 : 0 };
+        entities.Spawn(1, 10, Vector3.Zero, 0);
+        entities.AddState(1, 12, new Vector3(0.2f, 0, 0), 0, new Vector3(6, 0, 0));
+
+        for (var tick = 13; tick <= 30; tick++)
+        {
+            Assert.True(entities.TrySample(1, tick, out var pose));
+            Assert.Equal(0, pose.Position.Y);
+            Assert.True(pose.Position.X < 1, $"inside the block at tick {tick}: {pose.Position}");
+        }
+    }
+
+    [Fact]
+    public void DeadReckoningOffABlockFallsSmoothlyWithoutSnappingDown()
+    {
+        // Running off a 1 m block at x = 0.3: one fall, never snapping down to the ground below partway through.
+        var entities = new RemoteEntities(tickRate: 30, gravity: 25) { GroundHeight = feet => feet.X < 0.3f ? MathF.Min(feet.Y, 1) is var top && top >= 1 ? 1 : 0 : 0 };
+        entities.Spawn(1, 10, new Vector3(0, 1, 0), 0);
+        entities.AddState(1, 12, new Vector3(0.2f, 1, 0), 0, new Vector3(6, 0, 0));
+
+        var previous = 1f;
+        for (var tick = 13; tick <= 24; tick++)
+        {
+            Assert.True(entities.TrySample(1, tick, out var pose));
+            var seconds = (tick - 12) / 30f;
+            var expected = MathF.Max(0, 1 - 0.5f * 25 * seconds * seconds);
+            Assert.True(MathF.Abs(pose.Position.Y - expected) < 0.15f, $"at tick {tick}: y = {pose.Position.Y}, the fall says {expected}");
+            Assert.True(pose.Position.Y <= previous);
+            previous = pose.Position.Y;
+        }
+    }
+
+    [Fact]
     public void AStallWhileMovingIsntMistakenForStandingStill()
     {
         // 0.5 s without states (longer than the idle gap) after a moving state: no restamped copy of the old
