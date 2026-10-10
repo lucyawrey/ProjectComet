@@ -82,7 +82,8 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 
 ## Repository
 
-- **Work lands on `main`.** At the start of a session, run `git fetch` and check for remote branches ahead of `main` before trusting these notes.
+- **Agent work goes through feature branches and squash-merged PRs** into `main`. Branches can be as large as the work needs (one can cover many changes) to keep iteration fast. The repo allows only squash merges, uses the PR title and description as the commit message, and deletes branches on merge. The project lead's own docs and notes edits may go straight to `main`.
+- At the start of a session, run `git fetch` and check for open PRs and remote branches ahead of `main` before trusting these notes.
 - **Archive branches** hold earlier, abandoned attempts that can be mined for ideas (data models, schemas, architecture, networking experiments): `archive/dotnet-datacenter` (Godot + .NET "DataCenter" backend, including `docs/reference.sql`), `archive/nakama`, `archive/rust-bevy`, `archive/rust-bevy-sqlite-opfs`, `archive/rust-bevy-spacetimedb`, `archive/godot-client`.
 - No tags are wanted.
 
