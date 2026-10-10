@@ -27,7 +27,7 @@ public sealed class NetReport
         int HonestSnapBacks, int Respawns, int CheatersCaught, int Cheaters,
         double PingMedianMs, double PingP95Ms, double BestPingMedianMs,
         double DelayMedianMs, double DelayP5Ms, double DelayP95Ms, double TargetP5Ms, double TargetP95Ms,
-        double TargetSwingMsPerSecond, double DelaySwingMsPerSecond, double HoldPercent, double HoldMeanMs, long MoveStates);
+        double TargetSwingMsPerSecond, double DelaySwingMsPerSecond, double HoldPercent, double HoldMeanMs, double HeldMsPerMove, long MoveStates);
 
     public sealed record BotResult(
         string Name, bool Cheater, bool Joined, int SnapBacks, int Respawns, long MoveStates, long Holds,
@@ -63,6 +63,7 @@ public sealed class NetReport
             delaySwings.Count > 0 ? delaySwings.Average() : 0,
             moves > 0 ? 100.0 * holds / moves : 0,
             holds > 0 ? honest.Sum(r => r.HeldSeconds) / holds * 1000 : 0,
+            moves > 0 ? honest.Sum(r => r.HeldSeconds) / moves * 1000 : 0,
             moves);
 
         return new NetReport { Meta = meta, Run = run, Tuning = tuning, Totals = summary, Bots = results };
@@ -77,7 +78,7 @@ public sealed class NetReport
         Console.WriteLine($"  Ping           median {s.PingMedianMs:0} ms, 95th percentile {s.PingP95Ms:0}; best median {s.BestPingMedianMs:0}");
         Console.WriteLine($"  Delay          median {s.DelayMedianMs:0} ms, 5th to 95th percentile {s.DelayP5Ms:0}-{s.DelayP95Ms:0}, moving {s.DelaySwingMsPerSecond:0} ms/s on average");
         Console.WriteLine($"  Target         5th to 95th percentile {s.TargetP5Ms:0}-{s.TargetP95Ms:0} ms, moving {s.TargetSwingMsPerSecond:0} ms/s on average");
-        Console.WriteLine($"  Holds          {s.HoldPercent:0.0}% of {s.MoveStates} moves, {s.HoldMeanMs:0} ms each");
+        Console.WriteLine($"  Holds          {s.HoldPercent:0.0}% of {s.MoveStates} moves, {s.HoldMeanMs:0} ms each, {s.HeldMsPerMove:0.00} ms held per move");
     }
 
     public void Write(string path)
