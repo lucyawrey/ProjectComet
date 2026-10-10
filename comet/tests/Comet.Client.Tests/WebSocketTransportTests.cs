@@ -139,5 +139,6 @@ public sealed class WebSocketTransportTests : IDisposable
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(TransportLimits.FellBehind, transport.Error);
+        Assert.False(transport.TryReceive(out _), "The frames waiting were kept, to be handled all at once.");
     }
 }

@@ -186,6 +186,12 @@ namespace Comet.Client
                         // keep everything.
                         if (Interlocked.Add(ref _queuedBytes, length) > TransportLimits.MaxQueuedBytes)
                         {
+                            // Drop what's waiting too, so it isn't all handled at once on the game's return.
+                            while (_received.TryDequeue(out _))
+                            {
+                            }
+
+                            Interlocked.Exchange(ref _queuedBytes, 0);
                             throw new ProtocolException(TransportLimits.FellBehind);
                         }
 

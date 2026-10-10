@@ -33,6 +33,7 @@ namespace ShapeLand.Client
         private Uri _url;
         private JoinRequest? _pending;
         private bool _awaitingAnswer;
+        private double _askedAt;
         private double _connectedAt;
 
         /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
@@ -117,6 +118,8 @@ namespace ShapeLand.Client
 
         /// <summary>Whether the last failure was the server address itself, rather than reaching the server; <see cref="Error"/> says why.</summary>
         public bool BadAddress { get; private set; }
+
+        public const string JoinUnanswered = "The server didn't answer the request to join.";
 
         public ClientSession Session => _connection.Session;
 
@@ -285,10 +288,20 @@ namespace ShapeLand.Client
                 return;
             }
 
+            // Pings only start with the welcome, so a server that goes quiet before answering the join needs its own limit.
+            if (_awaitingAnswer && Time.realtimeSinceStartupAsDouble - _askedAt > TransportLimits.ConnectTimeoutSeconds)
+            {
+                _awaitingAnswer = false;
+                _connection.Disconnect();
+                Fail(JoinUnanswered);
+                return;
+            }
+
             if (_pending is JoinRequest request && session.Transport.State == TransportState.Open)
             {
                 _pending = null;
                 _awaitingAnswer = true;
+                _askedAt = Time.realtimeSinceStartupAsDouble;
                 session.Write(ShapeLandMessageIds.JoinRequest, request);
                 var shape = _content.Shapes.TryGet(request.Shape, out var found) ? found.DisplayName : $"shape {request.Shape}";
                 Log($"joining as {request.Name}, a {shape}");

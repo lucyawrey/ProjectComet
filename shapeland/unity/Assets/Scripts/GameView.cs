@@ -153,6 +153,7 @@ namespace ShapeLand.Client
                 Player = null;
             }
 
+            _spawns.Clear(); // this player's own entry too, or a rejoin would tag someone with the old name
             _screenFade.Darkness = 0;
         }
 

@@ -276,7 +276,7 @@ namespace ShapeLand.Client
                 return; // the content didn't load; nothing to show the card with
             }
 
-            if (_join.BadAddress)
+            if (_join.BadAddress || error == JoinClient.JoinUnanswered)
             {
                 Retry(error);
                 return;
