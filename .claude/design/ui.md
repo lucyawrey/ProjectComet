@@ -1,6 +1,6 @@
 # UI drafting
 
-**Layer: mixed.** How game UI is drafted before it's built, for Comet's games; ShapeLand's phase 0 screens are the first use. Phase 0's UI pieces themselves are in `prototype.md` (3b).
+**Layer: mixed.** How game UI is drafted before it's built, for Comet's games; ShapeLand's phase 0 screens are the first use. Phase 0's UI pieces themselves are in `prototype.md` (ShapeLand phase 0, Unity client).
 
 ## Decided
 
