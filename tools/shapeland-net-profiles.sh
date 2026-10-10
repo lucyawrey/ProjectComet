@@ -1,4 +1,5 @@
-# ShapeLand's simulated network profiles, sourced by tools/shapeland-web.sh and tools/shapeland-netrun.sh.
+# ShapeLand's simulated network profiles, and a build helper, sourced by tools/shapeland-web.sh and
+# tools/shapeland-netrun.sh.
 # Each is netem's delay and jitter each way plus loss each way, on the game server's link (shapeland/docker).
 #
 #   none   nothing added
@@ -29,4 +30,10 @@ check_net_modules() {
       exit 1
     fi
   done
+}
+
+# Runs a build step quietly, showing its output only if it fails (dotnet prints compile errors to stdout).
+quietly() {
+  local out
+  out=$("$@" 2>&1) || { printf '%s\n' "$out" >&2; echo "Failed: $*" >&2; return 1; }
 }

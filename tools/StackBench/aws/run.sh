@@ -27,7 +27,7 @@ bots=${BENCH_BOTS:-300}
 run_id=stackbench-$(date +%Y%m%d-%H%M%S)
 results="$repo/tools/StackBench/results/${BENCH_RESULTS:-aws-$profile}"
 
-if [ -n "$(git -C "$repo" status --porcelain -- comet/src tools/StackBench)" ]; then
+if [ -n "$(git -C "$repo" status --porcelain -- comet/src tools/StackBench tools/docker)" ]; then
   echo "Note: uncommitted changes in the benchmark code aren't included; the VMs run HEAD." >&2
 fi
 
@@ -48,7 +48,8 @@ cleanup() {
     ids=""
   fi
   # The ids already known, too, in case the tag lookup missed them (it can lag just after a launch).
-  ids=$(printf '%s\n' $ids ${server_id:-} ${bots_id:-} | sort -u | tr '\n' ' ')
+  # Only real ids: one bad entry (such as None) makes terminate-instances reject them all.
+  ids=$(printf '%s\n' $ids ${server_id:-} ${bots_id:-} | grep '^i-' | sort -u | tr '\n' ' ')
   if [ -n "${ids// /}" ]; then
     aws ec2 terminate-instances --instance-ids $ids > /dev/null
     aws ec2 wait instance-terminated --instance-ids $ids

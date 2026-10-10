@@ -102,12 +102,6 @@ fi
 mkdir -p "$web/StreamingAssets"
 cmp -s "$content" "$web/StreamingAssets/content.bin" || cp "$content" "$web/StreamingAssets/content.bin"
 
-# Runs a build step quietly, showing its output only if it fails (dotnet prints compile errors to stdout).
-quietly() {
-  local out
-  out=$("$@" 2>&1) || { printf '%s\n' "$out" >&2; echo "Failed: $*" >&2; return 1; }
-}
-
 echo "== Game server"
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
 if [ $((bots + cheaters)) -gt 0 ]; then
@@ -151,7 +145,9 @@ cleanup() {
   done
   wait 2> /dev/null || true
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
 
 if [ -n "$net" ]; then
   # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.

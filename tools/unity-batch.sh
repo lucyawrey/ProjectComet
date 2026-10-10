@@ -39,12 +39,11 @@ esac
 mkdir -p "$(dirname "$log")"
 : > "$log"
 cd "$project"
-# Output goes to the log only: the editor's helper processes would otherwise hold the caller's pipes open.
-"$unity" -batchmode -projectPath "$project" -logFile "$log" "$@" < /dev/null > /dev/null 2>&1 &
-pid=$!
+pid=
 
 # Stops the editor: politely, then for good if it hangs (as its quit does).
 stop_unity() {
+  [ -n "$pid" ] || return 0
   kill "$pid" 2> /dev/null || return 0
   for _ in 1 2 3; do
     kill -0 "$pid" 2> /dev/null || return 0
@@ -54,8 +53,14 @@ stop_unity() {
 }
 # A background job ignores Ctrl+C in a script, so stopping this script must stop the editor too, or it keeps the
 # project locked.
+# Set before it starts, and on any exit (an unexpected error too).
 trap 'stop_unity; exit 130' INT
 trap 'stop_unity; exit 143' TERM
+trap stop_unity EXIT
+
+# Output goes to the log only: the editor's helper processes would otherwise hold the caller's pipes open.
+"$unity" -batchmode -projectPath "$project" -logFile "$log" "$@" < /dev/null > /dev/null 2>&1 &
+pid=$!
 
 # The line that ends a run, and the exit code it means. "Build Failed:" is the Builds class's own line: a failed
 # build exits through EditorApplication.Exit, which logs none of the others, and can hang there.
