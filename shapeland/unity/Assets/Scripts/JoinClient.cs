@@ -57,15 +57,15 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// The server to join unless the player names another: on the web, the one the page came from (or its
-        /// <c>?server=</c>); elsewhere, <see cref="Address"/>.
+        /// The server to join unless the player names another: on the web, the page's <c>?server=</c>, else the one its
+        /// deploy names (<c>config.js</c>), else the one the page came from; elsewhere, <see cref="Address"/>.
         /// </summary>
         public string DefaultAddress
         {
             get
             {
 #if UNITY_WEBGL && !UNITY_EDITOR
-                return AddressForPage(Application.absoluteURL, address);
+                return AddressForPage(Application.absoluteURL, address, ShapeLand_PageServer());
 #else
                 return address;
 #endif
@@ -228,11 +228,12 @@ namespace ShapeLand.Client
 
         /// <summary>
         /// The server a web build connects to: the one named by the page's <c>?server=</c> (a host and port, or a
-        /// full ws:// URL), else the host the page came from. A host and port is connected to securely (wss://) from
+        /// full ws:// URL), else <paramref name="pageServer"/> (the server the page's deploy names, when it isn't the
+        /// page's own host), else the host the page came from. A host and port is connected to securely (wss://) from
         /// a secure page, since browsers block plain connections from one. A page not served over HTTP uses
         /// <paramref name="fallback"/>.
         /// </summary>
-        public static string AddressForPage(string pageUrl, string fallback)
+        public static string AddressForPage(string pageUrl, string fallback, string pageServer = null)
         {
             if (!Uri.TryCreate(pageUrl, UriKind.Absolute, out var page) || (page.Scheme != "http" && page.Scheme != "https"))
             {
@@ -249,8 +250,14 @@ namespace ShapeLand.Client
                 }
             }
 
-            return $"{scheme}://{page.Authority}/ws";
+            return string.IsNullOrEmpty(pageServer) ? $"{scheme}://{page.Authority}/ws" : pageServer;
         }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Plugins/WebGL/ShapeLandPage.jslib.
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern string ShapeLand_PageServer();
+#endif
 
         private void Update()
         {

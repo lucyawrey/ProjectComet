@@ -1,0 +1,52 @@
+/* ShapeLand's web page: the game framed on a dark page, in the join screen's plain look (approved mockup:
+   .claude/drafts/ui/shapeland-web-page.html). */
+:root {
+  --page: #0e1117;
+  --panel: rgba(18, 22, 30, 0.92);
+  --ink: #eef1f6;
+  --muted: #9aa3b5;
+  --line: rgba(255, 255, 255, 0.12);
+  --accent: #4f8cf0;
+  --closed: #e0a34a;
+  --ui: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font-family: var(--ui); font-size: 15px; line-height: 1.45; }
+.site { display: flex; flex-direction: column; gap: 14px; padding: 16px; max-width: 1100px; margin: 0 auto; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.name { font-size: 22px; font-weight: 700; letter-spacing: 0.01em; }
+.sub { color: var(--muted); font-size: 14px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+body[data-state="open"] .dot, body[data-state="loading"] .dot { background: var(--accent); }
+body[data-state="closed"] .dot { background: var(--closed); }
+.frame { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: #1a1f29; }
+#unity-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+.over { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(14, 17, 23, 0.72); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; width: min(420px, 100%); display: flex; flex-direction: column; gap: 10px; }
+.card h2 { margin: 0; font-size: 18px; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+.small { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.btn { align-self: flex-start; font: inherit; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 4px; padding: 7px 14px; cursor: pointer; }
+.under { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; font-size: 13px; color: var(--muted); min-width: 0; }
+.keys span { display: inline-flex; align-items: center; gap: 4px; }
+.keys b { color: var(--ink); font-weight: 700; }
+.keys i { font-style: normal; color: var(--muted); opacity: 0.6; }
+.keys small { font-size: 11px; font-weight: 700; color: var(--ink); margin-left: -3px; }
+kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--ink); }
+.pad { width: 20px; height: 20px; color: var(--ink); flex: none; }
+.fs { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
+.fs:hover { border-color: var(--accent); }
+.fs svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.fs:disabled { opacity: 0.4; cursor: default; }
+.btn:focus-visible, .fs:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.page-root [data-state] { display: none; }
+body[data-state="checking"] [data-state~="checking"], body[data-state="loading"] [data-state~="loading"], body[data-state="closed"] [data-state~="closed"], body[data-state="failed"] [data-state~="failed"] { display: flex; }
+body[data-state] .status [data-state] { display: none; }
+body[data-state="checking"] .status [data-state~="checking"], body[data-state="open"] .status [data-state~="open"], body[data-state="loading"] .status [data-state~="loading"], body[data-state="closed"] .status [data-state~="closed"], body[data-state="failed"] .status [data-state~="failed"] { display: inline; }
+@media (prefers-reduced-motion: no-preference) { .bar span { transition: width 0.3s; } }

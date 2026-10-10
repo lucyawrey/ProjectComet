@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400&display=swap">
+    <link rel="stylesheet" href="TemplateData/shapeland.css">
+    <!-- Written by the deploy (tools/shapeland-testbuild.sh) when the game server isn't the page's own host; absent
+         when the game server serves the page itself. -->
+    <script src="config.js" onerror="void 0"></script>
+  </head>
+  <body data-state="checking">
+    <main class="page-root">
+      <div class="site">
+        <header class="top">
+          <div><span class="name">ShapeLand</span> <span class="sub">A tech demo for Project Comet</span></div>
+          <span class="status" aria-live="polite"><span class="dot"></span>
+            <span data-state="checking">Checking the server</span><span data-state="loading open">Server open</span><span data-state="closed">Not open for testing</span><span data-state="failed">Couldn't start</span>
+          </span>
+        </header>
+
+        <div class="frame">
+          <canvas id="unity-canvas" tabindex="-1"></canvas>
+          <div class="over" data-state="checking loading">
+            <div class="card">
+              <h2>Loading ShapeLand</h2>
+              <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress"></span></div>
+              <p class="small" id="progress-text">Checking the server</p>
+            </div>
+          </div>
+          <div class="over" data-state="closed">
+            <div class="card">
+              <h2>ShapeLand isn't open for testing right now</h2>
+              <p>The game server only runs during test sessions. Try again later.</p>
+              <button class="btn" type="button" id="check">Check again</button>
+              <p class="small" id="checked">Checked just now.</p>
+            </div>
+          </div>
+          <div class="over" data-state="failed">
+            <div class="card">
+              <h2>ShapeLand couldn't start</h2>
+              <p id="failed-text">Your browser may not support WebGL 2.</p>
+            </div>
+          </div>
+        </div>
+
+        <footer class="under">
+          <div class="keys" aria-label="Controls">
+            <span><b>Move</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <kbd title="Arrow keys" aria-label="arrow keys">←↑↓→</kbd> <i>/</i> <svg viewBox="0 0 64 64" class="pad" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"> <g> <path stroke="none" fill="currentColor" d="M44.15 19 Q47.7 22 48 25.95 L48 26.05 Q47.7 30 44.2 32.9 L44 33.05 Q39.05 37 32 37 24.85 37 19.8 32.95 L19.7 32.9 Q16.3 30 16 26.1 L16 26.05 Q16.25 22 19.85 19 L19.95 18.9 Q25 15 32 15 39.15 15 44.2 19 L44.15 19 M43 50 Q43 52.5 39.75 54.25 36.55 56 32 56 27.5 56 24.25 54.25 21 52.5 21 50 L21 47.9 Q17.8 46.55 15 44.3 8 38.7 8 30.65 L8 30.1 8 29.55 8 29 8 28.5 8 28.1 8 27.95 8 27.4 Q8 19.4 15 13.65 22.05 8 32 8 42 8 48.95 13.65 56 19.4 56 27.4 L56 27.95 56 28.1 56 28.5 56 29 56 29.55 56 30.1 56 30.65 Q56 38.7 48.95 44.3 46.2 46.55 43 47.9 L43 50 M12 27.4 Q12.1 33.45 17.4 37.65 23.45 42.5 32 42.5 40.55 42.5 46.55 37.7 L46.6 37.65 Q51.9 33.4 52 27.4 51.85 21.4 46.55 17.1 40.55 12.3 32 12.3 23.45 12.3 17.4 17.1 L17.45 17.1 Q12.15 21.4 12 27.4"/> </g> </svg><small>L</small></span>
+            <span><b>Jump</b> <kbd>Space</kbd> <i>/</i> <svg viewBox="0 0 64 64" class="pad" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"> <g> <path stroke="none" fill="currentColor" d="M44.15 19 Q47.7 22 48 25.95 L48 26.05 Q47.7 30 44.2 32.9 L44 33.05 Q39.05 37 32 37 24.85 37 19.8 32.95 L19.7 32.9 Q16.3 30 16 26.1 L16 26.05 Q16.25 22 19.85 19 L19.95 18.9 Q25 15 32 15 39.15 15 44.2 19 L44.15 19 M43 50 Q43 52.5 39.75 54.25 36.55 56 32 56 27.5 56 24.25 54.25 21 52.5 21 50 L21 47.9 Q17.8 46.55 15 44.3 8 38.7 8 30.65 L8 30.1 8 29.55 8 29 8 28.5 8 28.1 8 27.95 8 27.4 Q8 19.4 15 13.65 22.05 8 32 8 42 8 48.95 13.65 56 19.4 56 27.4 L56 27.95 56 28.1 56 28.5 56 29 56 29.55 56 30.1 56 30.65 Q56 38.7 48.95 44.3 46.2 46.55 43 47.9 L43 50 M12 27.4 Q12.1 33.45 17.4 37.65 23.45 42.5 32 42.5 40.55 42.5 46.55 37.7 L46.6 37.65 Q51.9 33.4 52 27.4 51.85 21.4 46.55 17.1 40.55 12.3 32 12.3 23.45 12.3 17.4 17.1 L17.45 17.1 Q12.15 21.4 12 27.4"/> </g> </svg></span>
+            <span><b>Camera</b> right mouse <i>/</i> <svg viewBox="0 0 64 64" class="pad" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"> <g> <path stroke="none" fill="currentColor" d="M44.15 19 Q47.7 22 48 25.95 L48 26.05 Q47.7 30 44.2 32.9 L44 33.05 Q39.05 37 32 37 24.85 37 19.8 32.95 L19.7 32.9 Q16.3 30 16 26.1 L16 26.05 Q16.25 22 19.85 19 L19.95 18.9 Q25 15 32 15 39.15 15 44.2 19 L44.15 19 M43 50 Q43 52.5 39.75 54.25 36.55 56 32 56 27.5 56 24.25 54.25 21 52.5 21 50 L21 47.9 Q17.8 46.55 15 44.3 8 38.7 8 30.65 L8 30.1 8 29.55 8 29 8 28.5 8 28.1 8 27.95 8 27.4 Q8 19.4 15 13.65 22.05 8 32 8 42 8 48.95 13.65 56 19.4 56 27.4 L56 27.95 56 28.1 56 28.5 56 29 56 29.55 56 30.1 56 30.65 Q56 38.7 48.95 44.3 46.2 46.55 43 47.9 L43 50 M12 27.4 Q12.1 33.45 17.4 37.65 23.45 42.5 32 42.5 40.55 42.5 46.55 37.7 L46.6 37.65 Q51.9 33.4 52 27.4 51.85 21.4 46.55 17.1 40.55 12.3 32 12.3 23.45 12.3 17.4 17.1 L17.45 17.1 Q12.15 21.4 12 27.4"/> </g> </svg><small>R</small></span>
+            <span><b>Chat</b> <kbd>Enter</kbd></span>
+            <span><b>Stats</b> <kbd>F3</kbd></span>
+          </div>
+          <button class="fs" type="button" id="fullscreen" aria-label="Play in fullscreen" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>Fullscreen</button>
+        </footer>
+        <!-- Gamepad icons: Kenney's Input Prompts 1.5A (www.kenney.nl, CC0), recoloured. -->
+      </div>
+    </main>
+
+    <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+    <script>
+      (function () {
+        // The game server to use (window.shapelandServer, from config.js), or the page's own host.
+        var server = window.shapelandServer || "";
+        var body = document.body;
+        var instance = null;
+
+        function show(state) { body.dataset.state = state; }
+
+        // Whether the game server answers at all. A plain request to its WebSocket path is refused (it isn't a
+        // WebSocket), but any answer means it's running; an unreachable one fails or times out.
+        function serverUp() {
+          if (!server) {
+            return Promise.resolve(true); // the game server is serving this page
+          }
+          var http = server.replace(/^ws(s?):/, "http$1:");
+          var abort = new AbortController();
+          var timer = setTimeout(function () { abort.abort(); }, 5000);
+          return fetch(http, { mode: "no-cors", cache: "no-store", signal: abort.signal })
+            .then(function () { return true; }, function () { return false; })
+            .finally(function () { clearTimeout(timer); });
+        }
+
+        function start() {
+          show("checking");
+          serverUp().then(function (up) {
+            if (!up) {
+              show("closed");
+              return;
+            }
+            show("loading");
+            load();
+          });
+        }
+
+        function load() {
+          var bar = document.getElementById("progress");
+          var text = document.getElementById("progress-text");
+          createUnityInstance(document.querySelector("#unity-canvas"), {
+            arguments: [],
+#if PROGRESSIVE_ASSET_LOADING
+            primaryDataUrls: {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
+            secondaryDataUrls: {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
+#else
+            dataUrl: "Build/{{{ DATA_FILENAME }}}",
+#endif
+            frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+            codeUrl: "Build/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+            symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+#endif
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+            productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+            productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+          }, function (progress) {
+            var percent = Math.round(progress * 100);
+            bar.style.width = percent + "%";
+            bar.parentElement.setAttribute("aria-valuenow", String(percent));
+            text.textContent = percent + "%";
+          }).then(function (unityInstance) {
+            instance = unityInstance;
+            show("open");
+            document.getElementById("fullscreen").disabled = false;
+            document.querySelector("#unity-canvas").focus();
+          }).catch(function (message) {
+            document.getElementById("failed-text").textContent = String(message);
+            show("failed");
+          });
+        }
+
+        document.getElementById("check").addEventListener("click", function () {
+          var checked = document.getElementById("checked");
+          checked.textContent = "Checking…";
+          serverUp().then(function (up) {
+            if (up) {
+              show("loading");
+              load();
+            } else {
+              var time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+              checked.textContent = "Checked again at " + time + ". Still not open.";
+            }
+          });
+        });
+
+        document.getElementById("fullscreen").addEventListener("click", function () {
+          if (instance) {
+            instance.SetFullscreen(1);
+          }
+        });
+
+        start();
+      })();
+    </script>
+  </body>
+</html>

@@ -136,6 +136,14 @@ namespace ShapeLand.Client.Tests
             Assert.That(JoinClient.AddressForPage(page, "localhost:5080"), Is.EqualTo(expected));
         }
 
+        // A page whose deploy names its game server (config.js on Vercel): that server, unless ?server= says otherwise.
+        [TestCase("https://shapeland.example.org/", "wss://server.shapeland.example.org/ws")]
+        [TestCase("https://shapeland.example.org/?server=localhost%3A5080", "wss://localhost:5080/ws")]
+        public void WebBuildsConnectToTheServerTheirPageNames(string page, string expected)
+        {
+            Assert.That(JoinClient.AddressForPage(page, "localhost:5080", "wss://server.shapeland.example.org/ws"), Is.EqualTo(expected));
+        }
+
         [TestCase("localhost:5080", "ws://localhost:5080/ws")]
         [TestCase(" wss://game.example.org/ws ", "wss://game.example.org/ws")]
         [TestCase("local host:5080", null)]
