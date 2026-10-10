@@ -16,6 +16,7 @@ public sealed class WebBuildTests : IAsyncLifetime
         Directory.CreateDirectory(Path.Combine(_root, "StreamingAssets"));
         await File.WriteAllTextAsync(Path.Combine(_root, "index.html"), "<title>ShapeLand</title>");
         await File.WriteAllBytesAsync(Path.Combine(_root, "Build", "web.data"), [1, 2, 3]);
+        await File.WriteAllBytesAsync(Path.Combine(_root, "Build", "web.wasm.unityweb"), [6, 7]);
         await File.WriteAllBytesAsync(Path.Combine(_root, "StreamingAssets", "content.bin"), [4, 5]);
 
         var (content, errors) = ShapeLandBuild.Build(Path.Combine(EndToEndTests.RepoRoot(), "shapeland", "content"), saveRegistry: false);
@@ -56,5 +57,23 @@ public sealed class WebBuildTests : IAsyncLifetime
 
         using var content = await _http.GetAsync("/StreamingAssets/content.bin", token);
         Assert.Equal([4, 5], await content.Content.ReadAsByteArrayAsync(token));
+    }
+
+    [Fact]
+    public async Task SendsBrotliFilesEncodedOnlyToBrowsersThatAcceptIt()
+    {
+        var token = TestContext.Current.CancellationToken;
+        using var accepting = new HttpRequestMessage(HttpMethod.Get, "/Build/web.wasm.unityweb");
+        accepting.Headers.AcceptEncoding.ParseAdd("gzip, deflate, br");
+        using var encoded = await _http.SendAsync(accepting, token);
+        Assert.Equal(["br"], encoded.Content.Headers.ContentEncoding);
+
+        // Firefox over plain HTTP doesn't ask for br: the bytes go as they are, for Unity's loader to unpack.
+        using var refusing = new HttpRequestMessage(HttpMethod.Get, "/Build/web.wasm.unityweb");
+        refusing.Headers.AcceptEncoding.ParseAdd("gzip, deflate");
+        using var raw = await _http.SendAsync(refusing, token);
+        Assert.Empty(raw.Content.Headers.ContentEncoding);
+        Assert.Equal("application/octet-stream", raw.Content.Headers.ContentType?.MediaType);
+        Assert.Equal([6, 7], await raw.Content.ReadAsByteArrayAsync(token));
     }
 }

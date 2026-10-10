@@ -42,7 +42,10 @@ public static class ShapeLandServer
         return app;
     }
 
-    // Serves a Unity web build (uncompressed, as the project builds it) at the root, for development.
+    // Serves a Unity web build at the root, for development. The game scene's build is Brotli-compressed with
+    // the decompression fallback (files named .unityweb): browsers that accept br get Content-Encoding: br and
+    // decompress natively; the rest (Firefox over plain HTTP) get the bytes as they are, and Unity's loader
+    // unpacks them.
     private static void ServeWebBuild(WebApplication app, string webRoot)
     {
         if (string.IsNullOrEmpty(webRoot))
@@ -59,8 +62,27 @@ public static class ShapeLandServer
         var types = new FileExtensionContentTypeProvider();
         types.Mappings[".data"] = "application/octet-stream";
         types.Mappings[".bin"] = "application/octet-stream";
+        types.Mappings[".unityweb"] = "application/octet-stream";
         app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-        app.UseStaticFiles(new StaticFileOptions { FileProvider = files, ContentTypeProvider = types });
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = files,
+            ContentTypeProvider = types,
+            OnPrepareResponse = context =>
+            {
+                if (!context.File.Name.EndsWith(".unityweb", StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                var headers = context.Context.Response.Headers;
+                headers.Vary = "Accept-Encoding";
+                if (context.Context.Request.Headers.AcceptEncoding.ToString().Contains("br", StringComparison.Ordinal))
+                {
+                    headers.ContentEncoding = "br";
+                }
+            },
+        });
         app.Logger.LogInformation("Serving the web build in {WebRoot}", webRoot);
     }
 
