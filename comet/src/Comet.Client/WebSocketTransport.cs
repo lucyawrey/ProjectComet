@@ -172,7 +172,8 @@ namespace Comet.Client
                     {
                         if (!_closing)
                         {
-                            _error ??= "The server closed the connection.";
+                            // The server's reason, if it gave one (e.g. that it's shutting down).
+                            _error ??= string.IsNullOrEmpty(result.CloseStatusDescription) ? "The server closed the connection." : result.CloseStatusDescription;
                         }
 
                         return;

@@ -89,6 +89,12 @@ namespace ShapeLand.Client
         /// <summary>Raised when the server refuses the join; the player may try again.</summary>
         public event Action<JoinRejection> JoinRefused;
 
+        /// <summary>
+        /// The connection was lost while joined (the server closed it, stopped answering, or the game fell too far
+        /// behind), with the reason. The player is gone from the world; the next <see cref="Join"/> starts over.
+        /// </summary>
+        public event Action<string> ConnectionLost;
+
         /// <summary>Raised when the content won't load or the connection fails or closes, with the reason.</summary>
         public event Action<string> Failed;
 
@@ -248,6 +254,19 @@ namespace ShapeLand.Client
             var session = _connection.Session;
             if (session == null || _content == null)
             {
+                return;
+            }
+
+            if (session.Closed && Joined)
+            {
+                var reason = session.Error ?? "The connection closed.";
+                Joined = false;
+                Spawn = null;
+                _pending = null;
+                _awaitingAnswer = false;
+                _connection.Disconnect(); // the next Join connects afresh
+                Log($"connection lost: {reason}");
+                ConnectionLost?.Invoke(reason);
                 return;
             }
 

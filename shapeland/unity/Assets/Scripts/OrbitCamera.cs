@@ -44,6 +44,9 @@ namespace ShapeLand.Client
         /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="centre"/> (behind the join screen).</summary>
         public void Showcase(Vector3 centre) => _showcaseCentre = centre;
 
+        /// <summary>Stops following and goes back to the showcase orbit (after the connection is lost).</summary>
+        public void Release() => Target = null;
+
         /// <summary>Starts following <paramref name="target"/>, from behind it.</summary>
         public void Follow(Transform target, ShapeLandControls controls, CollisionWorld world)
         {
