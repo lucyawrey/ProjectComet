@@ -140,7 +140,7 @@ namespace ShapeLand.Client.Editor
             join.ApplyModifiedPropertiesWithoutUndo();
 
             // Its own object, not a child of Game: a UIDocument under another one is added inside that one's tree.
-            var hud = new GameObject("Hud", typeof(UIDocument), typeof(Hud));
+            var hud = new GameObject("Hud", typeof(UIDocument), typeof(Hud), typeof(NetStats));
             var hudDocument = hud.GetComponent<UIDocument>();
             hudDocument.panelSettings = Panel();
             hudDocument.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(HudPath);

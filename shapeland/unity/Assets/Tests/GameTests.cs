@@ -30,6 +30,7 @@ namespace ShapeLand.Client.Tests
         private GameView _view;
         private JoinScreen _screen;
         private Hud _hud;
+        private NetStats _netStats;
         private InputSettings.EditorInputBehaviorInPlayMode _editorInput;
         private InputSettings.BackgroundBehavior _background;
 
@@ -377,6 +378,35 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
+        public IEnumerator F3ShowsNetworkStats()
+        {
+            yield return StartGame();
+            yield return _server.StartBots(2, 20);
+            Assert.That(_netStats.Panel.ClassListContains("hidden"), Is.True, "The stats show before F3.");
+
+            _keyboard = InputSystem.AddDevice<Keyboard>();
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState(Key.F3));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(_keyboard, new KeyboardState());
+            yield return null;
+            Assert.That(_netStats.Shown, Is.True, "F3 didn't show the stats.");
+            Assert.That(_netStats.Panel.ClassListContains("hidden"), Is.False);
+
+            // A ping a second, and the bots moving for the delay and holds.
+            yield return Wait(3);
+            string Number(string name) => _netStats.Panel.Q<Label>(name).text;
+            // Under a millisecond on loopback, so the number itself is 0; the clock must have had a pong.
+            Assert.That(_join.Session.Clock.Synced, Is.True, "No pong yet.");
+            Assert.That(double.Parse(Number("ping-best")), Is.GreaterThanOrEqualTo(0));
+            Assert.That(double.Parse(Number("delay")), Is.GreaterThanOrEqualTo(133), "The delay is under its floor of two report intervals.");
+            Assert.That(double.Parse(Number("holds")), Is.InRange(0, 100));
+            Assert.That(Number("snaps"), Is.EqualTo("0"));
+            Assert.That(_netStats.Panel.Q("snaps-dot").ClassListContains("bad"), Is.False);
+            Debug.Log($"Stats: ping {Number("ping")} (best {Number("ping-best")}) ms, delay {Number("delay")} ms, holds {Number("holds")}%.");
+        }
+
+        [UnityTest]
         public IEnumerator OthersChatInTheLogAndInBubbles()
         {
             yield return StartGame();
@@ -481,6 +511,8 @@ namespace ShapeLand.Client.Tests
             hudDocument.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/Hud.uxml");
             _hud = hud.AddComponent<Hud>();
             _hud.Attach(_join, _view);
+            _netStats = hud.AddComponent<NetStats>();
+            _netStats.Remember = false;
             hud.SetActive(true);
             if (joinScreen)
             {

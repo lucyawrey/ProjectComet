@@ -10,5 +10,37 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Label name="chat-hint" text="Enter to chat" class="chat-hint" picking-mode="Ignore" />
+        <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
+            <ui:VisualElement class="net-row" picking-mode="Ignore">
+                <ui:VisualElement name="ping-dot" class="net-dot" picking-mode="Ignore" />
+                <ui:Label text="Ping" class="net-key" picking-mode="Ignore" />
+                <ui:Label name="ping" class="net-num" picking-mode="Ignore" />
+                <ui:Label text="ms, best" class="net-unit" picking-mode="Ignore" />
+                <ui:Label name="ping-best" class="net-num net-dim" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="net-row" picking-mode="Ignore">
+                <ui:VisualElement name="delay-dot" class="net-dot" picking-mode="Ignore" />
+                <ui:Label text="Delay" class="net-key" picking-mode="Ignore" />
+                <ui:Label name="delay" class="net-num" picking-mode="Ignore" />
+                <ui:Label text="ms, target" class="net-unit" picking-mode="Ignore" />
+                <ui:Label name="delay-target" class="net-num net-dim" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="net-row" picking-mode="Ignore">
+                <ui:VisualElement name="holds-dot" class="net-dot" picking-mode="Ignore" />
+                <ui:Label text="Holds" class="net-key" picking-mode="Ignore" />
+                <ui:Label name="holds" class="net-num" picking-mode="Ignore" />
+                <ui:Label text="%," class="net-unit tight" picking-mode="Ignore" />
+                <ui:Label name="held" class="net-num net-dim" picking-mode="Ignore" />
+                <ui:Label text="ms each" class="net-unit" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="net-row" picking-mode="Ignore">
+                <ui:VisualElement name="snaps-dot" class="net-dot" picking-mode="Ignore" />
+                <ui:Label text="Snap-backs" class="net-key" picking-mode="Ignore" />
+                <ui:Label name="snaps" class="net-num" picking-mode="Ignore" />
+                <ui:Label text="respawns" class="net-unit" picking-mode="Ignore" />
+                <ui:Label name="respawns" class="net-num net-dim" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label text="Holds over the last 5 s · F3 hides" class="net-foot" picking-mode="Ignore" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

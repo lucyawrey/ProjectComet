@@ -153,3 +153,26 @@ Label { padding: 0; margin: 0; }
     rotate: 45deg;
     background-color: rgba(18, 22, 30, 0.88);
 }
+
+/* Network stats (NetStats, F3): rows with a state dot. Numbers in the mono face so they don't jitter. */
+.net-stats {
+    position: absolute; left: 12px; top: 12px; width: 270px;
+    padding: 8px 10px 6px 10px; font-size: 13px;
+    background-color: rgba(18, 22, 30, 0.78); border-radius: 4px;
+}
+.net-stats.hidden { display: none; }
+.net-row { flex-direction: row; align-items: center; margin-bottom: 3px; }
+.net-dot { width: 7px; height: 7px; border-radius: 4px; margin-right: 7px; flex-shrink: 0; background-color: rgb(92, 201, 138); }
+.net-dot.warn { background-color: rgb(240, 181, 74); }
+.net-dot.bad { background-color: rgb(240, 106, 94); }
+.net-row Label { padding: 0; margin: 0; }
+.net-key { width: 78px; color: rgb(169, 178, 196); flex-shrink: 0; }
+.net-num { -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+.net-row .net-unit { margin-left: 4px; margin-right: 4px; color: rgb(169, 178, 196); }
+.net-row .net-unit.tight { margin-left: 0; }
+.net-dim { color: rgb(169, 178, 196); }
+.net-foot {
+    margin-top: 3px; padding: 4px 0 0 0;
+    border-top-width: 1px; border-top-color: rgba(255, 255, 255, 0.12);
+    font-size: 11px; color: rgb(141, 151, 171);
+}
