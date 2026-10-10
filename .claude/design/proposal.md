@@ -208,7 +208,7 @@ Comet mechanisms.
 
 ### Setting and story
 
-- **The project lead writes the lore themselves.** `lore-hooks.md` collects what gameplay already implies, as raw material. *Placeholder: setting (project lead).*
+- **The project lead writes the setting and lore themselves.** *Placeholder: setting (project lead).*
 
 ## Considering
 
@@ -219,6 +219,7 @@ Comet mechanisms.
 - **Mabinogi as a comparable** (project lead).
 - **Paper Mario as a reference** (project lead).
 - **Self-hosting as a pillar:** it's a commitment underneath them instead.
+- **Agent setting work** (lore hooks, summaries of the project lead's setting notes): the project lead handles the setting alone.
 - **Business-model mechanisms in Comet:** ShapeLand would never use them, so membership, parts and bonds are game code.
 - **Generic Comet servers that load game modules** (a plugin loader): each game builds its own server programs.
 - **One Unity project building both games:** it would mix their assets.

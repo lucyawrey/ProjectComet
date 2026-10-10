@@ -60,7 +60,6 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 | `art.md` | Art direction, references | Texture approach, outfit fitting |
 | `ui.md` | Drafting game UI: HTML mockups, who drafts, where they live | — |
 | `database.md` | Draft tables per area, with a Layer column | The project lead's final schema |
-| `lore-hooks.md` | What gameplay implies about the setting: raw material for the project lead's lore, not lore | — |
 
 ## Docs and drafts
 
@@ -101,9 +100,8 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 6. **Todo (later): playtest polish for phase 0:** movement and "animation" feel (the project lead found it needs work, perhaps partly the simple shapes), the camera clipping into block sides, the final body and eye colour sets (the project lead's), and the join screen's name box changing height between empty and filled in the Linux desktop build (not seen on the web). Collect more here as playtests find them.
 7. **Todo (later):** make movement feel easy for the project lead to fine-tune: they're happy to edit code, so keep the numbers in one obvious place each (shape speeds, jumps and looks in content, each shape's `.toml`; gravity, acceleration and step height in `Comet.Simulation`'s `MovementRules`) and write down where they are and what each does. Adjusting them live while playing is optional.
 7a. **Todo (later): a cleanup pass over the code** (project lead): make it as small, maintainable and well documented as possible, so human teams can actually work on it.
-8. **Todo:** ingest the project lead's story and setting notes (a lot of them, covering two separate settings that will need adjusting to fit the mechanics) and give them summaries, so they can write the final story overview more easily. Summaries describe their notes; they aren't lore, and the setting itself stays the project lead's. Compare against `lore-hooks.md` to show where each setting fits or clashes with the mechanics. **Never check the summaries (or the notes) into this repo;** they go in the project lead's notes, outside the repo. Waiting on the project lead to share the notes.
-9. **Out of scope for now:** WebTransport on web, UDP on desktop, and supporting several transports behind one interface. WebTransport stays a goal down the line; background in `backend.md` (transport, WebTransport upgrade paths, Research).
-10. **Todo:** try WebGPU in ShapeLand's web build as a test. Unity 6.6 supports it with an automatic WebGL 2 fallback; research in `backend.md` (Research, Web and Unity). Measure it against WebGL 2 on a few browsers; Unity 7's status is still unknown.
-11. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
-12. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
-13. Everything will likely be reviewed again later.
+8. **Out of scope for now:** WebTransport on web, UDP on desktop, and supporting several transports behind one interface. WebTransport stays a goal down the line; background in `backend.md` (transport, WebTransport upgrade paths, Research).
+9. **Todo:** try WebGPU in ShapeLand's web build as a test. Unity 6.6 supports it with an automatic WebGL 2 fallback; research in `backend.md` (Research, Web and Unity). Measure it against WebGL 2 on a few browsers; Unity 7's status is still unknown.
+10. **Later (from phase 3; ShapeLand needs no assets):** pick placeholder packs from Kenney, Quaternius and KayKit (CC0; survey in `.claude/research/assets.md`).
+11. **Maybe later:** an illustrated page explaining the 3D asset workflow (UV unwrapping, trim sheets, vertex colours, skinning to one skeleton).
+12. Everything will likely be reviewed again later.
