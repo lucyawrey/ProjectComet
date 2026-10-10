@@ -237,6 +237,18 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | good | 1.2 | 17 | 326 | 0 | 243 ms |
 
   What's left is mostly eased corrections where a bot turned or jumped during a stall. Time held per move now measures time dead-reckoned, which isn't visible (1.26 ms under bad), so the smoothness criterion moves to visible hitches; the numbers wait for the project lead's look. The 10 jumps under bad aren't traced yet. By eye (project lead, web build under bad): "it finally looks smooth, even on bad". **Criterion 7 signed off** (project lead): under bad and good, in the web build and the Linux desktop build, other players move smoothly, and holding C gets a snap-back.
+- **Final runs** (commit `1126554`; 180 s, 10 honest bots, 1 cheater, seed 1; far runs add far players under bad on top of good):
+
+  | Run | Honest snap-backs | Cheater caught | Ping median | Delay median (5th–95th) | Target moving | Holds | Visible hitches per other player per minute |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | none | 0 | yes | 16 ms | 158 ms (137–173) | 2 ms/s | 0.0% | 0.0 |
+  | good | 0 | yes | 96 ms | 239 ms (189–286) | 8 ms/s | 1.2% | 1.4 |
+  | bad | 0 | yes | 224 ms | 453 ms (397–623) | 16 ms/s | 1.3% | 2.5 |
+  | awful (reported only) | 7 (3 falls, 4 violations) | yes | 287 ms | 619 ms (501–810) | 27 ms/s | 2.0% | 4.6 |
+  | good, 1 far of 12 | 0 | yes | 96 ms | 243 ms (194–294) | 8 ms/s | 1.4% | 2.5 |
+  | good, 3 far of 14 | 1 (a fall) | yes | 96 ms | 253 ms (204–304) | 8 ms/s | 1.8% | 4.6 |
+
+  **Every criterion passes under none, good and bad**: no honest snap-backs, the cheater caught, holds at most 2%, visible hitches 1.4 under good (limit 2) and 2.5 under bad (limit 3), the target moving at most 16 ms/s (limit 30), delay medians 239 and 453 ms (limits 300 and 550), and the project lead's sign-off by eye. Far players still barely move good players' delay (243–253 ms against 239), but their own long stalls show: good players see 2.5 to 4.6 visible hitches a minute when one in twelve to three in fourteen players are far, mostly eased blend-backs of the far players themselves; the far players see their own world at 0.8 to 2.4. In the 3-far run one good player's fall was finished by the server (silent in the air over 1 s on good, likely the host stalling one of 14 bots in one process). A few jumps (10 to 20 a run, under none too) remain untraced; they aren't the cheater's snap-backs, which are mostly short enough to blend. Bot pings now read about 16 ms high rather than 33, since the bots wake at 60 Hz.
 - **Bots stay quiet unless `--chat` is given** (`tools/shapeland-web.sh --bots-chat`), so playtests with several people aren't drowned out; the Play mode tests pass it.
 - **3c's pass criteria are written down before the tuning runs** (project lead), as the stack benchmark's thresholds were: the agent proposes numbers and the project lead approves them.
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
