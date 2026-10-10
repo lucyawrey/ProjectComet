@@ -5,12 +5,13 @@
 # bots, and opens the page. Ctrl+C stops everything.
 #
 #   tools/shapeland-web.sh [--rebuild] [--no-build] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
-#                          [--net PROFILE] [--bots-net PROFILE]
+#                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat]
 #
 #   --rebuild      make the Unity web build even if it looks up to date
 #   --no-build     use the last web build as it is (content still rebuilds)
 #   --bots N       start N honest bots (default 0)
 #   --cheaters N   start N speed-cheating bots (default 0)
+#   --bots-chat    let the bots chat now and then (they stay quiet otherwise)
 #   --port P       the game server's port (default 5080)
 #   --lan          listen on every network interface, so other devices on the network can join
 #   --no-open      don't open the page in a browser
@@ -39,6 +40,7 @@ host=localhost
 open_page=1
 net=""
 bots_net=none
+bots_chat=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --rebuild) rebuild=1; shift ;;
@@ -50,7 +52,8 @@ while [ $# -gt 0 ]; do
     --no-open) open_page=0; shift ;;
     --net) net="$2"; shift 2 ;;
     --bots-net) bots_net="$2"; shift 2 ;;
-    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --bots-chat) bots_chat=(--chat); shift ;;
+    -h|--help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -144,7 +147,7 @@ trap cleanup EXIT INT TERM
 
 if [ -n "$net" ]; then
   # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
-  export SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters"
+  export SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}"
   "${compose[@]}" up --no-log-prefix server &
   pids+=($!)
 else
@@ -167,7 +170,7 @@ if [ $((bots + cheaters)) -gt 0 ] && [ -n "$net" ]; then
   "${compose[@]}" --profile bots up -d bots > /dev/null 2>&1
 elif [ $((bots + cheaters)) -gt 0 ]; then
   dotnet "$repo/artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll" \
-    --url "ws://localhost:$port/ws" --count "$bots" --cheaters "$cheaters" > /dev/null &
+    --url "ws://localhost:$port/ws" --count "$bots" --cheaters "$cheaters" "${bots_chat[@]+"${bots_chat[@]}"}" > /dev/null &
   pids+=($!)
 fi
 

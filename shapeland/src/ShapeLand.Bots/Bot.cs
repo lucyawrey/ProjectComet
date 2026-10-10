@@ -59,7 +59,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private double _lastNow;
     private bool _recording;
     private double _nextSample;
-    private (long MoveStates, long Holds, double HeldTicks) _baseline;
+    private (long MoveStates, long Holds, double HeldTicks, long Jumps, long SpeedHitches) _baseline;
 
     public string Name => name;
 
@@ -94,6 +94,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     public long MoveStates => Joined && _recording ? _session.Entities.MoveStates - _baseline.MoveStates : 0;
 
     public long Holds => Joined && _recording ? _session.Entities.Holds - _baseline.Holds : 0;
+
+    /// <summary>Of the others' moves since the warmup, those drawn as a jump (too far to walk between stamps).</summary>
+    public long Jumps => Joined && _recording ? _session.Entities.Jumps - _baseline.Jumps : 0;
+
+    public long SpeedHitches => Joined && _recording ? _session.Entities.SpeedHitches - _baseline.SpeedHitches : 0;
 
     /// <summary>How long the holds since the warmup were, in seconds, summed.</summary>
     public double HeldSeconds => Joined && _recording ? (_session.Entities.HeldTicks - _baseline.HeldTicks) / _session.Entities.TickRate : 0;
@@ -250,7 +255,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         if (!_recording)
         {
             _recording = true;
-            _baseline = (entities.MoveStates, entities.Holds, entities.HeldTicks);
+            _baseline = (entities.MoveStates, entities.Holds, entities.HeldTicks, entities.Jumps, entities.SpeedHitches);
             _nextSample = now;
         }
 

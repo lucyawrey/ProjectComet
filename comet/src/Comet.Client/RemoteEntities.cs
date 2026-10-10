@@ -78,6 +78,15 @@ namespace Comet.Client
         /// </summary>
         public long Holds { get; private set; }
 
+        /// <summary>
+        /// Of <see cref="MoveStates"/>, those whose speed across the ground (distance over the stamps' gap) differs
+        /// from the step before by more than 30% either way, both at walking pace: a hitch in drawn speed.
+        /// </summary>
+        public long SpeedHitches { get; private set; }
+
+        /// <summary>Of <see cref="MoveStates"/>, those too far from the state before them to walk, drawn as a jump.</summary>
+        public long Jumps { get; private set; }
+
         /// <summary>How far, in ticks, the render tick had passed the previous state when each hold ended, summed.</summary>
         public double HeldTicks { get; private set; }
 
@@ -122,6 +131,22 @@ namespace Comet.Client
             else
             {
                 MoveStates++;
+                if (IsTeleport(newest, new State(tick, position, facing)))
+                {
+                    Jumps++;
+                }
+
+                if (states.Count >= 2)
+                {
+                    var before = states[states.Count - 2];
+                    var was = GroundSpeed(before, newest);
+                    var now = GroundSpeed(newest, new State(tick, position, facing));
+                    if (was > 1 && now > 1 && (now > was * 1.3f || now < was / 1.3f))
+                    {
+                        SpeedHitches++;
+                    }
+                }
+
                 if (_renderTick > newest.Tick)
                 {
                     Holds++;
@@ -180,6 +205,12 @@ namespace Comet.Client
             var t = (float)((renderTick - from.Tick) / (to.Tick - from.Tick));
             pose = new EntityPose(Vector3.Lerp(from.Position, to.Position, t), LerpAngle(from.Facing, to.Facing, t));
             return true;
+        }
+
+        private float GroundSpeed(State from, State to)
+        {
+            var move = to.Position - from.Position;
+            return new Vector2(move.X, move.Z).Length() / (float)((to.Tick - from.Tick) / TickRate);
         }
 
         private bool IsTeleport(State from, State to)

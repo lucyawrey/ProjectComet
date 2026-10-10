@@ -301,8 +301,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         }
 
         logger.LogInformation(
-            "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server",
-            player.Name, _players.Values.Count(p => p.Joined), player.Validator.Violations, player.ServerFalls);
+            "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server, {Clamped} of {Stamps} stamps clamped",
+            player.Name, _players.Values.Count(p => p.Joined), player.Validator.Violations, player.ServerFalls, player.Stamp.Clamped, player.Stamp.Broadcasts);
     }
 
     private enum InputKind

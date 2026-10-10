@@ -91,16 +91,32 @@ public class StateStampTests
     }
 
     [Fact]
-    public void BroadcastsAreNeverLaterThanArrivalNorGoBackwards()
+    public void BroadcastsKeepTheSendersSpacingWhenAReportArrivesEarly()
+    {
+        for (uint sent = 100; sent <= 160; sent += 2)
+        {
+            _stamp.Stamp(clientTick: sent, arrivalTick: sent + 2);
+        }
+
+        // One report arrives a tick sooner than the usual 2: still two ticks after the last, a tick past its arrival.
+        _stamp.Stamp(clientTick: 162, arrivalTick: 163);
+        Assert.Equal(164u, _stamp.Broadcast);
+        _stamp.Stamp(clientTick: 164, arrivalTick: 166);
+        Assert.Equal(166u, _stamp.Broadcast);
+        Assert.Equal(0, _stamp.Clamped);
+    }
+
+    [Fact]
+    public void BroadcastsNeverGoBackwards()
     {
         _stamp.Stamp(clientTick: 100, arrivalTick: 110);
         Assert.Equal(110u, _stamp.Broadcast);
-        // Suddenly arriving much sooner than the shift (10 ticks) expects: held at arrival.
-        _stamp.Stamp(clientTick: 108, arrivalTick: 111);
-        Assert.Equal(111u, _stamp.Broadcast);
-        // A stamp from before the last is held at the last, and the shift still can't pass arrival.
-        _stamp.Stamp(clientTick: 104, arrivalTick: 112);
-        Assert.Equal(112u, _stamp.Broadcast);
+        // A stamp from before the last is held at the last.
+        _stamp.Stamp(clientTick: 96, arrivalTick: 111);
+        Assert.Equal(110u, _stamp.Broadcast);
+        // A server position from before the last broadcast keeps the last.
+        _stamp.StampServer(105);
+        Assert.Equal(110u, _stamp.Broadcast);
         Assert.Equal(130u, _stamp.StampServer(130));
         Assert.Equal(130u, _stamp.Broadcast);
     }
