@@ -40,7 +40,17 @@ namespace Comet.Client
         /// <summary>A gap between updates longer than this, in seconds, is a stall on this side rather than the network's.</summary>
         public const double LocalStallSeconds = 0.25;
         private double _nextPing;
+        private double _lastPingSent;
+        private double? _oldestUnansweredPing;
+        private (uint Tick, Vector3 Position, Vector3 Velocity, float Facing)? _heldReport;
         private string? _protocolError;
+
+        /// <summary>
+        /// A ping unanswered for this long, in seconds, means our sends are stuck (e.g. wifi roaming): position
+        /// reports are held rather than piling up in the socket, where they would all reach the server at once
+        /// when the link recovers and trip its flood limit.
+        /// </summary>
+        public const double ReportHoldSeconds = 2;
 
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
         /// <param name="pingInterval">Seconds between pings for the server-tick estimate.</param>
@@ -131,9 +141,25 @@ namespace Comet.Client
             if (now >= _nextPing)
             {
                 _nextPing = now + _pingInterval;
+                _lastPingSent = now;
+                _oldestUnansweredPing ??= now;
                 _messages.Write(MessageIds.Ping, new Ping { ClientTime = (long)(now * 1_000_000) });
             }
+
+            // Answers are back: send where the player is now, once, in place of what was held.
+            ReportsHeld = _oldestUnansweredPing is { } oldest && now - oldest > ReportHoldSeconds;
+            if (!ReportsHeld && _heldReport is { } held)
+            {
+                _heldReport = null;
+                ReportPosition(held.Tick, held.Position, held.Velocity, held.Facing);
+            }
         }
+
+        /// <summary>
+        /// Whether position reports are being held because a ping has gone unanswered for <see cref="ReportHoldSeconds"/>;
+        /// the latest is sent once answers return.
+        /// </summary>
+        public bool ReportsHeld { get; private set; }
 
         /// <summary>Queues a message for the next <see cref="Flush"/>.</summary>
         public void Write<T>(ushort messageId, in T message) => _messages.Write(messageId, message);
@@ -169,6 +195,12 @@ namespace Comet.Client
         /// </summary>
         public void ReportPosition(uint tick, Vector3 position, Vector3 velocity, float facing)
         {
+            if (ReportsHeld)
+            {
+                _heldReport = (tick, position, velocity, facing);
+                return;
+            }
+
             // A frame has one tick: send what's queued for another tick first.
             if (_reportTick is { } queued && queued != tick)
             {
@@ -235,7 +267,14 @@ namespace Comet.Client
                         WelcomeArrived?.Invoke(welcome);
                         break;
                     case MessageIds.Pong:
-                        _clock?.OnPong(tick, FrameReader.Decode<Pong>(payload, _options).ClientTime / 1_000_000.0, now);
+                        var sent = FrameReader.Decode<Pong>(payload, _options).ClientTime / 1_000_000.0;
+                        _clock?.OnPong(tick, sent, now);
+                        if (sent >= _oldestUnansweredPing)
+                        {
+                            // Pongs come back in order, so any ping since this one is the oldest still unanswered.
+                            _oldestUnansweredPing = _lastPingSent > sent ? _lastPingSent : (double?)null;
+                        }
+
                         break;
                     case MessageIds.EntityState:
                         var state = FrameReader.Decode<EntityState>(payload, _options);

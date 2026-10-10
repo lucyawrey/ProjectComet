@@ -197,6 +197,39 @@ public class ClientSessionTests
     }
 
     [Fact]
+    public void ReportsAreHeldWhilePingsGoUnansweredThenTheLatestIsSent()
+    {
+        // The upload stalls: pings at 0, 1, 2 and 3 s get no answer, so reports stop rather than queue up for the
+        // server to receive all at once (the code review's S8).
+        Welcome(now: 0);
+        for (var i = 0; i <= 30; i++)
+        {
+            var now = i * 0.1;
+            _session.Update(now);
+            _session.ReportPosition((uint)(100 + 3 * i), new Vector3(i, 0, 0), Vector3.UnitX, 0);
+            _session.Flush(now);
+        }
+
+        var reports = Sent().Where(m => m.Id == MessageIds.PositionReport).ToList();
+        Assert.True(_session.ReportsHeld);
+        Assert.InRange(reports.Count, 20, 22); // up to just past 2 s
+        Assert.Equal(reports.Count - 1, FrameReader.Decode<PositionReport>(reports[^1].Payload).X);
+
+        // The pongs arrive, in order: the latest held report goes out once, and reporting carries on.
+        foreach (var sent in new[] { 0.0, 1, 2, 3 })
+        {
+            ServerSends(200, MessageIds.Pong, new Pong { ClientTime = (long)(sent * 1_000_000) });
+        }
+
+        _session.Update(3.1);
+        _session.Flush(3.1);
+        Assert.False(_session.ReportsHeld);
+        var resumed = Assert.Single(Sent(), m => m.Id == MessageIds.PositionReport);
+        Assert.Equal(30, FrameReader.Decode<PositionReport>(resumed.Payload).X);
+        Assert.Equal(190u, resumed.Tick);
+    }
+
+    [Fact]
     public void GameMessagesAreHandedOn()
     {
         const ushort chat = MessageIds.FirstGameMessage + 1;
