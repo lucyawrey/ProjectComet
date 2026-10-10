@@ -192,6 +192,15 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | awful | 11 (9 falls, 2 too fast) | yes | 297 ms (198) | 607 ms (525–718) | 410–821 ms, 103 ms/s | 3.0%, 115 ms each |
 
   Findings: honest snap-backs come mostly from the server finishing falls (`SilenceSeconds` 0.5 s is shorter than a TCP resend stall at these pings); under awful, two honest bots were also too fast, likely a burst after a stall longer than the speed budget's one second of banked movement. The target swings three times as fast under bad as under good. With bots at about 300 ms (`good` plus `--bots-net bad`), 3 to 7 of a few honest bots' snap-backs in 30 s were all finished falls; three cheaters were each still caught 38–49 times in 70 s.
+- **Far players pull good players' delay up** (`tools/shapeland-netrun.sh good --far N`: N honest "Far" bots in their own container under bad on top, about 300 ms; same commit as the baseline plus the far option):
+
+  | Far players | Good players' delay median (5th–95th) | Their holds | Far players' own delay, holds | Far players' snap-backs |
+  | --- | --- | --- | --- | --- |
+  | none (baseline) | 280 ms (240–335) | 1.6%, 46 ms each | — | — |
+  | 1 of 12 | 333 ms (297–374) | 0.9%, 49 ms each | 582 ms, 2.7% | 1 (a fall) |
+  | 3 of 14 | 358 ms (328–400) | 0.9%, 57 ms each | 603 ms, 3.2% | 2 (falls) |
+
+  One far player among eleven others already adds about 50 ms to everyone's delay (past the 300 ms lag criterion), because their states make up more than 5% of the samples and each carries their own trip; the extra delay also halves good players' holds. Shifting stamps by each sender's smoothed latency targets exactly this.
 - **3c's pass criteria are written down before the tuning runs** (project lead), as the stack benchmark's thresholds were: the agent proposes numbers and the project lead approves them.
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
   1. *Fairness* (none, good, bad): no snap-backs on honest bots, of either kind (rule violations or falls the server finishes).
@@ -260,7 +269,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 - **Per-shape collision bodies** (later, if drawn sizes drift far from the shared body): each shape's body radius and height from content, used by the client motor, the server's validation and the bots, so what's drawn is what collides. For now every shape collides as `MovementRules`' one body (project lead).
 - **A heavy-heap variant of the stack benchmark** (agent suggestion; later, before the stage 2 load test, not part of milestone 1): the server also holds synthetic long-lived zone state, about 100–300 MB, in a mix of plain struct arrays and ordinary object graphs, so we can measure how deep GC pauses scale with a real zone's state, which the bench as it stands can't show. It decides whether the GC is a real risk for zone servers: switching away from C# would only be worth weighing if blocking collections recur in steady state and approach the 33 ms tick budget even after per-tick allocation is reduced.
-- **Shifting each sender's stamps by its smoothed one-way latency** (agent suggestion; to test in 3c or the load test with a few high-ping bots): the server keeps the sender's stamp but adds that player's slowly smoothed trip time, so the spacing stays free of jitter while a high-ping sender's average latency no longer counts towards everyone's delay. Matters only when many players have high pings; with one among many, the 95th percentile mostly leaves the delay alone and only that player holds now and then. Not found in any source.
+- **Shifting each sender's stamps by its smoothed one-way latency** (agent suggestion; to test in 3c or the load test with a few high-ping bots): the server keeps the sender's stamp but adds that player's slowly smoothed trip time, so the spacing stays free of jitter while a high-ping sender's average latency no longer counts towards everyone's delay. Matters only when many players have high pings; with one among many, the 95th percentile mostly leaves the delay alone and only that player holds now and then. Not found in any source. The project lead leans towards it, to keep players with good connections from being pulled down by others' latency; measuring first with far bots (`tools/shapeland-netrun.sh --far N`).
 - **A connection slot pool in Comet** (agent suggestion; later, with the heavy-heap variant, not part of milestone 1): a zone server allocates per-connection state and buffers up front at startup, up to the channel's hard cap, so players joining reuse long-lived objects instead of creating about 22 KB each to promote. First measure what that state is (heap dumps idle and with 300 bots, by type), since Kestrel's and the WebSocket's share can't be pooled.
 
 ## Rejected
