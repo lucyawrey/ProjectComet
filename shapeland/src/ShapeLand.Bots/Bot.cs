@@ -47,6 +47,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private readonly Random _random = new(seed);
     private readonly HashSet<uint> _seen = [];
     private readonly PositionReporter _reporter = new();
+    private readonly FixedStep _fixed = new(StepsPerSecond);
+    private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
     private ClientSession _session = null!;
     private MotorState _motor;
     private Shape _shape = null!;
@@ -98,6 +100,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     /// <summary>Of the others' moves since the warmup, those drawn as a jump (too far to walk between stamps).</summary>
     public long Jumps => Joined && _recording ? _session.Entities.Jumps - _baseline.Jumps : 0;
 
+    /// <summary>This bot's own reports since the warmup, and how many changed speed as a hitch would (real changes).</summary>
+    public long OwnMoves { get; private set; }
+
+    public long OwnHitches { get; private set; }
+
     public long SpeedHitches => Joined && _recording ? _session.Entities.SpeedHitches - _baseline.SpeedHitches : 0;
 
     /// <summary>How long the holds since the warmup were, in seconds, summed.</summary>
@@ -113,7 +120,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
         var clock = Stopwatch.StartNew();
         var asked = false;
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1.0 / StepsPerSecond));
+        // Wakes twice per step; the steps themselves run on the server's clock (FixedStep), on its ticks.
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.5 / StepsPerSecond));
         try
         {
             while (transport.State != TransportState.Closed && await timer.WaitForNextTickAsync(stop))
@@ -136,7 +144,20 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 _session.Update(now);
                 if (Joined)
                 {
-                    Step(now, 1f / StepsPerSecond);
+                    var steps = _fixed.Advance(_session.ServerSeconds(now));
+                    for (var i = 0; i < steps; i++)
+                    {
+                        Step(now, _fixed.LastStep - (steps - 1 - i));
+                    }
+
+                    // Draw the others, as a real client would, so the interpolation buffer runs under load.
+                    var renderTick = _session.RenderTick(now);
+                    foreach (var id in _session.Entities.Ids)
+                    {
+                        _session.Entities.TrySample(id, renderTick, out _);
+                    }
+
+                    Record(now);
                 }
 
                 _session.Flush(now);
@@ -152,8 +173,9 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         Failed = _session.Error is not null;
     }
 
-    private void Step(double now, float seconds)
+    private void Step(double now, long stepNumber)
     {
+        const float seconds = 1f / StepsPerSecond;
         _step++;
         var elapsed = _step / (double)StepsPerSecond;
         var position = new Vector2(_motor.Position.X, _motor.Position.Z);
@@ -172,9 +194,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         }
 
         PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity, world, ShapeLandWorld.Rules);
-        if (_reporter.ShouldReport(_motor.Velocity, now))
+        // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
+        if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, now))
         {
-            _session.ReportPosition(_motor.Position, _motor.Velocity, _motor.Facing);
+            _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
+            CountOwnHitch(tick, _motor.Position);
         }
 
         if (settings.ChatEverySeconds > 0 && elapsed >= _nextChat)
@@ -184,14 +208,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextChat = elapsed + settings.ChatEverySeconds * (0.5 + _random.NextDouble());
         }
 
-        // Draw the others, as a real client would, so the interpolation buffer runs under load.
-        var renderTick = _session.RenderTick(now);
-        foreach (var id in _session.Entities.Ids)
-        {
-            _session.Entities.TrySample(id, renderTick, out _);
-        }
-
-        Record(now);
     }
 
     private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
@@ -207,6 +223,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                     Joined = true;
                     _joinedAt = _lastNow;
                     _motor = new MotorState { Position = position, Grounded = true, Facing = spawn.Facing };
+                    _fixed.Reset();
                     _target = RandomPoint();
                     _nextJump = 2 + _random.NextDouble() * 4;
                     _nextChat = settings.ChatEverySeconds * _random.NextDouble();
@@ -242,6 +259,34 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             SnapBacks++;
         }
     }
+
+    // The speed-hitch test RemoteEntities applies to others' states, applied to this bot's own reports: what its
+    // real movement does, to compare with what others draw.
+    private void CountOwnHitch(uint tick, Vector3 position)
+    {
+        if (_recording && _ownReports.Count == 2)
+        {
+            var (t0, p0) = _ownReports[0];
+            var (t1, p1) = _ownReports[1];
+            var was = GroundSpeed(p0, p1, t1 - t0);
+            var now = GroundSpeed(p1, position, tick - t1);
+            OwnMoves++;
+            if (was > 1 && now > 1 && (now > was * 1.3f || now < was / 1.3f))
+            {
+                OwnHitches++;
+            }
+        }
+
+        if (_ownReports.Count == 2)
+        {
+            _ownReports.RemoveAt(0);
+        }
+
+        _ownReports.Add((tick, position));
+    }
+
+    private static float GroundSpeed(Vector3 from, Vector3 to, uint ticks) =>
+        ticks == 0 ? 0 : new Vector2(to.X - from.X, to.Z - from.Z).Length() / (ticks / 30f);
 
     // After the warmup, the network numbers the overlay shows, four times a second.
     private void Record(double now)

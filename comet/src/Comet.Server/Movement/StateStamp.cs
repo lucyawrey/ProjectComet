@@ -23,11 +23,15 @@ public sealed class StateStamp(int tickRate, double maxLagSeconds = StateStamp.M
     /// <summary>How fast the shift may change, in ticks per tick, so the spacing of states never jumps.</summary>
     public const double SlewRate = 0.05;
 
+    /// <summary>How far, in ticks, the smoothed shift may drift from the whole-tick shift in use before it changes.</summary>
+    public const double ShiftHysteresis = 0.75;
+
     private readonly uint _maxLag = (uint)Math.Round(maxLagSeconds * tickRate);
     private readonly uint _window = (uint)Math.Round(SmoothingSeconds * tickRate);
-    private readonly Queue<(uint Arrival, uint Lag)> _lags = new();
-    private uint[] _sorted = new uint[64];
+    private readonly Queue<(uint Arrival, int Lag)> _lags = new();
+    private int[] _sorted = new int[64];
     private double _shift = double.NaN;
+    private long _wholeShift;
     private uint _lastArrival;
 
     /// <summary>The last stamp given, the sender's: for checking their movement.</summary>
@@ -49,11 +53,23 @@ public sealed class StateStamp(int tickRate, double maxLagSeconds = StateStamp.M
     {
         var earliest = Math.Max(arrivalTick > _maxLag ? arrivalTick - _maxLag : 0, Last);
         Last = Math.Clamp(clientTick, Math.Min(earliest, arrivalTick), arrivalTick);
-        UpdateShift(arrivalTick - Last, arrivalTick);
-        // Not held to the arrival tick: a report arriving faster than the median would then lose a tick of its
-        // spacing, which others draw at double speed, past the teleport limit, as a jump (1 stamp in 5 under the
-        // good profile). Stamped a little ahead, it's simply drawn when the render tick reaches it.
-        var shifted = Last + (uint)Math.Round(_shift);
+
+        // The broadcast stamp starts from the sender's own tick, bounded only to within the maximum lag of
+        // arrival either way, not from Last: a report that crosses faster than the client's estimate assumes
+        // (half its best round trip) arrives before its own stamp, and holding it to arrival broke the sender's
+        // spacing, a hitch for everyone drawing them. Nor is it held to arrival afterwards (a report arriving
+        // faster than the median would lose a tick, drawn at double speed as a jump); a stamp a little ahead is
+        // simply drawn when the render tick reaches it.
+        var own = Math.Clamp((long)clientTick, (long)arrivalTick - _maxLag, (long)arrivalTick + _maxLag);
+        UpdateShift((int)(arrivalTick - own), arrivalTick);
+        // Stamps are whole ticks, so the shift is too; it changes only once the smoothed shift is well past the
+        // one in use, since rounding a shift that hovers near a half would move every few stamps by a tick.
+        if (Math.Abs(_shift - _wholeShift) > ShiftHysteresis)
+        {
+            _wholeShift = (long)Math.Round(_shift);
+        }
+
+        var shifted = (uint)Math.Max(0, own + _wholeShift);
         Broadcast = Math.Max(shifted, Broadcast);
         Broadcasts++;
         Clamped += Broadcast != shifted ? 1 : 0;
@@ -68,7 +84,7 @@ public sealed class StateStamp(int tickRate, double maxLagSeconds = StateStamp.M
         return Last;
     }
 
-    private void UpdateShift(uint lag, uint arrivalTick)
+    private void UpdateShift(int lag, uint arrivalTick)
     {
         _lags.Enqueue((arrivalTick, lag));
         while (_lags.Count > 1 && arrivalTick - _lags.Peek().Arrival > _window)
@@ -78,7 +94,7 @@ public sealed class StateStamp(int tickRate, double maxLagSeconds = StateStamp.M
 
         if (_sorted.Length < _lags.Count)
         {
-            _sorted = new uint[_lags.Count * 2];
+            _sorted = new int[_lags.Count * 2];
         }
 
         var count = 0;

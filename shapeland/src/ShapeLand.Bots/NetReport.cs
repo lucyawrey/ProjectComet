@@ -27,7 +27,7 @@ public sealed class NetReport
         int HonestSnapBacks, int Respawns, int CheatersCaught, int Cheaters,
         double PingMedianMs, double PingP95Ms, double BestPingMedianMs,
         double DelayMedianMs, double DelayP5Ms, double DelayP95Ms, double TargetP5Ms, double TargetP95Ms,
-        double TargetSwingMsPerSecond, double DelaySwingMsPerSecond, double HoldPercent, double HoldMeanMs, double HeldMsPerMove, long MoveStates, long Jumps, long SpeedHitches);
+        double TargetSwingMsPerSecond, double DelaySwingMsPerSecond, double HoldPercent, double HoldMeanMs, double HeldMsPerMove, long MoveStates, long Jumps, long SpeedHitches, double OwnHitchPercent);
 
     public sealed record BotResult(
         string Name, bool Cheater, bool Joined, int SnapBacks, int Respawns, long MoveStates, long Holds,
@@ -66,7 +66,8 @@ public sealed class NetReport
             moves > 0 ? honest.Sum(r => r.HeldSeconds) / moves * 1000 : 0,
             moves,
             honest.Sum(r => r.Jumps),
-            honest.Sum(r => r.SpeedHitches));
+            honest.Sum(r => r.SpeedHitches),
+            bots.Where((_, i) => !cheaters[i]).Sum(b => b.OwnMoves) is var own and > 0 ? 100.0 * bots.Where((_, i) => !cheaters[i]).Sum(b => b.OwnHitches) / own : 0);
 
         return new NetReport { Meta = meta, Run = run, Tuning = tuning, Totals = summary, Bots = results };
     }
@@ -82,7 +83,7 @@ public sealed class NetReport
         Console.WriteLine($"  Target         5th to 95th percentile {s.TargetP5Ms:0}-{s.TargetP95Ms:0} ms, moving {s.TargetSwingMsPerSecond:0} ms/s on average");
         Console.WriteLine($"  Holds          {s.HoldPercent:0.0}% of {s.MoveStates} moves, {s.HoldMeanMs:0} ms each, {s.HeldMsPerMove:0.00} ms held per move");
         Console.WriteLine($"  Jumps          {s.Jumps} of the others' moves drawn as a jump (too far to walk between stamps)");
-        Console.WriteLine($"  Speed hitches  {(s.MoveStates > 0 ? 100.0 * s.SpeedHitches / s.MoveStates : 0):0.0}% of moves change ground speed by over 30% from the step before");
+        Console.WriteLine($"  Speed hitches  {(s.MoveStates > 0 ? 100.0 * s.SpeedHitches / s.MoveStates : 0):0.0}% of moves change ground speed by over 30% from the step before ({s.OwnHitchPercent:0.0}% of the bots' own reports do)");
     }
 
     public void Write(string path)

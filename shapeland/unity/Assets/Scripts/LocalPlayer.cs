@@ -101,15 +101,18 @@ namespace ShapeLand.Client
                 _cheatedAt = Time.unscaledTime;
             }
 
-            var steps = _step.Advance(now);
+            // The steps run on the server's clock, so every other one falls on a server tick; only those are
+            // reported, stamped with their tick, so others draw exactly the spacing the player moved at.
+            var steps = _step.Advance(_session.ServerSeconds(now));
             for (var i = 0; i < steps; i++)
             {
+                var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
                 PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, ShapeLandWorld.Rules);
                 _jumpQueued = false;
-                if (_reporter.ShouldReport(_motor.Velocity, now))
+                if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, now))
                 {
-                    _session.ReportPosition(_motor.Position, _motor.Velocity, _motor.Facing);
+                    _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
                 }
             }
 

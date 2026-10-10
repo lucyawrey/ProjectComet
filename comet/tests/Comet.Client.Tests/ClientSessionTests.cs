@@ -142,6 +142,39 @@ public class ClientSessionTests
     }
 
     [Fact]
+    public void StepsOfAFasterSimulationFallOnEveryOtherTick()
+    {
+        Welcome(now: 0);
+
+        Assert.True(_session.TickOfStep(200, stepsPerSecond: 60, out var tick));
+        Assert.Equal(100u, tick);
+        Assert.False(_session.TickOfStep(201, stepsPerSecond: 60, out _));
+        Assert.True(_session.TickOfStep(77, stepsPerSecond: 30, out tick));
+        Assert.Equal(77u, tick);
+        Assert.Throws<ArgumentException>(() => _session.TickOfStep(1, stepsPerSecond: 45, out _));
+    }
+
+    [Fact]
+    public void ReportsAreStampedWithTheirStepsTick()
+    {
+        Welcome(now: 0);
+        _session.Flush(0);
+        Sent();
+
+        // Two reports for different ticks before one flush go in two frames, each with its own tick.
+        _session.ReportPosition(140, new Vector3(1, 0, 0), Vector3.UnitX, 0);
+        _session.ReportPosition(142, new Vector3(2, 0, 0), Vector3.UnitX, 0);
+        _session.Flush(0.1);
+        var sent = Sent();
+        Assert.Equal([140u, 142u], sent.Select(m => m.Tick));
+
+        // Without a report, a frame is stamped with the estimate again.
+        _session.Write(MessageIds.FirstGameMessage, new Pong { ClientTime = 1 });
+        _session.Flush(0.1);
+        Assert.NotEqual(142u, Assert.Single(Sent()).Tick);
+    }
+
+    [Fact]
     public void GameMessagesAreHandedOn()
     {
         const ushort chat = MessageIds.FirstGameMessage + 1;

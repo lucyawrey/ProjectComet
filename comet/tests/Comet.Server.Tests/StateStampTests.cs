@@ -107,6 +107,43 @@ public class StateStampTests
     }
 
     [Fact]
+    public void BroadcastsKeepTheSendersSpacingWhenAReportArrivesBeforeItsStamp()
+    {
+        // The client's estimate runs a tick ahead of the server (it assumed a longer trip than this one took).
+        for (uint sent = 100; sent <= 160; sent += 2)
+        {
+            _stamp.Stamp(clientTick: sent, arrivalTick: sent - 1);
+        }
+
+        // Its own stamp is held to arrival for validation; others still get the spacing it sent.
+        Assert.Equal(161u, _stamp.Stamp(clientTick: 162, arrivalTick: 161));
+        Assert.Equal(161u, _stamp.Broadcast);
+        _stamp.Stamp(clientTick: 164, arrivalTick: 162);
+        Assert.Equal(163u, _stamp.Broadcast);
+        Assert.Equal(0, _stamp.Clamped);
+    }
+
+    [Fact]
+    public void AShiftHoveringBetweenTwoTicksRarelyMovesTheStamps()
+    {
+        // Each trip takes 2 or 3 ticks at random, so the window's median flips between them and the smoothed
+        // shift hovers near 2.5. The stamps should keep the sender's spacing nearly always, rather than move a
+        // tick each time the shift crosses the half.
+        var random = new Random(1);
+        var moved = 0;
+        var last = 0u;
+        for (uint sent = 100; sent <= 2100; sent += 2)
+        {
+            _stamp.Stamp(clientTick: sent, arrivalTick: sent + 2 + (uint)random.Next(2));
+            moved += sent > 100 && _stamp.Broadcast - last != 2 ? 1 : 0;
+            last = _stamp.Broadcast;
+        }
+
+        // 7 of 1,000 with the hysteresis; plain rounding moves 13.
+        Assert.InRange(moved, 0, 8);
+    }
+
+    [Fact]
     public void BroadcastsNeverGoBackwards()
     {
         _stamp.Stamp(clientTick: 100, arrivalTick: 110);
