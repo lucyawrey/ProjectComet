@@ -54,12 +54,68 @@ public class RemoteEntitiesTests
     }
 
     [Fact]
-    public void HoldsAtTheNewestStateWithoutExtrapolating()
+    public void AnEntityStandingStillHoldsAtItsNewestState()
     {
         _entities.Spawn(1, 10, Vector3.Zero, 0);
         _entities.AddState(1, 12, new Vector3(2, 0, 0), 0);
 
         Assert.Equal(new Vector3(2, 0, 0), PositionAt(20));
+    }
+
+    [Fact]
+    public void ARunDryEntityIsDeadReckonedAlongItsVelocityThenHolds()
+    {
+        // Moving at 3 m/s (0.1 m a tick); the next state is late.
+        _entities.Spawn(1, 10, Vector3.Zero, 0);
+        _entities.AddState(1, 12, new Vector3(0.2f, 0, 0), 0, new Vector3(3, 0, 0));
+
+        Assert.Equal(0.5f, PositionAt(15).X, 4);
+        // Capped at 0.3 s (9 ticks) past the state, then it holds, and the overrun counts once.
+        Assert.Equal(1.1f, PositionAt(25).X, 4);
+        Assert.Equal(1.1f, PositionAt(30).X, 4);
+        Assert.Equal(1, _entities.Overruns);
+    }
+
+    [Fact]
+    public void ALateStateIsEasedInRatherThanJumpedTo()
+    {
+        _entities.Spawn(1, 10, Vector3.Zero, 0);
+        _entities.AddState(1, 12, new Vector3(0.2f, 0, 0), 0, new Vector3(3, 0, 0));
+        var reckoned = PositionAt(16).X; // 0.6, dead-reckoned
+        // The late states show the entity turned off its straight line: it's eased over, not jumped.
+        _entities.AddState(1, 14, new Vector3(0.3f, 0, 0.3f), 0, new Vector3(1, 0, 3));
+        _entities.AddState(1, 18, new Vector3(0.5f, 0, 0.9f), 0, new Vector3(1, 0, 3));
+        _entities.AddState(1, 24, new Vector3(0.7f, 0, 1.5f), 0, new Vector3(1, 0, 3));
+        var first = _entities.TrySample(1, 16.1, out var pose) ? pose.Position : default;
+        Assert.InRange(Vector3.Distance(first, new Vector3(reckoned, 0, 0)), 0, 0.05f);
+        // After the blend (0.15 s, 4.5 ticks) it's on the states' track, halfway from 18 to 24.
+        Assert.Equal(0, Vector3.Distance(new Vector3(0.6f, 0, 1.2f), PositionAt(21)), 4);
+        Assert.Equal(1, _entities.BlendBacks);
+        Assert.Equal(1, _entities.VisibleBlendBacks);
+    }
+
+    [Fact]
+    public void DeadReckoningFallsInTheAirButNotThroughTheGround()
+    {
+        var entities = new RemoteEntities(tickRate: 30, gravity: 40) { GroundHeight = _ => 0 };
+        entities.Spawn(1, 10, new Vector3(0, 1, 0), 0);
+        entities.AddState(1, 12, new Vector3(0, 1, 0), 0, new Vector3(0, 2, 0));
+
+        Assert.True(entities.TrySample(1, 15, out var rising));
+        Assert.Equal(1 + 2 * 0.1f - 0.5f * 40 * 0.01f, rising.Position.Y, 4);
+        Assert.True(entities.TrySample(1, 21, out var landed));
+        Assert.Equal(0, landed.Position.Y, 4);
+    }
+
+    [Fact]
+    public void AStallWhileMovingIsntMistakenForStandingStill()
+    {
+        // 0.5 s without states (longer than the idle gap) after a moving state: no restamped copy of the old
+        // position before the late one, which would snap the entity back.
+        _entities.Spawn(1, 10, Vector3.Zero, 0);
+        _entities.AddState(1, 12, new Vector3(0.2f, 0, 0), 0, new Vector3(3, 0, 0));
+        Assert.Equal(12, _entities.AddState(1, 27, new Vector3(1.7f, 0, 0), 0, new Vector3(3, 0, 0)));
+        Assert.Equal(0.95f, PositionAt(19.5).X, 4);
     }
 
     [Fact]

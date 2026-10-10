@@ -61,7 +61,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private double _lastNow;
     private bool _recording;
     private double _nextSample;
-    private (long MoveStates, long Holds, double HeldTicks, long Jumps, long SpeedHitches) _baseline;
+    private (long MoveStates, long Holds, double HeldTicks, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks) _baseline;
+    private double _lastRecord;
 
     public string Name => name;
 
@@ -105,6 +106,15 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public long OwnHitches { get; private set; }
 
+    public long Overruns => Joined && _recording ? _session.Entities.Overruns - _baseline.Overruns : 0;
+
+    public long VisibleBlendBacks => Joined && _recording ? _session.Entities.VisibleBlendBacks - _baseline.VisibleBlendBacks : 0;
+
+    public long VisibleHitches => Overruns + VisibleBlendBacks + Jumps;
+
+    /// <summary>Other players watched since the warmup, in player-seconds, to put visible hitches per player per minute.</summary>
+    public double WatchedSeconds { get; private set; }
+
     public long SpeedHitches => Joined && _recording ? _session.Entities.SpeedHitches - _baseline.SpeedHitches : 0;
 
     /// <summary>How long the holds since the warmup were, in seconds, summed.</summary>
@@ -113,7 +123,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     public async Task RunAsync(Uri url, CancellationToken stop)
     {
         var transport = new WebSocketTransport(url);
-        _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content));
+        _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
+            gravity: ShapeLandWorld.Rules.Gravity, groundHeight: ShapeLandWorld.GroundHeight(world));
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
         _session.EntityDespawned += _ => Despawns++;
@@ -300,10 +311,13 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         if (!_recording)
         {
             _recording = true;
-            _baseline = (entities.MoveStates, entities.Holds, entities.HeldTicks, entities.Jumps, entities.SpeedHitches);
+            _baseline = (entities.MoveStates, entities.Holds, entities.HeldTicks, entities.Jumps, entities.SpeedHitches, entities.Overruns, entities.VisibleBlendBacks);
+            _lastRecord = now;
             _nextSample = now;
         }
 
+        WatchedSeconds += entities.Count * (now - _lastRecord);
+        _lastRecord = now;
         if (now < _nextSample)
         {
             return;

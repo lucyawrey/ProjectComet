@@ -47,6 +47,14 @@ namespace Comet.Protocol.Messages
         /// so clients interpolate on the sender's timing rather than on when the report happened to arrive.
         /// </summary>
         [Key(5)] public uint Tick;
+
+        /// <summary>
+        /// Velocity in metres per second, as the mover reported it: clients that run out of states keep drawing
+        /// the entity along it until the next one arrives (dead reckoning).
+        /// </summary>
+        [Key(6)] public float VelocityX;
+        [Key(7)] public float VelocityY;
+        [Key(8)] public float VelocityZ;
     }
 
     /// <summary>Server event: an entity is no longer visible to this client (left, or out of view).</summary>

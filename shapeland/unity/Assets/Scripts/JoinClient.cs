@@ -178,7 +178,8 @@ namespace ShapeLand.Client
         private void Connect(Uri serverUrl)
         {
             _url = serverUrl;
-            var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content));
+            var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
+                ShapeLandWorld.Rules.Gravity, ShapeLandWorld.GroundHeight(ShapeLandWorld.Create(_content)));
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
             session.EntityDespawned += id =>
