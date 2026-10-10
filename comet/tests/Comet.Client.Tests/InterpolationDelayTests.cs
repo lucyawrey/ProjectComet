@@ -71,10 +71,31 @@ public class InterpolationDelayTests
         Run(delay, 0, 30, _ => 20);
         Assert.Equal(21, delay.Ticks, 6);
 
-        // Nothing needs more than the floor now; the old samples leave the window, and the delay falls at 2%.
-        Run(delay, 30, 33, _ => 1);
+        // Nothing needs more than the floor now. The old samples leave the window by about 32 s (the last raw
+        // target with them is from 31.75 s), the target holds their need until about 36.75 s, then the delay
+        // falls at 2%.
+        Run(delay, 30, 36, _ => 1);
+        Assert.Equal(21, delay.Target, 6);
+        Run(delay, 36, 40, _ => 1);
         Assert.Equal(6, delay.Target, 6);
-        Assert.InRange(delay.Ticks, 21 - 3 * TickRate * 0.02 - 0.01, 21 - (3 - 2.25) * TickRate * 0.02 + 0.01);
+        Assert.InRange(delay.Ticks, 21 - 3.5 * TickRate * 0.02 - 0.01, 21 - 3 * TickRate * 0.02 + 0.01);
+    }
+
+    [Fact]
+    public void HoldsAStallsNeedForAWhile()
+    {
+        var delay = new InterpolationDelay(TickRate, reportInterval: 0.1);
+        Run(delay, 0, 10, _ => 8);
+        Assert.Equal(9, delay.Target, 6);
+
+        // A stall: a burst of late states at 10 s needing 20 ticks. The target rises at once and stays up for
+        // HoldSeconds after the burst has left the window (by 12 s), rather than dropping straight back.
+        Run(delay, 10, 10.5, i => i < 3 ? 20 : 8);
+        Assert.Equal(21, delay.Target, 6);
+        Run(delay, 10.5, 16.5, _ => 8);
+        Assert.Equal(21, delay.Target, 6);
+        Run(delay, 16.5, 18, _ => 8);
+        Assert.Equal(9, delay.Target, 6);
     }
 
     [Fact]

@@ -21,13 +21,13 @@ public sealed class NetReport
     /// <summary>The client's tuning numbers this run used; the server's (validation margins) go by the commit in Meta.</summary>
     public sealed record TuningSettings(
         double DelayWindowSeconds, double DelayPercentile, double DelayGrowRate, double DelayShrinkRate,
-        double DelayMarginMs, double DelayFloorMs, double IdleGapMs);
+        double DelayMarginMs, double DelayFloorMs, double DelayHoldSeconds, double IdleGapMs);
 
     public sealed record Summary(
         int HonestSnapBacks, int Respawns, int CheatersCaught, int Cheaters,
         double PingMedianMs, double PingP95Ms, double BestPingMedianMs,
         double DelayMedianMs, double DelayP5Ms, double DelayP95Ms, double TargetP5Ms, double TargetP95Ms,
-        double TargetSwingMsPerSecond, double HoldPercent, double HoldMeanMs, long MoveStates);
+        double TargetSwingMsPerSecond, double DelaySwingMsPerSecond, double HoldPercent, double HoldMeanMs, long MoveStates);
 
     public sealed record BotResult(
         string Name, bool Cheater, bool Joined, int SnapBacks, int Respawns, long MoveStates, long Holds,
@@ -44,11 +44,12 @@ public sealed class NetReport
 
         // How fast the target moves, averaged over every honest bot's consecutive samples.
         var swings = honest.SelectMany(r => r.Samples.Zip(r.Samples.Skip(1), (a, b) => Math.Abs(b.TargetMs - a.TargetMs) / (b.Seconds - a.Seconds))).ToList();
+        var delaySwings = honest.SelectMany(r => r.Samples.Zip(r.Samples.Skip(1), (a, b) => Math.Abs(b.DelayMs - a.DelayMs) / (b.Seconds - a.Seconds))).ToList();
 
         var delay = new InterpolationDelay(30);
         var tuning = new TuningSettings(
             InterpolationDelay.WindowSeconds, InterpolationDelay.Percentile, InterpolationDelay.GrowRate, InterpolationDelay.ShrinkRate,
-            delay.MarginTicks / delay.TickRate * 1000, delay.FloorTicks / delay.TickRate * 1000,
+            delay.MarginTicks / delay.TickRate * 1000, delay.FloorTicks / delay.TickRate * 1000, InterpolationDelay.HoldSeconds,
             new RemoteEntities(30).IdleGapTicks / 30 * 1000);
 
         var summary = new Summary(
@@ -59,6 +60,7 @@ public sealed class NetReport
             Percentile(samples.Select(s => s.DelayMs), 0.5), Percentile(samples.Select(s => s.DelayMs), 0.05), Percentile(samples.Select(s => s.DelayMs), 0.95),
             Percentile(samples.Select(s => s.TargetMs), 0.05), Percentile(samples.Select(s => s.TargetMs), 0.95),
             swings.Count > 0 ? swings.Average() : 0,
+            delaySwings.Count > 0 ? delaySwings.Average() : 0,
             moves > 0 ? 100.0 * holds / moves : 0,
             holds > 0 ? honest.Sum(r => r.HeldSeconds) / holds * 1000 : 0,
             moves);
@@ -73,7 +75,7 @@ public sealed class NetReport
         Console.WriteLine($"Network results{(Meta.Count > 0 ? " (" + string.Join(", ", Meta.Select(m => $"{m.Key} {m.Value}")) + ")" : "")}, after a {Run.WarmupSeconds:0} s warmup:");
         Console.WriteLine($"  Snap-backs     {s.HonestSnapBacks} on honest bots; cheaters caught {s.CheatersCaught} of {s.Cheaters}; respawns {s.Respawns}");
         Console.WriteLine($"  Ping           median {s.PingMedianMs:0} ms, 95th percentile {s.PingP95Ms:0}; best median {s.BestPingMedianMs:0}");
-        Console.WriteLine($"  Delay          median {s.DelayMedianMs:0} ms, 5th to 95th percentile {s.DelayP5Ms:0}-{s.DelayP95Ms:0}");
+        Console.WriteLine($"  Delay          median {s.DelayMedianMs:0} ms, 5th to 95th percentile {s.DelayP5Ms:0}-{s.DelayP95Ms:0}, moving {s.DelaySwingMsPerSecond:0} ms/s on average");
         Console.WriteLine($"  Target         5th to 95th percentile {s.TargetP5Ms:0}-{s.TargetP95Ms:0} ms, moving {s.TargetSwingMsPerSecond:0} ms/s on average");
         Console.WriteLine($"  Holds          {s.HoldPercent:0.0}% of {s.MoveStates} moves, {s.HoldMeanMs:0} ms each");
     }

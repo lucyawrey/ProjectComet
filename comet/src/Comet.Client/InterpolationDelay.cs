@@ -11,9 +11,13 @@ namespace Comet.Client
     /// Each state arriving while its entity moves gives a sample: how far the receive tick has run past the
     /// entity's previous stamp. Drawing at least that far behind means the state arrived before the render tick
     /// needed it. That covers the gap between reports, the sender's trip to the server (states carry the
-    /// sender's own stamp), the server's tick wait and jitter. The target is the <see cref="Percentile"/> of the
-    /// samples from the last <see cref="WindowSeconds"/>, plus <see cref="MarginTicks"/>, and never under
-    /// <see cref="FloorTicks"/> (two report intervals, the usual rule). The delay moves towards the target by
+    /// sender's stamp, shifted on the server by their smoothed latency), the server's tick wait and jitter. Every
+    /// <c>TargetInterval</c> the <see cref="Percentile"/> of the samples from the last <see cref="WindowSeconds"/>,
+    /// plus <see cref="MarginTicks"/> and never under <see cref="FloorTicks"/> (two report intervals, the usual
+    /// rule), gives a raw target; the target is the highest raw target of the last <see cref="HoldSeconds"/>, so it
+    /// rises at once when a stall needs more, but only falls once the stall is that long past. Over TCP a lost
+    /// packet stalls every entity at once, and a target that fell as soon as the stall left the window left the
+    /// delay short for the next one (prototype.md, 3c). The delay moves towards the target by
     /// running the render tick at most <see cref="GrowRate"/> slow or <see cref="ShrinkRate"/> fast, so drawn
     /// motion never jumps and the render tick never goes back. With no samples (nobody moving) the target stays
     /// where it was. Times are seconds on the caller's clock; delays are in ticks.
@@ -24,6 +28,7 @@ namespace Comet.Client
         public const double Percentile = 0.95;
         public const double GrowRate = 0.04;
         public const double ShrinkRate = 0.02;
+        public const double HoldSeconds = 5;
 
         // Enough for a crowded view over the window; older samples are dropped first beyond this.
         private const int MaxSamples = 1024;
@@ -32,6 +37,7 @@ namespace Comet.Client
         private const double TargetInterval = 0.25;
 
         private readonly Queue<Sample> _samples = new Queue<Sample>();
+        private readonly Queue<Sample> _raw = new Queue<Sample>(); // raw targets, held for HoldSeconds
         private double[] _sorted = new double[64];
         private double _lastAdvance = double.NaN;
         private double _nextTarget;
@@ -119,7 +125,19 @@ namespace Comet.Client
 
             Array.Sort(_sorted, 0, count);
             var needed = _sorted[Math.Min(count - 1, (int)(Percentile * count))];
-            Target = Math.Max(FloorTicks, needed + MarginTicks);
+            _raw.Enqueue(new Sample(now, Math.Max(FloorTicks, needed + MarginTicks)));
+            while (_raw.Peek().Time < now - HoldSeconds)
+            {
+                _raw.Dequeue();
+            }
+
+            var target = 0.0;
+            foreach (var raw in _raw)
+            {
+                target = Math.Max(target, raw.NeededTicks);
+            }
+
+            Target = target;
         }
 
         private readonly struct Sample
