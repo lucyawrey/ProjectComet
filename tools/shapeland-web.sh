@@ -88,6 +88,8 @@ if [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
     exit 1
   fi
   "$repo/tools/unity-batch.sh" -l Logs/web.log -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
+  # Marks the build as up to date, but only a build that made its page.
+  [ -f "$web/index.html" ] || { echo "The Unity build made no page at $web/index.html (log: $project/Logs/web.log)" >&2; exit 1; }
   touch "$web/index.html"
 elif [ ! -f "$web/index.html" ]; then
   echo "No web build yet; run without --no-build." >&2
@@ -101,9 +103,9 @@ mkdir -p "$web/StreamingAssets"
 cmp -s "$content" "$web/StreamingAssets/content.bin" || cp "$content" "$web/StreamingAssets/content.bin"
 
 echo "== Game server"
-dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer" > /dev/null
+quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
 if [ $((bots + cheaters)) -gt 0 ]; then
-  dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots" > /dev/null
+  quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots"
 fi
 compose=(docker compose -f "$repo/shapeland/docker/compose.yaml")
 if [ -n "$net" ]; then
@@ -143,7 +145,9 @@ cleanup() {
   done
   wait 2> /dev/null || true
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
 
 if [ -n "$net" ]; then
   # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
@@ -153,7 +157,8 @@ if [ -n "$net" ]; then
 else
   # The built programs run directly: stopping `dotnet run` can leave the program it started running.
   dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
-    --urls "http://$host:$port" --ShapeLand:WebRoot="$web" &
+    --urls "http://$host:$port" --ShapeLand:WebRoot="$web" \
+    --Comet:Connections:MaxConnectionsPerAddress=1000 & # the bots all come from this machine
   pids+=($!)
 fi
 

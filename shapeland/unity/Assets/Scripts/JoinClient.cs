@@ -32,6 +32,8 @@ namespace ShapeLand.Client
         private ShapeLandContent _content;
         private Uri _url;
         private JoinRequest? _pending;
+        private bool _awaitingAnswer;
+        private double _connectedAt;
 
         /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
         public string Address
@@ -107,6 +109,9 @@ namespace ShapeLand.Client
         /// <summary>Why the client stopped: content that wouldn't load, or the connection's error.</summary>
         public string Error { get; private set; }
 
+        /// <summary>Whether the last failure was the server address itself, rather than reaching the server; <see cref="Error"/> says why.</summary>
+        public bool BadAddress { get; private set; }
+
         public ClientSession Session => _connection.Session;
 
         private void Awake() => _connection = GetComponent<CometConnection>();
@@ -154,11 +159,20 @@ namespace ShapeLand.Client
             }
 
             Error = null;
+            BadAddress = false;
             Rejected = null;
             playerName = request.Name;
-            var url = new Uri(serverAddress.Contains("://") ? serverAddress : $"ws://{serverAddress}/ws");
+            if (!TryServerUrl(serverAddress, out var url))
+            {
+                BadAddress = true;
+                Fail($"\"{serverAddress}\" isn't a server address. Use a host and port, like localhost:5080.");
+                return;
+            }
+
+            // A connection kept from a refused join is reused, unless the server is about to drop it for not joining.
             var session = _connection.Session;
-            if (session == null || session.Closed || url != _url)
+            var nearDeadline = !Joined && Time.realtimeSinceStartupAsDouble - _connectedAt > ShapeLandRules.JoinDeadlineSeconds - 3;
+            if (session == null || session.Closed || url != _url || nearDeadline)
             {
                 Connect(url);
             }
@@ -178,6 +192,7 @@ namespace ShapeLand.Client
         private void Connect(Uri serverUrl)
         {
             _url = serverUrl;
+            _connectedAt = Time.realtimeSinceStartupAsDouble;
             var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
                 ShapeLandWorld.Rules.Gravity, ShapeLandWorld.GroundHeight(ShapeLandWorld.Create(_content)));
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
@@ -192,8 +207,21 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
+        /// The URL for a server address typed or given: a host and port (connected to with ws://), or a full ws:// or
+        /// wss:// URL. False for anything else, such as a malformed host or port, or an http:// URL.
+        /// </summary>
+        public static bool TryServerUrl(string address, out Uri url)
+        {
+            address = (address ?? "").Trim();
+            return Uri.TryCreate(address.Contains("://") ? address : $"ws://{address}/ws", UriKind.Absolute, out url)
+                && (url.Scheme == "ws" || url.Scheme == "wss");
+        }
+
+        /// <summary>
         /// The server a web build connects to: the one named by the page's <c>?server=</c> (a host and port, or a
-        /// full ws:// URL), else the host the page came from. A page not served over HTTP uses <paramref name="fallback"/>.
+        /// full ws:// URL), else the host the page came from. A host and port is connected to securely (wss://) from
+        /// a secure page, since browsers block plain connections from one. A page not served over HTTP uses
+        /// <paramref name="fallback"/>.
         /// </summary>
         public static string AddressForPage(string pageUrl, string fallback)
         {
@@ -202,15 +230,17 @@ namespace ShapeLand.Client
                 return fallback;
             }
 
+            var scheme = page.Scheme == "https" ? "wss" : "ws";
             foreach (var pair in page.Query.TrimStart('?').Split('&'))
             {
                 if (pair.StartsWith("server=", StringComparison.Ordinal) && pair.Length > "server=".Length)
                 {
-                    return Uri.UnescapeDataString(pair.Substring("server=".Length));
+                    var server = Uri.UnescapeDataString(pair.Substring("server=".Length));
+                    return server.Contains("://") ? server : $"{scheme}://{server}/ws";
                 }
             }
 
-            return $"{(page.Scheme == "https" ? "wss" : "ws")}://{page.Authority}/ws";
+            return $"{scheme}://{page.Authority}/ws";
         }
 
         private void Update()
@@ -223,8 +253,12 @@ namespace ShapeLand.Client
 
             if (session.Closed)
             {
+                // Idle after a refused join, the server drops the connection after its join deadline; that's no
+                // failure, and the next Join reconnects.
+                var idle = !Joined && _pending == null && !_awaitingAnswer;
                 _pending = null;
-                if (Error == null)
+                _awaitingAnswer = false;
+                if (Error == null && !idle)
                 {
                     Fail(session.Error ?? "The connection closed.");
                 }
@@ -235,6 +269,7 @@ namespace ShapeLand.Client
             if (_pending is JoinRequest request && session.Transport.State == TransportState.Open)
             {
                 _pending = null;
+                _awaitingAnswer = true;
                 session.Write(ShapeLandMessageIds.JoinRequest, request);
                 var shape = _content.Shapes.TryGet(request.Shape, out var found) ? found.DisplayName : $"shape {request.Shape}";
                 Log($"joining as {request.Name}, a {shape}");
@@ -251,6 +286,7 @@ namespace ShapeLand.Client
                     if (spawn.EntityId == Session.EntityId)
                     {
                         Joined = true;
+                        _awaitingAnswer = false;
                         Spawn = spawn;
                         Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}, eyes #{spawn.EyeColour:X6}");
                         OwnSpawned?.Invoke(spawn);
@@ -266,6 +302,7 @@ namespace ShapeLand.Client
                 case ShapeLandMessageIds.JoinRejected:
                     var reason = FrameReader.Decode<JoinRejected>(payload, options).Reason;
                     Rejected = reason;
+                    _awaitingAnswer = false;
                     Log($"join rejected: {reason}");
                     JoinRefused?.Invoke(reason);
                     break;

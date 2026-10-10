@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace ShapeLand.Shared.World
@@ -8,6 +10,9 @@ namespace ShapeLand.Shared.World
         public const int TickRate = 30;
         public const int MaxNameLength = 16;
         public const int MaxChatLength = 200;
+
+        /// <summary>Seconds a connection has to join before the server drops it; clients reconnect for a later try.</summary>
+        public const int JoinDeadlineSeconds = 10;
 
         /// <summary>
         /// The body colours every player can pick, as 0xRRGGBB. Placeholders: the project lead decides the final sets,
@@ -44,10 +49,52 @@ namespace ShapeLand.Shared.World
             return normalised.Length > 0 && normalised.Length <= MaxNameLength && NamePattern.IsMatch(normalised);
         }
 
-        /// <summary>Trims a chat line and checks its length.</summary>
+        /// <summary>Combining marks kept on one character (enough for real scripts and keycap emoji); more stack out of the bubble.</summary>
+        public const int MaxMarksPerCharacter = 3;
+
+        /// <summary>
+        /// Cleans a chat line and checks its length: drops characters that change how text is laid out or read
+        /// rather than being text (control and formatting characters, such as newlines, zero-width characters,
+        /// bidirectional overrides and tag characters; line and paragraph separators; private-use characters and
+        /// broken surrogate pairs), and combining marks past <see cref="MaxMarksPerCharacter"/> on one character,
+        /// then trims it. Clients also show chat as plain text, never markup.
+        /// </summary>
         public static bool TryNormaliseChat(string? text, out string normalised)
         {
-            normalised = (text ?? "").Trim();
+            text = text ?? "";
+            var kept = new StringBuilder(text.Length);
+            var marks = 0;
+            for (var i = 0; i < text.Length; i++)
+            {
+                // Characters outside the Basic Multilingual Plane are a surrogate pair, checked as one.
+                var length = char.IsSurrogatePair(text, i) ? 2 : 1;
+                switch (char.GetUnicodeCategory(text, i))
+                {
+                    case UnicodeCategory.Control:
+                    case UnicodeCategory.Format:
+                    case UnicodeCategory.LineSeparator:
+                    case UnicodeCategory.ParagraphSeparator:
+                    case UnicodeCategory.PrivateUse:
+                    case UnicodeCategory.Surrogate:
+                        break;
+                    case UnicodeCategory.NonSpacingMark:
+                    case UnicodeCategory.SpacingCombiningMark:
+                    case UnicodeCategory.EnclosingMark:
+                        if (++marks <= MaxMarksPerCharacter)
+                        {
+                            kept.Append(text, i, length);
+                        }
+                        break;
+                    default:
+                        marks = 0;
+                        kept.Append(text, i, length);
+                        break;
+                }
+
+                i += length - 1;
+            }
+
+            normalised = kept.ToString().Trim();
             return normalised.Length > 0 && normalised.Length <= MaxChatLength;
         }
     }

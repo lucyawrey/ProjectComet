@@ -65,6 +65,9 @@ public class ContentTests
     [InlineData("eye_level = 5.0", "look.eye_level: 5 is out of range")]
     [InlineData("waist = 0.3", "look.waist: only diamonds have a waist")]
     [InlineData("waist = 1.5", "look.waist: 1.5 is out of range", "diamond")]
+    [InlineData("max_speed = nan", "content numbers must be finite")]
+    [InlineData("height = nan", "content numbers must be finite")]
+    [InlineData("waist = nan", "content numbers must be finite", "diamond")]
     public void ShapeRulesAreChecked(string line, string message, string shape = "cube")
     {
         var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
@@ -92,6 +95,26 @@ public class ContentTests
             var error = Assert.Single(errors);
             Assert.EndsWith(shape + ".toml", error.File);
             Assert.Contains(message, error.Message);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ContentWithNoShapesFails()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            CopyDirectory(ContentRoot, root);
+            Directory.Move(Path.Combine(root, "shapes"), Path.Combine(root, "shapez"));
+
+            var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false);
+
+            Assert.Null(built);
+            Assert.Contains("No shapes", Assert.Single(errors).Message);
         }
         finally
         {

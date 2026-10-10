@@ -88,6 +88,12 @@ namespace Comet.Client
         /// </summary>
         public Func<Vector3, float?>? GroundHeight { get; set; }
 
+        /// <summary>How far up or down an entity on the ground is followed over a short move, in metres: a step's height.</summary>
+        public const float StepReach = 0.5f;
+
+        // How far above an entity on the ground to look for walls.
+        private const float WallProbe = 100f;
+
         /// <summary>A blend-back further than this, in metres, counts as a visible hitch (<see cref="VisibleBlendBacks"/>).</summary>
         public float VisibleError { get; set; } = 0.2f;
 
@@ -96,6 +102,18 @@ namespace Comet.Client
         public IEnumerable<uint> Ids => _tracks.Keys;
 
         public bool Contains(uint entityId) => _tracks.ContainsKey(entityId);
+
+        /// <summary>
+        /// Leaves a spawned entity out of the smoothness counters (<see cref="MoveStates"/> to
+        /// <see cref="VisibleBlendBacks"/>), e.g. a test's speed cheater, whose impossible moves aren't the network's.
+        /// </summary>
+        public void ExcludeFromCounts(uint entityId)
+        {
+            if (_tracks.TryGetValue(entityId, out var track))
+            {
+                track.Counted = false;
+            }
+        }
 
         /// <summary>States so far that continued a move (no idle gap before them).</summary>
         public long MoveStates { get; private set; }
@@ -175,7 +193,7 @@ namespace Comet.Client
                 previous = null;
                 states.Add(new State(tick - ReportIntervalTicks, newest.Position, newest.Facing, Vector3.Zero));
             }
-            else
+            else if (track.Counted)
             {
                 MoveStates++;
                 if (IsTeleport(newest, state))
@@ -249,7 +267,7 @@ namespace Comet.Client
                     track.OverrunFrom = from.Tick;
                     if (from.Velocity.LengthSquared() > StandingSpeed * StandingSpeed)
                     {
-                        Overruns++;
+                        Overruns += track.Counted ? 1 : 0;
                     }
                 }
 
@@ -282,10 +300,13 @@ namespace Comet.Client
                 {
                     track.Offset = error;
                     track.BlendStart = renderTick;
-                    BlendBacks++;
-                    if (error.Length() > VisibleError)
+                    if (track.Counted)
                     {
-                        VisibleBlendBacks++;
+                        BlendBacks++;
+                        if (error.Length() > VisibleError)
+                        {
+                            VisibleBlendBacks++;
+                        }
                     }
                 }
             }
@@ -304,11 +325,16 @@ namespace Comet.Client
             return true;
         }
 
-        // Where an entity moving at a state's velocity is after a while: on along the ground, and under gravity
-        // while moving vertically, never below the ground.
+        // Where an entity moving at a state's velocity is after a while: under gravity while moving vertically,
+        // never below the ground; on the ground, see Walk.
         private Vector3 Extrapolate(State from, double seconds)
         {
             var t = (float)seconds;
+            if (MathF.Abs(from.Velocity.Y) <= 0.01f && GroundHeight != null)
+            {
+                return Walk(from, t);
+            }
+
             var position = from.Position + new Vector3(from.Velocity.X, 0, from.Velocity.Z) * t;
             if (MathF.Abs(from.Velocity.Y) > 0.01f)
             {
@@ -321,6 +347,44 @@ namespace Comet.Client
             }
 
             return position;
+        }
+
+        // An entity on the ground, walked along its path in pieces of at most StepReach: each piece follows the
+        // ground up or down by at most StepReach (slopes and steps); ground any higher is a wall, which stops it;
+        // a drop any lower is walked off, and it falls under gravity from there, keeping its sideways speed. Ground
+        // anywhere above counts as a wall, since the ground probe can't see past a block's top; an overhang
+        // stops it too, until the next state.
+        private Vector3 Walk(State from, float t)
+        {
+            var move = new Vector2(from.Velocity.X, from.Velocity.Z) * t;
+            var pieces = Math.Max(1, (int)MathF.Ceiling(move.Length() / StepReach));
+            var at = from.Position;
+            for (var i = 1; i <= pieces; i++)
+            {
+                var along = move * ((float)i / pieces);
+                var next = new Vector3(from.Position.X + along.X, at.Y, from.Position.Z + along.Y);
+                if (GroundHeight!(next + new Vector3(0, WallProbe, 0)) is { } top && top > at.Y + StepReach)
+                {
+                    return at;
+                }
+
+                var ground = GroundHeight(next + new Vector3(0, StepReach, 0));
+                if (ground is { } walked && walked >= at.Y - StepReach)
+                {
+                    at = new Vector3(next.X, walked, next.Z);
+                    continue;
+                }
+
+                // Off the edge partway through this piece; it falls for the rest of the time.
+                var fall = t * (1 - (float)(i - 1) / pieces);
+                var end = new Vector3(from.Position.X + move.X, at.Y, from.Position.Z + move.Y);
+                var fallen = at.Y - 0.5f * Gravity * fall * fall;
+                var landing = GroundHeight(end);
+                end.Y = Math.Max(fallen, landing ?? fallen);
+                return end;
+            }
+
+            return at;
         }
 
         private float GroundSpeed(State from, State to)
@@ -374,6 +438,9 @@ namespace Comet.Client
         private sealed class Track
         {
             public List<State> States { get; } = new List<State>(8);
+
+            /// <summary>Whether this entity's moves count towards the smoothness counters.</summary>
+            public bool Counted { get; set; } = true;
 
             /// <summary>Where the entity was last drawn, and the stamp it was being dead-reckoned from (null if it wasn't).</summary>
             public Vector3? Drawn { get; set; }

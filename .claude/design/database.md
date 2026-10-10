@@ -6,7 +6,7 @@ Agent notes on table design, per area. **The project lead decides the final sche
 
 Depth for this phase: tables, key columns and relationships, and which rules the database enforces. No full DDL.
 
-Starting material: the project lead's table list in `.claude/notes/+ Quick Notes.md` ("Database": Character, CharacterStatus, CharacterCraft, CharacterClass, CharacterAppearance, CharacterSkillset, CharacterGearset, CharacterOutfit, UnlockCollection, CompanionCollection, ItemCollection); the old schemas on the archive branches (`archive/dotnet-datacenter`: `docs/reference.sql`); the data-model suggestions under Considering in `backend.md`; FishMMO's ~30 entities (see `backend.md`, Research).
+Starting material: the project lead's table list in Quick Notes (in the project lead's Obsidian vault, outside the repo) ("Database": Character, CharacterStatus, CharacterCraft, CharacterClass, CharacterAppearance, CharacterSkillset, CharacterGearset, CharacterOutfit, UnlockCollection, CompanionCollection, ItemCollection); the old schemas on the archive branches (`archive/dotnet-datacenter`: `docs/reference.sql`); the data-model suggestions under Considering in `backend.md`; FishMMO's ~30 entities (see `backend.md`, Research).
 
 ## Decided
 

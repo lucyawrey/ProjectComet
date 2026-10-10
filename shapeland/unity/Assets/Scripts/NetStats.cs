@@ -7,8 +7,9 @@ namespace ShapeLand.Client
     /// <summary>
     /// Network numbers in the HUD's top left corner, for tuning under simulated conditions, in every build: the
     /// round trip (latest, and the lowest of the last ten, which the clock trusts), the interpolation delay and
-    /// its target, how many of the others' moves ran out of states (a hold, then a jump) and how long each hold
-    /// was, and the player's own snap-backs (red only for one not caused by the speed cheat) and respawns. Each row has a dot that turns amber or red past a line.
+    /// its target, how many of the others' moves ran out of states (dead-reckoned until the late state came, then
+    /// blended back to it) and how long each hold was, and the player's own snap-backs (red only for one not caused
+    /// by the speed cheat) and respawns. Each row has a dot that turns amber or red past a line.
     /// F3 shows or hides it; the choice is remembered.
     /// </summary>
     [RequireComponent(typeof(Hud))]

@@ -51,8 +51,9 @@ echo "Server on CPU $SERVER_CPUS; bots on CPUs $BOT_CPUS"
 mkdir -p "$bench/results" # as you, before Docker would create it as root
 rm -f "$bench/results/server.json" "$bench/results/bots.json"
 compose=(docker compose -f "$here/compose.yaml")
+# Containers and the network go even if the run fails or is interrupted.
+trap '"${compose[@]}" down > /dev/null 2>&1 || true' EXIT
 "${compose[@]}" up --build --abort-on-container-failure
-"${compose[@]}" down
 
 cd "$repo"
 dotnet run -c Release --project tools/StackBench/StackBench.Report -- \

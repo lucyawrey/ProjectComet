@@ -26,6 +26,7 @@ public static class ShapeLandServer
         builder.Services.Configure<ShapeLandServerOptions>(builder.Configuration.GetSection("ShapeLand"));
         builder.Services.AddSingleton(services => LoadContent(services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value));
         builder.Services.AddSingleton(new ConnectionRegistry(ShapeLandProtocol.Options));
+        builder.Services.AddSingleton(builder.Configuration.GetSection("Comet:Connections").Get<ConnectionLimits>() ?? new ConnectionLimits());
         builder.Services.AddSingleton<ShapeLandGame>();
         builder.Services.AddSingleton<IConnectionHandler>(services => services.GetRequiredService<ShapeLandGame>());
         builder.Services.AddSingleton(services => new TickLoop(ShapeLandRules.TickRate, services.GetRequiredService<ShapeLandGame>().Tick));
@@ -37,6 +38,13 @@ public static class ShapeLandServer
 
         var tickLoop = app.Services.GetRequiredService<TickLoop>();
         app.Services.GetRequiredService<ShapeLandGame>(); // load content and build the world before accepting players
+        tickLoop.Failed += (tick, e) =>
+        {
+            // Fail fast: the world may be half-updated, so stop rather than play on; the host flushes the log.
+            app.Logger.LogCritical(e, "The game failed on tick {Tick}; stopping the server", tick);
+            Environment.ExitCode = 1;
+            app.Lifetime.StopApplication();
+        };
         app.Lifetime.ApplicationStarted.Register(tickLoop.Start);
         app.Lifetime.ApplicationStopping.Register(tickLoop.Stop);
         return app;

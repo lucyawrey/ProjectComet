@@ -63,7 +63,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             switch (input.Kind)
             {
                 case InputKind.Connected:
-                    _players[input.Connection] = new Player(input.Connection, ShapeLandRules.TickRate);
+                    _players[input.Connection] = new Player(input.Connection, ShapeLandRules.TickRate) { ConnectedTick = tick };
                     break;
                 case InputKind.Join:
                     Join(_players[input.Connection], input.Join, tick);
@@ -80,12 +80,17 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             }
         }
 
-        // The server knows gravity: players silent in the air fall (netcode.md).
+        // The server knows gravity: players silent in the air fall (netcode.md). Connections that never join are
+        // dropped, so they can't sit holding a place.
         foreach (var player in _players.Values)
         {
             if (player.Joined)
             {
                 Fall(player, tick);
+            }
+            else if (tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate)
+            {
+                player.Connection.Disconnect();
             }
         }
 
@@ -115,6 +120,13 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
     private void Join(Player player, JoinRequest request, uint tick)
     {
+        if (!player.JoinLimiter.TryTake(tick))
+        {
+            // No honest client asks this often.
+            player.Connection.Disconnect();
+            return;
+        }
+
         if (player.Joined)
         {
             Reject(JoinRejection.AlreadyJoined);
@@ -153,12 +165,12 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
         player.Stamp.StampServer(tick);
-                player.StateTick = player.Stamp.Broadcast;
+        player.StateTick = player.Stamp.Broadcast;
 
         var connection = player.Connection;
-        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
-        connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, player.Spawn());
         var spawn = player.Spawn();
+        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
+        connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
         foreach (var other in _players.Values)
         {
             if (other.Joined && other != player)
@@ -296,6 +308,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         {
             if (other.Joined)
             {
+                // A state still queued would follow the despawn in the next frame (events go first).
+                other.Connection.EntityStates.Remove(player.EntityId);
                 other.Connection.SendEvent(MessageIds.EntityDespawn, new EntityDespawn { EntityId = player.EntityId });
             }
         }
@@ -344,7 +358,12 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         public MovementValidator Validator { get; set; } = null!;
 
-        public ChatLimiter ChatLimiter { get; } = new(tickRate);
+        public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
+
+        public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
+
+        /// <summary>The tick the connection arrived; it must join within <see cref="ShapeLandRules.JoinDeadlineSeconds"/>.</summary>
+        public uint ConnectedTick { get; init; }
 
         public StateStamp Stamp { get; } = new(tickRate);
 

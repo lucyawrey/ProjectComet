@@ -1,9 +1,0 @@
-- Freelancer
-	- Default class when no class crystal is equipped. Has no associated skills or crafts of it's own but can use skills from other classes effectively.
-- Fatespinner
-	- Magic class focused on buffing allies with an additional focus on damage or healing that usually does not excel at melee combat.
-	- Main unique mechanic is a custom deck of cards to draw from which each have unique effects. Similar to AST from FFXIV but with much more variable card effects.
-- Tactician
-	- Magic class focused on healing and buffing allies, poisoning and debuffing enemies, and propagating negative and positive statuses.
-- Shield Mage
-	- Magic class focused on shielding self and allies.

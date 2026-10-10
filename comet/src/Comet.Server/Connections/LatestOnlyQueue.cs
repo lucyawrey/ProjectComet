@@ -36,14 +36,48 @@ public sealed class LatestOnlyQueue<T>
         }
     }
 
-    /// <summary>Hands every queued message to <paramref name="write"/> in the order first queued, then empties the queue.</summary>
-    public void Drain<TState>(TState state, Action<TState, T> write)
+    /// <summary>Drops the queued message for <paramref name="key"/>, if any, e.g. when its entity is despawned.</summary>
+    public void Remove(uint key)
     {
-        foreach (var (_, value) in _items)
+        if (!_indexByKey.Remove(key, out var index))
         {
-            write(state, value);
+            return;
         }
-        _items.Clear();
-        _indexByKey.Clear();
+
+        _items.RemoveAt(index);
+        for (var i = index; i < _items.Count; i++)
+        {
+            _indexByKey[_items[i].Key] = i;
+        }
+    }
+
+    /// <summary>
+    /// Hands queued messages to <paramref name="write"/> in the order first queued, until it returns false
+    /// (it had no room for that one). The messages written leave the queue; the rest stay, in order.
+    /// </summary>
+    public void Drain<TState>(TState state, Func<TState, T, bool> write)
+    {
+        var written = 0;
+        while (written < _items.Count && write(state, _items[written].Value))
+        {
+            written++;
+        }
+
+        if (written == _items.Count)
+        {
+            _items.Clear();
+            _indexByKey.Clear();
+            return;
+        }
+
+        for (var i = 0; i < written; i++)
+        {
+            _indexByKey.Remove(_items[i].Key);
+        }
+        _items.RemoveRange(0, written);
+        for (var i = 0; i < _items.Count; i++)
+        {
+            _indexByKey[_items[i].Key] = i;
+        }
     }
 }
