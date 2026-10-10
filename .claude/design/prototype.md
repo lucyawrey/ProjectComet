@@ -207,6 +207,16 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | --- | --- | --- | --- | --- |
   | good | 0 | 278 ms (242–330) | 29 ms/s | 1.6%, 46 ms each |
   | bad | 0 (no server falls) | 516 ms (417–595) | 88 ms/s | 2.3%, 97 ms each |
+- **States sent to others carry the sender's stamp shifted by their smoothed latency** (agent suggestion, adopted by the project lead to keep good connections from being pulled down by others; `StateStamp.Broadcast`): the median of arrival minus stamp over the last 5 s, approached at no more than 5% of real time, so the spacing of a player's states stays as they sent it while their steady latency stops counting towards everyone's delay; their jitter and stalls still do. Validation keeps the sender's own stamps. No game was found doing exactly this: server-authoritative engines stamp with the server's tick (no sender trip, but the sender's jitter shows), TrinityCore passes on converted client times (our earlier model), and voice and video calls give each sender's stream its own jitter buffer.
+
+  | Run | Delay median (5th–95th) | Holds | Target moving | Honest snap-backs |
+  | --- | --- | --- | --- | --- |
+  | good | 201 ms (165–256), was 278 | 1.4%, 43 ms each | 26 ms/s | 0 |
+  | bad | 388 ms (305–463), was 516 | 2.3%, 65 ms each | 92 ms/s | 0 |
+  | good, 1 far of 12 | 200 ms (167–256), was 333 | 1.3%, 46 ms each | 26 ms/s | 0 |
+  | good, 3 far of 14 | 212 ms (174–262), was 358 | 1.3%, 43 ms each | 29 ms/s | 0 |
+
+  The far players' own view (about 300 ms with both profiles' loss): delay about 500 ms (was about 590), holds 2.8–3.6%; with 3 of them, 1 too-fast and 1 finished fall among them, beyond the bad profile the criteria cover. Still failing under bad: steadiness (92 ms/s) and, narrowly, smoothness; fix B next.
 - **3c's pass criteria are written down before the tuning runs** (project lead), as the stack benchmark's thresholds were: the agent proposes numbers and the project lead approves them.
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
   1. *Fairness* (none, good, bad): no snap-backs on honest bots, of either kind (rule violations or falls the server finishes).
@@ -275,7 +285,6 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 - **Per-shape collision bodies** (later, if drawn sizes drift far from the shared body): each shape's body radius and height from content, used by the client motor, the server's validation and the bots, so what's drawn is what collides. For now every shape collides as `MovementRules`' one body (project lead).
 - **A heavy-heap variant of the stack benchmark** (agent suggestion; later, before the stage 2 load test, not part of milestone 1): the server also holds synthetic long-lived zone state, about 100–300 MB, in a mix of plain struct arrays and ordinary object graphs, so we can measure how deep GC pauses scale with a real zone's state, which the bench as it stands can't show. It decides whether the GC is a real risk for zone servers: switching away from C# would only be worth weighing if blocking collections recur in steady state and approach the 33 ms tick budget even after per-tick allocation is reduced.
-- **Shifting each sender's stamps by its smoothed one-way latency** (agent suggestion; to test in 3c or the load test with a few high-ping bots): the server keeps the sender's stamp but adds that player's slowly smoothed trip time, so the spacing stays free of jitter while a high-ping sender's average latency no longer counts towards everyone's delay. Matters only when many players have high pings; with one among many, the 95th percentile mostly leaves the delay alone and only that player holds now and then. Not found in any source. The project lead leans towards it, to keep players with good connections from being pulled down by others' latency; measuring first with far bots (`tools/shapeland-netrun.sh --far N`).
 - **A connection slot pool in Comet** (agent suggestion; later, with the heavy-heap variant, not part of milestone 1): a zone server allocates per-connection state and buffers up front at startup, up to the channel's hard cap, so players joining reuse long-lived objects instead of creating about 22 KB each to promote. First measure what that state is (heap dumps idle and with 300 bots, by type), since Kestrel's and the WebSocket's share can't be pooled.
 
 ## Rejected

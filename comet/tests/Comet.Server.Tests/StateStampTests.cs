@@ -40,4 +40,68 @@ public class StateStampTests
         Assert.Equal(120u, _stamp.StampServer(120));
         Assert.Equal(120u, _stamp.Stamp(clientTick: 110, arrivalTick: 125));
     }
+
+    [Fact]
+    public void BroadcastsShiftedByASteadyLatency()
+    {
+        // Sent every 2 ticks, arriving 6 ticks later: others get the arrival timeline, evenly spaced.
+        for (uint sent = 100; sent <= 140; sent += 2)
+        {
+            Assert.Equal(sent, _stamp.Stamp(clientTick: sent, arrivalTick: sent + 6));
+            Assert.Equal(sent + 6, _stamp.Broadcast);
+        }
+    }
+
+    [Fact]
+    public void AStallDoesntMoveTheShift()
+    {
+        for (uint sent = 100; sent <= 160; sent += 2)
+        {
+            _stamp.Stamp(clientTick: sent, arrivalTick: sent + 6);
+        }
+
+        // A resend holds four reports back; they arrive together. Their spacing is kept, shifted as before.
+        for (uint sent = 162; sent <= 168; sent += 2)
+        {
+            _stamp.Stamp(clientTick: sent, arrivalTick: 176);
+            Assert.Equal(sent + 6, _stamp.Broadcast);
+        }
+
+        Assert.Equal(6, _stamp.Shift, 6);
+    }
+
+    [Fact]
+    public void ALatencyChangeIsFollowedSlowly()
+    {
+        for (uint sent = 100; sent <= 200; sent += 2)
+        {
+            _stamp.Stamp(clientTick: sent, arrivalTick: sent + 3);
+        }
+
+        // The player's route gets 9 ticks longer and stays so: the shift follows at the slew rate, never jumping.
+        var shifts = new List<double>();
+        for (uint sent = 202; sent <= 600; sent += 2)
+        {
+            _stamp.Stamp(clientTick: sent, arrivalTick: sent + 12);
+            shifts.Add(_stamp.Shift);
+        }
+
+        Assert.All(shifts.Zip(shifts.Skip(1)), pair => Assert.InRange(pair.Second - pair.First, 0, StateStamp.SlewRate * 2 + 1e-9));
+        Assert.Equal(12, shifts[^1], 6);
+    }
+
+    [Fact]
+    public void BroadcastsAreNeverLaterThanArrivalNorGoBackwards()
+    {
+        _stamp.Stamp(clientTick: 100, arrivalTick: 110);
+        Assert.Equal(110u, _stamp.Broadcast);
+        // Suddenly arriving much sooner than the shift (10 ticks) expects: held at arrival.
+        _stamp.Stamp(clientTick: 108, arrivalTick: 111);
+        Assert.Equal(111u, _stamp.Broadcast);
+        // A stamp from before the last is held at the last, and the shift still can't pass arrival.
+        _stamp.Stamp(clientTick: 104, arrivalTick: 112);
+        Assert.Equal(112u, _stamp.Broadcast);
+        Assert.Equal(130u, _stamp.StampServer(130));
+        Assert.Equal(130u, _stamp.Broadcast);
+    }
 }

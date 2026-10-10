@@ -152,7 +152,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         player.EyeColour = request.EyeColour;
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
-        player.StateTick = player.Stamp.StampServer(tick);
+        player.Stamp.StampServer(tick);
+                player.StateTick = player.Stamp.Broadcast;
 
         var connection = player.Connection;
         connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
@@ -185,14 +186,15 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         switch (verdict)
         {
             case MovementVerdict.Accepted:
-                player.StateTick = stamp;
+                player.StateTick = player.Stamp.Broadcast; // shifted by the player's latency (StateStamp)
                 player.Moved = true;
                 break;
             case MovementVerdict.Stale:
                 break;
             case MovementVerdict.FellOut:
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
-                player.StateTick = player.Stamp.StampServer(tick);
+                player.Stamp.StampServer(tick);
+                player.StateTick = player.Stamp.Broadcast;
                 player.Moved = true;
                 break;
             default:
@@ -224,17 +226,20 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         switch (result)
         {
             case FallResult.Moved:
-                player.StateTick = player.Stamp.StampServer(tick);
+                player.Stamp.StampServer(tick);
+                player.StateTick = player.Stamp.Broadcast;
                 player.Moved = true;
                 break;
             case FallResult.Landed:
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Landing());
-                player.StateTick = player.Stamp.StampServer(tick);
+                player.Stamp.StampServer(tick);
+                player.StateTick = player.Stamp.Broadcast;
                 player.Moved = true;
                 break;
             case FallResult.FellOut:
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
-                player.StateTick = player.Stamp.StampServer(tick);
+                player.Stamp.StampServer(tick);
+                player.StateTick = player.Stamp.Broadcast;
                 player.Moved = true;
                 break;
         }
