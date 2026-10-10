@@ -24,7 +24,8 @@ namespace Comet.Unity
         public BrowserWebSocketTransport(Uri url, int maxFrameSize = FrameReader.MaxServerFrameSize)
         {
             _maxFrameSize = maxFrameSize;
-            _id = CometWs_Open(url.AbsoluteUri);
+            _id = CometWs_Open(url.AbsoluteUri, (int)(TransportLimits.ConnectTimeoutSeconds * 1000), TransportLimits.MaxQueuedBytes,
+                TransportLimits.ConnectTimedOut, TransportLimits.FellBehind);
         }
 
         public TransportState State => _disposed ? TransportState.Closed : (TransportState)CometWs_State(_id);
@@ -103,7 +104,7 @@ namespace Comet.Unity
         }
 
         [DllImport("__Internal")]
-        private static extern int CometWs_Open(string url);
+        private static extern int CometWs_Open(string url, int connectMs, int maxQueued, string timedOut, string fellBehind);
 
         [DllImport("__Internal")]
         private static extern int CometWs_State(int id);

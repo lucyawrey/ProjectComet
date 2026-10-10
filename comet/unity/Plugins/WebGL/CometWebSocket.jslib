@@ -7,13 +7,28 @@ var LibraryCometWebSocket = {
     nextId: 1,
   },
 
-  // Opens a socket and returns its id. State: 0 connecting, 1 open, 2 closed.
+  // Opens a socket and returns its id. State: 0 connecting, 1 open, 2 closed. Connecting fails after connectMs, and
+  // the socket closes once more than maxQueued bytes of messages wait untaken (they pile up while a hidden tab
+  // doesn't run the game), each with the reason given.
   CometWs_Open__deps: ['$UTF8ToString'],
-  CometWs_Open__sig: 'ip',
-  CometWs_Open: function (urlPtr) {
+  CometWs_Open__sig: 'ipiipp',
+  CometWs_Open: function (urlPtr, connectMs, maxQueued, timedOutPtr, fellBehindPtr) {
     var id = cometWs.nextId++;
-    var entry = { socket: null, state: 0, error: null, closing: false, queue: [] };
+    var entry = { socket: null, state: 0, error: null, closing: false, queue: [], queued: 0, timer: 0 };
     cometWs.sockets[id] = entry;
+    var timedOut = UTF8ToString(timedOutPtr);
+    var fellBehind = UTF8ToString(fellBehindPtr);
+
+    // Gives up on the socket with a reason, ignoring what it reports afterwards.
+    function fail(reason) {
+      entry.error = reason;
+      entry.state = 2;
+      entry.queue = [];
+      entry.queued = 0;
+      entry.socket.onopen = entry.socket.onmessage = entry.socket.onerror = entry.socket.onclose = null;
+      entry.socket.close();
+    }
+
     try {
       entry.socket = new WebSocket(UTF8ToString(urlPtr));
     } catch (e) {
@@ -23,12 +38,22 @@ var LibraryCometWebSocket = {
     }
 
     entry.socket.binaryType = 'arraybuffer';
+    entry.timer = setTimeout(function () {
+      if (entry.state === 0) {
+        fail(timedOut);
+      }
+    }, connectMs);
     entry.socket.onopen = function () {
+      clearTimeout(entry.timer);
       entry.state = 1;
     };
     entry.socket.onmessage = function (event) {
       if (event.data instanceof ArrayBuffer) {
         entry.queue.push(new Uint8Array(event.data));
+        entry.queued += event.data.byteLength;
+        if (entry.queued > maxQueued) {
+          fail(fellBehind);
+        }
       }
     };
     // Browsers hide the reason for a failed connection; onclose follows with the details there are.
@@ -38,8 +63,10 @@ var LibraryCometWebSocket = {
       }
     };
     entry.socket.onclose = function (event) {
+      clearTimeout(entry.timer);
       if (!entry.closing && !entry.error) {
-        entry.error = 'The server closed the connection (code ' + event.code + ').';
+        // The server's reason, if it gave one (e.g. that it's shutting down).
+        entry.error = event.reason || 'The server closed the connection (code ' + event.code + ').';
       }
       entry.state = 2;
     };
@@ -92,6 +119,7 @@ var LibraryCometWebSocket = {
       return -1;
     }
     var message = entry.queue.shift();
+    entry.queued -= message.length;
     HEAPU8.set(message, {{{ ptrToIdx('bufferPtr') }}});
     return message.length;
   },
@@ -118,6 +146,7 @@ var LibraryCometWebSocket = {
       return;
     }
     entry.closing = true;
+    clearTimeout(entry.timer);
     if (entry.socket) {
       entry.socket.onopen = entry.socket.onmessage = entry.socket.onerror = entry.socket.onclose = null;
       if (entry.state !== 2) {

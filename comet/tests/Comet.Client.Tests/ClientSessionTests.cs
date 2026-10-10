@@ -265,6 +265,40 @@ public class ClientSessionTests
     }
 
     [Fact]
+    public void ASilentServerClosesTheSessionAsLost()
+    {
+        // No pong for 10 s: a server whose machine vanished closes nothing, so the session gives up itself.
+        Welcome(now: 0);
+        for (var i = 0; i <= 100; i++)
+        {
+            _session.Update(i * 0.1);
+            _session.Flush(i * 0.1);
+            Assert.False(_session.Closed, $"closed at {i * 0.1:0.0} s");
+        }
+
+        _session.Update(10.2);
+        Assert.True(_session.Closed);
+        Assert.Equal(ClientSession.LostMessage, _session.Error);
+        Assert.True(_transport.CloseRequested);
+    }
+
+    [Fact]
+    public void AStallOfOurOwnIsntALostConnection()
+    {
+        // A hidden tab: a ping goes out, nothing runs for 30 s, and its pong has been waiting the whole time. It's
+        // handled before the check, so the session isn't given up on.
+        Welcome(now: 0);
+        _session.Update(0.1);
+        _session.Flush(0.1);
+        var ping = FrameReader.Decode<Ping>(Assert.Single(Sent(), m => m.Id == MessageIds.Ping).Payload);
+        ServerSends(150, MessageIds.Pong, new Pong { ClientTime = ping.ClientTime });
+
+        _session.Update(30);
+
+        Assert.False(_session.Closed);
+    }
+
+    [Fact]
     public void GameMessagesAreHandedOn()
     {
         const ushort chat = MessageIds.FirstGameMessage + 1;

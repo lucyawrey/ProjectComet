@@ -33,6 +33,7 @@ namespace ShapeLand.Client
         private Uri _url;
         private JoinRequest? _pending;
         private bool _awaitingAnswer;
+        private double _askedAt;
         private double _connectedAt;
 
         /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
@@ -89,6 +90,12 @@ namespace ShapeLand.Client
         /// <summary>Raised when the server refuses the join; the player may try again.</summary>
         public event Action<JoinRejection> JoinRefused;
 
+        /// <summary>
+        /// The connection was lost while joined (the server closed it, stopped answering, or the game fell too far
+        /// behind), with the reason. The player is gone from the world; the next <see cref="Join"/> starts over.
+        /// </summary>
+        public event Action<string> ConnectionLost;
+
         /// <summary>Raised when the content won't load or the connection fails or closes, with the reason.</summary>
         public event Action<string> Failed;
 
@@ -111,6 +118,8 @@ namespace ShapeLand.Client
 
         /// <summary>Whether the last failure was the server address itself, rather than reaching the server; <see cref="Error"/> says why.</summary>
         public bool BadAddress { get; private set; }
+
+        public const string JoinUnanswered = "The server didn't answer the request to join.";
 
         public ClientSession Session => _connection.Session;
 
@@ -251,6 +260,19 @@ namespace ShapeLand.Client
                 return;
             }
 
+            if (session.Closed && Joined)
+            {
+                var reason = session.Error ?? "The connection closed.";
+                Joined = false;
+                Spawn = null;
+                _pending = null;
+                _awaitingAnswer = false;
+                _connection.Disconnect(); // the next Join connects afresh
+                Log($"connection lost: {reason}");
+                ConnectionLost?.Invoke(reason);
+                return;
+            }
+
             if (session.Closed)
             {
                 // Idle after a refused join, the server drops the connection after its join deadline; that's no
@@ -266,10 +288,20 @@ namespace ShapeLand.Client
                 return;
             }
 
+            // Pings only start with the welcome, so a server that goes quiet before answering the join needs its own limit.
+            if (_awaitingAnswer && Time.realtimeSinceStartupAsDouble - _askedAt > TransportLimits.ConnectTimeoutSeconds)
+            {
+                _awaitingAnswer = false;
+                _connection.Disconnect();
+                Fail(JoinUnanswered);
+                return;
+            }
+
             if (_pending is JoinRequest request && session.Transport.State == TransportState.Open)
             {
                 _pending = null;
                 _awaitingAnswer = true;
+                _askedAt = Time.realtimeSinceStartupAsDouble;
                 session.Write(ShapeLandMessageIds.JoinRequest, request);
                 var shape = _content.Shapes.TryGet(request.Shape, out var found) ? found.DisplayName : $"shape {request.Shape}";
                 Log($"joining as {request.Name}, a {shape}");
