@@ -26,6 +26,8 @@ namespace Comet.Client
         private readonly MessagePackSerializerOptions _options;
         private readonly MessageWriter _messages;
         private readonly MessageWriter _frame;
+        private uint? _reportTick;
+        private double _lastUpdate;
         private readonly double _pingInterval;
         private readonly float _teleportSpeed;
         private ServerClock? _clock;
@@ -91,6 +93,7 @@ namespace Comet.Client
         /// <summary>Handles received frames, moves the tick estimate and queues a ping when one is due.</summary>
         public void Update(double now)
         {
+            _lastUpdate = now;
             while (_protocolError == null && Transport.TryReceive(out var frame))
             {
                 try
@@ -121,6 +124,47 @@ namespace Comet.Client
         /// <summary>Queues a message for the next <see cref="Flush"/>.</summary>
         public void Write<T>(ushort messageId, in T message) => _messages.Write(messageId, message);
 
+        /// <summary>
+        /// The server's time at <paramref name="now"/>, in seconds (the tick estimate over the tick rate): drive the
+        /// player's own <see cref="FixedStep"/> with it, so its steps fall on server ticks. The estimate only ever
+        /// slews, so the steps stay evenly spaced.
+        /// </summary>
+        public double ServerSeconds(double now) => Clock.ServerTick(now) / Clock.TickRate;
+
+        /// <summary>
+        /// The server tick a step of a simulation at <paramref name="stepsPerSecond"/>, driven by
+        /// <see cref="ServerSeconds"/>, falls on; false for a step between ticks. Report only from steps on a tick,
+        /// stamped with it, so the stamp and the position agree exactly.
+        /// </summary>
+        public bool TickOfStep(long step, int stepsPerSecond, out uint tick)
+        {
+            var tickRate = Clock.TickRate;
+            if (step < 0 || stepsPerSecond % tickRate != 0 && tickRate % stepsPerSecond != 0)
+            {
+                throw new ArgumentException("The simulation rate must be a multiple or a divisor of the tick rate.", nameof(stepsPerSecond));
+            }
+
+            var ticks = step * tickRate;
+            tick = (uint)(ticks / stepsPerSecond);
+            return ticks % stepsPerSecond == 0;
+        }
+
+        /// <summary>
+        /// Queues a report of where the player was at <paramref name="tick"/> (from <see cref="TickOfStep"/>),
+        /// echoing the last correction. The frame it goes in is stamped with that tick.
+        /// </summary>
+        public void ReportPosition(uint tick, Vector3 position, Vector3 velocity, float facing)
+        {
+            // A frame has one tick: send what's queued for another tick first.
+            if (_reportTick is { } queued && queued != tick)
+            {
+                Flush(_lastUpdate);
+            }
+
+            _reportTick = tick;
+            ReportPosition(position, velocity, facing);
+        }
+
         /// <summary>Queues a report of the player's own position, echoing the last correction.</summary>
         public void ReportPosition(Vector3 position, Vector3 velocity, float facing) => _messages.Write(MessageIds.PositionReport, new PositionReport
         {
@@ -134,7 +178,10 @@ namespace Comet.Client
             CorrectionSequence = CorrectionSequence,
         });
 
-        /// <summary>Sends the queued messages in one frame stamped with the estimated server tick, if there are any.</summary>
+        /// <summary>
+        /// Sends the queued messages in one frame, if there are any, stamped with the tick of a report queued with
+        /// one, else the estimated server tick.
+        /// </summary>
         public void Flush(double now)
         {
             if (_messages.MessageCount == 0)
@@ -142,7 +189,8 @@ namespace Comet.Client
                 return;
             }
 
-            _frame.BeginFrame(_clock == null ? 0 : (uint)Math.Max(0, Math.Floor(_clock.ServerTick(now))));
+            _frame.BeginFrame(_reportTick ?? (_clock == null ? 0 : (uint)Math.Max(0, Math.Floor(_clock.ServerTick(now)))));
+            _reportTick = null;
             _frame.Append(_messages);
             _messages.Clear();
             Transport.Send(_frame.WrittenSpan);
