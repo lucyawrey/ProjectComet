@@ -2,7 +2,7 @@
 
 ## Phases
 
-The roadmap has phases with goals and exit criteria, not dates. The first three build and prove Comet using ShapeLand; Project Anima's own systems start at the closed alpha. The biggest risk, the seamless world, is proven before any serious content production.
+The roadmap has phases with goals and exit criteria, not dates. The first three build and prove Comet using ShapeLand; Anima's own systems start at the closed alpha. The biggest risk, the seamless world, is proven before any serious content production.
 
 Phase 0 starts before the proposal is finished. It runs on a single game server, with no accounts, Login server or Region server; those come in phase 1. The project lead builds it, with agents writing much of the code from agreed plans. Its first milestone is the stack benchmark passing.
 
@@ -11,7 +11,7 @@ Phase 0 starts before the proposal is finished. It runs on a single game server,
 | **0. Prototypes** | In order: the stack benchmark; shared code compiling in Unity, with editor support for content files; ShapeLand sliding, jumping and chatting, built for web; the full load test. Comparing texture filtering runs alongside | The full load test meets thresholds written down beforehand |
 | **1. Vertical slice** | ShapeLand in one zone with combat, loot and levels; 100+ bots; simulated latency from day one | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
 | **2. Seamless-world proof** | Two or more zones with border handoff, channels, a dungeon instance and a teleport | Crossing borders is invisible under simulated latency |
-| **3. Closed alpha** | Project Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
+| **3. Closed alpha** | Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
 | **4. Open beta** | The early part complete, the late part in progress, membership and bonds, operations tooling | Scale and the economy hold up with a real population |
 | **5. Launch** | Early part free, late part for members | |
 | **6. Expansions** | New parts; free players move up a part | |

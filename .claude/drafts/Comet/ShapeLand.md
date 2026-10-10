@@ -1,6 +1,6 @@
 # ShapeLand
 
-ShapeLand is Comet's demo game: a tiny MMO where players are coloured shapes in a toy-box world, sliding around, chatting and fighting shape monsters with magic. It builds and tests Comet during the first phases, before Project Anima's own systems exist, and stays afterwards as the reference game for anyone building on Comet or testing a private server.
+ShapeLand is Comet's demo game: a tiny MMO where players are coloured shapes in a toy-box world, sliding around, chatting and fighting shape monsters with magic. It builds and tests Comet during the first phases, before Anima's own systems exist, and stays afterwards as the reference game for anyone building on Comet or testing a private server.
 
 It needs no art assets or animation, so the early phases don't wait on art.
 
@@ -34,7 +34,7 @@ A playful toy box: bright primary colours and simple props.
 
 ## Staying small
 
-ShapeLand is a test fixture that happens to be playable. Every system it adopts is something to maintain, so it only grows when Comet needs testing. Where Project Anima has a rich system and ShapeLand needs a simple one (mounts, equipment), ShapeLand gets its own trivial version rather than a shared abstraction.
+ShapeLand is a test fixture that happens to be playable. Every system it adopts is something to maintain, so it only grows when Comet needs testing. Where Anima has a rich system and ShapeLand needs a simple one (mounts, equipment), ShapeLand gets its own trivial version rather than a shared abstraction.
 
 ## Open questions
 

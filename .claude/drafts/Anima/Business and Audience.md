@@ -12,7 +12,7 @@ Desktop browsers are the main platform: click a link and play, in the spirit of 
 
 ## Business model
 
-Project Anima is **free to play with a membership**.
+Anima is **free to play with a membership**.
 
 - **The game comes in parts.** The first release has two (early and late game), and each expansion adds another. Free players always have access to an earlier part than members, and get each part eventually as new ones arrive. That means a lower level cap and some later classes locked, but **no feature is barred from free players**.
 - **Expansions are included in membership.** Nothing is sold separately.

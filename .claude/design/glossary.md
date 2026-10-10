@@ -1,13 +1,13 @@
 # Glossary
 
-**Layer: mixed.** Base (Comet): deployment, region, zone, channel, instance, height zones, invulnerability, Storage, tradeability, learned flag. Game (Project Anima): constellation, soulbound rules, collection log, gear and outfit sets, Class Crystals, Crystal Archives, Soul XP, Anima, Runes, rune stones, mastery, Outfit Magic, the Freelancer tree.
+**Layer: mixed.** Base (Comet): deployment, region, zone, channel, instance, height zones, invulnerability, Storage, tradeability, learned flag. Game (Anima): constellation, soulbound rules, collection log, gear and outfit sets, Class Crystals, Crystal Archives, Soul XP, Anima, Runes, rune stones, mastery, Outfit Magic, the Freelancer tree.
 
 Working terms. They may change but must stay distinct. Details live in the topic files.
 
 | Term | Meaning |
 | --- | --- |
 | **Comet** | The shared base: libraries, servers, Unity package and tools for a family of similar MMOs. MIT-licensed. Not the Unity engine. |
-| **Project Anima** | Working name of the game built on Comet. The repository is still called `ProjectComet`. |
+| **Anima** | Working name of the game built on Comet. The repository is still called `ProjectComet`. |
 | **ShapeLand** | Comet's tiny demo and reference game: coloured shapes (cube, diamond, pyramid) that slide, chat and fight curved shape monsters with magic. Used for phases 0–2. |
 | **Base / game (layer)** | Whether something belongs to Comet or to a game built on it. Each design file has a Layer line; game policy sits on thin base mechanisms. |
 | **Class Crystal** | A soulbound item that grants permission to use one of its owner's class entries, and references a loadout, gear set, outfit set and appearance. The only thing a character equips; always one equipped. |

@@ -1,8 +1,8 @@
-# Comet and Project Anima: agent context
+# Comet and Anima: agent context
 
 Handoff notes for agent sessions. Last updated 2026-10-10.
 
-**Names:** *Comet* is the shared base (servers, libraries, Unity package, tools); *Project Anima* is the working name of the game built on it; *ShapeLand* is Comet's tiny demo and reference game. The repository is still called `ProjectComet`.
+**Names:** *Comet* is the shared base (servers, libraries, Unity package, tools); *Anima* is the working name of the game built on it; *ShapeLand* is Comet's tiny demo and reference game. *ProjectComet* (also the repository's name) is the working name of the whole project, covering Comet and Anima.
 
 ## Working agreement
 
@@ -25,7 +25,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 
 ## Core decisions
 
-- **Two layers:** Comet, a shared base for a family of similar MMOs, and Project Anima as one game on it. Comet keeps thin mechanisms; game policy is game code. Details in `proposal.md`.
+- **Two layers:** Comet, a shared base for a family of similar MMOs, and Anima as one game on it. Comet keeps thin mechanisms; game policy is game code. Details in `proposal.md`.
 - **Human-made creative content only.** Agents help with code; no AI-generated models, textures, readable in-game text, music or sound (plain interface labels and messages excepted).
 - **Low-poly art,** PS1-to-GameCube fidelity.
 - **Content is roughly an even split** between community-driven play (economy, crafting, trading, housing, guilds, player events) and developer-made content.
@@ -64,7 +64,7 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 
 ## Docs and drafts
 
-- **`docs/`** holds the human-readable proposal, in Markdown on `main`, one page per topic, **named by page title with spaces and capitals** (the docs don't follow the repo's lowercase convention). `docs/Proposal.md` is the front page; `docs/Roadmap.md`; `docs/Comet/` (Comet Overview, Architecture, Netcode, World and Zones, Combat Core, Content Pipeline, Operations, Self-Hosting, ShapeLand); `docs/Project Anima/` (Setting, Core Loop and Endgame, Classes and Skills, Combat, Items and Economy, Crafting and Housing, Companions, World and Travel, New Players, Community, Art and Audio, Accessibility and Translation, Business and Audience). Pages start as a title and an agent checklist (in an HTML comment marker) linking to `.claude/design/`, which the project lead deletes as they write.
+- **`docs/`** holds the human-readable proposal, in Markdown on `main`, one page per topic, **named by page title with spaces and capitals** (the docs don't follow the repo's lowercase convention). `docs/Proposal.md` is the front page; `docs/Roadmap.md`; `docs/Comet/` (Comet Overview, Architecture, Netcode, World and Zones, Combat Core, Content Pipeline, Operations, Self-Hosting, ShapeLand); `docs/Anima/` (Setting, Core Loop and Endgame, Classes and Skills, Combat, Items and Economy, Crafting and Housing, Companions, World and Travel, New Players, Community, Art and Audio, Accessibility and Translation, Business and Audience). Pages start as a title and an agent checklist (in an HTML comment marker) linking to `.claude/design/`, which the project lead deletes as they write.
 - **`docs/+ Notes/`** holds the project lead's own notes. Agents don't edit it.
 - **`.claude/drafts/`** holds agent drafts of every docs page, mirroring the layout (Setting has none), plus `Prototype Results.md` (the prototype report, filled in during 3c; the project lead copies what they need into their own report in `docs/`). Agent drafts go here, never in `docs/`.
 - **`.claude/drafts/ui/`** holds HTML mockups of game UI (`ui.md`), published as private claude.ai pages for review.

@@ -1,6 +1,6 @@
 # Combat
 
-Combat in Project Anima is action combat that's extremely approachable: a little like an action RPG, a little like a tab-target MMO. It's simple to understand and hard to master. The rules underneath (hitboxes, height zones, frame data) are Comet's; see [Combat Core](../Comet/Combat%20Core.md).
+Combat in Anima is action combat that's extremely approachable: a little like an action RPG, a little like a tab-target MMO. It's simple to understand and hard to master. The rules underneath (hitboxes, height zones, frame data) are Comet's; see [Combat Core](../Comet/Combat%20Core.md).
 
 ## Feel
 

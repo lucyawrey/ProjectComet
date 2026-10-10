@@ -1,6 +1,6 @@
 # World structure
 
-**Layer: mixed.** Base (Comet): hierarchy, zone borders, flying and fixed-route vehicles, channel placement with a pluggable preference policy, soft and hard caps, draining and merges, instance lifecycle with entry and exit hooks, teleport handoff. Game (Project Anima): constellations and the channel preference order, channel naming, loading rooms, re-entry and replacement rules, no lockouts, the teleport scene and cast rules, leyline theming, Anima costs.
+**Layer: mixed.** Base (Comet): hierarchy, zone borders, flying and fixed-route vehicles, channel placement with a pluggable preference policy, soft and hard caps, draining and merges, instance lifecycle with entry and exit hooks, teleport handoff. Game (Anima): constellations and the channel preference order, channel naming, loading rooms, re-entry and replacement rules, no lockouts, the teleport scene and cast rules, leyline theming, Anima costs.
 
 Agent notes on world structure and server hierarchy. Housing access is in `housing.md`; the zone format and handoff mechanics are in `backend.md`.
 
@@ -30,7 +30,7 @@ Agent notes on world structure and server hierarchy. Housing access is in `housi
 ### Channels
 
 - **Channel size:** 150–300 players would be an impressive upper limit; may be forced lower.
-- **Channel preference when entering a zone** (Project Anima's policy): party's channel, then primary guild members' and friends' channels, then the player's constellation (its associated channel if it has room, otherwise channels with the most players sharing it), then secondary guild members' channels, then players sharing the same language, then the channel the player was last on, then any channel with room.
+- **Channel preference when entering a zone** (Anima's policy): party's channel, then primary guild members' and friends' channels, then the player's constellation (its associated channel if it has room, otherwise channels with the most players sharing it), then secondary guild members' channels, then players sharing the same language, then the channel the player was last on, then any channel with room.
 - **Constellations:** a loose, in-world grouping, in the spirit of Elden Ring's group passwords. Their only gameplay effect is channel priority; guilds are the player-made groupings.
   - Constellations help players see familiar faces in a big region without commitment (free to change, optional, hideable) or partition (they rank below party, primary guild and friends, so they only break ties among strangers).
   - Each character is in **one official constellation or none**. It's chosen at character creation and can be changed for free at any time.

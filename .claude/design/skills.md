@@ -1,8 +1,8 @@
 # Skills, Abilities and Runes
 
-**Layer: mixed.** Base (Comet): a thin skill base that only executes actions (frame data, hitboxes, cooldowns, effects; see `combat.md`), not necessarily slots, so another game can build more traditional MMO skill advancement. Acquisition, slotting and advancement are game code. Game (Project Anima): everything else here.
+**Layer: mixed.** Base (Comet): a thin skill base that only executes actions (frame data, hitboxes, cooldowns, effects; see `combat.md`), not necessarily slots, so another game can build more traditional MMO skill advancement. Acquisition, slotting and advancement are game code. Game (Anima): everything else here.
 
-Agent notes on Project Anima's skill system. See `glossary.md` for terms.
+Agent notes on Anima's skill system. See `glossary.md` for terms.
 
 ## Decided
 

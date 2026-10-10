@@ -1,6 +1,6 @@
 # Unlockables
 
-**Layer: mixed.** Base (Comet): unlockables as learned flags; "soul" names as theming over ordinary values. Game (Project Anima): attunements, Anima Capacity, quest-granted Runes.
+**Layer: mixed.** Base (Comet): unlockables as learned flags; "soul" names as theming over ordinary values. Game (Anima): attunements, Anima Capacity, quest-granted Runes.
 
 Agent notes on unlockables: progression not tied to items, companions, or class and craft levels.
 

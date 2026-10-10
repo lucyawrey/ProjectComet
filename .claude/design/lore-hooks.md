@@ -1,6 +1,6 @@
 # Lore hooks
 
-**Layer: game (Project Anima).**
+**Layer: game (Anima).**
 
 Agent-distilled list of what gameplay decisions and the project lead's notes already imply about the setting **Raw material for the project lead's own lore writing, not lore.** Nothing here is decided as fiction; each line points at where it came from.
 

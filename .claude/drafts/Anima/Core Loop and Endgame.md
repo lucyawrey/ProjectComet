@@ -2,7 +2,7 @@
 
 ## Two loops
 
-Project Anima has two loops that feed each other:
+Anima has two loops that feed each other:
 
 - **Adventure:** quests, dungeons and bosses, rewarding drops and experience.
 - **Life:** gathering, crafting, trading and housing.

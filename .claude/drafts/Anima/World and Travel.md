@@ -1,6 +1,6 @@
 # World and Travel
 
-Project Anima's world is one seamless place per region: walk from a town across the fields into the mountains without a loading screen. How that works technically is in [World and Zones](../Comet/World%20and%20Zones.md); this page covers how the game uses it.
+Anima's world is one seamless place per region: walk from a town across the fields into the mountains without a loading screen. How that works technically is in [World and Zones](../Comet/World%20and%20Zones.md); this page covers how the game uses it.
 
 ## Getting around
 

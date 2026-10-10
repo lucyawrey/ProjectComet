@@ -7,7 +7,7 @@ Comet has three kinds of server, deliberately few. New tooling goes into an exis
 | Service | Job |
 | --- | --- |
 | **Login server** | Public web front door: the game's website and web client page, accounts, sign-in and sessions, character select, the admin panel, and signed tickets that let a client join a game server. It never relays game traffic. |
-| **Region server** | One per region (it can run as several processes). Coordinates everything that spans instances: placing channels and dungeons, parties, guilds, friends, chat routing and mail, plus game modules such as Project Anima's market. |
+| **Region server** | One per region (it can run as several processes). Coordinates everything that spans instances: placing channels and dungeons, parties, guilds, friends, chat routing and mail, plus game modules such as Anima's market. |
 | **Game servers** | Run the live simulation for one or more instances (channels, dungeon instances, house instances). |
 
 Alongside them sit PostgreSQL and a static host (or CDN) for the large files: the web client build, assets and content downloads. The website itself isn't static, since it keeps state such as being logged in, so the Login server serves it.

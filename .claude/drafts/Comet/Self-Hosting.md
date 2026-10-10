@@ -17,12 +17,12 @@ Hosts get the admin panel, moderation tools, ledger and retention jobs automatic
 | Part | Licence |
 | --- | --- |
 | Comet and ShapeLand | MIT |
-| Project Anima's code | Source-available, non-commercial (exact licence chosen with legal advice before release) |
-| Project Anima's content and art | Usable on private servers non-commercially |
+| Anima's code | Source-available, non-commercial (exact licence chosen with legal advice before release) |
+| Anima's content and art | Usable on private servers non-commercially |
 
-## Hosting Project Anima
+## Hosting Anima
 
-Private servers may run Project Anima with its official content, art and client, as long as they:
+Private servers may run Anima with its official content, art and client, as long as they:
 
 - don't charge players or sell items;
 - don't present themselves as official;
@@ -33,5 +33,5 @@ Private-server packages ship only the free parts' content, and the licence forbi
 ## Open questions
 
 - Packaging. One idea under consideration: all three servers in one process, shipped as a single docker-compose file with PostgreSQL and a reverse proxy that handles TLS automatically.
-- The exact licence text for Project Anima.
+- The exact licence text for Anima.
 - Whether private servers can ever host member content.

@@ -22,7 +22,7 @@
 #
 # The profiles are in tools/shapeland-net-profiles.sh. Docker needs the traffic-shaping kernel modules loaded
 # (tools/StackBench/README.md, Docker runs).
-# The Unity build fails while the editor has the project open; close it first. ShapeLand only: Project Anima's
+# The Unity build fails while the editor has the project open; close it first. ShapeLand only: Anima's
 # page comes from the Login server.
 set -euo pipefail
 

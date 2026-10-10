@@ -1,6 +1,6 @@
 # Community
 
-Half of Project Anima is community-driven play, so social systems are a core feature, not an add-on.
+Half of Anima is community-driven play, so social systems are a core feature, not an add-on.
 
 ## Social systems
 
