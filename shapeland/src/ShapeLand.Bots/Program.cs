@@ -3,15 +3,16 @@ using ShapeLand.Shared.Content;
 using ShapeLand.Shared.World;
 
 // ShapeLand bots for phase 0: honest wanderers plus optional cheaters that slide too fast.
-//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--url ws://localhost:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1]
+//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--url ws://localhost:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
 var url = new Uri(Arg("--url", "ws://localhost:5080/ws"));
 var count = int.Parse(Arg("--count", "5"));
 var cheaters = int.Parse(Arg("--cheaters", "0"));
 var seconds = double.Parse(Arg("--seconds", "0"));
 var seed = int.Parse(Arg("--seed", "1"));
+var contentFile = Arg("--content", "");
 
 ShapeLandContent content;
-using (var stream = File.OpenRead(Path.Combine(FindRepoRoot(), "artifacts", "content", "shapeland", "content.bin")))
+using (var stream = File.OpenRead(contentFile != "" ? contentFile : Path.Combine(FindRepoRoot(), "artifacts", "content", "shapeland", "content.bin")))
 {
     content = ShapeLandContent.Load(stream);
 }

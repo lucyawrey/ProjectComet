@@ -31,7 +31,7 @@ The server's window starts a warmup after its first connection; the bots' window
 
 ## Docker runs (simulated network)
 
-The official profiles run in Docker. The server is pinned to one CPU (`DOTNET_PROCESSOR_COUNT=1`), and the bots get every CPU outside that physical core. Network conditions apply to the bots container only, in both directions (`docker/netem.sh`):
+The official profiles run in Docker. The server is pinned to one CPU (`DOTNET_PROCESSOR_COUNT=1`), and the bots get every CPU outside that physical core. Network conditions apply to the bots container only, in both directions (`tools/docker/netem.sh`, shared with ShapeLand):
 
 | Profile | Loss each way | Added delay each way |
 | --- | --- | --- |

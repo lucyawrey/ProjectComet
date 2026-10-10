@@ -21,5 +21,5 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /out/bots .
-COPY tools/StackBench/docker/netem.sh /usr/local/bin/netem.sh
+COPY tools/docker/netem.sh /usr/local/bin/netem.sh
 ENTRYPOINT ["/usr/local/bin/netem.sh", "dotnet", "StackBench.Bots.dll"]

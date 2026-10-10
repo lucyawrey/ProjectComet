@@ -1,0 +1,64 @@
+# ShapeLand under simulated network conditions. Start it with tools/shapeland-web.sh --net PROFILE, which
+# builds everything on the host and sets the variables below.
+#
+# netem sits on the game server's link, so every client gets the profile: the browser and desktop builds
+# (through the published port) and the bots. The bots' own container can add more on top (BOTS_NETEM_*).
+name: shapeland
+
+services:
+  server:
+    image: shapeland-netem
+    build:
+      context: ../..
+      dockerfile: shapeland/docker/Dockerfile
+    cap_add:
+      - NET_ADMIN # for tc and the ifb device, inside this container's network namespace only
+    environment:
+      NETEM_DELAY: ${NETEM_DELAY:-0ms}
+      NETEM_JITTER: ${NETEM_JITTER:-0ms}
+      NETEM_LOSS: ${NETEM_LOSS:-0%}
+    command:
+      - dotnet
+      - /app/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll
+      - --urls
+      - http://+:5080
+      - --ShapeLand:ContentFile=/app/content/content.bin
+      - --ShapeLand:WebRoot=/app/web
+    ports:
+      - ${SHAPELAND_PUBLISH:-127.0.0.1:5080}:5080
+    volumes:
+      - ../../artifacts/bin:/app/bin:ro
+      - ../../artifacts/content/shapeland:/app/content:ro
+      - ../../artifacts/unity/shapeland/web-game:/app/web:ro
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/5080"]
+      interval: 1s
+      retries: 30
+
+  bots:
+    image: shapeland-netem # built by the server service
+    pull_policy: never
+    profiles: [bots] # started only when there are bots
+    cap_add:
+      - NET_ADMIN
+    environment:
+      NETEM_DELAY: ${BOTS_NETEM_DELAY:-0ms}
+      NETEM_JITTER: ${BOTS_NETEM_JITTER:-0ms}
+      NETEM_LOSS: ${BOTS_NETEM_LOSS:-0%}
+    command:
+      - dotnet
+      - /app/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll
+      - --url
+      - ws://server:5080/ws
+      - --count
+      - ${BOTS_COUNT:-0}
+      - --cheaters
+      - ${BOTS_CHEATERS:-0}
+      - --content
+      - /app/content/content.bin
+    volumes:
+      - ../../artifacts/bin:/app/bin:ro
+      - ../../artifacts/content/shapeland:/app/content:ro
+    depends_on:
+      server:
+        condition: service_healthy

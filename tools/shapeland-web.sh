@@ -5,6 +5,7 @@
 # bots, and opens the page. Ctrl+C stops everything.
 #
 #   tools/shapeland-web.sh [--rebuild] [--no-build] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
+#                          [--net PROFILE] [--bots-net PROFILE]
 #
 #   --rebuild      make the Unity web build even if it looks up to date
 #   --no-build     use the last web build as it is (content still rebuilds)
@@ -13,7 +14,13 @@
 #   --port P       the game server's port (default 5080)
 #   --lan          listen on every network interface, so other devices on the network can join
 #   --no-open      don't open the page in a browser
+#   --net P        run the server and bots in Docker with simulated network conditions on the server's link, so
+#                  every client gets them (shapeland/docker): none, good (about 80 ms round trip, 1% loss),
+#                  bad (about 200 ms, 2% loss) or awful (about 200 ms, 5% loss). Desktop builds join it too.
+#   --bots-net P   with --net, a profile the bots get on top of it (default none), e.g. for high-ping bots
 #
+# Each profile is netem's delay and jitter each way plus loss each way; see net_profile below. Docker needs the
+# traffic-shaping kernel modules loaded (tools/StackBench/README.md, Docker runs).
 # The Unity build fails while the editor has the project open; close it first. ShapeLand only: Project Anima's
 # page comes from the Login server.
 set -euo pipefail
@@ -30,6 +37,8 @@ cheaters=0
 port=5080
 host=localhost
 open_page=1
+net=""
+bots_net=none
 while [ $# -gt 0 ]; do
   case "$1" in
     --rebuild) rebuild=1; shift ;;
@@ -39,10 +48,38 @@ while [ $# -gt 0 ]; do
     --port) port="$2"; shift 2 ;;
     --lan) host=0.0.0.0; shift ;;
     --no-open) open_page=0; shift ;;
-    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --net) net="$2"; shift 2 ;;
+    --bots-net) bots_net="$2"; shift 2 ;;
+    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done
+
+# Sets PREFIX_DELAY, PREFIX_JITTER and PREFIX_LOSS (netem's one-way delay, jitter and loss) for a profile.
+net_profile() {
+  local delay jitter loss
+  case "$2" in
+    none)  delay=0ms   jitter=0ms  loss=0% ;;
+    good)  delay=40ms  jitter=10ms loss=1% ;;
+    bad)   delay=100ms jitter=25ms loss=2% ;;
+    awful) delay=100ms jitter=25ms loss=5% ;;
+    *) echo "Unknown network profile $2 (none, good, bad or awful)." >&2; exit 2 ;;
+  esac
+  export "$1_DELAY=$delay" "$1_JITTER=$jitter" "$1_LOSS=$loss"
+}
+if [ -n "$net" ]; then
+  net_profile NETEM "$net"
+  net_profile BOTS_NETEM "$bots_net"
+  for module in ifb sch_netem sch_ingress act_mirred cls_matchall; do
+    if [ "$(uname)" != Darwin ] && [ ! -d "/sys/module/$module" ]; then
+      echo "Kernel module $module isn't loaded; see tools/StackBench/README.md (Docker runs)." >&2
+      exit 1
+    fi
+  done
+elif [ "$bots_net" != none ]; then
+  echo "--bots-net needs --net." >&2
+  exit 2
+fi
 
 echo "== Content"
 dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
@@ -80,6 +117,11 @@ dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer" > /dev/
 if [ $((bots + cheaters)) -gt 0 ]; then
   dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots" > /dev/null
 fi
+compose=(docker compose -f "$repo/shapeland/docker/compose.yaml")
+if [ -n "$net" ]; then
+  echo "== Docker image"
+  "${compose[@]}" build -q
+fi
 
 # This machine's address on the local network: the one its default route goes out on.
 local_address() {
@@ -105,6 +147,9 @@ fi
 pids=()
 cleanup() {
   trap - EXIT INT TERM
+  if [ -n "$net" ]; then
+    "${compose[@]}" --profile bots down -t 2 > /dev/null 2>&1 || true
+  fi
   for pid in "${pids[@]+"${pids[@]}"}"; do
     kill "$pid" 2> /dev/null || true
   done
@@ -112,10 +157,17 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# The built programs run directly: stopping `dotnet run` can leave the program it started running.
-dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
-  --urls "http://$host:$port" --ShapeLand:WebRoot="$web" &
-pids+=($!)
+if [ -n "$net" ]; then
+  # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
+  export SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters"
+  "${compose[@]}" up --no-log-prefix server &
+  pids+=($!)
+else
+  # The built programs run directly: stopping `dotnet run` can leave the program it started running.
+  dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
+    --urls "http://$host:$port" --ShapeLand:WebRoot="$web" &
+  pids+=($!)
+fi
 
 for _ in $(seq 1 60); do
   kill -0 "${pids[0]}" 2> /dev/null || { echo "The game server stopped." >&2; exit 1; }
@@ -126,13 +178,15 @@ done
 curl -sf -o /dev/null "$url" && kill -0 "${pids[0]}" 2> /dev/null ||
   { echo "The game server didn't start at $url." >&2; exit 1; }
 
-if [ $((bots + cheaters)) -gt 0 ]; then
+if [ $((bots + cheaters)) -gt 0 ] && [ -n "$net" ]; then
+  "${compose[@]}" --profile bots up -d bots > /dev/null 2>&1
+elif [ $((bots + cheaters)) -gt 0 ]; then
   dotnet "$repo/artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll" \
     --url "ws://localhost:$port/ws" --count "$bots" --cheaters "$cheaters" > /dev/null &
   pids+=($!)
 fi
 
-echo "== Playing at $url (Ctrl+C stops)"
+echo "== Playing at $url (Ctrl+C stops)${net:+, network profile $net}"
 if [ "$host" = 0.0.0.0 ]; then
   address=$(local_address || true)
   [ -n "$address" ] || address="<this machine's address>"
