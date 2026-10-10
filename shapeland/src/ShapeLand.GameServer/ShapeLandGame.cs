@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Numerics;
 using Comet.Protocol;
 using Comet.Protocol.Framing;
@@ -317,6 +318,14 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         logger.LogInformation(
             "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server, {Clamped} of {Stamps} stamps clamped",
             player.Name, _players.Values.Count(p => p.Joined), player.Validator.Violations, player.ServerFalls, player.Stamp.Clamped, player.Stamp.Broadcasts);
+
+        // For tuning the tolerances (prototype.md): how much of each this player needed.
+        var headroom = player.Validator.Headroom;
+        var bursts = string.Join(" ", MovementHeadroom.SpeedFactors.Select((factor, i) =>
+            FormattableString.Invariant($"x{factor:0.00}={headroom.BurstSecondsNeeded(i):0.000}")));
+        logger.LogInformation(
+            "{Name} headroom: burst seconds {Bursts}; rise over apex {Rise} m; air slack {AirSlack} s",
+            player.Name, bursts, headroom.MaxRiseOverApex.ToString("0.000", CultureInfo.InvariantCulture), headroom.MaxAirSlack.ToString("0.000", CultureInfo.InvariantCulture));
     }
 
     private enum InputKind

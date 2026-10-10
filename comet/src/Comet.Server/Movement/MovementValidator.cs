@@ -133,6 +133,9 @@ public sealed class MovementValidator
     /// <summary>Rejected reports so far (not counting stale ones or falls).</summary>
     public int Violations { get; private set; }
 
+    /// <summary>How much of the tolerances this player's accepted reports have needed, for tuning them.</summary>
+    public MovementHeadroom Headroom { get; } = new();
+
     /// <summary>True while the server is moving the player down a fall, because their client went silent in the air.</summary>
     public bool ServerFalling => _serverFalling;
 
@@ -202,6 +205,10 @@ public sealed class MovementValidator
             Violations++;
             return verdict;
         }
+
+        Headroom.AddMove(distance, elapsed, maxSpeed);
+        var air = stamp ?? tick;
+        Headroom.AddHeight(position.Y - _groundY, (air > _groundTick ? air - _groundTick : 0) / (float)_tickRate, jumpVelocity, _rules.Gravity);
 
         _budget -= distance;
         Position = position;

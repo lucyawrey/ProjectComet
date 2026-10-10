@@ -19,6 +19,9 @@ public sealed class BotSettings
     /// <summary>Slide this many times faster than the shape allows (1 for an honest bot).</summary>
     public float SpeedCheat { get; set; } = 1;
 
+    /// <summary>Jump this many times faster than the shape allows (1 for an honest bot); the height goes with its square.</summary>
+    public float JumpCheat { get; set; } = 1;
+
     /// <summary>Stay within this distance of the island's centre, in metres.</summary>
     public float WanderRadius { get; set; } = 18;
 
@@ -213,7 +216,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
-        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity, world, ShapeLandWorld.Rules);
+        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, world, ShapeLandWorld.Rules);
         // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
         if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond))
         {
