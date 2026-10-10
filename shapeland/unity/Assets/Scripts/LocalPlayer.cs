@@ -28,6 +28,7 @@ namespace ShapeLand.Client
         private readonly FixedStep _step = new FixedStep(StepsPerSecond);
         private readonly PositionReporter _reporter = new PositionReporter();
         private readonly CorrectionBlend _blend = new CorrectionBlend();
+        private float _cheatedAt = float.NegativeInfinity;
         private ClientSession _session;
         private CollisionWorld _world;
         private Shape _shape;
@@ -45,6 +46,9 @@ namespace ShapeLand.Client
         public MotorState Motor => _motor;
 
         public int SnapBacks { get; private set; }
+
+        /// <summary>Of <see cref="SnapBacks"/>, those that came within a second of using the speed cheat.</summary>
+        public int CheatSnapBacks { get; private set; }
 
         public int Respawns { get; private set; }
 
@@ -94,6 +98,7 @@ namespace ShapeLand.Client
             if (Debug.isDebugBuild && InputEnabled && _controls.SpeedCheat.IsPressed())
             {
                 maxSpeed *= SpeedCheat;
+                _cheatedAt = Time.unscaledTime;
             }
 
             var steps = _step.Advance(now);
@@ -138,6 +143,10 @@ namespace ShapeLand.Client
             {
                 _blend.Begin(_drawn, _motor.Position);
                 SnapBacks++;
+                if (Time.unscaledTime - _cheatedAt < 1)
+                {
+                    CheatSnapBacks++;
+                }
             }
 
             Draw(1);

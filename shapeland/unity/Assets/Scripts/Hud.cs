@@ -59,6 +59,10 @@ namespace ShapeLand.Client
         /// <summary>How visible the chat box is now, from 0 (faded out) to 1.</summary>
         public float ChatOpacity => _chatOpacity;
 
+        public JoinClient Join => join;
+
+        public GameView View => view;
+
         /// <summary>The overlay's root, for tests.</summary>
         public VisualElement Root => _root;
 
