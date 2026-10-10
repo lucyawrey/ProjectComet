@@ -2,7 +2,7 @@
 
 The second review round of the fixes on `review/3a` (PR #2), by fresh agents that didn't write them. These findings are to be fixed in a later session, then PR #2 merges. Round 1's findings and fixes are in PR #2's description.
 
-Status: all three reviews are in (scripts; client and content; server fixes and client input). **S1 is high and must be fixed before PR #2 merges.**
+Status: **all findings are fixed on `review/3a`** except C2, which goes in the reconnect PR (todo 5). Choices made while fixing (project lead): S1 by a byte budget per tick frame; S2 with WebSocket keep-alive in place of a receive idle timeout (an idle timeout would drop hidden browser tabs); S8 by the client holding reports while its pings go unanswered (replacing queued reports in the client can't work: a stalled upload's reports sit in the OS's TCP buffer, out of the app's reach). C1 marches in step-sized pieces, with walls found by probing high (an overhang stops a reckoned player too, until its next state). The S2 join deadline closes a connection left idle after a refused join; the client takes that quietly and reconnects on the next try.
 
 ## Verdicts on round 1's fixes
 
