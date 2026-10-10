@@ -24,7 +24,13 @@ public sealed class BotSettings
 
     /// <summary>Ask for this body colour (0xRRGGBB) instead of a random one from the starting set.</summary>
     public uint? Colour { get; set; }
+
+    /// <summary>Seconds after joining before network numbers are recorded (the delay settles first); negative for none.</summary>
+    public double WarmupSeconds { get; set; } = -1;
 }
+
+/// <summary>A bot's network numbers at one moment: seconds since it joined, and milliseconds for the rest.</summary>
+public readonly record struct NetSample(double Seconds, double PingMs, double BestPingMs, double DelayMs, double TargetMs);
 
 /// <summary>
 /// One simulated player: joins, wanders the island with the shared player motor, jumps now and then and chats
@@ -48,6 +54,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private int _step;
     private double _nextJump;
     private double _nextChat;
+    private double _targetSince;
+    private double _joinedAt;
+    private double _lastNow;
+    private bool _recording;
+    private double _nextSample;
+    private (long MoveStates, long Holds, double HeldTicks) _baseline;
 
     public string Name => name;
 
@@ -75,10 +87,16 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     /// <summary>The connection failed or was lost, rather than being closed by the bot.</summary>
     public bool Failed { get; private set; }
 
-    /// <summary>
-    /// Time a bot was assigned a target point.
-    /// </summary>
-    public double TargetTime = 0;
+    /// <summary>Network numbers sampled while running, for <c>--results</c>; empty until the warmup is over.</summary>
+    public List<NetSample> NetSamples { get; } = [];
+
+    /// <summary>Of the others' states received since the warmup, those that continued a move, and the holds among them.</summary>
+    public long MoveStates => Joined && _recording ? _session.Entities.MoveStates - _baseline.MoveStates : 0;
+
+    public long Holds => Joined && _recording ? _session.Entities.Holds - _baseline.Holds : 0;
+
+    /// <summary>How long the holds since the warmup were, in seconds, summed.</summary>
+    public double HeldSeconds => Joined && _recording ? (_session.Entities.HeldTicks - _baseline.HeldTicks) / _session.Entities.TickRate : 0;
 
     public async Task RunAsync(Uri url, CancellationToken stop)
     {
@@ -96,6 +114,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             while (transport.State != TransportState.Closed && await timer.WaitForNextTickAsync(stop))
             {
                 var now = clock.Elapsed.TotalSeconds;
+                _lastNow = now;
                 if (!asked && transport.State == TransportState.Open)
                 {
                     asked = true;
@@ -133,10 +152,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         _step++;
         var elapsed = _step / (double)StepsPerSecond;
         var position = new Vector2(_motor.Position.X, _motor.Position.Z);
-        if (Vector2.Distance(position, _target) < 1.5f || now - TargetTime > 30)
+        // A new target on arrival, or after 30 s without getting there (stuck behind a block).
+        if (Vector2.Distance(position, _target) < 1.5f || now - _targetSince > 30)
         {
             _target = RandomPoint();
-            TargetTime = now;
+            _targetSince = now;
         }
 
         var move = Vector2.Normalize(_target - position);
@@ -165,6 +185,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         {
             _session.Entities.TrySample(id, renderTick, out _);
         }
+
+        Record(now);
     }
 
     private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
@@ -178,6 +200,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 if (_session.Welcomed && spawn.EntityId == _session.EntityId)
                 {
                     Joined = true;
+                    _joinedAt = _lastNow;
                     _motor = new MotorState { Position = position, Grounded = true, Facing = spawn.Facing };
                     _target = RandomPoint();
                     _nextJump = 2 + _random.NextDouble() * 4;
@@ -213,6 +236,37 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         {
             SnapBacks++;
         }
+    }
+
+    // After the warmup, the network numbers the overlay shows, four times a second.
+    private void Record(double now)
+    {
+        if (settings.WarmupSeconds < 0 || now < _joinedAt + settings.WarmupSeconds)
+        {
+            return;
+        }
+
+        var entities = _session.Entities;
+        if (!_recording)
+        {
+            _recording = true;
+            _baseline = (entities.MoveStates, entities.Holds, entities.HeldTicks);
+            _nextSample = now;
+        }
+
+        if (now < _nextSample)
+        {
+            return;
+        }
+
+        _nextSample += 0.25;
+        var delay = _session.InterpolationDelay;
+        NetSamples.Add(new NetSample(
+            now - _joinedAt,
+            _session.Clock.LastRoundTrip * 1000,
+            _session.Clock.RoundTrip * 1000,
+            delay.Seconds * 1000,
+            delay.Target / delay.TickRate * 1000));
     }
 
     private Vector2 RandomPoint()
