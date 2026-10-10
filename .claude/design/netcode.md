@@ -40,6 +40,7 @@ Agent notes on networking.
 
 - **Techniques for WebSocket as the worst case:** server send queues that keep only the latest state; the server accepts timestamped inputs arriving in bursts, within limits; `TCP_NODELAY` on the server.
 - **Nudging (if adopted, `combat.md`):** server-enforced against monsters and NPCs, client-only between players.
+- **Movement abilities as a Comet mechanism** (project lead; not phase 0): sprints that cost a resource and raise speed, dashes (a quick move forward), short-range teleports (a dash with the player hidden), double jumps and air dashes. The server must verify each was legal (the ability is known and off cooldown, the resource was paid, the move fits its curve) rather than widen the tolerances for them. Air dashes and double jumps keep the player in the jumping height zone for combat (`combat.md`). Builds on movement skills as fixed curves in frame data (Decided) and fits the input replay check, where an ability use is one of the replayed inputs.
 - **Chat apart from game state, long term** (project lead): chat sent separately from the tick frames (its own frames, connection or service), so a chat burst can't crowd out or delay game state.
 - **Context for the 100-player boss:** sending full state 30 times a second to 100 players would be roughly 0.5 Mbps down per player and ~50 Mbps up from the server. Event-based actions, relevance prioritisation and display caps are how this gets cut down.
 
