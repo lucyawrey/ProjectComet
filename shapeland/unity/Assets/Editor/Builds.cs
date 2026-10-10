@@ -48,8 +48,9 @@ namespace ShapeLand.Client.Editor
         [MenuItem("ShapeLand/Build/Web")]
         public static void Web()
         {
-            // Uncompressed for now, so any static file server can host the check; release builds will use Brotli.
+            // Uncompressed, so any static file server can host the check; the game scene's build uses Brotli.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+            PlayerSettings.WebGL.decompressionFallback = false;
             Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web");
         }
 
@@ -58,13 +59,19 @@ namespace ShapeLand.Client.Editor
         public static void WebJoin()
         {
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+            PlayerSettings.WebGL.decompressionFallback = false;
             Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web-join", JoinScene);
         }
 
         [MenuItem("ShapeLand/Build/Web (Game Scene)")]
         public static void WebGame()
         {
-            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+            // Brotli, about a quarter of the size: uncompressed, the page took minutes to load through a lossy
+            // link. With the decompression fallback, the loader unpacks files a server sent without
+            // Content-Encoding (GitHub Pages can't set it; browsers accept br only over HTTPS); the game server
+            // sends it to browsers that ask for br.
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+            PlayerSettings.WebGL.decompressionFallback = true;
             Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web-game", GameScene);
         }
 
