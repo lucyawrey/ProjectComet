@@ -1,6 +1,6 @@
 # Free low-poly assets: research pass
 
-**Layer: mixed.** Placeholder and prototype assets serve both ShapeLand-adjacent tests and Project Anima's phase 3 onwards.
+**Layer: mixed.** Placeholder and prototype assets serve both ShapeLand-adjacent tests and Anima's phase 3 onwards.
 
 Agent research, written 2026-10-06. A basic survey. **Decided:** Kenney, Quaternius and KayKit are the starting sources for placeholder and prototype assets (`art.md`). No specific packs are chosen.
 

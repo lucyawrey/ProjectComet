@@ -7,13 +7,16 @@ Agent notes on combat design.
 ## Decided
 
 - **Feel:** action combat that feels a little like ARPGs and a little like tab-target games, but is extremely approachable for casual players. Optional lock-on.
+- **Actions are content, not code** (project lead): the end goal is that most Actions are made as content (frame data, hitboxes, costs, cooldowns, effects, movement, through the content pipeline, `backend.md`), with their own assets (animations, effects, sounds), and no code per Action. Code is for new mechanisms the content can then use, and the rare Action that needs something unique.
+- **Timing between a GCD system and fighting-game frame data** (project lead, Anima): most attacks share the same total time between actions (a GCD-like rhythm), but the timing inside that window varies per action (startup, active and recovery frames). The GCD doesn't need to be in Comet: it's a shared cooldown group plus each Action's frame data.
 - **Simple to understand, hard to master,** with **complex boss mechanics** like FFXIV's and Rabbit and Steel's (raid mechanics without tab-targeting, using shape-based collision). High-end raiding is part of the audience.
 - **PvE only for the first major version.** No PvP system is planned, so no PvP netcode.
 - **Every class can dodge, but invulnerability varies by class and skill.** Defenders have invulnerability levels (none / dodge / a rarer "true" invuln); attacks have pierce levels, and some attacks hit through normal invuln.
 - **Height zones are separate from invulnerability.** Zones (digging, crouching, standing, jumping, flying) are vertical position; invulnerability is defensive state. Both feed one shared "is this hit valid?" check.
 - **Real height check:** height thresholds between attacker and defender add or subtract an integer offset to the zone check. Can be disabled for flat areas like boss arenas as an optimisation. Where placed meshes are walkable, ground height comes from collision meshes as well as the heightmap (`backend.md`, zone format).
 - **Frame data in 30 Hz simulation ticks:** explicit startup, active and recovery frames, run in parallel with (not driven by) animations. Consistent timing matters more than visual match.
-- **Thin skill base:** Comet defines only what executes an action (frame data, hitboxes, cooldowns, effects). How skills are acquired, slotted and advanced is game code (`skills.md` for Project Anima).
+- **Thin Action base:** Comet's unit is the **Action** (glossary): it defines only what executes one (frame data, hitboxes, cooldowns, costs from resource pools, effects, movement), and the server checks every use was legal. Every feature (cooldowns, costs, damage and other effects, frame data, hitboxes, movement) is shared logic on the Action, and designers use whichever each one needs; a game's kinds of action (Anima's Skills and Abilities) differ only in that choice and in game-side bindings, slots and UI. Comet never says "Skill" or "Ability"; how Actions are acquired, slotted and advanced, and what players call them, is game code (`skills.md` for Anima).
+- **Resource pools are a Comet mechanism:** named values with a maximum and regeneration (HP, MP, stamina…), which the server checks and spends Action costs from; games name and balance them.
 - **Attack patterns: mostly telegraphs, some bullets:** mostly telegraphed swings and AoE shapes, with occasional moderate projectile patterns for raids. Bullet counts are capped for bandwidth, and patterns sync as events, not per-projectile state.
 - **Fight sizes:** dedicated raids up to ~30 players; open-world bosses aim for ~100 in the worst case (revisit if not feasible).
 - **Player hitboxes are small and identical:** for attacks, a tiny circle at the player's centre (starting at about 0.3 m wide, tuned in the prototype), much smaller than the model and the same for every ancestry and class. ShapeLand follows this.
@@ -27,6 +30,7 @@ Agent notes on combat design.
 
 ## Considering
 
+- **The Action base's mechanisms** (agent suggestion), from which kinds like GCD, oGCD, casts and stances are combinations rather than types: cooldown groups (one of which a game can use as its GCD); charges (several stored uses that recharge); phases (cast, channel, charge-up) with their interrupt rules; cancel windows on recovery frames (dodge- or jump-cancel); use conditions (combo steps, procs, follow-ups); toggles with an upkeep cost from a resource pool; input queueing (a press during an Action's lock fires when it can); targeting modes (self, target, direction, ground point, cone). Which of these Anima uses is a design question for later.
 - **Nudging:** moving slower through other bodies (`netcode.md` has how it would sync).
 
 ## Open

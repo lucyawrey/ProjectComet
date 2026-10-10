@@ -1,6 +1,6 @@
 # Crafts and gathering
 
-**Layer: mixed.** Base (Comet): crafting as inputs and outputs, recipe storage, crafter signatures and similar basics; gathering nodes with per-player and shared modes. Game (Project Anima): the involved, physical crafting with a quality score and the auto-craft threshold, no craft attunement as a policy, co-crafting, and Runes that improve crafts (including locked class Runes).
+**Layer: mixed.** Base (Comet): crafting as inputs and outputs, recipe storage, crafter signatures and similar basics; gathering nodes with per-player and shared modes. Game (Anima): the involved, physical crafting with a quality score and the auto-craft threshold, no craft attunement as a policy, co-crafting, and Runes that improve crafts (including locked class Runes).
 
 Agent notes on crafts (Crafting, Building, Gathering, Fishing). Housing, guild halls and temporary structures are in `housing.md`: crafters interact with them, but they aren't part of crafts.
 

@@ -38,7 +38,7 @@ When a zone gets busy, it runs in several channels. Comet handles:
 
 A teleport reuses the border handoff. When the cast starts, the destination loads in the background; when it finishes, ownership moves behind a short travel scene, which lasts a fixed time even if loading finishes early. Dungeon entrances work like small borders into an instance, with a loading room where the party gathers while the dungeon streams in.
 
-What players see around these mechanisms (the travel scene, loading rooms, re-entry rules) is up to each game; see [World and Travel](../Project%20Anima/World%20and%20Travel.md) for Project Anima's.
+What players see around these mechanisms (the travel scene, loading rooms, re-entry rules) is up to each game; see [World and Travel](../Project%20Anima/World%20and%20Travel.md) for Anima's.
 
 ## Zone format
 

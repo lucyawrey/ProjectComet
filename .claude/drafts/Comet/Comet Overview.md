@@ -1,12 +1,12 @@
 # Comet Overview
 
-Comet is the foundation Project Anima is built on: the servers, shared libraries, Unity package and tools that make a seamless, browser-playable action MMO possible. Project Anima is the game; Comet is everything underneath it that another, similar game could reuse.
+Comet is the foundation Anima is built on: the servers, shared libraries, Unity package and tools that make a seamless, browser-playable action MMO possible. Anima is the game; Comet is everything underneath it that another, similar game could reuse.
 
 ## Why two layers
 
 Building an MMO means building a lot of infrastructure before any of it is fun: networking, persistence, a world that streams without loading screens, moderation tools, a content pipeline. Almost none of that is specific to one game's ideas.
 
-Splitting the project in two keeps that work useful even if the team wants a different game. If Project Anima's vision isn't the one we end up making, Comet still gets us most of the way to a similar MMO that fits other goals.
+Splitting the project in two keeps that work useful even if the team wants a different game. If Anima's vision isn't the one we end up making, Comet still gets us most of the way to a similar MMO that fits other goals.
 
 ## What Comet assumes
 
@@ -23,7 +23,7 @@ What a game decides for itself: its classes and progression, how skills are acqu
 
 The general rule is that Comet provides thin mechanisms and each game sets the policy on top. For example:
 
-| Area | Comet provides | Project Anima decides |
+| Area | Comet provides | Anima decides |
 | --- | --- | --- |
 | Channels | Placement with a pluggable preference policy, soft and hard caps, draining and merges | Constellations and who you're placed with first |
 | Instances | Lifecycle, entry and exit hooks, teleport handoff | Loading rooms, re-entry rules, no lockouts |

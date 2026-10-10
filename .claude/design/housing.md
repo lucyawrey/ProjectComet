@@ -1,6 +1,6 @@
 # Housing and structures
 
-**Layer: game (Project Anima).** Comet keeps only the house instance kind (a zone kind, see `world.md`).
+**Layer: game (Anima).** Comet keeps only the house instance kind (a zone kind, see `world.md`).
 
 Agent notes on housing, guild halls and temporary structures. Crafters interact with these, but they aren't part of crafts (`crafts.md`). Housing furniture as items is in `items.md`.
 

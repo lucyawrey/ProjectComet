@@ -1,6 +1,6 @@
 # Art and aesthetic
 
-**Layer: game (Project Anima).** "Human-made creative content only" applies to the whole project. ShapeLand, the base's demo game, uses plain shapes in a toy-box style instead (`proposal.md`).
+**Layer: game (Anima).** "Human-made creative content only" applies to the whole project. ShapeLand, the base's demo game, uses plain shapes in a toy-box style instead (`proposal.md`).
 
 Agent notes on art direction. The project lead's working thoughts are in Quick Notes (in the project lead's Obsidian vault, outside the repo) ("Aesthetic").
 

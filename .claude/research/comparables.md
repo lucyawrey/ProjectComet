@@ -1,6 +1,6 @@
 # Comparable games: research pass
 
-**Layer: game (Project Anima), with Comet notes where a game's tech is relevant.**
+**Layer: game (Anima), with Comet notes where a game's tech is relevant.**
 
 Agent research, written 2026-10-06, so the project lead can decide which games belong in the proposal. These are findings and suggestions, not decisions. The proposal's current comparables (Old School RuneScape, FFXIV, Classic WoW, Rabbit and Steel) and art inspirations (PSO, Crystal Chronicles, Signalis) aren't repeated here.
 

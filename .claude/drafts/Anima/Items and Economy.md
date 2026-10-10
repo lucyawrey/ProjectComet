@@ -1,6 +1,6 @@
 # Items and Economy
 
-Every item in Project Anima is real: a physical thing in exactly one place, which can be dropped, handed over, traded or lost. No item is ever sold for real money. That makes the economy matter, and it makes the world feel solid.
+Every item in Anima is real: a physical thing in exactly one place, which can be dropped, handed over, traded or lost. No item is ever sold for real money. That makes the economy matter, and it makes the world feel solid.
 
 ## Carrying and keeping things
 

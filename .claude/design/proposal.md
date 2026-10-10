@@ -1,6 +1,6 @@
 # Proposal-level topics
 
-**Layer: mixed.** Base (Comet): the two-layer section, team roles, roadmap phases 0–2, ShapeLand, privacy, security. Game (Project Anima): vision and pillars, business model, audience, core loop, economy, new players, character creation, age rating, licences for Anima, accessibility, comparables, setting.
+**Layer: mixed.** Base (Comet): the two-layer section, team roles, roadmap phases 0–2, ShapeLand, privacy, security. Game (Anima): vision and pillars, business model, audience, core loop, economy, new players, character creation, age rating, licences for Anima, accessibility, comparables, setting.
 
 Agent notes on what a game proposal covers beyond systems. **The pitch, pillar wording, "what makes it different", the Comet overview prose and the setting are the project lead's to write**; agent drafts of them exist in `.claude/drafts/` only because the project lead asked, and the setting has no draft.
 
@@ -18,25 +18,25 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
 
 *Placeholder: elevator pitch (project lead).*
 
-### Two layers: Comet and Project Anima
+### Two layers: Comet and Anima
 
-- **Comet is the base; Project Anima is the game built on it.** Comet runs a family of similar MMOs that share most systems. If the indie team doesn't want this exact game vision, Comet is still useful for a similar MMO that fits their goals better. **Comet carries a lot of assumptions about the game:** how combat and transport work in general, and more, so everything built on it will feel similar in many ways. Don't describe it as a base for "any" game. Specific gameplay can vary: another game might not have Class Crystals, for example.
-- **Naming:** "Project Anima" is the game's working name. The repository keeps the name `ProjectComet`.
-- **One proposal document in two parts:** Comet, then Project Anima. The team can take the first part on its own. **The Comet part is short:** framed as how the game is built, plus a section on reuse, not a second product pitch.
+- **Comet is the base; Anima is the game built on it.** Comet runs a family of similar MMOs that share most systems. If the indie team doesn't want this exact game vision, Comet is still useful for a similar MMO that fits their goals better. **Comet carries a lot of assumptions about the game:** how combat and transport work in general, and more, so everything built on it will feel similar in many ways. Don't describe it as a base for "any" game. Specific gameplay can vary: another game might not have Class Crystals, for example.
+- **Naming:** "Anima" is the game's working name. The repository keeps the name `ProjectComet`.
+- **One proposal document in two parts:** Comet, then Anima. The team can take the first part on its own. **The Comet part is short:** framed as how the game is built, plus a section on reuse, not a second product pitch.
 - **Games plug in as C# code modules plus their own content,** on top of Comet's libraries and servers. Systems like crystals can't be expressed by content data alone.
 - **Games extend Protocol and Simulation through registry keys and extension points:** games ship their own assemblies next to Protocol and Simulation; game message types get numbers from the registry, as for database rows (`backend.md`); Simulation exposes extension points (effect, buff and skill-behaviour handlers registered by key). Everything is compiled in, so it works on web and IL2CPP builds.
 - **What's in Comet,** beyond the obviously shared parts (seamless world, zones, channels and instances, transport, netcode, action-combat core, content pipeline, accounts, ops and moderation tools, privacy and security, self-hosting):
   - items and economy basics: inventory, Storage and bags as containers, slot rules, player trading, currency as items, the item ledger, an owner or binding field on items, tradeability tiers;
   - a basic crafting framework: inputs and outputs, recipe storage, crafter signatures, gathering nodes;
   - social basics: guilds, parties, chat, friends, the house instance kind;
-  - a progression framework: XP, levels, learned flags, and a thin skill base that only executes actions (frame data, hitboxes, cooldowns, effects), not necessarily slots, so a game can build more traditional MMO skill advancement;
+  - a progression framework: XP, levels, learned flags, resource pools, and a thin Action base that only executes Actions (frame data, hitboxes, cooldowns, costs, effects, movement), not necessarily slots, so a game can build more traditional MMO skill advancement;
   - movement and attachment for companions: mounts as a movement mode, passengers, an entity following its owner;
   - instance lifecycle with entry and exit hooks, and teleport handoff;
   - channel placement with a pluggable preference policy, soft and hard caps;
   - flying and fixed-route vehicles; height zones and frame data.
-- **Policy is game code; Comet keeps thin mechanisms.** Project Anima's own code covers: Class Crystals, Soul XP, Anima, Runes and how skills are acquired and slotted; companion records, capture, tasks, levelling and stables; soulbound rules (recall, the 24-hour return, lending, no-return trades, re-obtaining); gear sets as references into Storage, the outfit overlay and Outfit Magic; dungeon and teleport rules (loading rooms, re-entry votes, replacements, no lockouts, the teleport scene, cast rules); constellations and the channel preference order; the market; housing placement, furniture, guild halls and temporary structures; wear and repair, dyes, the item collection log and the coin purse; attunements and Anima Capacity; the business model (membership, parts and their gating, free-account limits, bonds). Comet keeps at most a membership flag on accounts. Duplication in ShapeLand is accepted (e.g. its own simple mounts or basic equip).
+- **Policy is game code; Comet keeps thin mechanisms.** Anima's own code covers: Class Crystals, Soul XP, Anima, Runes and how skills are acquired and slotted; companion records, capture, tasks, levelling and stables; soulbound rules (recall, the 24-hour return, lending, no-return trades, re-obtaining); gear sets as references into Storage, the outfit overlay and Outfit Magic; dungeon and teleport rules (loading rooms, re-entry votes, replacements, no lockouts, the teleport scene, cast rules); constellations and the channel preference order; the market; housing placement, furniture, guild halls and temporary structures; wear and repair, dyes, the item collection log and the coin purse; attunements and Anima Capacity; the business model (membership, parts and their gating, free-account limits, bonds). Comet keeps at most a membership flag on accounts. Duplication in ShapeLand is accepted (e.g. its own simple mounts or basic equip).
 - **Keeping the split cheap** (a clean split in one codebase costs roughly 10–20% more up front; a true product engine 1.5–2×; the main risk is guessing abstractions with only one real game):
-  - **Extract, don't pre-build:** a system enters Comet only once both ShapeLand and Project Anima use it; Anima-only systems stay in Anima until another game needs them. The layer tags in the design notes are expectations, not build orders.
+  - **Extract, don't pre-build:** a system enters Comet only once both ShapeLand and Anima use it; Anima-only systems stay in Anima until another game needs them. The layer tags in the design notes are expectations, not build orders.
   - **One repo, one solution, no API stability:** Comet isn't a product until a second real game exists. Breaking changes are fine and both games are fixed in the same commit; no versioned packages.
   - **Extension points only when needed:** plain C# interfaces and registration by key, and no hook without a current caller.
   - **ShapeLand stays tiny:** a test fixture that happens to be playable (still the reference game); every system it adopts is maintenance.
@@ -48,7 +48,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
 
 ### ShapeLand
 
-- **ShapeLand is Comet's demo game for phases 0–2,** and stays as the reference game: shown in the Comet part of the proposal, kept working as Comet evolves, and shipped as the sample game for anyone building on Comet or testing a private server. Early demos don't need to be Project Anima; Anima's own systems start at phase 3. The early work stays useful whatever game the team picks.
+- **ShapeLand is Comet's demo game for phases 0–2,** and stays as the reference game: shown in the Comet part of the proposal, kept working as Comet evolves, and shipped as the sample game for anyone building on Comet or testing a private server. Early demos don't need to be Anima; Anima's own systems start at phase 3. The early work stays useful whatever game the team picks.
 - **Concept:** players are basic coloured shapes in similarly basic shape environments, who slide around, chat and engage in basic magical combat. Needs no art assets or animation.
 - **All combat is magic** because melee animations would be very awkward on shapes.
 - **Players and monsters never share shapes.** Players are faceted (flat-faced) shapes: a cube, a **diamond** (a tall square bipyramid) and a pyramid. Monsters are curved: spheres, capsules, cylinders and tori, with no cones (a cone's silhouette matches the pyramid).
@@ -103,12 +103,12 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
   | 0. Prototypes | Two-stage load test; shared source packages in Unity; TOML 1.1 editor support; texture filtering comparison | The load test meets thresholds written down beforehand |
   | 1. Vertical slice | ShapeLand in one zone with its core loop, 100+ bots, simulated latency from day one | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
   | 2. Seamless-world proof | Two or more zones with border handoff, channels, a dungeon instance, a teleport | Crossing borders is invisible under simulated latency |
-  | 3. Closed alpha | Project Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
+  | 3. Closed alpha | Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
   | 4. Open beta | Early part complete, late part in progress, membership and bonds, ops tooling | Scale and economy hold up with a real population |
   | 5. Launch | Early part (free) and late part (members) | |
   | 6. Expansions | New parts; free players move up a part | |
 
-  Phase 2 proves the biggest risk (the seamless world) before content production. Whether Project Anima is fun is tested at phase 3.
+  Phase 2 proves the biggest risk (the seamless world) before content production. Whether Anima is fun is tested at phase 3.
 - **Budget: hosting costs only;** development budget is left to the team. Cost categories: game servers (most of it), Region server processes, PostgreSQL with backups, Valkey for larger regions, and CDN bandwidth for web client, asset and content downloads (every new browser player downloads them). *Placeholder: numbers after phase 0 (players per CPU core from the load test).*
 
 ### Core loop, endgame and content delivery
@@ -167,7 +167,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
 ### Licences and private servers
 
 - **Comet and ShapeLand are MIT-licensed.**
-- **Project Anima's code is source-available, non-commercial.** The exact licence (e.g. PolyForm Noncommercial or a custom one) is chosen with legal advice before release.
+- **Anima's code is source-available, non-commercial.** The exact licence (e.g. PolyForm Noncommercial or a custom one) is chosen with legal advice before release.
 - **Private servers may run Anima's official content and art non-commercially:** free to host with official content and the official client, as long as they don't charge or sell items, and don't present themselves as official.
 - **Private servers may host only the free (non-member) parts in the initial version.** Enforced by free-only packages plus the licence: private-server packages ship only the free parts' content (content builds can already be split per part), and the licence forbids hosting member content.
 
@@ -223,7 +223,7 @@ Comet mechanisms.
 - **Generic Comet servers that load game modules** (a plugin loader): each game builds its own server programs.
 - **One Unity project building both games:** it would mix their assets.
 - **Comet as a separately versioned product with API stability** before a second real game exists.
-- **Project Anima as the early demo** (phases 0–2): ShapeLand is used instead.
+- **Anima as the early demo** (phases 0–2): ShapeLand is used instead.
 - **A pill-shaped player shape** in ShapeLand: replaced by the diamond so players and monsters don't share shapes.
 - **Ancestry stat effects,** including ancestry in Freelancer's attribute formula.
 - **Third-party login providers;** **client-side anti-cheat;** **automatic bans** from heuristics.

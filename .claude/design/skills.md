@@ -1,12 +1,12 @@
 # Skills, Abilities and Runes
 
-**Layer: mixed.** Base (Comet): a thin skill base that only executes actions (frame data, hitboxes, cooldowns, effects; see `combat.md`), not necessarily slots, so another game can build more traditional MMO skill advancement. Acquisition, slotting and advancement are game code. Game (Project Anima): everything else here.
+**Layer: mixed.** Base (Comet): a thin Action base that only executes Actions (frame data, hitboxes, cooldowns, costs, effects, movement; see `combat.md`), not necessarily slots, so another game can build more traditional MMO skill advancement. Acquisition, slotting and advancement are game code. Game (Anima): everything else here.
 
-Agent notes on Project Anima's skill system. See `glossary.md` for terms.
+Agent notes on Anima's skill system. See `glossary.md` for terms.
 
 ## Decided
 
-- **Terminology** (may change, but must stay distinct): **Skills** are primary actions; **Abilities** are all secondary actions, whatever their source (class, character-wide, Runes). Abilities are generally ill-suited to battle but not always (re-casting a one-hour buff mid-fight), and players can optionally bind them; **Runes** are slotted skills; **rune stones** are Runes as items.
+- **Terminology** (may change, but must stay distinct): **Skills** are primary actions; **Abilities** are all secondary actions, whatever their source (class, character-wide, Runes). Abilities are generally ill-suited to battle but not always (re-casting a one-hour buff mid-fight), and players can optionally bind them; **Runes** are slotted skills; **rune stones** are Runes as items. Underneath, Skills and Abilities are both Comet **Actions** (glossary), and Comet doesn't tell them apart: the difference is design (Skills have dedicated bindings and make up most of combat and rotations; Abilities are secondary, often with less combat impact or long casts and durations, like party buffs).
 - **Two tiers of actions:**
   - **Primary:** a small set used for normal rotations and combat, with proper default bindings on controller and keyboard.
   - **Secondary (Abilities):** a large selection used less often but doing cool things (long-term buffs, teleports, transformations), provided by classes, Runes, the base system and character-wide unlocks. They don't need to fit the primary control scheme, but can optionally go on hotbars. (Rough idea: a context menu on controller.)

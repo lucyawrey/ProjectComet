@@ -1,6 +1,6 @@
 # Database tables
 
-**Layer: mixed.** Project Anima's game tables (`<game>_` side tables, see `backend.md`): crystals and class entries, Soul XP, Anima, Runes, attunements, gear and outfit sets, the collection log, companions, the market, housing, constellations, membership and parts. The rest is base (Comet): accounts, characters, items and containers, the ledger, flags, social basics, instances, moderation.
+**Layer: mixed.** Anima's game tables (`<game>_` side tables, see `backend.md`): crystals and class entries, Soul XP, Anima, Runes, attunements, gear and outfit sets, the collection log, companions, the market, housing, constellations, membership and parts. The rest is base (Comet): accounts, characters, items and containers, the ledger, flags, social basics, instances, moderation.
 
 Agent notes on table design, per area. **The project lead decides the final schema**; the table drafts here are input. Architecture-level decisions (account and region databases, conventions, ledger, registry, chat buffer) live in `backend.md`.
 
@@ -58,7 +58,7 @@ Starting material: the project lead's table list in Quick Notes (in the project 
 
 ## Draft tables (agent proposals)
 
-The Layer column (following `proposal.md`) marks each table as base (Comet) or game (Project Anima). Game tables would become `anima_`-prefixed side tables (`backend.md`); names here are unprefixed for readability. Under "extract, don't pre-build", these are expectations, not build orders.
+The Layer column (following `proposal.md`) marks each table as base (Comet) or game (Anima). Game tables would become `anima_`-prefixed side tables (`backend.md`); names here are unprefixed for readability. Under "extract, don't pre-build", these are expectations, not build orders.
 
 ### Accounts and staff (account database)
 
