@@ -286,12 +286,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         }
     }
 
-    // The speed-hitch test RemoteEntities applies to others' states, applied to this bot's own reports: what its
-    // real movement does, to compare with what others draw.
     /// <summary>Whether a player's name is a cheating bot's, as Program names them ("Cheater 01", "Far cheater 01").</summary>
     public static bool IsCheaterName(string name) =>
         name.StartsWith("Cheater ", StringComparison.Ordinal) || name.Contains(" cheater ", StringComparison.Ordinal);
 
+    // The speed-hitch test RemoteEntities applies to others' states, applied to this bot's own reports: what its
+    // real movement does, to compare with what others draw.
     private void CountOwnHitch(uint tick, Vector3 position)
     {
         if (_recording && _ownReports.Count == 2)

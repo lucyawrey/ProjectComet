@@ -108,6 +108,9 @@ namespace ShapeLand.Client
         /// <summary>Why the client stopped: content that wouldn't load, or the connection's error.</summary>
         public string Error { get; private set; }
 
+        /// <summary>Whether the last failure was the server address itself, rather than reaching the server; <see cref="Error"/> says why.</summary>
+        public bool BadAddress { get; private set; }
+
         public ClientSession Session => _connection.Session;
 
         private void Awake() => _connection = GetComponent<CometConnection>();
@@ -155,10 +158,12 @@ namespace ShapeLand.Client
             }
 
             Error = null;
+            BadAddress = false;
             Rejected = null;
             playerName = request.Name;
             if (!TryServerUrl(serverAddress, out var url))
             {
+                BadAddress = true;
                 Fail($"\"{serverAddress}\" isn't a server address. Use a host and port, like localhost:5080.");
                 return;
             }
