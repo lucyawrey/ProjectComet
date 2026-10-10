@@ -15,7 +15,7 @@ Handoff notes for agent sessions. Last updated 2026-10-10.
 
 ## What this phase is
 
-Planning, for a proposal the project lead will present to a small indie team they've joined. No hiring yet. The early prototype's phase 0 (ShapeLand) is done and playable at the public test build; the focus is back on the proposal. Don't hash out precise UI and control details. Multiple characters per account will exist, but this phase ignores multi-character flows.
+Planning, for a proposal written for any small indie team. ProjectComet, including the proposal, is the project lead's personal project; there is no established team yet. The project lead plans to present it to people they know with game development skills. No hiring yet. The early prototype's phase 0 (ShapeLand) is done and playable at the public test build; the focus is back on the proposal. Don't hash out precise UI and control details. Multiple characters per account will exist, but this phase ignores multi-character flows.
 
 The project lead may build more of the prototype (the full load test, todos below); don't start building anything without discussing it first.
 

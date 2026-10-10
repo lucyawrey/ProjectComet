@@ -20,7 +20,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
 
 ### Two layers: Comet and Anima
 
-- **Comet is the base; Anima is the game built on it.** Comet runs a family of similar MMOs that share most systems. If the indie team doesn't want this exact game vision, Comet is still useful for a similar MMO that fits their goals better. **Comet carries a lot of assumptions about the game:** how combat and transport work in general, and more, so everything built on it will feel similar in many ways. Don't describe it as a base for "any" game. Specific gameplay can vary: another game might not have Class Crystals, for example.
+- **Comet is the base; Anima is the game built on it.** Comet runs a family of similar MMOs that share most systems. If a team that takes up the proposal doesn't want this exact game vision, Comet is still useful for a similar MMO that fits their goals better. **Comet carries a lot of assumptions about the game:** how combat and transport work in general, and more, so everything built on it will feel similar in many ways. Don't describe it as a base for "any" game. Specific gameplay can vary: another game might not have Class Crystals, for example.
 - **Naming:** "Anima" is the game's working name. The repository keeps the name `ProjectComet`.
 - **One proposal document in two parts:** Comet, then Anima. The team can take the first part on its own. **The Comet part is short:** framed as how the game is built, plus a section on reuse, not a second product pitch.
 - **Games plug in as C# code modules plus their own content,** on top of Comet's libraries and servers. Systems like crystals can't be expressed by content data alone.
