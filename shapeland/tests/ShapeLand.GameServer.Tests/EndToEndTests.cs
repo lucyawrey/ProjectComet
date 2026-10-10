@@ -179,6 +179,51 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ForwardedAddressesFromThisMachineCountPerPlayer()
+    {
+        // Through a proxy on this machine every connection arrives from loopback; X-Forwarded-For tells players apart,
+        // so more than the per-address cap can connect in total, while each player is still capped.
+        var limit = new ConnectionLimits().MaxConnectionsPerAddress;
+        var sockets = new List<ClientWebSocket>();
+        try
+        {
+            for (var i = 0; i < limit + 2; i++)
+            {
+                var socket = new ClientWebSocket();
+                socket.Options.SetRequestHeader("X-Forwarded-For", $"203.0.113.{i}");
+                sockets.Add(socket);
+                await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+            }
+
+            for (var i = 0; i < limit; i++)
+            {
+                var same = new ClientWebSocket();
+                same.Options.SetRequestHeader("X-Forwarded-For", "198.51.100.7");
+                sockets.Add(same);
+                await same.ConnectAsync(_url, TestContext.Current.CancellationToken);
+            }
+
+            using var extra = new ClientWebSocket();
+            extra.Options.SetRequestHeader("X-Forwarded-For", "198.51.100.7");
+            await Assert.ThrowsAsync<WebSocketException>(() => extra.ConnectAsync(_url, TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            sockets.ForEach(socket => socket.Dispose());
+        }
+    }
+
+    [Fact]
+    public async Task HealthSaysOkToAnyPage()
+    {
+        using var http = new HttpClient();
+        var response = await http.GetAsync(new Uri(_server.Urls.First() + "/health"), TestContext.Current.CancellationToken);
+
+        Assert.Equal("ok", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal("*", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+    }
+
+    [Fact]
     public async Task AConnectionThatNeverJoinsIsDropped()
     {
         using var socket = new ClientWebSocket();

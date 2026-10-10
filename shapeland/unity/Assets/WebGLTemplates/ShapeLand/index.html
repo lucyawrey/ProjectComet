@@ -71,17 +71,18 @@
 
         function show(state) { body.dataset.state = state; }
 
-        // Whether the game server answers at all. A plain request to its WebSocket path is refused (it isn't a
-        // WebSocket), but any answer means it's running; an unreachable one fails or times out.
+        // Whether the game server is up: its /health answers "ok". Anything else (no answer, a timeout, or another
+        // host answering for its name, like a wildcard DNS record) means it isn't.
         function serverUp() {
           if (!server) {
             return Promise.resolve(true); // the game server is serving this page
           }
-          var http = server.replace(/^ws(s?):/, "http$1:");
+          var http = server.replace(/^ws(s?):/, "http$1:").replace(/\/ws$/, "/health");
           var abort = new AbortController();
           var timer = setTimeout(function () { abort.abort(); }, 5000);
-          return fetch(http, { mode: "no-cors", cache: "no-store", signal: abort.signal })
-            .then(function () { return true; }, function () { return false; })
+          return fetch(http, { cache: "no-store", signal: abort.signal })
+            .then(function (response) { return response.ok ? response.text() : ""; })
+            .then(function (text) { return text === "ok"; }, function () { return false; })
             .finally(function () { clearTimeout(timer); });
         }
 
