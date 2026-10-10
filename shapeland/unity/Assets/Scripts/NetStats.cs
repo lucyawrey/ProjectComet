@@ -17,10 +17,11 @@ namespace ShapeLand.Client
         /// <summary>How many seconds the hold numbers cover.</summary>
         public const int WindowSeconds = 5;
 
-        // Where the dots turn amber or red. Placeholders until 3c's pass criteria are approved.
-        private const double PingWarnMs = 150;
-        private const double HoldsWarnPercent = 3;
-        private const double HoldsBadPercent = 8;
+        // Where the dots turn amber or red. Holds: amber past 3c's smoothness criterion (prototype.md), red at
+        // twice it. Ping isn't a criterion (it's the network's); amber past the bad profile's round trip.
+        private const double PingWarnMs = 250;
+        private const double HoldsWarnPercent = 2;
+        private const double HoldsBadPercent = 4;
 
         private const string ShownKey = "netStatsShown";
 
