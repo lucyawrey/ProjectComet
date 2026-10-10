@@ -32,6 +32,7 @@ namespace ShapeLand.Client
         private ShapeLandContent _content;
         private Uri _url;
         private JoinRequest? _pending;
+        private bool _awaitingAnswer;
 
         /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
         public string Address
@@ -243,8 +244,12 @@ namespace ShapeLand.Client
 
             if (session.Closed)
             {
+                // Idle after a refused join, the server drops the connection after its join deadline; that's no
+                // failure, and the next Join reconnects.
+                var idle = !Joined && _pending == null && !_awaitingAnswer;
                 _pending = null;
-                if (Error == null)
+                _awaitingAnswer = false;
+                if (Error == null && !idle)
                 {
                     Fail(session.Error ?? "The connection closed.");
                 }
@@ -255,6 +260,7 @@ namespace ShapeLand.Client
             if (_pending is JoinRequest request && session.Transport.State == TransportState.Open)
             {
                 _pending = null;
+                _awaitingAnswer = true;
                 session.Write(ShapeLandMessageIds.JoinRequest, request);
                 var shape = _content.Shapes.TryGet(request.Shape, out var found) ? found.DisplayName : $"shape {request.Shape}";
                 Log($"joining as {request.Name}, a {shape}");
@@ -271,6 +277,7 @@ namespace ShapeLand.Client
                     if (spawn.EntityId == Session.EntityId)
                     {
                         Joined = true;
+                        _awaitingAnswer = false;
                         Spawn = spawn;
                         Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}, eyes #{spawn.EyeColour:X6}");
                         OwnSpawned?.Invoke(spawn);
@@ -286,6 +293,7 @@ namespace ShapeLand.Client
                 case ShapeLandMessageIds.JoinRejected:
                     var reason = FrameReader.Decode<JoinRejected>(payload, options).Reason;
                     Rejected = reason;
+                    _awaitingAnswer = false;
                     Log($"join rejected: {reason}");
                     JoinRefused?.Invoke(reason);
                     break;

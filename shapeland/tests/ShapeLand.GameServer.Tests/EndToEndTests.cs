@@ -2,10 +2,12 @@ using System.Net.WebSockets;
 using Comet.Protocol;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
+using Comet.Server.Connections;
 using Microsoft.AspNetCore.Builder;
 using ShapeLand.Bots;
 using ShapeLand.ContentBuild;
 using ShapeLand.Shared.Content;
+using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
 
 namespace ShapeLand.GameServer.Tests;
@@ -145,24 +147,90 @@ public sealed class EndToEndTests : IAsyncLifetime
 
         await socket.SendAsync(frame.WrittenMemory, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
 
-        var buffer = new byte[8192];
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(5));
-        var dropped = false;
+        Assert.True(await Dropped(socket, TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public async Task OneAddressCanOpenOnlySoManyConnections()
+    {
+        var limit = new ConnectionLimits().MaxConnectionsPerAddress;
+        var sockets = new List<ClientWebSocket>();
         try
         {
-            while (!dropped)
+            for (var i = 0; i < limit; i++)
+            {
+                sockets.Add(new ClientWebSocket());
+                await sockets[^1].ConnectAsync(_url, TestContext.Current.CancellationToken);
+            }
+
+            using var extra = new ClientWebSocket();
+            await Assert.ThrowsAsync<WebSocketException>(() => extra.ConnectAsync(_url, TestContext.Current.CancellationToken));
+
+            // A place frees up when a connection closes.
+            sockets[0].Abort();
+            await Task.Delay(200, TestContext.Current.CancellationToken);
+            using var again = new ClientWebSocket();
+            await again.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            sockets.ForEach(socket => socket.Dispose());
+        }
+    }
+
+    [Fact]
+    public async Task AConnectionThatNeverJoinsIsDropped()
+    {
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+
+        Assert.False(await Dropped(socket, TimeSpan.FromSeconds(ShapeLandGame.JoinDeadlineSeconds - 1)));
+        Assert.True(await Dropped(socket, TimeSpan.FromSeconds(2)));
+    }
+
+    [Fact]
+    public async Task AFloodOfJoinAttemptsDropsTheClient()
+    {
+        // Each attempt scans every player for a name clash, so they're limited well below the message rate.
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        var frame = new MessageWriter(options: ShapeLandProtocol.Options);
+        frame.BeginFrame(0);
+        for (var i = 0; i < 20; i++)
+        {
+            frame.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Name = "" });
+        }
+
+        await socket.SendAsync(frame.WrittenMemory, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
+
+        Assert.True(await Dropped(socket, TimeSpan.FromSeconds(2)));
+    }
+
+    /// <summary>Reads until the server closes or drops the connection, or <paramref name="wait"/> passes.</summary>
+    private static async Task<bool> Dropped(ClientWebSocket socket, TimeSpan wait)
+    {
+        var buffer = new byte[64 * 1024];
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(wait);
+        try
+        {
+            while (true)
             {
                 var result = await socket.ReceiveAsync(buffer, timeout.Token);
-                dropped = result.MessageType == WebSocketMessageType.Close;
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    return true;
+                }
             }
         }
         catch (WebSocketException)
         {
-            dropped = true; // aborted without a close frame
+            return true; // aborted without a close frame
         }
-
-        Assert.True(dropped);
+        catch (OperationCanceledException) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
     }
 
     internal static string RepoRoot()

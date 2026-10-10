@@ -200,6 +200,9 @@ public sealed class Connection
         }
     }
 
+    /// <summary>Drops the connection at once, without a close frame, e.g. a client the game has given up on. Any thread.</summary>
+    public void Disconnect() => _socket.Abort();
+
     /// <summary>
     /// Closes the connection because the server is stopping: sends what's queued, then a close frame, and
     /// aborts if the client hasn't answered within the close timeout.

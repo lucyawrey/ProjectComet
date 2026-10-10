@@ -28,6 +28,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
     private readonly Dictionary<Connection, Player> _players = [];
     private readonly Random _random = new();
 
+    /// <summary>Seconds a connection has to join; the client reconnects for a later try.</summary>
+    public const int JoinDeadlineSeconds = 10;
+
     public ShapeLandContent Content => content;
 
     public CollisionWorld World => _world;
@@ -63,7 +66,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             switch (input.Kind)
             {
                 case InputKind.Connected:
-                    _players[input.Connection] = new Player(input.Connection, ShapeLandRules.TickRate);
+                    _players[input.Connection] = new Player(input.Connection, ShapeLandRules.TickRate) { ConnectedTick = tick };
                     break;
                 case InputKind.Join:
                     Join(_players[input.Connection], input.Join, tick);
@@ -80,12 +83,17 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             }
         }
 
-        // The server knows gravity: players silent in the air fall (netcode.md).
+        // The server knows gravity: players silent in the air fall (netcode.md). Connections that never join are
+        // dropped, so they can't sit holding a place.
         foreach (var player in _players.Values)
         {
             if (player.Joined)
             {
                 Fall(player, tick);
+            }
+            else if (tick - player.ConnectedTick > JoinDeadlineSeconds * ShapeLandRules.TickRate)
+            {
+                player.Connection.Disconnect();
             }
         }
 
@@ -115,6 +123,13 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
     private void Join(Player player, JoinRequest request, uint tick)
     {
+        if (!player.JoinLimiter.TryTake(tick))
+        {
+            // No honest client asks this often.
+            player.Connection.Disconnect();
+            return;
+        }
+
         if (player.Joined)
         {
             Reject(JoinRejection.AlreadyJoined);
@@ -346,7 +361,12 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         public MovementValidator Validator { get; set; } = null!;
 
-        public ChatLimiter ChatLimiter { get; } = new(tickRate);
+        public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
+
+        public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
+
+        /// <summary>The tick the connection arrived; it must join within <see cref="JoinDeadlineSeconds"/>.</summary>
+        public uint ConnectedTick { get; init; }
 
         public StateStamp Stamp { get; } = new(tickRate);
 

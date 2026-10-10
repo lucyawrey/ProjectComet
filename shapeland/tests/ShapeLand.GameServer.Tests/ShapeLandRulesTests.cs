@@ -66,7 +66,7 @@ public class ShapeLandRulesTests
     [Fact]
     public void ChatAllowsABurstThenOneEveryTwoSeconds()
     {
-        var limiter = new ChatLimiter(tickRate: 30);
+        var limiter = TickLimiter.Chat(tickRate: 30);
 
         Assert.True(limiter.TryTake(100));
         Assert.True(limiter.TryTake(100));

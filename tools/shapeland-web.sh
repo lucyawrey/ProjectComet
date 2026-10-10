@@ -161,7 +161,8 @@ if [ -n "$net" ]; then
 else
   # The built programs run directly: stopping `dotnet run` can leave the program it started running.
   dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
-    --urls "http://$host:$port" --ShapeLand:WebRoot="$web" &
+    --urls "http://$host:$port" --ShapeLand:WebRoot="$web" \
+    --Comet:Connections:MaxConnectionsPerAddress=1000 & # the bots all come from this machine
   pids+=($!)
 fi
 
