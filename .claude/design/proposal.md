@@ -29,7 +29,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
   - items and economy basics: inventory, Storage and bags as containers, slot rules, player trading, currency as items, the item ledger, an owner or binding field on items, tradeability tiers;
   - a basic crafting framework: inputs and outputs, recipe storage, crafter signatures, gathering nodes;
   - social basics: guilds, parties, chat, friends, the house instance kind;
-  - a progression framework: XP, levels, learned flags, and a thin skill base that only executes actions (frame data, hitboxes, cooldowns, effects), not necessarily slots, so a game can build more traditional MMO skill advancement;
+  - a progression framework: XP, levels, learned flags, resource pools, and a thin Action base that only executes Actions (frame data, hitboxes, cooldowns, costs, effects, movement), not necessarily slots, so a game can build more traditional MMO skill advancement;
   - movement and attachment for companions: mounts as a movement mode, passengers, an entity following its owner;
   - instance lifecycle with entry and exit hooks, and teleport handoff;
   - channel placement with a pluggable preference policy, soft and hard caps;

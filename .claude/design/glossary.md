@@ -1,13 +1,14 @@
 # Glossary
 
-**Layer: mixed.** Base (Comet): deployment, region, zone, channel, instance, height zones, invulnerability, Storage, tradeability, learned flag. Game (Anima): constellation, soulbound rules, collection log, gear and outfit sets, Class Crystals, Crystal Archives, Soul XP, Anima, Runes, rune stones, mastery, Outfit Magic, the Freelancer tree.
+**Layer: mixed.** Base (Comet): deployment, region, zone, channel, instance, Action, resource pool, height zones, invulnerability, Storage, tradeability, learned flag. Game (Anima): constellation, soulbound rules, collection log, gear and outfit sets, Class Crystals, Crystal Archives, Soul XP, Anima, Runes, rune stones, mastery, Outfit Magic, the Freelancer tree.
 
 Working terms. They may change but must stay distinct. Details live in the topic files.
 
 | Term | Meaning |
 | --- | --- |
 | **Comet** | The shared base: libraries, servers, Unity package and tools for a family of similar MMOs. MIT-licensed. Not the Unity engine. |
-| **Anima** | Working name of the game built on Comet. The repository is still called `ProjectComet`. |
+| **Anima** | Working name of the game built on Comet. |
+| **ProjectComet** | Working name of the whole project, covering Comet and Anima; also the repository's name. |
 | **ShapeLand** | Comet's tiny demo and reference game: coloured shapes (cube, diamond, pyramid) that slide, chat and fight curved shape monsters with magic. Used for phases 0–2. |
 | **Base / game (layer)** | Whether something belongs to Comet or to a game built on it. Each design file has a Layer line; game policy sits on thin base mechanisms. |
 | **Class Crystal** | A soulbound item that grants permission to use one of its owner's class entries, and references a loadout, gear set, outfit set and appearance. The only thing a character equips; always one equipped. |
@@ -45,6 +46,9 @@ Working terms. They may change but must stay distinct. Details live in the topic
 | **Instance** | Any running copy of a zone on a game server: a channel, dungeon instance or house instance. |
 | **Channel** | A copy of an open zone shared by many players. Named and visible to players. |
 | **Constellation** | An official grouping a character may join (one or none); only affects channel placement. Each can have one associated channel per open zone. |
+| **Action** | Comet's unit of something a character executes: frame data, hitboxes, a cooldown, costs, effects, and optionally movement. The server checks every use was legal. Anima's Skills and Abilities are Actions; Comet never says "Skill" or "Ability". |
+| **Movement Action** | An Action that changes or drives the movement motor for a while: sprint, dodge, dashes, short-range teleports (a dash with the player hidden), double jumps, air dashes. Walking, a basic jump and falling are the motor itself. |
+| **Resource pool** | A named number with a maximum and regeneration (HP, MP, stamina…), kept by Comet; the server checks and spends Action costs from it. Games name and balance them. |
 | **Height zones** | Vertical layers (digging, crouching, standing, jumping, flying) used in hit checks. |
 | **Invulnerability / pierce** | Defender's invuln level vs attack's pierce level. |
 
