@@ -4,13 +4,17 @@
 # and its target, and holds; then the server's side (rule violations, and airborne players gone silent whose
 # fall it finished, which reach the bot as snap-backs too). Everything also goes to a results file stamped with the profile and commit.
 #
-#   tools/shapeland-netrun.sh PROFILE [--seconds 180] [--bots 10] [--cheaters 1] [--seed 1] [--warmup 10]
+#   tools/shapeland-netrun.sh PROFILE [--seconds 180] [--bots 10] [--cheaters 1] [--cheat-speed 2.5] [--cheat-jump 1]
+#                             [--seed 1] [--warmup 10]
 #                             [--bots-net PROFILE] [--far N] [--far-net bad] [--port 5091]
 #
 #   PROFILE        none, good, bad or awful (tools/shapeland-net-profiles.sh), on the server's link
 #   --seconds S    how long the bots run, warmup included (default 180)
 #   --bots N       honest bots, whose network numbers are recorded (default 10)
 #   --cheaters N   speed-cheating bots, which should all be caught (default 1)
+#   --cheat-speed F, --cheat-jump F
+#                  how much faster cheaters move and jump than allowed (default 2.5 and 1); small values make
+#                  subtle cheaters, for tuning the tolerances
 #   --seed N       the bots' seed, so runs before and after a change are comparable (default 1)
 #   --warmup S     seconds after joining before numbers are recorded, while the delay settles (default 10)
 #   --bots-net P   a profile the bots get on top, e.g. for high-ping bots; they then run in their own container
@@ -35,6 +39,8 @@ shift
 seconds=180
 bots=10
 cheaters=1
+cheat_speed=2.5
+cheat_jump=1
 seed=1
 warmup=10
 bots_net=none
@@ -46,6 +52,8 @@ while [ $# -gt 0 ]; do
     --seconds) seconds="$2"; shift 2 ;;
     --bots) bots="$2"; shift 2 ;;
     --cheaters) cheaters="$2"; shift 2 ;;
+    --cheat-speed) cheat_speed="$2"; shift 2 ;;
+    --cheat-jump) cheat_jump="$2"; shift 2 ;;
     --seed) seed="$2"; shift 2 ;;
     --warmup) warmup="$2"; shift 2 ;;
     --bots-net) bots_net="$2"; shift 2 ;;
@@ -95,6 +103,19 @@ cleanup() {
     END { if (seen) printf "  Server         honest bots: %d violations, %d falls finished by the server; cheaters: %d violations\n", hv, hf, cv
       if (far) printf "  Server         far players: %d violations, %d falls finished by the server\n", fv, ff }' \
     "$runs/$name.server.log"
+  # How much of the movement tolerances honest players needed (MovementHeadroom), the worst of them: banked
+  # movement in seconds for each speed factor, height over an exact jump's apex, and late arc start.
+  awk '/ headroom: / && !/Cheater |cheater / {
+      line = $0; sub(/.*burst seconds /, "", line); split(line, parts, ";")
+      n = split(parts[1], bursts, " ")
+      for (i = 1; i <= n; i++) { split(bursts[i], kv, "="); if (!(kv[1] in burst) || kv[2] + 0 > burst[kv[1]]) burst[kv[1]] = kv[2] + 0; order[i] = kv[1] }
+      split(parts[2], r, " "); split(parts[3], a, " ")
+      if (!seen || r[4] + 0 > rise) rise = r[4] + 0
+      if (!seen || a[3] + 0 > air) air = a[3] + 0
+      seen = 1 }
+    END { if (seen) { printf "  Headroom       honest worst: burst s"; for (i = 1; i <= n; i++) printf " %s %.3f", order[i], burst[order[i]]
+      printf "; rise over apex %.3f m; air slack %.3f s\n", rise, air } }' \
+    "$runs/$name.server.log"
 }
 # Ctrl+C or a kill stops the run there, after cleaning up.
 trap cleanup EXIT
@@ -106,7 +127,8 @@ quietly "${compose[@]}" build -q server
 "${compose[@]}" up -d --wait server > /dev/null 2>&1 || { echo "The game server didn't start; see docker compose logs." >&2; exit 1; }
 
 echo "== $bots bots and $cheaters cheaters for $seconds s (warmup $warmup s)"
-args=(--count "$bots" --cheaters "$cheaters" --seconds "$seconds" --seed "$seed" --warmup "$warmup"
+args=(--count "$bots" --cheaters "$cheaters" --cheat-speed "$cheat_speed" --cheat-jump "$cheat_jump"
+  --seconds "$seconds" --seed "$seed" --warmup "$warmup" --meta "cheatSpeed=$cheat_speed" --meta "cheatJump=$cheat_jump"
   --meta "profile=$profile" --meta "botsNet=$bots_net" --meta "commit=$commit")
 if [ "$far" -gt 0 ]; then
   # The far players run alongside, in their own container behind --far-net, and are read afterwards.

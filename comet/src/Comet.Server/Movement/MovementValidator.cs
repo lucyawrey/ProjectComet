@@ -47,11 +47,14 @@ public enum FallResult
     FellOut,
 }
 
-/// <summary>How lenient the checks are; tuned in the prototype.</summary>
+/// <summary>
+/// How lenient the checks are; tuned in the prototype from what honest bots need (<see cref="MovementHeadroom"/>,
+/// prototype.md), about 1.5 to 2 times their worst under the bad network profile.
+/// </summary>
 public sealed class MovementTolerances
 {
     /// <summary>Allowed speed as a multiple of the shape's max speed.</summary>
-    public float SpeedFactor { get; set; } = 1.2f;
+    public float SpeedFactor { get; set; } = 1.1f;
 
     /// <summary>How much unused movement can build up, in seconds at the allowed speed (covers bursts after a stall).</summary>
     public float MaxBurstSeconds { get; set; } = 1f;
@@ -60,13 +63,13 @@ public sealed class MovementTolerances
     public float DistanceSlack { get; set; } = 0.25f;
 
     /// <summary>Allowed jump height as a multiple of the shape's jump apex.</summary>
-    public float JumpFactor { get; set; } = 1.2f;
+    public float JumpFactor { get; set; } = 1.0f;
 
     /// <summary>
     /// How long, in seconds, a takeoff may come after the last report on the ground: reports are paced, so the
     /// gravity arc starts this much later than that report, which only ever makes it more lenient.
     /// </summary>
-    public float AirTimeSlack { get; set; } = 0.3f;
+    public float AirTimeSlack { get; set; } = 0.2f;
 
     /// <summary>
     /// Seconds without a report before the server moves an airborne player itself. Longer than a TCP resend
@@ -75,7 +78,7 @@ public sealed class MovementTolerances
     public float SilenceSeconds { get; set; } = 1.0f;
 
     /// <summary>Extra height always allowed above a jump, in metres.</summary>
-    public float HeightSlack { get; set; } = 0.3f;
+    public float HeightSlack { get; set; } = 0.4f;
 
     /// <summary>How far below the terrain surface a report may be, in metres.</summary>
     public float GroundSlack { get; set; } = 0.3f;
@@ -133,6 +136,9 @@ public sealed class MovementValidator
     /// <summary>Rejected reports so far (not counting stale ones or falls).</summary>
     public int Violations { get; private set; }
 
+    /// <summary>How much of the tolerances this player's accepted reports have needed, for tuning them.</summary>
+    public MovementHeadroom Headroom { get; } = new();
+
     /// <summary>True while the server is moving the player down a fall, because their client went silent in the air.</summary>
     public bool ServerFalling => _serverFalling;
 
@@ -189,6 +195,10 @@ public sealed class MovementValidator
             return MovementVerdict.FellOut;
         }
 
+        // Rejected heights count too: an honest one over the limit is exactly what tuning needs to see.
+        var air = stamp ?? tick;
+        Headroom.AddHeight(position.Y - _groundY, (air > _groundTick ? air - _groundTick : 0) / (float)_tickRate, jumpVelocity, _rules.Gravity);
+
         var distance = Vector2.Distance(new Vector2(Position.X, Position.Z), new Vector2(position.X, position.Z));
         var verdict =
             distance > _budget ? MovementVerdict.TooFast
@@ -202,6 +212,8 @@ public sealed class MovementValidator
             Violations++;
             return verdict;
         }
+
+        Headroom.AddMove(distance, elapsed, maxSpeed);
 
         _budget -= distance;
         Position = position;
