@@ -14,11 +14,11 @@ dev=eth0
 limit=10000 # packets; netem's default of 1000 is too small for 300 bots at 30 Hz with delay
 netem="limit $limit delay ${NETEM_DELAY:-0ms} ${NETEM_JITTER:-0ms} loss ${NETEM_LOSS:-0%}"
 
-# Outgoing: bots to server.
+# Outgoing.
 tc qdisc add dev "$dev" root handle 1: netem $netem
 tc qdisc add dev "$dev" parent 1:1 handle 10: pfifo limit "$limit"
 
-# Incoming: server to bots, redirected through ifb0.
+# Incoming, redirected through ifb0.
 ip link add ifb0 type ifb
 ip link set ifb0 up
 tc qdisc add dev "$dev" handle ffff: ingress
