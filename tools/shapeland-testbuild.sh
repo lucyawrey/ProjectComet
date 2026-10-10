@@ -5,7 +5,7 @@
 #
 #   tools/shapeland-testbuild.sh setup                 once per AWS account: the S3 bucket and the firewall rules
 #   tools/shapeland-testbuild.sh up [--hours 24]       build and start the game server, and point its hostname at it
-#   tools/shapeland-testbuild.sh down                  terminate the game server and remove its hostname
+#   tools/shapeland-testbuild.sh down                  terminate the game server and park its hostname
 #   tools/shapeland-testbuild.sh status                what's running, and whether the server answers
 #   tools/shapeland-testbuild.sh log                   the server's boot log (from its console)
 #   tools/shapeland-testbuild.sh page [--no-build]     build the web page and publish it on Vercel
@@ -33,6 +33,10 @@ server_name=server.shapeland # under $domain
 server_host="$server_name.$domain"
 instance_type=t4g.micro
 tag=shapeland-testbuild
+# Where the server's name points while it's down: an address reserved for documentation, which nothing answers.
+# Removing the record instead would let the domain's wildcard answer for the name, and resolvers keep that
+# answer for 30 minutes, past the next up; the record's own cache time is a minute.
+parked=192.0.2.1
 vercel_project=shapeland
 
 . "$repo/tools/shapeland-net-profiles.sh" # for quietly
@@ -100,10 +104,18 @@ dns_set() {
   vercel dns add "$domain" "$server_name" A "$1" > /dev/null
 }
 
-# Whether the game server answers over HTTPS. Its /health says "ok"; anything else (the domain's wildcard record
-# sends the name to Vercel while the server's own record is gone) isn't it.
+# Whether the game server at address $1 answers over HTTPS with "ok" from /health. Asked at that address, so a
+# stale DNS answer on this machine can't mislead it; the certificate is still checked for the name.
 answers() {
-  [ "$(curl -s --max-time 5 "https://$server_host/health" || true)" = ok ]
+  [ "$(curl -s --max-time 5 --resolve "$server_host:443:$1" "https://$server_host/health" || true)" = ok ]
+}
+
+# The running server's public address, if any.
+server_ip() {
+  local ids
+  ids=$(instances)
+  [ -z "$ids" ] || aws ec2 describe-instances --instance-ids $ids \
+    --query 'Reservations[0].Instances[0].PublicIpAddress' --output text
 }
 
 setup() {
@@ -120,7 +132,7 @@ setup() {
       BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
     # Old packages go after a day; each up uploads its own.
     aws s3api put-bucket-lifecycle-configuration --bucket "$name" --lifecycle-configuration \
-      '{"Rules":[{"ID":"expire-packages","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":1}}]}'
+      '{"Rules":[{"ID":"expire-packages","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":1}}]}' > /dev/null
   fi
 
   sg=$(security_group)
@@ -186,7 +198,7 @@ up() {
 
   echo "== Waiting for the server to answer at https://$server_host (a few minutes: boot, then a certificate)"
   for _ in $(seq 1 60); do
-    if answers; then
+    if answers "$ip"; then
       echo "Up: $id at $ip. Play at https://$page_host. It shuts down by itself in $hours hours (0: never); down ends it sooner."
       return
     fi
@@ -199,8 +211,8 @@ up() {
 down() {
   local ids
   ids=$(instances)
-  echo "== Removing $server_host"
-  dns_clear
+  echo "== Parking $server_host"
+  dns_set "$parked"
   if [ -n "$ids" ]; then
     echo "== Terminating $ids"
     aws ec2 terminate-instances --instance-ids $ids > /dev/null
@@ -219,7 +231,9 @@ status() {
       --query 'Reservations[].Instances[].[InstanceId,State.Name,PublicIpAddress,LaunchTime]' --output text
   fi
   echo "DNS: $server_host -> $(vercel dns ls "$domain" 2> /dev/null | awk -v name="$server_name" '$2 == name { print $4 }' | tr '\n' ' ')"
-  if answers; then echo "https://$server_host answers."; else echo "https://$server_host doesn't answer."; fi
+  local ip
+  ip=$(server_ip)
+  if [ -n "$ip" ] && answers "$ip"; then echo "The server at $ip answers."; else echo "No server answers."; fi
 }
 
 log() {
