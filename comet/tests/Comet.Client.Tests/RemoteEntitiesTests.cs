@@ -108,6 +108,30 @@ public class RemoteEntitiesTests
     }
 
     [Fact]
+    public void DeadReckoningOnTheGroundFollowsASlope()
+    {
+        // Walking uphill along x on a 30 degree slope (rising 0.577 m a metre) at 3 m/s, reported level.
+        var entities = new RemoteEntities(tickRate: 30, gravity: 25) { GroundHeight = feet => MathF.Min(feet.Y, 0.577f * feet.X) };
+        entities.Spawn(1, 10, Vector3.Zero, 0);
+        entities.AddState(1, 12, new Vector3(0.2f, 0.1155f, 0), 0, new Vector3(3, 0, 0));
+
+        Assert.True(entities.TrySample(1, 18, out var pose)); // 0.2 s on: 0.8 m along
+        Assert.Equal(0.577f * 0.8f, pose.Position.Y, 3);
+    }
+
+    [Fact]
+    public void DeadReckoningOnTheGroundFallsOffALedge()
+    {
+        // Walking off a 3 m drop at x = 0.3.
+        var entities = new RemoteEntities(tickRate: 30, gravity: 25) { GroundHeight = feet => feet.X < 0.3f ? MathF.Min(feet.Y, 3) : 0 };
+        entities.Spawn(1, 10, new Vector3(0, 3, 0), 0);
+        entities.AddState(1, 12, new Vector3(0.2f, 3, 0), 0, new Vector3(3, 0, 0));
+
+        Assert.True(entities.TrySample(1, 18, out var pose)); // 0.2 s on: half of g t squared below the ledge
+        Assert.Equal(3 - 0.5f * 25 * 0.04f, pose.Position.Y, 3);
+    }
+
+    [Fact]
     public void AStallWhileMovingIsntMistakenForStandingStill()
     {
         // 0.5 s without states (longer than the idle gap) after a moving state: no restamped copy of the old
@@ -125,6 +149,21 @@ public class RemoteEntitiesTests
         _entities.AddState(1, 12, new Vector3(7, 0, 0), 0);
 
         Assert.Equal(new Vector3(5, 0, 0), PositionAt(8));
+    }
+
+    [Fact]
+    public void AnExcludedEntityIsntCounted()
+    {
+        var entities = new RemoteEntities(tickRate: 30, teleportSpeed: 10);
+        entities.Spawn(1, 10, Vector3.Zero, 0);
+        entities.Spawn(2, 10, Vector3.Zero, 0);
+        entities.ExcludeFromCounts(2);
+
+        entities.AddState(1, 12, new Vector3(5, 0, 0), 0, new Vector3(3, 0, 0));
+        entities.AddState(2, 12, new Vector3(5, 0, 0), 0, new Vector3(3, 0, 0));
+
+        Assert.Equal(1, entities.MoveStates);
+        Assert.Equal(1, entities.Jumps);
     }
 
     [Fact]

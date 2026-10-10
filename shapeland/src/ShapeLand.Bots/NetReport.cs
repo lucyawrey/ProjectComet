@@ -32,7 +32,7 @@ public sealed class NetReport
 
     public sealed record BotResult(
         string Name, bool Cheater, bool Joined, int SnapBacks, int Respawns, long MoveStates, long Holds,
-        double HeldSeconds, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks, double WatchedSeconds, List<NetSample> Samples)
+        double HeldSeconds, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks, double WatchedSeconds, DateTimeOffset StartedAt, List<NetSample> Samples)
     {
         public long VisibleHitches => Overruns + VisibleBlendBacks + Jumps;
     }
@@ -40,7 +40,7 @@ public sealed class NetReport
     public static NetReport Create(IReadOnlyList<Bot> bots, IReadOnlyList<bool> cheaters, RunSettings run, Dictionary<string, string> meta)
     {
         var results = bots.Select((bot, i) => new BotResult(
-            bot.Name, cheaters[i], bot.Joined, bot.SnapBacks, bot.Respawns, bot.MoveStates, bot.Holds, bot.HeldSeconds, bot.Jumps, bot.SpeedHitches, bot.Overruns, bot.VisibleBlendBacks, bot.WatchedSeconds, bot.NetSamples)).ToList();
+            bot.Name, cheaters[i], bot.Joined, bot.SnapBacks, bot.Respawns, bot.MoveStates, bot.Holds, bot.HeldSeconds, bot.Jumps, bot.SpeedHitches, bot.Overruns, bot.VisibleBlendBacks, bot.WatchedSeconds, bot.StartedAt, bot.NetSamples)).ToList();
         var honest = results.Where(r => !r.Cheater).ToList();
         var samples = honest.SelectMany(r => r.Samples).ToList();
         var moves = honest.Sum(r => r.MoveStates);
@@ -90,7 +90,7 @@ public sealed class NetReport
         Console.WriteLine($"  Target         5th to 95th percentile {s.TargetP5Ms:0}-{s.TargetP95Ms:0} ms, moving {s.TargetSwingMsPerSecond:0} ms/s on average");
         Console.WriteLine($"  Holds          {s.HoldPercent:0.0}% of {s.MoveStates} moves, {s.HoldMeanMs:0} ms each, {s.HeldMsPerMove:0.00} ms held per move");
         Console.WriteLine($"  Visible        {s.VisibleHitchesPerMinute:0.0} hitches per other player per minute: {s.Overruns} dead reckoning ran out, {s.VisibleBlendBacks} blend-backs over 0.2 m, {s.Jumps} jumps");
-        Console.WriteLine($"  Jumps          {s.Jumps} of the others' moves drawn as a jump (too far to walk between stamps)");
+        Console.WriteLine($"  Jumps          {s.Jumps} of the honest others' moves drawn as a jump (too far to walk between stamps; cheaters aren't counted)");
         Console.WriteLine($"  Speed hitches  {(s.MoveStates > 0 ? 100.0 * s.SpeedHitches / s.MoveStates : 0):0.0}% of moves change ground speed by over 30% from the step before ({s.OwnHitchPercent:0.0}% of the bots' own reports do)");
     }
 

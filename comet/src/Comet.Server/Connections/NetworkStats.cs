@@ -10,6 +10,7 @@ public sealed class NetworkStats
     private long _flushesSkipped;
     private long _stateReplaced;
     private long _protocolErrors;
+    private long _slowClientsDropped;
 
     public long BytesSent => Interlocked.Read(ref _bytesSent);
 
@@ -26,6 +27,9 @@ public sealed class NetworkStats
     public long StateReplaced => Interlocked.Read(ref _stateReplaced);
 
     public long ProtocolErrors => Interlocked.Read(ref _protocolErrors);
+
+    /// <summary>Clients dropped because they stopped reading (their unsent events piled up).</summary>
+    public long SlowClientsDropped => Interlocked.Read(ref _slowClientsDropped);
 
     internal void AddSent(int bytes)
     {
@@ -44,4 +48,6 @@ public sealed class NetworkStats
     internal void AddStateReplaced(int count) => Interlocked.Add(ref _stateReplaced, count);
 
     internal void AddProtocolError() => Interlocked.Increment(ref _protocolErrors);
+
+    internal void AddSlowClientDropped() => Interlocked.Increment(ref _slowClientsDropped);
 }

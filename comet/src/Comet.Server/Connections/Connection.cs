@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Threading.Channels;
 using Comet.Protocol;
@@ -18,6 +19,12 @@ namespace Comet.Server.Connections;
 /// rather than the wait for the next tick.
 /// </para>
 /// <para>
+/// Limits (a client's traffic is never trusted): incoming messages are rate-limited, and a client over the limit
+/// is dropped; at most <see cref="MaxPendingImmediate"/> immediate frames wait to send, beyond which pongs are
+/// dropped; a client that stops reading is dropped once its unsent events pass <see cref="MaxPendingEventBytes"/>
+/// or a send has waited <see cref="SendTimeout"/>.
+/// </para>
+/// <para>
 /// Threads: <see cref="SendEvent"/>, <see cref="EntityStates"/> and <see cref="Flush"/> belong to
 /// the tick thread; <see cref="SendImmediate"/> to the connection's receive flow (handler callbacks).
 /// </para>
@@ -25,6 +32,20 @@ namespace Comet.Server.Connections;
 public sealed class Connection
 {
     public const int MaxIncomingFrameSize = 4096;
+
+    /// <summary>Messages a client may send per second on average, well above an honest client's (about 20).</summary>
+    public const double MaxMessagesPerSecond = 120;
+
+    /// <summary>How many messages may arrive at once, e.g. the backlog delivered after a TCP stall.</summary>
+    public const double MessageBurst = 240;
+
+    /// <summary>Immediate frames (pongs) waiting to send; more are dropped.</summary>
+    public const int MaxPendingImmediate = 16;
+
+    /// <summary>Unsent event bytes before the client is taken to have stopped reading and is dropped.</summary>
+    public const int MaxPendingEventBytes = 256 * 1024;
+
+    public static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(10);
 
     private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(5);
 
@@ -39,10 +60,16 @@ public sealed class Connection
     private readonly MessageWriter _events;
     private readonly MessageWriter _tickFrame;
     private int _tickFrameInFlight;
+    private bool _dropped;
 
     // Receive flow.
     private readonly MessageWriter _immediateFrame;
     private readonly byte[] _receiveBuffer = new byte[MaxIncomingFrameSize];
+    private double _messageAllowance = MessageBurst;
+    private long _allowanceTime = Stopwatch.GetTimestamp();
+
+    // Both.
+    private int _pendingImmediate;
 
     internal Connection(WebSocket socket, ConnectionRegistry registry, IConnectionHandler handler, TickLoop tickLoop)
     {
@@ -65,11 +92,35 @@ public sealed class Connection
     public LatestOnlyQueue<EntityState> EntityStates { get; } = new();
 
     /// <summary>Queues an event for the next tick frame. Events are never dropped or merged. Tick thread.</summary>
-    public void SendEvent<T>(ushort messageId, in T message) => _events.Write(messageId, message);
+    public void SendEvent<T>(ushort messageId, in T message)
+    {
+        if (_dropped)
+        {
+            return;
+        }
+
+        if (_events.Length > MaxPendingEventBytes)
+        {
+            // The client has stopped reading: drop it rather than keep everything for it.
+            _dropped = true;
+            _events.Clear();
+            _registry.Stats.AddSlowClientDropped();
+            _socket.Abort();
+            return;
+        }
+
+        _events.Write(messageId, message);
+    }
 
     /// <summary>Sends a message now, in its own frame. Receive flow only (handler callbacks).</summary>
     public void SendImmediate<T>(ushort messageId, in T message)
     {
+        if (Interlocked.Increment(ref _pendingImmediate) > MaxPendingImmediate)
+        {
+            Interlocked.Decrement(ref _pendingImmediate);
+            return;
+        }
+
         _immediateFrame.BeginFrame(_tickLoop.CurrentTick);
         _immediateFrame.Write(messageId, message);
         var rented = ArrayPool<byte>.Shared.Rent(_immediateFrame.Length);
@@ -77,6 +128,7 @@ public sealed class Connection
         if (!_outgoing.Writer.TryWrite(new Outgoing(rented, _immediateFrame.Length)))
         {
             ArrayPool<byte>.Shared.Return(rented); // closed
+            Interlocked.Decrement(ref _pendingImmediate);
         }
     }
 
@@ -174,9 +226,17 @@ public sealed class Connection
     private void HandleFrame(ReadOnlyMemory<byte> frame)
     {
         _registry.Stats.AddReceived(frame.Length);
+        var now = Stopwatch.GetTimestamp();
+        _messageAllowance = Math.Min(MessageBurst, _messageAllowance + Stopwatch.GetElapsedTime(_allowanceTime, now).TotalSeconds * MaxMessagesPerSecond);
+        _allowanceTime = now;
         var reader = FrameReader.Create(frame);
         while (reader.TryReadNext(out var messageId, out var payload))
         {
+            if (--_messageAllowance < 0)
+            {
+                throw new ProtocolException("Too many messages.");
+            }
+
             if (messageId == MessageIds.Ping)
             {
                 var ping = FrameReader.Decode<Ping>(payload);
@@ -193,6 +253,7 @@ public sealed class Connection
     {
         try
         {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             await foreach (var item in _outgoing.Reader.ReadAllAsync(cancellationToken))
             {
                 try
@@ -200,7 +261,10 @@ public sealed class Connection
                     var data = item.Rented is null
                         ? _tickFrame.WrittenMemory[..item.Length]
                         : item.Rented.AsMemory(0, item.Length);
-                    await _socket.SendAsync(data, WebSocketMessageType.Binary, endOfMessage: true, cancellationToken);
+                    // A client that stops reading fills its socket's buffers, and the send waits; give up on it.
+                    timeout.CancelAfter(SendTimeout);
+                    await _socket.SendAsync(data, WebSocketMessageType.Binary, endOfMessage: true, timeout.Token);
+                    timeout.CancelAfter(Timeout.InfiniteTimeSpan);
                     _registry.Stats.AddSent(item.Length);
                 }
                 finally
@@ -212,6 +276,7 @@ public sealed class Connection
                     else
                     {
                         ArrayPool<byte>.Shared.Return(item.Rented);
+                        Interlocked.Decrement(ref _pendingImmediate);
                     }
                 }
             }

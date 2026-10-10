@@ -9,6 +9,9 @@ public enum MovementVerdict
 {
     Accepted,
 
+    /// <summary>A number that isn't finite (NaN or infinity): never valid, and every comparison with NaN is false.</summary>
+    NotFinite,
+
     /// <summary>Sent before the client applied the latest correction; ignored.</summary>
     Stale,
 
@@ -161,6 +164,12 @@ public sealed class MovementValidator
             return MovementVerdict.Stale;
         }
 
+        if (!IsFinite(report))
+        {
+            Violations++;
+            return MovementVerdict.NotFinite;
+        }
+
         var allowedSpeed = maxSpeed * _tolerances.SpeedFactor;
         var elapsed = (float)(tick - _lastTick) / _tickRate;
         _lastTick = tick;
@@ -196,10 +205,35 @@ public sealed class MovementValidator
         _budget -= distance;
         Position = position;
         Facing = report.Facing;
-        _velocity = new Vector3(report.VelocityX, report.VelocityY, report.VelocityZ);
+        _velocity = AllowedVelocity(report, allowedSpeed, jumpVelocity, stamp ?? tick);
         _lastReportTick = tick;
         _airborne = !Land(position, stamp ?? tick);
         return MovementVerdict.Accepted;
+    }
+
+    private static bool IsFinite(in PositionReport report) =>
+        float.IsFinite(report.X) && float.IsFinite(report.Y) && float.IsFinite(report.Z)
+        && float.IsFinite(report.VelocityX) && float.IsFinite(report.VelocityY) && float.IsFinite(report.VelocityZ)
+        && float.IsFinite(report.Facing);
+
+    /// <summary>
+    /// The reported velocity, held to what the rules allow: the server starts silent players' falls from it and
+    /// relays it for others to extrapolate, so it's never trusted as sent. Sideways it's capped at the allowed
+    /// speed; upwards at what's left of a jump at this point in the arc, and downwards at a fall from a jump's top
+    /// since the last ground.
+    /// </summary>
+    private Vector3 AllowedVelocity(in PositionReport report, float allowedSpeed, float jumpVelocity, uint tick)
+    {
+        var sideways = new Vector2(report.VelocityX, report.VelocityZ);
+        if (sideways.Length() > allowedSpeed)
+        {
+            sideways = Vector2.Normalize(sideways) * allowedSpeed;
+        }
+
+        var airSeconds = (tick > _groundTick ? tick - _groundTick : 0) / (float)_tickRate + _tolerances.AirTimeSlack;
+        var up = jumpVelocity - _rules.Gravity * AirTime(tick);
+        var down = -(jumpVelocity + _rules.Gravity * airSeconds);
+        return new Vector3(sideways.X, Math.Clamp(report.VelocityY, down, up), sideways.Y);
     }
 
     // Notes the ground under an accepted position, if it's standing on some; returns whether it is.
@@ -261,7 +295,7 @@ public sealed class MovementValidator
                 Grounded = false,
                 Facing = Facing,
             };
-            _fallMove = maxSpeed > 0 ? new Vector2(_velocity.X, _velocity.Z) / maxSpeed : Vector2.Zero;
+            _fallMove = maxSpeed > 0 ? new Vector2(_velocity.X, _velocity.Z) / maxSpeed : Vector2.Zero; // the motor caps it at full stick
 
             // The fall began at the last report, so catch up on the silence first: the player is where that arc
             // has taken them by now, rather than hanging at the last report and then dropping.

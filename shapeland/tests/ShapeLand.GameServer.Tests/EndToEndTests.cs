@@ -1,3 +1,7 @@
+using System.Net.WebSockets;
+using Comet.Protocol;
+using Comet.Protocol.Framing;
+using Comet.Protocol.Messages;
 using Microsoft.AspNetCore.Builder;
 using ShapeLand.Bots;
 using ShapeLand.ContentBuild;
@@ -96,6 +100,42 @@ public sealed class EndToEndTests : IAsyncLifetime
 
         Assert.False(bot.Joined);
         Assert.Equal(Shared.Messages.JoinRejection.UnavailableColour, bot.Rejected);
+    }
+
+    [Fact]
+    public async Task AFloodOfMessagesDropsTheClient()
+    {
+        // Far more pings than any honest client sends, all at once: the server drops the connection rather than
+        // answering them all (the first code review's flood of cheap messages).
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        var frame = new MessageWriter();
+        frame.BeginFrame(0);
+        for (var i = 0; i < 300; i++)
+        {
+            frame.Write(MessageIds.Ping, new Ping { ClientTime = i });
+        }
+
+        await socket.SendAsync(frame.WrittenMemory, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
+
+        var buffer = new byte[8192];
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(5));
+        var dropped = false;
+        try
+        {
+            while (!dropped)
+            {
+                var result = await socket.ReceiveAsync(buffer, timeout.Token);
+                dropped = result.MessageType == WebSocketMessageType.Close;
+            }
+        }
+        catch (WebSocketException)
+        {
+            dropped = true; // aborted without a close frame
+        }
+
+        Assert.True(dropped);
     }
 
     internal static string RepoRoot()

@@ -43,6 +43,20 @@ cd "$project"
 "$unity" -batchmode -projectPath "$project" -logFile "$log" "$@" < /dev/null > /dev/null 2>&1 &
 pid=$!
 
+# Stops the editor: politely, then for good if it hangs (as its quit does).
+stop_unity() {
+  kill "$pid" 2> /dev/null || return 0
+  for _ in 1 2 3; do
+    kill -0 "$pid" 2> /dev/null || return 0
+    sleep 1
+  done
+  kill -9 "$pid" 2> /dev/null || true
+}
+# A background job ignores Ctrl+C in a script, so stopping this script must stop the editor too, or it keeps the
+# project locked.
+trap 'stop_unity; exit 130' INT
+trap 'stop_unity; exit 143' TERM
+
 # The line that ends a run, and the exit code it means. "Build Failed:" is the Builds class's own line: a failed
 # build exits through EditorApplication.Exit, which logs none of the others, and can hang there.
 result() {
@@ -63,7 +77,7 @@ while kill -0 "$pid" 2> /dev/null; do
   [ -z "$code" ] || break
   if [ "$(date +%s)" -ge "$deadline" ]; then
     echo "Unity ran past $minutes minutes; stopping it (log: $log)" >&2
-    kill "$pid" 2> /dev/null || true
+    stop_unity
     exit 124
   fi
   sleep 1
@@ -77,9 +91,7 @@ if [ -n "$code" ]; then
   done
   if kill -0 "$pid" 2> /dev/null; then
     echo "Unity finished but hung while quitting; stopping it" >&2
-    kill "$pid" 2> /dev/null || true
-    sleep 3
-    kill -9 "$pid" 2> /dev/null || true
+    stop_unity
   fi
   wait "$pid" 2> /dev/null || true
 else

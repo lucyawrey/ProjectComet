@@ -87,10 +87,12 @@ internal static class UnknownKeys
             switch (type.Kind)
             {
                 case JsonTypeInfoKind.Object:
-                    var property = type.Properties.FirstOrDefault(p => p.Name == name);
+                    // [JsonIgnore] properties (such as the registry's number) are listed but never read.
+                    var readable = type.Properties.Where(p => p.Set is not null || p.Get is not null).ToList();
+                    var property = readable.FirstOrDefault(p => p.Name == name);
                     if (property is null)
                     {
-                        var known = string.Join(", ", type.Properties.Select(p => p.Name));
+                        var known = string.Join(", ", readable.Select(p => p.Name));
                         problems.Add((part, $"Unknown key '{name}' in {Describe(type)}. Known keys: {known}."));
                         return null;
                     }

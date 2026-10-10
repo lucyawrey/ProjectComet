@@ -107,6 +107,28 @@ public class ClientSessionTests
     }
 
     [Fact]
+    public void StatesWaitingThroughALocalStallDontRaiseTheDelay()
+    {
+        Welcome(now: 5);
+        ServerSends(102, MessageIds.Pong, new Pong { ClientTime = 5_000_000 });
+        _session.Update(5.08);
+        Assert.True(_session.Clock.Synced);
+        _session.Entities.Spawn(9, 102, Vector3.Zero, 0);
+        var target = _session.InterpolationDelay.Target;
+
+        // A hidden tab: states kept arriving for 10 s, but the session only sees them all when it runs again.
+        for (uint tick = 104; tick < 404; tick += 2)
+        {
+            ServerSends(tick, MessageIds.EntityState, new EntityState { EntityId = 9, X = tick / 100f, Tick = tick });
+        }
+
+        _session.Update(15.1);
+
+        Assert.Equal(150, _session.StatesReceived);
+        Assert.Equal(target, _session.InterpolationDelay.Target);
+    }
+
+    [Fact]
     public void DespawnRemovesTheEntity()
     {
         uint despawned = 0;

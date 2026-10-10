@@ -13,7 +13,7 @@ namespace Comet.Server.Movement;
 /// broadcast stamp may be a little later than the tick its report arrived, by up to the shift.
 /// </para>
 /// </summary>
-public sealed class StateStamp(int tickRate, double maxLagSeconds = StateStamp.MaxLagSeconds)
+public sealed class StateStamp
 {
     public const double MaxLagSeconds = 0.5;
 
@@ -26,13 +26,23 @@ public sealed class StateStamp(int tickRate, double maxLagSeconds = StateStamp.M
     /// <summary>How far, in ticks, the smoothed shift may drift from the whole-tick shift in use before it changes.</summary>
     public const double ShiftHysteresis = 0.75;
 
-    private readonly uint _maxLag = (uint)Math.Round(maxLagSeconds * tickRate);
-    private readonly uint _window = (uint)Math.Round(SmoothingSeconds * tickRate);
+    private readonly uint _maxLag;
+    private readonly uint _window;
     private readonly Queue<(uint Arrival, int Lag)> _lags = new();
-    private int[] _sorted = new int[64];
+
+    // How many samples in the window have each lag, from -maxLag to +maxLag (the only lags Stamp gives), so
+    // the median costs the same however many reports a client sends.
+    private readonly int[] _lagCounts;
     private double _shift = double.NaN;
     private long _wholeShift;
     private uint _lastArrival;
+
+    public StateStamp(int tickRate, double maxLagSeconds = MaxLagSeconds)
+    {
+        _maxLag = (uint)Math.Round(maxLagSeconds * tickRate);
+        _window = (uint)Math.Round(SmoothingSeconds * tickRate);
+        _lagCounts = new int[2 * _maxLag + 1];
+    }
 
     /// <summary>The last stamp given, the sender's: for checking their movement.</summary>
     public uint Last { get; private set; }
@@ -87,24 +97,21 @@ public sealed class StateStamp(int tickRate, double maxLagSeconds = StateStamp.M
     private void UpdateShift(int lag, uint arrivalTick)
     {
         _lags.Enqueue((arrivalTick, lag));
+        _lagCounts[lag + _maxLag]++;
         while (_lags.Count > 1 && arrivalTick - _lags.Peek().Arrival > _window)
         {
-            _lags.Dequeue();
+            _lagCounts[_lags.Dequeue().Lag + _maxLag]--;
         }
 
-        if (_sorted.Length < _lags.Count)
+        // The upper median: the lag at index count / 2 of the sorted window.
+        var below = 0;
+        var bin = 0;
+        while (below + _lagCounts[bin] <= _lags.Count / 2)
         {
-            _sorted = new int[_lags.Count * 2];
+            below += _lagCounts[bin++];
         }
 
-        var count = 0;
-        foreach (var sample in _lags)
-        {
-            _sorted[count++] = sample.Lag;
-        }
-
-        Array.Sort(_sorted, 0, count);
-        double median = _sorted[count / 2];
+        double median = bin - (int)_maxLag;
         if (double.IsNaN(_shift))
         {
             _shift = median;

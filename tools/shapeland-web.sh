@@ -88,6 +88,8 @@ if [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
     exit 1
   fi
   "$repo/tools/unity-batch.sh" -l Logs/web.log -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
+  # Marks the build as up to date, but only a build that made its page.
+  [ -f "$web/index.html" ] || { echo "The Unity build made no page at $web/index.html (log: $project/Logs/web.log)" >&2; exit 1; }
   touch "$web/index.html"
 elif [ ! -f "$web/index.html" ]; then
   echo "No web build yet; run without --no-build." >&2
@@ -100,10 +102,16 @@ fi
 mkdir -p "$web/StreamingAssets"
 cmp -s "$content" "$web/StreamingAssets/content.bin" || cp "$content" "$web/StreamingAssets/content.bin"
 
+# Runs a build step quietly, showing its output only if it fails (dotnet prints compile errors to stdout).
+quietly() {
+  local out
+  out=$("$@" 2>&1) || { printf '%s\n' "$out" >&2; echo "Failed: $*" >&2; return 1; }
+}
+
 echo "== Game server"
-dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer" > /dev/null
+quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
 if [ $((bots + cheaters)) -gt 0 ]; then
-  dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots" > /dev/null
+  quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots"
 fi
 compose=(docker compose -f "$repo/shapeland/docker/compose.yaml")
 if [ -n "$net" ]; then

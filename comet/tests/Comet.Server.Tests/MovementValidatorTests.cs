@@ -229,4 +229,73 @@ public class MovementValidatorTests
 
         Assert.Equal(new Vector3(4.4f, 0, 4), _validator.Position);
     }
+
+    // Attacks from the first code review: a client's numbers are never trusted as sent.
+
+    [Fact]
+    public void AFakedVelocityDoesNotCarryASilentFall()
+    {
+        // An accepted hop reporting 300 m/s sideways, then silence: the server's fall starts from the allowed
+        // speed, so it lands about where a real hop at full speed would (~2 m), not hundreds of metres away.
+        Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(4, 0.6f, 4), new Vector3(300, 0, 0), tick: 103));
+        Assert.True(_validator.Velocity.Length() <= MaxSpeed * new MovementTolerances().SpeedFactor + 0.001f);
+        var result = FallResult.None;
+        for (uint tick = 104; tick < 300 && result is FallResult.None or FallResult.Moved; tick++)
+        {
+            result = _validator.Fall(tick, MaxSpeed, JumpVelocity);
+        }
+
+        Assert.Equal(FallResult.Landed, result);
+        Assert.True(_validator.Position.X < 8, $"Landed at x = {_validator.Position.X}.");
+    }
+
+    [Fact]
+    public void ReportedVelocityIsHeldToTheRules()
+    {
+        // Relayed for others to extrapolate, so it's capped: sideways at the allowed speed, upwards at a jump.
+        Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(4.4f, 0, 4), new Vector3(1e6f, 1e6f, 0), tick: 102));
+        Assert.Equal(MaxSpeed * new MovementTolerances().SpeedFactor, _validator.Velocity.X, 0.001f);
+        Assert.Equal(JumpVelocity, _validator.Velocity.Y, 0.001f);
+
+        // Downwards at a fall from a jump's top, here just off the ground.
+        Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(4.8f, 0, 4), new Vector3(0, -1e6f, 0), tick: 104));
+        Assert.True(_validator.Velocity.Y > -30, $"Velocity y = {_validator.Velocity.Y}.");
+    }
+
+    [Theory]
+    [InlineData(float.NaN, 0, 0, 0)]
+    [InlineData(0, float.PositiveInfinity, 0, 0)]
+    [InlineData(0, 0, float.NaN, 0)]
+    [InlineData(0, 0, 0, float.NaN)]
+    public void NumbersThatArentFiniteAreRejected(float x, float velocityX, float velocityY, float facing)
+    {
+        var report = new PositionReport { X = 4.4f + x, Y = 0, Z = 4, VelocityX = velocityX, VelocityY = velocityY, Facing = facing };
+        Assert.Equal(MovementVerdict.NotFinite, _validator.Check(report, 102, MaxSpeed, JumpVelocity));
+        Assert.Equal(new Vector3(4, 0, 4), _validator.Position);
+        Assert.Equal(1, _validator.Violations);
+    }
+
+    [Fact]
+    public void ANaNReportDoesNotTurnOffTheSpeedCheck()
+    {
+        // NaN poisoned the movement budget, after which every teleport was accepted.
+        Assert.Equal(MovementVerdict.NotFinite, Report(float.NaN, 0, 4, 102));
+        Assert.Equal(MovementVerdict.TooFast, Report(29, 0, 29, 104));
+        Assert.Equal(MovementVerdict.Accepted, Report(4.4f, 0, 4, 106));
+    }
+
+    [Fact]
+    public void ANaNVelocityDoesNotLeaveASilentPlayerFallingForever()
+    {
+        Assert.Equal(MovementVerdict.NotFinite, Report(new Vector3(4, 0.6f, 4), new Vector3(0, float.NaN, 0), tick: 103));
+        Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(4, 0.6f, 4), new Vector3(0, 1, 0), tick: 104));
+        var result = FallResult.None;
+        for (uint tick = 105; tick < 400 && result is FallResult.None or FallResult.Moved; tick++)
+        {
+            result = _validator.Fall(tick, MaxSpeed, JumpVelocity);
+        }
+
+        Assert.Equal(FallResult.Landed, result);
+        Assert.True(float.IsFinite(_validator.Position.Y));
+    }
 }

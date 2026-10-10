@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace ShapeLand.Shared.World
@@ -44,10 +46,40 @@ namespace ShapeLand.Shared.World
             return normalised.Length > 0 && normalised.Length <= MaxNameLength && NamePattern.IsMatch(normalised);
         }
 
-        /// <summary>Trims a chat line and checks its length.</summary>
+        /// <summary>
+        /// Cleans a chat line and checks its length: drops characters that change how text is laid out or read
+        /// rather than being text (control and formatting characters, such as newlines, zero-width characters and
+        /// bidirectional overrides; line and paragraph separators; private-use characters and broken surrogate
+        /// pairs), then trims it. Clients also show chat as plain text, never markup.
+        /// </summary>
         public static bool TryNormaliseChat(string? text, out string normalised)
         {
-            normalised = (text ?? "").Trim();
+            text = text ?? "";
+            var kept = new StringBuilder(text.Length);
+            for (var i = 0; i < text.Length; i++)
+            {
+                if (char.IsSurrogatePair(text, i))
+                {
+                    kept.Append(text, i++, 2);
+                    continue;
+                }
+
+                switch (char.GetUnicodeCategory(text[i]))
+                {
+                    case UnicodeCategory.Control:
+                    case UnicodeCategory.Format:
+                    case UnicodeCategory.LineSeparator:
+                    case UnicodeCategory.ParagraphSeparator:
+                    case UnicodeCategory.PrivateUse:
+                    case UnicodeCategory.Surrogate:
+                        break;
+                    default:
+                        kept.Append(text[i]);
+                        break;
+                }
+            }
+
+            normalised = kept.ToString().Trim();
             return normalised.Length > 0 && normalised.Length <= MaxChatLength;
         }
     }

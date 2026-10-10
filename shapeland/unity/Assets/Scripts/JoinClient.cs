@@ -156,7 +156,12 @@ namespace ShapeLand.Client
             Error = null;
             Rejected = null;
             playerName = request.Name;
-            var url = new Uri(serverAddress.Contains("://") ? serverAddress : $"ws://{serverAddress}/ws");
+            if (!TryServerUrl(serverAddress, out var url))
+            {
+                Fail($"\"{serverAddress}\" isn't a server address. Use a host and port, like localhost:5080.");
+                return;
+            }
+
             var session = _connection.Session;
             if (session == null || session.Closed || url != _url)
             {
@@ -192,8 +197,21 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
+        /// The URL for a server address typed or given: a host and port (connected to with ws://), or a full ws:// or
+        /// wss:// URL. False for anything else, such as a malformed host or port, or an http:// URL.
+        /// </summary>
+        public static bool TryServerUrl(string address, out Uri url)
+        {
+            address = (address ?? "").Trim();
+            return Uri.TryCreate(address.Contains("://") ? address : $"ws://{address}/ws", UriKind.Absolute, out url)
+                && (url.Scheme == "ws" || url.Scheme == "wss");
+        }
+
+        /// <summary>
         /// The server a web build connects to: the one named by the page's <c>?server=</c> (a host and port, or a
-        /// full ws:// URL), else the host the page came from. A page not served over HTTP uses <paramref name="fallback"/>.
+        /// full ws:// URL), else the host the page came from. A host and port is connected to securely (wss://) from
+        /// a secure page, since browsers block plain connections from one. A page not served over HTTP uses
+        /// <paramref name="fallback"/>.
         /// </summary>
         public static string AddressForPage(string pageUrl, string fallback)
         {
@@ -202,15 +220,17 @@ namespace ShapeLand.Client
                 return fallback;
             }
 
+            var scheme = page.Scheme == "https" ? "wss" : "ws";
             foreach (var pair in page.Query.TrimStart('?').Split('&'))
             {
                 if (pair.StartsWith("server=", StringComparison.Ordinal) && pair.Length > "server=".Length)
                 {
-                    return Uri.UnescapeDataString(pair.Substring("server=".Length));
+                    var server = Uri.UnescapeDataString(pair.Substring("server=".Length));
+                    return server.Contains("://") ? server : $"{scheme}://{server}/ws";
                 }
             }
 
-            return $"{(page.Scheme == "https" ? "wss" : "ws")}://{page.Authority}/ws";
+            return $"{scheme}://{page.Authority}/ws";
         }
 
         private void Update()

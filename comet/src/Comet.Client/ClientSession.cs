@@ -35,6 +35,10 @@ namespace Comet.Client
         private ServerClock? _clock;
         private RemoteEntities? _entities;
         private InterpolationDelay? _delay;
+        private bool _catchingUp;
+
+        /// <summary>A gap between updates longer than this, in seconds, is a stall on this side rather than the network's.</summary>
+        public const double LocalStallSeconds = 0.25;
         private double _nextPing;
         private string? _protocolError;
 
@@ -100,6 +104,9 @@ namespace Comet.Client
         /// <summary>Handles received frames, moves the tick estimate and queues a ping when one is due.</summary>
         public void Update(double now)
         {
+            // After a stall of our own (a hidden browser tab, a long frame), the frames waiting were received long
+            // before now, so they say nothing about the network's delay; don't let them push the delay up.
+            _catchingUp = now - _lastUpdate > LocalStallSeconds;
             _lastUpdate = now;
             while (_protocolError == null && Transport.TryReceive(out var frame))
             {
@@ -234,7 +241,7 @@ namespace Comet.Client
                         var state = FrameReader.Decode<EntityState>(payload, _options);
                         StatesReceived++;
                         var previous = _entities?.AddState(state.EntityId, state.Tick, new Vector3(state.X, state.Y, state.Z), state.Facing, new Vector3(state.VelocityX, state.VelocityY, state.VelocityZ));
-                        if (previous.HasValue && _clock!.Synced)
+                        if (previous.HasValue && _clock!.Synced && !_catchingUp)
                         {
                             _delay!.AddSample(_clock.ReceiveTick(now) - previous.Value, now);
                         }

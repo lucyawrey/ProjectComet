@@ -14,22 +14,23 @@ namespace Comet.Client
     /// </summary>
     public sealed class WebSocketTransport : IClientTransport
     {
-        private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(5);
-
         private readonly ClientWebSocket _socket = new ClientWebSocket();
         private readonly ConcurrentQueue<byte[]> _received = new ConcurrentQueue<byte[]>();
         private readonly ConcurrentQueue<byte[]> _outgoing = new ConcurrentQueue<byte[]>();
         private readonly SemaphoreSlim _sendSignal = new SemaphoreSlim(0);
         private readonly int _maxFrameSize;
+        private readonly TimeSpan _closeTimeout;
         private volatile TransportState _state = TransportState.Connecting;
         private volatile string? _error;
         private volatile bool _closing;
 
         /// <summary>Starts connecting to <paramref name="url"/>.</summary>
         /// <param name="maxFrameSize">Larger frames from the server close the connection.</param>
-        public WebSocketTransport(Uri url, int maxFrameSize = 64 * 1024)
+        /// <param name="closeTimeout">How long a close waits for the server's answer before giving up (default 5 s).</param>
+        public WebSocketTransport(Uri url, int maxFrameSize = 64 * 1024, TimeSpan? closeTimeout = null)
         {
             _maxFrameSize = maxFrameSize;
+            _closeTimeout = closeTimeout ?? TimeSpan.FromSeconds(5);
             Completion = RunAsync(url);
         }
 
@@ -71,26 +72,35 @@ namespace Comet.Client
             {
                 await _socket.ConnectAsync(url, CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception e) when (e is WebSocketException || e is System.Net.Http.HttpRequestException || e is ObjectDisposedException)
+            catch (Exception e)
             {
+                // Any failure to connect (refused, a bad address such as an http:// URL, disposed meanwhile) ends
+                // the connection with its reason, never leaving it Connecting.
+                _socket.Dispose();
                 Finish(e.Message);
                 return;
             }
 
             _state = TransportState.Open;
-            var receiving = ReceiveLoopAsync();
-            var sending = SendLoopAsync();
-
-            // A normal close finishes when the server answers; give up waiting after a while.
-            if (await Task.WhenAny(receiving, sending).ConfigureAwait(false) == sending)
+            try
             {
-                await Task.WhenAny(receiving, Task.Delay(CloseTimeout)).ConfigureAwait(false);
-            }
+                var receiving = ReceiveLoopAsync();
+                var sending = SendLoopAsync();
 
-            _socket.Abort();
-            await Task.WhenAll(receiving, sending).ConfigureAwait(false);
-            _socket.Dispose();
-            Finish(_error);
+                // A normal close finishes when the server answers; give up waiting after a while.
+                if (await Task.WhenAny(receiving, sending).ConfigureAwait(false) == sending)
+                {
+                    await Task.WhenAny(receiving, Task.Delay(_closeTimeout)).ConfigureAwait(false);
+                }
+
+                _socket.Abort();
+                await Task.WhenAll(receiving, sending).ConfigureAwait(false);
+            }
+            finally
+            {
+                _socket.Dispose();
+                Finish(_error);
+            }
         }
 
         private void Finish(string? error)
@@ -122,9 +132,13 @@ namespace Comet.Client
                     await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None).ConfigureAwait(false);
                 }
             }
-            catch (Exception e) when (e is WebSocketException || e is ObjectDisposedException)
+            catch (Exception e) when (e is WebSocketException || e is ObjectDisposedException || e is OperationCanceledException)
             {
-                _error ??= e.Message;
+                // Aborting the socket (Dispose, or a close the server didn't answer) cancels a pending send.
+                if (!_closing)
+                {
+                    _error ??= e.Message;
+                }
             }
         }
 
@@ -159,7 +173,7 @@ namespace Comet.Client
                     }
                 }
             }
-            catch (Exception e) when (e is WebSocketException || e is ProtocolException || e is ObjectDisposedException)
+            catch (Exception e) when (e is WebSocketException || e is ProtocolException || e is ObjectDisposedException || e is OperationCanceledException)
             {
                 if (!_closing)
                 {

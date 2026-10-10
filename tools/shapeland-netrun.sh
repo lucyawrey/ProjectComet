@@ -75,30 +75,37 @@ name="$(date +%Y%m%d-%H%M%S)-$profile"
 [ "$far" = 0 ] || name="$name-far-$far-$far_net"
 results="$runs/$name.json"
 
+# Runs a build step quietly, showing its output only if it fails (dotnet prints compile errors to stdout).
+quietly() {
+  local out
+  out=$("$@" 2>&1) || { printf '%s\n' "$out" >&2; echo "Failed: $*" >&2; return 1; }
+}
+
 echo "== Building"
-dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build > /dev/null
-dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer" > /dev/null
-dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots" > /dev/null
+quietly dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
+quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
+quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots"
 
 # Its own Compose project, so a tools/shapeland-web.sh run alongside keeps its containers. No web build.
 compose=(docker compose -p shapeland-netrun -f "$repo/shapeland/docker/compose.yaml")
 export SHAPELAND_PUBLISH="127.0.0.1:$port" SHAPELAND_WEBROOT="" SHAPELAND_WEB_DIR="$repo/shapeland/docker"
 cleanup() {
   trap - EXIT INT TERM
-  "${compose[@]}" logs --no-log-prefix server > "$runs/$name.server.log" 2>&1 || true
+  "${compose[@]}" logs -t --no-log-prefix server > "$runs/$name.server.log" 2>&1 || true
   docker rm -f shapeland-netrun-bots shapeland-netrun-far > /dev/null 2>&1 || true
   "${compose[@]}" --profile bots down -t 2 > /dev/null 2>&1 || true
   # What the server saw, from each player's line on leaving: rule violations, and falls it finished itself.
   awk '/ left \(.*movement violations/ {
-      cheater = ($0 ~ /Cheater /); v = $0; sub(/.*; /, "", v); split(v, n, " ")
-      if (cheater) { cv += n[1]; cf += n[4] } else { hv += n[1]; hf += n[4] }; seen = 1 }
-    END { if (seen) printf "  Server         honest bots: %d violations, %d falls finished by the server; cheaters: %d violations\n", hv, hf, cv }' \
+      v = $0; sub(/.*; /, "", v); split(v, n, " ")
+      if ($0 ~ /Cheater /) { cv += n[1] } else if ($0 ~ /Far /) { fv += n[1]; ff += n[4]; far = 1 } else { hv += n[1]; hf += n[4] }; seen = 1 }
+    END { if (seen) printf "  Server         honest bots: %d violations, %d falls finished by the server; cheaters: %d violations\n", hv, hf, cv
+      if (far) printf "  Server         far players: %d violations, %d falls finished by the server\n", fv, ff }' \
     "$runs/$name.server.log"
 }
 trap cleanup EXIT INT TERM
 
 echo "== Server under $profile"
-"${compose[@]}" build -q server > /dev/null 2>&1
+quietly "${compose[@]}" build -q server
 "${compose[@]}" up -d --wait server > /dev/null 2>&1 || { echo "The game server didn't start; see docker compose logs." >&2; exit 1; }
 
 echo "== $bots bots and $cheaters cheaters for $seconds s (warmup $warmup s)"
@@ -128,7 +135,7 @@ if [ "$far" -gt 0 ]; then
   docker wait shapeland-netrun-far > /dev/null
   echo
   echo "== The far players' own view ($profile plus $far_net)"
-  docker logs shapeland-netrun-far 2>&1 | sed -n '/^Network results/,$p' | grep -v "Results in"
+  docker logs shapeland-netrun-far 2>&1 | sed -n '/^Network results/,$p' | { grep -v "Results in" || true; }
   docker cp shapeland-netrun-far:/tmp/results.json "$runs/$name.far.json" > /dev/null
   echo "  Results in $runs/$name.far.json"
 fi

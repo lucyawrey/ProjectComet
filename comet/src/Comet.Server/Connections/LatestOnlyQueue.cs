@@ -36,6 +36,21 @@ public sealed class LatestOnlyQueue<T>
         }
     }
 
+    /// <summary>Drops the queued message for <paramref name="key"/>, if any, e.g. when its entity is despawned.</summary>
+    public void Remove(uint key)
+    {
+        if (!_indexByKey.Remove(key, out var index))
+        {
+            return;
+        }
+
+        _items.RemoveAt(index);
+        for (var i = index; i < _items.Count; i++)
+        {
+            _indexByKey[_items[i].Key] = i;
+        }
+    }
+
     /// <summary>Hands every queued message to <paramref name="write"/> in the order first queued, then empties the queue.</summary>
     public void Drain<TState>(TState state, Action<TState, T> write)
     {

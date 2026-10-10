@@ -139,6 +139,12 @@ public sealed class ContentBuilder
                 var fileErrors = UnknownKeys.Find(document, ContentJson.Options.GetTypeInfo(typeof(T)))
                     .Select(u => ErrorAt(file, u.Node.Span, u.Message))
                     .ToList();
+                // TOML allows nan and inf, but no content number means either, and every comparison a range check
+                // makes with NaN is false, so it would pass them.
+                fileErrors.AddRange(document.Descendants()
+                    .OfType<FloatValueSyntax>()
+                    .Where(f => !double.IsFinite(f.Value))
+                    .Select(f => ErrorAt(file, f.Span, $"{f.Token?.Text ?? f.Value.ToString()} isn't allowed: content numbers must be finite.")));
                 T? entry = null;
                 try
                 {

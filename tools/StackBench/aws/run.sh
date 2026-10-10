@@ -41,10 +41,15 @@ cleanup() {
   echo "Deleting AWS resources…"
   # By tag, so an instance launched just before an interruption is included.
   local ids
-  ids=$(aws ec2 describe-instances --filters "Name=tag:stackbench,Values=$run_id" \
+  if ! ids=$(aws ec2 describe-instances --filters "Name=tag:stackbench,Values=$run_id" \
     Name=instance-state-name,Values=pending,running,stopping,stopped \
-    --query 'Reservations[].Instances[].InstanceId' --output text)
-  if [ -n "$ids" ]; then
+    --query 'Reservations[].Instances[].InstanceId' --output text); then
+    echo "Couldn't list this run's instances; terminating the ones it launched." >&2
+    ids=""
+  fi
+  # The ids already known, too, in case the tag lookup missed them (it can lag just after a launch).
+  ids=$(printf '%s\n' $ids ${server_id:-} ${bots_id:-} | sort -u | tr '\n' ' ')
+  if [ -n "${ids// /}" ]; then
     aws ec2 terminate-instances --instance-ids $ids > /dev/null
     aws ec2 wait instance-terminated --instance-ids $ids
   fi
@@ -120,7 +125,7 @@ done
 
 echo "Copying HEAD to both VMs and building…"
 for host in "$server_ip" "$bots_ip"; do
-  git -C "$repo" archive HEAD global.json Directory.Build.props Directory.Packages.props ProjectComet.slnx comet/src tools/StackBench \
+  git -C "$repo" archive HEAD global.json Directory.Build.props Directory.Packages.props ProjectComet.slnx comet/src tools/StackBench tools/docker \
     | on "$host" 'mkdir -p bench && tar -x -C bench && mkdir -p bench/tools/StackBench/results'
 done
 

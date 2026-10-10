@@ -88,6 +88,9 @@ namespace Comet.Client
         /// </summary>
         public Func<Vector3, float?>? GroundHeight { get; set; }
 
+        /// <summary>How far up or down an entity on the ground is followed over a short move, in metres: a step's height.</summary>
+        public const float StepReach = 0.5f;
+
         /// <summary>A blend-back further than this, in metres, counts as a visible hitch (<see cref="VisibleBlendBacks"/>).</summary>
         public float VisibleError { get; set; } = 0.2f;
 
@@ -96,6 +99,18 @@ namespace Comet.Client
         public IEnumerable<uint> Ids => _tracks.Keys;
 
         public bool Contains(uint entityId) => _tracks.ContainsKey(entityId);
+
+        /// <summary>
+        /// Leaves a spawned entity out of the smoothness counters (<see cref="MoveStates"/> to
+        /// <see cref="VisibleBlendBacks"/>), e.g. a test's speed cheater, whose impossible moves aren't the network's.
+        /// </summary>
+        public void ExcludeFromCounts(uint entityId)
+        {
+            if (_tracks.TryGetValue(entityId, out var track))
+            {
+                track.Counted = false;
+            }
+        }
 
         /// <summary>States so far that continued a move (no idle gap before them).</summary>
         public long MoveStates { get; private set; }
@@ -175,7 +190,7 @@ namespace Comet.Client
                 previous = null;
                 states.Add(new State(tick - ReportIntervalTicks, newest.Position, newest.Facing, Vector3.Zero));
             }
-            else
+            else if (track.Counted)
             {
                 MoveStates++;
                 if (IsTeleport(newest, state))
@@ -249,7 +264,7 @@ namespace Comet.Client
                     track.OverrunFrom = from.Tick;
                     if (from.Velocity.LengthSquared() > StandingSpeed * StandingSpeed)
                     {
-                        Overruns++;
+                        Overruns += track.Counted ? 1 : 0;
                     }
                 }
 
@@ -282,10 +297,13 @@ namespace Comet.Client
                 {
                     track.Offset = error;
                     track.BlendStart = renderTick;
-                    BlendBacks++;
-                    if (error.Length() > VisibleError)
+                    if (track.Counted)
                     {
-                        VisibleBlendBacks++;
+                        BlendBacks++;
+                        if (error.Length() > VisibleError)
+                        {
+                            VisibleBlendBacks++;
+                        }
                     }
                 }
             }
@@ -304,8 +322,9 @@ namespace Comet.Client
             return true;
         }
 
-        // Where an entity moving at a state's velocity is after a while: on along the ground, and under gravity
-        // while moving vertically, never below the ground.
+        // Where an entity moving at a state's velocity is after a while: under gravity while moving vertically,
+        // never below the ground; on the ground, following it up and down slopes and steps (up to 45 degrees, or
+        // StepReach), and falling under gravity once it walks off a drop steeper than that.
         private Vector3 Extrapolate(State from, double seconds)
         {
             var t = (float)seconds;
@@ -318,6 +337,13 @@ namespace Comet.Client
                 {
                     position.Y = ground;
                 }
+            }
+            else if (GroundHeight != null)
+            {
+                var reach = Math.Max(StepReach, new Vector2(position.X - from.Position.X, position.Z - from.Position.Z).Length());
+                var ground = GroundHeight(new Vector3(position.X, from.Position.Y + reach, position.Z));
+                var fallen = from.Position.Y - 0.5f * Gravity * t * t;
+                position.Y = ground is { } walked && walked >= from.Position.Y - reach ? walked : Math.Max(fallen, ground ?? fallen);
             }
 
             return position;
@@ -374,6 +400,9 @@ namespace Comet.Client
         private sealed class Track
         {
             public List<State> States { get; } = new List<State>(8);
+
+            /// <summary>Whether this entity's moves count towards the smoothness counters.</summary>
+            public bool Counted { get; set; } = true;
 
             /// <summary>Where the entity was last drawn, and the stamp it was being dead-reckoned from (null if it wasn't).</summary>
             public Vector3? Drawn { get; set; }

@@ -32,4 +32,21 @@ public class LatestOnlyQueueTests
         Assert.Equal(1, queue.Count);
         Assert.Equal(0, queue.TakeReplacedCount());
     }
+
+    [Fact]
+    public void RemoveDropsOneKeyAndKeepsTheOthersInOrder()
+    {
+        var queue = new LatestOnlyQueue<int>();
+        queue.Set(key: 1, 10);
+        queue.Set(key: 2, 20);
+        queue.Set(key: 3, 30);
+        queue.Remove(2);
+        queue.Remove(9);
+        queue.Set(key: 3, 31);
+
+        var drained = new List<int>();
+        queue.Drain(drained, static (list, value) => list.Add(value));
+
+        Assert.Equal([10, 31], drained);
+    }
 }

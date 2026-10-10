@@ -153,12 +153,12 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
         player.Stamp.StampServer(tick);
-                player.StateTick = player.Stamp.Broadcast;
+        player.StateTick = player.Stamp.Broadcast;
 
         var connection = player.Connection;
-        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
-        connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, player.Spawn());
         var spawn = player.Spawn();
+        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
+        connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
         foreach (var other in _players.Values)
         {
             if (other.Joined && other != player)
@@ -296,6 +296,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         {
             if (other.Joined)
             {
+                // A state still queued would follow the despawn in the next frame (events go first).
+                other.Connection.EntityStates.Remove(player.EntityId);
                 other.Connection.SendEvent(MessageIds.EntityDespawn, new EntityDespawn { EntityId = player.EntityId });
             }
         }
