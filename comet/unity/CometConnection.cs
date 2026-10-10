@@ -46,9 +46,15 @@ namespace Comet.Unity
                 return;
             }
 
-            Session.Transport.Close();
-            Session.Transport.Dispose();
+            var transport = Session.Transport;
             Session = null;
+            transport.Close();
+            // .NET's transport finishes the close handshake (or gives up after a few seconds) and releases its
+            // socket by itself; disposing it now would abort the close. The browser's still closes cleanly when freed.
+            if (!(transport is WebSocketTransport))
+            {
+                transport.Dispose();
+            }
         }
 
         /// <summary>The platform's transport: the browser's WebSocket on the web, .NET's elsewhere.</summary>

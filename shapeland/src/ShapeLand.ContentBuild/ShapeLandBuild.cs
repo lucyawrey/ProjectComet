@@ -37,6 +37,14 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
+        // Players pick a shape to join, so the game can't run without one (a missing or renamed folder builds
+        // empty otherwise).
+        if (result.Entries<Shape>().Count == 0)
+        {
+            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, "No shapes: the game needs at least one (shapes/*.toml)."));
+            return (null, errors);
+        }
+
         return (new ShapeLandContent(result.Entries<Shape>(), terrain), errors);
     }
 

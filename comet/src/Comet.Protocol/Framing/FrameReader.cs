@@ -10,6 +10,9 @@ namespace Comet.Protocol.Framing
     /// </summary>
     public struct FrameReader
     {
+        /// <summary>The largest frame clients accept from the server; the server keeps its frames under it.</summary>
+        public const int MaxServerFrameSize = 64 * 1024;
+
         private ReadOnlyMemory<byte> _remaining;
 
         private FrameReader(uint tick, ReadOnlyMemory<byte> messages)

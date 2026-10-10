@@ -127,12 +127,26 @@ namespace ShapeLand.Client.Tests
 
         [TestCase("http://localhost:5080/", "ws://localhost:5080/ws")]
         [TestCase("https://example.org/play/index.html", "wss://example.org/ws")]
-        [TestCase("https://example.org/?server=game.example.org%3A5080", "game.example.org:5080")]
+        [TestCase("https://example.org/?server=game.example.org%3A5080", "wss://game.example.org:5080/ws")]
+        [TestCase("http://localhost:8000/?server=localhost%3A5080", "ws://localhost:5080/ws")]
         [TestCase("http://localhost:8000/?debug=1&server=wss://game.example.org/ws", "wss://game.example.org/ws")]
         [TestCase("file:///tmp/index.html", "localhost:5080")]
         public void WebBuildsConnectToTheServerTheyCameFrom(string page, string expected)
         {
             Assert.That(JoinClient.AddressForPage(page, "localhost:5080"), Is.EqualTo(expected));
+        }
+
+        [TestCase("localhost:5080", "ws://localhost:5080/ws")]
+        [TestCase(" wss://game.example.org/ws ", "wss://game.example.org/ws")]
+        [TestCase("local host:5080", null)]
+        [TestCase("localhost:abc", null)]
+        [TestCase("localhost:99999", null)]
+        [TestCase("http://localhost:5080/ws", null)]
+        [TestCase("", null)]
+        public void ServerAddressesAreCheckedBeforeConnecting(string address, string expected)
+        {
+            var valid = JoinClient.TryServerUrl(address, out var url);
+            Assert.That(valid ? url.ToString() : null, Is.EqualTo(expected));
         }
 
         [Test]

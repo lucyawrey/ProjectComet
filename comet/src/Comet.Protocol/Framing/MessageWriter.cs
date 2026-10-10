@@ -75,11 +75,22 @@ namespace Comet.Protocol.Framing
         }
 
         /// <summary>Appends messages buffered in another writer (one started with <see cref="Clear"/>).</summary>
-        public void Append(MessageWriter messages)
+        public void Append(MessageWriter messages) => Append(messages, messages.Length, messages.MessageCount);
+
+        /// <summary>Appends the first <paramref name="count"/> messages, <paramref name="length"/> bytes, buffered in another writer.</summary>
+        public void Append(MessageWriter messages, int length, int count)
         {
-            messages.WrittenSpan.CopyTo(GetSpan(messages.Length));
-            _length += messages.Length;
-            MessageCount += messages.MessageCount;
+            messages.WrittenSpan.Slice(0, length).CopyTo(GetSpan(length));
+            _length += length;
+            MessageCount += count;
+        }
+
+        /// <summary>Removes the first <paramref name="count"/> messages, <paramref name="length"/> bytes, keeping the rest in order (for a writer started with <see cref="Clear"/>).</summary>
+        public void RemoveStart(int length, int count)
+        {
+            Buffer.BlockCopy(_buffer, length, _buffer, 0, _length - length);
+            _length -= length;
+            MessageCount -= count;
         }
 
         void IBufferWriter<byte>.Advance(int count) => _length += count;

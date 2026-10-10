@@ -3,22 +3,24 @@
 # and whenever packages.config changes. The editor can't compile the shared packages, and so can't run
 # NuGetForUnity's own restore, until MessagePack is there.
 #
-#   tools/unity-restore.sh [project]   (default: shapeland/unity)
+#   tools/unity-restore.sh [project]   (relative to the repository, or absolute; default: shapeland/unity)
 #
 # NuGetForUnity's CLI (4.5.0) writes analyzer DLLs' .meta files in a format Unity 6.6 rejects (PluginImporter
 # version 1), so Unity would import the source generator as an ordinary library. This rewrites them in the
-# current format, keeping their GUIDs. Check whether a newer CLI fixes that (.claude/design/prototype.md).
+# current format, keeping their GUIDs. The CLI is pinned to that version; check whether a newer one fixes it
+# (.claude/design/prototype.md) before moving the pin.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
-project="$repo/${1:-shapeland/unity}"
+project="${1:-shapeland/unity}"
+case "$project" in /*) ;; *) project="$repo/$project" ;; esac
 [ -f "$project/Assets/packages.config" ] || { echo "No Assets/packages.config in $project" >&2; exit 2; }
 
 # dnx ships with the .NET 10 SDK; on some systems it's only reachable through dotnet.
 if command -v dnx > /dev/null; then
-  DOTNET_ROLL_FORWARD=Major dnx -y NuGetForUnity.Cli -- restore "$project"
+  DOTNET_ROLL_FORWARD=Major dnx -y NuGetForUnity.Cli@4.5.0 -- restore "$project"
 else
-  DOTNET_ROLL_FORWARD=Major dotnet dnx -y NuGetForUnity.Cli -- restore "$project"
+  DOTNET_ROLL_FORWARD=Major dotnet dnx -y NuGetForUnity.Cli@4.5.0 -- restore "$project"
 fi
 
 fixed=0

@@ -44,4 +44,19 @@ public class PositionReporterTests
         reporter.Reset();
         Assert.True(reporter.ShouldReport(East, 0.01));
     }
+
+    [Fact]
+    public void StepTimesReportEveryFourStepsDespiteRounding()
+    {
+        // 60 steps a second, reporting on every other (server ticks), from far into a session where step numbers
+        // over the rate round: still 15 reports a second.
+        var reporter = new PositionReporter();
+        var reports = 0;
+        for (long step = 1_000_000; step < 1_000_060; step += 2)
+        {
+            reports += reporter.ShouldReport(new Vector3(5, 0, 0), step / 60.0) ? 1 : 0;
+        }
+
+        Assert.Equal(15, reports);
+    }
 }

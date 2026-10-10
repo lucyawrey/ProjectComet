@@ -6,6 +6,7 @@
 !ProjectComet.slnx
 !comet/src/**
 !tools/StackBench/**
+!tools/docker/**
 tools/StackBench/results
 **/bin
 **/obj

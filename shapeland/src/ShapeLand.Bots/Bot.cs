@@ -46,6 +46,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     private readonly Random _random = new(seed);
     private readonly HashSet<uint> _seen = [];
+    private readonly HashSet<uint> _cheatersInView = [];
     private readonly PositionReporter _reporter = new();
     private readonly FixedStep _fixed = new(StepsPerSecond);
     private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
@@ -93,6 +94,9 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     /// <summary>Network numbers sampled while running, for <c>--results</c>; empty until the warmup is over.</summary>
     public List<NetSample> NetSamples { get; } = [];
 
+    /// <summary>When the bot started, in UTC: its samples' seconds count from here, to match them to timestamped server logs.</summary>
+    public DateTimeOffset StartedAt { get; private set; }
+
     /// <summary>Of the others' states received since the warmup, those that continued a move, and the holds among them.</summary>
     public long MoveStates => Joined && _recording ? _session.Entities.MoveStates - _baseline.MoveStates : 0;
 
@@ -127,9 +131,14 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             gravity: ShapeLandWorld.Rules.Gravity, groundHeight: ShapeLandWorld.GroundHeight(world));
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
-        _session.EntityDespawned += _ => Despawns++;
+        _session.EntityDespawned += id =>
+        {
+            Despawns++;
+            _cheatersInView.Remove(id);
+        };
 
         var clock = Stopwatch.StartNew();
+        StartedAt = DateTimeOffset.UtcNow;
         var asked = false;
         // Wakes twice per step; the steps themselves run on the server's clock (FixedStep), on its ticks.
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.5 / StepsPerSecond));
@@ -206,7 +215,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
         PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity, world, ShapeLandWorld.Rules);
         // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
-        if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, now))
+        if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond))
         {
             _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
             CountOwnHitch(tick, _motor.Position);
@@ -243,6 +252,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 {
                     _seen.Add(spawn.EntityId);
                     _session.Entities.Spawn(spawn.EntityId, tick, position, spawn.Facing);
+                    if (IsCheaterName(spawn.Name))
+                    {
+                        // A speed cheater's impossible moves would count as the network's hitches.
+                        _session.Entities.ExcludeFromCounts(spawn.EntityId);
+                        _cheatersInView.Add(spawn.EntityId);
+                    }
                 }
 
                 break;
@@ -270,6 +285,10 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             SnapBacks++;
         }
     }
+
+    /// <summary>Whether a player's name is a cheating bot's, as Program names them ("Cheater 01", "Far cheater 01").</summary>
+    public static bool IsCheaterName(string name) =>
+        name.StartsWith("Cheater ", StringComparison.Ordinal) || name.Contains(" cheater ", StringComparison.Ordinal);
 
     // The speed-hitch test RemoteEntities applies to others' states, applied to this bot's own reports: what its
     // real movement does, to compare with what others draw.
@@ -316,7 +335,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextSample = now;
         }
 
-        WatchedSeconds += entities.Count * (now - _lastRecord);
+        WatchedSeconds += (entities.Count - _cheatersInView.Count) * (now - _lastRecord); // as counted: not cheaters
         _lastRecord = now;
         if (now < _nextSample)
         {

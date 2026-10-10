@@ -26,7 +26,11 @@ namespace Comet.Client
 
         public double Interval { get; }
 
-        /// <summary>Whether to report at <paramref name="now"/>, given the player's velocity after this step.</summary>
+        // Step times (a step number over the step rate) round, so an interval of exactly four steps can come out a
+        // hair short of the interval; without this, the report would wait two more steps.
+        private const double TimeTolerance = 1e-6;
+
+        /// <summary>Whether to report at <paramref name="now"/> (the step's time), given the player's velocity after this step.</summary>
         public bool ShouldReport(Vector3 velocity, double now)
         {
             var moving = velocity.LengthSquared() > MovingSpeedSquared;
@@ -34,7 +38,7 @@ namespace Comet.Client
             var direction = ground.LengthSquared() > MovingSpeedSquared ? Vector2.Normalize(ground) : Vector2.Zero;
 
             var report = moving != _wasMoving
-                || moving && now - _lastReport >= Interval
+                || moving && now - _lastReport >= Interval - TimeTolerance
                 || direction != Vector2.Zero && _reportedDirection != Vector2.Zero && Vector2.Dot(direction, _reportedDirection) < _sharpTurnCos;
 
             _wasMoving = moving;

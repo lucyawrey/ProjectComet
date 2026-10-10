@@ -110,7 +110,8 @@ namespace ShapeLand.Client
                 _previous = _motor;
                 PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, ShapeLandWorld.Rules);
                 _jumpQueued = false;
-                if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, now))
+                // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.
+                if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds))
                 {
                     _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
                 }

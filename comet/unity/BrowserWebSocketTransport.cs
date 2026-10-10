@@ -2,6 +2,7 @@
 using System;
 using System.Runtime.InteropServices;
 using Comet.Client;
+using Comet.Protocol.Framing;
 
 namespace Comet.Unity
 {
@@ -20,7 +21,7 @@ namespace Comet.Unity
 
         /// <summary>Starts connecting to <paramref name="url"/>.</summary>
         /// <param name="maxFrameSize">Larger frames from the server close the connection.</param>
-        public BrowserWebSocketTransport(Uri url, int maxFrameSize = 64 * 1024)
+        public BrowserWebSocketTransport(Uri url, int maxFrameSize = FrameReader.MaxServerFrameSize)
         {
             _maxFrameSize = maxFrameSize;
             _id = CometWs_Open(url.AbsoluteUri);

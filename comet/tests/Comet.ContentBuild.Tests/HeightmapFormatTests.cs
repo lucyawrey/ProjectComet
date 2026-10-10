@@ -60,4 +60,34 @@ public class HeightmapFormatTests
         Assert.Contains("truncated", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream(bytes[..^1]))).Message);
         Assert.Contains("bytes after", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream([.. bytes, 0]))).Message);
     }
+
+    // The header after the magic and version: sizes at 6 and 8, scale at 10, offset at 14.
+    private static byte[] WithHeader(Action<byte[]> change)
+    {
+        var stream = new MemoryStream();
+        HeightmapFormat.Write(stream, Sample());
+        var bytes = stream.ToArray();
+        change(bytes);
+        return bytes;
+    }
+
+    [Fact]
+    public void AHugeClaimedSizeIsTruncatedNotAnOverflow()
+    {
+        // 65535 × 65535 samples overflowed an int and crashed the tool.
+        var bytes = WithHeader(b => { BitConverter.TryWriteBytes(b.AsSpan(6), ushort.MaxValue); BitConverter.TryWriteBytes(b.AsSpan(8), ushort.MaxValue); });
+
+        Assert.Contains("truncated", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream(bytes))).Message);
+    }
+
+    [Theory]
+    [InlineData(10, float.NaN)]
+    [InlineData(10, 0f)]
+    [InlineData(14, float.PositiveInfinity)]
+    public void ScaleAndOffsetMustBeNumbers(int at, float value)
+    {
+        var bytes = WithHeader(b => BitConverter.TryWriteBytes(b.AsSpan(at), value));
+
+        Assert.Contains("scale", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream(bytes))).Message);
+    }
 }

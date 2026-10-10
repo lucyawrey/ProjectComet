@@ -226,7 +226,7 @@ namespace ShapeLand.Client
 
             var name = new Label(known ? speaker.Name : "Someone");
             name.AddToClassList("chat-name");
-            var text = new Label(message.Text);
+            var text = new Label(message.Text) { enableRichText = false }; // what players type is shown as typed, never markup
             text.AddToClassList("chat-text");
             line.Add(name);
             line.Add(text);
@@ -285,7 +285,7 @@ namespace ShapeLand.Client
         {
             var camera = view.Camera;
             var panel = _root.panel;
-            foreach (var pair in view.Spawns)
+            foreach (var pair in view.SpawnTable)
             {
                 var tag = TagFor(pair.Key, pair.Value);
                 var shape = view.ShapeOf(pair.Key);
@@ -329,7 +329,7 @@ namespace ShapeLand.Client
 
                 _bubble = new VisualElement { pickingMode = PickingMode.Ignore };
                 _bubble.AddToClassList("bubble");
-                _text = new Label { pickingMode = PickingMode.Ignore };
+                _text = new Label { pickingMode = PickingMode.Ignore, enableRichText = false };
                 var tail = new VisualElement { pickingMode = PickingMode.Ignore };
                 tail.AddToClassList("bubble-tail");
                 _bubble.Add(_text);

@@ -1,7 +1,13 @@
+using System.Net.WebSockets;
+using Comet.Protocol;
+using Comet.Protocol.Framing;
+using Comet.Protocol.Messages;
+using Comet.Server.Connections;
 using Microsoft.AspNetCore.Builder;
 using ShapeLand.Bots;
 using ShapeLand.ContentBuild;
 using ShapeLand.Shared.Content;
+using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
 
 namespace ShapeLand.GameServer.Tests;
@@ -96,6 +102,135 @@ public sealed class EndToEndTests : IAsyncLifetime
 
         Assert.False(bot.Joined);
         Assert.Equal(Shared.Messages.JoinRejection.UnavailableColour, bot.Rejected);
+    }
+
+    [Fact]
+    public async Task StoppingTheServerClosesConnectionsPromptly()
+    {
+        // Rather than leaving clients frozen until the host's shutdown timeout (the code review's S5).
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        var buffer = new byte[64 * 1024];
+        var receiving = Task.Run(async () =>
+        {
+            while (true)
+            {
+                var result = await socket.ReceiveAsync(buffer, TestContext.Current.CancellationToken);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, TestContext.Current.CancellationToken);
+                    return result.CloseStatus;
+                }
+            }
+        }, TestContext.Current.CancellationToken);
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        await _server.StopAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"stopping took {stopwatch.Elapsed}");
+        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, await receiving.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task AFloodOfMessagesDropsTheClient()
+    {
+        // Far more pings than any honest client sends, all at once: the server drops the connection rather than
+        // answering them all (the first code review's flood of cheap messages).
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        var frame = new MessageWriter();
+        frame.BeginFrame(0);
+        for (var i = 0; i < 300; i++)
+        {
+            frame.Write(MessageIds.Ping, new Ping { ClientTime = i });
+        }
+
+        await socket.SendAsync(frame.WrittenMemory, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
+
+        Assert.True(await Dropped(socket, TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public async Task OneAddressCanOpenOnlySoManyConnections()
+    {
+        var limit = new ConnectionLimits().MaxConnectionsPerAddress;
+        var sockets = new List<ClientWebSocket>();
+        try
+        {
+            for (var i = 0; i < limit; i++)
+            {
+                sockets.Add(new ClientWebSocket());
+                await sockets[^1].ConnectAsync(_url, TestContext.Current.CancellationToken);
+            }
+
+            using var extra = new ClientWebSocket();
+            await Assert.ThrowsAsync<WebSocketException>(() => extra.ConnectAsync(_url, TestContext.Current.CancellationToken));
+
+            // A place frees up when a connection closes.
+            sockets[0].Abort();
+            await Task.Delay(200, TestContext.Current.CancellationToken);
+            using var again = new ClientWebSocket();
+            await again.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            sockets.ForEach(socket => socket.Dispose());
+        }
+    }
+
+    [Fact]
+    public async Task AConnectionThatNeverJoinsIsDropped()
+    {
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+
+        Assert.False(await Dropped(socket, TimeSpan.FromSeconds(ShapeLandRules.JoinDeadlineSeconds - 1)));
+        Assert.True(await Dropped(socket, TimeSpan.FromSeconds(2)));
+    }
+
+    [Fact]
+    public async Task AFloodOfJoinAttemptsDropsTheClient()
+    {
+        // Each attempt scans every player for a name clash, so they're limited well below the message rate.
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
+        var frame = new MessageWriter(options: ShapeLandProtocol.Options);
+        frame.BeginFrame(0);
+        for (var i = 0; i < 20; i++)
+        {
+            frame.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Name = "" });
+        }
+
+        await socket.SendAsync(frame.WrittenMemory, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
+
+        Assert.True(await Dropped(socket, TimeSpan.FromSeconds(2)));
+    }
+
+    /// <summary>Reads until the server closes or drops the connection, or <paramref name="wait"/> passes.</summary>
+    private static async Task<bool> Dropped(ClientWebSocket socket, TimeSpan wait)
+    {
+        var buffer = new byte[64 * 1024];
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(wait);
+        try
+        {
+            while (true)
+            {
+                var result = await socket.ReceiveAsync(buffer, timeout.Token);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    return true;
+                }
+            }
+        }
+        catch (WebSocketException)
+        {
+            return true; // aborted without a close frame
+        }
+        catch (OperationCanceledException) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
     }
 
     internal static string RepoRoot()
