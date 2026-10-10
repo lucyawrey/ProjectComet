@@ -229,7 +229,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
   1. *Fairness* (none, good, bad): no snap-backs on honest bots, of either kind (rule violations or falls the server finishes).
   2. *Cheaters* (every profile): every cheater caught.
-  3. *Smoothness* (good, bad): holds at most 2% of moves, at most 60 ms each on average.
+  3. *Smoothness* (good, bad): holds at most 2% of moves, and at most 1 ms held per move in total (holds' share times their average length). This replaced "at most 60 ms each on average" (project lead) after fix B: removing short holds raised the average length while the total time held halved, so the average rewarded many short holds over a few long ones.
   4. *Steadiness* (good, bad): the target moves at most 30 ms/s on average.
   5. *Lag* (good, bad): delay median at most 300 ms under good and 550 ms under bad, about the baseline, so smoothness isn't bought with much more lag.
   6. *Awful* is reported, not required to pass: it shows how the game degrades.
