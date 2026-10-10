@@ -171,7 +171,7 @@ namespace ShapeLand.Client
 
             // A connection kept from a refused join is reused, unless the server is about to drop it for not joining.
             var session = _connection.Session;
-            var nearDeadline = Time.realtimeSinceStartupAsDouble - _connectedAt > ShapeLandRules.JoinDeadlineSeconds - 3;
+            var nearDeadline = !Joined && Time.realtimeSinceStartupAsDouble - _connectedAt > ShapeLandRules.JoinDeadlineSeconds - 3;
             if (session == null || session.Closed || url != _url || nearDeadline)
             {
                 Connect(url);

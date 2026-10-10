@@ -16,7 +16,8 @@ namespace Comet.Server.Connections;
 /// latest-only state queues. At most one tick frame is in flight; if the previous one is still
 /// sending, the flush is skipped and the state keeps being replaced with newer updates. A tick frame
 /// stays under the clients' frame limit: events past <see cref="TickFrameEventBudget"/>, and states
-/// that don't fit, wait for the next tick, in order; states wait while any events do.
+/// that don't fit, wait for the next tick, in order; states wait while any events do (so a burst of events
+/// pauses everyone's movement for a few ticks; holding back only new entities' states could replace this).
 /// Pings are answered immediately in their own frame, so round trips measure the network
 /// rather than the wait for the next tick.
 /// </para>
