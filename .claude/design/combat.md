@@ -7,6 +7,7 @@ Agent notes on combat design.
 ## Decided
 
 - **Feel:** action combat that feels a little like ARPGs and a little like tab-target games, but is extremely approachable for casual players. Optional lock-on.
+- **Actions are content, not code** (project lead): the end goal is that most Actions are made as content (frame data, hitboxes, costs, cooldowns, effects, movement, through the content pipeline, `backend.md`), with their own assets (animations, effects, sounds), and no code per Action. Code is for new mechanisms the content can then use, and the rare Action that needs something unique.
 - **Timing between a GCD system and fighting-game frame data** (project lead, Anima): most attacks share the same total time between actions (a GCD-like rhythm), but the timing inside that window varies per action (startup, active and recovery frames). The GCD doesn't need to be in Comet: it's a shared cooldown group plus each Action's frame data.
 - **Simple to understand, hard to master,** with **complex boss mechanics** like FFXIV's and Rabbit and Steel's (raid mechanics without tab-targeting, using shape-based collision). High-end raiding is part of the audience.
 - **PvE only for the first major version.** No PvP system is planned, so no PvP netcode.
