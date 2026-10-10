@@ -2,7 +2,7 @@
 
 **Layer: mixed.** Placeholder and prototype assets serve both ShapeLand-adjacent tests and Anima's phase 3 onwards.
 
-Agent research, written 2026-10-06. A basic survey. **Decided:** Kenney, Quaternius and KayKit are the starting sources for placeholder and prototype assets (`art.md`). No specific packs are chosen.
+Agent research, written 2026-10-06. A basic survey. **Decided:** Kenney, Quaternius and KayKit are the starting sources for placeholder and prototype assets (`art.md`). No 3D packs are chosen. In use: Kenney's Input Prompts (CC0, checked against the pack's licence file) for the gamepad icons on ShapeLand's web page; credited in `shapeland/CREDITS.md`, where every third-party asset goes.
 
 ## What to check for each pack
 
