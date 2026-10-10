@@ -87,6 +87,26 @@ public class RemoteEntitiesTests
     }
 
     [Fact]
+    public void CountsMovesThatRanOutOfStates()
+    {
+        _entities.Spawn(1, 10, Vector3.Zero, 0);
+        _entities.AddState(1, 12, new Vector3(2, 0, 0), 0);
+        PositionAt(11);
+        // Arrived while the render tick was still behind the state before it.
+        _entities.AddState(1, 14, new Vector3(4, 0, 0), 0);
+        PositionAt(15);
+        // The render tick had passed 14 by one tick: a hold.
+        _entities.AddState(1, 16, new Vector3(6, 0, 0), 0);
+        // After an idle gap the entity stood still, so waiting for the next state isn't a hold.
+        PositionAt(30);
+        _entities.AddState(1, 100, new Vector3(8, 0, 0), 0);
+
+        Assert.Equal(3, _entities.MoveStates);
+        Assert.Equal(1, _entities.Holds);
+        Assert.Equal(1, _entities.HeldTicks, 6);
+    }
+
+    [Fact]
     public void RestampsAStateLeftStandingBeforeAnIdleGap()
     {
         _entities.Spawn(1, 10, Vector3.Zero, 0);

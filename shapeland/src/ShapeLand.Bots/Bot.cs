@@ -75,6 +75,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     /// <summary>The connection failed or was lost, rather than being closed by the bot.</summary>
     public bool Failed { get; private set; }
 
+    /// <summary>
+    /// Time a bot was assigned a target point.
+    /// </summary>
+    public double TargetTime = 0;
+
     public async Task RunAsync(Uri url, CancellationToken stop)
     {
         var transport = new WebSocketTransport(url);
@@ -128,9 +133,10 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         _step++;
         var elapsed = _step / (double)StepsPerSecond;
         var position = new Vector2(_motor.Position.X, _motor.Position.Z);
-        if (Vector2.Distance(position, _target) < 1.5f)
+        if (Vector2.Distance(position, _target) < 1.5f || now - TargetTime > 30)
         {
             _target = RandomPoint();
+            TargetTime = now;
         }
 
         var move = Vector2.Normalize(_target - position);

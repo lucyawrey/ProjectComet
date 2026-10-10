@@ -49,6 +49,7 @@ public class ServerClockTests
         }
 
         Assert.Equal(0.05, clock.RoundTrip, 6);
+        Assert.Equal(0.25, clock.LastRoundTrip, 6);
         clock.Advance(9);
         Assert.Equal(TrueTick(9), clock.ServerTick(9), 0.6);
     }

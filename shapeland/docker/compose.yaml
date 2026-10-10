@@ -8,9 +8,8 @@ name: shapeland
 services:
   server:
     image: shapeland-netem
-    build:
-      context: ../..
-      dockerfile: shapeland/docker/Dockerfile
+    build: . # just the runtime and tc; everything else is mounted
+    entrypoint: /netem/netem.sh
     cap_add:
       - NET_ADMIN # for tc and the ifb device, inside this container's network namespace only
     environment:
@@ -27,6 +26,7 @@ services:
     ports:
       - ${SHAPELAND_PUBLISH:-127.0.0.1:5080}:5080
     volumes:
+      - ../../tools/docker:/netem:ro
       - ../../artifacts/bin:/app/bin:ro
       - ../../artifacts/content/shapeland:/app/content:ro
       - ../../artifacts/unity/shapeland/web-game:/app/web:ro
@@ -39,6 +39,7 @@ services:
     image: shapeland-netem # built by the server service
     pull_policy: never
     profiles: [bots] # started only when there are bots
+    entrypoint: /netem/netem.sh
     cap_add:
       - NET_ADMIN
     environment:
@@ -57,6 +58,7 @@ services:
       - --content
       - /app/content/content.bin
     volumes:
+      - ../../tools/docker:/netem:ro
       - ../../artifacts/bin:/app/bin:ro
       - ../../artifacts/content/shapeland:/app/content:ro
     depends_on:

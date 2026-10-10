@@ -48,6 +48,9 @@ namespace Comet.Client
         /// <summary>The trusted sample's round trip, in seconds (0 before the first pong).</summary>
         public double RoundTrip { get; private set; }
 
+        /// <summary>The latest pong's round trip, in seconds (0 before the first pong).</summary>
+        public double LastRoundTrip { get; private set; }
+
         /// <summary>The tick the server is on at <paramref name="now"/>, with a fraction.</summary>
         public double ServerTick(double now) => now * TickRate + _serverOffset;
 
@@ -71,6 +74,7 @@ namespace Comet.Client
         public void OnPong(uint tick, double sentAt, double now)
         {
             var roundTrip = Math.Max(0, now - sentAt);
+            LastRoundTrip = roundTrip;
             _samples[_sampleTotal % SampleCount] = new Sample(roundTrip, Centre(tick) - now * TickRate);
             _sampleTotal++;
 
