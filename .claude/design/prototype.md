@@ -201,6 +201,12 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   | 3 of 14 | 358 ms (328–400) | 0.9%, 57 ms each | 603 ms, 3.2% | 2 (falls) |
 
   One far player among eleven others already adds about 50 ms to everyone's delay (past the 300 ms lag criterion), because their states make up more than 5% of the samples and each carries their own trip; the extra delay also halves good players' holds. Shifting stamps by each sender's smoothed latency targets exactly this.
+- **Fix A, the silence before a server fall** (1.0 s, from 0.5; the server now catches up on the arc since the last report when it takes over, so a silent player is where gravity has taken them rather than hanging, then dropping; `netcode.md`): fairness passes under good and bad.
+
+  | Profile | Honest snap-backs | Delay median (5th–95th) | Target moving | Holds |
+  | --- | --- | --- | --- | --- |
+  | good | 0 | 278 ms (242–330) | 29 ms/s | 1.6%, 46 ms each |
+  | bad | 0 (no server falls) | 516 ms (417–595) | 88 ms/s | 2.3%, 97 ms each |
 - **3c's pass criteria are written down before the tuning runs** (project lead), as the stack benchmark's thresholds were: the agent proposes numbers and the project lead approves them.
 - **3c's pass criteria**, judged on one `tools/shapeland-netrun.sh` run per profile (180 s, 10 honest bots, 1 cheater, seed 1; two seeds if single runs prove noisy):
   1. *Fairness* (none, good, bad): no snap-backs on honest bots, of either kind (rule violations or falls the server finishes).

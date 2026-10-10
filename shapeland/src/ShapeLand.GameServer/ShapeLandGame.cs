@@ -214,7 +214,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
     {
         var wasFalling = player.Validator.ServerFalling;
         var result = player.Validator.Fall(tick, player.Shape.MaxSpeed, player.Shape.JumpVelocity);
-        if (!wasFalling && player.Validator.ServerFalling)
+        // A fall that began during a long silence can land on the very tick the server takes it over.
+        if (!wasFalling && result != FallResult.None)
         {
             player.ServerFalls++;
             logger.LogInformation("Finishing the fall of {Name}, silent in the air, {Count} so far", player.Name, player.ServerFalls);

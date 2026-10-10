@@ -181,8 +181,10 @@ public class MovementValidatorTests
         }
 
         Assert.Equal(FallResult.None, results[0]); // still within the silence allowance
-        Assert.Contains(FallResult.Moved, results);
+        // The server takes over after the silence, catching up on the arc since the last report: this short hop
+        // has come down by then, so it lands on that tick rather than hanging and then dropping.
         Assert.Equal(FallResult.Landed, results[^1]);
+        Assert.Equal(results.Count - 1, results.Count(r => r == FallResult.None));
         Assert.Equal(0, _validator.Position.Y, 0.05f);
         Assert.True(_validator.Position.X > 5, $"Didn't keep moving forward (landed at x = {_validator.Position.X}).");
 
@@ -201,12 +203,19 @@ public class MovementValidatorTests
         _validator.Reset(new Vector3(31.6f, 0, 4), 0, 108);
         Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(32.4f, -0.2f, 4), new Vector3(MaxSpeed, -2, 0), tick: 112));
         var result = FallResult.None;
+        float? takenOverAt = null;
         for (uint tick = 113; tick < 400 && result != FallResult.FellOut; tick++)
         {
             result = _validator.Fall(tick, MaxSpeed, JumpVelocity);
+            takenOverAt ??= result == FallResult.Moved ? _validator.Position.Y : null;
         }
 
         Assert.Equal(FallResult.FellOut, result);
+        // Taken over after the silence, already down the arc it would have followed meanwhile, not at the last
+        // report: about half of g t² below it after a second.
+        var silence = new MovementTolerances().SilenceSeconds;
+        Assert.NotNull(takenOverAt);
+        Assert.True(takenOverAt < -0.2f - 0.4f * new MovementRules().Gravity * silence * silence, $"Taken over at y = {takenOverAt}.");
     }
 
     [Fact]

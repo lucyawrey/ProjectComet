@@ -65,8 +65,11 @@ public sealed class MovementTolerances
     /// </summary>
     public float AirTimeSlack { get; set; } = 0.3f;
 
-    /// <summary>Seconds without a report before the server moves an airborne player itself.</summary>
-    public float SilenceSeconds { get; set; } = 0.5f;
+    /// <summary>
+    /// Seconds without a report before the server moves an airborne player itself. Longer than a TCP resend
+    /// stall at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't (prototype.md, 3c).
+    /// </summary>
+    public float SilenceSeconds { get; set; } = 1.0f;
 
     /// <summary>Extra height always allowed above a jump, in metres.</summary>
     public float HeightSlack { get; set; } = 0.3f;
@@ -247,7 +250,7 @@ public sealed class MovementValidator
 
             _serverFalling = true;
             CorrectionSequence++; // the silent client's reports from before the landing correction are stale
-            var maxUp = jumpVelocity - _rules.Gravity * AirTime(tick);
+            var maxUp = jumpVelocity - _rules.Gravity * AirTime(_lastReportTick);
             _fall = new MotorState
             {
                 Position = Position,
@@ -256,20 +259,36 @@ public sealed class MovementValidator
                 Facing = Facing,
             };
             _fallMove = maxSpeed > 0 ? new Vector2(_velocity.X, _velocity.Z) / maxSpeed : Vector2.Zero;
+
+            // The fall began at the last report, so catch up on the silence first: the player is where that arc
+            // has taken them by now, rather than hanging at the last report and then dropping.
+            for (var t = _lastReportTick + 1; t < tick; t++)
+            {
+                if (StepFall(maxSpeed, jumpVelocity) is { } early)
+                {
+                    return Finish(early, tick);
+                }
+            }
         }
 
+        return StepFall(maxSpeed, jumpVelocity) is { } result ? Finish(result, tick) : FallResult.Moved;
+    }
+
+    // One server tick of a server fall; null while still in the air.
+    private FallResult? StepFall(float maxSpeed, float jumpVelocity)
+    {
         PlayerMotor.Step(ref _fall, _fallMove, jump: false, 1f / _tickRate, maxSpeed, jumpVelocity, _world, _rules);
         Position = _fall.Position;
         Facing = _fall.Facing;
-        if (Position.Y < _world.KillHeight)
+        return Position.Y < _world.KillHeight ? FallResult.FellOut : _fall.Grounded ? FallResult.Landed : null;
+    }
+
+    private FallResult Finish(FallResult result, uint tick)
+    {
+        if (result == FallResult.FellOut)
         {
             _serverFalling = false;
             return FallResult.FellOut;
-        }
-
-        if (!_fall.Grounded)
-        {
-            return FallResult.Moved;
         }
 
         _serverFalling = false;
