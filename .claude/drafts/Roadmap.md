@@ -9,7 +9,7 @@ Phase 0 came before the proposal was finished, and it's done: ShapeLand is playa
 | Phase | Goal | Done when |
 | --- | --- | --- |
 | **0. Prototypes** (done) | In order: the stack benchmark; shared code compiling in Unity, with editor support for content files; ShapeLand sliding, jumping and chatting, built for web and desktop, under simulated latency | The stack benchmark and ShapeLand's network criteria pass, both written down beforehand. Both passed |
-| **1. Vertical slice** | First the full load test on ShapeLand as it is; then ShapeLand in one zone with combat, loot and levels; 100+ bots; simulated latency from day one. Comparing texture filtering runs alongside | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
+| **1. Vertical slice** | First level editing (zone files and simple editor tools, to build bigger areas), interest management and the full load test; then ShapeLand in one zone with combat, loot and levels; 100+ bots; simulated latency from day one. Comparing texture filtering runs alongside | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
 | **2. Seamless-world proof** | Two or more zones with border handoff, channels, a dungeon instance and a teleport | Crossing borders is invisible under simulated latency |
 | **3. Closed alpha** | Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
 | **4. Open beta** | The early part complete, the late part in progress, membership and bonds, operations tooling | Scale and the economy hold up with a real population |

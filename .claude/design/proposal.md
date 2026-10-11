@@ -101,7 +101,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
   | Phase | Goal | Done when |
   | --- | --- | --- |
   | 0. Prototypes (done) | Stack benchmark; shared source packages in Unity; TOML 1.1 editor support; ShapeLand sliding, jumping and chat on web and desktop under simulated latency | The stack benchmark and ShapeLand's network criteria pass, both written down beforehand |
-  | 1. Vertical slice | First the full game load test on ShapeLand as it is; then ShapeLand in one zone with its core loop, 100+ bots, simulated latency from day one; texture filtering comparison alongside | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
+  | 1. Vertical slice | First level editing (chunked zone files, the first editor tools), interest management and the full game load test; then ShapeLand in one zone with its core loop, 100+ bots, simulated latency from day one; texture filtering comparison alongside | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
   | 2. Seamless-world proof | Two or more zones with border handoff, channels, a dungeon instance, a teleport | Crossing borders is invisible under simulated latency |
   | 3. Closed alpha | Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
   | 4. Open beta | Early part complete, late part in progress, membership and bonds, ops tooling | Scale and economy hold up with a real population |

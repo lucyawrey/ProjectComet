@@ -33,7 +33,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Seamless world with no loading screens;** only teleports hide loading. The project's biggest technical challenge.
 - **Private servers are easy to self-host,** without a large proprietary dependency.
 - **Unity client with web export as a main goal;** plain .NET servers; WebSocket for every client. Later, high-quality web play with WebGPU and WebTransport if possible.
-- **Phase 1, the vertical slice:** ShapeLand in one zone, with 100+ bot clients and simulated latency from day one. It opens with the full game load test and the texture filtering comparison, moved from phase 0. Before it, **phase 0** (`prototype.md`) is done: the stack benchmark passed and ShapeLand slides, jumps and chats under simulated latency.
+- **Phase 1, the vertical slice:** ShapeLand in one zone, with 100+ bot clients and simulated latency from day one. It opens with level editing (chunked zone files and the first editor tools), then interest management, then the full game load test; the texture filtering comparison runs alongside. Before it, **phase 0** (`prototype.md`) is done: the stack benchmark passed and ShapeLand slides, jumps and chats under simulated latency.
 
 ## Design notes
 
@@ -45,7 +45,7 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 | --- | --- | --- |
 | `glossary.md` | Working terms | — |
 | `proposal.md` | Two layers, ShapeLand, vision, business model, audience, roadmap, core loop, economy, new players, character creation, age rating, licences, accessibility, privacy, security, comparables | — |
-| `backend.md` | Services, handoff, transport, libraries, load testing, zones, content pipeline, database architecture, moderation and operations; research | Client mods, WebTransport, deferred ops items |
+| `backend.md` | Services, handoff, transport, libraries, load testing, zones, content pipeline, database architecture, moderation and operations; research | Terrain pieces and edges, client mods, WebTransport, deferred ops items |
 | `prototype.md` | The early prototype: scope, plan, stack benchmark, ShapeLand phase 0 as built, the public test build | Stage 2 load-test thresholds |
 | `netcode.md` | Messages, replication, movement validation, interest management | — |
 | `world.md` | Hierarchy, borders, channels, constellations, teleports, dungeons | — |
