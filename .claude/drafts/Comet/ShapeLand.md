@@ -4,6 +4,8 @@ ShapeLand is Comet's demo game: a tiny MMO where players are coloured shapes in 
 
 It needs no art assets or animation, so the early phases don't wait on art.
 
+Phase 0 is done and playable in the browser at https://shapeland.lucyawrey.com: pick a shape and colours, slide, jump and chat with whoever else is on. The game server is brought up for test sessions, so it isn't always open.
+
 ## Players
 
 Players choose one of three faceted shapes, and each shape is a class with its own spells. Like every player in Comet, all three share the same small hitbox for attacks, whatever their size:
@@ -28,7 +30,7 @@ A playful toy box: bright primary colours and simple props.
 
 | Phase | ShapeLand adds | Comet gets tested on |
 | --- | --- | --- |
-| 0. Prototypes | Sliding, jumping and chat, on one game server with no accounts; built for web from the start | Connections, movement, chat, the web build |
+| 0. Prototypes (done) | Sliding, jumping and chat, on one game server with no accounts; built for web from the start | Connections, movement, chat, the web build, playing under simulated latency |
 | 1. Vertical slice | Combat, paint drops that recolour your shape, XP and levels | Combat core, items and the ledger, trading, progression, persistence, 100+ bots |
 | 2. Seamless-world proof | Several zones, a border, channels, a dungeon, a teleport | Handoff, channels, instances, streaming |
 

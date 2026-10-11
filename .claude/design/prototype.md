@@ -6,7 +6,7 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
 
 ## Decided
 
-- **Prototype early,** before the human-readable proposal is done. **All of ShapeLand phase 0 (3a–3c) came before returning to the docs** (project lead): it shows whether the project could go anywhere before more time goes into the proposal. Phase 0 is done (2026-10-10); the full game load test waits until after the proposal work.
+- **Prototype early,** before the human-readable proposal is done. **All of ShapeLand phase 0 (3a–3c) came before returning to the docs** (project lead): it shows whether the project could go anywhere before more time goes into the proposal. Phase 0 is done (2026-10-10). **The full game load test and the texture filtering comparison move to the start of phase 1** (project lead), after the proposal work; the roadmap's phase 0 is done when the stack benchmark and ShapeLand's network criteria pass.
 - **Scope: phase 0 only.**
   - The two-stage load test: a bare stack benchmark, then the full game test (`backend.md`, load testing).
   - Shared source packages (Protocol, Content, Simulation) compiling in Unity.
@@ -18,8 +18,8 @@ Agent notes on the early prototype of Comet and ShapeLand. The roadmap phases ar
   1. The bare stack benchmark (Kestrel and bots, no Unity), the biggest risk.
   2. Shared packages compiling in Unity, and TOML support.
   3. ShapeLand sliding and chat.
-  4. The full game load test on top of ShapeLand.
-  - The texture filtering comparison can happen any time, in parallel.
+  4. The full game load test on top of ShapeLand (now opening phase 1).
+  - The texture filtering comparison can happen any time, in parallel (now alongside phase 1).
 - **The prototype's first milestone: the stack benchmark passes** its thresholds, written down before the run. A failure tells us early that the stack or language is the problem.
 - **ShapeLand phase 0 runs on a game server only:** players connect straight to one game server with a name, no accounts; chat goes over the game connection. Login, Region and the database come in phase 1.
 - **The web build is tested early:** ShapeLand is built for web as soon as it slides, and the full load test includes real web clients alongside the bots.
@@ -222,7 +222,8 @@ ShapeLand can be played at https://shapeland.lucyawrey.com without downloads (pr
 - **While the server is down,** the page's card says ShapeLand isn't open for testing right now, and checks again on request.
 - **`down` parks the name at 192.0.2.1** rather than removing it: the domain's wildcard record would answer for a removed name, and resolvers keep that answer for 30 minutes, past the next `up`. A record under `shapeland` (such as `server.shapeland`) stops the wildcard covering `shapeland` itself, so the page's domain has its own record.
 - **The server takes the client's address from `X-Forwarded-For`,** trusting only Caddy, so players don't all share the proxy's address and its per-address connection cap. `/health` answers `ok`; the page and `status` check it.
-- **The AWS account is on the Free Plan:** upgrade it to the Paid Plan (credits carry over) before its 6-month limit, or it closes.
+- **The AWS account is on the Free Plan:** upgrade it to the Paid Plan (credits carry over) before its 6-month limit, or it closes. Not a concern yet (project lead).
+- **The server may stay up for long stretches** (project lead): it's cheap, and people want to try it.
 - **Agent sessions:** the sandbox blocks AWS, Vercel and DNS calls, so the script runs outside it.
 
 ## Considering

@@ -1,6 +1,6 @@
 # Prototype Results
 
-<!-- Agent draft, raw material: measurements and findings moved here from `.claude/design/prototype.md` once phase 0 was done, to be written up as the prototype report (todo 4a). The project lead copies what they need into their own report in `docs/`. Still to gather: screenshots and a recording of both clients under the bad profile, and the limits of simulating the network on one machine. -->
+<!-- Agent draft, raw material: measurements and findings moved here from `.claude/design/prototype.md` once phase 0 was done, written up in `Prototype Report.md`. The project lead copies what they need into their own report in `docs/`. -->
 
 ## Stack benchmark
 
