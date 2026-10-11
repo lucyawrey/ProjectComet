@@ -38,7 +38,7 @@ Run `tools/unity-restore.sh` again whenever `shapeland/unity/Assets/packages.con
 
 ## Scripts
 
-Run them from the repository root. Each script's header comment lists all its options.
+Run them from the repository root. Each script's options are listed below and in its header comment; `shapeland-web.sh` and `shapeland-netrun.sh` also print theirs with `--help`.
 
 | Script | What it's for |
 | --- | --- |
@@ -47,7 +47,7 @@ Run them from the repository root. Each script's header comment lists all its op
 | `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
 | `tools/unity-batch.sh` | Run Unity in batch mode (tests, builds) and return when the work is done, since the editor often hangs while quitting. |
-| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). |
+| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). Takes the project as an optional argument (default `shapeland/unity`). |
 | `tools/observe.cs` | Join a local server as a player standing still and print how other players' movement arrives. |
 | `tools/StackBench/` | The stack benchmark: Comet's message layer under load, with no game logic. See its [README](tools/StackBench/README.md). |
 
@@ -60,6 +60,19 @@ tools/shapeland-web.sh --net bad --bots 5   # everyone gets about 200 ms round t
 tools/shapeland-web.sh --lan                # let other devices on the network join
 ```
 
+| Option | What it does |
+| --- | --- |
+| `--rebuild` | Make the Unity web build even if it looks up to date. |
+| `--no-build` | Use the last web build as it is (content still rebuilds). |
+| `--bots N` | Start N honest bots (default 0). |
+| `--cheaters N` | Start N speed-cheating bots (default 0). |
+| `--bots-chat` | Let the bots chat now and then (they stay quiet otherwise). |
+| `--port P` | The game server's port (default 5080). |
+| `--lan` | Listen on every network interface, so other devices on the network can join. |
+| `--no-open` | Don't open the page in a browser. |
+| `--net P` | Run the server and bots in Docker with a network profile on the server's link, so every client gets it (desktop builds too). |
+| `--bots-net P` | With `--net`, a profile the bots get on top of it (default `none`), for example for high-ping bots. |
+
 Close the Unity editor first: the build fails while it has the project open. Ctrl+C stops everything.
 
 ### Network runs
@@ -68,6 +81,21 @@ Close the Unity editor first: the build fails while it has the project open. Ctr
 tools/shapeland-netrun.sh good
 tools/shapeland-netrun.sh bad --seconds 300 --bots 20 --cheaters 2
 ```
+
+The first argument is the profile on the server's link: `none`, `good`, `bad` or `awful`.
+
+| Option | What it does |
+| --- | --- |
+| `--seconds S` | How long the bots run, warmup included (default 180). |
+| `--bots N` | Honest bots, whose network numbers are recorded (default 10). |
+| `--cheaters N` | Speed-cheating bots, which should all be caught (default 1). |
+| `--cheat-speed F`, `--cheat-jump F` | How much faster cheaters move and jump than allowed (default 2.5 and 1); small values make subtle cheaters, for tuning the tolerances. |
+| `--seed N` | The bots' seed, so runs before and after a change are comparable (default 1). |
+| `--warmup S` | Seconds after joining before numbers are recorded, while the delay settles (default 10). |
+| `--bots-net P` | A profile the bots get on top, for example for high-ping bots; they then run in their own container. |
+| `--far N` | Also N far players: honest bots named "Far" in their own container with `--far-net` on top, to see how they affect the others (the summary is the others'; theirs follows). |
+| `--far-net P` | The far players' extra profile (default `bad`). |
+| `--port P` | The server's port on this machine (default 5091). |
 
 Results also go to a file stamped with the profile and commit. The default port (5091) lets a `shapeland-web.sh` session keep running alongside.
 
@@ -79,6 +107,8 @@ With a server and moving players (bots, for instance) running, and the content b
 dotnet run tools/observe.cs -- --url ws://localhost:5080/ws --seconds 20
 ```
 
+`--url` is the server's WebSocket address (default `ws://localhost:5080/ws`) and `--seconds` how long to watch (default 20).
+
 ### Unity batch jobs
 
 ```sh
@@ -86,7 +116,15 @@ tools/unity-batch.sh -- -runTests -testPlatform PlayMode -testResults Logs/resul
 tools/unity-batch.sh -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
 ```
 
-The project defaults to `shapeland/unity` (`-p` to change it). The exit code is the editor's (tests: 0 passed, 2 failed), 1 if it gave no result, and 124 on the time limit.
+Everything after `--` goes to Unity. Before it:
+
+| Option | What it does |
+| --- | --- |
+| `-p project` | The Unity project (default `shapeland/unity`). |
+| `-l logfile` | The editor's log (default `Logs/batch.log`). Relative paths, here and in Unity arguments, are relative to the project. |
+| `-t minutes` | The time limit (default 30). |
+
+The exit code is the editor's (tests: 0 passed, 2 failed), 1 if it gave no result, and 124 on the time limit.
 
 ### Public test build
 
@@ -94,11 +132,14 @@ The project defaults to `shapeland/unity` (`-p` to change it). The exit code is 
 tools/shapeland-testbuild.sh setup          # once per AWS account
 tools/shapeland-testbuild.sh page           # build the web page and publish it on Vercel
 tools/shapeland-testbuild.sh up --hours 24  # start the game server; it stops itself after 24 hours
-tools/shapeland-testbuild.sh status
+tools/shapeland-testbuild.sh status         # what's running, and whether the server answers
+tools/shapeland-testbuild.sh log            # the server's boot log (from its console)
 tools/shapeland-testbuild.sh down           # terminate it when done
 ```
 
-The server costs about 20 cents a day while it's up. When it's down, the page says the game isn't open for testing. Settings that aren't in the repo live in `~/.config/shapeland-testbuild/env`.
+`up --hours H` sets when the server shuts itself down (default 24; 0 for never). `page --no-build` publishes the last web build as it is.
+
+The server costs about 20 cents a day while it's up. When it's down, the page says the game isn't open for testing. Settings that aren't in the repo live in `~/.config/shapeland-testbuild/env`: the first run on a computer creates it and stops until `ACME_EMAIL` (the contact address Caddy gives Let's Encrypt and ZeroSSL for the server's certificate) is filled in.
 
 ## Known quirks
 
