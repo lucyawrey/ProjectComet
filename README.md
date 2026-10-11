@@ -4,45 +4,37 @@
 
 ## Working on the docs
 
-This project docs are most usable as an Obsidian vault: open the repo root in Obsidian with "Open folder as vault".
+The project's docs are most usable when opened as an Obsidian vault.
 
-The vault's shared config and community plugins are committed, so they're ready after cloning (enable community plugins if Obsidian asks):
+The vault's shared config and community plugins are in the repo, so they're ready after cloning (enable community plugins if Obsidian asks).
 
 - **Unhide for Obsidian**: shows dot-folders, including `.claude/` (claude agent notes). `.git` stays hidden.
 - **Git**: commit and pull from inside Obsidian.
 
-Per-user state for the obsidian vault is gitignored.
-
 ## Requirements
 
-- **.NET 10 SDK** (pinned in `global.json`) for the servers, libraries, bots and tools.
-- **Unity 6000.6.4f1** for ShapeLand's client (`shapeland/unity`).
-- **Docker** for the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`). On Linux, Docker needs the traffic-shaping kernel modules loaded at boot, since containers can't load them:
+- **.NET 10 SDK**: for the servers, libraries, bots and tools.
+- **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/unity`).
+- **Docker**: for the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`).
 
-  ```sh
-  printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' | sudo tee /etc/modules-load.d/stackbench.conf
-  sudo systemctl restart systemd-modules-load
-  ```
-
-- **AWS CLI and Vercel CLI**, logged in, only for the public test build.
+- **AWS CLI and Vercel CLI**: only for the public test build.
 
 ## Layout
 
 - `comet/`: Comet, the shared base: protocol, simulation, client and server libraries, content tools, and the Unity package.
 - `shapeland/`: ShapeLand, the demo game: content, game server, bots, Unity client and deployment.
 - `tools/`: scripts for building, running and testing (below), and the stack benchmark.
-- `docs/`: the human-readable proposal.
-- `.claude/`: agent notes, drafts and research.
+- `docs/`: project notes and the proposal.
 
 ## First setup
 
 ```sh
-tools/unity-restore.sh               # restore the Unity project's NuGet packages before opening it
+tools/unity-restore.sh
 dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
-Run `tools/unity-restore.sh` again whenever `packages.config` changes.
+Run `tools/unity-restore.sh` again whenever `shapeland/unity/Assets/packages.config` (the Unity project's NuGet packages) changes.
 
 ## Scripts
 
