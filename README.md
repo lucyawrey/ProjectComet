@@ -34,7 +34,7 @@ dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
-Run `tools/unity-restore.sh` again whenever `shapeland/unity/Assets/packages.config` (the Unity project's NuGet packages) changes.
+Run `tools/unity-restore.sh` again whenever `shapeland/unity/Assets/packages.config` changes.
 
 ## Scripts
 
