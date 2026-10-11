@@ -33,13 +33,14 @@ The project has two layers:
 - **Comet** is the foundation: servers, netcode, the seamless world, combat rules, persistence, content pipeline and operations tools. It's MIT-licensed and could carry a different, similar game.
 - **Anima** is the game built on it: its classes, economy, world, story and art.
 
-The split exists so the hardest work stays useful whatever game the team decides to make. Comet is built and proven first, with a tiny demo game of coloured shapes called **ShapeLand**; Anima's own systems come once the foundation works.
+The split exists so the hardest work stays useful whatever game the team decides to make. Comet is built and proven first, with a tiny demo game of coloured shapes called **ShapeLand**; Anima's own systems come once the foundation works. ShapeLand's first phase is done and can be played in the browser at https://shapeland.lucyawrey.com.
 
 ## How to read this proposal
 
 - **[Roadmap](Roadmap.md)** comes first for anyone deciding whether to commit: phases, team roles, costs and risks.
+- **[Prototype Report](Prototype%20Report.md)** shows what phase 0 built and measured.
 - **Comet** pages describe how the game is built. Start with the [Comet Overview](Comet/Comet%20Overview.md).
-- **Anima** pages describe the game itself. Start with [Core Loop and Endgame](Project%20Anima/Core%20Loop%20and%20Endgame.md).
+- **Anima** pages describe the game itself. Start with [Core Loop and Endgame](Anima/Core%20Loop%20and%20Endgame.md).
 
 Each page ends with its open questions.
 
@@ -60,16 +61,16 @@ Each page ends with its open questions.
 - [ShapeLand](Comet/ShapeLand.md)
 
 **Anima**
-- [Setting](Project%20Anima/Setting.md)
-- [Core Loop and Endgame](Project%20Anima/Core%20Loop%20and%20Endgame.md)
-- [Classes and Skills](Project%20Anima/Classes%20and%20Skills.md)
-- [Combat](Project%20Anima/Combat.md)
-- [Items and Economy](Project%20Anima/Items%20and%20Economy.md)
-- [Crafting and Housing](Project%20Anima/Crafting%20and%20Housing.md)
-- [Companions](Project%20Anima/Companions.md)
-- [World and Travel](Project%20Anima/World%20and%20Travel.md)
-- [New Players](Project%20Anima/New%20Players.md)
-- [Community](Project%20Anima/Community.md)
-- [Art and Audio](Project%20Anima/Art%20and%20Audio.md)
-- [Accessibility and Translation](Project%20Anima/Accessibility%20and%20Translation.md)
-- [Business and Audience](Project%20Anima/Business%20and%20Audience.md)
+- [Setting](Anima/Setting.md)
+- [Core Loop and Endgame](Anima/Core%20Loop%20and%20Endgame.md)
+- [Classes and Skills](Anima/Classes%20and%20Skills.md)
+- [Combat](Anima/Combat.md)
+- [Items and Economy](Anima/Items%20and%20Economy.md)
+- [Crafting and Housing](Anima/Crafting%20and%20Housing.md)
+- [Companions](Anima/Companions.md)
+- [World and Travel](Anima/World%20and%20Travel.md)
+- [New Players](Anima/New%20Players.md)
+- [Community](Anima/Community.md)
+- [Art and Audio](Anima/Art%20and%20Audio.md)
+- [Accessibility and Translation](Anima/Accessibility%20and%20Translation.md)
+- [Business and Audience](Anima/Business%20and%20Audience.md)

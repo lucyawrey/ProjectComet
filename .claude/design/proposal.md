@@ -95,13 +95,13 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
   | QA | Testing and playtesting |
   | Operations | Deployments, databases, monitoring (the project lead's strength) |
 
-- **Prototype Comet + ShapeLand early,** before the human-readable proposal is done. Not started yet; planning the prototype starts now.
+- **Prototype Comet + ShapeLand early,** before the human-readable proposal is done. Phase 0 is done (`prototype.md`).
 - **Roadmap: phases with goals and exit criteria, no dates.** Phases 0–2 build Comet using ShapeLand.
 
   | Phase | Goal | Done when |
   | --- | --- | --- |
-  | 0. Prototypes | Two-stage load test; shared source packages in Unity; TOML 1.1 editor support; texture filtering comparison | The load test meets thresholds written down beforehand |
-  | 1. Vertical slice | ShapeLand in one zone with its core loop, 100+ bots, simulated latency from day one | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
+  | 0. Prototypes (done) | Stack benchmark; shared source packages in Unity; TOML 1.1 editor support; ShapeLand sliding, jumping and chat on web and desktop under simulated latency | The stack benchmark and ShapeLand's network criteria pass, both written down beforehand |
+  | 1. Vertical slice | First the full game load test on ShapeLand as it is; then ShapeLand in one zone with its core loop, 100+ bots, simulated latency from day one; texture filtering comparison alongside | Movement and combat feel responsive under simulated latency, and performance meets thresholds |
   | 2. Seamless-world proof | Two or more zones with border handoff, channels, a dungeon instance, a teleport | Crossing borders is invisible under simulated latency |
   | 3. Closed alpha | Anima's early part playable: accounts, persistence, classes, items, crafting, basic moderation tools, private-server packaging | Stable with real players, and they come back |
   | 4. Open beta | Early part complete, late part in progress, membership and bonds, ops tooling | Scale and economy hold up with a real population |
@@ -109,7 +109,7 @@ Agent notes on what a game proposal covers beyond systems. **The pitch, pillar w
   | 6. Expansions | New parts; free players move up a part | |
 
   Phase 2 proves the biggest risk (the seamless world) before content production. Whether Anima is fun is tested at phase 3.
-- **Budget: hosting costs only;** development budget is left to the team. Cost categories: game servers (most of it), Region server processes, PostgreSQL with backups, Valkey for larger regions, and CDN bandwidth for web client, asset and content downloads (every new browser player downloads them). *Placeholder: numbers after phase 0 (players per CPU core from the load test).*
+- **Budget: hosting costs only;** development budget is left to the team. Cost categories: game servers (most of it), Region server processes, PostgreSQL with backups, Valkey for larger regions, and CDN bandwidth for web client, asset and content downloads (every new browser player downloads them). *Placeholder: numbers after the full load test (players per CPU core).*
 
 ### Core loop, endgame and content delivery
 

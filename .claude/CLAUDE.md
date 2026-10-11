@@ -1,6 +1,6 @@
 # Comet and Anima: agent context
 
-Handoff notes for agent sessions. Last updated 2026-10-10.
+Handoff notes for agent sessions. Last updated 2026-10-11.
 
 **Names:** *Comet* is the shared base (servers, libraries, Unity package, tools); *Anima* is the working name of the game built on it; *ShapeLand* is Comet's tiny demo and reference game. *ProjectComet* (also the repository's name) is the working name of the whole project, covering Comet and Anima.
 
@@ -33,7 +33,7 @@ Experienced web developer with shipped production apps; strong in deployments, o
 - **Seamless world with no loading screens;** only teleports hide loading. The project's biggest technical challenge.
 - **Private servers are easy to self-host,** without a large proprietary dependency.
 - **Unity client with web export as a main goal;** plain .NET servers; WebSocket for every client. Later, high-quality web play with WebGPU and WebTransport if possible.
-- **Phase 1, the vertical slice:** ShapeLand in one zone, with 100+ bot clients and simulated latency from day one. Before it, **phase 0** (`prototype.md`) is done: the stack benchmark passed and ShapeLand slides, jumps and chats under simulated latency.
+- **Phase 1, the vertical slice:** ShapeLand in one zone, with 100+ bot clients and simulated latency from day one. It opens with the full game load test and the texture filtering comparison, moved from phase 0. Before it, **phase 0** (`prototype.md`) is done: the stack benchmark passed and ShapeLand slides, jumps and chats under simulated latency.
 
 ## Design notes
 
@@ -65,7 +65,7 @@ Detailed agent notes live in `.claude/design/`. Read the relevant file before di
 
 - **`docs/`** holds the human-readable proposal, in Markdown on `main`, one page per topic, **named by page title with spaces and capitals** (the docs don't follow the repo's lowercase convention). `docs/Proposal.md` is the front page; `docs/Roadmap.md`; `docs/Comet/` (Comet Overview, Architecture, Netcode, World and Zones, Combat Core, Content Pipeline, Operations, Self-Hosting, ShapeLand); `docs/Anima/` (Setting, Core Loop and Endgame, Classes and Skills, Combat, Items and Economy, Crafting and Housing, Companions, World and Travel, New Players, Community, Art and Audio, Accessibility and Translation, Business and Audience). Pages start as a title and an agent checklist (in an HTML comment marker) linking to `.claude/design/`, which the project lead deletes as they write.
 - **`docs/+ Notes/`** holds the project lead's own notes. Agents don't edit it.
-- **`.claude/drafts/`** holds agent drafts of every docs page, mirroring the layout (Setting has none), plus `Prototype Results.md` (raw material for the prototype report: the stack benchmark's numbers and 3c's tuning history, written up in 4a; the project lead copies what they need into their own report in `docs/`). Agent drafts go here, never in `docs/`.
+- **`.claude/drafts/`** holds agent drafts of every docs page, mirroring the layout (Setting has none), plus `Prototype Report.md` (the prototype report: what phase 0 built and measured, for the proposal) and `Prototype Results.md` (its raw material: the stack benchmark's numbers and 3c's tuning history). The project lead copies what they need into their own report in `docs/`. Agent drafts go here, never in `docs/`.
 - **`.claude/drafts/ui/`** holds HTML mockups of game UI (`ui.md`), published as private claude.ai pages for review.
 - **`.claude/research/`** holds agent research passes (`comparables.md`: comparable and inspiration games, with the project lead's reasons for each; `assets.md`: free low-poly asset sources and what to check, nothing chosen).
 - **The repo is an Obsidian vault** (config in `.obsidian/` at the root, inline titles hidden), which the project lead uses to write the docs.
@@ -89,13 +89,12 @@ The project lead's older Obsidian notes (Quick Notes, Class Ideas, Technical Not
 ## Next steps
 
 1. **The project lead writes the docs pages,** using the checklists and the drafts in `.claude/drafts/`.
-2. **Phase 0 is done** (2026-10-10; `prototype.md`): the stack benchmark (one known issue: a one-off GC pause of 10–20 ms on AWS as players join), the content pipeline and shared packages in Unity, ShapeLand's server, bots and Unity client, 3c's network tuning (every criterion passes), the code review (two rounds, fixed), the custom web page, graceful disconnects (PR #4) and the public test build. The full game load test waits. The custom web page and the public test build are on `testbuild` (PR #5).
+2. **Phase 0 is done** (2026-10-10; `prototype.md`): the stack benchmark (one known issue: a one-off GC pause of 10–20 ms on AWS as players join), the content pipeline and shared packages in Unity, ShapeLand's server, bots and Unity client, 3c's network tuning (every criterion passes), the code review (two rounds, fixed), the custom web page, graceful disconnects (PR #4) and the public test build. The full game load test opens phase 1. The custom web page and the public test build came in PR #5.
 3. **Working facts:**
    - Run Unity batch jobs through `tools/unity-batch.sh` (the editor hangs while quitting). Unity on Linux: run `tools/unity-restore.sh` after a fresh clone, and see `prototype.md` for batch-mode quirks.
    - `tools/shapeland-web.sh` builds the web client and runs it from the game server (with optional bots and `--net` profiles) for the project lead to test in a browser without opening the editor; `tools/shapeland-netrun.sh` runs the headless network runs.
    - `TickLoopTests.RunsAtTheTickRate` can miss when every test suite runs at once (passes alone).
-   - **The public test build:** ShapeLand plays at https://shapeland.lucyawrey.com: the page on Vercel, the game server on an on-demand AWS `t4g.micro` behind Caddy, all run by `tools/shapeland-testbuild.sh` (setup, up, down, status, log, page); how-to in `prototype.md` (Public test build). The AWS account is on the Free Plan: upgrade it before its 6-month limit. This network's router still answers the old Google Domains wildcard for `server.shapeland` (public resolvers are right); restart the router or use DNS over HTTPS in the browser.
-4a. **Todo: update the proposal drafts now that phase 0 is done** (project lead): `.claude/drafts/` (Roadmap, ShapeLand, Proposal and wherever else the prototype's state or phase 0 comes up) should say phase 0 is finished and playable at the test build, then the prototype report draft.
+   - **The public test build:** ShapeLand plays at https://shapeland.lucyawrey.com: the page on Vercel, the game server on an on-demand AWS `t4g.micro` behind Caddy, all run by `tools/shapeland-testbuild.sh` (setup, up, down, status, log, page); how-to in `prototype.md` (Public test build). The server may stay up for long stretches, since it's cheap and people want to try it. This network's router still answers the old Google Domains wildcard for `server.shapeland` (public resolvers are right); restart the router or use DNS over HTTPS in the browser.
 5a. **Todo** (project lead): a simple way for a player to choose their name, shape and colours again without reconnecting.
 6. **Todo (later): playtest polish for phase 0:** movement and "animation" feel (the project lead found it needs work, perhaps partly the simple shapes), the camera clipping into block sides, the final body and eye colour sets (the project lead's), and the join screen's name box changing height between empty and filled in the Linux desktop build (not seen on the web). Collect more here as playtests find them.
 7. **Todo (later):** make movement feel easy for the project lead to fine-tune: they're happy to edit code, so keep the numbers in one obvious place each (shape speeds, jumps and looks in content, each shape's `.toml`; gravity, acceleration and step height in `Comet.Simulation`'s `MovementRules`) and write down where they are and what each does. Adjusting them live while playing is optional.
