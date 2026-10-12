@@ -1,6 +1,6 @@
 id = "shape.pyramid"
 display_name = "Pyramid"
-mesh = "pyramid"
+mesh = "pyramid" # see shapeland/unity/Assets/Scripts/WorldMeshes.cs
 max_speed = 6.0
 jump_velocity = 9.0
-scale = 1.0  # how big it's drawn; the look itself is in the client's WorldMeshes
+scale = 1.0

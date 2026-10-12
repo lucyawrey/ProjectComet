@@ -1,6 +1,6 @@
 id = "shape.diamond"
 display_name = "Diamond"
-mesh = "diamond"
+mesh = "diamond" # see shapeland/unity/Assets/Scripts/WorldMeshes.cs
 max_speed = 7.5
 jump_velocity = 8.0
-scale = 1.0  # how big it's drawn; the look itself is in the client's WorldMeshes
+scale = 1.0
