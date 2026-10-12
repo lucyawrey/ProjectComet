@@ -278,6 +278,38 @@ namespace ShapeLand.Client.Tests
             Assert.That(eyes.center.z, Is.EqualTo(forward).Within(0.04f));
         }
 
+        [TestCase(MeshKind.Cube)]
+        [TestCase(MeshKind.Diamond)]
+        [TestCase(MeshKind.Pyramid)]
+        public void EveryShapeHasALookThatFits(MeshKind kind)
+        {
+            var look = WorldMeshes.Looks[kind];
+            Assert.That(look.Width, Is.GreaterThan(0));
+            Assert.That(look.Depth, Is.GreaterThan(0));
+            Assert.That(look.Height, Is.GreaterThan(0));
+            Assert.That(look.Hover, Is.AtLeast(0));
+            Assert.That(look.EyeSpacing + look.EyeWidth, Is.LessThanOrEqualTo(look.Width), "The eyes are wider than the shape.");
+            Assert.That(look.EyeLevel, Is.InRange(0, look.Height), "The eyes aren't on the shape.");
+            if (kind == MeshKind.Diamond)
+            {
+                Assert.That(look.Waist, Is.GreaterThan(0).And.LessThan(look.Height), "A diamond's waist isn't between its tips.");
+            }
+            else
+            {
+                Assert.That(look.Waist, Is.EqualTo(0), "Only diamonds have a waist.");
+            }
+        }
+
+        [Test]
+        public void AShapesScaleSizesItsWholeLook()
+        {
+            var look = WorldMeshes.LookOf(new Shape { Mesh = MeshKind.Cube, Scale = 2 });
+            var designed = WorldMeshes.Looks[MeshKind.Cube];
+            Assert.That(look.Height, Is.EqualTo(designed.Height * 2).Within(1e-5f));
+            Assert.That(look.Hover, Is.EqualTo(designed.Hover * 2).Within(1e-5f));
+            Assert.That(look.EyeSpacing, Is.EqualTo(designed.EyeSpacing * 2).Within(1e-5f));
+        }
+
         [Test]
         public void ShapeStatsAreSpeedAndJumpHeight()
         {

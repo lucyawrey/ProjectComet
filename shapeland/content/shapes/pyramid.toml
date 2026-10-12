@@ -3,14 +3,4 @@ display_name = "Pyramid"
 mesh = "pyramid"
 max_speed = 6.0
 jump_velocity = 9.0
-
-# How it's drawn, in metres. Looks only: every shape collides as the same body (MovementRules).
-[look]
-width = 0.8
-depth = 0.8
-height = 0.8
-hover = 0.05
-eye_width = 0.1
-eye_height = 0.14
-eye_spacing = 0.24
-eye_level = 0.4  # height of the eyes' centres above the bottom
+scale = 1.0  # how big it's drawn; the look itself is in the client's WorldMeshes
