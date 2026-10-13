@@ -96,6 +96,14 @@ Label { padding: 0; margin: 0; }
     -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
 }
 .join-button:hover { background-color: rgb(83, 141, 247); }
+.cancel-button {
+    height: 40px; padding: 0 20px; margin: 0 10px 0 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-width: 0; border-radius: 4px;
+    color: rgb(238, 241, 246); font-size: 16px;
+}
+.cancel-button:hover { background-color: rgba(255, 255, 255, 0.16); }
+.cancel-button.hidden { display: none; }
 
 /* ---- In game: chat, name tags and speech bubbles ---- */
 
@@ -128,6 +136,14 @@ Label { padding: 0; margin: 0; }
 .chat-input { flex-grow: 1; }
 .chat-input .unity-base-text-field__input { background-color: rgba(0, 0, 0, 0); border-width: 0; font-size: 14px; }
 .chat-keys { font-size: 12px; color: rgb(141, 151, 171); }
+
+.look-button {
+    position: absolute; right: 16px; top: 16px;
+    padding: 4px 9px; margin: 0; font-size: 13px;
+    background-color: rgba(18, 22, 30, 0.6); border-width: 0; border-radius: 3px;
+    color: rgb(238, 241, 246);
+}
+.look-button:hover { background-color: rgba(18, 22, 30, 0.85); }
 
 .chat-hint {
     position: absolute; left: 16px; bottom: 16px;

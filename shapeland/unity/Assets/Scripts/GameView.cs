@@ -123,9 +123,30 @@ namespace ShapeLand.Client
         {
             _spawns[spawn.EntityId] = spawn;
             var shape = _join.Content.Shapes[spawn.Shape];
+            if (Player != null)
+            {
+                ChangeOwnLook(spawn, shape);
+                return;
+            }
+
             Player = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Colour, spawn.EyeColour, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
             Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
             orbitCamera.Follow(Player.transform, _controls, _world);
+        }
+
+        // A new look where the player stands: the body and eyes are swapped under the same object, so the motor and
+        // the camera carry on as they were (the server's snap-back has already put the player where it has them).
+        private void ChangeOwnLook(PlayerSpawn spawn, Shape shape)
+        {
+            var oldBody = Player.transform.GetChild(0).gameObject;
+            var name = $"{spawn.Name} (you)";
+            var built = BuildShape(shape, spawn.Colour, spawn.EyeColour, name, out var fade);
+            built.transform.GetChild(0).SetParent(Player.transform, false);
+            Destroy(built);
+            DestroyShape(oldBody, _playerFade);
+            _playerFade = fade;
+            Player.name = name;
+            Player.ChangeShape(shape);
         }
 
         private void OnOtherSpawned(PlayerSpawn spawn)
