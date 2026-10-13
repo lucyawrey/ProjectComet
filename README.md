@@ -21,8 +21,8 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 ## Layout
 
-- `comet/`: Comet, the shared base: protocol, simulation, client and server libraries, content tools, and the Unity package.
-- `shapeland/`: ShapeLand, the demo game: content, game server, bots, Unity client and deployment.
+- `comet/`: Comet, the shared base: protocol, simulation, client and server libraries, content tools, and the Unity package. Its [README](comet/README.md) explains how they fit together.
+- `shapeland/`: ShapeLand, the demo game: content, game server, bots, Unity client and deployment. Its [README](shapeland/README.md) maps the code and the tuning values.
 - `tools/`: scripts for building, running and testing (below), and the stack benchmark.
 - `docs/`: project notes and the proposal.
 

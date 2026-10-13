@@ -10,6 +10,42 @@ Comet's demo and reference game. Requirements, setup and the scripts are in the 
 | `tests/` | Tests for the .NET projects. |
 | `docker/`, `deploy/` | Simulated-network runs and the public test build. |
 
+## Code
+
+How Comet's libraries fit together, and how a move travels from one player to the others, is in [Comet's README](../comet/README.md). ShapeLand adds its rules, content and screens on top.
+
+### Shared: `src/ShapeLand.Shared`
+
+Used by the server, the bots and the Unity client alike: `World/ShapeLandRules.cs` (tick rate, name and chat rules, the color sets), `World/ShapeLandWorld.cs` (the movement rules and the test island's collision world), `Content/` (the shape type and the compiled content file) and `Messages/` (ShapeLand's own messages: joining, spawns and chat).
+
+### Server: `src/ShapeLand.GameServer`
+
+`ShapeLandServer` sets up ASP.NET Core and the tick loop; `ShapeLandGame` is the game: joining and changing looks, movement checks, falls the server finishes, chat, and who sees whom. `Player` holds one connection's state. Messages arrive on each connection's own flow and are queued; the tick thread handles them in order, so the game's state belongs to it alone.
+
+### Unity client: `ShapeLand.Unity`
+
+The Game scene (`Assets/Scenes/Game.unity`) holds:
+
+| Object | Components | What they do |
+| --- | --- | --- |
+| Game | `CometConnection`, `JoinClient`, `GameView`, `JoinScreen` | Connecting and joining (`JoinClient`); drawing the island, blocks and players (`GameView`); the join card for name, shape and colors (`JoinScreen`, `Assets/UI/JoinScreen.uxml`). |
+| Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, and the network numbers (F3). |
+| Camera | `OrbitCamera` | The third-person camera. |
+
+Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape's colors and fading), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `WorldMeshes` (the island and blocks, built from the same data the server uses), `RespawnFade` (how falling fades), `UiText` (fills UXML text from the string file) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
+
+The editor scripts in `Assets/Editor` add the ShapeLand menu: builds (`Builds`), copying the content in (`ContentSync`, also done as play mode starts) and exporting the shape models as glTF (`ShapeModelExport`).
+
+The play-mode tests (`Assets/Tests`) load the Game scene against a real game server and join through the card: `JoinScreenTests`, `ChatTests` and `PlayTests`. `ClientRulesTests` need no server, and also check that every interface text key the scripts, UXML and web page use exists.
+
+### Interface text: `content/strings/en.toml`
+
+Every label and message players see, by key (`[join]` then `name_taken` is `join.name_taken`), with `{name}` placeholders. UXML labels hold `#key`, scripts look keys up in the content's string table, and the web page's elements carry `data-text` keys, filled in when the web build is made. Servers send codes, never text.
+
+### Bots and the content build
+
+`src/ShapeLand.Bots` runs headless players (honest wanderers, optional cheaters) for load and network runs. `src/ShapeLand.ContentBuild` compiles `content/` into `artifacts/content/shapeland/content.bin`.
+
 ## Tuning movement
 
 Every movement number has one home. Clients, bots and the server read the same values, and the server checks each player's movement against them, so a change applies everywhere once everything is rebuilt.
