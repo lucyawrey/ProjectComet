@@ -2,7 +2,10 @@ using MessagePack;
 
 namespace ShapeLand.Shared.Messages
 {
-    /// <summary>Client input: join the game with a name, a shape and colours. Sent once after connecting, or again after a rejection.</summary>
+    /// <summary>
+    /// Client input: join the game with a name, a shape and colours. Sent after connecting, again after a rejection,
+    /// and once joined to change any of them: the player stays where they are and everyone gets a new <see cref="PlayerSpawn"/>.
+    /// </summary>
     [MessagePackObject]
     public struct JoinRequest
     {
@@ -29,14 +32,11 @@ namespace ShapeLand.Shared.Messages
 
         UnknownShape = 3,
 
-        /// <summary>This connection has already joined.</summary>
-        AlreadyJoined = 4,
-
         /// <summary>A body or eye colour the player may not use (not in the starting sets).</summary>
         UnavailableColour = 5,
     }
 
-    /// <summary>Server event: the join was refused; the client may try again.</summary>
+    /// <summary>Server event: the join or change was refused; the client may try again.</summary>
     [MessagePackObject]
     public struct JoinRejected
     {
@@ -46,6 +46,7 @@ namespace ShapeLand.Shared.Messages
     /// <summary>
     /// Server event: a player is in view, with everything needed to draw them. The client's own player comes first,
     /// right after Comet's <c>Welcome</c>; later positions arrive as <c>EntityState</c>, and leaving as <c>EntityDespawn</c>.
+    /// Another spawn for a player already in view gives their new look, where they stand.
     /// </summary>
     [MessagePackObject]
     public struct PlayerSpawn
