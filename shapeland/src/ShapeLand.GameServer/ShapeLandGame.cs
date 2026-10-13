@@ -129,6 +129,12 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
+        if (request.ContentFingerprint != content.Fingerprint)
+        {
+            Reject(JoinRejection.DifferentContent);
+            return;
+        }
+
         if (!ShapeLandRules.TryNormaliseName(request.Name, out var name))
         {
             Reject(JoinRejection.InvalidName);

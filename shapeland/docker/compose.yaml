@@ -1,4 +1,4 @@
-# ShapeLand under simulated network conditions. Start it with tools/shapeland-web.sh --net PROFILE, which
+# ShapeLand under simulated network conditions. Start it with tools/shapeland-dev.sh --net PROFILE, which
 # builds everything on the host and sets the variables below.
 #
 # netem sits on the game server's link, so every client gets the profile: the browser and desktop builds

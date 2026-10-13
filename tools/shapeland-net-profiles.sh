@@ -1,4 +1,4 @@
-# ShapeLand's simulated network profiles, and a build helper, sourced by tools/shapeland-web.sh and
+# ShapeLand's simulated network profiles, and a build helper, sourced by tools/shapeland-dev.sh and
 # tools/shapeland-netrun.sh.
 # Each is netem's delay and jitter each way plus loss each way, on the game server's link (shapeland/docker).
 #
