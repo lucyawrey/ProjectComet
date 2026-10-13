@@ -144,3 +144,9 @@ The server costs about 20 cents a day while it's up. When it's down, the page sa
 ## Known quirks
 
 - `TickLoopTests.RunsAtTheTickRate` can fail when every test suite runs at once; it passes on its own.
+
+## AI usage
+
+This project uses AI tools to assist with development. This means primarily code and tooling. Code is reviewed by maintainers and individual maintainers are responsible for any agent generated code.
+
+Non-code creative work is made by people. This means game design docs, models, textures, audio, and in game text.
