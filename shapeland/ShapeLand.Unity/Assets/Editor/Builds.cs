@@ -74,6 +74,10 @@ namespace ShapeLand.Client.Editor
             PlayerSettings.WebGL.decompressionFallback = true;
             // ShapeLand's own page (Assets/WebGLTemplates/ShapeLand) in place of Unity's.
             PlayerSettings.WebGL.template = "PROJECT:ShapeLand";
+            // WebGPU where the browser has it, else WebGL 2 (chosen by the page as it loads). WebGPU needs HTTPS or
+            // localhost; the net stats panel (F3) shows which one is running.
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.WebGL, new[] { GraphicsDeviceType.WebGPU, GraphicsDeviceType.OpenGLES3 });
             Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web-game", GameScene);
         }
 

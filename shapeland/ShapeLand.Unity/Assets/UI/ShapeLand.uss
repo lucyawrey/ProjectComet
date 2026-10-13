@@ -184,6 +184,7 @@ Label { padding: 0; margin: 0; }
 .net-dot { width: 7px; height: 7px; border-radius: 4px; margin-right: 7px; flex-shrink: 0; background-color: rgb(92, 201, 138); }
 .net-dot.warn { background-color: rgb(240, 181, 74); }
 .net-dot.bad { background-color: rgb(240, 106, 94); }
+.net-dot.none { background-color: rgba(0, 0, 0, 0); }
 .net-row Label { padding: 0; margin: 0; }
 .net-key { width: 78px; color: rgb(169, 178, 196); flex-shrink: 0; }
 .net-num { -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
