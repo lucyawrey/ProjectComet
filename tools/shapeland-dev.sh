@@ -10,9 +10,9 @@
 #
 #   --rebuild      make the Unity web build even if it looks up to date
 #   --no-build     use the last web build as it is (content still rebuilds)
-#   --no-web       no web build or page: just the server, for the Unity editor's play mode, with the content
-#                  copied into the Unity project too. Rerun it after changing content or server code, then
-#                  restart play mode, so client and server use the same numbers
+#   --no-web       no web build or page: just the server, for the Unity editor's play mode or a desktop build.
+#                  Rerun it after changing content or server code, then restart play mode (which picks up the
+#                  new content), so client and server use the same numbers
 #   --bots N       start N honest bots (default 0)
 #   --cheaters N   start N speed-cheating bots (default 0)
 #   --bots-chat    let the bots chat now and then (they stay quiet otherwise)
@@ -88,9 +88,7 @@ stale() {
 }
 
 if [ "$serve_web" = 0 ]; then
-  # Play mode reads the content from the project's StreamingAssets.
-  mkdir -p "$project/Assets/StreamingAssets"
-  cmp -s "$content" "$project/Assets/StreamingAssets/content.bin" || cp "$content" "$project/Assets/StreamingAssets/content.bin"
+  # The editor copies the new content into the project itself as play mode starts.
   web=""
 elif [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
   echo "== Unity web build (a few minutes)"

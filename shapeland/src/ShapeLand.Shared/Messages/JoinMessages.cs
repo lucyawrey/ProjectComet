@@ -19,6 +19,9 @@ namespace ShapeLand.Shared.Messages
 
         /// <summary>The eye colour as 0xRRGGBB, one the player may use.</summary>
         [Key(3)] public uint EyeColour;
+
+        /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
+        [Key(4)] public ulong ContentFingerprint;
     }
 
     /// <summary>Why a join was refused.</summary>
@@ -34,6 +37,9 @@ namespace ShapeLand.Shared.Messages
 
         /// <summary>A body or eye colour the player may not use (not in the starting sets).</summary>
         UnavailableColour = 5,
+
+        /// <summary>The client's content isn't the server's (another build of the game, or content rebuilt since).</summary>
+        DifferentContent = 6,
     }
 
     /// <summary>Server event: the join or change was refused; the client may try again.</summary>
