@@ -1,6 +1,6 @@
 /*
  * ShapeLand's UI in the plain look: dark see-through panels, one blue accent, Atkinson Hyperlegible. Ported from
- * the mockup (.claude/drafts/ui/shapeland-phase-0.html). Laid out at 960 x 600; the panel scales with the screen.
+ * the approved mockup. Laid out at 960 x 600; the panel scales with the screen.
  * USS has no text-transform, so upper-case labels are written in capitals.
  */
 
