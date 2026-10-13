@@ -16,7 +16,7 @@ public sealed class MovementHeadroom
     private readonly float[] _maxDeficit = new float[SpeedFactors.Length];
     private readonly float[] _maxSpeed = new float[SpeedFactors.Length];
 
-    /// <summary>The highest any reported position has been above an exact jump's apex from the last ground, in metres.</summary>
+    /// <summary>The highest any reported position has been above an exact jump's apex from the last ground, in meters.</summary>
     public float MaxRiseOverApex { get; private set; } = float.NegativeInfinity;
 
     /// <summary>

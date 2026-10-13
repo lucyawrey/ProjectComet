@@ -43,7 +43,7 @@ namespace Comet.Client
         // Distance allowed on top of the teleport speed, so slow ticks and rounding never count as a jump.
         private const float TeleportMargin = 0.5f;
 
-        // Slower than this across the ground, in metres per second, an entity counts as standing still.
+        // Slower than this across the ground, in meters per second, an entity counts as standing still.
         private const float StandingSpeed = 0.1f;
 
         private readonly Dictionary<uint, Track> _tracks = new Dictionary<uint, Track>();
@@ -52,8 +52,8 @@ namespace Comet.Client
         /// <param name="tickRate">Server ticks per second.</param>
         /// <param name="reportInterval">How often moving entities are updated, in seconds.</param>
         /// <param name="idleGap">A gap between states longer than this, in seconds, after a state standing still, means the entity stood still.</param>
-        /// <param name="teleportSpeed">Faster than this across the ground or upwards, in metres per second, a move is drawn as a jump; falling is never one.</param>
-        /// <param name="gravity">Downward acceleration while dead-reckoning an entity moving vertically, in metres per second squared.</param>
+        /// <param name="teleportSpeed">Faster than this across the ground or upwards, in meters per second, a move is drawn as a jump; falling is never one.</param>
+        /// <param name="gravity">Downward acceleration while dead-reckoning an entity moving vertically, in meters per second squared.</param>
         /// <param name="maxExtrapolation">How long, in seconds, an entity is dead-reckoned before it holds.</param>
         /// <param name="blend">How long, in seconds, the difference is eased out when a late state arrives.</param>
         public RemoteEntities(int tickRate, double reportInterval = 1.0 / 15, double idleGap = 0.2, float teleportSpeed = float.PositiveInfinity,
@@ -88,13 +88,13 @@ namespace Comet.Client
         /// </summary>
         public Func<Vector3, float?>? GroundHeight { get; set; }
 
-        /// <summary>How far up or down an entity on the ground is followed over a short move, in metres: a step's height.</summary>
+        /// <summary>How far up or down an entity on the ground is followed over a short move, in meters: a step's height.</summary>
         public const float StepReach = 0.5f;
 
         // How far above an entity on the ground to look for walls.
         private const float WallProbe = 100f;
 
-        /// <summary>A blend-back further than this, in metres, counts as a visible hitch (<see cref="VisibleBlendBacks"/>).</summary>
+        /// <summary>A blend-back further than this, in meters, counts as a visible hitch (<see cref="VisibleBlendBacks"/>).</summary>
         public float VisibleError { get; set; } = 0.2f;
 
         public int Count => _tracks.Count;
@@ -439,7 +439,7 @@ namespace Comet.Client
         {
             public List<State> States { get; } = new List<State>(8);
 
-            /// <summary>Whether this entity's moves count towards the smoothness counters.</summary>
+            /// <summary>Whether this entity's moves count toward the smoothness counters.</summary>
             public bool Counted { get; set; } = true;
 
             /// <summary>Where the entity was last drawn, and the stamp it was being dead-reckoned from (null if it wasn't).</summary>

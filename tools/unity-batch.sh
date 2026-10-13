@@ -100,7 +100,7 @@ if [ -n "$code" ]; then
   fi
   wait "$pid" 2> /dev/null || true
 else
-  # Exited before any result line (a crash, a licence problem, a method that called Exit).
+  # Exited before any result line (a crash, a license problem, a method that called Exit).
   set +e
   wait "$pid"
   code=$?

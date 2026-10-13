@@ -165,7 +165,7 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// Once joined, asks to change the name, shape or colours where the player stands. The answer is a new
+        /// Once joined, asks to change the name, shape or colors where the player stands. The answer is a new
         /// <see cref="OwnSpawned"/>, or <see cref="JoinRefused"/>.
         /// </summary>
         public void Change(JoinRequest request)
@@ -319,7 +319,7 @@ namespace ShapeLand.Client
                         Joined = true;
                         _awaitingAnswer = false;
                         Spawn = spawn;
-                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}, eyes #{spawn.EyeColour:X6}");
+                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), color #{spawn.Color:X6}, eyes #{spawn.EyeColor:X6}");
                         OwnSpawned?.Invoke(spawn);
                     }
                     else

@@ -11,13 +11,17 @@ namespace ShapeLand.Shared.Content
     {
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
-        public ShapeLandContent(IEnumerable<Shape> shapes, Heightmap terrain)
+        public ShapeLandContent(IEnumerable<Shape> shapes, Heightmap terrain, StringTable strings)
         {
             Shapes = new ContentTable<Shape>("shape", shapes.OrderBy(s => s.Number));
             Terrain = terrain;
+            Strings = strings;
         }
 
         public ContentTable<Shape> Shapes { get; }
+
+        /// <summary>The interface text (<c>content/strings/en.toml</c>).</summary>
+        public StringTable Strings { get; }
 
         /// <summary>The test zone's terrain, until zone files exist.</summary>
         public Heightmap Terrain { get; }
@@ -43,12 +47,12 @@ namespace ShapeLand.Shared.Content
                 throw new ContentException("The content file is corrupt or from an incompatible build.", e);
             }
 
-            return new ShapeLandContent(file.Shapes, file.Terrain) { Fingerprint = FingerprintOf(data) };
+            return new ShapeLandContent(file.Shapes, file.Terrain, file.Strings) { Fingerprint = FingerprintOf(data) };
         }
 
         public void Save(Stream stream)
         {
-            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Terrain = Terrain }, SerializerOptions);
+            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Terrain = Terrain, Strings = Strings }, SerializerOptions);
             Fingerprint = FingerprintOf(data);
             stream.Write(data, 0, data.Length);
         }
@@ -71,6 +75,8 @@ namespace ShapeLand.Shared.Content
             [Key(0)] public Shape[] Shapes { get; set; } = new Shape[0];
 
             [Key(1)] public Heightmap Terrain { get; set; } = new Heightmap();
+
+            [Key(2)] public StringTable Strings { get; set; } = new StringTable();
         }
     }
 

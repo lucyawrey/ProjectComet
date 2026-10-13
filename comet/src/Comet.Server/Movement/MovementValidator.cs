@@ -59,7 +59,7 @@ public sealed class MovementTolerances
     /// <summary>How much unused movement can build up, in seconds at the allowed speed (covers bursts after a stall).</summary>
     public float MaxBurstSeconds { get; set; } = 1f;
 
-    /// <summary>Extra distance always allowed, in metres (rounding, small corrections).</summary>
+    /// <summary>Extra distance always allowed, in meters (rounding, small corrections).</summary>
     public float DistanceSlack { get; set; } = 0.25f;
 
     /// <summary>Allowed jump height as a multiple of the shape's jump apex.</summary>
@@ -77,10 +77,10 @@ public sealed class MovementTolerances
     /// </summary>
     public float SilenceSeconds { get; set; } = 1.0f;
 
-    /// <summary>Extra height always allowed above a jump, in metres.</summary>
+    /// <summary>Extra height always allowed above a jump, in meters.</summary>
     public float HeightSlack { get; set; } = 0.4f;
 
-    /// <summary>How far below the terrain surface a report may be, in metres.</summary>
+    /// <summary>How far below the terrain surface a report may be, in meters.</summary>
     public float GroundSlack { get; set; } = 0.3f;
 }
 

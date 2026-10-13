@@ -28,7 +28,7 @@ namespace Comet.Simulation
 
         /// <summary>
         /// The highest surface under a body's footprint that is at or below <paramref name="maxY"/>: terrain under its
-        /// centre (allowed up to <paramref name="terrainClimb"/> higher, for slopes), or the top of a box its footprint
+        /// center (allowed up to <paramref name="terrainClimb"/> higher, for slopes), or the top of a box its footprint
         /// overlaps. False if there is none (over a hole, past the edge).
         /// </summary>
         public bool TryGetGround(Vector3 feet, float radius, float maxY, out float height, float terrainClimb = 0)

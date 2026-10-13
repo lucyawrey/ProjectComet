@@ -51,7 +51,7 @@ namespace ShapeLand.Client
         /// <summary>The overlay for the player's own respawn fade.</summary>
         public ScreenFade ScreenFade => _screenFade;
 
-        /// <summary>Every player in view, this one included, as the server spawned them (name, shape, colours), by entity ID.</summary>
+        /// <summary>Every player in view, this one included, as the server spawned them (name, shape, colors), by entity ID.</summary>
         public IReadOnlyDictionary<uint, PlayerSpawn> Spawns => _spawns;
 
         /// <summary>The same as a concrete dictionary, so looping over it every frame doesn't box an enumerator.</summary>
@@ -130,7 +130,7 @@ namespace ShapeLand.Client
                 return;
             }
 
-            Player = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Colour, spawn.EyeColour, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
+            Player = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
             Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
             orbitCamera.Follow(Player.transform, _controls, _world);
         }
@@ -141,7 +141,7 @@ namespace ShapeLand.Client
         {
             var oldBody = Player.transform.GetChild(0).gameObject;
             var name = $"{spawn.Name} (you)";
-            var built = BuildShape(shape, spawn.Colour, spawn.EyeColour, name, out var fade);
+            var built = BuildShape(shape, spawn.Color, spawn.EyeColor, name, out var fade);
             built.transform.GetChild(0).SetParent(Player.transform, false);
             Destroy(built);
             DestroyShape(oldBody, _playerFade);
@@ -154,7 +154,7 @@ namespace ShapeLand.Client
         {
             OnOtherLeft(spawn.EntityId);
             _spawns[spawn.EntityId] = spawn;
-            var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Colour, spawn.EyeColour, $"{spawn.Name} ({spawn.EntityId})", out var fade);
+            var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, $"{spawn.Name} ({spawn.EntityId})", out var fade);
             other.transform.SetPositionAndRotation(new Vector3(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
             _others[spawn.EntityId] = other.transform;
             _fades[spawn.EntityId] = fade;
@@ -191,11 +191,11 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// A player's shape: the body and eyes in their colours (0xRRGGBB), sized and hovering as its look and
+        /// A player's shape: the body and eyes in their colors (0xRRGGBB), sized and hovering as its look and
         /// scale say (<see cref="WorldMeshes.LookOf"/>), on an object standing at their feet. <paramref name="fade"/>
         /// owns the materials made for it; destroy them with it.
         /// </summary>
-        public GameObject BuildShape(Shape shape, uint colour, uint eyeColour, string name, out ShapeFade fade)
+        public GameObject BuildShape(Shape shape, uint color, uint eyeColor, string name, out ShapeFade fade)
         {
             var look = WorldMeshes.LookOf(shape);
             if (!_meshes.TryGetValue(shape, out var meshes))
@@ -205,9 +205,9 @@ namespace ShapeLand.Client
             }
 
             var player = new GameObject(name);
-            var body = AddMesh("Shape", meshes.Body, new Material(shapeMaterial) { color = Colour(colour) }, player.transform);
+            var body = AddMesh("Shape", meshes.Body, new Material(shapeMaterial) { color = Color(color) }, player.transform);
             body.transform.localPosition = new Vector3(0, look.Hover, 0);
-            var eyes = AddMesh("Eyes", meshes.Eyes, new Material(eyeMaterial) { color = Colour(eyeColour) }, body.transform);
+            var eyes = AddMesh("Eyes", meshes.Eyes, new Material(eyeMaterial) { color = Color(eyeColor) }, body.transform);
             fade = new ShapeFade(body.GetComponent<MeshRenderer>(), eyes.GetComponent<MeshRenderer>(), shapeFadeMaterial, eyeFadeMaterial);
             return player;
         }
@@ -228,8 +228,8 @@ namespace ShapeLand.Client
             return thing;
         }
 
-        /// <summary>A 0xRRGGBB colour as Unity's.</summary>
-        public static Color Colour(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
+        /// <summary>A 0xRRGGBB color as Unity's.</summary>
+        public static Color Color(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
 
         private void OnDestroy()
         {

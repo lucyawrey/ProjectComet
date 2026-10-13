@@ -7,7 +7,7 @@ using ShapeLand.Shared.Content;
 namespace ShapeLand.Shared.World
 {
     /// <summary>
-    /// The phase 0 world: the test island from content, centred on the origin, plus a few hard-coded blocks to
+    /// The phase 0 world: the test island from content, centered on the origin, plus a few hard-coded blocks to
     /// jump on, until zone files exist. Built the same way on client and server.
     /// </summary>
     public static class ShapeLandWorld
@@ -31,7 +31,7 @@ namespace ShapeLand.Shared.World
             TurnSpeed = 900f,
         };
 
-        /// <summary>Where players appear: the centre of the island, on the ground.</summary>
+        /// <summary>Where players appear: the center of the island, on the ground.</summary>
         public static Vector3 SpawnPoint(CollisionWorld world)
         {
             world.TryGetGround(Vector3.Zero, Rules.BodyRadius, 1000, out var ground);
@@ -63,7 +63,7 @@ namespace ShapeLand.Shared.World
 
         public static CollisionWorld Create(ShapeLandContent content)
         {
-            var terrain = TerrainGround.Centred(content.Terrain, TerrainSpacing, Vector3.Zero);
+            var terrain = TerrainGround.Centered(content.Terrain, TerrainSpacing, Vector3.Zero);
             var blocks = new List<Box>
             {
                 // A low step, a block to jump onto, a taller one to jump up to from the first, and a long platform.

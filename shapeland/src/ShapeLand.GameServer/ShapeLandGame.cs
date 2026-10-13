@@ -119,7 +119,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         }
     }
 
-    // A joined player's join request changes their look (name, shape, colours) where they stand.
+    // A joined player's join request changes their look (name, shape, colors) where they stand.
     private void Join(Player player, JoinRequest request, uint tick)
     {
         if (!player.JoinLimiter.TryTake(tick))
@@ -135,7 +135,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        if (!ShapeLandRules.TryNormaliseName(request.Name, out var name))
+        if (!ShapeLandRules.TryNormalizeName(request.Name, out var name))
         {
             Reject(JoinRejection.InvalidName);
             return;
@@ -153,9 +153,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        if (Array.IndexOf(ShapeLandRules.BodyColours, request.Colour) < 0 || Array.IndexOf(ShapeLandRules.EyeColours, request.EyeColour) < 0)
+        if (Array.IndexOf(ShapeLandRules.BodyColors, request.Color) < 0 || Array.IndexOf(ShapeLandRules.EyeColors, request.EyeColor) < 0)
         {
-            Reject(JoinRejection.UnavailableColour);
+            Reject(JoinRejection.UnavailableColor);
             return;
         }
 
@@ -164,8 +164,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         player.Joined = true;
         player.Name = name;
         player.Shape = shape;
-        player.Colour = request.Colour;
-        player.EyeColour = request.EyeColour;
+        player.Color = request.Color;
+        player.EyeColor = request.EyeColor;
         if (changing)
         {
             ChangeLook(player, oldName, tick);
@@ -303,7 +303,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        if (!ShapeLandRules.TryNormaliseChat(send.Text, out var text))
+        if (!ShapeLandRules.TryNormalizeChat(send.Text, out var text))
         {
             player.Connection.SendEvent(ShapeLandMessageIds.ChatRejected, new ChatRejected { Reason = ChatRejection.InvalidText });
             return;
@@ -389,9 +389,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         public Shape Shape { get; set; } = null!;
 
-        public uint Colour { get; set; }
+        public uint Color { get; set; }
 
-        public uint EyeColour { get; set; }
+        public uint EyeColor { get; set; }
 
         public MovementValidator Validator { get; set; } = null!;
 
@@ -431,8 +431,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             EntityId = EntityId,
             Name = Name,
             Shape = Shape.Number,
-            Colour = Colour,
-            EyeColour = EyeColour,
+            Color = Color,
+            EyeColor = EyeColor,
             X = Validator.Position.X,
             Y = Validator.Position.Y,
             Z = Validator.Position.Z,

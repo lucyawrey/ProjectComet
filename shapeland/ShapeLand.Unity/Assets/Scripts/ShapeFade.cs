@@ -3,7 +3,7 @@ using UnityEngine;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// A shape's body and eye materials, in its colours. While it fades it swaps to transparent copies (made the
+    /// A shape's body and eye materials, in its colors. While it fades it swaps to transparent copies (made the
     /// first time), which cast no shadow; fully visible, it's drawn opaque as usual.
     /// </summary>
     public sealed class ShapeFade
@@ -79,9 +79,9 @@ namespace ShapeLand.Client
 
         private static void SetAlpha(Material material, float alpha)
         {
-            var colour = material.color;
-            colour.a = alpha;
-            material.color = colour;
+            var color = material.color;
+            color.a = alpha;
+            material.color = color;
         }
     }
 }

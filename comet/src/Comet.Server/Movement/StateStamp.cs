@@ -9,7 +9,7 @@ namespace Comet.Server.Movement;
 /// States sent to others carry that stamp shifted by the player's smoothed latency (<see cref="Broadcast"/>):
 /// the median of arrival minus stamp over the last <see cref="SmoothingSeconds"/>, approached at no more than
 /// <see cref="SlewRate"/>. The spacing between the player's states stays as they sent it, but their steady
-/// latency no longer counts towards everyone else's interpolation delay; only their jitter and stalls do. A
+/// latency no longer counts toward everyone else's interpolation delay; only their jitter and stalls do. A
 /// broadcast stamp may be a little later than the tick its report arrived, by up to the shift.
 /// </para>
 /// </summary>

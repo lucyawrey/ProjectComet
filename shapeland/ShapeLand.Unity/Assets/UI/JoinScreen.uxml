@@ -17,8 +17,8 @@
                         <ui:VisualElement name="shapes" class="row" />
                     </ui:VisualElement>
                     <ui:VisualElement class="field">
-                        <ui:Label text="COLOUR" class="label" />
-                        <ui:VisualElement name="colours" class="row" />
+                        <ui:Label text="COLOR" class="label" />
+                        <ui:VisualElement name="colors" class="row" />
                     </ui:VisualElement>
                     <ui:VisualElement class="field">
                         <ui:Label text="EYES" class="label" />

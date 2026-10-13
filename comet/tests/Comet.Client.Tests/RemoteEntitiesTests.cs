@@ -110,7 +110,7 @@ public class RemoteEntitiesTests
     [Fact]
     public void DeadReckoningOnTheGroundFollowsASlope()
     {
-        // Walking uphill along x on a 30 degree slope (rising 0.577 m a metre) at 3 m/s, reported level.
+        // Walking uphill along x on a 30 degree slope (rising 0.577 m a meter) at 3 m/s, reported level.
         var entities = new RemoteEntities(tickRate: 30, gravity: 25) { GroundHeight = feet => MathF.Min(feet.Y, 0.577f * feet.X) };
         entities.Spawn(1, 10, Vector3.Zero, 0);
         entities.AddState(1, 12, new Vector3(0.2f, 0.1155f, 0), 0, new Vector3(3, 0, 0));

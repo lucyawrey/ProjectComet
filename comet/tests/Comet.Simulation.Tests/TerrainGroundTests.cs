@@ -39,12 +39,12 @@ public class TerrainGroundTests
     }
 
     [Fact]
-    public void CentredPlacesTheMiddleOfTheMapAtTheCentre()
+    public void CenteredPlacesTheMiddleOfTheMapAtTheCenter()
     {
-        var centred = TerrainGround.Centred(_terrain.Map, 2, new Vector3(100, 5, 100));
+        var centered = TerrainGround.Centered(_terrain.Map, 2, new Vector3(100, 5, 100));
 
-        Assert.Equal(new Vector3(92, 5, 92), centred.Origin);
-        Assert.True(centred.TryGetHeight(100, 100, out var height));
+        Assert.Equal(new Vector3(92, 5, 92), centered.Origin);
+        Assert.True(centered.TryGetHeight(100, 100, out var height));
         Assert.Equal(6f, height, 4);
     }
 }

@@ -15,10 +15,10 @@ namespace ShapeLand.Shared.World
         public const int JoinDeadlineSeconds = 10;
 
         /// <summary>
-        /// The body colours every player can pick, as 0xRRGGBB. Placeholders: the project lead decides the final sets,
-        /// and more colours come from items later.
+        /// The body colors every player can pick, as 0xRRGGBB. Placeholders: the project lead decides the final sets,
+        /// and more colors come from items later.
         /// </summary>
-        public static readonly uint[] BodyColours =
+        public static readonly uint[] BodyColors =
         {
             0xE53935, // red
             0x1E88E5, // blue
@@ -30,8 +30,8 @@ namespace ShapeLand.Shared.World
             0xEC407A, // pink
         };
 
-        /// <summary>The eye colours every player can pick, as 0xRRGGBB. Placeholders, like <see cref="BodyColours"/>.</summary>
-        public static readonly uint[] EyeColours =
+        /// <summary>The eye colors every player can pick, as 0xRRGGBB. Placeholders, like <see cref="BodyColors"/>.</summary>
+        public static readonly uint[] EyeColors =
         {
             0x16161C, // ink
             0xFFFFFF, // white
@@ -43,10 +43,10 @@ namespace ShapeLand.Shared.World
         private static readonly Regex NamePattern = new Regex("^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$");
 
         /// <summary>Trims a name and checks it: letters, digits, '-', '_' and single spaces, at most <see cref="MaxNameLength"/> characters.</summary>
-        public static bool TryNormaliseName(string? name, out string normalised)
+        public static bool TryNormalizeName(string? name, out string normalized)
         {
-            normalised = (name ?? "").Trim();
-            return normalised.Length > 0 && normalised.Length <= MaxNameLength && NamePattern.IsMatch(normalised);
+            normalized = (name ?? "").Trim();
+            return normalized.Length > 0 && normalized.Length <= MaxNameLength && NamePattern.IsMatch(normalized);
         }
 
         /// <summary>Combining marks kept on one character (enough for real scripts and keycap emoji); more stack out of the bubble.</summary>
@@ -59,7 +59,7 @@ namespace ShapeLand.Shared.World
         /// broken surrogate pairs), and combining marks past <see cref="MaxMarksPerCharacter"/> on one character,
         /// then trims it. Clients also show chat as plain text, never markup.
         /// </summary>
-        public static bool TryNormaliseChat(string? text, out string normalised)
+        public static bool TryNormalizeChat(string? text, out string normalized)
         {
             text = text ?? "";
             var kept = new StringBuilder(text.Length);
@@ -94,8 +94,8 @@ namespace ShapeLand.Shared.World
                 i += length - 1;
             }
 
-            normalised = kept.ToString().Trim();
-            return normalised.Length > 0 && normalised.Length <= MaxChatLength;
+            normalized = kept.ToString().Trim();
+            return normalized.Length > 0 && normalized.Length <= MaxChatLength;
         }
     }
 }

@@ -11,7 +11,7 @@ namespace Comet.Client
     /// Each pong gives a sample: the frame carrying it was stamped with the server's current tick, so on
     /// arrival the server is about half a round trip past it. The sample with the lowest round trip among the
     /// last <see cref="SampleCount"/> is trusted, since it waited in the fewest queues. The estimates slew
-    /// towards it (running at most <see cref="MaxSlew"/> fast or slow) so whatever is drawn from them doesn't
+    /// toward it (running at most <see cref="MaxSlew"/> fast or slow) so whatever is drawn from them doesn't
     /// stutter, and jump only when they're off by more than <see cref="JumpSeconds"/>. Times are in seconds
     /// on the caller's clock, which only has to be monotonic.
     /// </remarks>
@@ -67,7 +67,7 @@ namespace Comet.Client
 
             _started = true;
             _lastAdvance = now;
-            _serverOffset = _receiveOffset = _serverTarget = _receiveTarget = Centre(tick) - now * TickRate;
+            _serverOffset = _receiveOffset = _serverTarget = _receiveTarget = Center(tick) - now * TickRate;
         }
 
         /// <summary>A pong arrived in a frame stamped <paramref name="tick"/>, answering a ping sent at <paramref name="sentAt"/>.</summary>
@@ -75,7 +75,7 @@ namespace Comet.Client
         {
             var roundTrip = Math.Max(0, now - sentAt);
             LastRoundTrip = roundTrip;
-            _samples[_sampleTotal % SampleCount] = new Sample(roundTrip, Centre(tick) - now * TickRate);
+            _samples[_sampleTotal % SampleCount] = new Sample(roundTrip, Center(tick) - now * TickRate);
             _sampleTotal++;
 
             var best = _samples[0];
@@ -99,7 +99,7 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>Moves the estimates towards the trusted sample. Call once per update.</summary>
+        /// <summary>Moves the estimates toward the trusted sample. Call once per update.</summary>
         public void Advance(double now)
         {
             var elapsed = Math.Max(0, now - _lastAdvance);
@@ -122,7 +122,7 @@ namespace Comet.Client
         }
 
         // A frame stamped with tick T is sent while the server is somewhere in tick T, so assume its middle.
-        private static double Centre(uint tick) => tick + 0.5;
+        private static double Center(uint tick) => tick + 0.5;
 
         private readonly struct Sample
         {

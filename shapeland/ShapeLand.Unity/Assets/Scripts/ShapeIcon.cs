@@ -5,27 +5,27 @@ using UnityEngine.UIElements;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// A flat drawing of a shape in a player's colour (a lit face and a shaded side), for buttons and chat lines:
-    /// the shape alongside the colour, so players aren't told apart by colour alone.
+    /// A flat drawing of a shape in a player's color (a lit face and a shaded side), for buttons and chat lines:
+    /// the shape alongside the color, so players aren't told apart by color alone.
     /// </summary>
     public sealed class ShapeIcon : VisualElement
     {
         private MeshKind _kind;
-        private Color _colour;
+        private Color _color;
 
-        public ShapeIcon(MeshKind kind, Color colour)
+        public ShapeIcon(MeshKind kind, Color color)
         {
             _kind = kind;
-            _colour = colour;
+            _color = color;
             pickingMode = PickingMode.Ignore;
             AddToClassList("shape-icon");
             generateVisualContent += Draw;
         }
 
-        public void Set(MeshKind kind, Color colour)
+        public void Set(MeshKind kind, Color color)
         {
             _kind = kind;
-            _colour = colour;
+            _color = color;
             MarkDirtyRepaint();
         }
 
@@ -39,8 +39,8 @@ namespace ShapeLand.Client
             }
 
             var painter = context.painter2D;
-            var dark = Color.Lerp(_colour, Color.black, 0.3f);
-            var light = Color.Lerp(_colour, Color.white, 0.25f);
+            var dark = Color.Lerp(_color, Color.black, 0.3f);
+            var light = Color.Lerp(_color, Color.white, 0.25f);
             void Polygon(Color fill, params float[] points)
             {
                 painter.fillColor = fill;
@@ -60,14 +60,14 @@ namespace ShapeLand.Client
                 case MeshKind.Cube:
                     Polygon(light, 18, 36, 34, 20, 84, 20, 68, 36);
                     Polygon(dark, 68, 36, 84, 20, 84, 70, 68, 86);
-                    Polygon(_colour, 18, 36, 68, 36, 68, 86, 18, 86);
+                    Polygon(_color, 18, 36, 68, 36, 68, 86, 18, 86);
                     break;
                 case MeshKind.Diamond:
-                    Polygon(_colour, 50, 6, 18, 50, 50, 94);
+                    Polygon(_color, 50, 6, 18, 50, 50, 94);
                     Polygon(dark, 50, 6, 82, 50, 50, 94);
                     break;
                 default:
-                    Polygon(_colour, 50, 10, 14, 86, 64, 86);
+                    Polygon(_color, 50, 10, 14, 86, 64, 86);
                     Polygon(dark, 50, 10, 64, 86, 86, 76);
                     break;
             }

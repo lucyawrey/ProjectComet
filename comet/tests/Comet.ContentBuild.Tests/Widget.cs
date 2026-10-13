@@ -20,12 +20,12 @@ public sealed class Widget : IContentEntry
 
     public float Weight { get; set; }
 
-    public Colour? Colour { get; set; }
+    public Color? Color { get; set; }
 
     public Part[] Parts { get; set; } = [];
 }
 
-public sealed class Colour
+public sealed class Color
 {
     public int Red { get; set; }
 

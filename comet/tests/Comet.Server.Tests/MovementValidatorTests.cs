@@ -236,7 +236,7 @@ public class MovementValidatorTests
     public void AFakedVelocityDoesNotCarryASilentFall()
     {
         // An accepted hop reporting 300 m/s sideways, then silence: the server's fall starts from the allowed
-        // speed, so it lands about where a real hop at full speed would (~2 m), not hundreds of metres away.
+        // speed, so it lands about where a real hop at full speed would (~2 m), not hundreds of meters away.
         Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(4, 0.6f, 4), new Vector3(300, 0, 0), tick: 103));
         Assert.True(_validator.Velocity.Length() <= MaxSpeed * new MovementTolerances().SpeedFactor + 0.001f);
         var result = FallResult.None;

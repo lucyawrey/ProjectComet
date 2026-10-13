@@ -52,7 +52,7 @@ namespace ShapeLand.Client
 
         public int Respawns { get; private set; }
 
-        /// <summary>How far the drawn shape still trails the simulation after a snap-back, in metres.</summary>
+        /// <summary>How far the drawn shape still trails the simulation after a snap-back, in meters.</summary>
         public float BlendDistance => _blend.Offset.Length();
 
         /// <summary>How dark the screen should be for the respawn fade: 0 clear, 1 black.</summary>

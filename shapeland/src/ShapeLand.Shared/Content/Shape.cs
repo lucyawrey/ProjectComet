@@ -28,11 +28,11 @@ namespace ShapeLand.Shared.Content
         [JsonRequired]
         [Key(3)] public MeshKind Mesh { get; set; }
 
-        /// <summary>Top ground speed, in metres per second.</summary>
+        /// <summary>Top ground speed, in meters per second.</summary>
         [JsonRequired]
         [Key(4)] public float MaxSpeed { get; set; }
 
-        /// <summary>Upward speed at the start of a jump, in metres per second.</summary>
+        /// <summary>Upward speed at the start of a jump, in meters per second.</summary>
         [JsonRequired]
         [Key(5)] public float JumpVelocity { get; set; }
 

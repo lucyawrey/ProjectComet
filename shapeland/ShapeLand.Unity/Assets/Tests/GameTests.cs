@@ -269,7 +269,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(body.size.z, Is.EqualTo(0.6f).Within(1e-4f));
             Assert.That(body.min.y, Is.EqualTo(0).Within(1e-4f), "The shape doesn't stand on its origin.");
 
-            // The eyes sit on the front face at their level, either side of the centre line.
+            // The eyes sit on the front face at their level, either side of the center line.
             var eyes = WorldMeshes.Eyes(kind, look).bounds;
             var (forward, _) = WorldMeshes.FrontFace(kind, look, look.EyeLevel);
             Assert.That(eyes.center.y, Is.EqualTo(look.EyeLevel).Within(0.02f));
@@ -319,15 +319,15 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
-        public IEnumerator JoinScreenJoinsWithTheChosenShapeAndColours()
+        public IEnumerator JoinScreenJoinsWithTheChosenShapeAndColors()
         {
             yield return StartGame(joinScreen: true);
             Assert.That(_view.Player, Is.Null, "Joined before pressing Join.");
 
             _screen.Root.Q<TextField>("name").value = "Pebble";
             Click(ShapeButton(MeshKind.Cube));
-            Click(Swatch("colours", ShapeLandRules.BodyColours[1]));
-            Click(Swatch("eyes", ShapeLandRules.EyeColours[3]));
+            Click(Swatch("colors", ShapeLandRules.BodyColors[1]));
+            Click(Swatch("eyes", ShapeLandRules.EyeColors[3]));
             // From content, so tuning the cube doesn't break the test.
             var cube = _join.Content.Shapes.All.First(shape => shape.Mesh == MeshKind.Cube);
             var jump = cube.JumpVelocity * cube.JumpVelocity / (2 * ShapeLandWorld.Rules.Gravity);
@@ -341,8 +341,8 @@ namespace ShapeLand.Client.Tests
             var spawn = _join.Spawn.Value;
             Assert.That(spawn.Name, Is.EqualTo("Pebble"));
             Assert.That(_join.Content.Shapes[spawn.Shape].Mesh, Is.EqualTo(MeshKind.Cube));
-            Assert.That(spawn.Colour, Is.EqualTo(ShapeLandRules.BodyColours[1]));
-            Assert.That(spawn.EyeColour, Is.EqualTo(ShapeLandRules.EyeColours[3]));
+            Assert.That(spawn.Color, Is.EqualTo(ShapeLandRules.BodyColors[1]));
+            Assert.That(spawn.EyeColor, Is.EqualTo(ShapeLandRules.EyeColors[3]));
 
             // The overlay fills the screen next to the join screen (a nested UIDocument once gave it no height).
             yield return null;
@@ -422,7 +422,7 @@ namespace ShapeLand.Client.Tests
             _hud.OpenLook();
             _screen.Root.Q<TextField>("name").value = "Pebbles";
             Click(ShapeButton(MeshKind.Diamond));
-            Click(Swatch("colours", ShapeLandRules.BodyColours[2]));
+            Click(Swatch("colors", ShapeLandRules.BodyColors[2]));
             var at = player.transform.position;
             Click(_screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => !_screen.Showing || _screen.Error != null, 10);
@@ -432,7 +432,7 @@ namespace ShapeLand.Client.Tests
             var spawn = _view.Spawns[id];
             Assert.That(spawn.Name, Is.EqualTo("Pebbles"));
             Assert.That(_join.Content.Shapes[spawn.Shape].Mesh, Is.EqualTo(MeshKind.Diamond));
-            Assert.That(spawn.Colour, Is.EqualTo(ShapeLandRules.BodyColours[2]));
+            Assert.That(spawn.Color, Is.EqualTo(ShapeLandRules.BodyColors[2]));
             Assert.That(Vector3.Distance(player.transform.position, at), Is.LessThan(0.5f), "The player moved.");
             Assert.That(player.name, Is.EqualTo("Pebbles (you)"));
         }
@@ -561,8 +561,8 @@ namespace ShapeLand.Client.Tests
         private VisualElement ShapeButton(MeshKind kind) =>
             _screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Mesh == kind);
 
-        private VisualElement Swatch(string row, uint colour) =>
-            _screen.Root.Q(row).Children().First(b => (uint)b.userData == colour);
+        private VisualElement Swatch(string row, uint color) =>
+            _screen.Root.Q(row).Children().First(b => (uint)b.userData == color);
 
         private string[] StatValues() =>
             _screen.Root.Q("stats").Query<Label>().ToList().Where(l => !l.ClassListContains("stat-name")).Select(l => l.text).ToArray();
@@ -645,8 +645,8 @@ namespace ShapeLand.Client.Tests
             {
                 Name = "Unity test",
                 Shape = content.Shapes.All[0].Number,
-                Colour = ShapeLandRules.BodyColours[0],
-                EyeColour = ShapeLandRules.EyeColours[0],
+                Color = ShapeLandRules.BodyColors[0],
+                EyeColor = ShapeLandRules.EyeColors[0],
             });
             _game.SetActive(true);
 

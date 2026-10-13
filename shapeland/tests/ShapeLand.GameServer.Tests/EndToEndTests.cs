@@ -92,16 +92,16 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ColoursMustBeAvailableToThePlayer()
+    public async Task ColorsMustBeAvailableToThePlayer()
     {
-        var bot = NewBot("Ada", 1, new BotSettings { ChatEverySeconds = 0, Colour = 0x123456 });
+        var bot = NewBot("Ada", 1, new BotSettings { ChatEverySeconds = 0, Color = 0x123456 });
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         stop.CancelAfter(TimeSpan.FromSeconds(1));
 
         await bot.RunAsync(_url, stop.Token);
 
         Assert.False(bot.Joined);
-        Assert.Equal(Shared.Messages.JoinRejection.UnavailableColour, bot.Rejected);
+        Assert.Equal(Shared.Messages.JoinRejection.UnavailableColor, bot.Rejected);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         await bea.ConnectAsync(_url);
         var shapes = _content.Shapes.All;
         JoinRequest Look(string name, int index) =>
-            new() { Name = name, Shape = shapes[index].Number, Colour = ShapeLandRules.BodyColours[index], EyeColour = ShapeLandRules.EyeColours[index], ContentFingerprint = _content.Fingerprint };
+            new() { Name = name, Shape = shapes[index].Number, Color = ShapeLandRules.BodyColors[index], EyeColor = ShapeLandRules.EyeColors[index], ContentFingerprint = _content.Fingerprint };
 
         // A client with other content is turned away before anything else is checked.
         await ada.SendAsync(ShapeLandMessageIds.JoinRequest, Look("Ada", 0) with { ContentFingerprint = _content.Fingerprint + 1 });
@@ -141,7 +141,7 @@ public sealed class EndToEndTests : IAsyncLifetime
             while (spawn.Name != change.Name); // Bea first sees Ada as she joined, and Ada sees Bea arrive
 
             Assert.Equal(joined.EntityId, spawn.EntityId);
-            Assert.Equal((change.Shape, change.Colour, change.EyeColour), (spawn.Shape, spawn.Colour, spawn.EyeColour));
+            Assert.Equal((change.Shape, change.Color, change.EyeColor), (spawn.Shape, spawn.Color, spawn.EyeColor));
             Assert.Equal((joined.X, joined.Y, joined.Z), (spawn.X, spawn.Y, spawn.Z));
         }
     }

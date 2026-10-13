@@ -22,11 +22,11 @@ public sealed class BotSettings
     /// <summary>Jump this many times faster than the shape allows (1 for an honest bot); the height goes with its square.</summary>
     public float JumpCheat { get; set; } = 1;
 
-    /// <summary>Stay within this distance of the island's centre, in metres.</summary>
+    /// <summary>Stay within this distance of the island's center, in meters.</summary>
     public float WanderRadius { get; set; } = 18;
 
-    /// <summary>Ask for this body colour (0xRRGGBB) instead of a random one from the starting set.</summary>
-    public uint? Colour { get; set; }
+    /// <summary>Ask for this body color (0xRRGGBB) instead of a random one from the starting set.</summary>
+    public uint? Color { get; set; }
 
     /// <summary>Seconds after joining before network numbers are recorded (the delay settles first); negative for none.</summary>
     public double WarmupSeconds { get; set; } = -1;
@@ -159,8 +159,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                     {
                         Name = name,
                         Shape = _shape.Number,
-                        Colour = settings.Colour ?? ShapeLandRules.BodyColours[_random.Next(ShapeLandRules.BodyColours.Length)],
-                        EyeColour = ShapeLandRules.EyeColours[_random.Next(ShapeLandRules.EyeColours.Length)],
+                        Color = settings.Color ?? ShapeLandRules.BodyColors[_random.Next(ShapeLandRules.BodyColors.Length)],
+                        EyeColor = ShapeLandRules.EyeColors[_random.Next(ShapeLandRules.EyeColors.Length)],
                         ContentFingerprint = content.Fingerprint,
                     });
                 }

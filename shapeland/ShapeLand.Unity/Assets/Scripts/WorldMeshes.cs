@@ -48,7 +48,7 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// How each shape is drawn at scale 1, in metres. Each shape's <c>scale</c> in content multiplies all of it.
+        /// How each shape is drawn at scale 1, in meters. Each shape's <c>scale</c> in content multiplies all of it.
         /// Looks only: every shape collides as the one shared body in <c>MovementRules</c> (0.4 m radius, 1 m tall),
         /// so a shape drawn much bigger or smaller than it may poke into blocks or stop short of them.
         /// </summary>
@@ -74,7 +74,7 @@ namespace ShapeLand.Client
         /// <summary>A shape's look from <see cref="Looks"/>, at its scale in content.</summary>
         public static ShapeLook LookOf(Shape shape) => Looks[shape.Mesh].Scaled(shape.Scale);
 
-        /// <summary>How far the eyes stand out of the face, in metres.</summary>
+        /// <summary>How far the eyes stand out of the face, in meters.</summary>
         private const float EyeDepth = 0.06f;
 
         /// <summary>A shape's mesh, standing on its origin, sized by its look.</summary>
@@ -102,7 +102,7 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// Where a shape's front face (+Z) is on its centre line at height <paramref name="y"/>: how far forward,
+        /// Where a shape's front face (+Z) is on its center line at height <paramref name="y"/>: how far forward,
         /// and how far it leans back from upright, in radians (negative leans forward, as under a diamond's waist).
         /// </summary>
         public static (float Forward, float Lean) FrontFace(MeshKind kind, ShapeLook look, float y)
@@ -136,24 +136,24 @@ namespace ShapeLand.Client
             var triangles = new List<Vector3>();
             foreach (var side in new[] { -1, 1 })
             {
-                var centre = new Vector3(side * look.EyeSpacing / 2, y, z) + rotation * new Vector3(0, 0, size.z / 4);
-                triangles.AddRange(Oriented(BoxTriangles(size).Select(v => centre + rotation * v).ToList(), centre));
+                var center = new Vector3(side * look.EyeSpacing / 2, y, z) + rotation * new Vector3(0, 0, size.z / 4);
+                triangles.AddRange(Oriented(BoxTriangles(size).Select(v => center + rotation * v).ToList(), center));
             }
 
             return Build("Eyes", triangles);
         }
 
-        /// <summary>A box mesh around <paramref name="centre"/>.</summary>
-        public static Mesh Cuboid(string name, Vector3 centre, Vector3 size) => Solid(name, BoxTriangles(size).Select(v => centre + v), centre);
+        /// <summary>A box mesh around <paramref name="center"/>.</summary>
+        public static Mesh Cuboid(string name, Vector3 center, Vector3 size) => Solid(name, BoxTriangles(size).Select(v => center + v), center);
 
         /// <summary>A box mesh for one of the world's blocks, in world space.</summary>
-        public static Mesh Block(Box box) => Cuboid("Block", ToUnity(box.Centre), ToUnity(box.Size));
+        public static Mesh Block(Box box) => Cuboid("Block", ToUnity(box.Center), ToUnity(box.Size));
 
         public static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
 
         public static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
-        // The twelve triangles of a box centred on the origin, in no particular winding.
+        // The twelve triangles of a box centered on the origin, in no particular winding.
         private static IEnumerable<Vector3> BoxTriangles(Vector3 size)
         {
             var e = size / 2;
@@ -207,7 +207,7 @@ namespace ShapeLand.Client
         }
     }
 
-    /// <summary>A shape's drawn size and eyes, in metres (<see cref="WorldMeshes.Looks"/>).</summary>
+    /// <summary>A shape's drawn size and eyes, in meters (<see cref="WorldMeshes.Looks"/>).</summary>
     public sealed class ShapeLook
     {
         /// <summary>Size from side to side.</summary>
@@ -230,10 +230,10 @@ namespace ShapeLand.Client
         /// <summary>Each eye's height.</summary>
         public float EyeHeight { get; set; }
 
-        /// <summary>From one eye's centre to the other's.</summary>
+        /// <summary>From one eye's center to the other's.</summary>
         public float EyeSpacing { get; set; }
 
-        /// <summary>How far above the shape's bottom the eyes' centres are; they sit on the front face there, tilted with it.</summary>
+        /// <summary>How far above the shape's bottom the eyes' centers are; they sit on the front face there, tilted with it.</summary>
         public float EyeLevel { get; set; }
 
         /// <summary>This look with every size times <paramref name="scale"/>.</summary>

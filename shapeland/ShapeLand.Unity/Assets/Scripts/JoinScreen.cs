@@ -11,7 +11,7 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// The join screen (UI Toolkit, <c>Assets/UI/JoinScreen.uxml</c>): a card over the orbiting island where the
-    /// player picks a name, shape and colours, sees the shape turning with its speed and jump height, and joins.
+    /// player picks a name, shape and colors, sees the shape turning with its speed and jump height, and joins.
     /// The server's refusals and connection failures show on the card, which stays up for another try; it hides
     /// once the player spawns. The choices are remembered for next time. Desktop builds also have a server field;
     /// a web page joins the server it came from.
@@ -19,7 +19,7 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(UIDocument), typeof(JoinClient), typeof(GameView))]
     public sealed class JoinScreen : MonoBehaviour
     {
-        private const string NameKey = "join.name", ShapeKey = "join.shape", ColourKey = "join.colour", EyesKey = "join.eyes", ServerKey = "join.server";
+        private const string NameKey = "join.name", ShapeKey = "join.shape", ColorKey = "join.color", EyesKey = "join.eyes", ServerKey = "join.server";
 
         private JoinClient _join;
         private GameView _view;
@@ -27,7 +27,7 @@ namespace ShapeLand.Client
         private TextField _name;
         private TextField _server;
         private VisualElement _shapes;
-        private VisualElement _colours;
+        private VisualElement _colors;
         private VisualElement _eyes;
         private VisualElement _stats;
         private Label _error;
@@ -42,8 +42,8 @@ namespace ShapeLand.Client
         private const float OldSessionSeconds = 40;
         private ShapeLandContent _content;
         private Shape _shape;
-        private uint _colour;
-        private uint _eyeColour;
+        private uint _color;
+        private uint _eyeColor;
 
         /// <summary>Whether to remember the choices in PlayerPrefs for next time (off in tests).</summary>
         public bool Remember { get; set; } = true;
@@ -71,7 +71,7 @@ namespace ShapeLand.Client
             JoinRejection.DifferentContent => Debug.isDebugBuild
                 ? "The server's content is different from this client's. Rerun tools/shapeland-dev.sh and restart play mode, or rebuild this client."
                 : "The server is running a different version of ShapeLand. Reload the page to update.",
-            _ => "The server didn't accept that shape or colour. It may be running a different version of ShapeLand.",
+            _ => "The server didn't accept that shape or color. It may be running a different version of ShapeLand.",
         };
 
         private const string NameRules = "Names use letters, digits, spaces, - and _, up to 16 characters.";
@@ -94,7 +94,7 @@ namespace ShapeLand.Client
             _name = tree.Q<TextField>("name");
             _server = tree.Q<TextField>("server");
             _shapes = tree.Q("shapes");
-            _colours = tree.Q("colours");
+            _colors = tree.Q("colors");
             _eyes = tree.Q("eyes");
             _stats = tree.Q("stats");
             _error = tree.Q<Label>("error");
@@ -132,8 +132,8 @@ namespace ShapeLand.Client
             SetChanging(true);
             _name.value = spawn.Name;
             _shape = _content.Shapes[spawn.Shape];
-            _colour = spawn.Colour;
-            _eyeColour = spawn.EyeColour;
+            _color = spawn.Color;
+            _eyeColor = spawn.EyeColor;
             ShowError(null);
             _preview ??= new ShapePreview(_view, _root.Q("preview"));
             Refresh();
@@ -164,44 +164,44 @@ namespace ShapeLand.Client
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = PlayerPrefs.GetString(ServerKey, _join.DefaultAddress);
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
-            _colour = Remembered(ColourKey, ShapeLandRules.BodyColours);
-            _eyeColour = Remembered(EyesKey, ShapeLandRules.EyeColours);
+            _color = Remembered(ColorKey, ShapeLandRules.BodyColors);
+            _eyeColor = Remembered(EyesKey, ShapeLandRules.EyeColors);
 
             foreach (var shape in content.Shapes.All)
             {
                 var button = new Button(() => Pick(shape)) { userData = shape };
                 button.AddToClassList("shape-button");
-                button.Add(new ShapeIcon(shape.Mesh, GameView.Colour(_colour)));
+                button.Add(new ShapeIcon(shape.Mesh, GameView.Color(_color)));
                 button.Add(new Label(shape.DisplayName));
                 _shapes.Add(button);
             }
 
-            AddSwatches(_colours, ShapeLandRules.BodyColours, colour => _colour = colour);
-            AddSwatches(_eyes, ShapeLandRules.EyeColours, colour => _eyeColour = colour);
+            AddSwatches(_colors, ShapeLandRules.BodyColors, color => _color = color);
+            AddSwatches(_eyes, ShapeLandRules.EyeColors, color => _eyeColor = color);
             _preview = new ShapePreview(_view, _root.Q("preview"));
             Refresh();
             _root.RemoveFromClassList("hidden");
             _name.Focus();
         }
 
-        // The first colour unless a remembered one is still in the set.
+        // The first color unless a remembered one is still in the set.
         private static uint Remembered(string key, uint[] set)
         {
             var saved = (uint)PlayerPrefs.GetInt(key, (int)set[0]);
             return set.Contains(saved) ? saved : set[0];
         }
 
-        private void AddSwatches(VisualElement row, uint[] colours, System.Action<uint> pick)
+        private void AddSwatches(VisualElement row, uint[] colors, System.Action<uint> pick)
         {
-            foreach (var colour in colours)
+            foreach (var color in colors)
             {
                 var swatch = new Button(() =>
                 {
-                    pick(colour);
+                    pick(color);
                     Refresh();
-                }) { userData = colour, tooltip = $"#{colour:X6}" };
+                }) { userData = color, tooltip = $"#{color:X6}" };
                 swatch.AddToClassList("swatch");
-                swatch.style.backgroundColor = GameView.Colour(colour);
+                swatch.style.backgroundColor = GameView.Color(color);
                 row.Add(swatch);
             }
         }
@@ -212,26 +212,26 @@ namespace ShapeLand.Client
             Refresh();
         }
 
-        // Marks the choices, recolours the icons, and updates the preview and the stats.
+        // Marks the choices, recolors the icons, and updates the preview and the stats.
         private void Refresh()
         {
             foreach (var button in _shapes.Children())
             {
                 button.EnableInClassList("on", button.userData == _shape);
-                button.Q<ShapeIcon>().Set(((Shape)button.userData).Mesh, GameView.Colour(_colour));
+                button.Q<ShapeIcon>().Set(((Shape)button.userData).Mesh, GameView.Color(_color));
             }
 
-            foreach (var swatch in _colours.Children())
+            foreach (var swatch in _colors.Children())
             {
-                swatch.EnableInClassList("on", (uint)swatch.userData == _colour);
+                swatch.EnableInClassList("on", (uint)swatch.userData == _color);
             }
 
             foreach (var swatch in _eyes.Children())
             {
-                swatch.EnableInClassList("on", (uint)swatch.userData == _eyeColour);
+                swatch.EnableInClassList("on", (uint)swatch.userData == _eyeColor);
             }
 
-            _preview.Show(_shape, _colour, _eyeColour);
+            _preview.Show(_shape, _color, _eyeColor);
 
             var best = _content.Shapes.All.Select(Stats).ToList();
             var (speed, jump) = Stats(_shape);
@@ -278,7 +278,7 @@ namespace ShapeLand.Client
                 return;
             }
 
-            if (!ShapeLandRules.TryNormaliseName(_name.value, out var name))
+            if (!ShapeLandRules.TryNormalizeName(_name.value, out var name))
             {
                 ShowError(NameRules);
                 return;
@@ -289,8 +289,8 @@ namespace ShapeLand.Client
             {
                 PlayerPrefs.SetString(NameKey, name);
                 PlayerPrefs.SetString(ShapeKey, _shape.Id);
-                PlayerPrefs.SetInt(ColourKey, (int)_colour);
-                PlayerPrefs.SetInt(EyesKey, (int)_eyeColour);
+                PlayerPrefs.SetInt(ColorKey, (int)_color);
+                PlayerPrefs.SetInt(EyesKey, (int)_eyeColor);
 #if !UNITY_WEBGL || UNITY_EDITOR
                 PlayerPrefs.SetString(ServerKey, server);
 #endif
@@ -298,11 +298,11 @@ namespace ShapeLand.Client
             }
 
             ShowError(null);
-            var request = new JoinRequest { Name = name, Shape = _shape.Number, Colour = _colour, EyeColour = _eyeColour };
+            var request = new JoinRequest { Name = name, Shape = _shape.Number, Color = _color, EyeColor = _eyeColor };
             if (Changing)
             {
                 var current = _join.Spawn.Value;
-                if (name == current.Name && request.Shape == current.Shape && request.Colour == current.Colour && request.EyeColour == current.EyeColour)
+                if (name == current.Name && request.Shape == current.Shape && request.Color == current.Color && request.EyeColor == current.EyeColor)
                 {
                     Close();
                     return;
@@ -424,11 +424,11 @@ namespace ShapeLand.Client
                 target.style.backgroundImage = Background.FromRenderTexture(_texture);
             }
 
-            public void Show(Shape shape, uint colour, uint eyeColour)
+            public void Show(Shape shape, uint color, uint eyeColor)
             {
                 var facing = _shape != null ? _shape.transform.localRotation : Quaternion.Euler(0, 200, 0);
                 Clear();
-                _shape = _view.BuildShape(shape, colour, eyeColour, "Previewed shape", out _materials);
+                _shape = _view.BuildShape(shape, color, eyeColor, "Previewed shape", out _materials);
                 _shape.transform.SetParent(_stand.transform, false);
                 _shape.transform.localRotation = facing;
                 foreach (var renderer in _shape.GetComponentsInChildren<Renderer>())

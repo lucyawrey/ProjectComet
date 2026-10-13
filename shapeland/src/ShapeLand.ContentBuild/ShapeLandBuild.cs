@@ -13,7 +13,8 @@ public static class ShapeLandBuild
     public const string TerrainPath = "zones/test/terrain.height";
 
     public static ContentBuilder CreateBuilder(string contentRoot) => new ContentBuilder(contentRoot)
-        .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape);
+        .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
+        .AddStrings();
 
     /// <summary>Checks and compiles the content folder; null content means there were errors.</summary>
     public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true)
@@ -45,7 +46,7 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        return (new ShapeLandContent(result.Entries<Shape>(), terrain), errors);
+        return (new ShapeLandContent(result.Entries<Shape>(), terrain, result.Strings!), errors);
     }
 
     private static void ValidateShape(Shape shape, ContentValidation validation)

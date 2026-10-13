@@ -23,10 +23,10 @@ namespace ShapeLand.Client
         /// <summary>How many lines the log keeps.</summary>
         public const int MaxLines = 8;
 
-        /// <summary>Tags and bubbles further away than this, in metres, aren't shown.</summary>
+        /// <summary>Tags and bubbles further away than this, in meters, aren't shown.</summary>
         public const float TagDistance = 45;
 
-        // How far above a shape's top its name tag sits, in metres, and the bubble above the tag, in panel pixels.
+        // How far above a shape's top its name tag sits, in meters, and the bubble above the tag, in panel pixels.
         private const float TagLift = 0.25f;
         private const float BubbleGap = 26;
 
@@ -179,7 +179,7 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Brings up the card to change name, shape and colours, closing the chat input first.</summary>
+        /// <summary>Brings up the card to change name, shape and colors, closing the chat input first.</summary>
         public void OpenLook()
         {
             if (ChatOpen)
@@ -233,7 +233,7 @@ namespace ShapeLand.Client
         /// <summary>Sends what's typed (if anything) and closes the input.</summary>
         public void SendChat()
         {
-            if (ShapeLandRules.TryNormaliseChat(_input.value, out var text))
+            if (ShapeLandRules.TryNormalizeChat(_input.value, out var text))
             {
                 join.Say(text);
             }
@@ -280,7 +280,7 @@ namespace ShapeLand.Client
             line.AddToClassList("chat-line");
             if (known)
             {
-                line.Add(new ShapeIcon(join.Content.Shapes[speaker.Shape].Mesh, GameView.Colour(speaker.Colour)));
+                line.Add(new ShapeIcon(join.Content.Shapes[speaker.Shape].Mesh, GameView.Color(speaker.Color)));
             }
 
             var name = new Label(known ? speaker.Name : "Someone");

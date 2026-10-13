@@ -13,12 +13,14 @@ namespace Comet.ContentBuild;
 /// Reads a game's content folder: one TOML file per entry, in folders by type. Each file is checked against its
 /// C# type (syntax, unknown keys, missing or mistyped fields, the id's form and uniqueness, then the type's own
 /// validation rules) and, if everything passes, gets its number from the ID registry. Games register their types
-/// and Tomlyn's source-generated metadata for them, then write the compiled file themselves.
+/// and Tomlyn's source-generated metadata for them, then write the compiled file themselves. A game with interface
+/// text also registers its string file (<see cref="AddStrings"/>).
 /// </summary>
 public sealed class ContentBuilder
 {
     private readonly string _root;
     private readonly List<IContentType> _types = new();
+    private string? _stringFile;
 
     public ContentBuilder(string contentRoot) => _root = Path.GetFullPath(contentRoot);
 
@@ -30,6 +32,13 @@ public sealed class ContentBuilder
         return this;
     }
 
+    /// <summary>Reads interface text from <c>{folder}/en.toml</c> (<see cref="StringFile"/>); the file must exist.</summary>
+    public ContentBuilder AddStrings(string folder = "strings")
+    {
+        _stringFile = Path.Combine(folder, "en.toml");
+        return this;
+    }
+
     /// <summary>Reads and checks every registered type, assigning registry numbers and saving new ones if it all passes.</summary>
     public ContentBuildResult Build(bool saveRegistry = true)
     {
@@ -37,6 +46,20 @@ public sealed class ContentBuilder
         var registryPath = Path.Combine(_root, "ids.toml");
         var registry = IdRegistry.Load(registryPath, DisplayPath(registryPath), errors);
         var types = _types.Select(t => t.Read(this, errors)).ToList();
+        StringTable? strings = null;
+        if (_stringFile is not null)
+        {
+            var path = ContentPath(_stringFile);
+            if (File.Exists(path))
+            {
+                strings = StringFile.Read(path, DisplayPath(path), errors);
+            }
+            else
+            {
+                errors.Add(new ContentError(DisplayPath(path), 1, 1, "No string file: the game's interface text goes here."));
+            }
+        }
+
         if (errors.Count == 0)
         {
             foreach (var type in types)
@@ -50,7 +73,7 @@ public sealed class ContentBuilder
             }
         }
 
-        return new ContentBuildResult(errors, types);
+        return new ContentBuildResult(errors, types, strings);
     }
 
     /// <summary>A JSON Schema per content type, keyed by kind, for editor autocompletion and checking.</summary>

@@ -13,7 +13,7 @@ namespace StackBench.Bots;
 /// </summary>
 public sealed class Bot(int index, BotOptions options, BenchWindow window)
 {
-    private const float Speed = 5f;      // metres per second
+    private const float Speed = 5f;      // meters per second
     private const float HalfArea = 100f; // walks within a 200 m square
     private const int ReceiveBufferSize = 64 * 1024;
 
@@ -189,7 +189,7 @@ public sealed class Bot(int index, BotOptions options, BenchWindow window)
         _facing += (float)((_random.NextDouble() * 2 - 1) * 1.5 * seconds);
         if (Math.Abs(_x) > HalfArea || Math.Abs(_z) > HalfArea)
         {
-            _facing = MathF.Atan2(-_x, -_z); // head back towards the centre
+            _facing = MathF.Atan2(-_x, -_z); // head back toward the center
         }
         velocityX = MathF.Sin(_facing) * Speed;
         velocityZ = MathF.Cos(_facing) * Speed;

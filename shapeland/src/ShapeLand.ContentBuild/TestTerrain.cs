@@ -11,7 +11,7 @@ public static class TestTerrain
     public const int Size = 33; // 64 m at 2 m spacing
     public const float Scale = 1f / 256; // about 4 mm steps
     public const float Offset = -64f; // heights from -64 m to 192 m
-    public const float Radius = 28f; // the disc's edge, in metres from the chunk's centre
+    public const float Radius = 28f; // the disc's edge, in meters from the chunk's center
     public const float Spacing = 2f;
 
     public static Heightmap Generate(int seed)
@@ -21,8 +21,8 @@ public static class TestTerrain
         {
             for (var x = 0; x < Size; x++)
             {
-                var fromCentre = MathF.Sqrt(MathF.Pow((x - (Size - 1) / 2f) * Spacing, 2) + MathF.Pow((z - (Size - 1) / 2f) * Spacing, 2));
-                if (fromCentre > Radius)
+                var fromCenter = MathF.Sqrt(MathF.Pow((x - (Size - 1) / 2f) * Spacing, 2) + MathF.Pow((z - (Size - 1) / 2f) * Spacing, 2));
+                if (fromCenter > Radius)
                 {
                     samples[z * Size + x] = Heightmap.Hole;
                     continue;
