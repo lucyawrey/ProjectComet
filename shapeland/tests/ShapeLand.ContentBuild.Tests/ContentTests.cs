@@ -60,14 +60,10 @@ public class ContentTests
     [InlineData("jump_velocity = 99.0", "jump_velocity: 99 is out of range")]
     [InlineData("display_name = \" \"", "display_name: must not be empty")]
     [InlineData("mesh = \"sphere\"", "Invalid enum name `sphere`")]
-    [InlineData("height = 0.0", "look.height: 0 is out of range")]
-    [InlineData("hover = -1.0", "look.hover: -1 is out of range")]
-    [InlineData("eye_level = 5.0", "look.eye_level: 5 is out of range")]
-    [InlineData("waist = 0.3", "look.waist: only diamonds have a waist")]
-    [InlineData("waist = 1.5", "look.waist: 1.5 is out of range", "diamond")]
+    [InlineData("scale = 0.0", "scale: 0 is out of range")]
+    [InlineData("scale = 5.0", "scale: 5 is out of range")]
     [InlineData("max_speed = nan", "content numbers must be finite")]
-    [InlineData("height = nan", "content numbers must be finite")]
-    [InlineData("waist = nan", "content numbers must be finite", "diamond")]
+    [InlineData("scale = nan", "content numbers must be finite")]
     public void ShapeRulesAreChecked(string line, string message, string shape = "cube")
     {
         var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
@@ -84,7 +80,7 @@ public class ContentTests
             }
             else
             {
-                lines.Add(line); // a key the file doesn't have goes in its last table, [look]
+                lines.Add(line);
             }
 
             File.WriteAllLines(file, lines);

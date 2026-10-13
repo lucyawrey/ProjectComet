@@ -47,10 +47,37 @@ namespace ShapeLand.Client
             return Build("Island", vertices);
         }
 
+        /// <summary>
+        /// How each shape is drawn at scale 1, in metres. Each shape's <c>scale</c> in content multiplies all of it.
+        /// Looks only: every shape collides as the one shared body in <c>MovementRules</c> (0.4 m radius, 1 m tall),
+        /// so a shape drawn much bigger or smaller than it may poke into blocks or stop short of them.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<MeshKind, ShapeLook> Looks = new Dictionary<MeshKind, ShapeLook>
+        {
+            [MeshKind.Cube] = new ShapeLook
+            {
+                Width = 0.7f, Depth = 0.7f, Height = 0.7f, Hover = 0.10f,
+                EyeWidth = 0.1f, EyeHeight = 0.14f, EyeSpacing = 0.24f, EyeLevel = 0.48f,
+            },
+            [MeshKind.Diamond] = new ShapeLook
+            {
+                Width = 0.8f, Depth = 0.8f, Height = 1.0f, Hover = 0.0f, Waist = 0.5f,
+                EyeWidth = 0.1f, EyeHeight = 0.14f, EyeSpacing = 0.24f, EyeLevel = 0.65f,
+            },
+            [MeshKind.Pyramid] = new ShapeLook
+            {
+                Width = 0.8f, Depth = 0.8f, Height = 0.8f, Hover = 0.05f,
+                EyeWidth = 0.1f, EyeHeight = 0.14f, EyeSpacing = 0.24f, EyeLevel = 0.4f,
+            },
+        };
+
+        /// <summary>A shape's look from <see cref="Looks"/>, at its scale in content.</summary>
+        public static ShapeLook LookOf(Shape shape) => Looks[shape.Mesh].Scaled(shape.Scale);
+
         /// <summary>How far the eyes stand out of the face, in metres.</summary>
         private const float EyeDepth = 0.06f;
 
-        /// <summary>A shape's mesh, standing on its origin, sized by its look in content.</summary>
+        /// <summary>A shape's mesh, standing on its origin, sized by its look.</summary>
         public static Mesh Shape(MeshKind kind, ShapeLook look)
         {
             var x = look.Width / 2;
@@ -178,5 +205,42 @@ namespace ShapeLand.Client
             mesh.RecalculateBounds();
             return mesh;
         }
+    }
+
+    /// <summary>A shape's drawn size and eyes, in metres (<see cref="WorldMeshes.Looks"/>).</summary>
+    public sealed class ShapeLook
+    {
+        /// <summary>Size from side to side.</summary>
+        public float Width { get; set; }
+
+        /// <summary>Size from front to back.</summary>
+        public float Depth { get; set; }
+
+        public float Height { get; set; }
+
+        /// <summary>How far above its feet the shape is drawn.</summary>
+        public float Hover { get; set; }
+
+        /// <summary>Diamonds only: how far above the bottom tip the widest ring is.</summary>
+        public float Waist { get; set; }
+
+        /// <summary>Each eye's width.</summary>
+        public float EyeWidth { get; set; }
+
+        /// <summary>Each eye's height.</summary>
+        public float EyeHeight { get; set; }
+
+        /// <summary>From one eye's centre to the other's.</summary>
+        public float EyeSpacing { get; set; }
+
+        /// <summary>How far above the shape's bottom the eyes' centres are; they sit on the front face there, tilted with it.</summary>
+        public float EyeLevel { get; set; }
+
+        /// <summary>This look with every size times <paramref name="scale"/>.</summary>
+        public ShapeLook Scaled(float scale) => new ShapeLook
+        {
+            Width = Width * scale, Depth = Depth * scale, Height = Height * scale, Hover = Hover * scale, Waist = Waist * scale,
+            EyeWidth = EyeWidth * scale, EyeHeight = EyeHeight * scale, EyeSpacing = EyeSpacing * scale, EyeLevel = EyeLevel * scale,
+        };
     }
 }

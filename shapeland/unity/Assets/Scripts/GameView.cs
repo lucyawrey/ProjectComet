@@ -169,21 +169,22 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// A player's shape: the body and eyes in their colours (0xRRGGBB), sized and hovering as its look in
-        /// content says, on an object standing at their feet. <paramref name="fade"/> owns the materials made for
-        /// it; destroy them with it.
+        /// A player's shape: the body and eyes in their colours (0xRRGGBB), sized and hovering as its look and
+        /// scale say (<see cref="WorldMeshes.LookOf"/>), on an object standing at their feet. <paramref name="fade"/>
+        /// owns the materials made for it; destroy them with it.
         /// </summary>
         public GameObject BuildShape(Shape shape, uint colour, uint eyeColour, string name, out ShapeFade fade)
         {
+            var look = WorldMeshes.LookOf(shape);
             if (!_meshes.TryGetValue(shape, out var meshes))
             {
-                meshes = (WorldMeshes.Shape(shape.Mesh, shape.Look), WorldMeshes.Eyes(shape.Mesh, shape.Look));
+                meshes = (WorldMeshes.Shape(shape.Mesh, look), WorldMeshes.Eyes(shape.Mesh, look));
                 _meshes[shape] = meshes;
             }
 
             var player = new GameObject(name);
             var body = AddMesh("Shape", meshes.Body, new Material(shapeMaterial) { color = Colour(colour) }, player.transform);
-            body.transform.localPosition = new Vector3(0, shape.Look.Hover, 0);
+            body.transform.localPosition = new Vector3(0, look.Hover, 0);
             var eyes = AddMesh("Eyes", meshes.Eyes, new Material(eyeMaterial) { color = Colour(eyeColour) }, body.transform);
             fade = new ShapeFade(body.GetComponent<MeshRenderer>(), eyes.GetComponent<MeshRenderer>(), shapeFadeMaterial, eyeFadeMaterial);
             return player;

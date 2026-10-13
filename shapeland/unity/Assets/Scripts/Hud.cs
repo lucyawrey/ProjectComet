@@ -316,7 +316,7 @@ namespace ShapeLand.Client
                     continue;
                 }
 
-                var look = join.Content.Shapes[pair.Value.Shape].Look;
+                var look = WorldMeshes.LookOf(join.Content.Shapes[pair.Value.Shape]);
                 var head = shape.position + Vector3.up * (look.Hover + look.Height + TagLift);
                 var screen = camera.WorldToScreenPoint(head);
                 var faded = view.OtherFades.TryGetValue(pair.Key, out var fade) ? fade.Faded : 0;
