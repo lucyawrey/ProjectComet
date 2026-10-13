@@ -194,7 +194,7 @@ public sealed class EndToEndTests : IAsyncLifetime
     [Fact]
     public async Task StoppingTheServerClosesConnectionsPromptly()
     {
-        // Rather than leaving clients frozen until the host's shutdown timeout (the code review's S5).
+        // Rather than leaving clients frozen until the host's shutdown timeout.
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
         var buffer = new byte[64 * 1024];
@@ -222,7 +222,7 @@ public sealed class EndToEndTests : IAsyncLifetime
     public async Task AFloodOfMessagesDropsTheClient()
     {
         // Far more pings than any honest client sends, all at once: the server drops the connection rather than
-        // answering them all (the first code review's flood of cheap messages).
+        // answering them all.
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
         var frame = new MessageWriter();

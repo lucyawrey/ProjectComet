@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs ShapeLand's game server under a simulated network profile with headless bots, for 3c's tuning, and
+# Runs ShapeLand's game server under a simulated network profile with headless bots, for tuning the netcode, and
 # prints what they measured: false snap-backs on honest bots, cheaters caught, ping, the interpolation delay
 # and its target, and holds; then the server's side (rule violations, and airborne players gone silent whose
 # fall it finished, which reach the bot as snap-backs too). Everything also goes to a results file stamped with the profile and commit.

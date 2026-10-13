@@ -230,7 +230,7 @@ public class MovementValidatorTests
         Assert.Equal(new Vector3(4.4f, 0, 4), _validator.Position);
     }
 
-    // Attacks from the first code review: a client's numbers are never trusted as sent.
+    // Attacks a cheating client might try: a client's numbers are never trusted as sent.
 
     [Fact]
     public void AFakedVelocityDoesNotCarryASilentFall()
@@ -303,7 +303,7 @@ public class MovementValidatorTests
     public void AReportGuessingTheNextSequenceDuringAServerFallIsStale()
     {
         // Off the edge and silent, so the server takes the fall over; a report then guessing the sequence the landing
-        // will carry is still stale, so the fall isn't left half-finished (the code review's S4).
+        // will carry is still stale, so the fall isn't left half-finished.
         _validator.Reset(new Vector3(31.6f, 0, 4), 0, 108);
         Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(32.4f, -0.2f, 4), new Vector3(MaxSpeed, -2, 0), tick: 112));
         var tick = 113u;

@@ -135,7 +135,7 @@ public class RemoteEntitiesTests
     public void DeadReckoningOnTheGroundStopsAtABlockTooHighToStepOnto()
     {
         // Running at a 1 m block from x = 1 during a hold: it stops at the block's side rather than popping up onto
-        // it once it has gone far enough (the code review's C1).
+        // it once it has gone far enough.
         var entities = new RemoteEntities(tickRate: 30, gravity: 25) { GroundHeight = feet => feet.X >= 1 ? MathF.Min(feet.Y, 1) is var top && top >= 1 ? 1 : 0 : 0 };
         entities.Spawn(1, 10, Vector3.Zero, 0);
         entities.AddState(1, 12, new Vector3(0.2f, 0, 0), 0, new Vector3(6, 0, 0));

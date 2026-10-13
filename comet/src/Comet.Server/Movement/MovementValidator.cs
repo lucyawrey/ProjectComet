@@ -49,7 +49,7 @@ public enum FallResult
 
 /// <summary>
 /// How lenient the checks are; tuned in the prototype from what honest bots need (<see cref="MovementHeadroom"/>,
-/// prototype.md), about 1.5 to 2 times their worst under the bad network profile.
+/// logged when each player leaves), about 1.5 to 2 times their worst under the bad network profile.
 /// </summary>
 public sealed class MovementTolerances
 {
@@ -73,7 +73,7 @@ public sealed class MovementTolerances
 
     /// <summary>
     /// Seconds without a report before the server moves an airborne player itself. Longer than a TCP resend
-    /// stall at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't (prototype.md, 3c).
+    /// stall at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't in the prototype's network tuning.
     /// </summary>
     public float SilenceSeconds { get; set; } = 1.0f;
 
@@ -85,8 +85,7 @@ public sealed class MovementTolerances
 }
 
 /// <summary>
-/// Checks one player's position reports (the client is the authority on its own movement, within these rules;
-/// netcode.md). Speed uses a distance budget: each server tick earns max speed × the speed factor, each report
+/// Checks one player's position reports (the client is the authority on its own movement, within these rules). Speed uses a distance budget: each server tick earns max speed × the speed factor, each report
 /// spends the distance it moved, and the budget is capped, so a burst of reports after a stall passes but
 /// banking movement for a dash doesn't. Height follows gravity: in the air, a report must stay under the arc of
 /// a jump from the last ground the player stood on, at that point in time (the report's stamp). The server never

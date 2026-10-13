@@ -81,7 +81,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             }
         }
 
-        // The server knows gravity: players silent in the air fall (netcode.md). Connections that never join are
+        // The server knows gravity: players silent in the air fall, so going quiet mid-jump can't be used to hover. Connections that never join are
         // dropped, so they can't sit holding a place.
         foreach (var player in _players.Values)
         {
@@ -174,8 +174,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
-        player.Stamp.StampServer(tick);
-        player.StateTick = player.Stamp.Broadcast;
+        player.MovedByServer(tick);
 
         var connection = player.Connection;
         var spawn = player.Spawn();
@@ -234,12 +233,10 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
                 break;
             case MovementVerdict.FellOut:
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
-                player.Stamp.StampServer(tick);
-                player.StateTick = player.Stamp.Broadcast;
-                player.Moved = true;
+                player.MovedByServer(tick);
                 break;
             default:
-                // Logged for moderation, never auto-banned (netcode.md): the 1st, 10th, 100th… violation, so a
+                // Logged for moderation, never banned automatically: the 1st, 10th, 100th… violation, so a
                 // persistent cheater doesn't flood the log.
                 if (IsPowerOfTen(player.Validator.Violations))
                 {
@@ -267,21 +264,15 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         switch (result)
         {
             case FallResult.Moved:
-                player.Stamp.StampServer(tick);
-                player.StateTick = player.Stamp.Broadcast;
-                player.Moved = true;
+                player.MovedByServer(tick);
                 break;
             case FallResult.Landed:
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Landing());
-                player.Stamp.StampServer(tick);
-                player.StateTick = player.Stamp.Broadcast;
-                player.Moved = true;
+                player.MovedByServer(tick);
                 break;
             case FallResult.FellOut:
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
-                player.Stamp.StampServer(tick);
-                player.StateTick = player.Stamp.Broadcast;
-                player.Moved = true;
+                player.MovedByServer(tick);
                 break;
         }
     }
@@ -315,7 +306,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        // Not logged (backend.md: phase 0 chat keeps nothing).
+        // Not logged: ShapeLand's chat keeps nothing.
         var message = new ChatMessage { EntityId = player.EntityId, Text = text };
         foreach (var listener in _players.Values)
         {
@@ -347,7 +338,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server, {Clamped} of {Stamps} stamps clamped",
             player.Name, _players.Values.Count(p => p.Joined), player.Validator.Violations, player.ServerFalls, player.Stamp.Clamped, player.Stamp.Broadcasts);
 
-        // For tuning the tolerances (prototype.md): how much of each this player needed.
+        // For tuning the tolerances (MovementTolerances): how much of each this player needed.
         var headroom = player.Validator.Headroom;
         var bursts = string.Join(" ", MovementHeadroom.SpeedFactors.Select((factor, i) =>
             FormattableString.Invariant($"x{factor:0.00}={headroom.BurstSecondsNeeded(i):0.000}")));
@@ -375,68 +366,5 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         /// <summary>The report frame's header: the client's estimate of the server tick when it sent the report.</summary>
         public uint ClientTick { get; init; }
-    }
-
-    private sealed class Player(Connection connection, int tickRate)
-    {
-        public Connection Connection { get; } = connection;
-
-        public uint EntityId => Connection.Id;
-
-        public bool Joined { get; set; }
-
-        public string Name { get; set; } = "";
-
-        public Shape Shape { get; set; } = null!;
-
-        public uint Color { get; set; }
-
-        public uint EyeColor { get; set; }
-
-        public MovementValidator Validator { get; set; } = null!;
-
-        public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
-
-        public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
-
-        /// <summary>The tick the connection arrived; it must join within <see cref="ShapeLandRules.JoinDeadlineSeconds"/>.</summary>
-        public uint ConnectedTick { get; init; }
-
-        public StateStamp Stamp { get; } = new(tickRate);
-
-        /// <summary>The tick the current position is from (see <see cref="StateStamp"/>).</summary>
-        public uint StateTick { get; set; }
-
-        /// <summary>How often the server has taken over this player's fall because they went silent in the air.</summary>
-        public int ServerFalls { get; set; }
-
-        /// <summary>Accepted a new position this tick, to send to everyone else.</summary>
-        public bool Moved { get; set; }
-
-        public EntityState State() => new()
-        {
-            EntityId = EntityId,
-            X = Validator.Position.X,
-            Y = Validator.Position.Y,
-            Z = Validator.Position.Z,
-            Facing = Validator.Facing,
-            Tick = StateTick,
-            VelocityX = Validator.Velocity.X,
-            VelocityY = Validator.Velocity.Y,
-            VelocityZ = Validator.Velocity.Z,
-        };
-
-        public PlayerSpawn Spawn() => new()
-        {
-            EntityId = EntityId,
-            Name = Name,
-            Shape = Shape.Number,
-            Color = Color,
-            EyeColor = EyeColor,
-            X = Validator.Position.X,
-            Y = Validator.Position.Y,
-            Z = Validator.Position.Z,
-            Facing = Validator.Facing,
-        };
     }
 }

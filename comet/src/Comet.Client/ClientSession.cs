@@ -23,30 +23,8 @@ namespace Comet.Client
     /// </remarks>
     public sealed class ClientSession
     {
-        private readonly MessagePackSerializerOptions _options;
-        private readonly MessageWriter _messages;
-        private readonly MessageWriter _frame;
-        private uint? _reportTick;
-        private readonly float _gravity;
-        private readonly Func<Vector3, float?>? _groundHeight;
-        private double _lastUpdate;
-        private readonly double _pingInterval;
-        private readonly float _teleportSpeed;
-        private ServerClock? _clock;
-        private RemoteEntities? _entities;
-        private InterpolationDelay? _delay;
-        private bool _catchingUp;
-
         /// <summary>A gap between updates longer than this, in seconds, is a stall on this side rather than the network's.</summary>
         public const double LocalStallSeconds = 0.25;
-        private double _nextPing;
-        // Ping times as sent, in whole microseconds, so a pong's echo compares exactly.
-        private long _lastPingSent;
-        private long? _oldestUnansweredPing;
-        private (uint Tick, Vector3 Position, Vector3 Velocity, float Facing)? _heldReport;
-        // Why this side gave up on the session (a protocol error, or the server gone quiet), with the details.
-        private CloseReason _ownReason;
-        private string? _ownError;
 
         /// <summary>
         /// A ping unanswered for this long, in seconds, means our sends are stuck (e.g. wifi roaming): position
@@ -60,6 +38,33 @@ namespace Comet.Client
         /// nothing, and TCP takes minutes to notice): the session closes with <see cref="CloseReason.Lost"/>.
         /// </summary>
         public const double LostSeconds = 10;
+
+        private readonly MessagePackSerializerOptions _options;
+        private readonly MessageWriter _messages;
+        private readonly MessageWriter _frame;
+        private readonly double _pingInterval;
+        private readonly float _teleportSpeed;
+        private readonly float _gravity;
+        private readonly Func<Vector3, float?>? _groundHeight;
+
+        // Set up by the server's welcome.
+        private ServerClock? _clock;
+        private RemoteEntities? _entities;
+        private InterpolationDelay? _delay;
+
+        private double _lastUpdate;
+        private bool _catchingUp;
+        private uint? _reportTick;
+        private (uint Tick, Vector3 Position, Vector3 Velocity, float Facing)? _heldReport;
+
+        // Ping times as sent, in whole microseconds, so a pong's echo compares exactly.
+        private double _nextPing;
+        private long _lastPingSent;
+        private long? _oldestUnansweredPing;
+
+        // Why this side gave up on the session (a protocol error, or the server gone quiet), with the details.
+        private CloseReason _ownReason;
+        private string? _ownError;
 
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
         /// <param name="pingInterval">Seconds between pings for the server-tick estimate.</param>

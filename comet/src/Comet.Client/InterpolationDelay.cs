@@ -17,7 +17,7 @@ namespace Comet.Client
     /// rule), gives a raw target; the target is the highest raw target of the last <see cref="HoldSeconds"/>, so it
     /// rises at once when a stall needs more, but only falls once the stall is that long past. Over TCP a lost
     /// packet stalls every entity at once, and a target that fell as soon as the stall left the window left the
-    /// delay short for the next one (prototype.md, 3c). The delay moves toward the target by
+    /// delay short for the next one (seen in the prototype's network tuning). The delay moves toward the target by
     /// running the render tick at most <see cref="GrowRate"/> slow or <see cref="ShrinkRate"/> fast, so drawn
     /// motion never jumps and the render tick never goes back. With no samples (nobody moving) the target stays
     /// where it was. Times are seconds on the caller's clock; delays are in ticks.

@@ -4,7 +4,7 @@ using Comet.Client;
 namespace ShapeLand.Bots;
 
 /// <summary>
-/// What a bot run measured under a network profile, for 3c's tuning: a summary printed at the end and, with
+/// What a bot run measured under a network profile, for tuning the netcode: a summary printed at the end and, with
 /// <c>--results</c>, a JSON file with the summary, the run's settings and every bot's samples. Network numbers
 /// come from honest bots only, after the warmup; cheaters only show whether they were caught.
 /// </summary>

@@ -200,7 +200,7 @@ public class ClientSessionTests
     public void ReportsAreHeldWhilePingsGoUnansweredThenTheLatestIsSent()
     {
         // The upload stalls: pings at 0, 1, 2 and 3 s get no answer, so reports stop rather than queue up for the
-        // server to receive all at once (the code review's S8).
+        // server to receive all at once, tripping its flood limit.
         Welcome(now: 0);
         for (var i = 0; i <= 30; i++)
         {
