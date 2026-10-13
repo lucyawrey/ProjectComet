@@ -53,7 +53,7 @@
                 <ui:Label text="Graphics" class="net-key" picking-mode="Ignore" />
                 <ui:Label name="graphics" class="net-unit" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:Label text="Holds over the last 5 s, frames over the last 1 s · F3 hides" class="net-foot" picking-mode="Ignore" />
+            <ui:Label text="Holds over 5 s, frames over 1 s · F3 hides" class="net-foot" picking-mode="Ignore" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

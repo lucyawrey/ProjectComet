@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
@@ -12,8 +11,7 @@ namespace ShapeLand.Client
     /// its target, how many of the others' moves ran out of states (dead-reckoned until the late state came, then
     /// blended back to it) and how long each hold was, and the player's own snap-backs (red only for one not caused
     /// by the speed cheat) and respawns; then the frame time (average and worst over the last second) and the
-    /// graphics API, render size and anti-aliasing, for comparing builds and browsers (F4 switches anti-aliasing in
-    /// development builds and the editor). Each row has a dot that turns amber or red past a line.
+    /// graphics API and render size, for comparing builds and browsers. Each row has a dot that turns amber or red past a line.
     /// F3 shows or hides it; the choice is remembered.
     /// </summary>
     [RequireComponent(typeof(Hud))]
@@ -56,7 +54,6 @@ namespace ShapeLand.Client
         private float _frameSeconds;
         private float _frameWorstSeconds;
         private int _frames;
-        private int? _msaaAtStart;
 
         /// <summary>Whether showing or hiding is remembered (PlayerPrefs); off in tests.</summary>
         public bool Remember { get; set; } = true;
@@ -109,11 +106,6 @@ namespace ShapeLand.Client
             if (view.Controls != null && view.Controls.NetStats.WasPressedThisFrame() && !_hud.ChatOpen)
             {
                 Toggle();
-            }
-
-            if (Debug.isDebugBuild && view.Controls != null && view.Controls.CycleMsaa.WasPressedThisFrame() && !_hud.ChatOpen)
-            {
-                CycleMsaa();
             }
 
             CountFrame();
@@ -182,38 +174,13 @@ namespace ShapeLand.Client
             {
                 _frame.text = $"{averageMs:0.0}";
                 _frameWorst.text = $"{_frameWorstSeconds * 1000:0}";
-                var msaa = Pipeline != null ? Pipeline.msaaSampleCount : 1;
-                _graphics.text = $"{GraphicsName(SystemInfo.graphicsDeviceType)}, {Screen.width}×{Screen.height}, MSAA {(msaa > 1 ? $"{msaa}×" : "1× (off)")}";
+                _graphics.text = $"{GraphicsName(SystemInfo.graphicsDeviceType)}, {Screen.width}×{Screen.height}";
                 SetState(_frameDot, averageMs > FrameBadMs ? "bad" : averageMs > FrameWarnMs ? "warn" : null);
             }
 
             _frameSeconds = 0;
             _frameWorstSeconds = 0;
             _frames = 0;
-        }
-
-        private static UniversalRenderPipelineAsset Pipeline => GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-
-        // 1× (off), 2×, 4×, 1×… WebGPU has no 2×, so there it shows as whatever the device picks.
-        private void CycleMsaa()
-        {
-            var pipeline = Pipeline;
-            if (pipeline == null)
-            {
-                return;
-            }
-
-            _msaaAtStart ??= pipeline.msaaSampleCount;
-            pipeline.msaaSampleCount = pipeline.msaaSampleCount switch { 1 => 2, 2 => 4, _ => 1 };
-        }
-
-        // In the editor the pipeline is an asset on disk: put back what play mode started with.
-        private void OnDisable()
-        {
-            if (_msaaAtStart is int start && Pipeline != null)
-            {
-                Pipeline.msaaSampleCount = start;
-            }
         }
 
         private static string GraphicsName(GraphicsDeviceType type) => type switch
