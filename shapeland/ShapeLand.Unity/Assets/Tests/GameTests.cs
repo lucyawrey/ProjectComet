@@ -606,7 +606,6 @@ namespace ShapeLand.Client.Tests
             _game.AddComponent<CometConnection>();
             _join = _game.AddComponent<JoinClient>();
             _join.Address = _server.Address;
-            _join.PlayerName = "Unity test";
             _view = _game.AddComponent<GameView>();
             var serialized = new SerializedObject(_view);
             serialized.FindProperty("terrainMaterial").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Terrain.mat");
@@ -630,7 +629,6 @@ namespace ShapeLand.Client.Tests
             hud.SetActive(true);
             if (joinScreen)
             {
-                _join.JoinOnStart = false;
                 var document = _game.AddComponent<UIDocument>();
                 document.panelSettings = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/UI/ShapeLandPanel.asset");
                 document.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UI/JoinScreen.uxml");
@@ -643,6 +641,13 @@ namespace ShapeLand.Client.Tests
                 yield break;
             }
 
+            _join.ContentLoaded += content => _join.Join(_server.Address, new JoinRequest
+            {
+                Name = "Unity test",
+                Shape = content.Shapes.All[0].Number,
+                Colour = ShapeLandRules.BodyColours[0],
+                EyeColour = ShapeLandRules.EyeColours[0],
+            });
             _game.SetActive(true);
 
             yield return TestGameServer.WaitFor(() => _view.Player != null || _join.Error != null, 15);

@@ -93,12 +93,12 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var move = InputEnabled ? CameraRelative(_controls.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
-            _jumpQueued |= InputEnabled && _controls.Jump.WasPressedThisFrame();
+            var move = InputEnabled ? CameraRelative(_controls.Game.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
+            _jumpQueued |= InputEnabled && _controls.Game.Jump.WasPressedThisFrame();
 
             var now = CometConnection.Now;
             var maxSpeed = _shape.MaxSpeed;
-            if (Debug.isDebugBuild && InputEnabled && _controls.SpeedCheat.IsPressed())
+            if (Debug.isDebugBuild && InputEnabled && _controls.Game.SpeedCheat.IsPressed())
             {
                 maxSpeed *= SpeedCheat;
                 _cheatedAt = Time.unscaledTime;

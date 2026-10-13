@@ -255,8 +255,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.JoinClient
   address: localhost:5080
-  playerName: Player
-  joinOnStart: 0
 --- !u!114 &1117559769
 MonoBehaviour:
   m_ObjectHideFlags: 0

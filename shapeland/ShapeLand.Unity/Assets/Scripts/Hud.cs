@@ -134,7 +134,7 @@ namespace ShapeLand.Client
             // Chat opens when Enter is released: focusing the input while Enter is still down lets the rest of
             // that key press reach it, which in web builds leaves it ignoring typed characters.
             // Esc closes the chat input first (OnInputKey); only a press clear of that opens or closes the card.
-            if (Card != null && view.Controls.ChangeLook.WasPressedThisFrame())
+            if (Card != null && view.Controls.Game.ChangeLook.WasPressedThisFrame())
             {
                 if (_card.Changing)
                 {
@@ -146,7 +146,7 @@ namespace ShapeLand.Client
                 }
             }
 
-            var openChat = view.Controls.OpenChat;
+            var openChat = view.Controls.Game.OpenChat;
             if (!ChatOpen && !CardShowing && openChat.WasPressedThisFrame() && Time.unscaledTime - _toggledAt > KeyDebounce)
             {
                 _openOnRelease = true;

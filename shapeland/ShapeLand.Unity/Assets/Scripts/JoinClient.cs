@@ -15,9 +15,8 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// Joins ShapeLand: loads the content, connects to a game server, sends the join request and logs what the
-    /// server says (welcome, spawns, despawns, chat). With <c>joinOnStart</c> it joins at once as a random shape
-    /// (the bare join scene, tests); otherwise the join screen calls <see cref="Join"/> and can try again after a
-    /// refusal or a failed connection. The game scene draws on top of it.
+    /// server says (welcome, spawns, despawns, chat). The join screen calls <see cref="Join"/> and can try again
+    /// after a refusal or a failed connection; the rest of the game scene draws on top of it.
     /// </summary>
     [RequireComponent(typeof(CometConnection))]
     public sealed class JoinClient : MonoBehaviour
@@ -25,8 +24,6 @@ namespace ShapeLand.Client
         public const string LogPrefix = "JOIN";
 
         [SerializeField] private string address = "localhost:5080";
-        [SerializeField] private string playerName = "Player";
-        [SerializeField] private bool joinOnStart = true;
 
         private CometConnection _connection;
         private ShapeLandContent _content;
@@ -43,18 +40,8 @@ namespace ShapeLand.Client
             set => address = value;
         }
 
-        public string PlayerName
-        {
-            get => playerName;
-            set => playerName = value;
-        }
-
-        /// <summary>Whether to join as soon as the content loads, as a random shape and colours. Set before the component starts.</summary>
-        public bool JoinOnStart
-        {
-            get => joinOnStart;
-            set => joinOnStart = value;
-        }
+        /// <summary>The name last asked for.</summary>
+        public string PlayerName { get; private set; }
 
         /// <summary>
         /// The server to join unless the player names another: on the web, the page's <c>?server=</c>, else the one its
@@ -142,18 +129,6 @@ namespace ShapeLand.Client
             }
 
             ContentLoaded?.Invoke(_content);
-            if (joinOnStart)
-            {
-                // A number after the default name lets several such clients join at once.
-                var name = playerName == "Player" ? $"Player {UnityEngine.Random.Range(100, 1000)}" : playerName;
-                Join(DefaultAddress, new JoinRequest
-                {
-                    Name = name,
-                    Shape = _content.Shapes.All[UnityEngine.Random.Range(0, _content.Shapes.All.Count)].Number,
-                    Colour = ShapeLandRules.BodyColours[UnityEngine.Random.Range(0, ShapeLandRules.BodyColours.Length)],
-                    EyeColour = ShapeLandRules.EyeColours[UnityEngine.Random.Range(0, ShapeLandRules.EyeColours.Length)],
-                });
-            }
         }
 
         /// <summary>
@@ -170,7 +145,7 @@ namespace ShapeLand.Client
             Error = null;
             BadAddress = false;
             Rejected = null;
-            playerName = request.Name;
+            PlayerName = request.Name;
             if (!TryServerUrl(serverAddress, out var url))
             {
                 BadAddress = true;
@@ -201,7 +176,7 @@ namespace ShapeLand.Client
             }
 
             Rejected = null;
-            playerName = request.Name;
+            PlayerName = request.Name;
             _pending = request;
         }
 

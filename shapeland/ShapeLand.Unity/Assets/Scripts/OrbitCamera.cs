@@ -80,10 +80,10 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var turn = _controls.StickLook.ReadValue<Vector2>() * stickDegreesPerSecond * Time.unscaledDeltaTime;
-            if (_controls.OrbitHeld.IsPressed())
+            var turn = _controls.Game.StickLook.ReadValue<Vector2>() * stickDegreesPerSecond * Time.unscaledDeltaTime;
+            if (_controls.Game.OrbitHeld.IsPressed())
             {
-                turn += _controls.MouseLook.ReadValue<Vector2>() * mouseDegreesPerPixel;
+                turn += _controls.Game.MouseLook.ReadValue<Vector2>() * mouseDegreesPerPixel;
             }
 
             Yaw = Mathf.Repeat(Yaw + turn.x, 360);

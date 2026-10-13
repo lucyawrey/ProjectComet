@@ -75,6 +75,7 @@ namespace ShapeLand.Client
             _join.OtherLeft += OnOtherLeft;
             _join.ConnectionLost += OnConnectionLost;
             _controls = new ShapeLandControls();
+            _controls.Enable();
             _screenFade = gameObject.AddComponent<ScreenFade>();
             orbitCamera.GetComponent<Camera>().cullingMask &= ~(1 << PreviewLayer);
         }
