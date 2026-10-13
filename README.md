@@ -8,7 +8,7 @@ The project's docs are most usable when opened as an Obsidian vault.
 
 The vault's shared config and community plugins are in the repo, so they're ready after cloning (enable community plugins if Obsidian asks).
 
-- **Unhide for Obsidian**: shows dot-folders, including `.claude/` (claude agent notes). `.git` stays hidden.
+- **Unhide for Obsidian**: shows dot-folders. `.git` stays hidden.
 - **Git**: commit and pull from inside Obsidian.
 
 ## Requirements

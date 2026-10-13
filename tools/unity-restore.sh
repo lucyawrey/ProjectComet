@@ -8,7 +8,7 @@
 # NuGetForUnity's CLI (4.5.0) writes analyzer DLLs' .meta files in a format Unity 6.6 rejects (PluginImporter
 # version 1), so Unity would import the source generator as an ordinary library. This rewrites them in the
 # current format, keeping their GUIDs. The CLI is pinned to that version; check whether a newer one fixes it
-# (.claude/design/prototype.md) before moving the pin.
+# before moving the pin.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)

@@ -3,7 +3,7 @@ using StackBench.Bots;
 using StackBench.Metrics;
 
 // Stack benchmark bots: many WebSocket connections from one process, each reporting positions
-// and measuring round trips and gaps between updates. See .claude/design/prototype.md.
+// and measuring round trips and gaps between updates.
 BotOptions options;
 try
 {
