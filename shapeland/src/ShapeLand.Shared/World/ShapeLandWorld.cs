@@ -15,7 +15,21 @@ namespace ShapeLand.Shared.World
         public const float TerrainSpacing = 2f;
         public const float KillHeight = -30f;
 
-        public static readonly MovementRules Rules = new MovementRules();
+        /// <summary>
+        /// ShapeLand's movement physics, the same for every shape (each shape's speed, jump and scale are in its
+        /// content file). The server checks movement against these, so clients, bots and server all use this one copy.
+        /// </summary>
+        public static readonly MovementRules Rules = new MovementRules
+        {
+            Gravity = 25f,
+            BodyRadius = 0.4f,
+            BodyHeight = 1f,
+            StepHeight = 0.35f,
+            GroundSnap = 0.4f,
+            GroundAcceleration = 40f,
+            AirAcceleration = 15f,
+            TurnSpeed = 900f,
+        };
 
         /// <summary>Where players appear: the centre of the island, on the ground.</summary>
         public static Vector3 SpawnPoint(CollisionWorld world)

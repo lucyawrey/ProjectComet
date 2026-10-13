@@ -8,13 +8,13 @@
 #   tools/unity-batch.sh -- -runTests -testPlatform PlayMode -testResults Logs/results.xml
 #   tools/unity-batch.sh -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
 #
-# The project defaults to shapeland/unity, the log to Logs/batch.log and the time limit to 30 minutes. Relative
+# The project defaults to shapeland/ShapeLand.Unity, the log to Logs/batch.log and the time limit to 30 minutes. Relative
 # paths, in the log and in Unity arguments, are relative to the project. Exit code: the editor's (tests: 0 passed,
 # 2 failed), 1 if it failed or gave no result, 124 on the time limit.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
-project="$repo/shapeland/unity"
+project="$repo/shapeland/ShapeLand.Unity"
 log=""
 minutes=30
 while [ $# -gt 0 ]; do

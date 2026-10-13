@@ -1,6 +1,6 @@
 id = "shape.cube"
 display_name = "Cube"
-mesh = "cube" # see shapeland/unity/Assets/Scripts/WorldMeshes.cs
+mesh = "cube" # see shapeland/ShapeLand.Unity/Assets/Scripts/WorldMeshes.cs
 max_speed = 6.5
 jump_velocity = 8.5
 scale = 1.0

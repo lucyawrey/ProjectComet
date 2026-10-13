@@ -5,8 +5,9 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// A third-person camera orbiting the player: the mouse turns it while the right button is held, the right
-    /// stick turns it always. It stays above the ground, but doesn't yet avoid blocks. Its numbers are placeholders,
-    /// adjusted by playing.
+    /// stick turns it always. It stays above the ground, and moves in front of a block that would come between it
+    /// and the player, easing back out once the view is clear. Its numbers are placeholders, adjusted by playing;
+    /// the values that count are the ones on the camera in the Game scene.
     /// </summary>
     public sealed class OrbitCamera : MonoBehaviour
     {
@@ -28,10 +29,17 @@ namespace ShapeLand.Client
         [Tooltip("The least height kept above the ground, in metres.")]
         [SerializeField] private float groundClearance = 0.3f;
 
+        [Tooltip("The least distance kept from blocks, in metres: more than the near clip plane reaches, so their sides aren't cut open.")]
+        [SerializeField] private float blockClearance = 0.2f;
+
+        [Tooltip("How fast the camera moves back out after a block stops being in the way, in metres per second.")]
+        [SerializeField] private float zoomOutSpeed = 6f;
+
         [Tooltip("Before joining: distance, pitch and turning speed (degrees per second) of the slow orbit around the island.")]
         [SerializeField] private Vector3 showcase = new Vector3(30, 25, 6);
 
         private float _pitch = 20;
+        private float _distance;
         private ShapeLandControls _controls;
         private CollisionWorld _world;
         private Vector3? _showcaseCentre;
@@ -54,6 +62,7 @@ namespace ShapeLand.Client
             _controls = controls;
             _world = world;
             Yaw = target.eulerAngles.y;
+            _distance = distance;
         }
 
         private void LateUpdate()
@@ -82,7 +91,16 @@ namespace ShapeLand.Client
 
             var rotation = Quaternion.Euler(_pitch, Yaw, 0);
             var look = Target.position + Vector3.up * lookHeight;
-            var position = look - rotation * Vector3.forward * distance;
+            // Pull in at once when a block is in the way, so it never shows from inside; ease back out.
+            var back = rotation * Vector3.back;
+            var wanted = distance;
+            if (_world != null && _world.Raycast(WorldMeshes.ToNumerics(look), WorldMeshes.ToNumerics(back), distance, blockClearance, out var hit))
+            {
+                wanted = hit;
+            }
+
+            _distance = wanted < _distance ? wanted : Mathf.MoveTowards(_distance, wanted, zoomOutSpeed * Time.unscaledDeltaTime);
+            var position = look + back * _distance;
             if (_world != null && _world.TryGetGround(WorldMeshes.ToNumerics(position), 0, position.y + 1000, out var ground) && position.y < ground + groundClearance)
             {
                 position.y = ground + groundClearance;

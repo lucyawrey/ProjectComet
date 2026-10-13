@@ -45,6 +45,9 @@ Label { padding: 0; margin: 0; }
     color: rgb(238, 241, 246); font-size: 15px;
     -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf");
 }
+/* One line of the font (Atkinson Hyperlegible's 1.24 at 15px), so an empty field is as tall as a filled one: on the
+   Linux desktop build an empty field was a different height from a filled one. */
+.input .unity-text-element { height: 19px; }
 .input:focus .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
 
 .row { flex-direction: row; flex-wrap: wrap; }
