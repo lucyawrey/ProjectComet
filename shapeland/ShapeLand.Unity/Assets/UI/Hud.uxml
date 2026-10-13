@@ -55,5 +55,6 @@
             </ui:VisualElement>
             <ui:Label text="#stats.foot" class="net-foot" picking-mode="Ignore" />
         </ui:VisualElement>
+        <ui:VisualElement name="screen-fade" class="screen-fade" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>

@@ -1,5 +1,5 @@
-using Comet.Client;
 using System.Collections.Generic;
+using Comet.Client;
 using Comet.Simulation;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
@@ -12,8 +12,8 @@ namespace ShapeLand.Client
     /// <summary>
     /// The game scene's view: draws the island and its blocks once the content has loaded, the player's own shape
     /// (with eyes, to show its facing) once the server spawns it, with the orbit camera following, and the other
-    /// players where the interpolation buffer puts them. Falling off and respawning fades: the screen for the
-    /// player's own shape, the shape itself for others (<see cref="RespawnFade"/>).
+    /// players where the interpolation buffer puts them. Others fade out as they fall off the island and back in
+    /// after respawning (<see cref="RespawnFade"/>); the player's own fall darkens the screen instead (<see cref="Hud"/>).
     /// </summary>
     [RequireComponent(typeof(JoinClient))]
     public sealed class GameView : MonoBehaviour
@@ -29,28 +29,19 @@ namespace ShapeLand.Client
         [SerializeField] private Material eyeFadeMaterial;
         [SerializeField] private OrbitCamera orbitCamera;
 
+        private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
+        private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
+        private readonly Dictionary<Shape, (Mesh Body, Mesh Eyes)> _meshes = new Dictionary<Shape, (Mesh Body, Mesh Eyes)>();
         private JoinClient _join;
         private CollisionWorld _world;
         private ShapeLandControls _controls;
-        private ScreenFade _screenFade;
-        private ShapeFade _playerFade;
+        private ShapeBody _playerShape;
 
-        private readonly Dictionary<uint, Transform> _others = new Dictionary<uint, Transform>();
-        private readonly Dictionary<uint, ShapeFade> _fades = new Dictionary<uint, ShapeFade>();
-        private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
-        private readonly Dictionary<Shape, (Mesh Body, Mesh Eyes)> _meshes = new Dictionary<Shape, (Mesh Body, Mesh Eyes)>();
-
-        /// <summary>The player's own shape, once spawned.</summary>
+        /// <summary>The player, once spawned; their shape is a child of it.</summary>
         public LocalPlayer Player { get; private set; }
 
-        /// <summary>The other players drawn now, by entity ID.</summary>
-        public IReadOnlyDictionary<uint, Transform> Others => _others;
-
-        /// <summary>How far each other player's shape has faded, by entity ID.</summary>
-        public IReadOnlyDictionary<uint, ShapeFade> OtherFades => _fades;
-
-        /// <summary>The overlay for the player's own respawn fade.</summary>
-        public ScreenFade ScreenFade => _screenFade;
+        /// <summary>The other players' shapes drawn now, by entity ID.</summary>
+        public IReadOnlyDictionary<uint, ShapeBody> Others => _others;
 
         /// <summary>Every player in view, this one included, as the server spawned them (name, shape, colors), by entity ID.</summary>
         public IReadOnlyDictionary<uint, PlayerSpawn> Spawns => _spawns;
@@ -63,8 +54,8 @@ namespace ShapeLand.Client
         public Camera Camera => orbitCamera.GetComponent<Camera>();
 
         /// <summary>A player's drawn shape (this one's too), or null.</summary>
-        public Transform ShapeOf(uint entityId) =>
-            Player != null && entityId == _join.Session?.EntityId ? Player.transform
+        public ShapeBody ShapeOf(uint entityId) =>
+            Player != null && entityId == _join.Session?.EntityId ? _playerShape
             : _others.TryGetValue(entityId, out var other) ? other : null;
 
         private void Awake()
@@ -77,18 +68,12 @@ namespace ShapeLand.Client
             _join.ConnectionLost += OnConnectionLost;
             _controls = new ShapeLandControls();
             _controls.Enable();
-            _screenFade = gameObject.AddComponent<ScreenFade>();
-            orbitCamera.GetComponent<Camera>().cullingMask &= ~(1 << PreviewLayer);
+            Camera.cullingMask &= ~(1 << PreviewLayer);
         }
 
         // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
         private void Update()
         {
-            if (Player != null)
-            {
-                _screenFade.Darkness = Player.Darkness;
-            }
-
             if (_others.Count == 0)
             {
                 return;
@@ -100,9 +85,9 @@ namespace ShapeLand.Client
             {
                 if (session.Entities.TrySample(other.Key, renderTick, out var pose))
                 {
-                    other.Value.SetPositionAndRotation(WorldMeshes.ToUnity(pose.Position), Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
-                    var fade = _fades[other.Key];
-                    fade.Set(RespawnFade.Step(fade.Faded, pose.Position.Y, _world.KillHeight, Time.unscaledDeltaTime));
+                    var shape = other.Value;
+                    shape.transform.SetPositionAndRotation(WorldMeshes.ToUnity(pose.Position), Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
+                    shape.Faded = RespawnFade.Step(shape.Faded, pose.Position.Y, _world.KillHeight, Time.unscaledDeltaTime);
                 }
             }
         }
@@ -121,44 +106,36 @@ namespace ShapeLand.Client
             orbitCamera.Showcase(WorldMeshes.ToUnity(ShapeLandWorld.SpawnPoint(_world)));
         }
 
+        // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
+        // the camera carry on as they were (the server's snap-back has already put the player where it has them).
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
             _spawns[spawn.EntityId] = spawn;
             var shape = _join.Content.Shapes[spawn.Shape];
-            if (Player != null)
+            if (Player == null)
             {
-                ChangeOwnLook(spawn, shape);
-                return;
+                Player = new GameObject().AddComponent<LocalPlayer>();
+                Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
+                orbitCamera.Follow(Player.transform, _controls, _world);
+            }
+            else
+            {
+                Destroy(_playerShape.gameObject);
+                Player.ChangeShape(shape);
             }
 
-            Player = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, $"{spawn.Name} (you)", out _playerFade).AddComponent<LocalPlayer>();
-            Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
-            orbitCamera.Follow(Player.transform, _controls, _world);
-        }
-
-        // A new look where the player stands: the body and eyes are swapped under the same object, so the motor and
-        // the camera carry on as they were (the server's snap-back has already put the player where it has them).
-        private void ChangeOwnLook(PlayerSpawn spawn, Shape shape)
-        {
-            var oldBody = Player.transform.GetChild(0).gameObject;
-            var name = $"{spawn.Name} (you)";
-            var built = BuildShape(shape, spawn.Color, spawn.EyeColor, name, out var fade);
-            built.transform.GetChild(0).SetParent(Player.transform, false);
-            Destroy(built);
-            DestroyShape(oldBody, _playerFade);
-            _playerFade = fade;
-            Player.name = name;
-            Player.ChangeShape(shape);
+            Player.name = $"{spawn.Name} (you)";
+            _playerShape = BuildShape(shape, spawn.Color, spawn.EyeColor, Player.transform);
         }
 
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
             OnOtherLeft(spawn.EntityId);
             _spawns[spawn.EntityId] = spawn;
-            var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, $"{spawn.Name} ({spawn.EntityId})", out var fade);
+            var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, transform);
+            other.name = $"{spawn.Name} ({spawn.EntityId})";
             other.transform.SetPositionAndRotation(new Vector3(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
-            _others[spawn.EntityId] = other.transform;
-            _fades[spawn.EntityId] = fade;
+            _others[spawn.EntityId] = other;
         }
 
         // Everyone leaves the world, this player too, and the camera goes back to orbiting the island.
@@ -172,31 +149,28 @@ namespace ShapeLand.Client
             if (Player != null)
             {
                 orbitCamera.Release();
-                DestroyShape(Player.gameObject, _playerFade);
+                Destroy(Player.gameObject);
                 Player = null;
+                _playerShape = null;
             }
 
             _spawns.Clear(); // this player's own entry too, or a rejoin would tag someone with the old name
-            _screenFade.Darkness = 0;
         }
 
         private void OnOtherLeft(uint entityId)
         {
-            if (_others.TryGetValue(entityId, out var other))
+            if (_others.Remove(entityId, out var other))
             {
                 _spawns.Remove(entityId);
-                _others.Remove(entityId);
-                DestroyShape(other.gameObject, _fades[entityId]);
-                _fades.Remove(entityId);
+                Destroy(other.gameObject);
             }
         }
 
         /// <summary>
-        /// A player's shape: the body and eyes in their colors (0xRRGGBB), sized and hovering as its look and
-        /// scale say (<see cref="WorldMeshes.LookOf"/>), on an object standing at their feet. <paramref name="fade"/>
-        /// owns the materials made for it; destroy them with it.
+        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin, sized and hovering as its
+        /// look and scale say (<see cref="WorldMeshes.LookOf"/>).
         /// </summary>
-        public GameObject BuildShape(Shape shape, uint color, uint eyeColor, string name, out ShapeFade fade)
+        public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent)
         {
             var look = WorldMeshes.LookOf(shape);
             if (!_meshes.TryGetValue(shape, out var meshes))
@@ -205,19 +179,15 @@ namespace ShapeLand.Client
                 _meshes[shape] = meshes;
             }
 
-            var player = new GameObject(name);
-            var body = AddMesh("Shape", meshes.Body, new Material(shapeMaterial) { color = Color(color) }, player.transform);
+            var root = new GameObject(shape.DisplayName);
+            root.transform.SetParent(parent, false);
+            var body = AddMesh("Body", meshes.Body, shapeMaterial, root.transform);
             body.transform.localPosition = new Vector3(0, look.Hover, 0);
-            var eyes = AddMesh("Eyes", meshes.Eyes, new Material(eyeMaterial) { color = Color(eyeColor) }, body.transform);
-            fade = new ShapeFade(body.GetComponent<MeshRenderer>(), eyes.GetComponent<MeshRenderer>(), shapeFadeMaterial, eyeFadeMaterial);
-            return player;
-        }
-
-        // Destroys a shape and the materials made for it.
-        private static void DestroyShape(GameObject shape, ShapeFade fade)
-        {
-            fade.Destroy();
-            Destroy(shape);
+            var eyes = AddMesh("Eyes", meshes.Eyes, eyeMaterial, body.transform);
+            var drawn = root.AddComponent<ShapeBody>();
+            drawn.Setup(body.GetComponent<MeshRenderer>(), eyes.GetComponent<MeshRenderer>(), shapeFadeMaterial, eyeFadeMaterial);
+            drawn.SetColors(color, eyeColor);
+            return drawn;
         }
 
         private static GameObject AddMesh(string name, Mesh mesh, Material material, Transform parent)
@@ -240,23 +210,6 @@ namespace ShapeLand.Client
             _join.OtherLeft -= OnOtherLeft;
             _join.ConnectionLost -= OnConnectionLost;
             _controls.Dispose();
-            if (Player != null)
-            {
-                DestroyShape(Player.gameObject, _playerFade);
-            }
-
-            // While quitting, Unity may have destroyed the shapes already; their faded materials still need freeing.
-            foreach (var other in _others)
-            {
-                if (other.Value != null)
-                {
-                    DestroyShape(other.Value.gameObject, _fades[other.Key]);
-                }
-                else
-                {
-                    _fades[other.Key].Destroy();
-                }
-            }
         }
     }
 }

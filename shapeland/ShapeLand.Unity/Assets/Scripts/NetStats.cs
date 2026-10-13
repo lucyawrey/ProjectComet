@@ -14,7 +14,7 @@ namespace ShapeLand.Client
     /// graphics API and render size, for comparing builds and browsers. Each row has a dot that turns amber or red past a line.
     /// F3 shows or hides it; the choice is remembered.
     /// </summary>
-    [RequireComponent(typeof(Hud))]
+    [RequireComponent(typeof(Hud), typeof(Chat))]
     public sealed class NetStats : MonoBehaviour
     {
         /// <summary>How many seconds the hold numbers cover.</summary>
@@ -34,6 +34,7 @@ namespace ShapeLand.Client
 
         private readonly Queue<Snapshot> _snapshots = new Queue<Snapshot>();
         private Hud _hud;
+        private Chat _chat;
         private VisualElement _panel;
         private VisualElement _pingDot;
         private VisualElement _holdsDot;
@@ -67,6 +68,7 @@ namespace ShapeLand.Client
         private void OnEnable()
         {
             _hud = GetComponent<Hud>();
+            _chat = GetComponent<Chat>();
             var tree = GetComponent<UIDocument>().rootVisualElement;
             _panel = tree.Q("net-stats");
             _pingDot = tree.Q("ping-dot");
@@ -103,7 +105,7 @@ namespace ShapeLand.Client
         private void Update()
         {
             var view = _hud.View;
-            if (view.Controls != null && view.Controls.Game.NetStats.WasPressedThisFrame() && !_hud.ChatOpen)
+            if (view.Controls != null && view.Controls.Game.NetStats.WasPressedThisFrame() && !_chat.Open)
             {
                 Toggle();
             }
@@ -174,7 +176,8 @@ namespace ShapeLand.Client
             {
                 _frame.text = $"{averageMs:0.0}";
                 _frameWorst.text = $"{_frameWorstSeconds * 1000:0}";
-                _graphics.text = $"{GraphicsName(SystemInfo.graphicsDeviceType)}, {Screen.width}×{Screen.height}";
+                var strings = _hud.Join.Content?.Strings;
+                _graphics.text = strings?.Format("stats.graphics_value", ("api", GraphicsName(SystemInfo.graphicsDeviceType)), ("width", Screen.width), ("height", Screen.height));
                 SetState(_frameDot, averageMs > FrameBadMs ? "bad" : averageMs > FrameWarnMs ? "warn" : null);
             }
 

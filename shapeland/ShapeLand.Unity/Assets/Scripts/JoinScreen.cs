@@ -20,7 +20,10 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(UIDocument), typeof(JoinClient), typeof(GameView))]
     public sealed class JoinScreen : MonoBehaviour
     {
-        private const string NameKey = "join.name", ShapeKey = "join.shape", ColorKey = "join.color", EyesKey = "join.eyes", ServerKey = "join.server";
+        [SerializeField] private ShapePreview previewPrefab;
+
+        // PlayerPrefs keys for the choices remembered for next time.
+        private const string NameKey = "remember.name", ShapeKey = "remember.shape", ColorKey = "remember.color", EyesKey = "remember.eyes", ServerKey = "remember.server";
 
         private JoinClient _join;
         private GameView _view;
@@ -143,7 +146,7 @@ namespace ShapeLand.Client
             _color = spawn.Color;
             _eyeColor = spawn.EyeColor;
             ShowError(null);
-            _preview ??= new ShapePreview(_view, _root.Q("preview"));
+            OpenPreview();
             Refresh();
             _root.RemoveFromClassList("hidden");
             _name.Focus();
@@ -161,8 +164,11 @@ namespace ShapeLand.Client
         private void Close()
         {
             _root.AddToClassList("hidden");
-            _preview?.Dispose();
-            _preview = null;
+            if (_preview != null)
+            {
+                Destroy(_preview.gameObject);
+                _preview = null;
+            }
             SetChanging(false);
         }
 
@@ -188,7 +194,7 @@ namespace ShapeLand.Client
 
             AddSwatches(_colors, ShapeLandRules.BodyColors, color => _color = color);
             AddSwatches(_eyes, ShapeLandRules.EyeColors, color => _eyeColor = color);
-            _preview = new ShapePreview(_view, _root.Q("preview"));
+            OpenPreview();
             Refresh();
             _root.RemoveFromClassList("hidden");
             _name.Focus();
@@ -241,7 +247,7 @@ namespace ShapeLand.Client
                 swatch.EnableInClassList("on", (uint)swatch.userData == _eyeColor);
             }
 
-            _preview.Show(_shape, _color, _eyeColor);
+            _preview.Show(_view, _shape, _color, _eyeColor);
 
             var best = _content.Shapes.All.Select(Stats).ToList();
             var (speed, jump) = Stats(_shape);
@@ -347,7 +353,7 @@ namespace ShapeLand.Client
         {
             _lostAt = Time.unscaledTime;
             SetChanging(false);
-            _preview ??= new ShapePreview(_view, _root.Q("preview"));
+            OpenPreview();
             Refresh();
             _root.RemoveFromClassList("hidden");
             Retry(LostMessage(_content.Strings, reason));
@@ -387,7 +393,14 @@ namespace ShapeLand.Client
 
         private void OnOwnSpawned(PlayerSpawn spawn) => Close();
 
-        private void Update() => _preview?.Turn(Time.unscaledDeltaTime);
+        private void OpenPreview()
+        {
+            if (_preview == null)
+            {
+                _preview = Instantiate(previewPrefab);
+                _preview.ShowIn(_root.Q("preview"));
+            }
+        }
 
         private void OnDestroy()
         {
@@ -396,81 +409,6 @@ namespace ShapeLand.Client
             _join.JoinRefused -= OnRefused;
             _join.Failed -= OnFailed;
             _join.ConnectionLost -= OnConnectionLost;
-            _preview?.Dispose();
-        }
-
-        /// <summary>
-        /// The chosen shape, built like any player's, turning in front of its own camera on a layer the main
-        /// camera doesn't draw, far below the island, and shown on the card through a render texture.
-        /// </summary>
-        private sealed class ShapePreview : System.IDisposable
-        {
-            private const float DegreesPerSecond = 40;
-            private static readonly Vector3 Place = new Vector3(0, -500, 0);
-
-            private readonly GameView _view;
-            private readonly GameObject _stand;
-            private readonly RenderTexture _texture;
-            private GameObject _shape;
-            private ShapeFade _materials;
-
-            public ShapePreview(GameView view, VisualElement target)
-            {
-                _view = view;
-                _texture = new RenderTexture(256, 256, 24, RenderTextureFormat.ARGB32) { name = "Shape preview" };
-                _stand = new GameObject("Shape preview") { layer = GameView.PreviewLayer };
-                _stand.transform.position = Place;
-                var camera = new GameObject("Preview camera", typeof(Camera)).GetComponent<Camera>();
-                camera.gameObject.layer = GameView.PreviewLayer;
-                camera.transform.SetParent(_stand.transform, false);
-                camera.transform.SetLocalPositionAndRotation(new Vector3(0, 1.3f, -3.4f), Quaternion.Euler(14, 0, 0));
-                camera.fieldOfView = 28;
-                camera.clearFlags = CameraClearFlags.SolidColor;
-                camera.backgroundColor = new Color(0, 0, 0, 0);
-                camera.cullingMask = 1 << GameView.PreviewLayer;
-                camera.targetTexture = _texture;
-                target.style.backgroundImage = Background.FromRenderTexture(_texture);
-            }
-
-            public void Show(Shape shape, uint color, uint eyeColor)
-            {
-                var facing = _shape != null ? _shape.transform.localRotation : Quaternion.Euler(0, 200, 0);
-                Clear();
-                _shape = _view.BuildShape(shape, color, eyeColor, "Previewed shape", out _materials);
-                _shape.transform.SetParent(_stand.transform, false);
-                _shape.transform.localRotation = facing;
-                foreach (var renderer in _shape.GetComponentsInChildren<Renderer>())
-                {
-                    renderer.gameObject.layer = GameView.PreviewLayer;
-                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                }
-            }
-
-            public void Turn(float seconds)
-            {
-                if (_shape != null)
-                {
-                    _shape.transform.Rotate(0, DegreesPerSecond * seconds, 0);
-                }
-            }
-
-            private void Clear()
-            {
-                if (_shape != null)
-                {
-                    _materials.Destroy();
-                    Object.Destroy(_shape);
-                    _shape = null;
-                }
-            }
-
-            public void Dispose()
-            {
-                Clear();
-                Object.Destroy(_stand);
-                _texture.Release();
-                Object.Destroy(_texture);
-            }
         }
     }
 }

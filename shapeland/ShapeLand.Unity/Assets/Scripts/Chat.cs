@@ -1,0 +1,240 @@
+using System.Collections.Generic;
+using Comet.Client;
+using ShapeLand.Shared.Messages;
+using ShapeLand.Shared.World;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace ShapeLand.Client
+{
+    /// <summary>
+    /// The chat box in the HUD's lower corner: the log, which fades after a while without messages, and an input
+    /// that Enter opens (the shape stops moving while it's open). Speech bubbles are <see cref="NameTags"/>' part.
+    /// </summary>
+    [RequireComponent(typeof(Hud))]
+    public sealed class Chat : MonoBehaviour
+    {
+        /// <summary>Seconds without a message before the log fades out.</summary>
+        public const float LogSeconds = 10;
+
+        /// <summary>How many lines the log keeps.</summary>
+        public const int MaxLines = 8;
+
+        // Enter that opened or closed the chat may reach the other handler too; ignore it for this long.
+        private const float KeyDebounce = 0.2f;
+
+        // How long the log and the hint take to fade in or out, in seconds, and the hint's opacity when shown.
+        private const float FadeSeconds = 0.4f;
+        private const float HintOpacity = 0.85f;
+
+        private Hud _hud;
+        private VisualElement _box;
+        private VisualElement _log;
+        private VisualElement _inputRow;
+        private TextField _input;
+        private Label _hint;
+        private float _lastLine = float.NegativeInfinity;
+        private bool _openOnRelease;
+
+        /// <summary>True while the input is open.</summary>
+        public bool Open { get; private set; }
+
+        /// <summary>When the input last opened or closed, in unscaled seconds.</summary>
+        public float ToggledAt { get; private set; } = float.NegativeInfinity;
+
+        /// <summary>How visible the chat box is now, from 0 (faded out) to 1.</summary>
+        public float Opacity { get; private set; }
+
+        /// <summary>The text typed into the input.</summary>
+        public string Typed
+        {
+            get => _input.value;
+            set => _input.value = value;
+        }
+
+        private void OnEnable()
+        {
+            _hud = GetComponent<Hud>();
+            var tree = GetComponent<UIDocument>().rootVisualElement;
+            _box = tree.Q("chat");
+            _log = tree.Q("log");
+            _inputRow = tree.Q("chat-input-row");
+            _input = tree.Q<TextField>("chat-input");
+            _hint = tree.Q<Label>("chat-hint");
+            _input.RegisterCallback<KeyDownEvent>(OnInputKey, TrickleDown.TrickleDown);
+
+            _hud.Join.ChatReceived += OnChat;
+            _hud.Join.ChatRefused += OnRefused;
+            _hud.Join.ConnectionLost += OnConnectionLost;
+        }
+
+        private void OnDisable()
+        {
+            _hud.Join.ChatReceived -= OnChat;
+            _hud.Join.ChatRefused -= OnRefused;
+            _hud.Join.ConnectionLost -= OnConnectionLost;
+        }
+
+        // Back to the join screen: the log is for a world that's gone.
+        private void OnConnectionLost(CloseReason reason)
+        {
+            CloseInput();
+            _log.Clear();
+            _log.AddToClassList("empty");
+        }
+
+        private void Update()
+        {
+            if (!_hud.Shown)
+            {
+                return;
+            }
+
+            // The input opens when Enter is released: focusing it while Enter is still down lets the rest of that
+            // key press reach it, which in web builds leaves it ignoring typed characters.
+            var openChat = _hud.View.Controls.Game.OpenChat;
+            if (!Open && !_hud.CardShowing && openChat.WasPressedThisFrame() && Time.unscaledTime - ToggledAt > KeyDebounce)
+            {
+                _openOnRelease = true;
+            }
+
+            if (_openOnRelease && openChat.WasReleasedThisFrame())
+            {
+                OpenInput();
+            }
+
+            var logShown = Open || Time.unscaledTime - _lastLine < LogSeconds;
+            Opacity = Open ? 1 : Mathf.MoveTowards(Opacity, logShown ? 1 : 0, Time.unscaledDeltaTime / FadeSeconds);
+            _box.style.opacity = Opacity;
+            _hint.style.opacity = (1 - Opacity) * HintOpacity;
+        }
+
+        /// <summary>Opens the input and stops the shape moving until it closes.</summary>
+        public void OpenInput()
+        {
+            _openOnRelease = false;
+            Open = true;
+            ToggledAt = Time.unscaledTime;
+            _inputRow.RemoveFromClassList("hidden");
+            _input.value = "";
+            _input.Focus();
+            _hud.UpdateMoving();
+        }
+
+        /// <summary>Closes the input without sending.</summary>
+        public void CloseInput()
+        {
+            if (!Open)
+            {
+                return;
+            }
+
+            Open = false;
+            ToggledAt = Time.unscaledTime;
+            _input.Blur();
+            _inputRow.AddToClassList("hidden");
+            _hud.UpdateMoving();
+        }
+
+        /// <summary>Sends what's typed (if anything) and closes the input.</summary>
+        public void Send()
+        {
+            if (ShapeLandRules.TryNormalizeChat(_input.value, out var text))
+            {
+                _hud.Join.Say(text);
+            }
+
+            CloseInput();
+        }
+
+        private void OnInputKey(KeyDownEvent e)
+        {
+            if (e.character == '\n' || e.character == '\r')
+            {
+                e.StopPropagation(); // Enter's character: the input is single-line, and it would submit the field
+                return;
+            }
+
+            if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
+            {
+                if (Time.unscaledTime - ToggledAt > KeyDebounce)
+                {
+                    Send();
+                }
+
+                e.StopPropagation();
+            }
+            else if (e.keyCode == KeyCode.Escape)
+            {
+                CloseInput();
+                e.StopPropagation();
+            }
+        }
+
+        private void OnChat(ChatMessage message)
+        {
+            var strings = _hud.Join.Content.Strings;
+            var known = _hud.View.Spawns.TryGetValue(message.EntityId, out var speaker);
+            var line = new VisualElement();
+            line.AddToClassList("chat-line");
+            if (known)
+            {
+                line.Add(new ShapeIcon(_hud.Join.Content.Shapes[speaker.Shape].Mesh, GameView.Color(speaker.Color)));
+            }
+
+            var name = new Label(known ? speaker.Name : strings.Get("chat.someone"));
+            name.AddToClassList("chat-name");
+            var text = new Label(message.Text) { enableRichText = false }; // what players type is shown as typed, never markup
+            text.AddToClassList("chat-text");
+            line.Add(name);
+            line.Add(text);
+            AddLine(line);
+        }
+
+        private void OnRefused(ChatRejection reason)
+        {
+            var note = new Label(_hud.Join.Content.Strings.Get(reason == ChatRejection.TooFast ? "chat.too_fast" : "chat.invalid"));
+            note.AddToClassList("chat-note");
+            AddLine(note);
+        }
+
+        private void AddLine(VisualElement line)
+        {
+            _log.Add(line);
+            while (_log.childCount > MaxLines)
+            {
+                _log.RemoveAt(0);
+            }
+
+            _log.RemoveFromClassList("empty");
+            _lastLine = Time.unscaledTime;
+        }
+
+        /// <summary>The log's lines as text, oldest first.</summary>
+        public List<string> LogLines()
+        {
+            var lines = new List<string>();
+            foreach (var line in _log.Children())
+            {
+                if (line is Label note)
+                {
+                    lines.Add(note.text);
+                    continue;
+                }
+
+                var parts = new List<string>();
+                foreach (var child in line.Children())
+                {
+                    if (child is Label label)
+                    {
+                        parts.Add(label.text);
+                    }
+                }
+
+                lines.Add(string.Join(" ", parts));
+            }
+
+            return lines;
+        }
+    }
+}
