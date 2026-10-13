@@ -1,3 +1,4 @@
+using Comet.Client;
 using System.Collections.Generic;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -106,7 +107,7 @@ namespace ShapeLand.Client
         private void OnOwnSpawned(PlayerSpawn spawn) => _root.RemoveFromClassList("hidden");
 
         // Back to the join screen: the HUD hides, and its tags and chat are for a world that's gone.
-        private void OnConnectionLost(string reason)
+        private void OnConnectionLost(CloseReason reason)
         {
             if (ChatOpen)
             {

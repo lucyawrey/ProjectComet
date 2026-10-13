@@ -3,7 +3,10 @@
     "rootNamespace": "ShapeLand.Client.Editor",
     "references": [
         "Comet.Unity",
-        "ShapeLand.Client"
+        "ShapeLand.Client",
+        "ShapeLand.Shared",
+        "glTFast",
+        "glTFast.Export"
     ],
     "includePlatforms": [
         "Editor"

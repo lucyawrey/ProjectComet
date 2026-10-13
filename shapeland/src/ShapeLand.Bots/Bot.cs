@@ -194,7 +194,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         transport.Close();
         await transport.Completion;
         transport.Dispose();
-        Failed = _session.Error is not null;
+        Failed = _session.CloseReason != CloseReason.None;
     }
 
     private void Step(double now, long stepNumber)

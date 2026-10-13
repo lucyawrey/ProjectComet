@@ -1,3 +1,4 @@
+using Comet.Client;
 using System.Collections.Generic;
 using Comet.Simulation;
 using Comet.Unity;
@@ -161,7 +162,7 @@ namespace ShapeLand.Client
         }
 
         // Everyone leaves the world, this player too, and the camera goes back to orbiting the island.
-        private void OnConnectionLost(string reason)
+        private void OnConnectionLost(CloseReason reason)
         {
             foreach (var id in new List<uint>(_others.Keys))
             {

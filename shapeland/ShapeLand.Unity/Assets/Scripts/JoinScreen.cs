@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Comet.Client;
+using Comet.Content;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -64,17 +65,24 @@ namespace ShapeLand.Client
         public static (float Speed, float JumpHeight) Stats(Shape shape) => (shape.MaxSpeed, ShapeLandWorld.Rules.JumpApex(shape.JumpVelocity));
 
         /// <summary>What the card says when the server refuses a join.</summary>
-        public static string RefusalMessage(JoinRejection reason, string name) => reason switch
+        public static string RefusalMessage(StringTable strings, JoinRejection reason, string name) => reason switch
         {
-            JoinRejection.NameTaken => $"Someone online is already called {name}. Pick another name.",
-            JoinRejection.InvalidName => NameRules,
-            JoinRejection.DifferentContent => Debug.isDebugBuild
-                ? "The server's content is different from this client's. Rerun tools/shapeland-dev.sh and restart play mode, or rebuild this client."
-                : "The server is running a different version of ShapeLand. Reload the page to update.",
-            _ => "The server didn't accept that shape or color. It may be running a different version of ShapeLand.",
+            JoinRejection.NameTaken => strings.Format("join.name_taken", ("name", name)),
+            JoinRejection.InvalidName => strings.Get("join.name_rules"),
+            JoinRejection.DifferentContent => strings.Get(Debug.isDebugBuild ? "join.different_content_dev" : "join.different_content"),
+            _ => strings.Get("join.not_accepted"),
         };
 
-        private const string NameRules = "Names use letters, digits, spaces, - and _, up to 16 characters.";
+        /// <summary>What the card says after the connection was lost for <paramref name="reason"/>.</summary>
+        public static string LostMessage(StringTable strings, CloseReason reason) => strings.Get(reason switch
+        {
+            CloseReason.Lost => "connection.lost",
+            CloseReason.ServerClosed => "connection.server_closed",
+            CloseReason.ServerShutDown => "connection.server_shut_down",
+            CloseReason.FellBehind => "connection.fell_behind",
+            CloseReason.ProtocolError => "connection.protocol_error",
+            _ => "connection.failed",
+        });
 
         private void Awake()
         {
@@ -118,7 +126,7 @@ namespace ShapeLand.Client
 #endif
             _cancelButton.EnableInClassList("hidden", !changing);
             _joinButton.SetEnabled(true);
-            _joinButton.text = changing ? "Apply" : "Join";
+            _joinButton.text = Text(changing ? "join.apply" : "join.join");
         }
 
         /// <summary>Brings the card up over the game, filled in with the player's current look, to change it.</summary>
@@ -161,6 +169,8 @@ namespace ShapeLand.Client
         private void OnContentLoaded(ShapeLandContent content)
         {
             _content = content;
+            UiText.Fill(_root, content.Strings);
+            SetChanging(false);
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = PlayerPrefs.GetString(ServerKey, _join.DefaultAddress);
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
@@ -236,8 +246,9 @@ namespace ShapeLand.Client
             var best = _content.Shapes.All.Select(Stats).ToList();
             var (speed, jump) = Stats(_shape);
             _stats.Clear();
-            _stats.Add(Stat("Speed", $"{speed:0.#} m/s", speed / best.Max(s => s.Speed)));
-            _stats.Add(Stat("Jump", $"{jump:0.0} m", jump / best.Max(s => s.JumpHeight)));
+            var strings = _content.Strings;
+            _stats.Add(Stat(strings.Get("join.speed"), strings.Format("join.speed_value", ("speed", speed.ToString("0.#"))), speed / best.Max(s => s.Speed)));
+            _stats.Add(Stat(strings.Get("join.jump"), strings.Format("join.jump_value", ("height", jump.ToString("0.0"))), jump / best.Max(s => s.JumpHeight)));
         }
 
         private static VisualElement Stat(string name, string value, float share)
@@ -280,7 +291,7 @@ namespace ShapeLand.Client
 
             if (!ShapeLandRules.TryNormalizeName(_name.value, out var name))
             {
-                ShowError(NameRules);
+                ShowError(Text("join.name_rules"));
                 return;
             }
 
@@ -309,67 +320,64 @@ namespace ShapeLand.Client
                 }
 
                 _joinButton.SetEnabled(false);
-                _joinButton.text = "Applying…";
+                _joinButton.text = Text("join.applying");
                 _join.Change(request);
                 return;
             }
 
             _joinButton.SetEnabled(false);
-            _joinButton.text = "Joining…";
+            _joinButton.text = Text("join.joining");
             _join.Join(server, request);
         }
 
         private void OnRefused(JoinRejection reason)
         {
-            var message = RefusalMessage(reason, _join.PlayerName);
+            var message = RefusalMessage(_content.Strings, reason, _join.PlayerName);
             if (reason == JoinRejection.NameTaken && _lostAt is float lostAt && Time.unscaledTime - lostAt < OldSessionSeconds)
             {
                 // Likely this player's own old session, which the server hasn't noticed is gone yet.
-                message = $"The server still has your last session as {_join.PlayerName}. Try again in a few seconds.";
+                message = _content.Strings.Format("join.old_session", ("name", _join.PlayerName));
             }
 
             Retry(message);
         }
 
         // The card comes back with the reason, and the choices made before.
-        private void OnConnectionLost(string reason)
+        private void OnConnectionLost(CloseReason reason)
         {
             _lostAt = Time.unscaledTime;
             SetChanging(false);
             _preview ??= new ShapePreview(_view, _root.Q("preview"));
             Refresh();
             _root.RemoveFromClassList("hidden");
-            Retry(LostMessage(reason));
+            Retry(LostMessage(_content.Strings, reason));
         }
 
-        /// <summary>What the card says after the connection was lost for <paramref name="reason"/>.</summary>
-        public static string LostMessage(string reason) =>
-            reason == ClientSession.LostMessage ? reason : $"{ClientSession.LostMessage} {reason}";
-
-        private void OnFailed(string error)
+        private void OnFailed(JoinFailure failure)
         {
             if (_content == null)
             {
                 return; // the content didn't load; nothing to show the card with
             }
 
-            if (_join.BadAddress || error == JoinClient.JoinUnanswered)
+            var address = _server.value.Trim();
+            Retry(failure switch
             {
-                Retry(error);
-                return;
-            }
-
-            Retry(Application.platform == RuntimePlatform.WebGLPlayer
-                ? "Couldn't reach the game server. It may not be running right now."
-                : $"Couldn't reach the server at {_server.value.Trim()}. Check the address, or whether it's running.");
+                JoinFailure.BadAddress => _content.Strings.Format("join.bad_address", ("address", address)),
+                JoinFailure.Unanswered => Text("join.unanswered"),
+                _ when Application.platform == RuntimePlatform.WebGLPlayer => Text("join.unreachable_web"),
+                _ => _content.Strings.Format("join.unreachable", ("address", address)),
+            });
         }
 
         private void Retry(string message)
         {
             ShowError(message);
             _joinButton.SetEnabled(true);
-            _joinButton.text = Changing ? "Apply" : "Join";
+            _joinButton.text = Text(Changing ? "join.apply" : "join.join");
         }
+
+        private string Text(string key) => _content?.Strings.Get(key) ?? "";
 
         private void ShowError(string message)
         {

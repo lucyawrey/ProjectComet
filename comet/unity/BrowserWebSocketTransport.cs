@@ -16,6 +16,7 @@ namespace Comet.Unity
         private readonly int _id;
         private readonly int _maxFrameSize;
         private byte[] _sendBuffer = new byte[1024];
+        private CloseReason _closeReason;
         private string? _error;
         private bool _disposed;
 
@@ -24,11 +25,23 @@ namespace Comet.Unity
         public BrowserWebSocketTransport(Uri url, int maxFrameSize = FrameReader.MaxServerFrameSize)
         {
             _maxFrameSize = maxFrameSize;
-            _id = CometWs_Open(url.AbsoluteUri, (int)(TransportLimits.ConnectTimeoutSeconds * 1000), TransportLimits.MaxQueuedBytes,
-                TransportLimits.ConnectTimedOut, TransportLimits.FellBehind);
+            _id = CometWs_Open(url.AbsoluteUri, (int)(TransportLimits.ConnectTimeoutSeconds * 1000), TransportLimits.MaxQueuedBytes);
         }
 
         public TransportState State => _disposed ? TransportState.Closed : (TransportState)CometWs_State(_id);
+
+        public CloseReason CloseReason
+        {
+            get
+            {
+                if (_closeReason == CloseReason.None && !_disposed)
+                {
+                    _closeReason = (CloseReason)CometWs_Reason(_id);
+                }
+
+                return _closeReason;
+            }
+        }
 
         public string? Error
         {
@@ -71,6 +84,7 @@ namespace Comet.Unity
 
             if (length > _maxFrameSize)
             {
+                _closeReason = CloseReason.ProtocolError;
                 _error = "Server frame too large.";
                 Close();
                 frame = Array.Empty<byte>();
@@ -98,13 +112,17 @@ namespace Comet.Unity
                 return;
             }
 
+            _closeReason = CloseReason;
             _error = Error;
             _disposed = true;
             CometWs_Free(_id);
         }
 
         [DllImport("__Internal")]
-        private static extern int CometWs_Open(string url, int connectMs, int maxQueued, string timedOut, string fellBehind);
+        private static extern int CometWs_Open(string url, int connectMs, int maxQueued);
+
+        [DllImport("__Internal")]
+        private static extern int CometWs_Reason(int id);
 
         [DllImport("__Internal")]
         private static extern int CometWs_State(int id);

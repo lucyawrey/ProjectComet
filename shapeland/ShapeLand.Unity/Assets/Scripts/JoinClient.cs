@@ -81,10 +81,10 @@ namespace ShapeLand.Client
         /// The connection was lost while joined (the server closed it, stopped answering, or the game fell too far
         /// behind), with the reason. The player is gone from the world; the next <see cref="Join"/> starts over.
         /// </summary>
-        public event Action<string> ConnectionLost;
+        public event Action<CloseReason> ConnectionLost;
 
-        /// <summary>Raised when the content won't load or the connection fails or closes, with the reason.</summary>
-        public event Action<string> Failed;
+        /// <summary>Raised when the content won't load, or joining fails before the player is in; <see cref="Error"/> has the details.</summary>
+        public event Action<JoinFailure> Failed;
 
         /// <summary>Raised for each chat line, the player's own included (the server echoes it, so everyone sees one order).</summary>
         public event Action<ChatMessage> ChatReceived;
@@ -100,13 +100,11 @@ namespace ShapeLand.Client
 
         public JoinRejection? Rejected { get; private set; }
 
-        /// <summary>Why the client stopped: content that wouldn't load, or the connection's error.</summary>
+        /// <summary>The last failure, or <see cref="JoinFailure.None"/>.</summary>
+        public JoinFailure Failure { get; private set; }
+
+        /// <summary>The details of <see cref="Failure"/>, in English, for logs; null when there's none.</summary>
         public string Error { get; private set; }
-
-        /// <summary>Whether the last failure was the server address itself, rather than reaching the server; <see cref="Error"/> says why.</summary>
-        public bool BadAddress { get; private set; }
-
-        public const string JoinUnanswered = "The server didn't answer the request to join.";
 
         public ClientSession Session => _connection.Session;
 
@@ -121,7 +119,7 @@ namespace ShapeLand.Client
                 yield return request.SendWebRequest();
                 if (request.result != UnityWebRequest.Result.Success)
                 {
-                    Fail($"Couldn't load {url}: {request.error}");
+                    Fail(JoinFailure.NoContent, $"Couldn't load {url}: {request.error}");
                     yield break;
                 }
 
@@ -142,14 +140,13 @@ namespace ShapeLand.Client
                 throw new InvalidOperationException("Join after the content has loaded.");
             }
 
+            Failure = JoinFailure.None;
             Error = null;
-            BadAddress = false;
             Rejected = null;
             PlayerName = request.Name;
             if (!TryServerUrl(serverAddress, out var url))
             {
-                BadAddress = true;
-                Fail($"\"{serverAddress}\" isn't a server address. Use a host and port, like localhost:5080.");
+                Fail(JoinFailure.BadAddress, $"\"{serverAddress}\" isn't a server address.");
                 return;
             }
 
@@ -260,13 +257,13 @@ namespace ShapeLand.Client
 
             if (session.Closed && Joined)
             {
-                var reason = session.Error ?? "The connection closed.";
+                var reason = session.CloseReason;
                 Joined = false;
                 Spawn = null;
                 _pending = null;
                 _awaitingAnswer = false;
                 _connection.Disconnect(); // the next Join connects afresh
-                Log($"connection lost: {reason}");
+                Log($"connection lost: {reason} ({session.Error})");
                 ConnectionLost?.Invoke(reason);
                 return;
             }
@@ -278,9 +275,9 @@ namespace ShapeLand.Client
                 var idle = !Joined && _pending == null && !_awaitingAnswer;
                 _pending = null;
                 _awaitingAnswer = false;
-                if (Error == null && !idle)
+                if (Failure == JoinFailure.None && !idle)
                 {
-                    Fail(session.Error ?? "The connection closed.");
+                    Fail(JoinFailure.Unreachable, $"{session.CloseReason}: {session.Error}");
                 }
 
                 return;
@@ -291,7 +288,7 @@ namespace ShapeLand.Client
             {
                 _awaitingAnswer = false;
                 _connection.Disconnect();
-                Fail(JoinUnanswered);
+                Fail(JoinFailure.Unanswered, "The server didn't answer the request to join.");
                 return;
             }
 
@@ -350,13 +347,32 @@ namespace ShapeLand.Client
             }
         }
 
-        private void Fail(string error)
+        private void Fail(JoinFailure failure, string error)
         {
+            Failure = failure;
             Error = error;
             Debug.LogWarning($"{LogPrefix}: {error}");
-            Failed?.Invoke(error);
+            Failed?.Invoke(failure);
         }
 
         private static void Log(string line) => Debug.Log($"{LogPrefix}: {line}");
+    }
+
+    /// <summary>Why the join client stopped before the player was in.</summary>
+    public enum JoinFailure
+    {
+        None,
+
+        /// <summary>The content file wouldn't load.</summary>
+        NoContent,
+
+        /// <summary>The server address given isn't one.</summary>
+        BadAddress,
+
+        /// <summary>The connection failed or closed before the player was in.</summary>
+        Unreachable,
+
+        /// <summary>The server didn't answer the join request in time.</summary>
+        Unanswered,
     }
 }

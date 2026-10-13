@@ -278,7 +278,7 @@ public class ClientSessionTests
 
         _session.Update(10.2);
         Assert.True(_session.Closed);
-        Assert.Equal(ClientSession.LostMessage, _session.Error);
+        Assert.Equal(CloseReason.Lost, _session.CloseReason);
         Assert.True(_transport.CloseRequested);
     }
 
@@ -321,6 +321,7 @@ public class ClientSessionTests
         _session.Update(0);
 
         Assert.True(_transport.CloseRequested);
+        Assert.Equal(CloseReason.ProtocolError, _session.CloseReason);
         Assert.NotNull(_session.Error);
     }
 
@@ -333,6 +334,8 @@ public class ClientSessionTests
         public bool CloseRequested { get; private set; }
 
         public TransportState State => CloseRequested ? TransportState.Closed : TransportState.Open;
+
+        public CloseReason CloseReason => CloseReason.None;
 
         public string? Error => null;
 
