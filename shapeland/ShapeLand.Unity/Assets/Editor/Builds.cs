@@ -1,4 +1,8 @@
+using System;
 using System.IO;
+using System.Linq;
+using System.Text;
+using ShapeLand.Shared.Content;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -37,8 +41,11 @@ namespace ShapeLand.Client.Editor
             // sends it to browsers that ask for br.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = true;
-            // ShapeLand's own page (Assets/WebGLTemplates/ShapeLand) in place of Unity's.
+            // ShapeLand's own page (Assets/WebGLTemplates/ShapeLand) in place of Unity's, with its text from the
+            // content's string table (page.*), so the page needs no download of its own to show it.
             PlayerSettings.WebGL.template = "PROJECT:ShapeLand";
+            CopyContent();
+            PlayerSettings.SetTemplateCustomValue("PAGE_TEXT", PageText());
             // WebGPU where the browser has it, else WebGL 2 (chosen by the page as it loads). WebGPU needs HTTPS or
             // localhost; the net stats panel (F3) shows which one is running.
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, false);
@@ -59,6 +66,38 @@ namespace ShapeLand.Client.Editor
             }
 
             AssetDatabase.Refresh();
+        }
+
+        // The page's strings as a JSON object, by key.
+        private static string PageText()
+        {
+            ShapeLandContent content;
+            using (var stream = File.OpenRead(ContentSync.Source))
+            {
+                content = ShapeLandContent.Load(stream);
+            }
+
+            var pairs = content.Strings.Entries.Where(e => e.Key.StartsWith("page.")).OrderBy(e => e.Key, StringComparer.Ordinal)
+                .Select(e => $"{Json(e.Key)}: {Json(e.Value)}");
+            return "{ " + string.Join(", ", pairs) + " }";
+        }
+
+        private static string Json(string text)
+        {
+            var result = new StringBuilder("\"");
+            foreach (var c in text)
+            {
+                result.Append(c switch
+                {
+                    '"' => "\\\"",
+                    '\\' => "\\\\",
+                    '<' => "\\u003c", // never "</script>" inside the page's script
+                    _ when c < ' ' => $"\\u{(int)c:x4}",
+                    _ => c.ToString(),
+                });
+            }
+
+            return result.Append('"').ToString();
         }
 
         private static void Build(BuildTarget target, BuildTargetGroup group, string output, BuildOptions options = BuildOptions.None)

@@ -186,7 +186,7 @@ namespace ShapeLand.Client.Tests
             }
 
             var groups = string.Join("|", content.Strings.Entries.Keys.Select(k => k.Split('.')[0]).Distinct());
-            var used = new Regex($"(?:\"#?|data-text=\")((?:{groups})\\.[a-z0-9_.]+)\"");
+            var used = new Regex($"(?:\"#?|data-(?:text|label|title)=\")((?:{groups})\\.[a-z0-9_.]+)\"");
             var files = Directory.GetFiles("Assets/Scripts", "*.cs")
                 .Concat(Directory.GetFiles("Assets/UI", "*.uxml"))
                 .Concat(new[] { "Assets/WebGLTemplates/ShapeLand/index.html" });
