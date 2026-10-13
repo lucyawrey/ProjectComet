@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Builds ShapeLand's web client and runs it from the game server, for testing in a browser without opening
-# the Unity editor. Builds the content, makes the Unity web build in batch mode (skipped when nothing it uses
-# changed since the last one), starts the game server serving the build on the same port, optionally starts
-# bots, and opens the page. Ctrl+C stops everything.
+# Runs ShapeLand locally for development: by default the web client served from the game server, for testing
+# in a browser without opening the Unity editor; with --no-web, just the server, for the editor's play mode or
+# a desktop build. Builds the content, makes the Unity web build in batch mode (skipped when nothing it uses
+# changed since the last one), starts the game server, optionally starts bots, and opens the page. Ctrl+C
+# stops everything.
 #
-#   tools/shapeland-web.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
+#   tools/shapeland-dev.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
 #                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat]
 #
 #   --rebuild      make the Unity web build even if it looks up to date
@@ -58,7 +59,7 @@ while [ $# -gt 0 ]; do
     --net) net="$2"; shift 2 ;;
     --bots-net) bots_net="$2"; shift 2 ;;
     --bots-chat) bots_chat=(--chat); shift ;;
-    -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done

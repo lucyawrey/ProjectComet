@@ -21,7 +21,7 @@
 #   --far N        also N far players: honest bots named "Far", in their own container with --far-net on top,
 #                  to see how they affect the others (the summary is the others'; theirs follows)
 #   --far-net P    the far players' extra profile (default bad)
-#   --port P       the server's port on this machine (default 5091, so a tools/shapeland-web.sh run can go on)
+#   --port P       the server's port on this machine (default 5091, so a tools/shapeland-dev.sh run can go on)
 #
 # The bots run on this machine and reach the server through its published port, as a browser does, unless
 # --bots-net is given. Results go to artifacts/netruns/<time>-<profile>.json, with the server's log beside it.
@@ -88,7 +88,7 @@ quietly dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- bui
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots"
 
-# Its own Compose project, so a tools/shapeland-web.sh run alongside keeps its containers. No web build.
+# Its own Compose project, so a tools/shapeland-dev.sh run alongside keeps its containers. No web build.
 compose=(docker compose -p shapeland-netrun -f "$repo/shapeland/docker/compose.yaml")
 export SHAPELAND_PUBLISH="127.0.0.1:$port" SHAPELAND_WEBROOT="" SHAPELAND_WEB_DIR="$repo/shapeland/docker"
 cleanup() {
