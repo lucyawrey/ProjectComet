@@ -6,10 +6,10 @@ Notes for coding agents (and anyone else) working in this repo. Requirements, la
 
 ## Ground rules
 
-- **Human-made creative content only.** Agents help with code. No AI-generated models, textures, readable in-game text, music or sound; plain interface labels and messages are the exception.
+- **Human-made creative content only.** Agents help with code. No AI-generated models, textures, readable in-game text, music or sound; plain interface labels and messages are the exception. An agent may generate a starting point when asked (such as meshes exported for Blender), but never commits it: it's handed to a person, who edits it and checks it in.
 - **Comet keeps thin mechanisms; game policy is game code.** Anything specific to one game belongs in that game, not in `comet/`.
 - **The stack:** a Unity client with web export as a main target, plain .NET servers, and WebSocket for every client. Servers and shared libraries are C#.
-- **`docs/` is written by people.** Don't write or rewrite its pages unless asked, and never edit `docs/+ Notes/`.
+- **`docs/` is written by people.** Don't write or rewrite its pages unless asked.
 
 ## Building and testing
 
