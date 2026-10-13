@@ -119,6 +119,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         }
     }
 
+    // A joined player's join request changes their look (name, shape, colours) where they stand.
     private void Join(Player player, JoinRequest request, uint tick)
     {
         if (!player.JoinLimiter.TryTake(tick))
@@ -128,19 +129,13 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        if (player.Joined)
-        {
-            Reject(JoinRejection.AlreadyJoined);
-            return;
-        }
-
         if (!ShapeLandRules.TryNormaliseName(request.Name, out var name))
         {
             Reject(JoinRejection.InvalidName);
             return;
         }
 
-        if (_players.Values.Any(p => p.Joined && string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
+        if (_players.Values.Any(p => p.Joined && p != player && string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
         {
             Reject(JoinRejection.NameTaken);
             return;
@@ -158,11 +153,19 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
+        var changing = player.Joined;
+        var oldName = player.Name;
         player.Joined = true;
         player.Name = name;
         player.Shape = shape;
         player.Colour = request.Colour;
         player.EyeColour = request.EyeColour;
+        if (changing)
+        {
+            ChangeLook(player, oldName, tick);
+            return;
+        }
+
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
         player.Stamp.StampServer(tick);
@@ -185,6 +188,25 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         void Reject(JoinRejection reason) =>
             player.Connection.SendEvent(ShapeLandMessageIds.JoinRejected, new JoinRejected { Reason = reason });
+    }
+
+    // The player stays where they are: a snap-back to there makes the reports still in flight, moved with the old
+    // shape's speed and jump, stale. Then everyone, the player too, gets a fresh spawn with the new look.
+    private void ChangeLook(Player player, string oldName, uint tick)
+    {
+        player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick));
+        var spawn = player.Spawn();
+        foreach (var listener in _players.Values)
+        {
+            if (listener.Joined)
+            {
+                // A state still queued would follow the spawn in the next frame (events go first).
+                listener.Connection.EntityStates.Remove(player.EntityId);
+                listener.Connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
+            }
+        }
+
+        logger.LogInformation("{OldName} is now {Name}, a {Shape}", oldName, player.Name, player.Shape.DisplayName);
     }
 
     private void Move(Player player, PositionReport report, uint clientTick, uint tick)

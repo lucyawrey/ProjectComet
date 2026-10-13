@@ -78,7 +78,7 @@ namespace ShapeLand.Client
         /// <summary>Raised once the content has loaded, before connecting.</summary>
         public event Action<ShapeLandContent> ContentLoaded;
 
-        /// <summary>Raised when the server spawns this player (on joining, not on respawning).</summary>
+        /// <summary>Raised when the server spawns this player: on joining, and again with a changed look (not on respawning).</summary>
         public event Action<PlayerSpawn> OwnSpawned;
 
         /// <summary>Raised when another player comes into view, after the session starts tracking them.</summary>
@@ -87,7 +87,7 @@ namespace ShapeLand.Client
         /// <summary>Raised when another player leaves view.</summary>
         public event Action<uint> OtherLeft;
 
-        /// <summary>Raised when the server refuses the join; the player may try again.</summary>
+        /// <summary>Raised when the server refuses the join or a change of look; the player may try again.</summary>
         public event Action<JoinRejection> JoinRefused;
 
         /// <summary>
@@ -186,6 +186,22 @@ namespace ShapeLand.Client
                 Connect(url);
             }
 
+            _pending = request;
+        }
+
+        /// <summary>
+        /// Once joined, asks to change the name, shape or colours where the player stands. The answer is a new
+        /// <see cref="OwnSpawned"/>, or <see cref="JoinRefused"/>.
+        /// </summary>
+        public void Change(JoinRequest request)
+        {
+            if (!Joined)
+            {
+                throw new InvalidOperationException("Change the look once joined.");
+            }
+
+            Rejected = null;
+            playerName = request.Name;
             _pending = request;
         }
 

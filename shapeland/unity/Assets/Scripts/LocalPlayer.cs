@@ -71,6 +71,9 @@ namespace ShapeLand.Client
             Draw(1);
         }
 
+        /// <summary>Moves on as <paramref name="shape"/> from now on, with its speed and jump.</summary>
+        public void ChangeShape(Shape shape) => _shape = shape;
+
         /// <summary>
         /// Turns stick or key input (x right, y forward) into a direction on the ground (X, Z) relative to a
         /// camera heading <paramref name="yawDegrees"/> clockwise from +Z.

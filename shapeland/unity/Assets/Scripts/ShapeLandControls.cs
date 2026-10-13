@@ -29,6 +29,8 @@ namespace ShapeLand.Client
             OpenChat = new InputAction("Open chat", InputActionType.Button, "<Keyboard>/enter");
             OpenChat.AddBinding("<Keyboard>/numpadEnter");
             NetStats = new InputAction("Network stats", InputActionType.Button, "<Keyboard>/f3");
+            ChangeLook = new InputAction("Change look", InputActionType.Button, "<Keyboard>/escape");
+            ChangeLook.AddBinding("<Gamepad>/start");
 
             foreach (var action in All)
             {
@@ -59,7 +61,10 @@ namespace ShapeLand.Client
         /// <summary>Shows or hides the network stats (F3).</summary>
         public InputAction NetStats { get; }
 
-        private InputAction[] All => new[] { Move, Jump, OrbitHeld, MouseLook, StickLook, SpeedCheat, OpenChat, NetStats };
+        /// <summary>Opens or closes the card for changing name, shape and colours (Esc).</summary>
+        public InputAction ChangeLook { get; }
+
+        private InputAction[] All => new[] { Move, Jump, OrbitHeld, MouseLook, StickLook, SpeedCheat, OpenChat, NetStats, ChangeLook };
 
         public void Dispose()
         {

@@ -48,6 +48,7 @@ namespace ShapeLand.Client
         private VisualElement _inputRow;
         private TextField _input;
         private Label _hint;
+        private JoinScreen _card;
         private float _lastLine = float.NegativeInfinity;
         private float _toggledAt = float.NegativeInfinity;
         private float _chatOpacity;
@@ -84,6 +85,7 @@ namespace ShapeLand.Client
             _input = tree.Q<TextField>("chat-input");
             _hint = tree.Q<Label>("chat-hint");
             _input.RegisterCallback<KeyDownEvent>(OnInputKey, TrickleDown.TrickleDown);
+            tree.Q<Button>("look-button").clicked += OpenLook;
 
             join.OwnSpawned += OnOwnSpawned;
             join.OtherLeft += OnLeft;
@@ -131,8 +133,21 @@ namespace ShapeLand.Client
 
             // Chat opens when Enter is released: focusing the input while Enter is still down lets the rest of
             // that key press reach it, which in web builds leaves it ignoring typed characters.
+            // Esc closes the chat input first (OnInputKey); only a press clear of that opens or closes the card.
+            if (Card != null && view.Controls.ChangeLook.WasPressedThisFrame())
+            {
+                if (_card.Changing)
+                {
+                    _card.Cancel();
+                }
+                else if (!ChatOpen && Time.unscaledTime - _toggledAt > KeyDebounce)
+                {
+                    OpenLook();
+                }
+            }
+
             var openChat = view.Controls.OpenChat;
-            if (!ChatOpen && openChat.WasPressedThisFrame() && Time.unscaledTime - _toggledAt > KeyDebounce)
+            if (!ChatOpen && !CardShowing && openChat.WasPressedThisFrame() && Time.unscaledTime - _toggledAt > KeyDebounce)
             {
                 _openOnRelease = true;
             }
@@ -151,6 +166,8 @@ namespace ShapeLand.Client
             }
 
             _chat.style.opacity = _chatOpacity;
+            UpdateMoving();
+
             _hint.style.opacity = (1 - _chatOpacity) * HintOpacity;
         }
 
@@ -159,6 +176,35 @@ namespace ShapeLand.Client
             if (!_root.ClassListContains("hidden"))
             {
                 PlaceTags();
+            }
+        }
+
+        /// <summary>Brings up the card to change name, shape and colours, closing the chat input first.</summary>
+        public void OpenLook()
+        {
+            if (ChatOpen)
+            {
+                CloseChat();
+            }
+
+            if (Card != null)
+            {
+                _card.OpenChange();
+                UpdateMoving();
+            }
+        }
+
+        // Found when first needed: in tests the card is added after the HUD, and some have none.
+        private JoinScreen Card => _card != null ? _card : _card = view.GetComponent<JoinScreen>();
+
+        private bool CardShowing => Card != null && _card.Showing;
+
+        // Typing, or choosing a look, stops the shape.
+        private void UpdateMoving()
+        {
+            if (view.Player != null)
+            {
+                view.Player.InputEnabled = !ChatOpen && !CardShowing;
             }
         }
 
@@ -171,7 +217,7 @@ namespace ShapeLand.Client
             _inputRow.RemoveFromClassList("hidden");
             _input.value = "";
             _input.Focus();
-            SetMoving(false);
+            UpdateMoving();
         }
 
         /// <summary>Closes the chat input without sending.</summary>
@@ -181,7 +227,7 @@ namespace ShapeLand.Client
             _toggledAt = Time.unscaledTime;
             _input.Blur();
             _inputRow.AddToClassList("hidden");
-            SetMoving(true);
+            UpdateMoving();
         }
 
         /// <summary>Sends what's typed (if anything) and closes the input.</summary>
@@ -200,14 +246,6 @@ namespace ShapeLand.Client
         {
             get => _input.value;
             set => _input.value = value;
-        }
-
-        private void SetMoving(bool moving)
-        {
-            if (view.Player != null)
-            {
-                view.Player.InputEnabled = moving;
-            }
         }
 
         private void OnInputKey(KeyDownEvent e)
@@ -297,6 +335,10 @@ namespace ShapeLand.Client
                 tag = new Tag(_tagLayer, own ? null : spawn.Name);
                 _tags[entityId] = tag;
             }
+            else
+            {
+                tag.Rename(spawn.Name); // they may have changed it
+            }
 
             return tag;
         }
@@ -357,6 +399,14 @@ namespace ShapeLand.Client
                 _bubble.Add(tail);
                 _bubble.style.display = DisplayStyle.None;
                 layer.Add(_bubble);
+            }
+
+            public void Rename(string name)
+            {
+                if (_name != null && _name.text != name)
+                {
+                    _name.text = name;
+                }
             }
 
             /// <summary>Shows <paramref name="text"/> in the bubble, longer for longer lines.</summary>

@@ -105,6 +105,89 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AJoinedPlayerCanChangeTheirLookWhereTheyStand()
+    {
+        using var ada = new RawClient();
+        using var bea = new RawClient();
+        await ada.ConnectAsync(_url);
+        await bea.ConnectAsync(_url);
+        var shapes = _content.Shapes.All;
+        JoinRequest Look(string name, int index) =>
+            new() { Name = name, Shape = shapes[index].Number, Colour = ShapeLandRules.BodyColours[index], EyeColour = ShapeLandRules.EyeColours[index] };
+
+        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, Look("Ada", 0));
+        var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+        await bea.SendAsync(ShapeLandMessageIds.JoinRequest, Look("Bea", 0));
+        await bea.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+
+        // Someone else's name is still taken; the player's own, in another case, isn't.
+        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, Look("bea", 1));
+        Assert.Equal(JoinRejection.NameTaken, (await ada.NextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected)).Reason);
+
+        var change = Look("ADA", 1);
+        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, change);
+        Assert.Equal(CorrectionReason.SnapBack, (await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection)).Reason);
+        foreach (var client in new[] { ada, bea })
+        {
+            PlayerSpawn spawn;
+            do
+            {
+                spawn = await client.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+            }
+            while (spawn.Name != change.Name); // Bea first sees Ada as she joined, and Ada sees Bea arrive
+
+            Assert.Equal(joined.EntityId, spawn.EntityId);
+            Assert.Equal((change.Shape, change.Colour, change.EyeColour), (spawn.Shape, spawn.Colour, spawn.EyeColour));
+            Assert.Equal((joined.X, joined.Y, joined.Z), (spawn.X, spawn.Y, spawn.Z));
+        }
+    }
+
+    /// <summary>A bare WebSocket client, for tests that send and read single messages.</summary>
+    private sealed class RawClient : IDisposable
+    {
+        private readonly ClientWebSocket _socket = new();
+        private readonly Queue<(ushort Id, ReadOnlyMemory<byte> Payload)> _received = new();
+
+        public Task ConnectAsync(Uri url) => _socket.ConnectAsync(url, TestContext.Current.CancellationToken);
+
+        public async Task SendAsync<T>(ushort messageId, T message)
+        {
+            var frame = new MessageWriter(options: ShapeLandProtocol.Options);
+            frame.BeginFrame(0);
+            frame.Write(messageId, message);
+            await _socket.SendAsync(frame.WrittenMemory, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
+        }
+
+        /// <summary>Skips messages until one with <paramref name="messageId"/> arrives.</summary>
+        public async Task<T> NextAsync<T>(ushort messageId)
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            while (true)
+            {
+                while (_received.TryDequeue(out var message))
+                {
+                    if (message.Id == messageId)
+                    {
+                        return FrameReader.Decode<T>(message.Payload, ShapeLandProtocol.Options);
+                    }
+                }
+
+                var buffer = new byte[FrameReader.MaxServerFrameSize];
+                var result = await _socket.ReceiveAsync(buffer, timeout.Token);
+                Assert.True(result.EndOfMessage);
+                var reader = FrameReader.Create(buffer.AsMemory(0, result.Count));
+                while (reader.TryReadNext(out var id, out var payload))
+                {
+                    _received.Enqueue((id, payload));
+                }
+            }
+        }
+
+        public void Dispose() => _socket.Dispose();
+    }
+
+    [Fact]
     public async Task StoppingTheServerClosesConnectionsPromptly()
     {
         // Rather than leaving clients frozen until the host's shutdown timeout (the code review's S5).
