@@ -32,6 +32,8 @@ namespace ShapeLand.Client
         private VisualElement _stats;
         private Label _error;
         private Button _joinButton;
+        private Button _cancelButton;
+        private VisualElement _serverField;
         private ShapePreview _preview;
         private float? _lostAt;
 
@@ -51,6 +53,9 @@ namespace ShapeLand.Client
 
         /// <summary>True while the card is up.</summary>
         public bool Showing => _root != null && !_root.ClassListContains("hidden");
+
+        /// <summary>True while the card is up to change the look of a player already in the game.</summary>
+        public bool Changing { get; private set; }
 
         /// <summary>The message on the card, or null when there is none.</summary>
         public string Error => _error != null && _error.ClassListContains("shown") ? _error.text : null;
@@ -92,10 +97,62 @@ namespace ShapeLand.Client
             _error = tree.Q<Label>("error");
             _joinButton = tree.Q<Button>("join-button");
             _joinButton.clicked += Submit;
+            _cancelButton = tree.Q<Button>("cancel-button");
+            _cancelButton.clicked += Cancel;
+            _serverField = tree.Q("server-field");
             _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
+            SetChanging(false);
+        }
+
+        // Changing the look: no server to pick, and the card can be closed without changing anything.
+        private void SetChanging(bool changing)
+        {
+            Changing = changing;
 #if UNITY_WEBGL && !UNITY_EDITOR
-            tree.Q("server-field").AddToClassList("hidden");
+            _serverField.AddToClassList("hidden");
+#else
+            _serverField.EnableInClassList("hidden", changing);
 #endif
+            _cancelButton.EnableInClassList("hidden", !changing);
+            _joinButton.SetEnabled(true);
+            _joinButton.text = changing ? "Apply" : "Join";
+        }
+
+        /// <summary>Brings the card up over the game, filled in with the player's current look, to change it.</summary>
+        public void OpenChange()
+        {
+            if (Showing || !_join.Joined || _join.Spawn is not PlayerSpawn spawn)
+            {
+                return;
+            }
+
+            SetChanging(true);
+            _name.value = spawn.Name;
+            _shape = _content.Shapes[spawn.Shape];
+            _colour = spawn.Colour;
+            _eyeColour = spawn.EyeColour;
+            ShowError(null);
+            _preview ??= new ShapePreview(_view, _root.Q("preview"));
+            Refresh();
+            _root.RemoveFromClassList("hidden");
+            _name.Focus();
+        }
+
+        /// <summary>Closes the card without changing the look.</summary>
+        public void Cancel()
+        {
+            if (Changing)
+            {
+                Close();
+            }
+        }
+
+        private void Close()
+        {
+            _root.AddToClassList("hidden");
+            _preview?.Dispose();
+            _preview = null;
+            SetChanging(false);
         }
 
         private void OnContentLoaded(ShapeLandContent content)
@@ -210,7 +267,7 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Checks the name and asks to join with the choices on the card.</summary>
+        /// <summary>Checks the name and asks to join, or to change the look, with the choices on the card.</summary>
         public void Submit()
         {
             if (!_joinButton.enabledSelf || _content == null)
@@ -238,9 +295,25 @@ namespace ShapeLand.Client
             }
 
             ShowError(null);
+            var request = new JoinRequest { Name = name, Shape = _shape.Number, Colour = _colour, EyeColour = _eyeColour };
+            if (Changing)
+            {
+                var current = _join.Spawn.Value;
+                if (name == current.Name && request.Shape == current.Shape && request.Colour == current.Colour && request.EyeColour == current.EyeColour)
+                {
+                    Close();
+                    return;
+                }
+
+                _joinButton.SetEnabled(false);
+                _joinButton.text = "Applying…";
+                _join.Change(request);
+                return;
+            }
+
             _joinButton.SetEnabled(false);
             _joinButton.text = "Joining…";
-            _join.Join(server, new JoinRequest { Name = name, Shape = _shape.Number, Colour = _colour, EyeColour = _eyeColour });
+            _join.Join(server, request);
         }
 
         private void OnRefused(JoinRejection reason)
@@ -259,6 +332,7 @@ namespace ShapeLand.Client
         private void OnConnectionLost(string reason)
         {
             _lostAt = Time.unscaledTime;
+            SetChanging(false);
             _preview ??= new ShapePreview(_view, _root.Q("preview"));
             Refresh();
             _root.RemoveFromClassList("hidden");
@@ -291,7 +365,7 @@ namespace ShapeLand.Client
         {
             ShowError(message);
             _joinButton.SetEnabled(true);
-            _joinButton.text = "Join";
+            _joinButton.text = Changing ? "Apply" : "Join";
         }
 
         private void ShowError(string message)
@@ -300,12 +374,7 @@ namespace ShapeLand.Client
             _error.EnableInClassList("shown", message != null);
         }
 
-        private void OnOwnSpawned(PlayerSpawn spawn)
-        {
-            _root.AddToClassList("hidden");
-            _preview?.Dispose();
-            _preview = null;
-        }
+        private void OnOwnSpawned(PlayerSpawn spawn) => Close();
 
         private void Update() => _preview?.Turn(Time.unscaledDeltaTime);
 

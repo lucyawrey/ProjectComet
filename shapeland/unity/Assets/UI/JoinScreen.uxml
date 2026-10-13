@@ -39,6 +39,7 @@
                     <ui:TextField name="server" class="input" />
                 </ui:VisualElement>
                 <ui:VisualElement class="spacer" />
+                <ui:Button name="cancel-button" text="Cancel" class="cancel-button hidden" />
                 <ui:Button name="join-button" text="Join" class="join-button" />
             </ui:VisualElement>
         </ui:VisualElement>

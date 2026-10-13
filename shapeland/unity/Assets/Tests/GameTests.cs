@@ -400,6 +400,44 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
+        public IEnumerator APlayerCanChangeTheirLookWhereTheyStand()
+        {
+            yield return StartGame(joinScreen: true);
+            _screen.Root.Q<TextField>("name").value = "Pebble";
+            Click(ShapeButton(MeshKind.Cube));
+            Click(_screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => _view.Player != null, 15);
+            var player = _view.Player;
+            var id = _join.Session.EntityId;
+
+            _hud.OpenLook();
+            Assert.That(_screen.Changing, Is.True);
+            Assert.That(_screen.Root.Q<TextField>("name").value, Is.EqualTo("Pebble"), "The card isn't filled in with the current look.");
+            Assert.That(player.InputEnabled, Is.False, "The shape can still move while choosing a look.");
+            Click(_screen.Root.Q<Button>("cancel-button"));
+            yield return null;
+            Assert.That(_screen.Showing, Is.False);
+            Assert.That(player.InputEnabled, Is.True);
+
+            _hud.OpenLook();
+            _screen.Root.Q<TextField>("name").value = "Pebbles";
+            Click(ShapeButton(MeshKind.Diamond));
+            Click(Swatch("colours", ShapeLandRules.BodyColours[2]));
+            var at = player.transform.position;
+            Click(_screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => !_screen.Showing || _screen.Error != null, 10);
+
+            Assert.That(_screen.Error, Is.Null);
+            Assert.That(_view.Player, Is.SameAs(player), "The player's shape was rebuilt rather than changed where it stands.");
+            var spawn = _view.Spawns[id];
+            Assert.That(spawn.Name, Is.EqualTo("Pebbles"));
+            Assert.That(_join.Content.Shapes[spawn.Shape].Mesh, Is.EqualTo(MeshKind.Diamond));
+            Assert.That(spawn.Colour, Is.EqualTo(ShapeLandRules.BodyColours[2]));
+            Assert.That(Vector3.Distance(player.transform.position, at), Is.LessThan(0.5f), "The player moved.");
+            Assert.That(player.name, Is.EqualTo("Pebbles (you)"));
+        }
+
+        [UnityTest]
         public IEnumerator JoinScreenReportsAnUnreachableServer()
         {
             yield return StartGame(joinScreen: true);
