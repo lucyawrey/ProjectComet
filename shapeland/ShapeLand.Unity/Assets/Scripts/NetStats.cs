@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
@@ -9,7 +10,8 @@ namespace ShapeLand.Client
     /// round trip (latest, and the lowest of the last ten, which the clock trusts), the interpolation delay and
     /// its target, how many of the others' moves ran out of states (dead-reckoned until the late state came, then
     /// blended back to it) and how long each hold was, and the player's own snap-backs (red only for one not caused
-    /// by the speed cheat) and respawns. Each row has a dot that turns amber or red past a line.
+    /// by the speed cheat) and respawns; then the frame time (average and worst over the last second) and the
+    /// graphics API and render size, for comparing builds and browsers. Each row has a dot that turns amber or red past a line.
     /// F3 shows or hides it; the choice is remembered.
     /// </summary>
     [RequireComponent(typeof(Hud))]
@@ -23,6 +25,10 @@ namespace ShapeLand.Client
         private const double PingWarnMs = 250;
         private const double HoldsWarnPercent = 2;
         private const double HoldsBadPercent = 4;
+
+        // Frames: amber when the average misses 60 fps, red below 30.
+        private const double FrameWarnMs = 17.5;
+        private const double FrameBadMs = 33.4;
 
         private const string ShownKey = "netStatsShown";
 
@@ -40,7 +46,14 @@ namespace ShapeLand.Client
         private Label _held;
         private Label _snaps;
         private Label _respawns;
+        private VisualElement _frameDot;
+        private Label _frame;
+        private Label _frameWorst;
+        private Label _graphics;
         private float _nextSnapshot;
+        private float _frameSeconds;
+        private float _frameWorstSeconds;
+        private int _frames;
 
         /// <summary>Whether showing or hiding is remembered (PlayerPrefs); off in tests.</summary>
         public bool Remember { get; set; } = true;
@@ -67,6 +80,10 @@ namespace ShapeLand.Client
             _held = tree.Q<Label>("held");
             _snaps = tree.Q<Label>("snaps");
             _respawns = tree.Q<Label>("respawns");
+            _frameDot = tree.Q("frame-dot");
+            _frame = tree.Q<Label>("frame");
+            _frameWorst = tree.Q<Label>("frame-worst");
+            _graphics = tree.Q<Label>("graphics");
             Shown = Remember && PlayerPrefs.GetInt(ShownKey, 0) == 1;
             _panel.EnableInClassList("hidden", !Shown);
         }
@@ -91,6 +108,7 @@ namespace ShapeLand.Client
                 Toggle();
             }
 
+            CountFrame();
             var session = _hud.Join.Session;
             if (session == null || !session.Welcomed || view.Player == null)
             {
@@ -138,6 +156,38 @@ namespace ShapeLand.Client
             // Snap-backs from the speed cheat are expected; an honest one means a margin is too tight.
             SetState(_snapsDot, player.SnapBacks > player.CheatSnapBacks ? "bad" : null);
         }
+
+        // Averages and the worst frame over each second, shown when the second ends.
+        private void CountFrame()
+        {
+            var seconds = Time.unscaledDeltaTime;
+            _frameSeconds += seconds;
+            _frameWorstSeconds = Mathf.Max(_frameWorstSeconds, seconds);
+            _frames++;
+            if (_frameSeconds < 1)
+            {
+                return;
+            }
+
+            var averageMs = _frameSeconds / _frames * 1000;
+            if (Shown)
+            {
+                _frame.text = $"{averageMs:0.0}";
+                _frameWorst.text = $"{_frameWorstSeconds * 1000:0}";
+                _graphics.text = $"{GraphicsName(SystemInfo.graphicsDeviceType)}, {Screen.width}×{Screen.height}";
+                SetState(_frameDot, averageMs > FrameBadMs ? "bad" : averageMs > FrameWarnMs ? "warn" : null);
+            }
+
+            _frameSeconds = 0;
+            _frameWorstSeconds = 0;
+            _frames = 0;
+        }
+
+        private static string GraphicsName(GraphicsDeviceType type) => type switch
+        {
+            GraphicsDeviceType.OpenGLES3 when Application.platform == RuntimePlatform.WebGLPlayer => "WebGL 2",
+            _ => type.ToString(),
+        };
 
         private static void SetState(VisualElement dot, string state)
         {
