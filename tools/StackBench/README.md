@@ -1,6 +1,6 @@
 # Stack benchmark
 
-Stage 1 of the load test: Comet's message layer on bare Kestrel WebSockets, with no game logic. It tells us early whether the stack (.NET, Kestrel, WebSocket, MessagePack) can carry the planned traffic. The design and thresholds are in `.claude/design/prototype.md` (Stack benchmark).
+Stage 1 of the load test: Comet's message layer on bare Kestrel WebSockets, with no game logic. It tells us early whether the stack (.NET, Kestrel, WebSocket, MessagePack) can carry the planned traffic.
 
 | Project | What it does |
 | --- | --- |
