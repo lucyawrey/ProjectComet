@@ -40,4 +40,21 @@ public class CollisionWorldTests
         Assert.False(_world.IsBlocked(new Vector3(5.5f, 1, 4), 0.4f, 1));
         Assert.False(_world.IsBlocked(new Vector3(4, 3, 4), 0.4f, 1)); // standing on top
     }
+
+    [Fact]
+    public void RaysStopWhereTheyFirstTouchABox()
+    {
+        // The box spans x 3 to 5 at height 2; a ray along +X from x 0 meets it at 3, or at 2.5 widened by 0.5.
+        Assert.True(_world.Raycast(new Vector3(0, 2, 4), Vector3.UnitX, 10, 0, out var distance));
+        Assert.Equal(3f, distance, 4);
+        Assert.True(_world.Raycast(new Vector3(0, 2, 4), Vector3.UnitX * 7, 10, 0.5f, out distance));
+        Assert.Equal(2.5f, distance, 4);
+
+        Assert.False(_world.Raycast(new Vector3(0, 2, 4), Vector3.UnitX, 2, 0, out distance)); // too short
+        Assert.Equal(2f, distance);
+        Assert.False(_world.Raycast(new Vector3(0, 2, 4), -Vector3.UnitX, 10, 0, out _)); // pointing away
+        Assert.False(_world.Raycast(new Vector3(0, 4, 4), Vector3.UnitX, 10, 0, out _)); // passing over
+        Assert.True(_world.Raycast(new Vector3(4, 2, 4), Vector3.UnitX, 10, 0, out distance)); // starting inside
+        Assert.Equal(0f, distance);
+    }
 }

@@ -1,6 +1,6 @@
 id = "shape.pyramid"
 display_name = "Pyramid"
-mesh = "pyramid" # see shapeland/unity/Assets/Scripts/WorldMeshes.cs
+mesh = "pyramid" # see shapeland/ShapeLand.Unity/Assets/Scripts/WorldMeshes.cs
 max_speed = 6.0
 jump_velocity = 9.0
 scale = 1.0

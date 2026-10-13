@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -67,6 +68,53 @@ namespace Comet.Simulation
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// How far along a ray a sphere of <paramref name="radius"/> first touches a box, up to
+        /// <paramref name="maxDistance"/> (boxes are widened by the radius, so corners count as a little larger).
+        /// A ray starting inside a box hits at 0. Terrain is ignored. For keeping a camera out of blocks.
+        /// </summary>
+        public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, float radius, out float distance)
+        {
+            direction = Vector3.Normalize(direction);
+            distance = maxDistance;
+            var hit = false;
+            foreach (var box in _boxes)
+            {
+                if (EntersBox(origin, direction, box.Min - new Vector3(radius), box.Max + new Vector3(radius), out var enter) && enter < distance)
+                {
+                    distance = enter;
+                    hit = true;
+                }
+            }
+
+            return hit;
+        }
+
+        // The slab test: where the ray is inside all three axis ranges at once, if it ever is ahead of the origin.
+        private static bool EntersBox(Vector3 origin, Vector3 direction, Vector3 min, Vector3 max, out float enter)
+        {
+            enter = 0;
+            var exit = float.MaxValue;
+            return Slab(origin.X, direction.X, min.X, max.X, ref enter, ref exit)
+                && Slab(origin.Y, direction.Y, min.Y, max.Y, ref enter, ref exit)
+                && Slab(origin.Z, direction.Z, min.Z, max.Z, ref enter, ref exit);
+        }
+
+        // Narrows [enter, exit] to where the ray is between min and max on one axis; false once it's empty.
+        private static bool Slab(float origin, float direction, float min, float max, ref float enter, ref float exit)
+        {
+            if (MathF.Abs(direction) < 1e-6f)
+            {
+                return origin >= min && origin <= max;
+            }
+
+            var t1 = (min - origin) / direction;
+            var t2 = (max - origin) / direction;
+            enter = MathF.Max(enter, MathF.Min(t1, t2));
+            exit = MathF.Min(exit, MathF.Max(t1, t2));
+            return enter <= exit;
         }
 
         private static bool OverlapsFootprint(Box box, Vector3 feet, float radius) =>
