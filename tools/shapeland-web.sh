@@ -4,11 +4,14 @@
 # changed since the last one), starts the game server serving the build on the same port, optionally starts
 # bots, and opens the page. Ctrl+C stops everything.
 #
-#   tools/shapeland-web.sh [--rebuild] [--no-build] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
+#   tools/shapeland-web.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
 #                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat]
 #
 #   --rebuild      make the Unity web build even if it looks up to date
 #   --no-build     use the last web build as it is (content still rebuilds)
+#   --no-web       no web build or page: just the server, for the Unity editor's play mode, with the content
+#                  copied into the Unity project too. Rerun it after changing content or server code, then
+#                  restart play mode, so client and server use the same numbers
 #   --bots N       start N honest bots (default 0)
 #   --cheaters N   start N speed-cheating bots (default 0)
 #   --bots-chat    let the bots chat now and then (they stay quiet otherwise)
@@ -33,6 +36,7 @@ content="$repo/artifacts/content/shapeland/content.bin"
 
 rebuild=0
 build=1
+serve_web=1
 bots=0
 cheaters=0
 port=5080
@@ -45,6 +49,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --rebuild) rebuild=1; shift ;;
     --no-build) build=0; shift ;;
+    --no-web) serve_web=0; open_page=0; shift ;;
     --bots) bots="$2"; shift 2 ;;
     --cheaters) cheaters="$2"; shift 2 ;;
     --port) port="$2"; shift 2 ;;
@@ -53,7 +58,7 @@ while [ $# -gt 0 ]; do
     --net) net="$2"; shift 2 ;;
     --bots-net) bots_net="$2"; shift 2 ;;
     --bots-chat) bots_chat=(--chat); shift ;;
-    -h|--help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -81,7 +86,12 @@ stale() {
     -type f -newer "$web/index.html" ! -name '*.meta' ! -path '*/StreamingAssets/*' -print 2>/dev/null | head -n 1)" ]
 }
 
-if [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
+if [ "$serve_web" = 0 ]; then
+  # Play mode reads the content from the project's StreamingAssets.
+  mkdir -p "$project/Assets/StreamingAssets"
+  cmp -s "$content" "$project/Assets/StreamingAssets/content.bin" || cp "$content" "$project/Assets/StreamingAssets/content.bin"
+  web=""
+elif [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
   echo "== Unity web build (a few minutes)"
   if [ -e "$project/Temp/UnityLockfile" ] && pgrep -fi "projectpath.*shapeland/ShapeLand.Unity" > /dev/null 2>&1; then
     echo "The Unity editor has the project open; close it first (or use --no-build)." >&2
@@ -99,8 +109,10 @@ else
 fi
 
 # Content changes need no Unity build: the page loads it from StreamingAssets.
-mkdir -p "$web/StreamingAssets"
-cmp -s "$content" "$web/StreamingAssets/content.bin" || cp "$content" "$web/StreamingAssets/content.bin"
+if [ -n "$web" ]; then
+  mkdir -p "$web/StreamingAssets"
+  cmp -s "$content" "$web/StreamingAssets/content.bin" || cp "$content" "$web/StreamingAssets/content.bin"
+fi
 
 echo "== Game server"
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
@@ -151,7 +163,7 @@ trap 'cleanup; exit 143' TERM
 
 if [ -n "$net" ]; then
   # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
-  export SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}"
+  export SHAPELAND_WEBROOT="${web:+/app/web}" SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}"
   "${compose[@]}" up --no-log-prefix server &
   pids+=($!)
 else
@@ -164,11 +176,11 @@ fi
 
 for _ in $(seq 1 60); do
   kill -0 "${pids[0]}" 2> /dev/null || { echo "The game server stopped." >&2; exit 1; }
-  curl -sf -o /dev/null "$url" && break
+  curl -sf -o /dev/null "${url}health" && break
   sleep 0.5
 done
 # Answering, and still running (so it's this server, not one that started meanwhile).
-curl -sf -o /dev/null "$url" && kill -0 "${pids[0]}" 2> /dev/null ||
+curl -sf -o /dev/null "${url}health" && kill -0 "${pids[0]}" 2> /dev/null ||
   { echo "The game server didn't start at $url." >&2; exit 1; }
 
 if [ $((bots + cheaters)) -gt 0 ] && [ -n "$net" ]; then
@@ -179,7 +191,11 @@ elif [ $((bots + cheaters)) -gt 0 ]; then
   pids+=($!)
 fi
 
-echo "== Playing at $url (Ctrl+C stops)${net:+, network profile $net}"
+if [ -n "$web" ]; then
+  echo "== Playing at $url (Ctrl+C stops)${net:+, network profile $net}"
+else
+  echo "== Server at localhost:$port, for the editor's play mode (Ctrl+C stops)${net:+, network profile $net}"
+fi
 if [ "$host" = 0.0.0.0 ]; then
   address=$(local_address || true)
   [ -n "$address" ] || address="<this machine's address>"

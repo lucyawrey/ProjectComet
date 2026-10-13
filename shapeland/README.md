@@ -48,5 +48,5 @@ How much faster or higher than the rules a report may be before the server snaps
 ### Trying a change
 
 - **In a browser:** `tools/shapeland-web.sh` rebuilds the content and the server on every run, and the web build whenever the client's code changed.
-- **In the editor:** after editing content, run the content build (`dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build`), then **ShapeLand > Copy Content**. The game server must be restarted with the same content, or it judges movement by the old numbers and snaps players back.
-- **Play-mode tests** read the copied `content.bin`, so copy it after content changes, or they fail with "corrupt or from an incompatible build".
+- **In the editor (fastest):** `tools/shapeland-web.sh --no-web` builds the content, copies it into the Unity project and starts the server on `localhost:5080` (add `--bots N` for company). After each change, rerun it and restart play mode: the server and play mode each load the numbers once, at start, and a server judging by old numbers snaps players back.
+- **Play-mode tests** read the copied `content.bin`, so copy it after content changes (`--no-web` does), or they fail with "corrupt or from an incompatible build".
