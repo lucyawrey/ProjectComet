@@ -27,7 +27,7 @@
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
-project="$repo/shapeland/unity"
+project="$repo/shapeland/ShapeLand.Unity"
 web="$repo/artifacts/unity/shapeland/web-game"
 content="$repo/artifacts/content/shapeland/content.bin"
 
@@ -83,7 +83,7 @@ stale() {
 
 if [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
   echo "== Unity web build (a few minutes)"
-  if [ -e "$project/Temp/UnityLockfile" ] && pgrep -fi "projectpath.*shapeland/unity" > /dev/null 2>&1; then
+  if [ -e "$project/Temp/UnityLockfile" ] && pgrep -fi "projectpath.*shapeland/ShapeLand.Unity" > /dev/null 2>&1; then
     echo "The Unity editor has the project open; close it first (or use --no-build)." >&2
     exit 1
   fi

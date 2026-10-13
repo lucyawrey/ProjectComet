@@ -14,7 +14,7 @@ The vault's shared config and community plugins are in the repo, so they're read
 ## Requirements
 
 - **.NET 10 SDK**: for the servers, libraries, bots and tools.
-- **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/unity`).
+- **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/ShapeLand.Unity`).
 - **Docker**: for the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`).
 
 - **AWS CLI and Vercel CLI**: only for the public test build.
@@ -34,7 +34,7 @@ dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
-Run `tools/unity-restore.sh` again whenever `shapeland/unity/Assets/packages.config` changes.
+Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes.
 
 ## Scripts
 
@@ -47,7 +47,7 @@ Run them from the repository root. Each script's options are listed below and in
 | `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
 | `tools/unity-batch.sh` | Run Unity in batch mode (tests, builds) and return when the work is done, since the editor often hangs while quitting. |
-| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). Takes the project as an optional argument (default `shapeland/unity`). |
+| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
 | `tools/observe.cs` | Join a local server as a player standing still and print how other players' movement arrives. |
 | `tools/StackBench/` | The stack benchmark: Comet's message layer under load, with no game logic. See its [README](tools/StackBench/README.md). |
 
@@ -120,7 +120,7 @@ Everything after `--` goes to Unity. Before it:
 
 | Option | What it does |
 | --- | --- |
-| `-p project` | The Unity project (default `shapeland/unity`). |
+| `-p project` | The Unity project (default `shapeland/ShapeLand.Unity`). |
 | `-l logfile` | The editor's log (default `Logs/batch.log`). Relative paths, here and in Unity arguments, are relative to the project. |
 | `-t minutes` | The time limit (default 30). |
 
