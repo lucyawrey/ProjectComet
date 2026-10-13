@@ -22,25 +22,48 @@ namespace ShapeLand.Shared.Content
         /// <summary>The test zone's terrain, until zone files exist.</summary>
         public Heightmap Terrain { get; }
 
+        /// <summary>
+        /// A fingerprint of the content file this was loaded from or saved to (0 for content never in a file). Joins
+        /// carry it, so the server turns away a client whose content differs rather than judging it by other numbers.
+        /// </summary>
+        public ulong Fingerprint { get; private set; }
+
         public static ShapeLandContent Load(Stream stream)
         {
+            var bytes = new MemoryStream();
+            stream.CopyTo(bytes);
+            var data = bytes.ToArray();
             ContentFile file;
             try
             {
-                file = MessagePackSerializer.Deserialize<ContentFile>(stream, SerializerOptions);
+                file = MessagePackSerializer.Deserialize<ContentFile>(data, SerializerOptions);
             }
             catch (MessagePackSerializationException e)
             {
                 throw new ContentException("The content file is corrupt or from an incompatible build.", e);
             }
 
-            return new ShapeLandContent(file.Shapes, file.Terrain);
+            return new ShapeLandContent(file.Shapes, file.Terrain) { Fingerprint = FingerprintOf(data) };
         }
 
-        public void Save(Stream stream) => MessagePackSerializer.Serialize(
-            stream,
-            new ContentFile { Shapes = Shapes.All.ToArray(), Terrain = Terrain },
-            SerializerOptions);
+        public void Save(Stream stream)
+        {
+            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Terrain = Terrain }, SerializerOptions);
+            Fingerprint = FingerprintOf(data);
+            stream.Write(data, 0, data.Length);
+        }
+
+        // 64-bit FNV-1a: plenty to tell two content builds apart, and the same on every platform.
+        private static ulong FingerprintOf(byte[] data)
+        {
+            var hash = 14695981039346656037UL;
+            foreach (var b in data)
+            {
+                hash = (hash ^ b) * 1099511628211UL;
+            }
+
+            return hash;
+        }
 
         [MessagePackObject(AllowPrivate = true)]
         internal sealed class ContentFile

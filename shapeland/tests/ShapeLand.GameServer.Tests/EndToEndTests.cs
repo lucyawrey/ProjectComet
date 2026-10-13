@@ -113,7 +113,11 @@ public sealed class EndToEndTests : IAsyncLifetime
         await bea.ConnectAsync(_url);
         var shapes = _content.Shapes.All;
         JoinRequest Look(string name, int index) =>
-            new() { Name = name, Shape = shapes[index].Number, Colour = ShapeLandRules.BodyColours[index], EyeColour = ShapeLandRules.EyeColours[index] };
+            new() { Name = name, Shape = shapes[index].Number, Colour = ShapeLandRules.BodyColours[index], EyeColour = ShapeLandRules.EyeColours[index], ContentFingerprint = _content.Fingerprint };
+
+        // A client with other content is turned away before anything else is checked.
+        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, Look("Ada", 0) with { ContentFingerprint = _content.Fingerprint + 1 });
+        Assert.Equal(JoinRejection.DifferentContent, (await ada.NextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected)).Reason);
 
         await ada.SendAsync(ShapeLandMessageIds.JoinRequest, Look("Ada", 0));
         var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);

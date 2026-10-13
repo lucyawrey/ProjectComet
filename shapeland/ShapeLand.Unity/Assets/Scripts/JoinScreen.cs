@@ -68,6 +68,9 @@ namespace ShapeLand.Client
         {
             JoinRejection.NameTaken => $"Someone online is already called {name}. Pick another name.",
             JoinRejection.InvalidName => NameRules,
+            JoinRejection.DifferentContent => Debug.isDebugBuild
+                ? "The server's content is different from this client's. Rerun tools/shapeland-dev.sh and restart play mode, or rebuild this client."
+                : "The server is running a different version of ShapeLand. Reload the page to update.",
             _ => "The server didn't accept that shape or colour. It may be running a different version of ShapeLand.",
         };
 

@@ -38,11 +38,11 @@ Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/pa
 
 ## Scripts
 
-Run them from the repository root. Each script's options are listed below and in its header comment; `shapeland-web.sh` and `shapeland-netrun.sh` also print theirs with `--help`.
+Run them from the repository root. Each script's options are listed below and in its header comment; `shapeland-dev.sh` and `shapeland-netrun.sh` also print theirs with `--help`.
 
 | Script | What it's for |
 | --- | --- |
-| `tools/shapeland-web.sh` | Build ShapeLand's web client and play it in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the server for the editor's play mode. |
+| `tools/shapeland-dev.sh` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the server, for the editor's play mode or a desktop build. |
 | `tools/shapeland-netrun.sh` | Headless bot runs under a simulated network profile, printing what the bots measured (snap-backs, cheaters caught, ping, interpolation delay). |
 | `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
@@ -54,10 +54,10 @@ Run them from the repository root. Each script's options are listed below and in
 ### Play locally in a browser
 
 ```sh
-tools/shapeland-web.sh                      # build if needed, start the server, open the page
-tools/shapeland-web.sh --bots 10 --bots-chat
-tools/shapeland-web.sh --net bad --bots 5   # everyone gets about 200 ms round trip and 2% loss (Docker)
-tools/shapeland-web.sh --lan                # let other devices on the network join
+tools/shapeland-dev.sh                      # build if needed, start the server, open the page
+tools/shapeland-dev.sh --bots 10 --bots-chat
+tools/shapeland-dev.sh --net bad --bots 5   # everyone gets about 200 ms round trip and 2% loss (Docker)
+tools/shapeland-dev.sh --lan                # let other devices on the network join
 ```
 
 | Option | What it does |
@@ -97,7 +97,7 @@ The first argument is the profile on the server's link: `none`, `good`, `bad` or
 | `--far-net P` | The far players' extra profile (default `bad`). |
 | `--port P` | The server's port on this machine (default 5091). |
 
-Results also go to a file stamped with the profile and commit. The default port (5091) lets a `shapeland-web.sh` session keep running alongside.
+Results also go to a file stamped with the profile and commit. The default port (5091) lets a `shapeland-dev.sh` session keep running alongside.
 
 ### Watching movement
 

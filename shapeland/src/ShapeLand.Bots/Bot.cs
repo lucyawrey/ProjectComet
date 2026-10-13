@@ -161,6 +161,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                         Shape = _shape.Number,
                         Colour = settings.Colour ?? ShapeLandRules.BodyColours[_random.Next(ShapeLandRules.BodyColours.Length)],
                         EyeColour = ShapeLandRules.EyeColours[_random.Next(ShapeLandRules.EyeColours.Length)],
+                        ContentFingerprint = content.Fingerprint,
                     });
                 }
 

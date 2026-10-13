@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# Builds ShapeLand's web client and runs it from the game server, for testing in a browser without opening
-# the Unity editor. Builds the content, makes the Unity web build in batch mode (skipped when nothing it uses
-# changed since the last one), starts the game server serving the build on the same port, optionally starts
-# bots, and opens the page. Ctrl+C stops everything.
+# Runs ShapeLand locally for development: by default the web client served from the game server, for testing
+# in a browser without opening the Unity editor; with --no-web, just the server, for the editor's play mode or
+# a desktop build. Builds the content, makes the Unity web build in batch mode (skipped when nothing it uses
+# changed since the last one), starts the game server, optionally starts bots, and opens the page. Ctrl+C
+# stops everything.
 #
-#   tools/shapeland-web.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
+#   tools/shapeland-dev.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
 #                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat]
 #
 #   --rebuild      make the Unity web build even if it looks up to date
 #   --no-build     use the last web build as it is (content still rebuilds)
-#   --no-web       no web build or page: just the server, for the Unity editor's play mode, with the content
-#                  copied into the Unity project too. Rerun it after changing content or server code, then
-#                  restart play mode, so client and server use the same numbers
+#   --no-web       no web build or page: just the server, for the Unity editor's play mode or a desktop build.
+#                  Rerun it after changing content or server code, then restart play mode (which picks up the
+#                  new content), so client and server use the same numbers
 #   --bots N       start N honest bots (default 0)
 #   --cheaters N   start N speed-cheating bots (default 0)
 #   --bots-chat    let the bots chat now and then (they stay quiet otherwise)
@@ -58,7 +59,7 @@ while [ $# -gt 0 ]; do
     --net) net="$2"; shift 2 ;;
     --bots-net) bots_net="$2"; shift 2 ;;
     --bots-chat) bots_chat=(--chat); shift ;;
-    -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -87,9 +88,7 @@ stale() {
 }
 
 if [ "$serve_web" = 0 ]; then
-  # Play mode reads the content from the project's StreamingAssets.
-  mkdir -p "$project/Assets/StreamingAssets"
-  cmp -s "$content" "$project/Assets/StreamingAssets/content.bin" || cp "$content" "$project/Assets/StreamingAssets/content.bin"
+  # The editor copies the new content into the project itself as play mode starts.
   web=""
 elif [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
   echo "== Unity web build (a few minutes)"

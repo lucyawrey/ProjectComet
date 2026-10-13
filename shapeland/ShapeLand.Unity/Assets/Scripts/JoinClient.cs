@@ -325,6 +325,7 @@ namespace ShapeLand.Client
                 _pending = null;
                 _awaitingAnswer = true;
                 _askedAt = Time.realtimeSinceStartupAsDouble;
+                request.ContentFingerprint = _content.Fingerprint;
                 session.Write(ShapeLandMessageIds.JoinRequest, request);
                 var shape = _content.Shapes.TryGet(request.Shape, out var found) ? found.DisplayName : $"shape {request.Shape}";
                 Log($"joining as {request.Name}, a {shape}");

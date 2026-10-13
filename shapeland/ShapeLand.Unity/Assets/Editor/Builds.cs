@@ -172,18 +172,18 @@ namespace ShapeLand.Client.Editor
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>Copies the compiled content into StreamingAssets (gitignored), as the content build left it.</summary>
+        /// <summary>
+        /// Copies the compiled content into StreamingAssets (gitignored), as the content build left it. Entering play
+        /// mode does this too (<see cref="ContentSync"/>); builds call it to fail early when there's no content.
+        /// </summary>
         [MenuItem("ShapeLand/Copy Content")]
         public static void CopyContent()
         {
-            var source = Path.Combine(RepoRoot, "artifacts", "content", "shapeland", "content.bin");
-            if (!File.Exists(source))
+            if (!ContentSync.Sync())
             {
-                throw new FileNotFoundException("Run the content build first: dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build", source);
+                throw new FileNotFoundException("Run the content build first: dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build", ContentSync.Source);
             }
 
-            Directory.CreateDirectory(Application.streamingAssetsPath);
-            File.Copy(source, Path.Combine(Application.streamingAssetsPath, "content.bin"), overwrite: true);
             AssetDatabase.Refresh();
         }
 

@@ -30,6 +30,22 @@ public class ContentTests
     }
 
     [Fact]
+    public void FingerprintsMatchTheFileAndChangeWithTheContent()
+    {
+        var (built, _) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
+        var file = new MemoryStream();
+        built!.Save(file);
+        file.Position = 0;
+        var loaded = ShapeLandContent.Load(file);
+        Assert.NotEqual(0UL, built.Fingerprint);
+        Assert.Equal(built.Fingerprint, loaded.Fingerprint);
+
+        loaded.Shapes["shape.cube"].MaxSpeed += 0.5f;
+        loaded.Save(new MemoryStream());
+        Assert.NotEqual(built.Fingerprint, loaded.Fingerprint);
+    }
+
+    [Fact]
     public void TerrainIsTheSameForTheSameSeed()
     {
         Assert.Equal(TestTerrain.Generate(1).Samples, TestTerrain.Generate(1).Samples);
