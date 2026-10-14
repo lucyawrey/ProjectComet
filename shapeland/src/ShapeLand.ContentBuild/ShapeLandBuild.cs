@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Comet.Content;
 using Comet.ContentBuild;
 using ShapeLand.Shared.Content;
+using ShapeLand.Shared.World;
 using Tomlyn.Serialization;
 
 namespace ShapeLand.ContentBuild;
@@ -9,10 +10,7 @@ namespace ShapeLand.ContentBuild;
 /// <summary>ShapeLand's content types and rules, run through Comet's content build.</summary>
 public static class ShapeLandBuild
 {
-    /// <summary>The old test heightmap the game loads until it builds its world from zones, made by the <c>terrain</c> command.</summary>
-    public const string TerrainPath = "zones/test/terrain.height";
-
-    /// <summary>The test zone's folder, also made by the <c>terrain</c> command until it's built with the editor.</summary>
+    /// <summary>The test zone's folder, made by the <c>terrain</c> command until ShapeLand's level is built with the editor.</summary>
     public const string TestZonePath = "zones/test";
 
     /// <summary>Where asset models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
@@ -33,19 +31,7 @@ public static class ShapeLandBuild
     {
         var result = CreateBuilder(contentRoot, modelRoot).Build(saveRegistry);
         var errors = result.Errors.ToList();
-        var terrainFile = Path.Combine(contentRoot, TerrainPath);
-        Heightmap? terrain = null;
-        try
-        {
-            using var stream = File.OpenRead(terrainFile);
-            terrain = HeightmapFormat.Read(stream);
-        }
-        catch (Exception e) when (e is ContentException or IOException)
-        {
-            errors.Add(new ContentError(terrainFile, 1, 1, e.Message));
-        }
-
-        if (errors.Count > 0 || terrain is null)
+        if (errors.Count > 0)
         {
             return (null, errors);
         }
@@ -58,7 +44,14 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        return (new ShapeLandContent(result.Entries<Shape>(), terrain, result.Strings!, result.Entries<Asset>(), result.Zones), errors);
+        // The game plays in one zone for now.
+        if (!result.Zones.Any(z => z.Id == ShapeLandWorld.ZoneId))
+        {
+            errors.Add(new ContentError(Path.Combine(contentRoot, "zones"), 1, 1, $"No zone '{ShapeLandWorld.ZoneId}': the game plays in it."));
+            return (null, errors);
+        }
+
+        return (new ShapeLandContent(result.Entries<Shape>(), result.Strings!, result.Entries<Asset>(), result.Zones), errors);
     }
 
     private static void ValidateShape(Shape shape, ContentValidation validation)

@@ -1,3 +1,13 @@
 [[tile]]
 piece = "island"
 origin = [0, 36]
+
+[[placement]]
+asset = "asset.cube"
+position = [10.0, 5.07, -4.0]
+scale = [1.5, 0.75, 1.5]
+
+[[placement]]
+asset = "asset.cube"
+position = [13.0, 5.234, -7.0]
+scale = [1.0, 1.25, 1.0]

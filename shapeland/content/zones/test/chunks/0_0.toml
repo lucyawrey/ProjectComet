@@ -2,6 +2,11 @@
 piece = "island"
 origin = [0, 0]
 
+[[placement]]
+asset = "asset.cube"
+position = [6.0, 5.059, 2.0]
+scale = [1.0, 0.4, 1.0]
+
 [[spawn]]
 id = "spawn.test_center"
 position = [0.0, 4.125, 0.0]

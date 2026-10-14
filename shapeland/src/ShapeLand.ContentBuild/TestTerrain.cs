@@ -1,49 +1,24 @@
 using System.Numerics;
 using Comet.Content;
+using Comet.Simulation;
 
 namespace ShapeLand.ContentBuild;
 
 /// <summary>
-/// A seeded test terrain: a floating disc of gentle hills in one 64 m chunk, dropping off into open sky at its edge.
-/// The same for the same seed on every machine. <see cref="Generate"/> makes the old single heightmap the game still
-/// loads; <see cref="GenerateZone"/> makes the same island as a zone, centered on the origin across four chunks.
+/// A seeded test zone, a stand-in until ShapeLand's level is built with the editor: a floating disc of gentle hills
+/// centered on the origin across four chunks, dropping off into open sky at its edge, with a few cube blocks to jump
+/// on. The same for the same seed on every machine.
 /// </summary>
 public static class TestTerrain
 {
-    public const int Size = 33; // 64 m at 2 m spacing
     public const float Scale = 1f / 256; // about 4 mm steps
     public const float Offset = -64f; // heights from -64 m to 192 m
     public const float Radius = 28f; // the disc's edge, in meters from the chunk's center
-    /// <summary>Meters between samples.</summary>
-    public const float Spacing = 2f;
-
-    /// <summary>The terrain for <paramref name="seed"/>.</summary>
-    public static Heightmap Generate(int seed)
-    {
-        var samples = new ushort[Size * Size];
-        for (var z = 0; z < Size; z++)
-        {
-            for (var x = 0; x < Size; x++)
-            {
-                var fromCenter = MathF.Sqrt(MathF.Pow((x - (Size - 1) / 2f) * Spacing, 2) + MathF.Pow((z - (Size - 1) / 2f) * Spacing, 2));
-                if (fromCenter > Radius)
-                {
-                    samples[z * Size + x] = Heightmap.Hole;
-                    continue;
-                }
-
-                var height = 4f + 3f * Noise(seed, x / 12f, z / 12f) + 1f * Noise(seed + 1, x / 5f, z / 5f);
-                samples[z * Size + x] = (ushort)Math.Clamp(MathF.Round((height - Offset) / Scale), 1, ushort.MaxValue);
-            }
-        }
-
-        return new Heightmap { SizeX = Size, SizeZ = Size, Scale = Scale, Offset = Offset, Samples = samples };
-    }
 
     /// <summary>The test zone's key.</summary>
     public const string ZoneId = "zone.test";
 
-    /// <summary>The island as a zone: one piece, cut into the four chunks around the origin, with a default spawn at the center.</summary>
+    /// <summary>The island: one piece, cut into the four chunks around the origin, with blocks and a default spawn at the center.</summary>
     public static Zone GenerateZone(int seed)
     {
         // The island's samples run from -RadiusSamples to RadiusSamples on each axis (1 m apart, centered on the
@@ -82,12 +57,30 @@ public static class TestTerrain
 
         var center = HeightOf(SampleAt(0, 0, seed));
         chunks[3].Spawns = [new SpawnPoint { Id = "spawn.test_center", Position = new Vector3(0, center, 0), Radius = 2, Facing = SpawnFacing.Random, IsDefault = true }];
-        return new Zone
+        var zone = new Zone
         {
             Id = ZoneId,
             Pieces = [new TerrainPiece { Name = "island", BottomHeight = -4 }],
             Chunks = chunks.ToArray(),
         };
+
+        // A low step, a block to jump onto, a taller one to jump up to from the first, and a long platform.
+        var island = new ZoneTerrain(zone)["island"];
+        foreach (var (x, z, size) in new[] { (6f, 2f, new Vector3(2, 0.3f, 2)), (10f, -4f, new Vector3(3, 1f, 3)), (13f, -7f, new Vector3(2, 2f, 2)), (-8f, 8f, new Vector3(6, 0.8f, 2)) })
+        {
+            // Sunk 0.5 m so no gap shows on slopes; the cube model is 2 m with its base at its origin.
+            const float sink = 0.5f;
+            island.TryGetHeightAt(x, z, out var ground);
+            var chunk = zone.Chunks.Single(c => c.Coord.Equals(ChunkCoord.Containing(new Vector3(x, 0, z))));
+            chunk.Placements = [.. chunk.Placements, new Placement
+            {
+                Asset = "asset.cube",
+                Position = new Vector3(x, MathF.Round(ground - sink, 3), z),
+                Scale = new Vector3(size.X, size.Y + sink, size.Z) / 2,
+            }];
+        }
+
+        return zone;
     }
 
     // The island's sample at world (x, z) in meters, with the same hills as the old map (whose noise ran over

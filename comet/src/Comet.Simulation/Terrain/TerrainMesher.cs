@@ -29,8 +29,8 @@ namespace Comet.Simulation
 
     /// <summary>
     /// Turns a zone's terrain pieces into flat-shaded, vertex-colored meshes cut per chunk, the same everywhere they're
-    /// drawn (the game client and the editor; later, the LOD build). Each grid cell splits along
-    /// <see cref="TerrainGround"/>'s diagonal into two triangles, drawn only where all three corners are ground, so what's
+    /// drawn (the game client and the editor; later, the LOD build). Each grid cell splits along the
+    /// diagonal from (x+1, z) to (x, z+1) into two triangles, drawn only where all three corners are ground, so what's
     /// drawn is what's stood on. Wherever a piece's ground ends, skirts close it: walls down from the edge to the
     /// piece's bottom (its underside map, else its flat bottom height, but no lower than other terrain beneath), and,
     /// for pieces with rim skirts, a bottom face under the whole piece. The rim and hole toggles choose which edges get

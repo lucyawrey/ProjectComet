@@ -54,7 +54,7 @@ int Build()
     }
 
     WriteSchemas();
-    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Assets.All.Count} assets, {compiled.Zones.All.Count} zone(s), the test terrain and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
+    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Assets.All.Count} assets, {compiled.Zones.All.Count} zone(s) and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
     return 0;
 }
 
@@ -72,16 +72,9 @@ void WriteSchemas()
 
 int Terrain(int seed)
 {
-    var file = Path.Combine(content, ShapeLandBuild.TerrainPath);
-    Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-    using (var stream = File.Create(file))
-    {
-        HeightmapFormat.Write(stream, TestTerrain.Generate(seed));
-    }
-
     var zone = Path.Combine(content, ShapeLandBuild.TestZonePath);
     ZoneFolder.Write(zone, TestTerrain.GenerateZone(seed));
-    Console.WriteLine($"Wrote the test terrain (seed {seed}) to {Path.GetRelativePath(repo, file)} and the test zone to {Path.GetRelativePath(repo, zone)}.");
+    Console.WriteLine($"Wrote the test zone (seed {seed}) to {Path.GetRelativePath(repo, zone)}.");
     return 0;
 }
 

@@ -62,6 +62,16 @@ namespace Comet.Simulation
             /// <summary>The underside height at a world sample, or false where the piece has no underside map there.</summary>
             public bool TryGetUnderside(int x, int z, out float height) => TryGet(x, z, underside: true, out height);
 
+            /// <summary>
+            /// The ground height at world position (<paramref name="x"/>, <paramref name="z"/>), interpolated across the
+            /// triangles the mesh draws (see <see cref="TerrainMesher"/> for the diagonal), or false over a hole or past the piece.
+            /// </summary>
+            public bool TryGetHeightAt(float x, float z, out float height) => Interpolate(x, z, underside: false, out height);
+
+            /// <summary>The bottom of the piece under a world position: its underside map where it has one, else its flat bottom.</summary>
+            public float BottomAt(float x, float z) =>
+                Interpolate(x, z, underside: true, out var under) ? under : Settings.BottomHeight;
+
             /// <summary>The painted color at a world sample as 0xRRGGBB, or <paramref name="fallback"/> where nothing is painted.</summary>
             public uint ColorAt(int x, int z, uint fallback)
             {
@@ -74,6 +84,35 @@ namespace Comet.Simulation
                 }
 
                 return fallback;
+            }
+
+            private bool Interpolate(float x, float z, bool underside, out float height)
+            {
+                height = 0;
+                var gx = x / ZoneGrid.SampleSpacing;
+                var gz = z / ZoneGrid.SampleSpacing;
+                var cx = (int)System.MathF.Floor(gx);
+                var cz = (int)System.MathF.Floor(gz);
+                var u = gx - cx;
+                var v = gz - cz;
+                if (u + v <= 1)
+                {
+                    if (!TryGet(cx, cz, underside, out var h00) || !TryGet(cx + 1, cz, underside, out var h10) || !TryGet(cx, cz + 1, underside, out var h01))
+                    {
+                        return false;
+                    }
+
+                    height = h00 + u * (h10 - h00) + v * (h01 - h00);
+                    return true;
+                }
+
+                if (!TryGet(cx + 1, cz + 1, underside, out var h11) || !TryGet(cx + 1, cz, underside, out var h10b) || !TryGet(cx, cz + 1, underside, out var h01b))
+                {
+                    return false;
+                }
+
+                height = h11 + (1 - u) * (h01b - h11) + (1 - v) * (h10b - h11);
+                return true;
             }
 
             internal void Add(ChunkCoord chunk, TerrainTile tile)

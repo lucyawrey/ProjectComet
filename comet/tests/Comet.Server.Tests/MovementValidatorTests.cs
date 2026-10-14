@@ -16,12 +16,17 @@ public class MovementValidatorTests
 
     public MovementValidatorTests()
     {
-        // Flat ground at 0 over 32 m, with a 2 m cube at (20, 20) and a hole cell around (28, 28).
-        var map = new Heightmap { SizeX = 17, SizeZ = 17, Scale = 1, Offset = -1, Samples = Enumerable.Repeat((ushort)1, 289).ToArray() };
-        map.Samples[14 * 17 + 14] = Heightmap.Hole;
+        // Flat ground at 0 over 32 m, with a 2 m cube at (20, 20) and a hole around (28, 28).
+        var map = new Heightmap { SizeX = 33, SizeZ = 33, Scale = 1, Offset = -1, Samples = Enumerable.Repeat((ushort)1, 33 * 33).ToArray() };
+        map.Samples[28 * 33 + 28] = Heightmap.Hole;
+        var zone = new Zone
+        {
+            Pieces = [new TerrainPiece { Name = "main", BottomHeight = -5 }],
+            Chunks = [new ZoneChunk { Tiles = [new TerrainTile { Piece = "main", Heights = map }] }],
+        };
         var world = new CollisionWorld(
-            new TerrainGround(map, 2, Vector3.Zero),
-            [Box.Standing(20, 20, 0, new Vector3(2, 2, 2))],
+            new ZoneTerrain(zone),
+            [CollisionMesh.Box(new Vector3(19, 0, 19), new Vector3(21, 2, 21))],
             killHeight: -20);
         _validator = new MovementValidator(world, new MovementRules(), new MovementTolerances(), TickRate);
         _validator.Reset(new Vector3(4, 0, 4), 0, tick: 100);
@@ -92,7 +97,7 @@ public class MovementValidatorTests
     {
         _validator.Reset(new Vector3(17.5f, 0, 20), 0, 100);
 
-        Assert.Equal(MovementVerdict.InsideBox, Report(19, 0, 20, 130));
+        Assert.Equal(MovementVerdict.InsideSolid, Report(19, 0, 20, 130));
         Assert.Equal(MovementVerdict.UnderGround, Report(17.5f, -1, 20, 131));
     }
 

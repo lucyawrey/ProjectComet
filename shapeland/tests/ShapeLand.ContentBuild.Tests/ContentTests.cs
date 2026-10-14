@@ -1,4 +1,5 @@
 using Comet.Content;
+using Comet.Simulation;
 using MessagePack;
 using ShapeLand.ContentBuild;
 using ShapeLand.Shared.Content;
@@ -25,7 +26,6 @@ public class ContentTests
         Assert.Equal("Pyramid", content.Shapes["shape.pyramid"].DisplayName);
         Assert.True(content.Shapes["shape.cube"].MaxSpeed > 0);
         Assert.Same(content.Shapes["shape.cube"], content.Shapes[content.Shapes["shape.cube"].Number]);
-        Assert.Equal(TestTerrain.Size, content.Terrain.SizeX);
         Assert.Throws<ContentException>(() => content.Shapes["shape.sphere"]);
     }
 
@@ -93,20 +93,36 @@ public class ContentTests
     [Fact]
     public void TerrainIsTheSameForTheSameSeed()
     {
-        Assert.Equal(TestTerrain.Generate(1).Samples, TestTerrain.Generate(1).Samples);
-        Assert.NotEqual(TestTerrain.Generate(1).Samples, TestTerrain.Generate(2).Samples);
+        Assert.Equal(TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples, TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples);
+        Assert.NotEqual(TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples, TestTerrain.GenerateZone(2).Chunks[3].Tiles[0].Heights.Samples);
     }
 
     [Fact]
     public void TerrainIsAFloatingDisc()
     {
-        var terrain = TestTerrain.Generate(1);
-        const int center = TestTerrain.Size / 2;
+        var island = new ZoneTerrain(TestTerrain.GenerateZone(1))["island"];
 
-        Assert.False(terrain.IsHole(center, center));
-        Assert.False(terrain.IsHole(center + 13, center));
-        Assert.True(terrain.IsHole(center + 15, center));
-        Assert.True(terrain.IsHole(0, 0));
+        Assert.True(island.TryGetHeight(0, 0, out _));
+        Assert.True(island.TryGetHeight(26, 0, out _));
+        Assert.False(island.TryGetHeight(30, 0, out _));
+        Assert.False(island.TryGetHeight(-27, -27, out _));
+        Assert.Equal((-28, -28, 28, 28), island.Extent);
+    }
+
+    [Fact]
+    public void BlocksStandOnTheIsland()
+    {
+        var zone = TestTerrain.GenerateZone(1);
+        var island = new ZoneTerrain(zone)["island"];
+        var blocks = zone.Chunks.SelectMany(c => c.Placements).ToList();
+
+        Assert.Equal(4, blocks.Count);
+        Assert.All(blocks, b =>
+        {
+            Assert.Equal("asset.cube", b.Asset);
+            Assert.True(island.TryGetHeightAt(b.Position.X, b.Position.Z, out var ground));
+            Assert.Equal(ground - 0.5f, b.Position.Y, 2);
+        });
     }
 
     [Fact]
