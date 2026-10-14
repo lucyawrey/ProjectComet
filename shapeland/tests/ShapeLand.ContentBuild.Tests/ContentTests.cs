@@ -30,25 +30,17 @@ public class ContentTests
     }
 
     [Fact]
-    public void CompiledContentHoldsTheTestZone()
+    public void TheContentBuildsWithItsZone()
     {
+        // The zone is made by hand in the editor, so only that it builds is checked: the build itself reports
+        // missing spawns and the like.
         var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
         var file = new MemoryStream();
         built!.Save(file);
         file.Position = 0;
 
-        var zone = ShapeLandContent.Load(file).Zones[TestTerrain.ZoneId];
-
-        Assert.Equal(4, zone.Chunks.Length);
-        Assert.All(zone.Chunks, c => Assert.Equal("island", Assert.Single(c.Tiles).Piece));
-        var spawns = zone.Chunks.SelectMany(c => c.Spawns).ToList();
-        Assert.Equal(["spawn.test_center", "spawn.test_east"], spawns.Select(s => s.Id).Order());
-        var center = spawns.Single(s => s.IsDefault);
-        Assert.Equal(("spawn.test_center", 0f), (center.Id, center.Position.X));
-        Assert.InRange(center.Position.Y, 0, 8);
-        // Each spawn has its marker: a placement named with its key.
-        Assert.All(spawns, s => Assert.Contains(zone.Chunks.SelectMany(c => c.Placements), p => p.Name == s.Id));
+        Assert.NotEmpty(ShapeLandContent.Load(file).Zones[TestTerrain.ZoneId].Chunks);
     }
 
     [Fact]
@@ -62,19 +54,6 @@ public class ContentTests
         Assert.Equal(12 * 3, cube.Collision.Length);
         Assert.Equal((new System.Numerics.Vector3(-1, 0, -1), new System.Numerics.Vector3(1, 2, 1)), (cube.BoundsMin, cube.BoundsMax));
         Assert.All(built.Assets.All, a => Assert.Equal(0, a.BoundsMin.Y, 0.001f));
-    }
-
-    [Fact]
-    public void TheTestZoneIsTheGeneratedOne()
-    {
-        // The terrain command writes it; if this fails, run it again (ShapeLand.ContentBuild terrain).
-        var (built, _) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
-        var generated = TestTerrain.GenerateZone(1);
-        var zone = built!.Zones[TestTerrain.ZoneId];
-
-        Assert.Equal(
-            generated.Chunks.OrderBy(c => (c.Coord.X, c.Coord.Z)).Select(c => (c.Coord, c.Tiles[0].OriginX, c.Tiles[0].OriginZ, c.Tiles[0].Heights.Samples)),
-            zone.Chunks.OrderBy(c => (c.Coord.X, c.Coord.Z)).Select(c => (c.Coord, c.Tiles[0].OriginX, c.Tiles[0].OriginZ, c.Tiles[0].Heights.Samples)));
     }
 
     [Fact]
