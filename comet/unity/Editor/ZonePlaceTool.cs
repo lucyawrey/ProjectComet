@@ -128,7 +128,7 @@ namespace Comet.Unity.Editor
                 HandleUtility.AddDefaultControl(control);
             }
 
-            if (e.type == EventType.MouseMove || e.type == EventType.Layout)
+            if (e.type == EventType.MouseMove || e.type == EventType.MouseDown)
             {
                 _hover = Drop(editing, e.mousePosition);
             }
@@ -168,34 +168,73 @@ namespace Comet.Unity.Editor
             Selection.activeGameObject = ZoneEditor.AddSpawn(editing, spawnKey, at, settings);
         }
 
-        // Where the mouse points: on whatever the scene has under it (terrain or placed objects), else on the highest
-        // terrain piece along the ray, else on the ground plane.
+        // Where the mouse points: on top of the terrain, or of a placed object if one is nearer along the ray (on its
+        // bounding box's top), else on the ground plane.
         private static Vector3? Drop(ZoneEditing editing, Vector2 mouse)
         {
-            if (HandleUtility.PlaceObject(mouse, out var hit, out _))
-            {
-                return hit;
-            }
-
             var ray = HandleUtility.GUIPointToWorldRay(mouse);
-            const float step = 0.25f, far = 1000;
-            var pieces = ZoneTerrainEditing.For(editing).Terrain.Pieces;
-            for (var t = step; t < far; t += step)
+            var best = TerrainHit(editing, ray);
+            var picked = HandleUtility.PickGameObject(mouse, false);
+            var placed = picked != null ? picked.GetComponentInParent<ZonePlacement>() : null;
+            if (placed != null)
             {
-                var point = ray.GetPoint(t);
-                foreach (var piece in pieces)
+                var renderers = placed.GetComponentsInChildren<Renderer>().Where(r => r.enabled).ToArray();
+                if (renderers.Length > 0)
                 {
-                    if (piece.TryGetHeightAt(point.x, point.z, out var ground) && point.y <= ground)
+                    var bounds = renderers[0].bounds;
+                    foreach (var r in renderers.Skip(1))
                     {
-                        return new Vector3(point.x, ground, point.z);
+                        bounds.Encapsulate(r.bounds);
+                    }
+
+                    if (bounds.IntersectRay(ray, out var distance) && (best == null || distance < Vector3.Distance(ray.origin, best.Value)))
+                    {
+                        var hit = ray.GetPoint(distance);
+                        best = new Vector3(hit.x, bounds.max.y, hit.z);
                     }
                 }
             }
 
-            if (Mathf.Abs(ray.direction.y) > 1e-4f)
+            if (best == null && Mathf.Abs(ray.direction.y) > 1e-4f)
             {
                 var t = -ray.origin.y / ray.direction.y;
-                return t > 0 ? ray.GetPoint(t) : (Vector3?)null;
+                best = t > 0 ? ray.GetPoint(t) : (Vector3?)null;
+            }
+
+            return best;
+        }
+
+        // Where the ray first meets any terrain piece's ground: marching a quarter meter at a time, then narrowing in.
+        private static Vector3? TerrainHit(ZoneEditing editing, Ray ray)
+        {
+            var pieces = ZoneTerrainEditing.For(editing).Terrain.Pieces;
+            bool Below(Vector3 p) => pieces.Any(piece => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground);
+
+            const float step = 0.25f, far = 1000;
+            var previous = ray.origin;
+            for (var t = step; t < far; t += step)
+            {
+                var point = ray.GetPoint(t);
+                if (Below(point))
+                {
+                    var (a, b) = (previous, point);
+                    for (var i = 0; i < 10; i++)
+                    {
+                        var middle = (a + b) / 2;
+                        if (Below(middle))
+                        {
+                            b = middle;
+                        }
+                        else
+                        {
+                            a = middle;
+                        }
+                    }
+
+                    return b;
+                }
+
+                previous = point;
             }
 
             return null;

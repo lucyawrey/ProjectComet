@@ -42,6 +42,8 @@ namespace Comet.Unity.Editor
 
         private CometSettings _settings;
         private bool _painting;
+        private bool _redraw;
+        private double _lastRedraw;
         private float _flattenHeight;
         private Vector3? _hover;
         private List<Vector3> _overlaps = new List<Vector3>();
@@ -252,10 +254,12 @@ namespace Comet.Unity.Editor
                         Paint(terrain, _hover.Value, 1f / 30);
                     }
 
+                    RedrawDuringStroke(terrain);
                     e.Use();
                     break;
                 case EventType.MouseUp when _painting && e.button == 0:
                     _painting = false;
+                    _redraw = false;
                     GUIUtility.hotControl = 0;
                     terrain.Commit($"Terrain: {BrushNames[(int)brush]}", _settings);
                     if (_overlaps.Count > 0)
@@ -375,8 +379,20 @@ namespace Comet.Unity.Editor
                 terrain.Reindex();
             }
 
-            // Redraw as the stroke goes; the undo step is written when it ends.
-            ZoneEditor.RebuildTerrain(terrain.Editing, terrain.Zone, _settings);
+            // Redrawn as the stroke goes (RedrawDuringStroke); the undo step is written when it ends.
+            _redraw = true;
+        }
+
+        // Meshing the terrain takes about 5 ms a chunk, too slow for every mouse event, so a stroke redraws at most
+        // 20 times a second; its end redraws in full.
+        private void RedrawDuringStroke(ZoneTerrainEditing terrain)
+        {
+            if (_redraw && EditorApplication.timeSinceStartup - _lastRedraw >= 0.05)
+            {
+                ZoneEditor.RebuildTerrain(terrain.Editing, terrain.Zone, _settings);
+                _lastRedraw = EditorApplication.timeSinceStartup;
+                _redraw = false;
+            }
         }
 
         private float? Average(ZoneTerrainEditing terrain, int x, int z)
