@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using Comet.Content;
 using UnityEditor;
 using UnityEditor.EditorTools;
 using UnityEditor.Overlays;
@@ -35,7 +38,93 @@ namespace Comet.Unity.Editor
 
         public override bool IsAvailable() => Editing != null;
 
+        // The panel's pictures of each model, drawn in the placed objects' material (Unity's own previews use the
+        // models' imported materials, which show purple where their shaders aren't ready).
+        private readonly Dictionary<GameObject, Texture2D> _thumbnails = new Dictionary<GameObject, Texture2D>();
+
         private void OnEnable() => Instance = this;
+
+        private void OnDisable()
+        {
+            foreach (var texture in _thumbnails.Values)
+            {
+                DestroyImmediate(texture);
+            }
+
+            _thumbnails.Clear();
+        }
+
+        private Texture2D? Thumbnail(GameObject model, Material? material, int size)
+        {
+            if (material == null)
+            {
+                return AssetPreview.GetAssetPreview(model);
+            }
+
+            if (_thumbnails.TryGetValue(model, out var cached) && cached != null)
+            {
+                return cached;
+            }
+
+            var parts = model.GetComponentsInChildren<MeshFilter>()
+                .Where(f => f.sharedMesh != null && !f.name.EndsWith(Asset.CollisionSuffix, StringComparison.Ordinal))
+                .Select(f => (f.sharedMesh, Matrix: model.transform.worldToLocalMatrix * f.transform.localToWorldMatrix))
+                .ToList();
+            if (parts.Count == 0)
+            {
+                return null;
+            }
+
+            var bounds = new Bounds(parts[0].Matrix.MultiplyPoint3x4(parts[0].sharedMesh.bounds.center), Vector3.zero);
+            foreach (var (mesh, matrix) in parts)
+            {
+                var b = mesh.bounds;
+                for (var i = 0; i < 8; i++)
+                {
+                    bounds.Encapsulate(matrix.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) * 2 - 1, (i & 2) - 1, (i & 4) / 2 - 1))));
+                }
+            }
+
+            var preview = new PreviewRenderUtility();
+            try
+            {
+                var camera = preview.camera;
+                var radius = Mathf.Max(bounds.extents.magnitude, 0.01f);
+                camera.fieldOfView = 30;
+                camera.transform.rotation = Quaternion.Euler(25, -35, 0);
+                camera.transform.position = bounds.center - camera.transform.forward * (radius / Mathf.Sin(15 * Mathf.Deg2Rad));
+                camera.nearClipPlane = 0.01f;
+                camera.farClipPlane = radius * 10;
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = new Color(0.25f, 0.25f, 0.25f, 1);
+                preview.lights[0].intensity = 1.2f;
+                preview.lights[0].transform.rotation = Quaternion.Euler(40, -30, 0);
+                preview.ambientColor = new Color(0.35f, 0.35f, 0.35f);
+                preview.BeginStaticPreview(new Rect(0, 0, size, size));
+                // Drawn twice: the first picture rendered after the editor starts comes out unlit.
+                for (var pass = 0; pass < 2; pass++)
+                {
+                    foreach (var (mesh, matrix) in parts)
+                    {
+                        for (var sub = 0; sub < mesh.subMeshCount; sub++)
+                        {
+                            preview.DrawMesh(mesh, matrix, material, sub);
+                        }
+                    }
+
+                    camera.Render();
+                }
+
+                var texture = preview.EndStaticPreview();
+                texture.hideFlags = HideFlags.HideAndDontSave;
+                _thumbnails[model] = texture;
+                return texture;
+            }
+            finally
+            {
+                preview.Cleanup();
+            }
+        }
 
         private static ZoneEditing Editing => FindAnyObjectByType<ZoneEditing>();
 
@@ -60,7 +149,7 @@ namespace Comet.Unity.Editor
                 EditorGUILayout.BeginHorizontal();
                 foreach (var entry in entries.Skip(i).Take(perRow))
                 {
-                    var preview = entry.model != null ? AssetPreview.GetAssetPreview(entry.model) : null;
+                    var preview = entry.model != null ? Thumbnail(entry.model, settings.placedMaterial, size * 2) : null;
                     var label = entry.key.StartsWith("asset.") ? entry.key.Substring("asset.".Length) : entry.key;
                     var content = preview != null ? new GUIContent(preview, entry.key) : new GUIContent(label, entry.key);
                     var picked = !spawn && asset == entry.key;
