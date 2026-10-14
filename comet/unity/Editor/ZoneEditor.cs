@@ -70,6 +70,9 @@ namespace Comet.Unity.Editor
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             ZoneTerrainEditing.Forget();
+
+            // A new scene unloads assets nothing in it uses, the settings and asset library among them: load them again.
+            settings = CometSettings.Find(quiet: true) ?? settings;
             var root = new GameObject($"Zone {zone.Id}");
             var editing = root.AddComponent<ZoneEditing>();
             editing.folder = RelativeToProject(folder);
