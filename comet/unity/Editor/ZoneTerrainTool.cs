@@ -36,11 +36,11 @@ namespace Comet.Unity.Editor
         [SerializeField] private float radius = 3;
         [SerializeField] private float strength = 2;
         [SerializeField] private Color paint = new Color32(0x8c, 0x7a, 0x52, 0xff);
-        [SerializeField] private string piece;
+        [SerializeField] private string piece = "";
         [SerializeField] private string newPiece = "piece";
         [SerializeField] private float newHeight = 4;
 
-        private CometSettings _settings;
+        private CometSettings? _settings;
         private bool _painting;
         private bool _redraw;
         private double _lastRedraw;
@@ -48,10 +48,10 @@ namespace Comet.Unity.Editor
         private Vector3? _hover;
         private List<Vector3> _overlaps = new List<Vector3>();
 
-        private GUIContent _icon;
+        private GUIContent? _icon;
 
         /// <summary>The tool's one instance, for its panel.</summary>
-        internal static ZoneTerrainTool Instance { get; private set; }
+        internal static ZoneTerrainTool? Instance { get; private set; }
 
         [MenuItem("Comet/Zones/Terrain Tool", priority = 20)]
         public static void Select() => ToolManager.SetActiveTool<ZoneTerrainTool>();

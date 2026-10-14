@@ -15,15 +15,15 @@ namespace Comet.Unity.Editor
     [EditorTool("Zone Place")]
     public sealed class ZonePlaceTool : EditorTool
     {
-        [SerializeField] private string asset;
+        [SerializeField] private string asset = "";
         [SerializeField] private bool spawn;
         [SerializeField] private string spawnKey = "spawn.";
 
-        private GUIContent _icon;
+        private GUIContent? _icon;
         private Vector3? _hover;
 
         /// <summary>The tool's one instance, for its panel.</summary>
-        internal static ZonePlaceTool Instance { get; private set; }
+        internal static ZonePlaceTool? Instance { get; private set; }
 
         [MenuItem("Comet/Zones/Place Tool", priority = 21)]
         public static void Select() => ToolManager.SetActiveTool<ZonePlaceTool>();

@@ -42,7 +42,7 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>Raised after a zone's files are saved, so a game can rebuild its content from them.</summary>
-        public static event Action<ZoneEditing> Saved;
+        public static event Action<ZoneEditing>? Saved;
 
         // Saving the scene saves its zones too (ZoneEditorScenes).
         [MenuItem("Comet/Zones/Save", priority = 2)]
@@ -255,7 +255,7 @@ namespace Comet.Unity.Editor
                 {
                     // A placement named with a spawn's key is its marker, kept under it.
                     var isMarker = placement.Name != null && spawnsByKey.ContainsKey(placement.Name);
-                    var thing = Instantiate(placement.Asset, settings, isMarker ? spawnsByKey[placement.Name] : placed);
+                    var thing = Instantiate(placement.Asset, settings, isMarker ? spawnsByKey[placement.Name!] : placed);
                     var r = placement.Rotation;
                     thing.transform.SetPositionAndRotation(ToUnity(placement.Position), Quaternion.Euler(r.X, r.Y, r.Z));
                     SetWorldScale(thing.transform, ToUnity(placement.Scale));

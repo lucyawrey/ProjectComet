@@ -18,7 +18,7 @@ namespace Comet.Unity.Editor
     [InitializeOnLoad]
     public static class ContentBuild
     {
-        private static Process building;
+        private static Process? building;
         private static bool buildAgain;
 
         static ContentBuild()
@@ -36,10 +36,10 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>Raised with the content after each copy (whether or not it changed), so a game can refresh what it keeps from it.</summary>
-        public static event Action<byte[]> Copied;
+        public static event Action<byte[]>? Copied;
 
         /// <summary>The content build's output, as a full path; null if the settings don't name one.</summary>
-        public static string Source
+        public static string? Source
         {
             get
             {

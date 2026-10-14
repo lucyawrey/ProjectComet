@@ -63,7 +63,7 @@ public static class ShapeLandBuild
         var zoneSpawns = result.Zones.Where(z => z.Id == ShapeLandWorld.ZoneId).SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
         foreach (var shape in result.Entries<Shape>().Where(s => !zoneSpawns.Contains(s.Spawn)))
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point in {ShapeLandWorld.ZoneId}."));
+            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point in {ShapeLandWorld.ZoneId}; change the shape's 'spawn =' to one it has: {(zoneSpawns.Count > 0 ? string.Join(", ", zoneSpawns.OrderBy(k => k, StringComparer.Ordinal)) : "(none yet)")}."));
         }
 
         if (errors.Count > 0)
