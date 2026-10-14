@@ -16,7 +16,7 @@ namespace Comet.Unity.Editor
             var color = serializedObject.FindProperty(nameof(ZonePlacement.color));
             EditorGUI.showMixedValue = own.hasMultipleDifferentValues || color.hasMultipleDifferentValues;
             var (picked, changed, reset) = ColorFields.WithReset(
-                new UnityEngine.GUIContent("Color", "The placement's color. Reset: its asset's, else the placed objects' material's."),
+                new UnityEngine.GUIContent("Color", "The placement's color. Reset: its asset's, else the game's (Comet Settings)."),
                 placement.ownColor ? placement.color : placement.DefaultColor, own.boolValue || own.hasMultipleDifferentValues);
             EditorGUI.showMixedValue = false;
             if (changed)

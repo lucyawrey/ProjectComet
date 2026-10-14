@@ -43,6 +43,9 @@ namespace Comet.Unity.Editor
         [FormerlySerializedAs("skirtColor")]
         public Color underColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
 
+        [Tooltip("The color of placed objects whose asset has none, unless they have their own.")]
+        public Color placedColor = new Color32(0x9e, 0x8c, 0x7a, 0xff);
+
         [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
         public float bodyHeight = 1;
 

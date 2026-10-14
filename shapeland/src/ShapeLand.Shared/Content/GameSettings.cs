@@ -79,6 +79,9 @@ namespace ShapeLand.Shared.Content
         /// <summary>The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(2)] public uint UnderColor { get; set; }
 
+        /// <summary>The color placed objects are drawn in when neither they nor their asset have one, as 0xRRGGBB.</summary>
+        [JsonRequired] [Key(4)] public uint PlacedColor { get; set; }
+
         /// <summary>The zone the game plays in (<c>zone.*</c>); it has one at a time for now.</summary>
         [JsonRequired] [Key(3)] public string Zone { get; set; } = "";
     }

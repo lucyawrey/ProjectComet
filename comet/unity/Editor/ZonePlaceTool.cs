@@ -156,7 +156,7 @@ namespace Comet.Unity.Editor
                 EditorGUILayout.BeginHorizontal();
                 foreach (var entry in entries.Skip(i).Take(perRow))
                 {
-                    var preview = entry.model != null ? Thumbnail(entry.model, settings.placedMaterial, entry.hasColor ? entry.color : null, size * 2) : null;
+                    var preview = entry.model != null ? Thumbnail(entry.model, settings.placedMaterial, entry.hasColor ? entry.color : settings.placedColor, size * 2) : null;
                     var label = entry.key.StartsWith("asset.") ? entry.key.Substring("asset.".Length) : entry.key;
                     var content = preview != null ? new GUIContent(preview, entry.key) : new GUIContent(label, entry.key);
                     var picked = !spawn && asset == entry.key;
