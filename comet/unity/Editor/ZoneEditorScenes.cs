@@ -60,7 +60,7 @@ namespace Comet.Unity.Editor
                 }
 
                 stream.GetCreateGameObjectHierarchyEvent(i, out var created);
-                if (!(EditorUtility.InstanceIDToObject(created.instanceId) is GameObject root))
+                if (!(EditorUtility.EntityIdToObject(created.entityId) is GameObject root))
                 {
                     continue;
                 }

@@ -48,7 +48,7 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Save", priority = 2)]
         public static void SaveMenu()
         {
-            foreach (var scene in UnityEngine.Object.FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None).Select(z => z.gameObject.scene).Distinct())
+            foreach (var scene in UnityEngine.Object.FindObjectsByType<ZoneEditing>().Select(z => z.gameObject.scene).Distinct())
             {
                 EditorSceneManager.SaveScene(scene);
             }
