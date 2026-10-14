@@ -3,31 +3,41 @@ piece = "island"
 origin = [0, 0]
 
 [[placement]]
+asset = "asset.cylinder"
+position = [20.71, 5.11, 2.91]
+
+[[placement]]
 asset = "asset.cube"
 position = [6.0, 5.059, 2.0]
 scale = [1.0, 0.4, 1.0]
 
 [[placement]]
-asset = "asset.cylinder"
-name = "spawn.test_center"
-position = [0.0, 4.125, 0.0]
-scale = [2.0, 0.075, 2.0]
+asset = "asset.cone"
+position = [7.13, 6.709, 16.332]
+
+[[placement]]
+asset = "asset.cone"
+position = [3.277, 6.397, 17.105]
+
+[[placement]]
+asset = "asset.ramp"
+position = [6.035, 6.389, 21.043]
+
+[[placement]]
+asset = "asset.sphere"
+position = [23.91, 5.53, 19.421]
+scale = [10.162, 1.0, 1.0]
 
 [[placement]]
 asset = "asset.cylinder"
-name = "spawn.test_east"
-position = [18.0, 6.352, 8.0]
-scale = [2.0, 0.075, 2.0]
+name = "spawn.start"
+position = [12.488, 6.197, 6.454]
+scale = [2.0, 0.2, 2.0]
 
 [[spawn]]
-id = "spawn.test_center"
-position = [0.0, 4.125, 0.0]
+id = "spawn.start"
+position = [12.488, 6.597, 6.454]
 radius = 2.0
-facing = "random"
+facing = "direction"
+yaw = 0.0
 default = true
-
-[[spawn]]
-id = "spawn.test_east"
-position = [18.0, 6.352, 8.0]
-radius = 2.0
-facing = "random"

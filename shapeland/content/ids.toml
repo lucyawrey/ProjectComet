@@ -19,6 +19,9 @@ pyramid = 3
 [spawn]
 test_center = 1
 test_east = 2
+blorbsd = 3
+bridge = 4
+start = 5
 
 [zone]
 test = 1

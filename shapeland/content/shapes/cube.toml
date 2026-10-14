@@ -4,4 +4,4 @@ mesh = "cube" # the prefab GameView uses, from Assets/Prefabs/Shapes/ in shapela
 max_speed = 6.5
 jump_velocity = 8.5
 scale = 1.0
-spawn = "spawn.test_center" # where players of this shape start
+spawn = "spawn.start" # where players of this shape start
