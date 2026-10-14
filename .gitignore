@@ -13,3 +13,6 @@ TestResults/
 
 # Stack benchmark results
 tools/StackBench/results/
+
+# Blender
+*.blend1

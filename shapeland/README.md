@@ -72,7 +72,7 @@ Every movement number has one home. Clients, bots and the server read the same v
 
 ### How shapes look: the models in `art/shapes.blend`
 
-Each shape is an empty at the player's feet with a `Body` mesh and `Eyes` under it, in meters, facing -Y in Blender, toward the Front view (+Z in Unity). Export each one as `ShapeLand.Unity/Assets/Models/Shapes/<Shape>.glb` (glTF Binary, selected objects only, with the empty at the origin); the prefabs in `Assets/Prefabs/Shapes/` pick up the change. The prefabs set the materials, so the models' own are ignored. These change the drawing only.
+Each shape is an empty at the player's feet with a body mesh and eyes under it, in meters, facing -Y in Blender, toward the Front view (+Z in Unity). `tools/blender-export-glb.py` exports each one as `ShapeLand.Unity/Assets/Models/Shapes/<Shape>.glb`, with the empty at the origin; the prefabs in `Assets/Prefabs/Shapes/` pick up the change. The prefabs set the materials, so the models' own are ignored. These change the drawing only.
 
 ### The camera: the Camera object in the Game scene
 
