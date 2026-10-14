@@ -26,7 +26,7 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Open…", priority = 1)]
         public static void OpenMenu()
         {
-            var settings = Settings(quiet: false);
+            var settings = CometSettings.Find(quiet: false);
             if (settings == null)
             {
                 return;
@@ -58,7 +58,7 @@ namespace Comet.Unity.Editor
         private static bool CanSave() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
 
         /// <summary>Opens the zone in <paramref name="folder"/> into a new scene; false (with the reasons logged) if its files have errors.</summary>
-        public static bool Open(string folder, ZoneEditorSettings settings)
+        public static bool Open(string folder, CometSettings settings)
         {
             var errors = new List<ZoneFileError>();
             var zone = ZoneFolder.Read(folder, errors);
@@ -106,7 +106,7 @@ namespace Comet.Unity.Editor
         {
             var zone = Gather(editing);
             var errors = ZoneValidation.Check(zone);
-            var library = Settings(quiet: true)?.assets;
+            var library = CometSettings.Find(quiet: true)?.assets;
             if (library != null)
             {
                 errors.AddRange(ZoneValidation.CheckPlacements(zone, key => AssetFor(library, key)));
@@ -197,7 +197,7 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>Redraws a zone's terrain preview from <paramref name="zone"/>'s pieces.</summary>
-        public static void RebuildTerrain(ZoneEditing editing, Zone zone, ZoneEditorSettings settings)
+        public static void RebuildTerrain(ZoneEditing editing, Zone zone, CometSettings settings)
         {
             var root = editing.transform;
             var old = root.Find(TerrainName);
@@ -227,7 +227,7 @@ namespace Comet.Unity.Editor
 
         private const string TerrainName = "Terrain (preview)";
 
-        private static void Build(Transform root, Zone zone, ZoneEditorSettings settings)
+        private static void Build(Transform root, Zone zone, CometSettings settings)
         {
             RebuildTerrain(root.GetComponent<ZoneEditing>(), zone, settings);
             var placed = Child(root, "Placed");
@@ -279,7 +279,7 @@ namespace Comet.Unity.Editor
         }
 
         // The asset's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
-        private static GameObject Instantiate(string asset, ZoneEditorSettings settings, Transform parent)
+        private static GameObject Instantiate(string asset, CometSettings settings, Transform parent)
         {
             var model = settings.assets != null ? settings.assets.Model(asset) : null;
             GameObject thing;
@@ -328,7 +328,7 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>Places an asset at <paramref name="position"/> in an opened zone, as a linked model with its placement marker.</summary>
-        public static GameObject Place(ZoneEditing editing, string asset, Vector3 position, ZoneEditorSettings settings)
+        public static GameObject Place(ZoneEditing editing, string asset, Vector3 position, CometSettings settings)
         {
             var parent = editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
             var thing = Instantiate(asset, settings, parent);
@@ -342,7 +342,7 @@ namespace Comet.Unity.Editor
         /// Adds a spawn point at <paramref name="position"/> in an opened zone (the zone's first is its default), with
         /// its marker if the settings name one: the marker asset, flattened, sized to the spawn's radius and named with its key.
         /// </summary>
-        public static GameObject AddSpawn(ZoneEditing editing, string key, Vector3 position, ZoneEditorSettings settings)
+        public static GameObject AddSpawn(ZoneEditing editing, string key, Vector3 position, CometSettings settings)
         {
             var parent = editing.transform.Find("Spawns") ?? Child(editing.transform, "Spawns");
             var marker = Child(parent, key);
@@ -364,24 +364,6 @@ namespace Comet.Unity.Editor
             return marker.gameObject;
         }
 
-        /// <summary>The project's zone editor settings, or null (with a dialog unless <paramref name="quiet"/>) if it has none.</summary>
-        public static ZoneEditorSettings Settings(bool quiet)
-        {
-            var found = AssetDatabase.FindAssets($"t:{nameof(ZoneEditorSettings)}");
-            if (found.Length == 0)
-            {
-                if (quiet)
-                {
-                    return null;
-                }
-
-                EditorUtility.DisplayDialog("No zone editor settings", "This project has no Zone Editor Settings asset. Make one with Create › Comet › Zone Editor Settings.", "OK");
-                return null;
-            }
-
-            return AssetDatabase.LoadAssetAtPath<ZoneEditorSettings>(AssetDatabase.GUIDToAssetPath(found[0]));
-        }
-
         private static void Report(string title, List<ZoneFileError> errors)
         {
             foreach (var error in errors)
@@ -396,7 +378,7 @@ namespace Comet.Unity.Editor
         /// <summary>Draws an opened zone's terrain preview again if it's missing (it isn't saved with the scene).</summary>
         public static void RedrawIfMissing(ZoneEditing editing)
         {
-            var settings = Settings(quiet: true);
+            var settings = CometSettings.Find(quiet: true);
             if (settings == null || editing.zoneData == null || editing.transform.Find(TerrainName) != null)
             {
                 return;

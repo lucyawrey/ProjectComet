@@ -36,7 +36,7 @@ namespace Comet.Unity.Editor
         [SerializeField] private string newPiece = "piece";
         [SerializeField] private float newHeight = 4;
 
-        private ZoneEditorSettings _settings;
+        private CometSettings _settings;
         private bool _painting;
         private float _flattenHeight;
         private Vector3? _hover;
@@ -50,7 +50,7 @@ namespace Comet.Unity.Editor
         {
             SceneView.duringSceneGui += OnSceneGui;
             Undo.undoRedoPerformed += OnUndoRedo;
-            _settings = ZoneEditor.Settings(quiet: true);
+            _settings = CometSettings.Find(quiet: true);
         }
 
         private void OnDisable()
@@ -79,7 +79,7 @@ namespace Comet.Unity.Editor
             var editing = Editing;
             if (editing == null || _settings == null)
             {
-                EditorGUILayout.HelpBox(_settings == null ? "This project has no Zone Editor Settings asset." : "Open a zone first: Comet › Zones › Open…", MessageType.Info);
+                EditorGUILayout.HelpBox(_settings == null ? "This project has no Comet Settings asset." : "Open a zone first: Comet › Zones › Open…", MessageType.Info);
                 return;
             }
 

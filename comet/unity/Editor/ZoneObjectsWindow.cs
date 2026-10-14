@@ -20,10 +20,10 @@ namespace Comet.Unity.Editor
         private void OnGUI()
         {
             var editing = FindAnyObjectByType<ZoneEditing>();
-            var settings = ZoneEditor.Settings(quiet: true);
+            var settings = CometSettings.Find(quiet: true);
             if (editing == null || settings == null || settings.assets == null)
             {
-                EditorGUILayout.HelpBox(settings == null || settings.assets == null ? "This project's Zone Editor Settings need an asset library." : "Open a zone first: Comet › Zones › Open…", MessageType.Info);
+                EditorGUILayout.HelpBox(settings == null || settings.assets == null ? "This project's Comet Settings need an asset library." : "Open a zone first: Comet › Zones › Open…", MessageType.Info);
                 return;
             }
 

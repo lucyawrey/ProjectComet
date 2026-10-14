@@ -58,7 +58,7 @@ namespace Comet.Unity.Editor
         public static void Forget() => Open.Clear();
 
         /// <summary>Writes the edited terrain into the scene's copy of the zone as one undo step, and redraws it.</summary>
-        public void Commit(string undoName, ZoneEditorSettings settings)
+        public void Commit(string undoName, CometSettings settings)
         {
             Undo.RecordObject(Editing, undoName);
             Editing.zoneData = MessagePackSerializer.Serialize(Zone, Serializer);

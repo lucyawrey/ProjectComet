@@ -29,14 +29,14 @@ namespace Comet.Unity.Editor
             };
 
             // The asset database isn't ready while scripts load.
-            EditorApplication.delayCall += () => SetPlayScene(ZoneEditor.Settings(quiet: true));
+            EditorApplication.delayCall += () => SetPlayScene(CometSettings.Find(quiet: true));
         }
 
         /// <summary>While true, saving a scene doesn't save its zone (as when a zone is opened and its scene first saved).</summary>
         internal static bool Quiet { get; set; }
 
         /// <summary>Makes <paramref name="settings"/>' Play Scene the one play mode starts in.</summary>
-        public static void SetPlayScene(ZoneEditorSettings settings)
+        public static void SetPlayScene(CometSettings settings)
         {
             if (settings != null)
             {

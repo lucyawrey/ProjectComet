@@ -10,8 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 321efff2234d446d5c30f66e04b8acc3, type: 3}
-  m_Name: ZoneEditorSettings
-  m_EditorClassIdentifier: Comet.Unity.Editor::Comet.Unity.Editor.ZoneEditorSettings
+  m_Name: CometSettings
+  m_EditorClassIdentifier: Comet.Unity.Editor::Comet.Unity.Editor.CometSettings
+  contentBuildProject: ../src/ShapeLand.ContentBuild
+  contentFile: ../../artifacts/content/shapeland/content.bin
   zonesFolder: ../content/zones
   scenesFolder: Assets/ZoneEditing
   playScene: {fileID: 102900000, guid: 94972de62798f94f59138f7aba6f9af7, type: 3}

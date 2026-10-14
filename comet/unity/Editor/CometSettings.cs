@@ -4,12 +4,19 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// A game's settings for the zone editor: where its zones are and how to draw them. Each game's Unity project has
-    /// one (Create › Comet › Zone Editor Settings); the zone editor finds it. A game may fill some in from its content.
+    /// A game's settings for Comet's editor tools: how to build its content, where its zones are and how to draw them.
+    /// Each game's Unity project has one (Create › Comet › Settings); the tools find it. A game may fill some in from
+    /// its content.
     /// </summary>
-    [CreateAssetMenu(menuName = "Comet/Zone Editor Settings")]
-    public sealed class ZoneEditorSettings : ScriptableObject
+    [CreateAssetMenu(menuName = "Comet/Settings")]
+    public sealed class CometSettings : ScriptableObject
     {
+        [Tooltip("The game's content build project, relative to the Unity project: run with 'dotnet run -- build'.")]
+        public string contentBuildProject;
+
+        [Tooltip("The content build's output file, relative to the Unity project: copied into StreamingAssets under the same name.")]
+        public string contentFile;
+
         [Tooltip("The game's zones folder, relative to the Unity project (each zone is a folder in it).")]
         public string zonesFolder = "../content/zones";
 
@@ -44,5 +51,22 @@ namespace Comet.Unity.Editor
         public float spawnMarkerHeight = 0.15f;
 
         private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
+
+        /// <summary>The project's settings, or null (with a dialog unless <paramref name="quiet"/>) if it has none.</summary>
+        public static CometSettings Find(bool quiet)
+        {
+            var found = AssetDatabase.FindAssets($"t:{nameof(CometSettings)}");
+            if (found.Length == 0)
+            {
+                if (!quiet)
+                {
+                    EditorUtility.DisplayDialog("No Comet settings", "This project has no Comet Settings asset. Make one with Create › Comet › Settings.", "OK");
+                }
+
+                return null;
+            }
+
+            return AssetDatabase.LoadAssetAtPath<CometSettings>(AssetDatabase.GUIDToAssetPath(found[0]));
+        }
     }
 }
