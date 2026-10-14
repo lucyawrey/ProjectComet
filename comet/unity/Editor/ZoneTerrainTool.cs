@@ -2,16 +2,20 @@ using System.Collections.Generic;
 using System.Linq;
 using Comet.Content;
 using UnityEditor;
+using UnityEditor.EditorTools;
+using UnityEditor.Overlays;
 using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// The terrain tools for a zone opened in the editor (Comet › Zones › Terrain Tools): pick a piece and a brush,
-    /// then paint in the Scene view with the left mouse button. Each stroke is one undo step. Also makes and deletes
-    /// pieces, edits their settings, and warns where two pieces' ground is too close for a body to fit between.
+    /// The Scene view's terrain tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Terrain
+    /// Tool): pick a piece and a brush in its panel, then paint with the left mouse button. Each stroke is one undo
+    /// step. The panel also makes and deletes pieces, edits their settings, and warns where two pieces' ground is too
+    /// close for a body to fit between.
     /// </summary>
-    public sealed class TerrainToolWindow : EditorWindow
+    [EditorTool("Zone Terrain")]
+    public sealed class ZoneTerrainTool : EditorTool
     {
         private enum Brush
         {
@@ -41,23 +45,34 @@ namespace Comet.Unity.Editor
         private float _flattenHeight;
         private Vector3? _hover;
         private List<Vector3> _overlaps = new List<Vector3>();
-        private Vector2 _scroll;
 
-        [MenuItem("Comet/Zones/Terrain Tools", priority = 20)]
-        public static void Open() => GetWindow<TerrainToolWindow>("Terrain");
+        private GUIContent _icon;
+
+        /// <summary>The tool's one instance, for its panel.</summary>
+        internal static ZoneTerrainTool Instance { get; private set; }
+
+        [MenuItem("Comet/Zones/Terrain Tool", priority = 20)]
+        public static void Select() => ToolManager.SetActiveTool<ZoneTerrainTool>();
+
+        [MenuItem("Comet/Zones/Terrain Tool", true)]
+        private static bool CanSelect() => Editing != null;
+
+        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Terrain Icon").image, "Zone Terrain: paint the opened zone's terrain");
+
+        public override bool IsAvailable() => Editing != null;
 
         private void OnEnable()
         {
-            SceneView.duringSceneGui += OnSceneGui;
+            Instance = this;
             Undo.undoRedoPerformed += OnUndoRedo;
-            _settings = CometSettings.Find(quiet: true);
         }
 
         private void OnDisable()
         {
-            SceneView.duringSceneGui -= OnSceneGui;
             Undo.undoRedoPerformed -= OnUndoRedo;
         }
+
+        public override void OnActivated() => _settings = CometSettings.Find(quiet: true);
 
         private static ZoneEditing Editing => FindAnyObjectByType<ZoneEditing>();
 
@@ -71,10 +86,11 @@ namespace Comet.Unity.Editor
                 RefreshOverlaps();
             }
 
-            Repaint();
+            SceneView.RepaintAll();
         }
 
-        private void OnGUI()
+        /// <summary>The tool's panel in the Scene view.</summary>
+        internal void PanelGui()
         {
             var editing = Editing;
             if (editing == null || _settings == null)
@@ -85,7 +101,8 @@ namespace Comet.Unity.Editor
 
             var terrain = ZoneTerrainEditing.For(editing);
             var names = terrain.Zone.Pieces.Select(p => p.Name).ToArray();
-            _scroll = EditorGUILayout.BeginScrollView(_scroll);
+            EditorGUIUtility.labelWidth = 110;
+            EditorGUILayout.BeginVertical(GUILayout.Width(280));
             EditorGUILayout.LabelField(terrain.Zone.Id, EditorStyles.boldLabel);
 
             if (names.Length > 0)
@@ -110,7 +127,7 @@ namespace Comet.Unity.Editor
                 paint = EditorGUILayout.ColorField("Color", paint);
             }
 
-            EditorGUILayout.HelpBox("Paint in the Scene view with the left mouse button; hold Alt to orbit as usual. Flatten and Ground use the height where the stroke starts.", MessageType.None);
+            EditorGUILayout.HelpBox("Paint with the left mouse button; hold Alt to orbit as usual. Flatten and Ground use the height where the stroke starts.", MessageType.None);
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("New piece", EditorStyles.boldLabel);
@@ -132,7 +149,7 @@ namespace Comet.Unity.Editor
                 EditorGUILayout.HelpBox($"{_overlaps.Count} samples where two pieces' ground is closer than {_settings.bodyHeight} m (marked in red). Allowed, but a body may not fit between them.", MessageType.Warning);
             }
 
-            EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
         }
 
         private void PieceSettings(ZoneTerrainEditing terrain)
@@ -180,7 +197,7 @@ namespace Comet.Unity.Editor
             SceneView.RepaintAll();
         }
 
-        private void OnSceneGui(SceneView view)
+        public override void OnToolGUI(EditorWindow window)
         {
             var editing = Editing;
             if (editing == null || _settings == null || string.IsNullOrEmpty(piece))
@@ -206,7 +223,7 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            // Take the left mouse button from the scene's selection while this window is open.
+            // Take the left mouse button from the scene's selection while the tool is picked.
             var control = GUIUtility.GetControlID(FocusType.Passive);
             if (e.type == EventType.Layout)
             {
@@ -249,7 +266,7 @@ namespace Comet.Unity.Editor
                     e.Use();
                     break;
                 case EventType.MouseMove:
-                    view.Repaint();
+                    window.Repaint();
                     break;
             }
         }
@@ -386,5 +403,14 @@ namespace Comet.Unity.Editor
             Color32 c = color;
             return (uint)(c.r << 16 | c.g << 8 | c.b);
         }
+    }
+
+    /// <summary>The terrain tool's panel, shown in the Scene view while the tool is picked.</summary>
+    [Overlay(typeof(SceneView), "comet-zone-terrain", "Zone Terrain")]
+    internal sealed class ZoneTerrainPanel : IMGUIOverlay, ITransientOverlay
+    {
+        public bool visible => ToolManager.activeToolType == typeof(ZoneTerrainTool) && ZoneTerrainTool.Instance != null;
+
+        public override void OnGUI() => ZoneTerrainTool.Instance?.PanelGui();
     }
 }
