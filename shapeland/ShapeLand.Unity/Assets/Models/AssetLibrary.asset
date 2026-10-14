@@ -15,11 +15,31 @@ MonoBehaviour:
   entries:
   - key: asset.cone
     model: {fileID: -7856556820875146859, guid: 24afe2360b041adf0b95a49567155ba9, type: 3}
+    uniformScale: 0
+    bounds:
+      m_Center: {x: 0, y: 1, z: 0}
+      m_Extent: {x: 1, y: 1, z: 1}
   - key: asset.cube
     model: {fileID: 7449782648777001352, guid: 8845d5e83312e097bb476827c35a8824, type: 3}
+    uniformScale: 0
+    bounds:
+      m_Center: {x: 0, y: 1, z: 0}
+      m_Extent: {x: 1, y: 1, z: 1}
   - key: asset.cylinder
     model: {fileID: 755343381768946090, guid: 1f0451629bafa1e2da27a7f6bbb9cd86, type: 3}
+    uniformScale: 0
+    bounds:
+      m_Center: {x: 0, y: 1, z: 0}
+      m_Extent: {x: 1, y: 1, z: 1}
   - key: asset.ramp
     model: {fileID: 2111114328699067754, guid: 99c4244ea9da47d138f5321afd90ead2, type: 3}
+    uniformScale: 0
+    bounds:
+      m_Center: {x: 0, y: 1, z: 0}
+      m_Extent: {x: 1, y: 1, z: 1}
   - key: asset.sphere
     model: {fileID: -947854281186570357, guid: 77eae7bdff0ded360804eb8d9fa43058, type: 3}
+    uniformScale: 0
+    bounds:
+      m_Center: {x: -0.00000032782555, y: 1, z: -0.00000032782555}
+      m_Extent: {x: 0.9999994, y: 1, z: 0.99999964}
