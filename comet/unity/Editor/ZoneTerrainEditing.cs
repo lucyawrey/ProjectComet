@@ -284,6 +284,20 @@ namespace Comet.Unity.Editor
                     Piece = piece,
                     Heights = new Heightmap { SizeX = size, SizeZ = size, Scale = like?.Scale ?? NewScale, Offset = like?.Offset ?? NewOffset, Samples = new ushort[size * size] },
                 };
+                // Its edges repeat its neighbors' (chunks share their edge samples), so it starts with theirs.
+                var whole = Terrain[piece];
+                for (var i = 0; i < size; i++)
+                {
+                    foreach (var (tx, tz) in new[] { (i, 0), (i, size - 1), (0, i), (size - 1, i) })
+                    {
+                        var (wx, wz) = (coord.X * ZoneGrid.ChunkSize + tx, coord.Z * ZoneGrid.ChunkSize + tz);
+                        if (whole.TryGetHeight(wx, wz, out var edge))
+                        {
+                            tile.Heights.Samples[tz * size + tx] = Sample(tile.Heights, edge);
+                        }
+                    }
+                }
+
                 chunk.Tiles = chunk.Tiles.Append(tile).ToArray();
                 Reindex();
                 change(tile, x - coord.X * ZoneGrid.ChunkSize, z - coord.Z * ZoneGrid.ChunkSize);
