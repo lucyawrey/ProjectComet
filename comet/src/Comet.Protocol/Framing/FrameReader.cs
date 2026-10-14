@@ -21,8 +21,10 @@ namespace Comet.Protocol.Framing
             _remaining = messages;
         }
 
+        /// <summary>The tick in the frame's header: the server's tick in frames from the server; in frames from a client, the server tick the client stamps its report with.</summary>
         public uint Tick { get; }
 
+        /// <summary>A reader for <paramref name="frame"/>; throws <see cref="ProtocolException"/> if it's too short for its header.</summary>
         public static FrameReader Create(ReadOnlyMemory<byte> frame)
         {
             if (frame.Length < MessageWriter.TickSize)

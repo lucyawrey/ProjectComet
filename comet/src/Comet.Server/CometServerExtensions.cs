@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Comet.Server;
 
+/// <summary>Hooks Comet's connections into an ASP.NET Core app.</summary>
 public static class CometServerExtensions
 {
     private static readonly ConnectionLimits DefaultLimits = new();

@@ -11,10 +11,10 @@ namespace ShapeLand.Client
     /// </summary>
     public sealed class OrbitCamera : MonoBehaviour
     {
-        [Tooltip("The point looked at, above the target's feet, in metres.")]
+        [Tooltip("The point looked at, above the target's feet, in meters.")]
         [SerializeField] private float lookHeight = 0.8f;
 
-        [Tooltip("Distance from the look point, in metres.")]
+        [Tooltip("Distance from the look point, in meters.")]
         [SerializeField] private float distance = 6f;
 
         [Tooltip("Degrees turned per pixel of mouse movement.")]
@@ -26,13 +26,13 @@ namespace ShapeLand.Client
         [Tooltip("Lowest and highest pitch, in degrees (positive looks down).")]
         [SerializeField] private Vector2 pitchLimits = new Vector2(-10, 70);
 
-        [Tooltip("The least height kept above the ground, in metres.")]
+        [Tooltip("The least height kept above the ground, in meters.")]
         [SerializeField] private float groundClearance = 0.3f;
 
-        [Tooltip("The least distance kept from blocks, in metres: more than the near clip plane reaches, so their sides aren't cut open.")]
+        [Tooltip("The least distance kept from blocks, in meters: more than the near clip plane reaches, so their sides aren't cut open.")]
         [SerializeField] private float blockClearance = 0.2f;
 
-        [Tooltip("How fast the camera moves back out after a block stops being in the way, in metres per second.")]
+        [Tooltip("How fast the camera moves back out after a block stops being in the way, in meters per second.")]
         [SerializeField] private float zoomOutSpeed = 6f;
 
         [Tooltip("Before joining: distance, pitch and turning speed (degrees per second) of the slow orbit around the island.")]
@@ -42,15 +42,16 @@ namespace ShapeLand.Client
         private float _distance;
         private ShapeLandControls _controls;
         private CollisionWorld _world;
-        private Vector3? _showcaseCentre;
+        private Vector3? _showcaseCenter;
 
         /// <summary>The camera's heading in degrees, clockwise from +Z seen from above: movement is relative to it.</summary>
         public float Yaw { get; private set; }
 
+        /// <summary>What the camera follows, or null while it orbits the island.</summary>
         public Transform Target { get; private set; }
 
-        /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="centre"/> (behind the join screen).</summary>
-        public void Showcase(Vector3 centre) => _showcaseCentre = centre;
+        /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen).</summary>
+        public void Showcase(Vector3 center) => _showcaseCenter = center;
 
         /// <summary>Stops following and goes back to the showcase orbit (after the connection is lost).</summary>
         public void Release() => Target = null;
@@ -69,21 +70,21 @@ namespace ShapeLand.Client
         {
             if (Target == null)
             {
-                if (_showcaseCentre is Vector3 centre)
+                if (_showcaseCenter is Vector3 center)
                 {
                     Yaw = Mathf.Repeat(Yaw + showcase.z * Time.unscaledDeltaTime, 360);
                     var orbit = Quaternion.Euler(showcase.y, Yaw, 0);
-                    var middle = centre + Vector3.up * 2;
+                    var middle = center + Vector3.up * 2;
                     transform.SetPositionAndRotation(middle - orbit * Vector3.forward * showcase.x, orbit);
                 }
 
                 return;
             }
 
-            var turn = _controls.StickLook.ReadValue<Vector2>() * stickDegreesPerSecond * Time.unscaledDeltaTime;
-            if (_controls.OrbitHeld.IsPressed())
+            var turn = _controls.Game.StickLook.ReadValue<Vector2>() * stickDegreesPerSecond * Time.unscaledDeltaTime;
+            if (_controls.Game.OrbitHeld.IsPressed())
             {
-                turn += _controls.MouseLook.ReadValue<Vector2>() * mouseDegreesPerPixel;
+                turn += _controls.Game.MouseLook.ReadValue<Vector2>() * mouseDegreesPerPixel;
             }
 
             Yaw = Mathf.Repeat(Yaw + turn.x, 360);

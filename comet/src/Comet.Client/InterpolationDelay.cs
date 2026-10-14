@@ -17,17 +17,22 @@ namespace Comet.Client
     /// rule), gives a raw target; the target is the highest raw target of the last <see cref="HoldSeconds"/>, so it
     /// rises at once when a stall needs more, but only falls once the stall is that long past. Over TCP a lost
     /// packet stalls every entity at once, and a target that fell as soon as the stall left the window left the
-    /// delay short for the next one (prototype.md, 3c). The delay moves towards the target by
+    /// delay short for the next one (seen in the prototype's network tuning). The delay moves toward the target by
     /// running the render tick at most <see cref="GrowRate"/> slow or <see cref="ShrinkRate"/> fast, so drawn
     /// motion never jumps and the render tick never goes back. With no samples (nobody moving) the target stays
     /// where it was. Times are seconds on the caller's clock; delays are in ticks.
     /// </remarks>
     public sealed class InterpolationDelay
     {
+        /// <summary>How far back samples count toward the target, in seconds.</summary>
         public const double WindowSeconds = 2;
+        /// <summary>The share of samples the delay should cover (0.95 covers all but the slowest 5%).</summary>
         public const double Percentile = 0.95;
+        /// <summary>How much slower than real time the render tick may run while the delay grows (0.04 is 4%).</summary>
         public const double GrowRate = 0.04;
+        /// <summary>How much faster than real time the render tick may run while the delay shrinks.</summary>
         public const double ShrinkRate = 0.02;
+        /// <summary>How long a raw target holds before a lower one can replace it, in seconds.</summary>
         public const double HoldSeconds = 5;
 
         // Enough for a crowded view over the window; older samples are dropped first beyond this.
@@ -57,6 +62,7 @@ namespace Comet.Client
             Ticks = Target = FloorTicks;
         }
 
+        /// <summary>The server's ticks per second.</summary>
         public int TickRate { get; }
 
         /// <summary>The least the delay can be, in ticks.</summary>
@@ -71,7 +77,7 @@ namespace Comet.Client
         /// <summary>The delay now, in seconds.</summary>
         public double Seconds => Ticks / TickRate;
 
-        /// <summary>The delay being moved towards, in ticks.</summary>
+        /// <summary>The delay being moved toward, in ticks.</summary>
         public double Target { get; private set; }
 
         /// <summary>A state arrived needing a delay of <paramref name="neededTicks"/> (receive tick at arrival minus the entity's previous stamp).</summary>
@@ -84,7 +90,7 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>Moves the delay towards the target. Call once per update.</summary>
+        /// <summary>Moves the delay toward the target. Call once per update.</summary>
         public void Advance(double now)
         {
             if (now >= _nextTarget)
@@ -142,6 +148,7 @@ namespace Comet.Client
 
         private readonly struct Sample
         {
+            /// <summary>A sample taken at <paramref name="time"/>, needing a delay of <paramref name="neededTicks"/>.</summary>
             public Sample(double time, double neededTicks)
             {
                 Time = time;

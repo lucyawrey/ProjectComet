@@ -15,18 +15,15 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// Joins ShapeLand: loads the content, connects to a game server, sends the join request and logs what the
-    /// server says (welcome, spawns, despawns, chat). With <c>joinOnStart</c> it joins at once as a random shape
-    /// (the bare join scene, tests); otherwise the join screen calls <see cref="Join"/> and can try again after a
-    /// refusal or a failed connection. The game scene draws on top of it.
+    /// server says (welcome, spawns, despawns, chat). The join screen calls <see cref="Join"/> and can try again
+    /// after a refusal or a failed connection; the rest of the game scene draws on top of it.
     /// </summary>
     [RequireComponent(typeof(CometConnection))]
     public sealed class JoinClient : MonoBehaviour
     {
-        public const string LogPrefix = "JOIN";
+        private const string LogPrefix = "JOIN";
 
         [SerializeField] private string address = "localhost:5080";
-        [SerializeField] private string playerName = "Player";
-        [SerializeField] private bool joinOnStart = true;
 
         private CometConnection _connection;
         private ShapeLandContent _content;
@@ -36,25 +33,8 @@ namespace ShapeLand.Client
         private double _askedAt;
         private double _connectedAt;
 
-        /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
-        public string Address
-        {
-            get => address;
-            set => address = value;
-        }
-
-        public string PlayerName
-        {
-            get => playerName;
-            set => playerName = value;
-        }
-
-        /// <summary>Whether to join as soon as the content loads, as a random shape and colours. Set before the component starts.</summary>
-        public bool JoinOnStart
-        {
-            get => joinOnStart;
-            set => joinOnStart = value;
-        }
+        /// <summary>The name last asked for.</summary>
+        public string PlayerName { get; private set; }
 
         /// <summary>
         /// The server to join unless the player names another: on the web, the page's <c>?server=</c>, else the one its
@@ -94,10 +74,10 @@ namespace ShapeLand.Client
         /// The connection was lost while joined (the server closed it, stopped answering, or the game fell too far
         /// behind), with the reason. The player is gone from the world; the next <see cref="Join"/> starts over.
         /// </summary>
-        public event Action<string> ConnectionLost;
+        public event Action<CloseReason> ConnectionLost;
 
-        /// <summary>Raised when the content won't load or the connection fails or closes, with the reason.</summary>
-        public event Action<string> Failed;
+        /// <summary>Raised when the content won't load, or joining fails before the player is in; <see cref="Error"/> has the details.</summary>
+        public event Action<JoinFailure> Failed;
 
         /// <summary>Raised for each chat line, the player's own included (the server echoes it, so everyone sees one order).</summary>
         public event Action<ChatMessage> ChatReceived;
@@ -111,15 +91,14 @@ namespace ShapeLand.Client
         /// <summary>The server's spawn of this player, once joined.</summary>
         public PlayerSpawn? Spawn { get; private set; }
 
+        /// <summary>Why the server turned the last join down, or null.</summary>
         public JoinRejection? Rejected { get; private set; }
 
-        /// <summary>Why the client stopped: content that wouldn't load, or the connection's error.</summary>
+        /// <summary>The last failure, or <see cref="JoinFailure.None"/>.</summary>
+        public JoinFailure Failure { get; private set; }
+
+        /// <summary>The details of <see cref="Failure"/>, in English, for logs; null when there's none.</summary>
         public string Error { get; private set; }
-
-        /// <summary>Whether the last failure was the server address itself, rather than reaching the server; <see cref="Error"/> says why.</summary>
-        public bool BadAddress { get; private set; }
-
-        public const string JoinUnanswered = "The server didn't answer the request to join.";
 
         public ClientSession Session => _connection.Session;
 
@@ -134,7 +113,7 @@ namespace ShapeLand.Client
                 yield return request.SendWebRequest();
                 if (request.result != UnityWebRequest.Result.Success)
                 {
-                    Fail($"Couldn't load {url}: {request.error}");
+                    Fail(JoinFailure.NoContent, $"Couldn't load {url}: {request.error}");
                     yield break;
                 }
 
@@ -142,18 +121,6 @@ namespace ShapeLand.Client
             }
 
             ContentLoaded?.Invoke(_content);
-            if (joinOnStart)
-            {
-                // A number after the default name lets several such clients join at once.
-                var name = playerName == "Player" ? $"Player {UnityEngine.Random.Range(100, 1000)}" : playerName;
-                Join(DefaultAddress, new JoinRequest
-                {
-                    Name = name,
-                    Shape = _content.Shapes.All[UnityEngine.Random.Range(0, _content.Shapes.All.Count)].Number,
-                    Colour = ShapeLandRules.BodyColours[UnityEngine.Random.Range(0, ShapeLandRules.BodyColours.Length)],
-                    EyeColour = ShapeLandRules.EyeColours[UnityEngine.Random.Range(0, ShapeLandRules.EyeColours.Length)],
-                });
-            }
         }
 
         /// <summary>
@@ -167,14 +134,13 @@ namespace ShapeLand.Client
                 throw new InvalidOperationException("Join after the content has loaded.");
             }
 
+            Failure = JoinFailure.None;
             Error = null;
-            BadAddress = false;
             Rejected = null;
-            playerName = request.Name;
+            PlayerName = request.Name;
             if (!TryServerUrl(serverAddress, out var url))
             {
-                BadAddress = true;
-                Fail($"\"{serverAddress}\" isn't a server address. Use a host and port, like localhost:5080.");
+                Fail(JoinFailure.BadAddress, $"\"{serverAddress}\" isn't a server address.");
                 return;
             }
 
@@ -190,7 +156,7 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// Once joined, asks to change the name, shape or colours where the player stands. The answer is a new
+        /// Once joined, asks to change the name, shape or colors where the player stands. The answer is a new
         /// <see cref="OwnSpawned"/>, or <see cref="JoinRefused"/>.
         /// </summary>
         public void Change(JoinRequest request)
@@ -201,7 +167,7 @@ namespace ShapeLand.Client
             }
 
             Rejected = null;
-            playerName = request.Name;
+            PlayerName = request.Name;
             _pending = request;
         }
 
@@ -285,13 +251,13 @@ namespace ShapeLand.Client
 
             if (session.Closed && Joined)
             {
-                var reason = session.Error ?? "The connection closed.";
+                var reason = session.CloseReason;
                 Joined = false;
                 Spawn = null;
                 _pending = null;
                 _awaitingAnswer = false;
                 _connection.Disconnect(); // the next Join connects afresh
-                Log($"connection lost: {reason}");
+                Log($"connection lost: {reason} ({session.Error})");
                 ConnectionLost?.Invoke(reason);
                 return;
             }
@@ -303,9 +269,9 @@ namespace ShapeLand.Client
                 var idle = !Joined && _pending == null && !_awaitingAnswer;
                 _pending = null;
                 _awaitingAnswer = false;
-                if (Error == null && !idle)
+                if (Failure == JoinFailure.None && !idle)
                 {
-                    Fail(session.Error ?? "The connection closed.");
+                    Fail(JoinFailure.Unreachable, $"{session.CloseReason}: {session.Error}");
                 }
 
                 return;
@@ -316,7 +282,7 @@ namespace ShapeLand.Client
             {
                 _awaitingAnswer = false;
                 _connection.Disconnect();
-                Fail(JoinUnanswered);
+                Fail(JoinFailure.Unanswered, "The server didn't answer the request to join.");
                 return;
             }
 
@@ -344,7 +310,7 @@ namespace ShapeLand.Client
                         Joined = true;
                         _awaitingAnswer = false;
                         Spawn = spawn;
-                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), colour #{spawn.Colour:X6}, eyes #{spawn.EyeColour:X6}");
+                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), color #{spawn.Color:X6}, eyes #{spawn.EyeColor:X6}");
                         OwnSpawned?.Invoke(spawn);
                     }
                     else
@@ -375,13 +341,32 @@ namespace ShapeLand.Client
             }
         }
 
-        private void Fail(string error)
+        private void Fail(JoinFailure failure, string error)
         {
+            Failure = failure;
             Error = error;
             Debug.LogWarning($"{LogPrefix}: {error}");
-            Failed?.Invoke(error);
+            Failed?.Invoke(failure);
         }
 
         private static void Log(string line) => Debug.Log($"{LogPrefix}: {line}");
+    }
+
+    /// <summary>Why the join client stopped before the player was in.</summary>
+    public enum JoinFailure
+    {
+        None,
+
+        /// <summary>The content file wouldn't load.</summary>
+        NoContent,
+
+        /// <summary>The server address given isn't one.</summary>
+        BadAddress,
+
+        /// <summary>The connection failed or closed before the player was in.</summary>
+        Unreachable,
+
+        /// <summary>The server didn't answer the join request in time.</summary>
+        Unanswered,
     }
 }

@@ -11,8 +11,8 @@ public class ShapeLandRulesTests
     [InlineData("x_y-z", "x_y-z")]
     public void AcceptsAndTrimsNames(string name, string expected)
     {
-        Assert.True(ShapeLandRules.TryNormaliseName(name, out var normalised));
-        Assert.Equal(expected, normalised);
+        Assert.True(ShapeLandRules.TryNormalizeName(name, out var normalized));
+        Assert.Equal(expected, normalized);
     }
 
     [Theory]
@@ -22,16 +22,16 @@ public class ShapeLandRulesTests
     [InlineData("seventeen chars!!")]
     [InlineData("ThisNameIsTooLong")]
     [InlineData("emoji 🙂")]
-    public void RejectsBadNames(string name) => Assert.False(ShapeLandRules.TryNormaliseName(name, out _));
+    public void RejectsBadNames(string name) => Assert.False(ShapeLandRules.TryNormalizeName(name, out _));
 
     [Fact]
     public void ChatIsTrimmedAndLimited()
     {
-        Assert.True(ShapeLandRules.TryNormaliseChat("  hi  ", out var text));
+        Assert.True(ShapeLandRules.TryNormalizeChat("  hi  ", out var text));
         Assert.Equal("hi", text);
-        Assert.False(ShapeLandRules.TryNormaliseChat("   ", out _));
-        Assert.True(ShapeLandRules.TryNormaliseChat(new string('a', 200), out _));
-        Assert.False(ShapeLandRules.TryNormaliseChat(new string('a', 201), out _));
+        Assert.False(ShapeLandRules.TryNormalizeChat("   ", out _));
+        Assert.True(ShapeLandRules.TryNormalizeChat(new string('a', 200), out _));
+        Assert.False(ShapeLandRules.TryNormalizeChat(new string('a', 201), out _));
     }
 
     [Theory]
@@ -45,23 +45,23 @@ public class ShapeLandRulesTests
     [InlineData("e\u0301\u0302\u0303\u0304\u0305 1\uFE0F\u20E3", "e\u0301\u0302\u0303 1\uFE0F\u20E3")] // stacked accents are capped; a keycap emoji is whole
     public void ChatDropsCharactersThatArentText(string sent, string shown)
     {
-        Assert.True(ShapeLandRules.TryNormaliseChat(sent, out var text));
+        Assert.True(ShapeLandRules.TryNormalizeChat(sent, out var text));
         Assert.Equal(shown, text);
     }
 
     [Fact]
     public void ChatDropsHalfASurrogatePair()
     {
-        // Not in InlineData: a lone surrogate doesn't survive the test runner's serialisation.
-        Assert.True(ShapeLandRules.TryNormaliseChat("a\uD800b", out var text));
+        // Not in InlineData: a lone surrogate doesn't survive the test runner's serialization.
+        Assert.True(ShapeLandRules.TryNormalizeChat("a\uD800b", out var text));
         Assert.Equal("ab", text);
     }
 
     [Fact]
-    public void ChatOfOnlyControlCharactersIsEmpty() => Assert.False(ShapeLandRules.TryNormaliseChat("\n\u200B\t", out _));
+    public void ChatOfOnlyControlCharactersIsEmpty() => Assert.False(ShapeLandRules.TryNormalizeChat("\n\u200B\t", out _));
 
     [Fact]
-    public void ChatOfOnlyTagCharactersIsEmpty() => Assert.False(ShapeLandRules.TryNormaliseChat("\U000E0001\U000E0041\U000E007F", out _));
+    public void ChatOfOnlyTagCharactersIsEmpty() => Assert.False(ShapeLandRules.TryNormalizeChat("\U000E0001\U000E0041\U000E007F", out _));
 
     [Fact]
     public void ChatAllowsABurstThenOneEveryTwoSeconds()

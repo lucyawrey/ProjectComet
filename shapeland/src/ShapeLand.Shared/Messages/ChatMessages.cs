@@ -17,6 +17,7 @@ namespace ShapeLand.Shared.Messages
         [Key(1)] public string Text;
     }
 
+    /// <summary>Why the server didn't deliver a chat line.</summary>
     public enum ChatRejection : byte
     {
         /// <summary>Empty after trimming, or longer than <see cref="ShapeLand.Shared.World.ShapeLandRules.MaxChatLength"/>.</summary>

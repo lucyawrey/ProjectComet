@@ -56,11 +56,11 @@ public class ContentTests
     public void TerrainIsAFloatingDisc()
     {
         var terrain = TestTerrain.Generate(1);
-        const int centre = TestTerrain.Size / 2;
+        const int center = TestTerrain.Size / 2;
 
-        Assert.False(terrain.IsHole(centre, centre));
-        Assert.False(terrain.IsHole(centre + 13, centre));
-        Assert.True(terrain.IsHole(centre + 15, centre));
+        Assert.False(terrain.IsHole(center, center));
+        Assert.False(terrain.IsHole(center + 13, center));
+        Assert.True(terrain.IsHole(center + 15, center));
         Assert.True(terrain.IsHole(0, 0));
     }
 

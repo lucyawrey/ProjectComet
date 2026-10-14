@@ -22,11 +22,11 @@ public sealed class BotSettings
     /// <summary>Jump this many times faster than the shape allows (1 for an honest bot); the height goes with its square.</summary>
     public float JumpCheat { get; set; } = 1;
 
-    /// <summary>Stay within this distance of the island's centre, in metres.</summary>
+    /// <summary>Stay within this distance of the island's center, in meters.</summary>
     public float WanderRadius { get; set; } = 18;
 
-    /// <summary>Ask for this body colour (0xRRGGBB) instead of a random one from the starting set.</summary>
-    public uint? Colour { get; set; }
+    /// <summary>Ask for this body color (0xRRGGBB) instead of a random one from the starting set.</summary>
+    public uint? Color { get; set; }
 
     /// <summary>Seconds after joining before network numbers are recorded (the delay settles first); negative for none.</summary>
     public double WarmupSeconds { get; set; } = -1;
@@ -72,8 +72,10 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public uint EntityId => _session.EntityId;
 
+    /// <summary>True once the server has spawned the bot.</summary>
     public bool Joined { get; private set; }
 
+    /// <summary>Why the server turned the bot's join down, or null.</summary>
     public JoinRejection? Rejected { get; private set; }
 
     /// <summary>Other players this bot has seen spawn.</summary>
@@ -81,14 +83,18 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public int StatesReceived => _session.StatesReceived;
 
+    /// <summary>How many times the server moved the bot back (corrections other than respawns).</summary>
     public int SnapBacks { get; private set; }
 
+    /// <summary>How many times the bot fell out of the world and was respawned.</summary>
     public int Respawns { get; private set; }
 
+    /// <summary>Chat lines the bot sent, and those it received from others.</summary>
     public int ChatsSent { get; private set; }
 
     public int ChatsReceived { get; private set; }
 
+    /// <summary>How many other players left the bot's view.</summary>
     public int Despawns { get; private set; }
 
     /// <summary>The connection failed or was lost, rather than being closed by the bot.</summary>
@@ -159,8 +165,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                     {
                         Name = name,
                         Shape = _shape.Number,
-                        Colour = settings.Colour ?? ShapeLandRules.BodyColours[_random.Next(ShapeLandRules.BodyColours.Length)],
-                        EyeColour = ShapeLandRules.EyeColours[_random.Next(ShapeLandRules.EyeColours.Length)],
+                        Color = settings.Color ?? ShapeLandRules.BodyColors[_random.Next(ShapeLandRules.BodyColors.Length)],
+                        EyeColor = ShapeLandRules.EyeColors[_random.Next(ShapeLandRules.EyeColors.Length)],
                         ContentFingerprint = content.Fingerprint,
                     });
                 }
@@ -194,7 +200,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         transport.Close();
         await transport.Completion;
         transport.Dispose();
-        Failed = _session.Error is not null;
+        Failed = _session.CloseReason != CloseReason.None;
     }
 
     private void Step(double now, long stepNumber)

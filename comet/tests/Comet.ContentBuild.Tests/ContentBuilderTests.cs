@@ -6,7 +6,7 @@ public class ContentBuilderTests
     public void ReadsValidFilesInNumberOrder()
     {
         using var folder = new ContentFolder();
-        folder.Write("widgets/b.toml", "id = \"widget.b\"\nsize = 2\ncolour = { red = 1, green = 2, blue = 3 }\n");
+        folder.Write("widgets/b.toml", "id = \"widget.b\"\nsize = 2\ncolor = { red = 1, green = 2, blue = 3 }\n");
         folder.Write("widgets/sub/a.toml", "id = \"widget.a\"\nsize = 1\ntags = [\"x\"]\n\n[[parts]]\nname = \"p\"\nstats = { speed = 3 }\n");
 
         var result = folder.Build();
@@ -15,14 +15,14 @@ public class ContentBuilderTests
         var widgets = result.Entries<Widget>();
         Assert.Equal(["widget.a", "widget.b"], widgets.Select(w => w.Id));
         Assert.Equal([1, 2], widgets.Select(w => w.Number));
-        Assert.Equal(3, widgets[1].Colour!.Blue);
+        Assert.Equal(3, widgets[1].Color!.Blue);
         Assert.Equal(3, widgets[0].Parts[0].Stats["speed"]);
     }
 
     [Theory]
     [InlineData("id = \"widget.a\"\nsize = 1\nsise = 2\n", 3, "Unknown key 'sise' in widget")]
-    [InlineData("id = \"widget.a\"\nsize = 1\ncolour = { red = 1, purple = 2 }\n", 3, "Unknown key 'purple' in colour")]
-    [InlineData("id = \"widget.a\"\nsize = 1\ncolour.reed = 1\n", 3, "Unknown key 'reed' in colour")]
+    [InlineData("id = \"widget.a\"\nsize = 1\ncolor = { red = 1, purple = 2 }\n", 3, "Unknown key 'purple' in color")]
+    [InlineData("id = \"widget.a\"\nsize = 1\ncolor.reed = 1\n", 3, "Unknown key 'reed' in color")]
     [InlineData("id = \"widget.a\"\nsize = 1\n\n[[parts]]\nname = \"p\"\nnmae = \"q\"\n", 6, "Unknown key 'nmae' in part")]
     [InlineData("id = \"widget.a\"\n", 1, "Missing required TOML key 'size'")]
     [InlineData("id = \"widget.a\"\nsize = \"big\"\n", 2, "Expected Integer token but was String")]
@@ -83,9 +83,9 @@ public class ContentBuilderTests
     }
 
     [Theory]
-    [InlineData("id = \"widget.a\"\nsize = 1\n\n[colour]\nred = 1\nblue = -1\n", 6, 8)]
-    [InlineData("id = \"widget.a\"\nsize = 1\ncolour.blue = -1\n", 3, 15)]
-    [InlineData("id = \"widget.a\"\nsize = 1\ncolour = { red = 1, blue = -1 }\n", 3, 28)]
+    [InlineData("id = \"widget.a\"\nsize = 1\n\n[color]\nred = 1\nblue = -1\n", 6, 8)]
+    [InlineData("id = \"widget.a\"\nsize = 1\ncolor.blue = -1\n", 3, 14)]
+    [InlineData("id = \"widget.a\"\nsize = 1\ncolor = { red = 1, blue = -1 }\n", 3, 27)]
     public void ValidationErrorsInATablePointAtTheField(string toml, int line, int column)
     {
         using var folder = new ContentFolder();
@@ -93,15 +93,15 @@ public class ContentBuilderTests
 
         var result = folder.Build((widget, validation) =>
         {
-            if (widget.Colour?.Blue < 0)
+            if (widget.Color?.Blue < 0)
             {
-                validation.Error(nameof(Widget.Colour), nameof(Colour.Blue), "must not be negative.");
+                validation.Error(nameof(Widget.Color), nameof(Color.Blue), "must not be negative.");
             }
         });
 
         var error = Assert.Single(result.Errors);
         Assert.Equal((line, column), (error.Line, error.Column));
-        Assert.Equal("colour.blue: must not be negative.", error.Message);
+        Assert.Equal("color.blue: must not be negative.", error.Message);
     }
 
     [Fact]
@@ -125,6 +125,6 @@ public class ContentBuilderTests
         Assert.False(schema["additionalProperties"]!.GetValue<bool>());
         Assert.Null(schema["properties"]!["number"]);
         Assert.Equal("^widget\\.[a-z][a-z0-9_]*$", schema["properties"]!["id"]!["pattern"]!.GetValue<string>());
-        Assert.False(schema["properties"]!["colour"]!["additionalProperties"]!.GetValue<bool>());
+        Assert.False(schema["properties"]!["color"]!["additionalProperties"]!.GetValue<bool>());
     }
 }

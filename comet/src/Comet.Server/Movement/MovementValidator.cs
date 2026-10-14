@@ -49,7 +49,7 @@ public enum FallResult
 
 /// <summary>
 /// How lenient the checks are; tuned in the prototype from what honest bots need (<see cref="MovementHeadroom"/>,
-/// prototype.md), about 1.5 to 2 times their worst under the bad network profile.
+/// logged when each player leaves), about 1.5 to 2 times their worst under the bad network profile.
 /// </summary>
 public sealed class MovementTolerances
 {
@@ -59,7 +59,7 @@ public sealed class MovementTolerances
     /// <summary>How much unused movement can build up, in seconds at the allowed speed (covers bursts after a stall).</summary>
     public float MaxBurstSeconds { get; set; } = 1f;
 
-    /// <summary>Extra distance always allowed, in metres (rounding, small corrections).</summary>
+    /// <summary>Extra distance always allowed, in meters (rounding, small corrections).</summary>
     public float DistanceSlack { get; set; } = 0.25f;
 
     /// <summary>Allowed jump height as a multiple of the shape's jump apex.</summary>
@@ -73,20 +73,19 @@ public sealed class MovementTolerances
 
     /// <summary>
     /// Seconds without a report before the server moves an airborne player itself. Longer than a TCP resend
-    /// stall at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't (prototype.md, 3c).
+    /// stall at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't in the prototype's network tuning.
     /// </summary>
     public float SilenceSeconds { get; set; } = 1.0f;
 
-    /// <summary>Extra height always allowed above a jump, in metres.</summary>
+    /// <summary>Extra height always allowed above a jump, in meters.</summary>
     public float HeightSlack { get; set; } = 0.4f;
 
-    /// <summary>How far below the terrain surface a report may be, in metres.</summary>
+    /// <summary>How far below the terrain surface a report may be, in meters.</summary>
     public float GroundSlack { get; set; } = 0.3f;
 }
 
 /// <summary>
-/// Checks one player's position reports (the client is the authority on its own movement, within these rules;
-/// netcode.md). Speed uses a distance budget: each server tick earns max speed × the speed factor, each report
+/// Checks one player's position reports (the client is the authority on its own movement, within these rules). Speed uses a distance budget: each server tick earns max speed × the speed factor, each report
 /// spends the distance it moved, and the budget is capped, so a burst of reports after a stall passes but
 /// banking movement for a dash doesn't. Height follows gravity: in the air, a report must stay under the arc of
 /// a jump from the last ground the player stood on, at that point in time (the report's stamp). The server never
@@ -111,6 +110,7 @@ public sealed class MovementValidator
     private MotorState _fall;
     private Vector2 _fallMove;
 
+    /// <summary>A validator for one player, checking their reports against <paramref name="world"/> and <paramref name="rules"/>, with <paramref name="tolerances"/> for latency.</summary>
     public MovementValidator(CollisionWorld world, MovementRules rules, MovementTolerances tolerances, int tickRate)
     {
         _world = world;
@@ -125,6 +125,7 @@ public sealed class MovementValidator
     /// <summary>The player's velocity: as last reported, or the server's own while it moves them down a fall.</summary>
     public Vector3 Velocity => _serverFalling ? _fall.Velocity : _velocity;
 
+    /// <summary>The last reported facing, as a yaw angle in radians.</summary>
     public float Facing { get; private set; }
 
     /// <summary>The last accepted position standing on solid ground (where a respawn returns to).</summary>

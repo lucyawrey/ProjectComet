@@ -6,9 +6,11 @@ namespace Comet.Simulation
     /// <summary>A moving player's physical state.</summary>
     public struct MotorState
     {
-        /// <summary>The bottom centre of the body.</summary>
+        /// <summary>The bottom center of the body.</summary>
         public Vector3 Position;
+        /// <summary>In meters per second.</summary>
         public Vector3 Velocity;
+        /// <summary>True while standing on terrain or a box.</summary>
         public bool Grounded;
 
         /// <summary>Facing as a yaw angle in radians (0 faces +Z).</summary>
@@ -16,7 +18,7 @@ namespace Comet.Simulation
     }
 
     /// <summary>
-    /// Moves a player one step: slides towards the wanted horizontal velocity, jumps, falls, stands on ground
+    /// Moves a player one step: slides toward the wanted horizontal velocity, jumps, falls, stands on ground
     /// and slides along boxes. Clients and bots move with it, so their movement fits the rules the server checks.
     /// </summary>
     public static class PlayerMotor
@@ -25,8 +27,8 @@ namespace Comet.Simulation
         /// <param name="move">Wanted direction on the ground plane (X, Z), length 0 to 1.</param>
         /// <param name="jump">Start a jump if grounded.</param>
         /// <param name="seconds">The step length.</param>
-        /// <param name="maxSpeed">The player's top ground speed, in metres per second.</param>
-        /// <param name="jumpVelocity">The player's jump take-off speed, in metres per second.</param>
+        /// <param name="maxSpeed">The player's top ground speed, in meters per second.</param>
+        /// <param name="jumpVelocity">The player's jump take-off speed, in meters per second.</param>
         public static void Step(ref MotorState state, Vector2 move, bool jump, float seconds, float maxSpeed, float jumpVelocity, CollisionWorld world, MovementRules rules)
         {
             if (move.LengthSquared() > 1)
@@ -34,7 +36,7 @@ namespace Comet.Simulation
                 move = Vector2.Normalize(move);
             }
 
-            // Horizontal: accelerate towards the wanted velocity.
+            // Horizontal: accelerate toward the wanted velocity.
             var wanted = move * maxSpeed;
             var current = new Vector2(state.Velocity.X, state.Velocity.Z);
             var change = wanted - current;
@@ -47,7 +49,7 @@ namespace Comet.Simulation
             current += change;
             if (move.LengthSquared() > 0.0001f)
             {
-                state.Facing = TurnTowards(state.Facing, MathF.Atan2(move.X, move.Y), rules.TurnSpeed * MathF.PI / 180 * seconds);
+                state.Facing = TurnToward(state.Facing, MathF.Atan2(move.X, move.Y), rules.TurnSpeed * MathF.PI / 180 * seconds);
             }
 
             // Vertical: jump or fall.
@@ -100,8 +102,8 @@ namespace Comet.Simulation
             state.Velocity = new Vector3(current.X, velocityY, current.Y);
         }
 
-        // Turns a yaw angle the short way round towards another, by at most maxTurn radians; the result is in (-π, π].
-        private static float TurnTowards(float from, float to, float maxTurn)
+        // Turns a yaw angle the short way round toward another, by at most maxTurn radians; the result is in (-π, π].
+        private static float TurnToward(float from, float to, float maxTurn)
         {
             var difference = to - from;
             difference -= 2 * MathF.PI * MathF.Floor((difference + MathF.PI) / (2 * MathF.PI));

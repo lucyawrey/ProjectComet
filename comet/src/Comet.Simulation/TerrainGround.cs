@@ -11,6 +11,7 @@ namespace Comet.Simulation
     /// </summary>
     public sealed class TerrainGround
     {
+        /// <summary><paramref name="map"/> placed with sample (0, 0) at <paramref name="origin"/>, <paramref name="spacing"/> meters apart.</summary>
         public TerrainGround(Heightmap map, float spacing, Vector3 origin)
         {
             Map = map;
@@ -18,19 +19,20 @@ namespace Comet.Simulation
             Origin = origin;
         }
 
+        /// <summary>The heights, in samples.</summary>
         public Heightmap Map { get; }
 
-        /// <summary>Metres between samples.</summary>
+        /// <summary>Meters between samples.</summary>
         public float Spacing { get; }
 
         /// <summary>Where sample (0, 0) sits in the world, at height 0.</summary>
         public Vector3 Origin { get; }
 
-        /// <summary>A heightmap centred on <paramref name="centre"/> horizontally.</summary>
-        public static TerrainGround Centred(Heightmap map, float spacing, Vector3 centre) => new TerrainGround(
+        /// <summary>A heightmap centered on <paramref name="center"/> horizontally.</summary>
+        public static TerrainGround Centered(Heightmap map, float spacing, Vector3 center) => new TerrainGround(
             map,
             spacing,
-            new Vector3(centre.X - (map.SizeX - 1) * spacing / 2, centre.Y, centre.Z - (map.SizeZ - 1) * spacing / 2));
+            new Vector3(center.X - (map.SizeX - 1) * spacing / 2, center.Y, center.Z - (map.SizeZ - 1) * spacing / 2));
 
         /// <summary>The ground height at a world point, or false over a hole or outside the map.</summary>
         public bool TryGetHeight(float x, float z, out float height)

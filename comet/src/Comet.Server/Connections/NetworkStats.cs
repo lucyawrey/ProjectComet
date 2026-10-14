@@ -27,6 +27,7 @@ public sealed class NetworkStats
     /// <summary>State messages replaced by a newer one before they were sent.</summary>
     public long StateReplaced => Interlocked.Read(ref _stateReplaced);
 
+    /// <summary>Clients dropped for sending malformed or oversized frames.</summary>
     public long ProtocolErrors => Interlocked.Read(ref _protocolErrors);
 
     /// <summary>Clients dropped because they stopped reading (their unsent events piled up).</summary>
@@ -35,12 +36,14 @@ public sealed class NetworkStats
     /// <summary>Connections refused for passing <see cref="ConnectionLimits"/>.</summary>
     public long ConnectionsRefused => Interlocked.Read(ref _connectionsRefused);
 
+    /// <summary>Counts a frame sent of <paramref name="bytes"/> bytes.</summary>
     internal void AddSent(int bytes)
     {
         Interlocked.Add(ref _bytesSent, bytes);
         Interlocked.Increment(ref _framesSent);
     }
 
+    /// <summary>Counts a frame received of <paramref name="bytes"/> bytes.</summary>
     internal void AddReceived(int bytes)
     {
         Interlocked.Add(ref _bytesReceived, bytes);

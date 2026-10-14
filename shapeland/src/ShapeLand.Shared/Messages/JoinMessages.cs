@@ -3,7 +3,7 @@ using MessagePack;
 namespace ShapeLand.Shared.Messages
 {
     /// <summary>
-    /// Client input: join the game with a name, a shape and colours. Sent after connecting, again after a rejection,
+    /// Client input: join the game with a name, a shape and colors. Sent after connecting, again after a rejection,
     /// and once joined to change any of them: the player stays where they are and everyone gets a new <see cref="PlayerSpawn"/>.
     /// </summary>
     [MessagePackObject]
@@ -14,11 +14,11 @@ namespace ShapeLand.Shared.Messages
         /// <summary>The shape's content number.</summary>
         [Key(1)] public int Shape;
 
-        /// <summary>The body colour as 0xRRGGBB, one the player may use.</summary>
-        [Key(2)] public uint Colour;
+        /// <summary>The body color as 0xRRGGBB, one the player may use.</summary>
+        [Key(2)] public uint Color;
 
-        /// <summary>The eye colour as 0xRRGGBB, one the player may use.</summary>
-        [Key(3)] public uint EyeColour;
+        /// <summary>The eye color as 0xRRGGBB, one the player may use.</summary>
+        [Key(3)] public uint EyeColor;
 
         /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
         [Key(4)] public ulong ContentFingerprint;
@@ -35,8 +35,8 @@ namespace ShapeLand.Shared.Messages
 
         UnknownShape = 3,
 
-        /// <summary>A body or eye colour the player may not use (not in the starting sets).</summary>
-        UnavailableColour = 5,
+        /// <summary>A body or eye color the player may not use (not in the starting sets).</summary>
+        UnavailableColor = 5,
 
         /// <summary>The client's content isn't the server's (another build of the game, or content rebuilt since).</summary>
         DifferentContent = 6,
@@ -63,15 +63,15 @@ namespace ShapeLand.Shared.Messages
         /// <summary>The shape's content number.</summary>
         [Key(2)] public int Shape;
 
-        /// <summary>The player's body colour as 0xRRGGBB.</summary>
-        [Key(3)] public uint Colour;
+        /// <summary>The player's body color as 0xRRGGBB.</summary>
+        [Key(3)] public uint Color;
 
         [Key(4)] public float X;
         [Key(5)] public float Y;
         [Key(6)] public float Z;
         [Key(7)] public float Facing;
 
-        /// <summary>The player's eye colour as 0xRRGGBB.</summary>
-        [Key(8)] public uint EyeColour;
+        /// <summary>The player's eye color as 0xRRGGBB.</summary>
+        [Key(8)] public uint EyeColor;
     }
 }

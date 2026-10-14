@@ -28,17 +28,17 @@ namespace ShapeLand.Shared.Content
         [JsonRequired]
         [Key(3)] public MeshKind Mesh { get; set; }
 
-        /// <summary>Top ground speed, in metres per second.</summary>
+        /// <summary>Top ground speed, in meters per second.</summary>
         [JsonRequired]
         [Key(4)] public float MaxSpeed { get; set; }
 
-        /// <summary>Upward speed at the start of a jump, in metres per second.</summary>
+        /// <summary>Upward speed at the start of a jump, in meters per second.</summary>
         [JsonRequired]
         [Key(5)] public float JumpVelocity { get; set; }
 
         /// <summary>
-        /// How big the shape is drawn, times its look in the client's <c>WorldMeshes</c> (1 is as designed). Looks
-        /// only: every shape collides as the one shared body in <c>MovementRules</c>.
+        /// How big the shape is drawn, times its model's size (1 is as modeled). Looks only: every shape collides as
+        /// the one shared body in <c>MovementRules</c>.
         /// </summary>
         [JsonRequired]
         [Key(6)] public float Scale { get; set; }

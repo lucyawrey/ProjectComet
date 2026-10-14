@@ -34,6 +34,7 @@ namespace Comet.Server.Connections;
 /// </summary>
 public sealed class Connection
 {
+    /// <summary>The largest frame a client may send, in bytes; a bigger one drops the client.</summary>
     public const int MaxIncomingFrameSize = 4096;
 
     /// <summary>Messages a client may send per second on average, well above an honest client's (about 20).</summary>
@@ -54,6 +55,7 @@ public sealed class Connection
     /// <summary>A tick frame takes no more entity states past this size, which leaves room for the last one under the clients' limit.</summary>
     public const int TickFrameStateLimit = FrameReader.MaxServerFrameSize - 1024;
 
+    /// <summary>A send waiting longer than this drops the client, as stopped reading.</summary>
     public static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(10);
 
     private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(5);
@@ -94,6 +96,7 @@ public sealed class Connection
         Id = registry.NextId();
     }
 
+    /// <summary>A number for this connection, unique while the server runs.</summary>
     public uint Id { get; }
 
     /// <summary>The game's own data for this connection.</summary>
@@ -220,6 +223,7 @@ public sealed class Connection
         _ = Task.Delay(CloseTimeout).ContinueWith(_ => _socket.Abort(), TaskScheduler.Default);
     }
 
+    /// <summary>Runs the connection until it closes: the handler's callbacks, receiving, and sending in the background.</summary>
     internal async Task RunAsync(CancellationToken cancellationToken)
     {
         // The handler sets up its data before the tick thread can see the connection.
