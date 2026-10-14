@@ -268,7 +268,7 @@ namespace Comet.Unity.Editor
                     var marker = thing.AddComponent<ZonePlacement>();
                     marker.asset = placement.Asset;
                     marker.placementName = placement.Name ?? "";
-                    SetColors(marker, settings, placement.Color);
+                    SetColors(marker, settings, placement.Color, isMarker);
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -283,8 +283,8 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A placement's colors: its asset's, from the library, and its own if it has one.
-        private static void SetColors(ZonePlacement placement, CometSettings settings, uint? own)
+        // A placement's colors: its asset's, from the library (a spawn's marker: the settings' marker color), and its own if it has one.
+        private static void SetColors(ZonePlacement placement, CometSettings settings, uint? own, bool spawnMarker = false)
         {
             Color? asset = settings.assets != null && settings.assets.TryGet(placement.asset, out var entry) && entry.hasColor ? entry.color : null;
             placement.ownColor = own != null;
@@ -293,7 +293,7 @@ namespace Comet.Unity.Editor
                 placement.color = PlacedColors.FromRgb(rgb);
             }
 
-            placement.SetDefaultColor(asset ?? settings.placedColor);
+            placement.SetDefaultColor(spawnMarker ? settings.spawnMarkerColor : asset ?? settings.placedColor);
         }
 
         // The asset's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
@@ -384,7 +384,9 @@ namespace Comet.Unity.Editor
                 var scaleY = placed.transform.localScale.y;
                 placed.transform.position = position - Vector3.up * (bounds.center.y * scaleY);
                 marker.position = position + Vector3.up * (bounds.extents.y * scaleY);
-                placed.GetComponent<ZonePlacement>().placementName = key;
+                var placement = placed.GetComponent<ZonePlacement>();
+                placement.placementName = key;
+                SetColors(placement, settings, null, spawnMarker: true);
                 placed.name = $"{key} marker";
                 Undo.SetTransformParent(placed.transform, marker, $"Add {key}");
             }

@@ -55,6 +55,9 @@ namespace Comet.Unity.Editor
         [Tooltip("How tall a new spawn point's marker is, in meters, sunk halfway into the ground; it can be moved and scaled after.")]
         public float spawnMarkerHeight = 0.4f;
 
+        [Tooltip("The color spawn markers are drawn in, as the game draws a marker that isn't the player's.")]
+        public Color spawnMarkerColor = Color.white;
+
         private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
 
         // Searching the asset database takes about 10 ms, and the zone tools ask on every Scene view event, so the

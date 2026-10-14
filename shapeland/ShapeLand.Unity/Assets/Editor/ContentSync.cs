@@ -52,7 +52,8 @@ namespace ShapeLand.Client.Editor
             var under = GameView.Color(game.World.UnderColor);
             var placed = GameView.Color(game.World.PlacedColor);
             if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
-                && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight)
+                && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
+                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor))
             {
                 return;
             }
@@ -63,6 +64,7 @@ namespace ShapeLand.Client.Editor
             settings.bodyHeight = game.Movement.BodyHeight;
             settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
             settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
+            settings.spawnMarkerColor = GameView.Color(game.Spawns.UnsetColor);
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssetIfDirty(settings);
             Debug.Log("Updated the Comet settings from the content.");
