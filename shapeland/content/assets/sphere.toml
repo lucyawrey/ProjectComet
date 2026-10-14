@@ -1,0 +1,3 @@
+id = "asset.sphere"
+model = "Models/Primitives/Sphere.glb"
+color = 0x4A4D52 # charcoal

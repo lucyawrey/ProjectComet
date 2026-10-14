@@ -21,10 +21,10 @@ public enum MovementVerdict
     /// <summary>Higher than gravity allows: above the arc of a jump from the last ground at this point in it.</summary>
     TooHigh,
 
-    /// <summary>The body overlaps a solid box.</summary>
-    InsideBox,
+    /// <summary>The body overlaps a solid mesh (a placed object or a wall volume).</summary>
+    InsideSolid,
 
-    /// <summary>Below the terrain surface.</summary>
+    /// <summary>Inside a terrain piece: below its surface and above its bottom.</summary>
     UnderGround,
 
     /// <summary>Fell below the world's kill height; respawn.</summary>
@@ -204,8 +204,8 @@ public sealed class MovementValidator
         var verdict =
             distance > _budget ? MovementVerdict.TooFast
             : position.Y > _groundY + AllowedRise(stamp ?? tick, jumpVelocity) ? MovementVerdict.TooHigh
-            : _world.IsBlocked(position, _rules.BodyRadius, _rules.BodyHeight) ? MovementVerdict.InsideBox
-            : _world.Terrain != null && _world.Terrain.TryGetHeight(position.X, position.Z, out var terrain) && position.Y < terrain - _tolerances.GroundSlack ? MovementVerdict.UnderGround
+            : _world.IsBlocked(position, _rules.BodyRadius, _rules.BodyHeight) ? MovementVerdict.InsideSolid
+            : _world.IsInsideTerrain(position, _tolerances.GroundSlack) ? MovementVerdict.UnderGround
             : MovementVerdict.Accepted;
 
         if (verdict != MovementVerdict.Accepted)
@@ -365,6 +365,25 @@ public sealed class MovementValidator
         Z = Position.Z,
         Facing = Facing,
     };
+
+    /// <summary>
+    /// Moves the player somewhere new (a spawn point, say) and builds the correction that tells them, as a respawn.
+    /// Later reports must echo its sequence.
+    /// </summary>
+    public PositionCorrection Teleport(Vector3 position, float facing, uint tick)
+    {
+        CorrectionSequence++;
+        Reset(position, facing, tick);
+        return new PositionCorrection
+        {
+            Sequence = CorrectionSequence,
+            Reason = CorrectionReason.Respawn,
+            X = position.X,
+            Y = position.Y,
+            Z = position.Z,
+            Facing = facing,
+        };
+    }
 
     /// <summary>
     /// Builds the correction for a rejected report or a fall: back to the last accepted position, or for a fall to

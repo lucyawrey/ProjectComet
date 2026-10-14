@@ -183,6 +183,16 @@ namespace ShapeLand.Client
                     ""interactions"": """",
                     ""initialStateCheck"": false,
                     ""priority"": 0
+                },
+                {
+                    ""name"": ""ReturnToSpawn"",
+                    ""type"": ""Button"",
+                    ""id"": ""cc9b880f-d0a8-45fa-85b6-c4e451d7cece"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
                 }
             ],
             ""bindings"": [
@@ -427,6 +437,28 @@ namespace ShapeLand.Client
                     ""action"": ""ChangeLook"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8c786f11-550a-4cc7-8dca-aac2a5ec4b92"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ReturnToSpawn"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""ab7d0efd-4165-497b-bc8d-ca7c09990132"",
+                    ""path"": ""<Gamepad>/select"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ReturnToSpawn"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -444,6 +476,7 @@ namespace ShapeLand.Client
             m_Game_OpenChat = m_Game.FindAction("OpenChat", throwIfNotFound: true);
             m_Game_NetStats = m_Game.FindAction("NetStats", throwIfNotFound: true);
             m_Game_ChangeLook = m_Game.FindAction("ChangeLook", throwIfNotFound: true);
+            m_Game_ReturnToSpawn = m_Game.FindAction("ReturnToSpawn", throwIfNotFound: true);
         }
 
         ~@ShapeLandControls()
@@ -533,6 +566,7 @@ namespace ShapeLand.Client
         private readonly InputAction m_Game_OpenChat;
         private readonly InputAction m_Game_NetStats;
         private readonly InputAction m_Game_ChangeLook;
+        private readonly InputAction m_Game_ReturnToSpawn;
         /// <summary>
         /// Provides access to input actions defined in input action map "Game".
         /// </summary>
@@ -580,6 +614,10 @@ namespace ShapeLand.Client
             /// Provides access to the underlying input action "Game/ChangeLook".
             /// </summary>
             public InputAction @ChangeLook => m_Wrapper.m_Game_ChangeLook;
+            /// <summary>
+            /// Provides access to the underlying input action "Game/ReturnToSpawn".
+            /// </summary>
+            public InputAction @ReturnToSpawn => m_Wrapper.m_Game_ReturnToSpawn;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -633,6 +671,9 @@ namespace ShapeLand.Client
                 @ChangeLook.started += instance.OnChangeLook;
                 @ChangeLook.performed += instance.OnChangeLook;
                 @ChangeLook.canceled += instance.OnChangeLook;
+                @ReturnToSpawn.started += instance.OnReturnToSpawn;
+                @ReturnToSpawn.performed += instance.OnReturnToSpawn;
+                @ReturnToSpawn.canceled += instance.OnReturnToSpawn;
             }
 
             /// <summary>
@@ -671,6 +712,9 @@ namespace ShapeLand.Client
                 @ChangeLook.started -= instance.OnChangeLook;
                 @ChangeLook.performed -= instance.OnChangeLook;
                 @ChangeLook.canceled -= instance.OnChangeLook;
+                @ReturnToSpawn.started -= instance.OnReturnToSpawn;
+                @ReturnToSpawn.performed -= instance.OnReturnToSpawn;
+                @ReturnToSpawn.canceled -= instance.OnReturnToSpawn;
             }
 
             /// <summary>
@@ -774,6 +818,13 @@ namespace ShapeLand.Client
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnChangeLook(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "ReturnToSpawn" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnReturnToSpawn(InputAction.CallbackContext context);
         }
     }
 }

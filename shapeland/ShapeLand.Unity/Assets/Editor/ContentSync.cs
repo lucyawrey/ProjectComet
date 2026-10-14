@@ -1,69 +1,125 @@
 using System.IO;
+using System.Linq;
+using Comet.Unity;
+using Comet.Unity.Editor;
+using ShapeLand.Shared.Content;
 using UnityEditor;
 using UnityEngine;
 
 namespace ShapeLand.Client.Editor
 {
     /// <summary>
-    /// Keeps the content that play mode and the play-mode tests read (StreamingAssets/content.bin, gitignored) the
-    /// same as the content build's output: copied whenever it differs, when the editor loads its scripts and as play
-    /// mode starts. The content build itself still has to run (tools/shapeland-dev.sh does).
+    /// Keeps what the editor holds from ShapeLand's content in step with it each time Comet copies the content in
+    /// (<see cref="ContentBuild"/>): the asset library (<see cref="AssetLibrary"/>) follows the content's asset
+    /// entries, and the Comet settings take the game's terrain colors, body height and spawn markers.
     /// </summary>
     [InitializeOnLoad]
     public static class ContentSync
     {
+        /// <summary>Where the asset library lives; the game scene refers to it.</summary>
+        public const string LibraryPath = "Assets/Models/AssetLibrary.asset";
+
         static ContentSync()
         {
-            Sync();
-            EditorApplication.playModeStateChanged += state =>
+            ContentBuild.Copied += content =>
             {
-                if (state == PlayModeStateChange.ExitingEditMode)
-                {
-                    Sync();
-                }
+                RefreshLibrary(content);
+                RefreshCometSettings(content);
             };
         }
 
-        public static string Source => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "..", "artifacts", "content", "shapeland", "content.bin"));
-
-        private static string Target => Path.Combine(Application.streamingAssetsPath, "content.bin");
-
-        /// <summary>Copies the content build's output if it differs from StreamingAssets' copy; false if there is none yet.</summary>
-        public static bool Sync()
+        // The Comet settings that come from the game's content: terrain colors, the body height and spawn markers.
+        private static void RefreshCometSettings(byte[] contentFile)
         {
-            if (!File.Exists(Source))
+            var settings = CometSettings.Find(quiet: true);
+            if (settings == null)
             {
-                return false;
+                return;
             }
 
-            var content = File.ReadAllBytes(Source);
-            if (File.Exists(Target) && Same(content, File.ReadAllBytes(Target)))
+            ShapeLandContent content;
+            try
             {
-                return true;
+                content = ShapeLandContent.Load(new MemoryStream(contentFile));
+            }
+            catch (Comet.Content.ContentException)
+            {
+                return; // RefreshLibrary has said so
             }
 
-            Directory.CreateDirectory(Application.streamingAssetsPath);
-            File.WriteAllBytes(Target, content);
-            Debug.Log("Copied the content build's content.bin into StreamingAssets.");
-            return true;
+            var game = content.Settings;
+            var ground = GameView.Color(game.World.GroundColor);
+            var under = GameView.Color(game.World.UnderColor);
+            var placed = GameView.Color(game.World.PlacedColor);
+            if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
+                && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
+                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor))
+            {
+                return;
+            }
+
+            settings.groundColor = ground;
+            settings.underColor = under;
+            settings.placedColor = placed;
+            settings.bodyHeight = game.Movement.BodyHeight;
+            settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
+            settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
+            settings.spawnMarkerColor = GameView.Color(game.Spawns.UnsetColor);
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssetIfDirty(settings);
+            Debug.Log("Updated the Comet settings from the content.");
         }
 
-        private static bool Same(byte[] a, byte[] b)
+        // Points each asset key at the model its entry names (a path under Assets/), saving only if something changed.
+        private static void RefreshLibrary(byte[] contentFile)
         {
-            if (a.Length != b.Length)
+            ShapeLandContent content;
+            try
             {
-                return false;
+                content = ShapeLandContent.Load(new MemoryStream(contentFile));
+            }
+            catch (Comet.Content.ContentException e)
+            {
+                Debug.LogWarning($"Can't read the content to update the asset library: {e.Message}");
+                return;
             }
 
-            for (var i = 0; i < a.Length; i++)
+            var library = AssetDatabase.LoadAssetAtPath<AssetLibrary>(LibraryPath);
+            if (library == null)
             {
-                if (a[i] != b[i])
+                library = ScriptableObject.CreateInstance<AssetLibrary>();
+                AssetDatabase.CreateAsset(library, LibraryPath);
+            }
+
+            var entries = content.Assets.All.Select(asset =>
+            {
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + asset.Model);
+                if (model == null)
                 {
-                    return false;
+                    Debug.LogWarning($"{asset.Id}'s model Assets/{asset.Model} isn't in the project.");
                 }
+
+                var min = new Vector3(asset.BoundsMin.X, asset.BoundsMin.Y, asset.BoundsMin.Z);
+                var max = new Vector3(asset.BoundsMax.X, asset.BoundsMax.Y, asset.BoundsMax.Z);
+                return new AssetLibrary.Entry
+                {
+                    key = asset.Id,
+                    model = model,
+                    uniformScale = asset.UniformScale,
+                    bounds = new Bounds((min + max) / 2, max - min),
+                    hasColor = asset.Color != null,
+                    color = asset.Color is { } color ? PlacedColors.FromRgb(color) : default,
+                };
+            }).ToList();
+            if (entries.SequenceEqual(library.Entries))
+            {
+                return;
             }
 
-            return true;
+            library.SetEntries(entries);
+            EditorUtility.SetDirty(library);
+            AssetDatabase.SaveAssetIfDirty(library);
+            Debug.Log($"Updated the asset library ({entries.Count} assets).");
         }
     }
 }

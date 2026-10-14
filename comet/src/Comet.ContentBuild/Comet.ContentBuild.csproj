@@ -7,10 +7,12 @@
 
   <ItemGroup>
     <PackageReference Include="Tomlyn" />
+    <PackageReference Include="SharpGLTF.Core" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Comet.Content\Comet.Content.csproj" />
+    <ProjectReference Include="..\Comet.ZoneFiles\Comet.ZoneFiles.csproj" />
   </ItemGroup>
 
 </Project>

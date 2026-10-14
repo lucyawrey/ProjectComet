@@ -1,0 +1,3 @@
+id = "asset.cone"
+model = "Models/Primitives/Cone.glb"
+color = 0x2F5D3A # pine green

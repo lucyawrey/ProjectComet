@@ -31,6 +31,7 @@ namespace ShapeLand.Client
         private float _cheatedAt = float.NegativeInfinity;
         private ClientSession _session;
         private CollisionWorld _world;
+        private MovementRules _rules;
         private Shape _shape;
         private OrbitCamera _camera;
         private ShapeLandControls _controls;
@@ -61,14 +62,15 @@ namespace ShapeLand.Client
         public float Darkness { get; private set; }
 
         /// <summary>Starts the player as <paramref name="shape"/> at <paramref name="position"/>, facing <paramref name="facing"/> radians, moved by <paramref name="controls"/> relative to the camera.</summary>
-        public void Begin(ClientSession session, CollisionWorld world, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)
+        public void Begin(ClientSession session, CollisionWorld world, MovementRules rules, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)
         {
+            _rules = rules;
             _session = session;
             _world = world;
             _shape = shape;
             _camera = orbitCamera;
             _controls = controls;
-            _motor = new MotorState { Position = WorldMeshes.ToNumerics(position), Grounded = true, Facing = facing };
+            _motor = new MotorState { Position = Vectors.ToNumerics(position), Grounded = true, Facing = facing };
             _previous = _motor;
             _session.Corrected += OnCorrected;
             Draw(1);
@@ -114,7 +116,7 @@ namespace ShapeLand.Client
             {
                 var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
-                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, ShapeLandWorld.Rules);
+                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules);
                 _jumpQueued = false;
                 // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.
                 if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds))
@@ -132,7 +134,7 @@ namespace ShapeLand.Client
         {
             _drawn = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha) + _blend.Offset;
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
-            transform.SetPositionAndRotation(WorldMeshes.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+            transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
         }
 
         private void OnCorrected(PositionCorrection correction)

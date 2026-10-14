@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Comet.Client;
 using Comet.Content;
+using Comet.Simulation;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
@@ -66,7 +67,7 @@ namespace ShapeLand.Client
         public string Error => _error != null && _error.ClassListContains("shown") ? _error.text : null;
 
         /// <summary>The chosen shape's speed (m/s) and jump height (m), as the card shows them.</summary>
-        public static (float Speed, float JumpHeight) Stats(Shape shape) => (shape.MaxSpeed, ShapeLandWorld.Rules.JumpApex(shape.JumpVelocity));
+        public static (float Speed, float JumpHeight) Stats(Shape shape, MovementRules rules) => (shape.MaxSpeed, rules.JumpApex(shape.JumpVelocity));
 
         /// <summary>What the card says when the server refuses a join.</summary>
         public static string RefusalMessage(StringTable strings, JoinRejection reason, string name) => reason switch
@@ -192,8 +193,8 @@ namespace ShapeLand.Client
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = PlayerPrefs.GetString(ServerKey, _join.DefaultAddress);
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
-            _color = Remembered(ColorKey, ShapeLandRules.BodyColors);
-            _eyeColor = Remembered(EyesKey, ShapeLandRules.EyeColors);
+            _color = Remembered(ColorKey, _content.Settings.Colors.Body);
+            _eyeColor = Remembered(EyesKey, _content.Settings.Colors.Eyes);
 
             foreach (var shape in content.Shapes.All)
             {
@@ -208,8 +209,8 @@ namespace ShapeLand.Client
                 _shapes.Add(button);
             }
 
-            AddSwatches(_colors, ShapeLandRules.BodyColors, color => _color = color);
-            AddSwatches(_eyes, ShapeLandRules.EyeColors, color => _eyeColor = color);
+            AddSwatches(_colors, _content.Settings.Colors.Body, color => _color = color);
+            AddSwatches(_eyes, _content.Settings.Colors.Eyes, color => _eyeColor = color);
             Show();
             _name.Focus();
         }
@@ -250,8 +251,8 @@ namespace ShapeLand.Client
 
             _preview.Show(_view, _shape, _color, _eyeColor);
 
-            var best = _content.Shapes.All.Select(Stats).ToList();
-            var (speed, jump) = Stats(_shape);
+            var best = _content.Shapes.All.Select(shape => Stats(shape, _content.Movement)).ToList();
+            var (speed, jump) = Stats(_shape, _content.Movement);
             _stats.Clear();
             var strings = _content.Strings;
             _stats.Add(Stat(strings.Get("join.speed"), strings.Format("join.speed_value", ("speed", speed.ToString("0.#"))), speed / best.Max(s => s.Speed)));

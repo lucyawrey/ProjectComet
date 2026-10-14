@@ -1,0 +1,3 @@
+id = "asset.cylinder"
+model = "Models/Primitives/Cylinder.glb"
+color = 0xC9B27C # sandstone

@@ -44,8 +44,8 @@ namespace ShapeLand.Client.Tests
             {
                 Name = "Unity test",
                 Shape = content.Shapes.All[0].Number,
-                Color = ShapeLandRules.BodyColors[0],
-                EyeColor = ShapeLandRules.EyeColors[0],
+                Color = content.Settings.Colors.Body[0],
+                EyeColor = content.Settings.Colors.Eyes[0],
             });
             _client.SetActive(true);
 

@@ -1,3 +1,4 @@
+using Comet.Content;
 using Comet.Protocol.Messages;
 using Comet.Server.Connections;
 using Comet.Server.Movement;
@@ -33,6 +34,14 @@ internal sealed class Player(Connection connection, int tickRate)
     public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
 
     public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
+
+    public TickLimiter ReturnLimiter { get; } = TickLimiter.Return(tickRate);
+
+    /// <summary>Where the player goes on falling out of the world or returning; for the session only.</summary>
+    public SpawnPoint SpawnPoint { get; set; } = null!;
+
+    /// <summary>Another spawn point the player is standing in, claiming it, and the tick they stepped in; null if none.</summary>
+    public (SpawnPoint Spawn, uint Since)? Claiming { get; set; }
 
     /// <summary>The tick the connection arrived; it must join within <see cref="ShapeLandRules.JoinDeadlineSeconds"/>.</summary>
     public uint ConnectedTick { get; init; }

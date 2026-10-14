@@ -24,6 +24,7 @@ namespace ShapeLand.GameServer;
 public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry registry, ILogger<ShapeLandGame> logger) : IConnectionHandler
 {
     private readonly CollisionWorld _world = ShapeLandWorld.Create(content);
+    private readonly Spawns _spawns = new(ShapeLandWorld.Zone(content));
     private readonly MovementTolerances _tolerances = new();
     private readonly ConcurrentQueue<Input> _inbox = new();
     private readonly Dictionary<Connection, Player> _players = [];
@@ -45,6 +46,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             MessageIds.PositionReport => new Input(connection, InputKind.Report) { Report = FrameReader.Decode<PositionReport>(payload, options), ClientTick = clientTick },
             ShapeLandMessageIds.JoinRequest => new Input(connection, InputKind.Join) { Join = FrameReader.Decode<JoinRequest>(payload, options) },
             ShapeLandMessageIds.ChatSend => new Input(connection, InputKind.Chat) { Chat = FrameReader.Decode<ChatSend>(payload, options) },
+            ShapeLandMessageIds.ReturnToSpawn => new Input(connection, InputKind.Return),
             _ => null, // unknown or not for the server: ignored, so older servers tolerate newer clients
         };
         if (input is not null)
@@ -76,6 +78,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
                 case InputKind.Chat:
                     Chat(_players[input.Connection], input.Chat, tick);
                     break;
+                case InputKind.Return:
+                    Return(_players[input.Connection], tick);
+                    break;
                 case InputKind.Disconnected:
                     Leave(input.Connection);
                     break;
@@ -89,6 +94,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             if (player.Joined)
             {
                 Fall(player, tick);
+                Claim(player, tick);
             }
             else if (tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate)
             {
@@ -154,7 +160,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        if (Array.IndexOf(ShapeLandRules.BodyColors, request.Color) < 0 || Array.IndexOf(ShapeLandRules.EyeColors, request.EyeColor) < 0)
+        if (Array.IndexOf(content.Settings.Colors.Body, request.Color) < 0 || Array.IndexOf(content.Settings.Colors.Eyes, request.EyeColor) < 0)
         {
             Reject(JoinRejection.UnavailableColor);
             return;
@@ -173,14 +179,18 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             return;
         }
 
-        player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
-        player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
+        player.Validator = new MovementValidator(_world, content.Movement, _tolerances, ShapeLandRules.TickRate);
+        _spawns.TryGet(shape.Spawn, out var spawnPoint); // the content build checks every shape's spawn exists
+        player.SpawnPoint = spawnPoint;
+        var (feet, facing) = Spawns.Arrive(spawnPoint, _world, content.Movement, _random);
+        player.Validator.Reset(feet, facing, tick);
         player.PlacedByServer(tick); // the others learn of them from the spawn, not a state
 
         var connection = player.Connection;
         var spawn = player.Spawn();
         connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
         connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
+        connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = spawnPoint.Number });
         foreach (var other in _players.Values)
         {
             if (other.Joined && other != player)
@@ -233,7 +243,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             case MovementVerdict.Stale:
                 break;
             case MovementVerdict.FellOut:
-                Respawn(player, tick);
+                ToSpawn(player, tick);
                 break;
             default:
                 // Logged for moderation, never banned automatically: the 1st, 10th, 100th… violation, so a
@@ -271,16 +281,52 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
                 player.MovedByServer(tick);
                 break;
             case FallResult.FellOut:
-                Respawn(player, tick);
+                ToSpawn(player, tick);
                 break;
         }
     }
 
-    // Back to the last safe ground, telling the player, and everyone else seeing them reappear there.
-    private static void Respawn(Player player, uint tick)
+    // To the player's spawn point, telling them, and everyone else seeing them reappear there.
+    private void ToSpawn(Player player, uint tick)
     {
-        player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
+        var (feet, facing) = Spawns.Arrive(player.SpawnPoint, _world, content.Movement, _random);
+        player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Teleport(feet, facing, tick));
+        player.Claiming = null;
         player.MovedByServer(tick);
+    }
+
+    private void Return(Player player, uint tick)
+    {
+        if (player.Joined && player.ReturnLimiter.TryTake(tick))
+        {
+            ToSpawn(player, tick);
+        }
+    }
+
+    // Standing in another spawn point's radius for the claim time makes it the player's. Stepping out, or into
+    // another, starts over.
+    private void Claim(Player player, uint tick)
+    {
+        var standingIn = _spawns.StandingIn(player.Validator.Position, ShapeLandRules.SpawnClaimReach);
+        if (standingIn == null || standingIn == player.SpawnPoint)
+        {
+            player.Claiming = null;
+            return;
+        }
+
+        if (player.Claiming is not { } claiming || claiming.Spawn != standingIn)
+        {
+            player.Claiming = (standingIn, tick);
+            return;
+        }
+
+        if (tick - claiming.Since >= content.Settings.Spawns.ClaimSeconds * ShapeLandRules.TickRate)
+        {
+            player.SpawnPoint = standingIn;
+            player.Claiming = null;
+            player.Connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = standingIn.Number });
+            logger.LogInformation("{Name}'s spawn is now {Spawn}", player.Name, standingIn.Id);
+        }
     }
 
     private static bool IsPowerOfTen(int n)
@@ -355,6 +401,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
     private enum InputKind
     {
+        Return,
         Connected,
         Join,
         Report,

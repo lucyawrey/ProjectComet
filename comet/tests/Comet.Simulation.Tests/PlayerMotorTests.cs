@@ -59,7 +59,7 @@ public class PlayerMotorTests
         var state = Run(Standing(13, 1), new Vector2(1, 0), 0.4f);
 
         Assert.True(state.Grounded);
-        Assert.True(_world.Terrain!.TryGetHeight(state.Position.X, state.Position.Z, out var ground));
+        Assert.True(_world.TryGetTerrainHeight(state.Position.X, state.Position.Z, float.MaxValue, out var ground));
         Assert.Equal(ground, state.Position.Y, 3);
     }
 
@@ -69,7 +69,7 @@ public class PlayerMotorTests
         // 30 m/s up the 1 m rise: more than a step's height per frame.
         var state = Run(Standing(12, 1), new Vector2(1, 0), 0.15f, maxSpeed: 30);
 
-        Assert.True(_world.Terrain!.TryGetHeight(state.Position.X, state.Position.Z, out var ground));
+        Assert.True(_world.TryGetTerrainHeight(state.Position.X, state.Position.Z, float.MaxValue, out var ground));
         Assert.True(state.Position.Y >= ground - 0.001f);
     }
 

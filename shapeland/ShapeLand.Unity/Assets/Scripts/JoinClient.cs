@@ -85,6 +85,12 @@ namespace ShapeLand.Client
         /// <summary>Raised when the server doesn't deliver this player's chat line.</summary>
         public event Action<ChatRejection> ChatRefused;
 
+        /// <summary>The player's spawn point changed (on joining, and on claiming another), by content number.</summary>
+        public event Action<int> SpawnSet;
+
+        /// <summary>The player's spawn point's content number, once the server has said.</summary>
+        public int? SpawnNumber { get; private set; }
+
         /// <summary>True once the server has spawned this player.</summary>
         public bool Joined { get; private set; }
 
@@ -172,6 +178,15 @@ namespace ShapeLand.Client
         }
 
         /// <summary>Says <paramref name="text"/> in chat, once joined; the line arrives back through <see cref="ChatReceived"/>.</summary>
+        /// <summary>Asks the server to send the player back to their spawn point.</summary>
+        public void ReturnToSpawn()
+        {
+            if (Joined)
+            {
+                Session.Write(ShapeLandMessageIds.ReturnToSpawn, new ReturnToSpawn());
+            }
+        }
+
         public void Say(string text)
         {
             if (Joined && Session != null && !Session.Closed)
@@ -185,7 +200,7 @@ namespace ShapeLand.Client
             _url = serverUrl;
             _connectedAt = Time.realtimeSinceStartupAsDouble;
             var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
-                ShapeLandWorld.Rules.Gravity, ShapeLandWorld.GroundHeight(ShapeLandWorld.Create(_content)));
+                _content.Movement.Gravity, ShapeLandWorld.GroundHeight(_content, ShapeLandWorld.Create(_content)));
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
             session.EntityDespawned += id =>
@@ -332,6 +347,11 @@ namespace ShapeLand.Client
                     var chat = FrameReader.Decode<ChatMessage>(payload, options);
                     Log($"chat from entity {chat.EntityId}: {chat.Text}");
                     ChatReceived?.Invoke(chat);
+                    break;
+                case ShapeLandMessageIds.SpawnSet:
+                    SpawnNumber = FrameReader.Decode<SpawnSet>(payload, options).Spawn;
+                    Log($"spawn point is now {SpawnNumber}");
+                    SpawnSet?.Invoke(SpawnNumber.Value);
                     break;
                 case ShapeLandMessageIds.ChatRejected:
                     var refusal = FrameReader.Decode<ChatRejected>(payload, options).Reason;
