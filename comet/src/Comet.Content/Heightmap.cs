@@ -29,6 +29,7 @@ namespace Comet.Content
         /// <summary><see cref="SizeX"/> × <see cref="SizeZ"/> samples, row by row along Z.</summary>
         [Key(4)] public ushort[] Samples { get; set; } = new ushort[0];
 
+        /// <summary>True where the sample at column <paramref name="x"/>, row <paramref name="z"/> has no ground.</summary>
         public bool IsHole(int x, int z) => Samples[z * SizeX + x] == Hole;
 
         /// <summary>The height in meters at a grid point, or false where there's no ground.</summary>

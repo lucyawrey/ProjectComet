@@ -32,6 +32,7 @@ public sealed class MovementHeadroom
     public float BurstSecondsNeeded(int factorIndex) =>
         _maxSpeed[factorIndex] > 0 ? _maxDeficit[factorIndex] / _maxSpeed[factorIndex] : 0;
 
+    /// <summary>Records one accepted move: <paramref name="distance"/> meters in <paramref name="elapsedSeconds"/>, against <paramref name="maxSpeed"/>.</summary>
     internal void AddMove(float distance, float elapsedSeconds, float maxSpeed)
     {
         for (var i = 0; i < SpeedFactors.Length; i++)

@@ -11,6 +11,7 @@ namespace Comet.ContentBuild;
 /// </summary>
 public static class ContentJson
 {
+    /// <summary>The settings, shared so their type metadata is built once.</summary>
     public static readonly JsonSerializerOptions Options = CreateOptions();
 
     private static JsonSerializerOptions CreateOptions()

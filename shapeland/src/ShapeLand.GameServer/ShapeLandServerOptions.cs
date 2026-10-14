@@ -1,5 +1,6 @@
 namespace ShapeLand.GameServer;
 
+/// <summary>The game server's settings, from the <c>ShapeLand</c> section of its configuration (command line, environment or appsettings).</summary>
 public sealed class ShapeLandServerOptions
 {
     /// <summary>The compiled content file; empty means the content build's output in this repository's artifacts/.</summary>

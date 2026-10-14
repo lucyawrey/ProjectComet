@@ -7,12 +7,14 @@ namespace Comet.Client
     /// <summary>Where a remote entity is drawn.</summary>
     public readonly struct EntityPose
     {
+        /// <summary>A pose at <paramref name="position"/>, facing <paramref name="facing"/> radians.</summary>
         public EntityPose(Vector3 position, float facing)
         {
             Position = position;
             Facing = facing;
         }
 
+        /// <summary>Where the entity's feet are, in meters.</summary>
         public Vector3 Position { get; }
 
         /// <summary>Facing as a yaw angle in radians.</summary>
@@ -68,18 +70,25 @@ namespace Comet.Client
             BlendTicks = blend * tickRate;
         }
 
+        /// <summary>The server's ticks per second.</summary>
         public int TickRate { get; }
 
+        /// <summary>How often a moving entity's states arrive, in ticks.</summary>
         public double ReportIntervalTicks { get; }
 
+        /// <summary>States of a standing entity further apart than this, in ticks, count as a stop and a fresh start.</summary>
         public double IdleGapTicks { get; }
 
+        /// <summary>Moves faster than this, in meters per second, are drawn as a jump to the new place.</summary>
         public float TeleportSpeed { get; }
 
+        /// <summary>Downward acceleration while dead-reckoning vertical movement, in meters per second squared.</summary>
         public float Gravity { get; }
 
+        /// <summary>How long an entity is dead-reckoned past its newest state before it holds, in ticks.</summary>
         public double MaxExtrapolationTicks { get; }
 
+        /// <summary>How long a late state's difference is eased out over, in ticks.</summary>
         public double BlendTicks { get; }
 
         /// <summary>

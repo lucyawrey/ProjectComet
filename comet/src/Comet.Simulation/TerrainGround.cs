@@ -11,6 +11,7 @@ namespace Comet.Simulation
     /// </summary>
     public sealed class TerrainGround
     {
+        /// <summary><paramref name="map"/> placed with sample (0, 0) at <paramref name="origin"/>, <paramref name="spacing"/> meters apart.</summary>
         public TerrainGround(Heightmap map, float spacing, Vector3 origin)
         {
             Map = map;
@@ -18,6 +19,7 @@ namespace Comet.Simulation
             Origin = origin;
         }
 
+        /// <summary>The heights, in samples.</summary>
         public Heightmap Map { get; }
 
         /// <summary>Meters between samples.</summary>

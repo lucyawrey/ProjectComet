@@ -9,6 +9,7 @@ namespace ShapeLand.Client
     /// </summary>
     public static class UiText
     {
+        /// <summary>Replaces each <c>#key</c> text under <paramref name="root"/> with its text from <paramref name="strings"/>.</summary>
         public static void Fill(VisualElement root, StringTable strings)
         {
             root.Query<TextElement>().ForEach(element =>

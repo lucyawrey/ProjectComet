@@ -12,8 +12,10 @@ public static class TestTerrain
     public const float Scale = 1f / 256; // about 4 mm steps
     public const float Offset = -64f; // heights from -64 m to 192 m
     public const float Radius = 28f; // the disc's edge, in meters from the chunk's center
+    /// <summary>Meters between samples.</summary>
     public const float Spacing = 2f;
 
+    /// <summary>The terrain for <paramref name="seed"/>.</summary>
     public static Heightmap Generate(int seed)
     {
         var samples = new ushort[Size * Size];

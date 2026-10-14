@@ -72,8 +72,10 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public uint EntityId => _session.EntityId;
 
+    /// <summary>True once the server has spawned the bot.</summary>
     public bool Joined { get; private set; }
 
+    /// <summary>Why the server turned the bot's join down, or null.</summary>
     public JoinRejection? Rejected { get; private set; }
 
     /// <summary>Other players this bot has seen spawn.</summary>
@@ -81,14 +83,18 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public int StatesReceived => _session.StatesReceived;
 
+    /// <summary>How many times the server moved the bot back (corrections other than respawns).</summary>
     public int SnapBacks { get; private set; }
 
+    /// <summary>How many times the bot fell out of the world and was respawned.</summary>
     public int Respawns { get; private set; }
 
+    /// <summary>Chat lines the bot sent, and those it received from others.</summary>
     public int ChatsSent { get; private set; }
 
     public int ChatsReceived { get; private set; }
 
+    /// <summary>How many other players left the bot's view.</summary>
     public int Despawns { get; private set; }
 
     /// <summary>The connection failed or was lost, rather than being closed by the bot.</summary>

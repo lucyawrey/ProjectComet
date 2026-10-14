@@ -14,16 +14,20 @@ internal sealed class Player(Connection connection, int tickRate)
 
     public uint EntityId => Connection.Id;
 
+    /// <summary>True once the player has joined and spawned; before that only a join request is accepted.</summary>
     public bool Joined { get; set; }
 
     public string Name { get; set; } = "";
 
     public Shape Shape { get; set; } = null!;
 
+    /// <summary>The body's color, as 0xRRGGBB.</summary>
     public uint Color { get; set; }
 
+    /// <summary>The eyes' color, as 0xRRGGBB.</summary>
     public uint EyeColor { get; set; }
 
+    /// <summary>Checks the player's position reports; made on joining.</summary>
     public MovementValidator Validator { get; set; } = null!;
 
     public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
@@ -33,6 +37,7 @@ internal sealed class Player(Connection connection, int tickRate)
     /// <summary>The tick the connection arrived; it must join within <see cref="ShapeLandRules.JoinDeadlineSeconds"/>.</summary>
     public uint ConnectedTick { get; init; }
 
+    /// <summary>Stamps the player's states for others.</summary>
     public StateStamp Stamp { get; } = new(tickRate);
 
     /// <summary>The tick the current position is from (see <see cref="StateStamp"/>).</summary>

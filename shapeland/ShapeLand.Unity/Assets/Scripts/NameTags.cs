@@ -130,6 +130,7 @@ namespace ShapeLand.Client
             private readonly Label _text;
             private float _bubbleUntil = float.NegativeInfinity;
 
+            /// <summary>A tag on <paramref name="layer"/>; a null <paramref name="name"/> makes a bubble without a name.</summary>
             public Tag(VisualElement layer, string name)
             {
                 if (name != null)
@@ -170,6 +171,7 @@ namespace ShapeLand.Client
             /// <summary>The bubble's text while it shows, else null.</summary>
             public string Bubble(float now) => now < _bubbleUntil ? _text.text : null;
 
+            /// <summary>Shows the tag (and the bubble, while it lasts) at <paramref name="at"/> in panel coordinates.</summary>
             public void Place(Vector2 at, float opacity, float now)
             {
                 if (_name != null)
@@ -200,6 +202,7 @@ namespace ShapeLand.Client
                 _bubble.style.display = DisplayStyle.None;
             }
 
+            /// <summary>Takes the tag off the screen for good.</summary>
             public void Remove()
             {
                 _name?.RemoveFromHierarchy();

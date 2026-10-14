@@ -32,6 +32,7 @@ namespace ShapeLand.Client.Editor
         [MenuItem("ShapeLand/Build/Linux")]
         public static void Linux() => Build(BuildTarget.StandaloneLinux64, BuildTargetGroup.Standalone, "linux/ShapeLand", BuildOptions.Development);
 
+        /// <summary>The web build, as a release build, on ShapeLand's own page; <c>tools/shapeland-dev.sh</c> serves it from the game server.</summary>
         [MenuItem("ShapeLand/Build/Web")]
         public static void Web()
         {

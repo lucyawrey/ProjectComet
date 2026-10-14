@@ -57,6 +57,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
     // Tick thread.
 
+    /// <summary>Runs one tick on the tick thread: the inputs that arrived since the last, falls and join deadlines, then the states of players who moved, sent to everyone else.</summary>
     public void Tick(uint tick)
     {
         while (_inbox.TryDequeue(out var input))

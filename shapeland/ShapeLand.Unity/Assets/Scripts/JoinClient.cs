@@ -21,7 +21,7 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(CometConnection))]
     public sealed class JoinClient : MonoBehaviour
     {
-        public const string LogPrefix = "JOIN";
+        private const string LogPrefix = "JOIN";
 
         [SerializeField] private string address = "localhost:5080";
 
@@ -98,6 +98,7 @@ namespace ShapeLand.Client
         /// <summary>The server's spawn of this player, once joined.</summary>
         public PlayerSpawn? Spawn { get; private set; }
 
+        /// <summary>Why the server turned the last join down, or null.</summary>
         public JoinRejection? Rejected { get; private set; }
 
         /// <summary>The last failure, or <see cref="JoinFailure.None"/>.</summary>

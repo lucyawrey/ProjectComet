@@ -18,9 +18,10 @@ namespace Comet.Simulation
         /// <summary>How far below the feet the ground can drop while a player stays grounded (walking downhill), in meters.</summary>
         public float GroundSnap { get; set; } = 0.4f;
 
-        /// <summary>Horizontal acceleration on the ground and in the air, in meters per second squared.</summary>
+        /// <summary>Horizontal acceleration on the ground, in meters per second squared.</summary>
         public float GroundAcceleration { get; set; } = 40f;
 
+        /// <summary>Horizontal acceleration in the air, in meters per second squared.</summary>
         public float AirAcceleration { get; set; } = 15f;
 
         /// <summary>How fast a player turns to face the way it's moving, in degrees per second. Only facing turns; movement changes direction at once.</summary>

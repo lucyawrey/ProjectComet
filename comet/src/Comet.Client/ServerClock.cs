@@ -17,8 +17,11 @@ namespace Comet.Client
     /// </remarks>
     public sealed class ServerClock
     {
+        /// <summary>How many recent pongs are kept to pick the fastest from.</summary>
         public const int SampleCount = 10;
+        /// <summary>How much faster or slower than real time the estimates may run while catching up (0.05 is 5%).</summary>
         public const double MaxSlew = 0.05;
+        /// <summary>Off by more than this, in seconds, the estimates jump instead of slewing.</summary>
         public const double JumpSeconds = 0.25;
 
         private readonly Sample[] _samples = new Sample[SampleCount];
@@ -30,6 +33,7 @@ namespace Comet.Client
         private double _lastAdvance;
         private bool _started;
 
+        /// <summary>A clock for a server running <paramref name="tickRate"/> ticks per second.</summary>
         public ServerClock(int tickRate)
         {
             if (tickRate <= 0)
@@ -40,6 +44,7 @@ namespace Comet.Client
             TickRate = tickRate;
         }
 
+        /// <summary>The server's ticks per second.</summary>
         public int TickRate { get; }
 
         /// <summary>True once a pong has arrived; before that the estimate comes from frame headers alone.</summary>
@@ -126,12 +131,14 @@ namespace Comet.Client
 
         private readonly struct Sample
         {
+            /// <summary>One pong: its round trip, in seconds, and the receive offset it implies.</summary>
             public Sample(double roundTrip, double arrivalOffset)
             {
                 RoundTrip = roundTrip;
                 ArrivalOffset = arrivalOffset;
             }
 
+            /// <summary>The ping's round trip, in seconds.</summary>
             public double RoundTrip { get; }
 
             /// <summary>The receive-tick offset this sample implies: the frame's tick against its arrival time.</summary>

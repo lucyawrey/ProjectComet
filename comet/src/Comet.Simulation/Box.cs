@@ -5,14 +5,17 @@ namespace Comet.Simulation
     /// <summary>An axis-aligned solid box, such as a block or a platform.</summary>
     public readonly struct Box
     {
+        /// <summary>A box from corner <paramref name="min"/> to corner <paramref name="max"/>, in meters.</summary>
         public Box(Vector3 min, Vector3 max)
         {
             Min = min;
             Max = max;
         }
 
+        /// <summary>The corner with the lowest X, Y and Z.</summary>
         public Vector3 Min { get; }
 
+        /// <summary>The corner with the highest X, Y and Z.</summary>
         public Vector3 Max { get; }
 
         public Vector3 Center => (Min + Max) / 2;

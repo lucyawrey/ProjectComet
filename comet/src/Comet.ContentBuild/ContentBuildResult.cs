@@ -14,6 +14,7 @@ public sealed class ContentBuildResult
         Strings = strings;
     }
 
+    /// <summary>Every problem found, with its file, line and column; empty if the build succeeded.</summary>
     public IReadOnlyList<ContentError> Errors { get; }
 
     public bool Succeeded => Errors.Count == 0;

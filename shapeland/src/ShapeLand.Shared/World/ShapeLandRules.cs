@@ -7,8 +7,11 @@ namespace ShapeLand.Shared.World
     /// <summary>ShapeLand's game rules that clients and the server both need.</summary>
     public static class ShapeLandRules
     {
+        /// <summary>Server ticks per second.</summary>
         public const int TickRate = 30;
+        /// <summary>The longest name, in UTF-16 characters after normalizing.</summary>
         public const int MaxNameLength = 16;
+        /// <summary>The longest chat line, in UTF-16 characters after normalizing.</summary>
         public const int MaxChatLength = 200;
 
         /// <summary>Seconds a connection has to join before the server drops it; clients reconnect for a later try.</summary>

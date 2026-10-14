@@ -110,6 +110,7 @@ public sealed class MovementValidator
     private MotorState _fall;
     private Vector2 _fallMove;
 
+    /// <summary>A validator for one player, checking their reports against <paramref name="world"/> and <paramref name="rules"/>, with <paramref name="tolerances"/> for latency.</summary>
     public MovementValidator(CollisionWorld world, MovementRules rules, MovementTolerances tolerances, int tickRate)
     {
         _world = world;
@@ -124,6 +125,7 @@ public sealed class MovementValidator
     /// <summary>The player's velocity: as last reported, or the server's own while it moves them down a fall.</summary>
     public Vector3 Velocity => _serverFalling ? _fall.Velocity : _velocity;
 
+    /// <summary>The last reported facing, as a yaw angle in radians.</summary>
     public float Facing { get; private set; }
 
     /// <summary>The last accepted position standing on solid ground (where a respawn returns to).</summary>

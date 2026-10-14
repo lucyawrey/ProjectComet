@@ -12,6 +12,7 @@ namespace Comet.Simulation
     {
         private readonly List<Box> _boxes;
 
+        /// <summary>A world of <paramref name="terrain"/> (if any) and <paramref name="boxes"/>, where falling below <paramref name="killHeight"/> meters is out of the world.</summary>
         public CollisionWorld(TerrainGround? terrain, IEnumerable<Box> boxes, float killHeight)
         {
             Terrain = terrain;
@@ -19,6 +20,7 @@ namespace Comet.Simulation
             KillHeight = killHeight;
         }
 
+        /// <summary>The ground, or null for a world of boxes only.</summary>
         public TerrainGround? Terrain { get; }
 
         public IReadOnlyList<Box> Boxes => _boxes;

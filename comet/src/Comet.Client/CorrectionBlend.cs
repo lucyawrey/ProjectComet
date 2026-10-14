@@ -25,6 +25,7 @@ namespace Comet.Client
             _elapsed = duration;
         }
 
+        /// <summary>How long a correction takes to ease out, in seconds.</summary>
         public double Duration { get; }
 
         /// <summary>Add this to the simulated position to get the drawn one.</summary>
@@ -50,6 +51,7 @@ namespace Comet.Client
             Offset = Vector3.Zero;
         }
 
+        /// <summary>Moves the easing on by <paramref name="seconds"/>, shrinking <see cref="Offset"/>.</summary>
         public void Advance(double seconds)
         {
             if (!Active)

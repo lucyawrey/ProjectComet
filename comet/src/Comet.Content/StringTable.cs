@@ -16,6 +16,7 @@ namespace Comet.Content
         /// <summary>The text by key.</summary>
         [Key(0)] public Dictionary<string, string> Entries { get; set; } = new Dictionary<string, string>();
 
+        /// <summary>True if there's text for <paramref name="key"/>.</summary>
         public bool Contains(string key) => Entries.ContainsKey(key);
 
         /// <summary>The text for <paramref name="key"/>, or <c>[key]</c> if there's none.</summary>

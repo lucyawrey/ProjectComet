@@ -8,8 +8,10 @@ namespace Comet.Protocol.Framing
     /// </summary>
     public static class Varint
     {
+        /// <summary>The most bytes a 32-bit value takes.</summary>
         public const int MaxLength = 5;
 
+        /// <summary>How many bytes <paramref name="value"/> takes.</summary>
         public static int SizeOf(uint value)
         {
             var size = 1;

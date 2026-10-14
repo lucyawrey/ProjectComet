@@ -14,6 +14,7 @@ namespace ShapeLand.GameServer;
 /// <summary>Builds the ShapeLand game server; used by Program and by tests, which run it in-process.</summary>
 public static class ShapeLandServer
 {
+    /// <summary>The server, ready to run; <paramref name="configure"/> can change the builder first (tests set the port and content).</summary>
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
         // Settings load from the build output, so the server can be started from any folder.

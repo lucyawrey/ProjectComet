@@ -16,6 +16,7 @@ internal static class StringFile
     private static readonly Regex Braces = new(@"\{[^{}]*\}|[{}]");
     private static readonly Regex Placeholder = new(@"^\{[a-z][a-z0-9_]*\}$");
 
+    /// <summary>Reads the string file at <paramref name="path"/>, adding problems to <paramref name="errors"/> under the name <paramref name="file"/>.</summary>
     public static StringTable Read(string path, string file, List<ContentError> errors)
     {
         var table = new StringTable();

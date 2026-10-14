@@ -8,7 +8,9 @@ namespace Comet.Simulation
     {
         /// <summary>The bottom center of the body.</summary>
         public Vector3 Position;
+        /// <summary>In meters per second.</summary>
         public Vector3 Velocity;
+        /// <summary>True while standing on terrain or a box.</summary>
         public bool Grounded;
 
         /// <summary>Facing as a yaw angle in radians (0 faces +Z).</summary>

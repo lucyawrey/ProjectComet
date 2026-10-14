@@ -13,6 +13,7 @@ namespace ShapeLand.Client
         private MeshKind _kind;
         private Color _color;
 
+        /// <summary>An icon of <paramref name="kind"/> in <paramref name="color"/>.</summary>
         public ShapeIcon(MeshKind kind, Color color)
         {
             _kind = kind;
@@ -22,6 +23,7 @@ namespace ShapeLand.Client
             generateVisualContent += Draw;
         }
 
+        /// <summary>Redraws the icon as <paramref name="kind"/> in <paramref name="color"/>.</summary>
         public void Set(MeshKind kind, Color color)
         {
             _kind = kind;

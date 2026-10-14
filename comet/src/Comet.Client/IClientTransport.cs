@@ -2,6 +2,7 @@ using System;
 
 namespace Comet.Client
 {
+    /// <summary>Where a client connection is in its life.</summary>
     public enum TransportState
     {
         Connecting,

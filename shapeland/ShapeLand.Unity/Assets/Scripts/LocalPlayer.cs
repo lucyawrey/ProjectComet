@@ -45,11 +45,13 @@ namespace ShapeLand.Client
         /// <summary>The motor's state after the latest step.</summary>
         public MotorState Motor => _motor;
 
+        /// <summary>How many times the server has moved the player back (a correction that wasn't a respawn).</summary>
         public int SnapBacks { get; private set; }
 
         /// <summary>Of <see cref="SnapBacks"/>, those that came within a second of using the speed cheat.</summary>
         public int CheatSnapBacks { get; private set; }
 
+        /// <summary>How many times the player fell out of the world and was respawned.</summary>
         public int Respawns { get; private set; }
 
         /// <summary>How far the drawn shape still trails the simulation after a snap-back, in meters.</summary>
@@ -58,6 +60,7 @@ namespace ShapeLand.Client
         /// <summary>How dark the screen should be for the respawn fade: 0 clear, 1 black.</summary>
         public float Darkness { get; private set; }
 
+        /// <summary>Starts the player as <paramref name="shape"/> at <paramref name="position"/>, facing <paramref name="facing"/> radians, moved by <paramref name="controls"/> relative to the camera.</summary>
         public void Begin(ClientSession session, CollisionWorld world, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)
         {
             _session = session;

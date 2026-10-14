@@ -12,7 +12,9 @@ namespace ShapeLand.Shared.World
     /// </summary>
     public static class ShapeLandWorld
     {
+        /// <summary>Meters between the terrain's height samples.</summary>
         public const float TerrainSpacing = 2f;
+        /// <summary>Falling below this height, in meters, is out of the world: the player respawns.</summary>
         public const float KillHeight = -30f;
 
         /// <summary>
@@ -61,6 +63,7 @@ namespace ShapeLand.Shared.World
             return 1.5f * fastest;
         }
 
+        /// <summary>The world from <paramref name="content"/>, the same on client and server.</summary>
         public static CollisionWorld Create(ShapeLandContent content)
         {
             var terrain = TerrainGround.Centered(content.Terrain, TerrainSpacing, Vector3.Zero);

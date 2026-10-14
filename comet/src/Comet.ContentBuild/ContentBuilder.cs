@@ -22,6 +22,7 @@ public sealed class ContentBuilder
     private readonly List<IContentType> _types = new();
     private string? _stringFile;
 
+    /// <summary>A builder for the content folder at <paramref name="contentRoot"/>.</summary>
     public ContentBuilder(string contentRoot) => _root = Path.GetFullPath(contentRoot);
 
     /// <summary>Registers a content type read from <c>{folder}/**/*.toml</c>, with ids of the form <c>{kind}.name</c>.</summary>
@@ -79,6 +80,7 @@ public sealed class ContentBuilder
     /// <summary>A JSON Schema per content type, keyed by kind, for editor autocompletion and checking.</summary>
     public IReadOnlyDictionary<string, JsonNode> Schemas() => _types.ToDictionary(t => t.Kind, t => t.Schema());
 
+    /// <summary><paramref name="path"/> as errors show it: relative to the working folder when it's inside it.</summary>
     internal string DisplayPath(string path)
     {
         var relative = Path.GetRelativePath(Environment.CurrentDirectory, path);
@@ -87,9 +89,11 @@ public sealed class ContentBuilder
 
     internal string ContentPath(string folder) => Path.Combine(_root, folder);
 
+    /// <summary>An error at a TOML span, with 1-based line and column.</summary>
     internal static ContentError ErrorAt(string file, SourceSpan span, string message) =>
         new(file, span.Start.Line + 1, span.Start.Column + 1, message);
 
+    /// <summary>A dotted key as written, without quotes (<c>a."b"</c> is <c>a.b</c>).</summary>
     internal static string KeyText(KeySyntax key) =>
         string.Join('.', new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!)).Select(KeyText));
 
@@ -109,6 +113,7 @@ public sealed class ContentBuilder
         JsonNode Schema();
     }
 
+    /// <summary>One content type's entries after reading, before they get their numbers.</summary>
     internal interface IReadContent
     {
         Type EntryType { get; }

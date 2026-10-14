@@ -9,8 +9,10 @@ namespace ShapeLand.Shared.Content
     /// <summary>ShapeLand's compiled content, as loaded by the server and client.</summary>
     public sealed class ShapeLandContent
     {
+        /// <summary>How the content file is encoded: Comet's content types plus ShapeLand's.</summary>
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
+        /// <summary>Content made in memory (by the content build, or tests); <see cref="Fingerprint"/> is 0 until it's saved.</summary>
         public ShapeLandContent(IEnumerable<Shape> shapes, Heightmap terrain, StringTable strings)
         {
             Shapes = new ContentTable<Shape>("shape", shapes.OrderBy(s => s.Number));
@@ -18,6 +20,7 @@ namespace ShapeLand.Shared.Content
             Strings = strings;
         }
 
+        /// <summary>The playable shapes, in number order.</summary>
         public ContentTable<Shape> Shapes { get; }
 
         /// <summary>The interface text (<c>content/strings/en.toml</c>).</summary>
@@ -32,6 +35,7 @@ namespace ShapeLand.Shared.Content
         /// </summary>
         public ulong Fingerprint { get; private set; }
 
+        /// <summary>Reads a content file; throws <see cref="ContentException"/> if it's corrupt or from an incompatible build.</summary>
         public static ShapeLandContent Load(Stream stream)
         {
             var bytes = new MemoryStream();
@@ -50,6 +54,7 @@ namespace ShapeLand.Shared.Content
             return new ShapeLandContent(file.Shapes, file.Terrain, file.Strings) { Fingerprint = FingerprintOf(data) };
         }
 
+        /// <summary>Writes the content file and sets <see cref="Fingerprint"/> to match it.</summary>
         public void Save(Stream stream)
         {
             var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Terrain = Terrain, Strings = Strings }, SerializerOptions);

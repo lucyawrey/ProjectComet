@@ -29,10 +29,13 @@ namespace Comet.Client
             MaxSteps = maxSteps;
         }
 
+        /// <summary>The simulation rate.</summary>
         public int StepsPerSecond { get; }
 
+        /// <summary>How long one step is, in seconds.</summary>
         public double StepSeconds { get; }
 
+        /// <summary>The most steps one frame runs; time beyond that (a long hitch) is dropped.</summary>
         public int MaxSteps { get; }
 
         /// <summary>The number of the last step run (or of the grid point the clock started at).</summary>

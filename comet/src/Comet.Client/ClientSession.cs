@@ -84,6 +84,7 @@ namespace Comet.Client
             _teleportSpeed = teleportSpeed;
         }
 
+        /// <summary>The connection to the server.</summary>
         public IClientTransport Transport { get; }
 
         /// <summary>True once the server's <see cref="Welcome"/> has arrived.</summary>
@@ -124,6 +125,7 @@ namespace Comet.Client
         /// <summary>An entity left view; it has already been removed from <see cref="Entities"/>.</summary>
         public event Action<uint>? EntityDespawned;
 
+        /// <summary>A message for the game (ID <see cref="MessageIds.FirstGameMessage"/> or higher), which the session doesn't handle itself.</summary>
         public event GameMessageHandler? GameMessage;
 
         /// <summary>The tick other entities are drawn at, at <paramref name="now"/>.</summary>

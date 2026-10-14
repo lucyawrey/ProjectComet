@@ -47,6 +47,7 @@ namespace ShapeLand.Client
         /// <summary>The camera's heading in degrees, clockwise from +Z seen from above: movement is relative to it.</summary>
         public float Yaw { get; private set; }
 
+        /// <summary>What the camera follows, or null while it orbits the island.</summary>
         public Transform Target { get; private set; }
 
         /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen).</summary>
