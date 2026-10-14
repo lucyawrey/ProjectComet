@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: ZoneEditorSettings
   m_EditorClassIdentifier: Comet.Unity.Editor::Comet.Unity.Editor.ZoneEditorSettings
   zonesFolder: ../content/zones
+  scenesFolder: Assets/ZoneEditing
+  playScene: {fileID: 102900000, guid: 94972de62798f94f59138f7aba6f9af7, type: 3}
   assets: {fileID: 11400000, guid: 2c366cc91512f1b414be159ca4ff4d57, type: 2}
   terrainMaterial: {fileID: 2100000, guid: 39ef6832ec4bb4c45bd3ae46f21fd7f1, type: 2}
   placedMaterial: {fileID: 2100000, guid: 43d7a230d1c5924a89d36b7efea1f91b, type: 2}

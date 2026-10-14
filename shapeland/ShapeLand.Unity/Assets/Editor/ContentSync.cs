@@ -1,9 +1,13 @@
+using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Comet.Unity;
+using Comet.Unity.Editor;
 using ShapeLand.Shared.Content;
 using UnityEditor;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace ShapeLand.Client.Editor
 {
@@ -11,7 +15,8 @@ namespace ShapeLand.Client.Editor
     /// Keeps the content that play mode and the play-mode tests read (StreamingAssets/content.bin, gitignored) the
     /// same as the content build's output: copied whenever it differs, when the editor loads its scripts and as play
     /// mode starts. The asset library (<see cref="AssetLibrary"/>) follows the content's asset entries at the same
-    /// times. The content build itself still has to run (tools/shapeland-dev.sh does).
+    /// times. Saving a zone in the zone editor runs the content build and copies its output; otherwise the content
+    /// build still has to run (tools/shapeland-dev.sh does).
     /// </summary>
     [InitializeOnLoad]
     public static class ContentSync
@@ -23,6 +28,7 @@ namespace ShapeLand.Client.Editor
         {
             // After the editor has finished loading, so the models can be found.
             EditorApplication.delayCall += () => Sync();
+            ZoneEditor.Saved += _ => BuildContent();
             EditorApplication.playModeStateChanged += state =>
             {
                 if (state == PlayModeStateChange.ExitingEditMode)
@@ -35,6 +41,100 @@ namespace ShapeLand.Client.Editor
         public static string Source => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "..", "artifacts", "content", "shapeland", "content.bin"));
 
         private static string Target => Path.Combine(Application.streamingAssetsPath, "content.bin");
+
+        private static string RepoRoot => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
+
+        private static Process building;
+        private static bool buildAgain;
+
+        /// <summary>Runs the content build in the background, then copies its output in; a save during a build queues one more.</summary>
+        public static void BuildContent()
+        {
+            if (building != null)
+            {
+                buildAgain = true;
+                return;
+            }
+
+            var start = new ProcessStartInfo(Dotnet(), "run --project shapeland/src/ShapeLand.ContentBuild -- build")
+            {
+                WorkingDirectory = RepoRoot,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            var output = new System.Text.StringBuilder();
+            try
+            {
+                building = new Process { StartInfo = start };
+                building.OutputDataReceived += (_, e) => { lock (output) { output.AppendLine(e.Data); } };
+                building.ErrorDataReceived += (_, e) => { lock (output) { output.AppendLine(e.Data); } };
+                building.Start();
+                building.BeginOutputReadLine();
+                building.BeginErrorReadLine();
+            }
+            catch (Exception e)
+            {
+                building = null;
+                Debug.LogError($"Couldn't run the content build ({start.FileName} {start.Arguments}): {e.Message}");
+                return;
+            }
+
+            var progress = Progress.Start("Content build", "Building ShapeLand's content from its files");
+            void Poll()
+            {
+                if (!building.HasExited)
+                {
+                    return;
+                }
+
+                EditorApplication.update -= Poll;
+                building.WaitForExit();
+                var failed = building.ExitCode != 0;
+                building.Dispose();
+                building = null;
+                Progress.Finish(progress, failed ? Progress.Status.Failed : Progress.Status.Succeeded);
+                if (failed)
+                {
+                    lock (output)
+                    {
+                        Debug.LogError($"The content build failed:\n{output}");
+                    }
+                }
+                else
+                {
+                    Sync();
+                    AssetDatabase.Refresh();
+                    Debug.Log("Built the content and copied it in. A running game server needs a restart to use it.");
+                }
+
+                if (buildAgain)
+                {
+                    buildAgain = false;
+                    BuildContent();
+                }
+            }
+
+            EditorApplication.update += Poll;
+        }
+
+        // The editor may not have the shell's PATH (opened from Unity Hub, say), so look where installers put dotnet too.
+        private static string Dotnet()
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var known = new[]
+            {
+                Path.Combine(home, ".dotnet", "dotnet"),
+                "/usr/local/share/dotnet/dotnet",
+                "/opt/homebrew/bin/dotnet",
+                "/usr/share/dotnet/dotnet",
+                "/usr/bin/dotnet",
+            };
+            var onPath = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
+                .Select(dir => Path.Combine(dir, "dotnet"));
+            return onPath.Concat(known).FirstOrDefault(File.Exists) ?? "dotnet";
+        }
 
         /// <summary>Copies the content build's output if it differs from StreamingAssets' copy; false if there is none yet.</summary>
         public static bool Sync()

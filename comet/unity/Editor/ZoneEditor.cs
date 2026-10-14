@@ -13,9 +13,11 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Opens a zone into a new, unsaved scene and saves it back to its files (Comet › Zones). The scene is never the
-    /// source of truth: the zone's files are. Terrain shows as preview meshes; placed assets, spawns and volumes are
-    /// objects to move with Unity's own tools, and on saving each belongs to the chunk holding its pivot.
+    /// Opens a zone into a working scene named after it and saves it back to its files (Comet › Zones, or saving the
+    /// scene: <see cref="ZoneEditorScenes"/>). The scene is never the source of truth: the zone's files are, and the
+    /// scene file sits in an ignored folder. Terrain shows as preview meshes; placed assets, spawns and volumes are
+    /// objects to move with Unity's own tools, and on saving each belongs to the chunk holding its pivot. A spawn's
+    /// marker is a child of its spawn point, so they move together.
     /// </summary>
     public static class ZoneEditor
     {
@@ -39,12 +41,16 @@ namespace Comet.Unity.Editor
             Open(picked, settings);
         }
 
+        /// <summary>Raised after a zone's files are saved, so a game can rebuild its content from them.</summary>
+        public static event Action<ZoneEditing> Saved;
+
+        // Saving the scene saves its zones too (ZoneEditorScenes).
         [MenuItem("Comet/Zones/Save", priority = 2)]
         public static void SaveMenu()
         {
-            foreach (var zone in UnityEngine.Object.FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None))
+            foreach (var scene in UnityEngine.Object.FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None).Select(z => z.gameObject.scene).Distinct())
             {
-                Save(zone);
+                EditorSceneManager.SaveScene(scene);
             }
         }
 
@@ -62,7 +68,7 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             ZoneTerrainEditing.Forget();
             var root = new GameObject($"Zone {zone.Id}");
             var editing = root.AddComponent<ZoneEditing>();
@@ -78,6 +84,19 @@ namespace Comet.Unity.Editor
             }
 
             editing.zoneData = MessagePackSerializer.Serialize(zone, Serializer);
+
+            // Saved at once into the ignored scenes folder, so the scene has the zone's name and Unity's Save saves the zone.
+            Directory.CreateDirectory(ProjectPath(settings.scenesFolder));
+            ZoneEditorScenes.Quiet = true;
+            try
+            {
+                EditorSceneManager.SaveScene(scene, $"{settings.scenesFolder}/{Path.GetFileName(folder.TrimEnd('/', '\\'))}.unity");
+            }
+            finally
+            {
+                ZoneEditorScenes.Quiet = false;
+            }
+
             Selection.activeGameObject = root;
             return true;
         }
@@ -101,6 +120,7 @@ namespace Comet.Unity.Editor
 
             ZoneFolder.Write(ProjectPath(editing.folder), zone);
             Debug.Log($"Saved {zone.Id} to {editing.folder}.");
+            Saved?.Invoke(editing);
             return true;
         }
 
@@ -128,7 +148,9 @@ namespace Comet.Unity.Editor
                 chunk.Placements = chunk.Placements.Append(new Placement
                 {
                     Asset = placed.asset,
-                    Name = string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
+                    // A spawn's marker is named with its key, which may have changed since.
+                    Name = placed.GetComponentInParent<ZoneSpawn>() is { } spawn ? spawn.key
+                        : string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
                     Position = ToNumerics(t.position),
                     Rotation = Angles(t.rotation.eulerAngles),
                     Scale = ToNumerics(t.lossyScale),
@@ -211,28 +233,37 @@ namespace Comet.Unity.Editor
             var placed = Child(root, "Placed");
             var spawns = Child(root, "Spawns");
             var volumes = Child(root, "Volumes");
+            var spawnsByKey = new Dictionary<string, Transform>();
+            foreach (var spawn in zone.Chunks.SelectMany(c => c.Spawns))
+            {
+                var point = Child(spawns, spawn.Id);
+                point.SetPositionAndRotation(ToUnity(spawn.Position), Quaternion.Euler(0, spawn.Yaw, 0));
+                var component = point.gameObject.AddComponent<ZoneSpawn>();
+                component.key = spawn.Id;
+                component.radius = spawn.Radius;
+                component.facing = (ZoneSpawn.FacingMode)spawn.Facing;
+                component.isDefault = spawn.IsDefault;
+                spawnsByKey[spawn.Id] = point;
+            }
+
             foreach (var chunk in zone.Chunks)
             {
                 foreach (var placement in chunk.Placements)
                 {
-                    var thing = Instantiate(placement.Asset, settings, placed);
+                    // A placement named with a spawn's key is its marker, kept under it.
+                    var isMarker = placement.Name != null && spawnsByKey.ContainsKey(placement.Name);
+                    var thing = Instantiate(placement.Asset, settings, isMarker ? spawnsByKey[placement.Name] : placed);
                     var r = placement.Rotation;
                     thing.transform.SetPositionAndRotation(ToUnity(placement.Position), Quaternion.Euler(r.X, r.Y, r.Z));
-                    thing.transform.localScale = ToUnity(placement.Scale);
+                    SetWorldScale(thing.transform, ToUnity(placement.Scale));
+                    if (isMarker)
+                    {
+                        thing.name = $"{placement.Name} marker";
+                    }
+
                     var marker = thing.AddComponent<ZonePlacement>();
                     marker.asset = placement.Asset;
                     marker.placementName = placement.Name;
-                }
-
-                foreach (var spawn in chunk.Spawns)
-                {
-                    var marker = Child(spawns, spawn.Id);
-                    marker.SetPositionAndRotation(ToUnity(spawn.Position), Quaternion.Euler(0, spawn.Yaw, 0));
-                    var component = marker.gameObject.AddComponent<ZoneSpawn>();
-                    component.key = spawn.Id;
-                    component.radius = spawn.Radius;
-                    component.facing = (ZoneSpawn.FacingMode)spawn.Facing;
-                    component.isDefault = spawn.IsDefault;
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -327,6 +358,7 @@ namespace Comet.Unity.Editor
                 placed.transform.localScale = new Vector3(2 * spawn.radius / Mathf.Max(size.x, 0.01f), settings.spawnMarkerHeight / Mathf.Max(size.y, 0.01f), 2 * spawn.radius / Mathf.Max(size.z, 0.01f));
                 placed.GetComponent<ZonePlacement>().placementName = key;
                 placed.name = $"{key} marker";
+                Undo.SetTransformParent(placed.transform, marker, $"Add {key}");
             }
 
             return marker.gameObject;
@@ -359,6 +391,26 @@ namespace Comet.Unity.Editor
 
             var shown = string.Join("\n", errors.Take(8).Select(e => e.ToString()));
             EditorUtility.DisplayDialog(title, errors.Count > 8 ? $"{shown}\n…and {errors.Count - 8} more (see the Console)." : shown, "OK");
+        }
+
+        /// <summary>Draws an opened zone's terrain preview again if it's missing (it isn't saved with the scene).</summary>
+        public static void RedrawIfMissing(ZoneEditing editing)
+        {
+            var settings = Settings(quiet: true);
+            if (settings == null || editing.zoneData == null || editing.transform.Find(TerrainName) != null)
+            {
+                return;
+            }
+
+            ZoneTerrainEditing.Forget();
+            RebuildTerrain(editing, MessagePackSerializer.Deserialize<Zone>(editing.zoneData, Serializer), settings);
+        }
+
+        // Scale in world space; the same as localScale under an unscaled, unrotated parent.
+        private static void SetWorldScale(Transform t, Vector3 scale)
+        {
+            var parent = t.parent != null ? t.parent.lossyScale : Vector3.one;
+            t.localScale = new Vector3(scale.x / parent.x, scale.y / parent.y, scale.z / parent.z);
         }
 
         private static Transform Child(Transform parent, string name)

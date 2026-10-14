@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 
 namespace Comet.Unity.Editor
@@ -11,6 +12,12 @@ namespace Comet.Unity.Editor
     {
         [Tooltip("The game's zones folder, relative to the Unity project (each zone is a folder in it).")]
         public string zonesFolder = "../content/zones";
+
+        [Tooltip("Where opened zones keep their working scenes, relative to the Unity project: a folder the game's .gitignore ignores, since the zone's files are what's kept.")]
+        public string scenesFolder = "Assets/ZoneEditing";
+
+        [Tooltip("The scene play mode always starts in, whatever scene is open: the game's own, which loads its zones from content.")]
+        public SceneAsset playScene;
 
         [Tooltip("The models for asset keys.")]
         public AssetLibrary assets;
@@ -35,5 +42,7 @@ namespace Comet.Unity.Editor
 
         [Tooltip("How high a new spawn point's marker stands, in meters; it can be moved and scaled after.")]
         public float spawnMarkerHeight = 0.15f;
+
+        private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
     }
 }
