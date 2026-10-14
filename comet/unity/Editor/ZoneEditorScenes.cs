@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
@@ -22,8 +23,15 @@ namespace Comet.Unity.Editor
             EditorSceneManager.sceneOpened += (scene, _) => Redraw(scene);
             EditorApplication.playModeStateChanged += state =>
             {
+                // The test runner enters play mode from a scene of its own, which must stay the one that loads.
+                if (state == PlayModeStateChange.ExitingEditMode && SceneManager.GetActiveScene().name.StartsWith("InitTestScene", StringComparison.Ordinal))
+                {
+                    EditorSceneManager.playModeStartScene = null;
+                }
+
                 if (state == PlayModeStateChange.EnteredEditMode)
                 {
+                    SetPlayScene(CometSettings.Find(quiet: true));
                     for (var i = 0; i < SceneManager.sceneCount; i++)
                     {
                         Redraw(SceneManager.GetSceneAt(i));
