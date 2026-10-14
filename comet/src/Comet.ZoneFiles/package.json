@@ -1,0 +1,8 @@
+{
+  "name": "com.comet.zonefiles",
+  "version": "0.1.0",
+  "displayName": "Comet Zone Files",
+  "description": "Comet's zone files: reading and writing zones as TOML and binary tiles, for the content build and the Unity editor. Shared with the servers as a .NET project.",
+  "unity": "6000.6",
+  "license": "MIT"
+}

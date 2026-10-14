@@ -7,6 +7,7 @@
     <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
     <Project Path="comet/src/Comet.Server/Comet.Server.csproj" />
     <Project Path="comet/src/Comet.Simulation/Comet.Simulation.csproj" />
+    <Project Path="comet/src/Comet.ZoneFiles/Comet.ZoneFiles.csproj" />
   </Folder>
   <Folder Name="/comet/tests/">
     <Project Path="comet/tests/Comet.Client.Tests/Comet.Client.Tests.csproj" />
