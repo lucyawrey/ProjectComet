@@ -84,6 +84,7 @@ stale() {
   [ -n "$(find "$project/Assets" "$project/Packages" "$project/ProjectSettings" \
     "$repo/comet/src/Comet.Client" "$repo/comet/src/Comet.Content" "$repo/comet/src/Comet.Protocol" \
     "$repo/comet/src/Comet.Simulation" "$repo/comet/unity" "$repo/shapeland/src/ShapeLand.Shared" \
+    "$repo/shapeland/content/strings" \
     -type f -newer "$web/index.html" ! -name '*.meta' ! -path '*/StreamingAssets/*' -print 2>/dev/null | head -n 1)" ]
 }
 

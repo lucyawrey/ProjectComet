@@ -31,13 +31,47 @@ namespace Comet.Content
                 return text;
             }
 
-            var result = new StringBuilder(text);
-            foreach (var (name, value) in values)
+            // One pass over the text, so a value that itself holds a {name} is left as it is.
+            var result = new StringBuilder(text.Length);
+            var at = 0;
+            while (at < text.Length)
             {
-                result.Replace("{" + name + "}", value?.ToString() ?? "");
+                var open = text.IndexOf('{', at);
+                var close = open < 0 ? -1 : text.IndexOf('}', open + 1);
+                if (close < 0)
+                {
+                    break;
+                }
+
+                result.Append(text, at, open - at);
+                if (TryFind(values, text.Substring(open + 1, close - open - 1), out var value))
+                {
+                    result.Append(value?.ToString() ?? "");
+                }
+                else
+                {
+                    result.Append(text, open, close - open + 1);
+                }
+
+                at = close + 1;
             }
 
-            return result.ToString();
+            return result.Append(text, at, text.Length - at).ToString();
+        }
+
+        private static bool TryFind((string Name, object Value)[] values, string name, out object value)
+        {
+            foreach (var pair in values)
+            {
+                if (pair.Name == name)
+                {
+                    value = pair.Value;
+                    return true;
+                }
+            }
+
+            value = null!;
+            return false;
         }
     }
 }

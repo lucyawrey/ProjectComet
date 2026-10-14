@@ -58,6 +58,14 @@ public class StringFileTests
         Assert.Equal("1 and {y}", table.Format("a", ("x", 1)));
     }
 
+    [Fact]
+    public void FormatDoesNotFillPlaceholdersInsideValues()
+    {
+        var table = new StringTable { Entries = { ["a"] = "{x} and {y}" } };
+
+        Assert.Equal("{y} and 2", table.Format("a", ("x", "{y}"), ("y", 2)));
+    }
+
     private static ContentBuildResult Build(ContentFolder folder) =>
         new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddStrings().Build();
 }

@@ -175,7 +175,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         player.Validator = new MovementValidator(_world, ShapeLandWorld.Rules, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(ShapeLandWorld.SpawnPoint(_world), (float)(_random.NextDouble() * Math.Tau), tick);
-        player.MovedByServer(tick);
+        player.PlacedByServer(tick); // the others learn of them from the spawn, not a state
 
         var connection = player.Connection;
         var spawn = player.Spawn();

@@ -49,14 +49,17 @@ internal sealed class Player(Connection connection, int tickRate)
     /// <summary>Accepted a new position this tick, to send to everyone else.</summary>
     public bool Moved { get; set; }
 
-    /// <summary>
-    /// The server moved the player itself (a spawn, a respawn, a fall it finished): stamped with the server's own
-    /// tick, and sent to everyone else.
-    /// </summary>
-    public void MovedByServer(uint tick)
+    /// <summary>The server placed the player itself (a spawn): stamped with the server's own tick.</summary>
+    public void PlacedByServer(uint tick)
     {
         Stamp.StampServer(tick);
         StateTick = Stamp.Broadcast;
+    }
+
+    /// <summary>The server moved the player itself (a respawn, a fall it finished): stamped, and sent to everyone else.</summary>
+    public void MovedByServer(uint tick)
+    {
+        PlacedByServer(tick);
         Moved = true;
     }
 

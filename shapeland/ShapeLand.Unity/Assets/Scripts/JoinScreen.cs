@@ -413,6 +413,10 @@ namespace ShapeLand.Client
             _join.JoinRefused -= OnRefused;
             _join.Failed -= OnFailed;
             _join.ConnectionLost -= OnConnectionLost;
+            if (_preview != null)
+            {
+                Destroy(_preview.gameObject); // its own object, so it doesn't go with the card
+            }
         }
     }
 }
