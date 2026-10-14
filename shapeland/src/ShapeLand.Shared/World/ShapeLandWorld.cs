@@ -16,30 +16,11 @@ namespace ShapeLand.Shared.World
         /// <summary>The zone ShapeLand plays in, until it has more than one.</summary>
         public const string ZoneId = "zone.test";
 
-        /// <summary>Falling below this height, in meters, is out of the world: the player respawns.</summary>
-        public const float KillHeight = -30f;
-
-        /// <summary>
-        /// ShapeLand's movement physics, the same for every shape (each shape's speed, jump and scale are in its
-        /// content file). The server checks movement against these, so clients, bots and server all use this one copy.
-        /// </summary>
-        public static readonly MovementRules Rules = new MovementRules
-        {
-            Gravity = 25f,
-            BodyRadius = 0.4f,
-            BodyHeight = 1f,
-            StepHeight = 0.35f,
-            GroundSnap = 0.4f,
-            GroundAcceleration = 40f,
-            AirAcceleration = 15f,
-            TurnSpeed = 900f,
-        };
-
         /// <summary>Where players appear: the zone's default spawn point, on the ground.</summary>
         public static Vector3 SpawnPoint(ShapeLandContent content, CollisionWorld world)
         {
             var spawn = DefaultSpawn(content);
-            world.TryGetGround(spawn, Rules.BodyRadius, spawn.Y + 1000, out var ground);
+            world.TryGetGround(spawn, content.Movement.BodyRadius, spawn.Y + 1000, out var ground);
             return new Vector3(spawn.X, ground, spawn.Z);
         }
 
@@ -47,8 +28,8 @@ namespace ShapeLand.Shared.World
         /// The highest ground under a position at or below it (terrain, or a mesh's top under the shared body), or
         /// null over a hole or past the edge: for dead-reckoning other players (Comet.Client's RemoteEntities).
         /// </summary>
-        public static Func<Vector3, float?> GroundHeight(CollisionWorld world) =>
-            feet => world.TryGetGround(feet, Rules.BodyRadius, feet.Y, out var height) ? height : null;
+        public static Func<Vector3, float?> GroundHeight(ShapeLandContent content, CollisionWorld world) =>
+            feet => world.TryGetGround(feet, content.Movement.BodyRadius, feet.Y, out var height) ? height : null;
 
         /// <summary>
         /// Other players moving faster than this (across the ground, or upwards) are drawn jumping rather than
@@ -87,7 +68,7 @@ namespace ShapeLand.Shared.World
                 }
             }
 
-            return new CollisionWorld(new ZoneTerrain(zone), meshes, KillHeight);
+            return new CollisionWorld(new ZoneTerrain(zone), meshes, content.Settings.World.KillHeight);
         }
 
         /// <summary>The zone ShapeLand plays in.</summary>

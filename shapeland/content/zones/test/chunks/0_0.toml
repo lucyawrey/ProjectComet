@@ -7,9 +7,27 @@ asset = "asset.cube"
 position = [6.0, 5.059, 2.0]
 scale = [1.0, 0.4, 1.0]
 
+[[placement]]
+asset = "asset.cylinder"
+name = "spawn.test_center"
+position = [0.0, 4.125, 0.0]
+scale = [2.0, 0.075, 2.0]
+
+[[placement]]
+asset = "asset.cylinder"
+name = "spawn.test_east"
+position = [18.0, 6.352, 8.0]
+scale = [2.0, 0.075, 2.0]
+
 [[spawn]]
 id = "spawn.test_center"
 position = [0.0, 4.125, 0.0]
 radius = 2.0
 facing = "random"
 default = true
+
+[[spawn]]
+id = "spawn.test_east"
+position = [18.0, 6.352, 8.0]
+radius = 2.0
+facing = "random"

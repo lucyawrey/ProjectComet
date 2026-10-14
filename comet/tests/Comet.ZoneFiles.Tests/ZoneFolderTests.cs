@@ -65,6 +65,20 @@ public class ZoneFolderTests
     }
 
     [Fact]
+    public void PlacementsKeepTheirNames()
+    {
+        using var folder = new TempFolder();
+        var zone = Zones.Sample();
+        zone.Chunks[0].Placements[0].Name = "spawn.meadow_gate";
+
+        var placement = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+
+        Assert.Empty(errors);
+        Assert.Equal("spawn.meadow_gate", placement.Name);
+        Assert.Contains("name = \"spawn.meadow_gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
+    }
+
+    [Fact]
     public void RoundsToMillimetersAndHundredthsOfADegree()
     {
         using var folder = new TempFolder();

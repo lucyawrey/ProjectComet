@@ -99,6 +99,25 @@ public class ZoneValidationTests
     }
 
     [Fact]
+    public void PlacementNamesAreUniqueAndValid()
+    {
+        var zone = Zones.Sample();
+        zone.Chunks[0].Placements =
+        [
+            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
+            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
+            new Placement { Asset = "asset.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
+        ];
+
+        Assert.Equal(
+            [
+                "chunks/-1_0.toml: placement of asset.cube: the name 'gate' is already used in chunks/-1_0.toml.",
+                "chunks/-1_0.toml: placement of asset.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
+            ],
+            Errors(zone));
+    }
+
+    [Fact]
     public void AZoneWithSpawnsHasOneDefault()
     {
         var zone = Zones.Sample();

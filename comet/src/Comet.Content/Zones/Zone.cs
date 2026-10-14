@@ -143,6 +143,12 @@ namespace Comet.Content
 
         [Key(3)] public Vector3 Scale { get; set; } = Vector3.One;
 
+        /// <summary>
+        /// An optional name, unique in the zone, for game code to find this placement by (in ShapeLand, a spawn
+        /// point's marker is named with the spawn's key); null for most.
+        /// </summary>
+        [Key(4)] public string? Name { get; set; }
+
         /// <summary>The placement's transform from the asset's space to the world (scale, then rotation, then position).</summary>
         public Matrix4x4 Matrix() =>
             Matrix4x4.CreateScale(Scale) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);

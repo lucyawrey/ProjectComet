@@ -8,6 +8,9 @@ cylinder = 3
 ramp = 4
 sphere = 5
 
+[settings]
+game = 1
+
 [shape]
 cube = 1
 diamond = 2
@@ -15,6 +18,7 @@ pyramid = 3
 
 [spawn]
 test_center = 1
+test_east = 2
 
 [zone]
 test = 1

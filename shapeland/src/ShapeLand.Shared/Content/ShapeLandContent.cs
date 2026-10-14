@@ -13,8 +13,10 @@ namespace ShapeLand.Shared.Content
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
         /// <summary>Content made in memory (by the content build, or tests); <see cref="Fingerprint"/> is 0 until it's saved.</summary>
-        public ShapeLandContent(IEnumerable<Shape> shapes, StringTable strings, IEnumerable<Asset> assets, IEnumerable<Zone> zones)
+        public ShapeLandContent(IEnumerable<Shape> shapes, GameSettings settings, StringTable strings, IEnumerable<Asset> assets, IEnumerable<Zone> zones)
         {
+            Settings = settings;
+            Movement = settings.Rules();
             Assets = new ContentTable<Asset>("asset", assets.OrderBy(a => a.Number));
             Shapes = new ContentTable<Shape>("shape", shapes.OrderBy(s => s.Number));
             Strings = strings;
@@ -23,6 +25,12 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>The playable shapes, in number order.</summary>
         public ContentTable<Shape> Shapes { get; }
+
+        /// <summary>The game-wide values (<c>content/settings/game.toml</c>).</summary>
+        public GameSettings Settings { get; }
+
+        /// <summary>The movement physics from <see cref="Settings"/>, as the motor and the server's checks take them.</summary>
+        public Comet.Simulation.MovementRules Movement { get; }
 
         /// <summary>The interface text (<c>content/strings/en.toml</c>).</summary>
         public StringTable Strings { get; }
@@ -55,13 +63,13 @@ namespace ShapeLand.Shared.Content
                 throw new ContentException("The content file is corrupt or from an incompatible build.", e);
             }
 
-            return new ShapeLandContent(file.Shapes, file.Strings, file.Assets, file.Zones) { Fingerprint = FingerprintOf(data) };
+            return new ShapeLandContent(file.Shapes, file.Settings, file.Strings, file.Assets, file.Zones) { Fingerprint = FingerprintOf(data) };
         }
 
         /// <summary>Writes the content file and sets <see cref="Fingerprint"/> to match it.</summary>
         public void Save(Stream stream)
         {
-            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Strings = Strings, Assets = Assets.All.ToArray(), Zones = Zones.All.ToArray() }, SerializerOptions);
+            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Strings = Strings, Assets = Assets.All.ToArray(), Zones = Zones.All.ToArray(), Settings = Settings }, SerializerOptions);
             Fingerprint = FingerprintOf(data);
             stream.Write(data, 0, data.Length);
         }
@@ -88,6 +96,8 @@ namespace ShapeLand.Shared.Content
             [Key(3)] public Zone[] Zones { get; set; } = new Zone[0];
 
             [Key(4)] public Asset[] Assets { get; set; } = new Asset[0];
+
+            [Key(5)] public GameSettings Settings { get; set; } = new GameSettings();
         }
     }
 

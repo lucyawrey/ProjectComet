@@ -209,10 +209,11 @@ namespace Comet.ZoneFiles
             chunk.Tiles = tiles.ToArray();
             chunk.Placements = toml.Tables(table, "placement").Select(p =>
             {
-                toml.CheckKeys(p.Table, p.Path, "asset", "position", "rotation", "scale");
+                toml.CheckKeys(p.Table, p.Path, "asset", "name", "position", "rotation", "scale");
                 return new Placement
                 {
                     Asset = toml.String(p.Table, p.Path, "asset"),
+                    Name = p.Table.ContainsKey("name") ? toml.String(p.Table, p.Path, "name") : null,
                     Position = toml.Vector(p.Table, p.Path, "position"),
                     Rotation = toml.Vector(p.Table, p.Path, "rotation", Vector3.Zero),
                     Scale = toml.Vector(p.Table, p.Path, "scale", Vector3.One),
@@ -339,11 +340,13 @@ namespace Comet.ZoneFiles
             });
             AddTables(table, "placement", chunk.Placements, p =>
             {
-                var placement = new TomlTable
+                var placement = new TomlTable { ["asset"] = p.Asset };
+                if (p.Name is not null)
                 {
-                    ["asset"] = p.Asset,
-                    ["position"] = ZoneToml.Array3(p.Position, LengthDecimals),
-                };
+                    placement["name"] = p.Name;
+                }
+
+                placement["position"] = ZoneToml.Array3(p.Position, LengthDecimals);
                 // Leave out the defaults, which most placements have, to keep the files short.
                 if (!IsZero(p.Rotation, AngleDecimals))
                 {

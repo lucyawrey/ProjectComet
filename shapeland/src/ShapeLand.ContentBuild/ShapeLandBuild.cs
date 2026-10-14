@@ -22,6 +22,7 @@ public static class ShapeLandBuild
     /// </summary>
     public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) => new ContentBuilder(contentRoot)
         .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
+        .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
         .AddStrings()
         .AddAssets(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
         .AddZones();
@@ -44,6 +45,32 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
+        // One set of game-wide values, and the marker it names must be an asset.
+        var settings = result.Entries<GameSettings>();
+        if (settings.Count != 1)
+        {
+            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"{settings.Count} game settings files: the game needs exactly one (settings/game.toml)."));
+            return (null, errors);
+        }
+
+        if (result.Entries<Asset>().All(a => a.Id != settings[0].Spawns.MarkerAsset))
+        {
+            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"spawns.marker_asset: there's no asset '{settings[0].Spawns.MarkerAsset}'."));
+            return (null, errors);
+        }
+
+        // Each shape starts at a spawn point of the game's zone.
+        var zoneSpawns = result.Zones.Where(z => z.Id == ShapeLandWorld.ZoneId).SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
+        foreach (var shape in result.Entries<Shape>().Where(s => !zoneSpawns.Contains(s.Spawn)))
+        {
+            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point in {ShapeLandWorld.ZoneId}."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return (null, errors);
+        }
+
         // The game plays in one zone for now.
         if (!result.Zones.Any(z => z.Id == ShapeLandWorld.ZoneId))
         {
@@ -51,7 +78,61 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        return (new ShapeLandContent(result.Entries<Shape>(), result.Strings!, result.Entries<Asset>(), result.Zones), errors);
+        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Asset>(), result.Zones), errors);
+    }
+
+    private static void ValidateSettings(GameSettings settings, ContentValidation validation)
+    {
+        void InRange(string table, string field, float value, float max)
+        {
+            if (value <= 0 || value > max)
+            {
+                validation.Error(table, field, $"{value} is out of range (above 0, at most {max}).");
+            }
+        }
+
+        void IsColor(string table, string field, uint color)
+        {
+            if (color > 0xFFFFFF)
+            {
+                validation.Error(table, field, $"0x{color:X} isn't a color: use 0xRRGGBB.");
+            }
+        }
+
+        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), colors = nameof(GameSettings.Colors);
+        var m = settings.Movement;
+        InRange(movement, nameof(m.Gravity), m.Gravity, 200);
+        InRange(movement, nameof(m.BodyRadius), m.BodyRadius, 5);
+        InRange(movement, nameof(m.BodyHeight), m.BodyHeight, 10);
+        InRange(movement, nameof(m.StepHeight), m.StepHeight, m.BodyHeight);
+        InRange(movement, nameof(m.GroundSnap), m.GroundSnap, 5);
+        InRange(movement, nameof(m.GroundAcceleration), m.GroundAcceleration, 1000);
+        InRange(movement, nameof(m.AirAcceleration), m.AirAcceleration, 1000);
+        InRange(movement, nameof(m.TurnSpeed), m.TurnSpeed, 10000);
+        InRange(spawns, nameof(SpawnSettings.ClaimSeconds), settings.Spawns.ClaimSeconds, 60);
+        InRange(spawns, nameof(SpawnSettings.MarkerHeight), settings.Spawns.MarkerHeight, 5);
+        IsColor(world, nameof(WorldSettings.GroundColor), settings.World.GroundColor);
+        IsColor(world, nameof(WorldSettings.SkirtColor), settings.World.SkirtColor);
+        IsColor(spawns, nameof(SpawnSettings.UnsetColor), settings.Spawns.UnsetColor);
+        foreach (var color in settings.Colors.Body)
+        {
+            IsColor(colors, nameof(ColorSettings.Body), color);
+        }
+
+        foreach (var color in settings.Colors.Eyes)
+        {
+            IsColor(colors, nameof(ColorSettings.Eyes), color);
+        }
+
+        if (settings.Colors.Body.Length == 0)
+        {
+            validation.Error(colors, nameof(ColorSettings.Body), "players need at least one body color.");
+        }
+
+        if (settings.Colors.Eyes.Length == 0)
+        {
+            validation.Error(colors, nameof(ColorSettings.Eyes), "players need at least one eye color.");
+        }
     }
 
     private static void ValidateShape(Shape shape, ContentValidation validation)
@@ -80,6 +161,7 @@ public static class ShapeLandBuild
 
 [TomlSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [TomlSerializable(typeof(Shape))]
+[TomlSerializable(typeof(GameSettings))]
 internal partial class ShapeLandToml : TomlSerializerContext
 {
 }

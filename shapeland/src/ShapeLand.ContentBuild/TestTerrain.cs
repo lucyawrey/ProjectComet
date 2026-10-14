@@ -18,7 +18,7 @@ public static class TestTerrain
     /// <summary>The test zone's key.</summary>
     public const string ZoneId = "zone.test";
 
-    /// <summary>The island: one piece, cut into the four chunks around the origin, with blocks and a default spawn at the center.</summary>
+    /// <summary>The island: one piece, cut into the four chunks around the origin, with blocks and two spawn points, the default at the center.</summary>
     public static Zone GenerateZone(int seed)
     {
         // The island's samples run from -RadiusSamples to RadiusSamples on each axis (1 m apart, centered on the
@@ -55,8 +55,6 @@ public static class TestTerrain
             });
         }
 
-        var center = HeightOf(SampleAt(0, 0, seed));
-        chunks[3].Spawns = [new SpawnPoint { Id = "spawn.test_center", Position = new Vector3(0, center, 0), Radius = 2, Facing = SpawnFacing.Random, IsDefault = true }];
         var zone = new Zone
         {
             Id = ZoneId,
@@ -80,6 +78,23 @@ public static class TestTerrain
             }];
         }
 
+        // Spawn points, each with its marker: a flat cylinder (2 m across, 2 m tall as modeled) named with its key.
+        foreach (var (id, x, z, isDefault) in new[] { ("spawn.test_center", 0f, 0f, true), ("spawn.test_east", 18f, 8f, false) })
+        {
+            const float radius = 2, markerHeight = 0.15f;
+            island.TryGetHeightAt(x, z, out var ground);
+            ground = MathF.Round(ground, 3);
+            var chunk = zone.Chunks.Single(c => c.Coord.Equals(ChunkCoord.Containing(new Vector3(x, 0, z))));
+            chunk.Spawns = [.. chunk.Spawns, new SpawnPoint { Id = id, Position = new Vector3(x, ground, z), Radius = radius, Facing = SpawnFacing.Random, IsDefault = isDefault }];
+            chunk.Placements = [.. chunk.Placements, new Placement
+            {
+                Asset = "asset.cylinder",
+                Name = id,
+                Position = new Vector3(x, ground, z),
+                Scale = new Vector3(radius, markerHeight / 2, radius),
+            }];
+        }
+
         return zone;
     }
 
@@ -97,8 +112,6 @@ public static class TestTerrain
         var height = 4f + 3f * Noise(seed, nx, nz) + 1f * Noise(seed + 1, (x + 32) / 10f, (z + 32) / 10f);
         return (ushort)Math.Clamp(MathF.Round((height - Offset) / Scale), 1, ushort.MaxValue);
     }
-
-    private static float HeightOf(ushort sample) => sample * Scale + Offset;
 
     // Smooth value noise in -1..1 from a hash of lattice points (not System.Random, whose sequence may change).
     private static float Noise(int seed, float x, float z)

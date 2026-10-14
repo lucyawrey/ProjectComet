@@ -42,10 +42,13 @@ public class ContentTests
 
         Assert.Equal(4, zone.Chunks.Length);
         Assert.All(zone.Chunks, c => Assert.Equal("island", Assert.Single(c.Tiles).Piece));
-        var spawn = Assert.Single(zone.Chunks.SelectMany(c => c.Spawns));
-        Assert.Equal(("spawn.test_center", true), (spawn.Id, spawn.IsDefault));
-        Assert.Equal(0, spawn.Position.X);
-        Assert.InRange(spawn.Position.Y, 0, 8);
+        var spawns = zone.Chunks.SelectMany(c => c.Spawns).ToList();
+        Assert.Equal(["spawn.test_center", "spawn.test_east"], spawns.Select(s => s.Id).Order());
+        var center = spawns.Single(s => s.IsDefault);
+        Assert.Equal(("spawn.test_center", 0f), (center.Id, center.Position.X));
+        Assert.InRange(center.Position.Y, 0, 8);
+        // Each spawn has its marker: a placement named with its key.
+        Assert.All(spawns, s => Assert.Contains(zone.Chunks.SelectMany(c => c.Placements), p => p.Name == s.Id));
     }
 
     [Fact]
@@ -114,7 +117,7 @@ public class ContentTests
     {
         var zone = TestTerrain.GenerateZone(1);
         var island = new ZoneTerrain(zone)["island"];
-        var blocks = zone.Chunks.SelectMany(c => c.Placements).ToList();
+        var blocks = zone.Chunks.SelectMany(c => c.Placements).Where(p => p.Name == null).ToList();
 
         Assert.Equal(4, blocks.Count);
         Assert.All(blocks, b =>

@@ -16,6 +16,7 @@ namespace Comet.ZoneFiles
     public static class ZoneValidation
     {
         private static readonly Regex NamePattern = new Regex("^[a-z][a-z0-9_]*$");
+        private static readonly Regex PlacementName = new Regex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$");
 
         /// <summary>A name in keys and in the zone: a lowercase letter, then lowercase letters, digits and underscores.</summary>
         public static bool IsName(string name) => NamePattern.IsMatch(name);
@@ -70,6 +71,27 @@ namespace Comet.ZoneFiles
                 if (!entranceNames.Contains(room.Entrance))
                 {
                     Error(zoneFile, $"transition_room {room.Name}: there's no entrance '{room.Entrance}'.");
+                }
+            }
+
+            var placementNames = new Dictionary<string, string>();
+            foreach (var chunk in zone.Chunks)
+            {
+                foreach (var placement in chunk.Placements.Where(p => p.Name is not null))
+                {
+                    var file = ZoneFolder.ChunkFile(chunk.Coord);
+                    if (!PlacementName.IsMatch(placement.Name!))
+                    {
+                        Error(file, $"placement of {placement.Asset}: '{placement.Name}' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.");
+                    }
+                    else if (placementNames.TryGetValue(placement.Name!, out var first))
+                    {
+                        Error(file, $"placement of {placement.Asset}: the name '{placement.Name}' is already used in {first}.");
+                    }
+                    else
+                    {
+                        placementNames.Add(placement.Name!, file);
+                    }
                 }
             }
 

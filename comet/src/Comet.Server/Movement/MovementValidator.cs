@@ -367,6 +367,25 @@ public sealed class MovementValidator
     };
 
     /// <summary>
+    /// Moves the player somewhere new (a spawn point, say) and builds the correction that tells them, as a respawn.
+    /// Later reports must echo its sequence.
+    /// </summary>
+    public PositionCorrection Teleport(Vector3 position, float facing, uint tick)
+    {
+        CorrectionSequence++;
+        Reset(position, facing, tick);
+        return new PositionCorrection
+        {
+            Sequence = CorrectionSequence,
+            Reason = CorrectionReason.Respawn,
+            X = position.X,
+            Y = position.Y,
+            Z = position.Z,
+            Facing = facing,
+        };
+    }
+
+    /// <summary>
     /// Builds the correction for a rejected report or a fall: back to the last accepted position, or for a fall to
     /// the last safe ground. Later reports must echo its sequence.
     /// </summary>
