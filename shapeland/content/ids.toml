@@ -5,3 +5,9 @@
 cube = 1
 diamond = 2
 pyramid = 3
+
+[spawn]
+test_center = 1
+
+[zone]
+test = 1

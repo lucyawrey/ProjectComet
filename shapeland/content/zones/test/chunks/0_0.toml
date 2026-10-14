@@ -1,0 +1,10 @@
+[[tile]]
+piece = "island"
+origin = [0, 0]
+
+[[spawn]]
+id = "spawn.test_center"
+position = [0.0, 4.125, 0.0]
+radius = 2.0
+facing = "random"
+default = true

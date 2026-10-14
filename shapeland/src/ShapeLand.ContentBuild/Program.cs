@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Comet.Content;
+using Comet.ZoneFiles;
 using ShapeLand.ContentBuild;
 
 // ShapeLand's content tool. Paths are fixed relative to the repository, so it runs the same from anywhere.
@@ -26,7 +27,7 @@ switch (args)
               build                 check shapeland/content, add new ids to ids.toml, write the compiled
                                     content and the editor schemas to artifacts/content/shapeland
               schema                write only the editor schemas
-              terrain [--seed N]    generate the test zone's heightmap (seed 1 by default)
+              terrain [--seed N]    generate the test zone (seed 1 by default)
             """);
         return 2;
 }
@@ -53,7 +54,7 @@ int Build()
     }
 
     WriteSchemas();
-    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, the test terrain and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
+    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Zones.All.Count} zone(s), the test terrain and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
     return 0;
 }
 
@@ -78,7 +79,9 @@ int Terrain(int seed)
         HeightmapFormat.Write(stream, TestTerrain.Generate(seed));
     }
 
-    Console.WriteLine($"Wrote the test terrain (seed {seed}) to {Path.GetRelativePath(repo, file)}.");
+    var zone = Path.Combine(content, ShapeLandBuild.TestZonePath);
+    ZoneFolder.Write(zone, TestTerrain.GenerateZone(seed));
+    Console.WriteLine($"Wrote the test terrain (seed {seed}) to {Path.GetRelativePath(repo, file)} and the test zone to {Path.GetRelativePath(repo, zone)}.");
     return 0;
 }
 

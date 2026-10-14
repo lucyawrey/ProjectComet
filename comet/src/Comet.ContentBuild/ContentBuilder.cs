@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.RegularExpressions;
 using Comet.Content;
+using Comet.ZoneFiles;
 using Tomlyn;
 using Tomlyn.Parsing;
 using Tomlyn.Serialization;
@@ -14,13 +15,14 @@ namespace Comet.ContentBuild;
 /// C# type (syntax, unknown keys, missing or mistyped fields, the id's form and uniqueness, then the type's own
 /// validation rules) and, if everything passes, gets its number from the ID registry. Games register their types
 /// and Tomlyn's source-generated metadata for them, then write the compiled file themselves. A game with interface
-/// text also registers its string file (<see cref="AddStrings"/>).
+/// text also registers its string file (<see cref="AddStrings"/>), and a game with zones their folder (<see cref="AddZones"/>).
 /// </summary>
 public sealed class ContentBuilder
 {
     private readonly string _root;
     private readonly List<IContentType> _types = new();
     private string? _stringFile;
+    private string? _zonesFolder;
 
     /// <summary>A builder for the content folder at <paramref name="contentRoot"/>.</summary>
     public ContentBuilder(string contentRoot) => _root = Path.GetFullPath(contentRoot);
@@ -37,6 +39,16 @@ public sealed class ContentBuilder
     public ContentBuilder AddStrings(string folder = "strings")
     {
         _stringFile = Path.Combine(folder, "en.toml");
+        return this;
+    }
+
+    /// <summary>
+    /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>), checked by
+    /// <see cref="ZoneValidation"/>. Zone and spawn keys get registry numbers like other content.
+    /// </summary>
+    public ContentBuilder AddZones(string folder = "zones")
+    {
+        _zonesFolder = folder;
         return this;
     }
 
@@ -61,6 +73,7 @@ public sealed class ContentBuilder
             }
         }
 
+        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), errors);
         if (errors.Count == 0)
         {
             foreach (var type in types)
@@ -68,13 +81,79 @@ public sealed class ContentBuilder
                 type.AssignNumbers(registry);
             }
 
+            AssignZoneNumbers(zones, registry);
+
             if (saveRegistry && registry.Changed)
             {
                 registry.Save();
             }
         }
 
-        return new ContentBuildResult(errors, types, strings);
+        return new ContentBuildResult(errors, types, strings, zones);
+    }
+
+    private List<Zone> ReadZones(string folder, List<ContentError> errors)
+    {
+        var zones = new List<Zone>();
+        if (!Directory.Exists(folder))
+        {
+            return zones;
+        }
+
+        var zoneFolders = new Dictionary<string, string>();
+        var spawnZones = new Dictionary<string, string>();
+        foreach (var zoneFolder in Directory.EnumerateDirectories(folder).Order(StringComparer.Ordinal))
+        {
+            var zoneErrors = new List<ZoneFileError>();
+            var zone = ZoneFolder.Read(zoneFolder, zoneErrors);
+            if (zoneErrors.Count == 0)
+            {
+                zoneErrors.AddRange(ZoneValidation.Check(zone));
+            }
+
+            var zoneFile = DisplayPath(Path.Combine(zoneFolder, ZoneFolder.ZoneFile));
+            if (zoneErrors.Count == 0 && zoneFolders.TryGetValue(zone.Id, out var first))
+            {
+                errors.Add(new ContentError(zoneFile, 1, 1, $"'{zone.Id}' is already used by {first}."));
+            }
+
+            foreach (var spawn in zone.Chunks.SelectMany(c => c.Spawns))
+            {
+                if (spawnZones.TryGetValue(spawn.Id, out var other) && other != zone.Id)
+                {
+                    errors.Add(new ContentError(zoneFile, 1, 1, $"spawn '{spawn.Id}' is already used by {other}."));
+                }
+
+                spawnZones.TryAdd(spawn.Id, zone.Id);
+            }
+
+            errors.AddRange(zoneErrors.Select(e => new ContentError(DisplayPath(Path.Combine(zoneFolder, e.File)), 1, 1, e.Message)));
+            if (zoneErrors.Count == 0)
+            {
+                zoneFolders.TryAdd(zone.Id, zoneFile);
+                zones.Add(zone);
+            }
+        }
+
+        return zones;
+    }
+
+    private static void AssignZoneNumbers(List<Zone> zones, IdRegistry registry)
+    {
+        var numbers = registry.Assign("zone", zones.Select(z => z.Id));
+        var spawns = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).ToList();
+        var spawnNumbers = registry.Assign("spawn", spawns.Select(s => s.Id));
+        foreach (var zone in zones)
+        {
+            zone.Number = numbers[zone.Id];
+        }
+
+        foreach (var spawn in spawns)
+        {
+            spawn.Number = spawnNumbers[spawn.Id];
+        }
+
+        zones.Sort((a, b) => a.Number.CompareTo(b.Number));
     }
 
     /// <summary>A JSON Schema per content type, keyed by kind, for editor autocompletion and checking.</summary>

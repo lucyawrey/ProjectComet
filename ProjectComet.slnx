@@ -15,6 +15,7 @@
     <Project Path="comet/tests/Comet.Protocol.Tests/Comet.Protocol.Tests.csproj" />
     <Project Path="comet/tests/Comet.Server.Tests/Comet.Server.Tests.csproj" />
     <Project Path="comet/tests/Comet.Simulation.Tests/Comet.Simulation.Tests.csproj" />
+    <Project Path="comet/tests/Comet.ZoneFiles.Tests/Comet.ZoneFiles.Tests.csproj" />
   </Folder>
   <Folder Name="/shapeland/" />
   <Folder Name="/shapeland/src/">

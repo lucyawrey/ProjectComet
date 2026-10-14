@@ -13,11 +13,12 @@ namespace ShapeLand.Shared.Content
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
         /// <summary>Content made in memory (by the content build, or tests); <see cref="Fingerprint"/> is 0 until it's saved.</summary>
-        public ShapeLandContent(IEnumerable<Shape> shapes, Heightmap terrain, StringTable strings)
+        public ShapeLandContent(IEnumerable<Shape> shapes, Heightmap terrain, StringTable strings, IEnumerable<Zone> zones)
         {
             Shapes = new ContentTable<Shape>("shape", shapes.OrderBy(s => s.Number));
             Terrain = terrain;
             Strings = strings;
+            Zones = new ContentTable<Zone>("zone", zones.OrderBy(z => z.Number));
         }
 
         /// <summary>The playable shapes, in number order.</summary>
@@ -26,8 +27,11 @@ namespace ShapeLand.Shared.Content
         /// <summary>The interface text (<c>content/strings/en.toml</c>).</summary>
         public StringTable Strings { get; }
 
-        /// <summary>The test zone's terrain, until zone files exist.</summary>
+        /// <summary>The old test terrain, until the game builds its world from <see cref="Zones"/>.</summary>
         public Heightmap Terrain { get; }
+
+        /// <summary>The zones (<c>content/zones/</c>), in number order.</summary>
+        public ContentTable<Zone> Zones { get; }
 
         /// <summary>
         /// A fingerprint of the content file this was loaded from or saved to (0 for content never in a file). Joins
@@ -51,13 +55,13 @@ namespace ShapeLand.Shared.Content
                 throw new ContentException("The content file is corrupt or from an incompatible build.", e);
             }
 
-            return new ShapeLandContent(file.Shapes, file.Terrain, file.Strings) { Fingerprint = FingerprintOf(data) };
+            return new ShapeLandContent(file.Shapes, file.Terrain, file.Strings, file.Zones) { Fingerprint = FingerprintOf(data) };
         }
 
         /// <summary>Writes the content file and sets <see cref="Fingerprint"/> to match it.</summary>
         public void Save(Stream stream)
         {
-            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Terrain = Terrain, Strings = Strings }, SerializerOptions);
+            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Terrain = Terrain, Strings = Strings, Zones = Zones.All.ToArray() }, SerializerOptions);
             Fingerprint = FingerprintOf(data);
             stream.Write(data, 0, data.Length);
         }
@@ -82,6 +86,8 @@ namespace ShapeLand.Shared.Content
             [Key(1)] public Heightmap Terrain { get; set; } = new Heightmap();
 
             [Key(2)] public StringTable Strings { get; set; } = new StringTable();
+
+            [Key(3)] public Zone[] Zones { get; set; } = new Zone[0];
         }
     }
 

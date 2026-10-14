@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Comet.Content\Comet.Content.csproj" />
+    <ProjectReference Include="..\Comet.ZoneFiles\Comet.ZoneFiles.csproj" />
   </ItemGroup>
 
 </Project>

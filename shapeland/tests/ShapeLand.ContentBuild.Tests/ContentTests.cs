@@ -30,6 +30,38 @@ public class ContentTests
     }
 
     [Fact]
+    public void CompiledContentHoldsTheTestZone()
+    {
+        var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
+        Assert.Empty(errors);
+        var file = new MemoryStream();
+        built!.Save(file);
+        file.Position = 0;
+
+        var zone = ShapeLandContent.Load(file).Zones[TestTerrain.ZoneId];
+
+        Assert.Equal(4, zone.Chunks.Length);
+        Assert.All(zone.Chunks, c => Assert.Equal("island", Assert.Single(c.Tiles).Piece));
+        var spawn = Assert.Single(zone.Chunks.SelectMany(c => c.Spawns));
+        Assert.Equal(("spawn.test_center", true), (spawn.Id, spawn.IsDefault));
+        Assert.Equal(0, spawn.Position.X);
+        Assert.InRange(spawn.Position.Y, 0, 8);
+    }
+
+    [Fact]
+    public void TheTestZoneIsTheGeneratedOne()
+    {
+        // The terrain command writes it; if this fails, run it again (ShapeLand.ContentBuild terrain).
+        var (built, _) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
+        var generated = TestTerrain.GenerateZone(1);
+        var zone = built!.Zones[TestTerrain.ZoneId];
+
+        Assert.Equal(
+            generated.Chunks.OrderBy(c => (c.Coord.X, c.Coord.Z)).Select(c => (c.Coord, c.Tiles[0].OriginX, c.Tiles[0].OriginZ, c.Tiles[0].Heights.Samples)),
+            zone.Chunks.OrderBy(c => (c.Coord.X, c.Coord.Z)).Select(c => (c.Coord, c.Tiles[0].OriginX, c.Tiles[0].OriginZ, c.Tiles[0].Heights.Samples)));
+    }
+
+    [Fact]
     public void FingerprintsMatchTheFileAndChangeWithTheContent()
     {
         var (built, _) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);

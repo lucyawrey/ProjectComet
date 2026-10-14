@@ -122,7 +122,7 @@ public sealed class IdRegistry
     public void Save()
     {
         var text = new StringBuilder(Header);
-        foreach (var (kind, numbers) in _kinds.OrderBy(k => k.Key, StringComparer.Ordinal))
+        foreach (var (kind, numbers) in _kinds.Where(k => k.Value.Count > 0).OrderBy(k => k.Key, StringComparer.Ordinal))
         {
             text.Append('\n').Append('[').Append(kind).Append("]\n");
             foreach (var (number, key) in numbers)
