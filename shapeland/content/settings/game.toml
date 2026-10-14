@@ -18,6 +18,7 @@ kill_height = -30.0 # falling below this is out of the world: back to the player
 ground_color = 0x739E4D # default unpainted terrain color
 under_color = 0x7A5C3E # default unpainted terrain underside color
 placed_color = 0x9E8C7A # default placed object color, for assets without their own
+
 [spawns]
 claim_seconds = 2.0 # standing in another spawn point's radius this long makes it the player's
 marker_asset = "asset.cylinder" # drawn flattened as each spawn point's marker

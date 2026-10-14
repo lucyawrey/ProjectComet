@@ -107,6 +107,13 @@ namespace Comet.Unity.Editor
         /// <summary>Writes an opened zone back to its files; false (with the reasons logged) if it doesn't validate.</summary>
         public static bool Save(ZoneEditing editing)
         {
+            if (!editing.HasZoneData)
+            {
+                // A working scene saved by an older editor, which kept the zone data another way.
+                Debug.LogError($"This scene has no zone data to save; open the zone again (Comet › Zones › Open…). Its files in {editing.folder} are unchanged.");
+                return false;
+            }
+
             var zone = Gather(editing);
             var errors = ZoneValidation.Check(zone);
             var library = CometSettings.Find(quiet: true)?.assets;

@@ -38,6 +38,11 @@ namespace Comet.ZoneFiles
             }
 
             CheckNames(zone.Pieces.Select(p => p.Name), "piece", zoneFile, Error);
+            foreach (var piece in zone.Pieces.Where(p => p.SkirtDepth < 0))
+            {
+                Error(zoneFile, $"piece {piece.Name}: skirt_depth can't be negative.");
+            }
+
             CheckNames(zone.Entrances.Select(e => e.Name), "entrance", zoneFile, Error);
             CheckNames(zone.TransitionRooms.Select(r => r.Name), "transition_room", zoneFile, Error);
 

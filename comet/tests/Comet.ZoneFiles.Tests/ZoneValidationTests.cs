@@ -29,6 +29,15 @@ public class ZoneValidationTests
     }
 
     [Fact]
+    public void SkirtDepthCantBeNegative()
+    {
+        var zone = Zones.Sample();
+        zone.Pieces[0].SkirtDepth = -1;
+
+        Assert.Equal(["zone.toml: piece main: skirt_depth can't be negative."], Errors(zone));
+    }
+
+    [Fact]
     public void TilesNeedAKnownPieceAndMustFitTheirChunk()
     {
         var zone = Zones.Sample();
