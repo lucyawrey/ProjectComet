@@ -49,6 +49,9 @@ namespace Comet.Unity.Editor
         private Vector3? _hover;
         private List<Vector3> _overlaps = new List<Vector3>();
 
+        // The undo step a drag in Unity's color picker started, so the whole drag is one step.
+        private int? _colorUndoGroup;
+
         private GUIContent? _icon;
 
         /// <summary>The tool's one instance, for its panel.</summary>
@@ -198,8 +201,16 @@ namespace Comet.Unity.Editor
             return reset ? null : changed ? Rgb(color) : own;
         }
 
+        private static bool ColorPickerFocused => EditorWindow.focusedWindow != null && EditorWindow.focusedWindow.GetType().Name == "ColorPicker";
+
         private void PieceSettings(ZoneTerrainEditing terrain)
         {
+            // A picker session ends once focus leaves it (say, to paint), so later changes get steps of their own.
+            if (!ColorPickerFocused)
+            {
+                _colorUndoGroup = null;
+            }
+
             var settings = terrain.Zone.Pieces.First(p => p.Name == piece);
             EditorGUI.BeginChangeCheck();
             var depth = Mathf.Max(0, EditorGUILayout.FloatField(new GUIContent("Skirt depth (m)", "Without an underside map, the piece's flat bottom sits this far below its lowest ground."), settings.SkirtDepth));
@@ -221,6 +232,21 @@ namespace Comet.Unity.Editor
                 settings.UnderColor = under;
                 terrain.ReplaceDefaultColors(piece, oldGround, Ground(), oldUnder, Under());
                 terrain.Commit("Change piece settings", _settings!);
+
+                // Unity's color picker reports every step of a drag as a change; while it has focus, they all go into
+                // the first one's undo step.
+                if (!ColorPickerFocused)
+                {
+                    _colorUndoGroup = null;
+                }
+                else if (_colorUndoGroup is { } group)
+                {
+                    Undo.CollapseUndoOperations(group);
+                }
+                else
+                {
+                    _colorUndoGroup = Undo.GetCurrentGroup();
+                }
             }
 
             // On once the Underside brushes have painted; turning it off removes the underside and its colors.
