@@ -33,7 +33,8 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.comet.client": "0.1.0"
+        "com.comet.client": "0.1.0",
+        "com.comet.content": "0.1.0"
       }
     },
     "com.github-glitchenzo.nugetforunity": {

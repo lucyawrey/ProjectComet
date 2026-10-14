@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Comet.Simulation;
 using NUnit.Framework;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.World;
@@ -136,6 +137,29 @@ namespace ShapeLand.Client.Tests
         }
 
         [Test]
+        public void BlocksFaceOutward()
+        {
+            var box = new Box(new System.Numerics.Vector3(1, 2, 3), new System.Numerics.Vector3(3, 3, 7));
+            var mesh = WorldMeshes.Block(box);
+            try
+            {
+                var center = WorldMeshes.ToUnity(box.Center);
+                var vertices = mesh.vertices;
+                var triangles = mesh.triangles;
+                Assert.That(triangles.Length, Is.EqualTo(36));
+                for (var i = 0; i < triangles.Length; i += 3)
+                {
+                    var (a, b, c) = (vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]]);
+                    Assert.That(Vector3.Dot(Vector3.Cross(b - a, c - a), (a + b + c) / 3 - center), Is.GreaterThan(0), $"Triangle {i / 3} faces inward.");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(mesh);
+            }
+        }
+
+        [Test]
         public void ShapeStatsAreSpeedAndJumpHeight()
         {
             var (speed, jump) = JoinScreen.Stats(new Shape { MaxSpeed = 5, JumpVelocity = 8.5f });
@@ -147,13 +171,7 @@ namespace ShapeLand.Client.Tests
         [Test]
         public void EveryInterfaceTextKeyExists()
         {
-            var contentFile = Path.Combine(Application.streamingAssetsPath, "content.bin");
-            Assert.That(File.Exists(contentFile), "No content in StreamingAssets; run ShapeLand > Copy Content.");
-            ShapeLandContent content;
-            using (var stream = File.OpenRead(contentFile))
-            {
-                content = ShapeLandContent.Load(stream);
-            }
+            var content = TestGameServer.LoadContent();
 
             var groups = string.Join("|", content.Strings.Entries.Keys.Select(k => k.Split('.')[0]).Distinct());
             var used = new Regex($"(?:\"#?|data-(?:text|label|title)=\")((?:{groups})\\.[a-z0-9_.]+)\"");

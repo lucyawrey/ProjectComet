@@ -33,13 +33,6 @@ namespace ShapeLand.Client
         private double _askedAt;
         private double _connectedAt;
 
-        /// <summary>The server's host and port, or a full ws:// URL. Set before the component starts.</summary>
-        public string Address
-        {
-            get => address;
-            set => address = value;
-        }
-
         /// <summary>The name last asked for.</summary>
         public string PlayerName { get; private set; }
 

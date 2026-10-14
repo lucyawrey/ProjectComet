@@ -25,7 +25,7 @@ namespace ShapeLand.Client.Tests
             Click(Swatch("eyes", ShapeLandRules.EyeColors[3]));
             // From content, so tuning the cube doesn't break the test.
             var cube = Join.Content.Shapes.All.First(shape => shape.Mesh == MeshKind.Cube);
-            var jump = cube.JumpVelocity * cube.JumpVelocity / (2 * ShapeLandWorld.Rules.Gravity);
+            var (_, jump) = JoinScreen.Stats(cube);
             var expected = new[]
             {
                 Strings.Format("join.speed_value", ("speed", cube.MaxSpeed.ToString("0.#"))),

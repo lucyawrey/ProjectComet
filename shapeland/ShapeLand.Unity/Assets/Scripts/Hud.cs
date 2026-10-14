@@ -1,4 +1,5 @@
 using Comet.Client;
+using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using UnityEngine;
@@ -15,9 +16,6 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(UIDocument))]
     public sealed class Hud : MonoBehaviour
     {
-        // Esc that closed the chat input may reach this too; ignore it for this long.
-        private const float KeyDebounce = 0.2f;
-
         [SerializeField] private JoinClient join;
         [SerializeField] private GameView view;
         [SerializeField] private JoinScreen card;
@@ -37,7 +35,7 @@ namespace ShapeLand.Client
         public bool Shown => _root != null && !_root.ClassListContains("hidden");
 
         /// <summary>True while the join card is up over the game.</summary>
-        public bool CardShowing => card != null && card.Showing;
+        public bool CardShowing => card.Showing;
 
         /// <summary>How dark the respawn fade has the screen now: 0 clear, 1 black.</summary>
         public float Darkness { get; private set; }
@@ -85,13 +83,13 @@ namespace ShapeLand.Client
             }
 
             // Esc closes the chat input first (Chat); only a press clear of that opens or closes the card.
-            if (card != null && view.Controls.Game.ChangeLook.WasPressedThisFrame())
+            if (view.Controls.Game.ChangeLook.WasPressedThisFrame())
             {
                 if (card.Changing)
                 {
                     card.Cancel();
                 }
-                else if (!_chat.Open && Time.unscaledTime - _chat.ToggledAt > KeyDebounce)
+                else if (!_chat.Open && !_chat.JustToggled)
                 {
                     OpenLook();
                 }
@@ -106,11 +104,8 @@ namespace ShapeLand.Client
         public void OpenLook()
         {
             _chat.CloseInput();
-            if (card != null)
-            {
-                card.OpenChange();
-                UpdateMoving();
-            }
+            card.OpenChange();
+            UpdateMoving();
         }
 
         /// <summary>Stops the shape while the player types or chooses a look.</summary>

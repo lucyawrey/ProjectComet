@@ -1,5 +1,4 @@
 using System.Collections;
-using System.IO;
 using Comet.Unity;
 using NUnit.Framework;
 using ShapeLand.Shared.Messages;
@@ -32,7 +31,7 @@ namespace ShapeLand.Client.Tests
         [UnityTest]
         public IEnumerator JoinsTheGameServer()
         {
-            Assert.That(File.Exists(Path.Combine(Application.streamingAssetsPath, "content.bin")), "No content in StreamingAssets; run ShapeLand > Copy Content.");
+            TestGameServer.LoadContent();
 
             _server = new TestGameServer();
             yield return _server.Start();

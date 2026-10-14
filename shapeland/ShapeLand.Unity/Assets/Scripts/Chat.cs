@@ -15,12 +15,12 @@ namespace ShapeLand.Client
     public sealed class Chat : MonoBehaviour
     {
         /// <summary>Seconds without a message before the log fades out.</summary>
-        public const float LogSeconds = 10;
+        private const float LogSeconds = 10;
 
         /// <summary>How many lines the log keeps.</summary>
-        public const int MaxLines = 8;
+        private const int MaxLines = 8;
 
-        // Enter that opened or closed the chat may reach the other handler too; ignore it for this long.
+        // Enter or Esc that opened or closed the chat may reach another handler too; ignore it for this long.
         private const float KeyDebounce = 0.2f;
 
         // How long the log and the hint take to fade in or out, in seconds, and the hint's opacity when shown.
@@ -34,13 +34,14 @@ namespace ShapeLand.Client
         private TextField _input;
         private Label _hint;
         private float _lastLine = float.NegativeInfinity;
+        private float _toggledAt = float.NegativeInfinity;
         private bool _openOnRelease;
 
         /// <summary>True while the input is open.</summary>
         public bool Open { get; private set; }
 
-        /// <summary>When the input last opened or closed, in unscaled seconds.</summary>
-        public float ToggledAt { get; private set; } = float.NegativeInfinity;
+        /// <summary>True just after the input opened or closed, while the key that did it may still reach other handlers.</summary>
+        public bool JustToggled => Time.unscaledTime - _toggledAt <= KeyDebounce;
 
         /// <summary>How visible the chat box is now, from 0 (faded out) to 1.</summary>
         public float Opacity { get; private set; }
@@ -93,7 +94,7 @@ namespace ShapeLand.Client
             // The input opens when Enter is released: focusing it while Enter is still down lets the rest of that
             // key press reach it, which in web builds leaves it ignoring typed characters.
             var openChat = _hud.View.Controls.Game.OpenChat;
-            if (!Open && !_hud.CardShowing && openChat.WasPressedThisFrame() && Time.unscaledTime - ToggledAt > KeyDebounce)
+            if (!Open && !_hud.CardShowing && openChat.WasPressedThisFrame() && !JustToggled)
             {
                 _openOnRelease = true;
             }
@@ -114,7 +115,7 @@ namespace ShapeLand.Client
         {
             _openOnRelease = false;
             Open = true;
-            ToggledAt = Time.unscaledTime;
+            _toggledAt = Time.unscaledTime;
             _inputRow.RemoveFromClassList("hidden");
             _input.value = "";
             _input.Focus();
@@ -130,7 +131,7 @@ namespace ShapeLand.Client
             }
 
             Open = false;
-            ToggledAt = Time.unscaledTime;
+            _toggledAt = Time.unscaledTime;
             _input.Blur();
             _inputRow.AddToClassList("hidden");
             _hud.UpdateMoving();
@@ -157,7 +158,7 @@ namespace ShapeLand.Client
 
             if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
             {
-                if (Time.unscaledTime - ToggledAt > KeyDebounce)
+                if (!JustToggled)
                 {
                     Send();
                 }

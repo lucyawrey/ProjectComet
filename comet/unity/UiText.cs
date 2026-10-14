@@ -1,11 +1,11 @@
 using Comet.Content;
 using UnityEngine.UIElements;
 
-namespace ShapeLand.Client
+namespace Comet.Unity
 {
     /// <summary>
-    /// Fills a UI's text from the content's string table (<c>content/strings/en.toml</c>): UXML labels and buttons
-    /// write a key as <c>text="#join.title"</c>, and get the text for it here once the content has loaded.
+    /// Fills a UI Toolkit interface's text from the game's string table: UXML labels and buttons write a key as
+    /// <c>text="#join.title"</c>, and get the text for it here once the content has loaded.
     /// </summary>
     public static class UiText
     {

@@ -15,7 +15,7 @@ namespace ShapeLand.Client
     public sealed class NameTags : MonoBehaviour
     {
         /// <summary>Tags and bubbles further away than this, in meters, aren't shown.</summary>
-        public const float TagDistance = 45;
+        private const float TagDistance = 45;
 
         // How far above a shape's top its name tag sits, in meters, and the bubble above the tag, in panel pixels.
         private const float TagLift = 0.25f;
@@ -119,9 +119,6 @@ namespace ShapeLand.Client
         /// <summary>The bubble text showing over a player now, or null.</summary>
         public string BubbleOf(uint entityId) => _tags.TryGetValue(entityId, out var tag) ? tag.Bubble(Time.unscaledTime) : null;
 
-        /// <summary>Whether a player's name tag is on screen now.</summary>
-        public bool TagShown(uint entityId) => _tags.TryGetValue(entityId, out var tag) && tag.NameShown;
-
         /// <summary>A player's name tag (none for the player's own shape) and speech bubble.</summary>
         private sealed class Tag
         {
@@ -150,8 +147,6 @@ namespace ShapeLand.Client
                 _bubble.style.display = DisplayStyle.None;
                 layer.Add(_bubble);
             }
-
-            public bool NameShown => _name != null && _name.style.display.value == DisplayStyle.Flex;
 
             public void Rename(string name)
             {

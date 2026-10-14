@@ -12,9 +12,9 @@ namespace Comet.ContentBuild;
 /// </summary>
 internal static class StringFile
 {
-    private static readonly Regex KeyPart = new("^[a-z][a-z0-9_]*$");
+    private static readonly Regex KeyPart = new($"^{ContentBuilder.NamePattern}$");
     private static readonly Regex Braces = new(@"\{[^{}]*\}|[{}]");
-    private static readonly Regex Placeholder = new(@"^\{[a-z][a-z0-9_]*\}$");
+    private static readonly Regex Placeholder = new($"^\\{{{ContentBuilder.NamePattern}\\}}$");
 
     /// <summary>Reads the string file at <paramref name="path"/>, adding problems to <paramref name="errors"/> under the name <paramref name="file"/>.</summary>
     public static StringTable Read(string path, string file, List<ContentError> errors)
@@ -83,7 +83,7 @@ internal static class StringFile
     // A key's dotted path, or null after recording a part that isn't allowed.
     private static string? Key(KeySyntax key, string file, List<ContentError> errors)
     {
-        var parts = new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!)).ToList();
+        var parts = ContentBuilder.KeyParts(key).ToList();
         var bad = parts.FirstOrDefault(p => !KeyPart.IsMatch(ContentBuilder.KeyText(p)));
         if (bad is not null)
         {

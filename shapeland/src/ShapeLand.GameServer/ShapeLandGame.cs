@@ -233,8 +233,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             case MovementVerdict.Stale:
                 break;
             case MovementVerdict.FellOut:
-                player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
-                player.MovedByServer(tick);
+                Respawn(player, tick);
                 break;
             default:
                 // Logged for moderation, never banned automatically: the 1st, 10th, 100th… violation, so a
@@ -272,10 +271,16 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
                 player.MovedByServer(tick);
                 break;
             case FallResult.FellOut:
-                player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
-                player.MovedByServer(tick);
+                Respawn(player, tick);
                 break;
         }
+    }
+
+    // Back to the last safe ground, telling the player, and everyone else seeing them reappear there.
+    private static void Respawn(Player player, uint tick)
+    {
+        player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.Respawn, tick));
+        player.MovedByServer(tick);
     }
 
     private static bool IsPowerOfTen(int n)

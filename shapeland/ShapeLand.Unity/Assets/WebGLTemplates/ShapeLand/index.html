@@ -67,7 +67,7 @@
       (function () {
         // The page's text (page.* in shapeland/content/strings/en.toml), put in by the build (Builds.Web). Elements
         // name theirs with data-text, their aria-label with data-label and their tooltip with data-title.
-        var TEXT = {{{ PAGE_TEXT }}};
+        var TEXT = /* PAGE_TEXT */ {};
         document.querySelectorAll("[data-text]").forEach(function (element) {
           element.textContent = TEXT[element.dataset.text];
         });

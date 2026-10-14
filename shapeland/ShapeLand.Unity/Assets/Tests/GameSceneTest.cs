@@ -1,5 +1,4 @@
 using System.Collections;
-using System.IO;
 using System.Linq;
 using Comet.Content;
 using NUnit.Framework;
@@ -62,7 +61,7 @@ namespace ShapeLand.Client.Tests
         // test" with the card's choices.
         protected IEnumerator StartGame(bool join = true)
         {
-            Assert.That(File.Exists(Path.Combine(Application.streamingAssetsPath, "content.bin")), "No content in StreamingAssets; run ShapeLand > Copy Content.");
+            TestGameServer.LoadContent();
 
             Server = new TestGameServer();
             yield return Server.Start();

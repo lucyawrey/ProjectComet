@@ -42,16 +42,17 @@ namespace ShapeLand.Client.Editor
             // sends it to browsers that ask for br.
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = true;
-            // ShapeLand's own page (Assets/WebGLTemplates/ShapeLand) in place of Unity's, with its text from the
-            // content's string table (page.*), so the page needs no download of its own to show it.
+            // ShapeLand's own page (Assets/WebGLTemplates/ShapeLand) in place of Unity's.
             PlayerSettings.WebGL.template = "PROJECT:ShapeLand";
-            CopyContent();
-            PlayerSettings.SetTemplateCustomValue("PAGE_TEXT", PageText());
             // WebGPU where the browser has it, else WebGL 2 (chosen by the page as it loads). WebGPU needs HTTPS or
             // localhost; the net stats panel (F3) shows which one is running.
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, false);
             PlayerSettings.SetGraphicsAPIs(BuildTarget.WebGL, new[] { GraphicsDeviceType.WebGPU, GraphicsDeviceType.OpenGLES3 });
-            Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web");
+            var report = Build(BuildTarget.WebGL, BuildTargetGroup.WebGL, "web");
+            if (report?.summary.result == BuildResult.Succeeded)
+            {
+                FillPageText(Path.Combine(report.summary.outputPath, "index.html"));
+            }
         }
 
         /// <summary>
@@ -67,6 +68,21 @@ namespace ShapeLand.Client.Editor
             }
 
             AssetDatabase.Refresh();
+        }
+
+        // Puts the page's text (page.* in the content's string table) into the built page, in place of the
+        // template's marker, so the page needs no download of its own to show it. Done to the build's output rather
+        // than through a template variable, which Unity would save into the project settings.
+        private static void FillPageText(string page)
+        {
+            const string marker = "/* PAGE_TEXT */ {}";
+            var html = File.ReadAllText(page);
+            if (!html.Contains(marker))
+            {
+                throw new InvalidOperationException($"The page has no {marker} to put its text in: {page}");
+            }
+
+            File.WriteAllText(page, html.Replace(marker, PageText()));
         }
 
         // The page's strings as a JSON object, by key.
@@ -101,7 +117,7 @@ namespace ShapeLand.Client.Editor
             return result.Append('"').ToString();
         }
 
-        private static void Build(BuildTarget target, BuildTargetGroup group, string output, BuildOptions options = BuildOptions.None)
+        private static BuildReport Build(BuildTarget target, BuildTargetGroup group, string output, BuildOptions options = BuildOptions.None)
         {
             // Switching platforms inside a batch run builds with the starting platform's shader setup: a web build
             // from a Linux-targeted editor failed every draw. Batch runs start on the target (-buildTarget) instead.
@@ -109,7 +125,7 @@ namespace ShapeLand.Client.Editor
             {
                 Debug.LogError($"Build Failed: the editor is on {EditorUserBuildSettings.activeBuildTarget}; start it with -buildTarget for {target}");
                 EditorApplication.Exit(1);
-                return;
+                return null;
             }
 
             CopyContent();
@@ -138,6 +154,8 @@ namespace ShapeLand.Client.Editor
             {
                 EditorApplication.Exit(1);
             }
+
+            return report;
         }
     }
 }

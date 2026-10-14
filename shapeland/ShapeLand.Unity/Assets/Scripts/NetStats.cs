@@ -105,7 +105,7 @@ namespace ShapeLand.Client
         private void Update()
         {
             var view = _hud.View;
-            if (view.Controls != null && view.Controls.Game.NetStats.WasPressedThisFrame() && !_chat.Open)
+            if (view.Controls.Game.NetStats.WasPressedThisFrame() && !_chat.Open)
             {
                 Toggle();
             }

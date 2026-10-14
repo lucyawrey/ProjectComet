@@ -51,15 +51,14 @@ namespace ShapeLand.Client
         public static Mesh Block(Box box)
         {
             var center = ToUnity(box.Center);
-            var vertices = BoxTriangles(ToUnity(box.Size)).Select(v => center + v).ToList();
-            return Build("Block", Oriented(vertices, center));
+            return Build("Block", BoxTriangles(ToUnity(box.Size)).Select(v => center + v).ToList());
         }
 
         public static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
 
         public static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
-        // The twelve triangles of a box centered on the origin, in no particular winding.
+        // The twelve triangles of a box centered on the origin, each face's corners in order so the faces point outward.
         private static IEnumerable<Vector3> BoxTriangles(Vector3 size)
         {
             var e = size / 2;
@@ -69,24 +68,8 @@ namespace ShapeLand.Client
                 c[i] = new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
             }
 
-            int[][] faces = { new[] { 0, 1, 3, 2 }, new[] { 4, 5, 7, 6 }, new[] { 0, 1, 5, 4 }, new[] { 2, 3, 7, 6 }, new[] { 0, 2, 6, 4 }, new[] { 1, 3, 7, 5 } };
+            int[][] faces = { new[] { 0, 2, 3, 1 }, new[] { 4, 5, 7, 6 }, new[] { 0, 1, 5, 4 }, new[] { 2, 6, 7, 3 }, new[] { 0, 4, 6, 2 }, new[] { 1, 3, 7, 5 } };
             return faces.SelectMany(f => new[] { c[f[0]], c[f[1]], c[f[2]], c[f[0]], c[f[2]], c[f[3]] });
-        }
-
-        // Turns each triangle of a convex solid to face away from a point inside it.
-        private static List<Vector3> Oriented(List<Vector3> vertices, Vector3 inside)
-        {
-            for (var i = 0; i < vertices.Count; i += 3)
-            {
-                var (a, b, c) = (vertices[i], vertices[i + 1], vertices[i + 2]);
-                if (Vector3.Dot(Vector3.Cross(b - a, c - a), (a + b + c) / 3 - inside) < 0)
-                {
-                    vertices[i + 1] = c;
-                    vertices[i + 2] = b;
-                }
-            }
-
-            return vertices;
         }
 
         // Unity's front faces wind clockwise seen from outside: the normal is (b - a) × (c - a).

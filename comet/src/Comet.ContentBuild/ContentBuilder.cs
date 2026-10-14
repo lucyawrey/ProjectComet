@@ -93,9 +93,15 @@ public sealed class ContentBuilder
     internal static ContentError ErrorAt(string file, SourceSpan span, string message) =>
         new(file, span.Start.Line + 1, span.Start.Column + 1, message);
 
+    /// <summary>A name in ids and string keys: a lowercase letter, then lowercase letters, digits and underscores.</summary>
+    internal const string NamePattern = "[a-z][a-z0-9_]*";
+
     /// <summary>A dotted key as written, without quotes (<c>a."b"</c> is <c>a.b</c>).</summary>
-    internal static string KeyText(KeySyntax key) =>
-        string.Join('.', new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!)).Select(KeyText));
+    internal static string KeyText(KeySyntax key) => string.Join('.', KeyParts(key).Select(KeyText));
+
+    /// <summary>The parts of a dotted key, in order.</summary>
+    internal static IEnumerable<BareKeyOrStringValueSyntax> KeyParts(KeySyntax key) =>
+        new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!));
 
     internal static string KeyText(BareKeyOrStringValueSyntax key) => key switch
     {
@@ -135,7 +141,7 @@ public sealed class ContentBuilder
             _folder = folder;
             _toml = toml;
             _validate = validate;
-            _idPattern = new Regex($"^{Regex.Escape(kind)}\\.[a-z][a-z0-9_]*$");
+            _idPattern = new Regex($"^{Regex.Escape(kind)}\\.{NamePattern}$");
         }
 
         public string Kind { get; }

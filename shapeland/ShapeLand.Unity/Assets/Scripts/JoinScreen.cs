@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Comet.Client;
 using Comet.Content;
+using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -128,8 +129,21 @@ namespace ShapeLand.Client
             _serverField.EnableInClassList("hidden", changing);
 #endif
             _cancelButton.EnableInClassList("hidden", !changing);
-            _joinButton.SetEnabled(true);
-            _joinButton.text = Text(changing ? "join.apply" : "join.join");
+            SetButton(true, changing ? "join.apply" : "join.join");
+        }
+
+        private void SetButton(bool enabled, string key)
+        {
+            _joinButton.SetEnabled(enabled);
+            _joinButton.text = Text(key);
+        }
+
+        // Shows the card with the current choices.
+        private void Show()
+        {
+            OpenPreview();
+            Refresh();
+            _root.RemoveFromClassList("hidden");
         }
 
         /// <summary>Brings the card up over the game, filled in with the player's current look, to change it.</summary>
@@ -146,9 +160,7 @@ namespace ShapeLand.Client
             _color = spawn.Color;
             _eyeColor = spawn.EyeColor;
             ShowError(null);
-            OpenPreview();
-            Refresh();
-            _root.RemoveFromClassList("hidden");
+            Show();
             _name.Focus();
         }
 
@@ -185,7 +197,11 @@ namespace ShapeLand.Client
 
             foreach (var shape in content.Shapes.All)
             {
-                var button = new Button(() => Pick(shape)) { userData = shape };
+                var button = new Button(() =>
+                {
+                    _shape = shape;
+                    Refresh();
+                }) { userData = shape };
                 button.AddToClassList("shape-button");
                 button.Add(new ShapeIcon(shape.Mesh, GameView.Color(_color)));
                 button.Add(new Label(shape.DisplayName));
@@ -194,9 +210,7 @@ namespace ShapeLand.Client
 
             AddSwatches(_colors, ShapeLandRules.BodyColors, color => _color = color);
             AddSwatches(_eyes, ShapeLandRules.EyeColors, color => _eyeColor = color);
-            OpenPreview();
-            Refresh();
-            _root.RemoveFromClassList("hidden");
+            Show();
             _name.Focus();
         }
 
@@ -222,12 +236,6 @@ namespace ShapeLand.Client
             }
         }
 
-        private void Pick(Shape shape)
-        {
-            _shape = shape;
-            Refresh();
-        }
-
         // Marks the choices, recolors the icons, and updates the preview and the stats.
         private void Refresh()
         {
@@ -237,15 +245,8 @@ namespace ShapeLand.Client
                 button.Q<ShapeIcon>().Set(((Shape)button.userData).Mesh, GameView.Color(_color));
             }
 
-            foreach (var swatch in _colors.Children())
-            {
-                swatch.EnableInClassList("on", (uint)swatch.userData == _color);
-            }
-
-            foreach (var swatch in _eyes.Children())
-            {
-                swatch.EnableInClassList("on", (uint)swatch.userData == _eyeColor);
-            }
+            MarkSwatch(_colors, _color);
+            MarkSwatch(_eyes, _eyeColor);
 
             _preview.Show(_view, _shape, _color, _eyeColor);
 
@@ -255,6 +256,14 @@ namespace ShapeLand.Client
             var strings = _content.Strings;
             _stats.Add(Stat(strings.Get("join.speed"), strings.Format("join.speed_value", ("speed", speed.ToString("0.#"))), speed / best.Max(s => s.Speed)));
             _stats.Add(Stat(strings.Get("join.jump"), strings.Format("join.jump_value", ("height", jump.ToString("0.0"))), jump / best.Max(s => s.JumpHeight)));
+        }
+
+        private static void MarkSwatch(VisualElement row, uint color)
+        {
+            foreach (var swatch in row.Children())
+            {
+                swatch.EnableInClassList("on", (uint)swatch.userData == color);
+            }
         }
 
         private static VisualElement Stat(string name, string value, float share)
@@ -325,14 +334,12 @@ namespace ShapeLand.Client
                     return;
                 }
 
-                _joinButton.SetEnabled(false);
-                _joinButton.text = Text("join.applying");
+                SetButton(false, "join.applying");
                 _join.Change(request);
                 return;
             }
 
-            _joinButton.SetEnabled(false);
-            _joinButton.text = Text("join.joining");
+            SetButton(false, "join.joining");
             _join.Join(server, request);
         }
 
@@ -353,9 +360,7 @@ namespace ShapeLand.Client
         {
             _lostAt = Time.unscaledTime;
             SetChanging(false);
-            OpenPreview();
-            Refresh();
-            _root.RemoveFromClassList("hidden");
+            Show();
             Retry(LostMessage(_content.Strings, reason));
         }
 
@@ -379,8 +384,7 @@ namespace ShapeLand.Client
         private void Retry(string message)
         {
             ShowError(message);
-            _joinButton.SetEnabled(true);
-            _joinButton.text = Text(Changing ? "join.apply" : "join.join");
+            SetButton(true, Changing ? "join.apply" : "join.join");
         }
 
         private string Text(string key) => _content?.Strings.Get(key) ?? "";
