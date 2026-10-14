@@ -52,9 +52,21 @@ namespace Comet.Unity.Editor
 
         private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
 
+        // Searching the asset database takes about 10 ms, and the zone tools ask on every Scene view event, so the
+        // answer is kept until it's unloaded (as a new scene does) or the project's assets change.
+        private static CometSettings _found;
+
+        [InitializeOnLoadMethod]
+        private static void ForgetOnProjectChange() => EditorApplication.projectChanged += () => _found = null;
+
         /// <summary>The project's settings, or null (with a dialog unless <paramref name="quiet"/>) if it has none.</summary>
         public static CometSettings Find(bool quiet)
         {
+            if (_found != null)
+            {
+                return _found;
+            }
+
             var found = AssetDatabase.FindAssets($"t:{nameof(CometSettings)}");
             if (found.Length == 0)
             {
@@ -66,7 +78,7 @@ namespace Comet.Unity.Editor
                 return null;
             }
 
-            return AssetDatabase.LoadAssetAtPath<CometSettings>(AssetDatabase.GUIDToAssetPath(found[0]));
+            return _found = AssetDatabase.LoadAssetAtPath<CometSettings>(AssetDatabase.GUIDToAssetPath(found[0]));
         }
     }
 }
