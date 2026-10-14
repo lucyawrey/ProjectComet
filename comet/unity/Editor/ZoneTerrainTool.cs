@@ -201,7 +201,7 @@ namespace Comet.Unity.Editor
         {
             var settings = terrain.Zone.Pieces.First(p => p.Name == piece);
             EditorGUI.BeginChangeCheck();
-            var bottom = EditorGUILayout.FloatField("Bottom height (m)", settings.BottomHeight);
+            var depth = Mathf.Max(0, EditorGUILayout.FloatField(new GUIContent("Skirt depth (m)", "Without an underside map, the piece's flat bottom sits this far below its lowest ground."), settings.SkirtDepth));
             var rim = EditorGUILayout.Toggle("Rim skirts", settings.RimSkirts);
             var holes = EditorGUILayout.Toggle("Hole skirts", settings.HoleSkirts);
             var ground = OwnColor("Own top color", "Top color", "unpainted ground", settings.GroundColor, _settings!.groundColor);
@@ -209,7 +209,7 @@ namespace Comet.Unity.Editor
 
             if (EditorGUI.EndChangeCheck())
             {
-                settings.BottomHeight = bottom;
+                settings.SkirtDepth = depth;
                 settings.RimSkirts = rim;
                 settings.HoleSkirts = holes;
                 uint Ground() => settings.GroundColor ?? Rgb(_settings!.groundColor);
@@ -225,8 +225,8 @@ namespace Comet.Unity.Editor
             var hasUnderside = terrain.HasUnderside(piece);
             using (new EditorGUI.DisabledScope(!hasUnderside))
             {
-                var keep = EditorGUILayout.Toggle(new GUIContent("Underside map", "Made by painting with the Underside brushes. Turn off to remove it and its colors; the skirts end at the bottom height again."), hasUnderside);
-                if (hasUnderside && !keep && EditorUtility.DisplayDialog("Remove the underside map", $"Remove '{piece}''s underside map and underside colors? Its skirts will end at its bottom height again.", "Remove", "Keep"))
+                var keep = EditorGUILayout.Toggle(new GUIContent("Underside map", "Made by painting with the Underside brushes. Turn off to remove it and its colors; the skirts end at the flat bottom again."), hasUnderside);
+                if (hasUnderside && !keep && EditorUtility.DisplayDialog("Remove the underside map", $"Remove '{piece}''s underside map and underside colors? Its skirts will end at its flat bottom again.", "Remove", "Keep"))
                 {
                     terrain.ClearUnderside(piece);
                     terrain.Commit("Remove underside map", _settings!);
@@ -251,7 +251,7 @@ namespace Comet.Unity.Editor
 
             var pivot = SceneView.lastActiveSceneView != null ? SceneView.lastActiveSceneView.pivot : Vector3.zero;
             var center = (Mathf.RoundToInt(pivot.x / ZoneGrid.SampleSpacing), Mathf.RoundToInt(pivot.z / ZoneGrid.SampleSpacing));
-            terrain.AddPiece(new TerrainPiece { Name = newPiece, BottomHeight = newHeight - 4 }, center, 16, newHeight);
+            terrain.AddPiece(new TerrainPiece { Name = newPiece, SkirtDepth = 4 }, center, 16, newHeight);
             terrain.Commit("Add piece", _settings!);
             piece = newPiece;
         }

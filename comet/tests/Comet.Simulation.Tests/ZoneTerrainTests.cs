@@ -42,7 +42,7 @@ public class ZoneTerrainTests
         // Two tiles meeting at x = 64: chunk 0's last column is chunk 1's first.
         var zone = new Zone
         {
-            Pieces = [new TerrainPiece { Name = "main", BottomHeight = -3 }],
+            Pieces = [new TerrainPiece { Name = "main", SkirtDepth = 3 }],
             Chunks =
             [
                 new ZoneChunk { Coord = new ChunkCoord(0, 0), Tiles = [new TerrainTile { Piece = "main", OriginX = 62, Heights = Map(3, 2, (x, _) => x) }] },
@@ -64,7 +64,7 @@ public class ZoneTerrainTests
     {
         var zone = new Zone
         {
-            Pieces = [new TerrainPiece { Name = "island", BottomHeight = -3 }],
+            Pieces = [new TerrainPiece { Name = "island", SkirtDepth = 8 }],
             Chunks = [new ZoneChunk { Tiles = [new TerrainTile { Piece = "island", Heights = Map(2, 2, (_, _) => 5), Underside = Map(2, 2, (_, _) => 1) }] }],
         };
 

@@ -26,10 +26,10 @@ internal static class TestWorlds
 
         map.Samples[12 * 17 + 12] = Heightmap.Hole;
         var tiles = new List<TerrainTile> { new() { Piece = "main", Heights = map } };
-        var pieces = new List<TerrainPiece> { new() { Name = "main", BottomHeight = -5, RimSkirts = false } };
+        var pieces = new List<TerrainPiece> { new() { Name = "main", SkirtDepth = 6, RimSkirts = false } };
         foreach (var (piece, height, bottom, fromX, fromZ, size) in more)
         {
-            pieces.Add(new TerrainPiece { Name = piece, BottomHeight = bottom });
+            pieces.Add(new TerrainPiece { Name = piece, SkirtDepth = height - bottom });
             tiles.Add(new TerrainTile { Piece = piece, OriginX = fromX, OriginZ = fromZ, Heights = Flat(size, height) });
         }
 

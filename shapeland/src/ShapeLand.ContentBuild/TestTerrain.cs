@@ -58,7 +58,7 @@ public static class TestTerrain
         var zone = new Zone
         {
             Id = ZoneId,
-            Pieces = [new TerrainPiece { Name = "island", BottomHeight = -4 }],
+            Pieces = [new TerrainPiece { Name = "island", SkirtDepth = 4 }],
             Chunks = chunks.ToArray(),
         };
 

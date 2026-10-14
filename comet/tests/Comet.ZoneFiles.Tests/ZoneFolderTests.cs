@@ -22,7 +22,7 @@ public class ZoneFolderTests
         Assert.Empty(ZoneValidation.Check(zone));
         Assert.Equal("zone.meadow", zone.Id);
         var piece = Assert.Single(zone.Pieces);
-        Assert.Equal(("main", -8f, false, true), (piece.Name, piece.BottomHeight, piece.RimSkirts, piece.HoleSkirts));
+        Assert.Equal(("main", 12f, false, true), (piece.Name, piece.SkirtDepth, piece.RimSkirts, piece.HoleSkirts));
         Assert.Equal((new ChunkCoord(0, 0), ChunkSide.North, "zone.hills"), (zone.Borders[0].Chunk, zone.Borders[0].Side, zone.Borders[0].Zone));
         Assert.Equal(("cave", "zone.cave", "mouth"), (zone.Entrances[0].Name, zone.Entrances[0].ToZone, zone.Entrances[0].ToEntrance));
         Assert.Equal(("hall", "cave"), (zone.TransitionRooms[0].Name, zone.TransitionRooms[0].Entrance));

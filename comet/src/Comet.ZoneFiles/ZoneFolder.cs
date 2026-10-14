@@ -129,11 +129,11 @@ namespace Comet.ZoneFiles
 
             zone.Pieces = toml.Tables(table, "piece").Select(t =>
             {
-                toml.CheckKeys(t.Table, t.Path, "name", "bottom_height", "rim_skirts", "hole_skirts", "ground_color", "under_color");
+                toml.CheckKeys(t.Table, t.Path, "name", "skirt_depth", "rim_skirts", "hole_skirts", "ground_color", "under_color");
                 return new TerrainPiece
                 {
                     Name = toml.String(t.Table, t.Path, "name"),
-                    BottomHeight = toml.Float(t.Table, t.Path, "bottom_height"),
+                    SkirtDepth = toml.Float(t.Table, t.Path, "skirt_depth"),
                     RimSkirts = toml.Bool(t.Table, t.Path, "rim_skirts", true),
                     HoleSkirts = toml.Bool(t.Table, t.Path, "hole_skirts", true),
                     GroundColor = t.Table.TryGetValue("ground_color", out var ground) ? Color(toml, ground, $"{t.Path}.ground_color") : null,
@@ -327,7 +327,7 @@ namespace Comet.ZoneFiles
                 var piece = new TomlTable
                 {
                     ["name"] = p.Name,
-                    ["bottom_height"] = ZoneToml.Round(p.BottomHeight, LengthDecimals),
+                    ["skirt_depth"] = ZoneToml.Round(p.SkirtDepth, LengthDecimals),
                     ["rim_skirts"] = p.RimSkirts,
                     ["hole_skirts"] = p.HoleSkirts,
                 };

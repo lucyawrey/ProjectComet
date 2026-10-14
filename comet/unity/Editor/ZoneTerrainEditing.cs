@@ -83,13 +83,13 @@ namespace Comet.Unity.Editor
         /// <summary>Sets the underside height at a world sample, starting an underside map at the piece's bottom where there's none.</summary>
         public void SetUnderside(string piece, int x, int z, float height) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>
         {
-            tile.Underside ??= Filled(tile.Heights.SizeX, tile.Heights.SizeZ, Terrain[piece].Settings.BottomHeight);
+            tile.Underside ??= Filled(tile.Heights.SizeX, tile.Heights.SizeZ, Terrain[piece].BottomHeight);
             tile.Underside.Samples[tz * tile.Underside.SizeX + tx] = Sample(tile.Underside, height);
         });
 
         /// <summary>The underside height at a world sample: its underside map, else the piece's bottom.</summary>
         public float UndersideAt(string piece, int x, int z) =>
-            Terrain[piece].TryGetUnderside(x, z, out var under) ? under : Terrain[piece].Settings.BottomHeight;
+            Terrain[piece].TryGetUnderside(x, z, out var under) ? under : Terrain[piece].BottomHeight;
 
         /// <summary>Paints a world sample's color (0xRRGGBB), starting a color map of <paramref name="ground"/> where there's none.</summary>
         public void SetColor(string piece, int x, int z, uint color, uint ground) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>

@@ -2,6 +2,6 @@ id = "zone.test"
 
 [[piece]]
 name = "island"
-bottom_height = -4.0
+skirt_depth = 4.0
 rim_skirts = true
 hole_skirts = true

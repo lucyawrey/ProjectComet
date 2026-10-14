@@ -70,7 +70,30 @@ namespace Comet.Simulation
 
             /// <summary>The bottom of the piece under a world position: its underside map where it has one, else its flat bottom.</summary>
             public float BottomAt(float x, float z) =>
-                Interpolate(x, z, underside: true, out var under) ? under : Settings.BottomHeight;
+                Interpolate(x, z, underside: true, out var under) ? under : BottomHeight;
+
+            /// <summary>The height of the piece's flat bottom: <see cref="TerrainPiece.SkirtDepth"/> below its lowest ground.</summary>
+            public float BottomHeight => _bottomHeight ??= LowestGround() - Settings.SkirtDepth;
+
+            private float? _bottomHeight;
+
+            private float LowestGround()
+            {
+                var lowest = float.MaxValue;
+                foreach (var tile in _tiles.Values)
+                {
+                    var map = tile.Heights;
+                    for (var i = 0; i < map.Samples.Length; i++)
+                    {
+                        if (map.Samples[i] != Heightmap.Hole)
+                        {
+                            lowest = System.Math.Min(lowest, map.Offset + map.Samples[i] * map.Scale);
+                        }
+                    }
+                }
+
+                return lowest == float.MaxValue ? 0 : lowest;
+            }
 
             /// <summary>The painted color at a world sample as 0xRRGGBB, or <paramref name="fallback"/> where nothing is painted.</summary>
             public uint ColorAt(int x, int z, uint fallback)
@@ -135,6 +158,7 @@ namespace Comet.Simulation
             internal void Add(ChunkCoord chunk, TerrainTile tile)
             {
                 _tiles[chunk] = tile;
+                _bottomHeight = null;
                 var x = chunk.X * ZoneGrid.ChunkSize + tile.OriginX;
                 var z = chunk.Z * ZoneGrid.ChunkSize + tile.OriginZ;
                 var (minX, minZ, maxX, maxZ) = Extent;

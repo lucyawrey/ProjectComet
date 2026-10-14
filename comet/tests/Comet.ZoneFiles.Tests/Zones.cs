@@ -23,7 +23,7 @@ internal static class Zones
     public static Zone Sample() => new()
     {
         Id = "zone.meadow",
-        Pieces = [new TerrainPiece { Name = "main", BottomHeight = -8, RimSkirts = false }],
+        Pieces = [new TerrainPiece { Name = "main", SkirtDepth = 12, RimSkirts = false }],
         Borders = [new ZoneBorder { Chunk = new ChunkCoord(0, 0), Side = ChunkSide.North, Zone = "zone.hills" }],
         Entrances = [new ZoneEntrance { Name = "cave", Position = new Vector3(10, 2, 10), Size = new Vector3(4, 4, 2), ToZone = "zone.cave", ToEntrance = "mouth" }],
         TransitionRooms = [new TransitionRoom { Name = "hall", Position = new Vector3(20, 2, 20), Size = new Vector3(8, 4, 8), Entrance = "cave" }],

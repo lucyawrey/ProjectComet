@@ -77,8 +77,8 @@ namespace Comet.Content
         /// <summary>The piece's name, unique in the zone (<c>main</c>, <c>sky_island</c>).</summary>
         [Key(0)] public string Name { get; set; } = "";
 
-        /// <summary>Where the piece's skirts end when it has no underside map: a flat bottom at this height, in meters.</summary>
-        [Key(1)] public float BottomHeight { get; set; }
+        /// <summary>Where the piece's skirts end when it has no underside map: a flat bottom this many meters below its lowest ground.</summary>
+        [Key(1)] public float SkirtDepth { get; set; } = 4;
 
         /// <summary>Whether the piece's outer edge gets skirts (off for main ground that nothing sees below).</summary>
         [Key(2)] public bool RimSkirts { get; set; } = true;

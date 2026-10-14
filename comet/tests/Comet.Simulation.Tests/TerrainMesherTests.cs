@@ -10,7 +10,7 @@ public class TerrainMesherTests
     // A piece of flat ground at `height` meters: `samples` rows of text, '#' for ground and '.' for a hole, row 0 at
     // world sample z = 0, all in chunk (0, 0) unless split.
     private static Zone Piece(float height, bool rim, bool holes, params string[] samples) => Zone(
-        new TerrainPiece { Name = "main", BottomHeight = -4, RimSkirts = rim, HoleSkirts = holes },
+        new TerrainPiece { Name = "main", SkirtDepth = height + 4, RimSkirts = rim, HoleSkirts = holes },
         Tile("main", 0, 0, 0, 0, height, samples));
 
     private static Zone Zone(TerrainPiece piece, params (ChunkCoord Chunk, TerrainTile Tile)[] tiles) => Zone([piece], tiles);
@@ -130,7 +130,7 @@ public class TerrainMesherTests
     {
         // Two tiles meeting at world x = 0: chunk -1's last column is chunk 0's first.
         var zone = Zone(
-            new TerrainPiece { Name = "main", BottomHeight = -4, RimSkirts = false, HoleSkirts = true },
+            new TerrainPiece { Name = "main", SkirtDepth = 6, RimSkirts = false, HoleSkirts = true },
             Tile("main", -1, 0, 62, 0, 2, "###", "###"),
             Tile("main", 0, 0, 0, 0, 2, "###", "###"));
 
@@ -161,7 +161,7 @@ public class TerrainMesherTests
     {
         // A small plateau piece standing on main ground at 0 m; its bottom is far below, but its walls stop on the ground.
         var zone = Zone(
-            [new TerrainPiece { Name = "main", RimSkirts = false, HoleSkirts = false }, new TerrainPiece { Name = "plateau", BottomHeight = -20, RimSkirts = true }],
+            [new TerrainPiece { Name = "main", RimSkirts = false, HoleSkirts = false }, new TerrainPiece { Name = "plateau", SkirtDepth = 23, RimSkirts = true }],
             Tile("main", 0, 0, 0, 0, 0, "#####", "#####", "#####", "#####", "#####"),
             Tile("plateau", 0, 0, 1, 1, 3, "###", "###", "###"));
 

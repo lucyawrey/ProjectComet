@@ -21,7 +21,7 @@ public class MovementValidatorTests
         map.Samples[28 * 33 + 28] = Heightmap.Hole;
         var zone = new Zone
         {
-            Pieces = [new TerrainPiece { Name = "main", BottomHeight = -5 }],
+            Pieces = [new TerrainPiece { Name = "main", SkirtDepth = 5 }],
             Chunks = [new ZoneChunk { Tiles = [new TerrainTile { Piece = "main", Heights = map }] }],
         };
         var world = new CollisionWorld(

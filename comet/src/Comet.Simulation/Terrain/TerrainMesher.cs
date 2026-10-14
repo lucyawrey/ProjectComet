@@ -252,7 +252,7 @@ namespace Comet.Simulation
             }
 
             private Vector3 Bottom((int X, int Z) sample) =>
-                At(sample, _piece.TryGetUnderside(sample.X, sample.Z, out var under) ? under : _piece.Settings.BottomHeight);
+                At(sample, _piece.TryGetUnderside(sample.X, sample.Z, out var under) ? under : _piece.BottomHeight);
 
             // A wall's foot: the piece's bottom, unless other terrain lower than the edge but higher than that is in
             // the way, where the wall stops on it.
