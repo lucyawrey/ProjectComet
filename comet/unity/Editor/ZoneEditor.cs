@@ -87,6 +87,12 @@ namespace Comet.Unity.Editor
         {
             var zone = Gather(editing);
             var errors = ZoneValidation.Check(zone);
+            var library = Settings(quiet: true)?.assets;
+            if (library != null)
+            {
+                errors.AddRange(ZoneValidation.CheckPlacements(zone, key => AssetFor(library, key)));
+            }
+
             if (errors.Count > 0)
             {
                 Report($"Didn't save {zone.Id}", errors);
@@ -268,6 +274,47 @@ namespace Comet.Unity.Editor
             }
 
             return thing;
+        }
+
+        // What the placement checks need to know of an asset, from the library: its scale rule and bounds.
+        private static Asset AssetFor(AssetLibrary library, string key)
+        {
+            if (!library.TryGet(key, out var entry))
+            {
+                return null;
+            }
+
+            return new Asset
+            {
+                Id = key,
+                UniformScale = entry.uniformScale,
+                BoundsMin = ToNumerics(entry.bounds.min),
+                BoundsMax = ToNumerics(entry.bounds.max),
+            };
+        }
+
+        /// <summary>Places an asset at <paramref name="position"/> in an opened zone, as a linked model with its placement marker.</summary>
+        public static GameObject Place(ZoneEditing editing, string asset, Vector3 position, ZoneEditorSettings settings)
+        {
+            var parent = editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
+            var thing = Instantiate(asset, settings, parent);
+            thing.transform.position = position;
+            thing.AddComponent<ZonePlacement>().asset = asset;
+            Undo.RegisterCreatedObjectUndo(thing, $"Place {asset}");
+            return thing;
+        }
+
+        /// <summary>Adds a spawn point at <paramref name="position"/> in an opened zone; the zone's first is its default.</summary>
+        public static GameObject AddSpawn(ZoneEditing editing, string key, Vector3 position)
+        {
+            var parent = editing.transform.Find("Spawns") ?? Child(editing.transform, "Spawns");
+            var marker = Child(parent, key);
+            marker.position = position;
+            var spawn = marker.gameObject.AddComponent<ZoneSpawn>();
+            spawn.key = key;
+            spawn.isDefault = editing.GetComponentsInChildren<ZoneSpawn>().Length == 1;
+            Undo.RegisterCreatedObjectUndo(marker.gameObject, $"Add {key}");
+            return marker.gameObject;
         }
 
         /// <summary>The project's zone editor settings, or null (with a dialog unless <paramref name="quiet"/>) if it has none.</summary>

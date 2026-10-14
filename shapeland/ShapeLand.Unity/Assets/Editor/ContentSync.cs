@@ -85,7 +85,9 @@ namespace ShapeLand.Client.Editor
                     Debug.LogWarning($"{asset.Id}'s model Assets/{asset.Model} isn't in the project.");
                 }
 
-                return new AssetLibrary.Entry { key = asset.Id, model = model };
+                var min = new Vector3(asset.BoundsMin.X, asset.BoundsMin.Y, asset.BoundsMin.Z);
+                var max = new Vector3(asset.BoundsMax.X, asset.BoundsMax.Y, asset.BoundsMax.Z);
+                return new AssetLibrary.Entry { key = asset.Id, model = model, uniformScale = asset.UniformScale, bounds = new Bounds((min + max) / 2, max - min) };
             }).ToList();
             if (entries.SequenceEqual(library.Entries))
             {

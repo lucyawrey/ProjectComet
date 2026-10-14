@@ -16,27 +16,36 @@ namespace Comet.Unity
         {
             public string key;
             public GameObject model;
+
+            [Tooltip("Placements may only scale it the same on every axis.")]
+            public bool uniformScale;
+
+            [Tooltip("The box around its model, in its own space: the zone editor checks how far placements reach with it.")]
+            public Bounds bounds;
         }
 
         [SerializeField] private List<Entry> entries = new List<Entry>();
 
-        private Dictionary<string, GameObject> _byKey;
+        private Dictionary<string, Entry> _byKey;
 
         public IReadOnlyList<Entry> Entries => entries;
 
         /// <summary>The model for <paramref name="key"/>, or null if the library has none.</summary>
-        public GameObject Model(string key)
+        public GameObject Model(string key) => TryGet(key, out var entry) ? entry.model : null;
+
+        /// <summary>The entry for <paramref name="key"/>, if the library has one.</summary>
+        public bool TryGet(string key, out Entry entry)
         {
             if (_byKey == null)
             {
-                _byKey = new Dictionary<string, GameObject>();
-                foreach (var entry in entries)
+                _byKey = new Dictionary<string, Entry>();
+                foreach (var e in entries)
                 {
-                    _byKey[entry.key] = entry.model;
+                    _byKey[e.key] = e;
                 }
             }
 
-            return _byKey.TryGetValue(key, out var model) ? model : null;
+            return _byKey.TryGetValue(key, out entry);
         }
 
         /// <summary>Replaces the entries (the editor's content sync does this).</summary>
