@@ -132,7 +132,7 @@ namespace Comet.Unity.Editor
 
             if (brush == Brush.UndersideColor)
             {
-                EditorGUILayout.HelpBox("Paints the underside and the skirt walls above it, only where the piece has a painted underside (Under ↑ and Under ↓ make one).", MessageType.None);
+                EditorGUILayout.HelpBox("Paints the underside and the skirt walls above it, only where the piece has an underside map (Under ↑ and Under ↓ make one).", MessageType.None);
             }
 
             EditorGUILayout.HelpBox("Paint with the left mouse button; hold Alt to orbit as usual. Flatten and Ground use the height where the stroke starts.", MessageType.None);
@@ -187,11 +187,11 @@ namespace Comet.Unity.Editor
             var hasUnderside = terrain.HasUnderside(piece);
             using (new EditorGUI.DisabledScope(!hasUnderside))
             {
-                var keep = EditorGUILayout.Toggle(new GUIContent("Painted underside", "Made by painting with Under ↑ or Under ↓. Turn off to remove it and its colors; the skirts end at the bottom height again."), hasUnderside);
-                if (hasUnderside && !keep && EditorUtility.DisplayDialog("Remove the painted underside", $"Remove '{piece}''s painted underside and underside colors? Its skirts will end at its bottom height again.", "Remove", "Keep"))
+                var keep = EditorGUILayout.Toggle(new GUIContent("Underside map", "Made by painting with Under ↑ or Under ↓. Turn off to remove it and its colors; the skirts end at the bottom height again."), hasUnderside);
+                if (hasUnderside && !keep && EditorUtility.DisplayDialog("Remove the underside map", $"Remove '{piece}''s underside map and underside colors? Its skirts will end at its bottom height again.", "Remove", "Keep"))
                 {
                     terrain.ClearUnderside(piece);
-                    terrain.Commit("Remove painted underside", _settings!);
+                    terrain.Commit("Remove underside map", _settings!);
                 }
             }
 
@@ -301,24 +301,29 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Where the mouse ray meets the selected piece's ground, marching along it a quarter meter at a time and
+        // Where the mouse ray first enters the selected piece, the solid between its underside and its ground (so it
+        // finds the ground from above and the underside from below), marching along it a quarter meter at a time and
         // narrowing in on the crossing; else where it meets the height the last stroke started at (for painting
         // ground where there's none yet).
         private Vector3? Pick(ZoneTerrainEditing terrain, Ray ray)
         {
             var piece = terrain.Terrain[this.piece];
+            bool Inside(Vector3 p) => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground && p.y >= piece.BottomAt(p.x, p.z);
+
             const float step = 0.25f, far = 1000;
             var previous = ray.origin;
+            var wasInside = Inside(previous);
             for (var t = step; t < far; t += step)
             {
                 var point = ray.GetPoint(t);
-                if (piece.TryGetHeightAt(point.x, point.z, out var ground) && point.y <= ground)
+                var inside = Inside(point);
+                if (inside && !wasInside)
                 {
                     var (a, b) = (previous, point);
                     for (var i = 0; i < 8; i++)
                     {
                         var middle = (a + b) / 2;
-                        if (piece.TryGetHeightAt(middle.x, middle.z, out var h) && middle.y <= h)
+                        if (Inside(middle))
                         {
                             b = middle;
                         }
@@ -332,6 +337,7 @@ namespace Comet.Unity.Editor
                 }
 
                 previous = point;
+                wasInside = inside;
             }
 
             if (brush == Brush.Ground && Mathf.Abs(ray.direction.y) > 1e-4f)
