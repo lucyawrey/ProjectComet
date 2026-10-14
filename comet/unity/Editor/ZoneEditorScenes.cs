@@ -41,7 +41,7 @@ namespace Comet.Unity.Editor
         internal static bool Quiet { get; set; }
 
         /// <summary>Makes <paramref name="settings"/>' Play Scene the one play mode starts in.</summary>
-        public static void SetPlayScene(CometSettings settings)
+        public static void SetPlayScene(CometSettings? settings)
         {
             if (settings != null)
             {

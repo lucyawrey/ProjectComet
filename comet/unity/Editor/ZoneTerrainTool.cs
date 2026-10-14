@@ -115,7 +115,7 @@ namespace Comet.Unity.Editor
             }
             else
             {
-                piece = null;
+                piece = "";
                 EditorGUILayout.HelpBox("The zone has no terrain pieces yet.", MessageType.None);
             }
 
@@ -166,14 +166,14 @@ namespace Comet.Unity.Editor
                 settings.BottomHeight = bottom;
                 settings.RimSkirts = rim;
                 settings.HoleSkirts = holes;
-                terrain.Commit("Change piece settings", _settings);
+                terrain.Commit("Change piece settings", _settings!);
             }
 
             if (GUILayout.Button($"Delete piece '{piece}'") && EditorUtility.DisplayDialog("Delete piece", $"Delete the piece '{piece}' and all its terrain?", "Delete", "Keep"))
             {
                 terrain.RemovePiece(piece);
-                terrain.Commit("Delete piece", _settings);
-                piece = null;
+                terrain.Commit("Delete piece", _settings!);
+                piece = "";
             }
         }
 
@@ -188,7 +188,7 @@ namespace Comet.Unity.Editor
             var pivot = SceneView.lastActiveSceneView != null ? SceneView.lastActiveSceneView.pivot : Vector3.zero;
             var center = (Mathf.RoundToInt(pivot.x / ZoneGrid.SampleSpacing), Mathf.RoundToInt(pivot.z / ZoneGrid.SampleSpacing));
             terrain.AddPiece(new TerrainPiece { Name = newPiece, BottomHeight = newHeight - 4 }, center, 16, newHeight);
-            terrain.Commit("Add piece", _settings);
+            terrain.Commit("Add piece", _settings!);
             piece = newPiece;
         }
 
@@ -363,7 +363,7 @@ namespace Comet.Unity.Editor
                         terrain.SetHeight(piece, x, z, _flattenHeight);
                         break;
                     case Brush.Color when has:
-                        terrain.SetColor(piece, x, z, Rgb(paint), Rgb(_settings.groundColor));
+                        terrain.SetColor(piece, x, z, Rgb(paint), Rgb(_settings!.groundColor));
                         break;
                     case Brush.UndersideUp when has:
                         terrain.SetUnderside(piece, x, z, Mathf.Min(height, terrain.UndersideAt(piece, x, z) + strength * seconds * weight));
@@ -389,7 +389,7 @@ namespace Comet.Unity.Editor
         {
             if (_redraw && EditorApplication.timeSinceStartup - _lastRedraw >= 0.05)
             {
-                ZoneEditor.RebuildTerrain(terrain.Editing, terrain.Zone, _settings);
+                ZoneEditor.RebuildTerrain(terrain.Editing, terrain.Zone, _settings!);
                 _lastRedraw = EditorApplication.timeSinceStartup;
                 _redraw = false;
             }

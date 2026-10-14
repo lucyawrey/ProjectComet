@@ -266,7 +266,7 @@ namespace Comet.Unity.Editor
 
                     var marker = thing.AddComponent<ZonePlacement>();
                     marker.asset = placement.Asset;
-                    marker.placementName = placement.Name;
+                    marker.placementName = placement.Name ?? "";
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -316,7 +316,7 @@ namespace Comet.Unity.Editor
         }
 
         // What the placement checks need to know of an asset, from the library: its scale rule and bounds.
-        private static Asset AssetFor(AssetLibrary library, string key)
+        private static Asset? AssetFor(AssetLibrary library, string key)
         {
             if (!library.TryGet(key, out var entry))
             {

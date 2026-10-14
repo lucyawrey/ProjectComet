@@ -95,7 +95,7 @@ namespace Comet.Unity.Editor
             var progress = Progress.Start("Content build", "Building the content from its files");
             void Poll()
             {
-                if (!building.HasExited)
+                if (!building!.HasExited)
                 {
                     return;
                 }
