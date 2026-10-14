@@ -158,6 +158,9 @@ namespace Comet.Content
         /// </summary>
         [Key(4)] public string? Name { get; set; }
 
+        /// <summary>The placement's own color as 0xRRGGBB, or null for its asset's.</summary>
+        [Key(5)] public uint? Color { get; set; }
+
         /// <summary>The placement's transform from the asset's space to the world (scale, then rotation, then position).</summary>
         public Matrix4x4 Matrix() =>
             Matrix4x4.CreateScale(Scale) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);

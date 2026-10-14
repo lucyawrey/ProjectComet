@@ -40,7 +40,7 @@ namespace Comet.Unity.Editor
 
         // The panel's pictures of each model, drawn in the placed objects' material (Unity's own previews use the
         // models' imported materials, which show purple where their shaders aren't ready).
-        private readonly Dictionary<GameObject, Texture2D> _thumbnails = new Dictionary<GameObject, Texture2D>();
+        private readonly Dictionary<(GameObject, Color?), Texture2D> _thumbnails = new Dictionary<(GameObject, Color?), Texture2D>();
 
         private void OnEnable() => Instance = this;
 
@@ -54,14 +54,14 @@ namespace Comet.Unity.Editor
             _thumbnails.Clear();
         }
 
-        private Texture2D? Thumbnail(GameObject model, Material? material, int size)
+        private Texture2D? Thumbnail(GameObject model, Material? material, Color? color, int size)
         {
             if (material == null)
             {
                 return AssetPreview.GetAssetPreview(model);
             }
 
-            if (_thumbnails.TryGetValue(model, out var cached) && cached != null)
+            if (_thumbnails.TryGetValue((model, color), out var cached) && cached != null)
             {
                 return cached;
             }
@@ -83,6 +83,13 @@ namespace Comet.Unity.Editor
                 {
                     bounds.Encapsulate(matrix.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) * 2 - 1, (i & 2) - 1, (i & 4) / 2 - 1))));
                 }
+            }
+
+            MaterialPropertyBlock? block = null;
+            if (color is { } c)
+            {
+                block = new MaterialPropertyBlock();
+                block.SetColor("_BaseColor", c);
             }
 
             var preview = new PreviewRenderUtility();
@@ -108,7 +115,7 @@ namespace Comet.Unity.Editor
                     {
                         for (var sub = 0; sub < mesh.subMeshCount; sub++)
                         {
-                            preview.DrawMesh(mesh, matrix, material, sub);
+                            preview.DrawMesh(mesh, matrix, material, sub, block);
                         }
                     }
 
@@ -117,7 +124,7 @@ namespace Comet.Unity.Editor
 
                 var texture = preview.EndStaticPreview();
                 texture.hideFlags = HideFlags.HideAndDontSave;
-                _thumbnails[model] = texture;
+                _thumbnails[(model, color)] = texture;
                 return texture;
             }
             finally
@@ -149,7 +156,7 @@ namespace Comet.Unity.Editor
                 EditorGUILayout.BeginHorizontal();
                 foreach (var entry in entries.Skip(i).Take(perRow))
                 {
-                    var preview = entry.model != null ? Thumbnail(entry.model, settings.placedMaterial, size * 2) : null;
+                    var preview = entry.model != null ? Thumbnail(entry.model, settings.placedMaterial, entry.hasColor ? entry.color : null, size * 2) : null;
                     var label = entry.key.StartsWith("asset.") ? entry.key.Substring("asset.".Length) : entry.key;
                     var content = preview != null ? new GUIContent(preview, entry.key) : new GUIContent(label, entry.key);
                     var picked = !spawn && asset == entry.key;

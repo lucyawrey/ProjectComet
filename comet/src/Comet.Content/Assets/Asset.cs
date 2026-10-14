@@ -43,5 +43,8 @@ namespace Comet.Content
         /// <summary>The high corner of that box.</summary>
         [JsonIgnore]
         [Key(6)] public Vector3 BoundsMax { get; set; }
+
+        /// <summary>The color placements of it are drawn in as 0xRRGGBB, unless they have their own; null for the game's placed-object color.</summary>
+        [Key(7)] public uint? Color { get; set; }
     }
 }

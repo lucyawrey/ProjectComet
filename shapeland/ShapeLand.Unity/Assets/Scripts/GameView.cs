@@ -163,6 +163,8 @@ namespace ShapeLand.Client
                 }
             }
 
+            var own = placement.Color is { } rgb ? PlacedColors.FromRgb(rgb) : (Color?)null;
+            PlacedColors.Apply(thing, own ?? (assets.TryGet(placement.Asset, out var entry) && entry.hasColor ? entry.color : null));
             return thing;
         }
 

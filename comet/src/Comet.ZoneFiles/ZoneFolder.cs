@@ -93,7 +93,7 @@ namespace Comet.ZoneFiles
             WriteIfChanged(folder, ZoneFile, Encoding.UTF8.GetBytes(HexColors(ZoneToml.Write(ZoneTable(zone)))), written);
             foreach (var chunk in zone.Chunks)
             {
-                WriteIfChanged(folder, ChunkFile(chunk.Coord), Encoding.UTF8.GetBytes(ZoneToml.Write(ChunkTable(chunk))), written);
+                WriteIfChanged(folder, ChunkFile(chunk.Coord), Encoding.UTF8.GetBytes(HexColors(ZoneToml.Write(ChunkTable(chunk)))), written);
                 foreach (var tile in chunk.Tiles)
                 {
                     WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "height"), Bytes(s => HeightmapFormat.Write(s, tile.Heights)), written);
@@ -218,7 +218,7 @@ namespace Comet.ZoneFiles
             chunk.Tiles = tiles.ToArray();
             chunk.Placements = toml.Tables(table, "placement").Select(p =>
             {
-                toml.CheckKeys(p.Table, p.Path, "asset", "name", "position", "rotation", "scale");
+                toml.CheckKeys(p.Table, p.Path, "asset", "name", "position", "rotation", "scale", "color");
                 return new Placement
                 {
                     Asset = toml.String(p.Table, p.Path, "asset"),
@@ -226,6 +226,7 @@ namespace Comet.ZoneFiles
                     Position = toml.Vector(p.Table, p.Path, "position"),
                     Rotation = toml.Vector(p.Table, p.Path, "rotation", Vector3.Zero),
                     Scale = toml.Vector(p.Table, p.Path, "scale", Vector3.One),
+                    Color = p.Table.TryGetValue("color", out var color) ? Color(toml, color, $"{p.Path}.color") : null,
                 };
             }).ToArray();
             chunk.Spawns = toml.Tables(table, "spawn").Select(s =>
@@ -312,7 +313,7 @@ namespace Comet.ZoneFiles
 
         // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
         private static string HexColors(string text) =>
-            Regex.Replace(text, @"^((?:ground|under)_color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
+            Regex.Replace(text, @"^((?:ground_|under_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
 
         private static TomlTable ZoneTable(Zone zone)
         {
@@ -395,6 +396,11 @@ namespace Comet.ZoneFiles
                 if (!IsZero(p.Scale - Vector3.One, LengthDecimals))
                 {
                     placement["scale"] = ZoneToml.Array3(p.Scale, LengthDecimals);
+                }
+
+                if (p.Color is { } color)
+                {
+                    placement["color"] = (long)color;
                 }
 
                 return placement;

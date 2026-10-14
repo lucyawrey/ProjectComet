@@ -22,6 +22,11 @@ namespace Comet.Unity
 
             [Tooltip("The box around its model, in its own space: the zone editor checks how far placements reach with it.")]
             public Bounds bounds;
+
+            [Tooltip("Whether its placements are drawn in its own color, not the placed objects' material's.")]
+            public bool hasColor;
+
+            public Color color;
         }
 
         [SerializeField] private List<Entry> entries = new List<Entry>();

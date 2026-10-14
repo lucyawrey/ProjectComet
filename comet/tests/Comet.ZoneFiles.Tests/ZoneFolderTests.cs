@@ -89,6 +89,20 @@ public class ZoneFolderTests
     }
 
     [Fact]
+    public void PlacementColorsRoundTripAsHex()
+    {
+        using var folder = new TempFolder();
+        var zone = Zones.Sample();
+        zone.Chunks[0].Placements[0].Color = 0xc04020;
+
+        var read = RoundTrip(zone, folder, out var errors);
+
+        Assert.Empty(errors);
+        Assert.Equal(0xc04020u, read.Chunks[0].Placements[0].Color);
+        Assert.Contains("color = 0xC04020", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
+    }
+
+    [Fact]
     public void UndersideColorsNeedAnUnderside()
     {
         var zone = Zones.Sample();

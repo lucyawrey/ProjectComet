@@ -51,6 +51,11 @@ public sealed class ContentBuilder
         var root = Path.GetFullPath(modelRoot);
         return Add("asset", folder, CometToml.Default.Asset, (asset, validation) =>
         {
+            if (asset.Color > 0xFFFFFF)
+            {
+                validation.Error(nameof(Asset.Color), $"0x{asset.Color:X} isn't a color: use 0xRRGGBB.");
+            }
+
             if (Path.IsPathRooted(asset.Model) || asset.Model.Split('/', '\\').Contains(".."))
             {
                 validation.Error(nameof(Asset.Model), $"'{asset.Model}' must be a path inside the model folder, without '..'.");

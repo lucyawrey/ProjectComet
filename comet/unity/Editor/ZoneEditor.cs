@@ -157,6 +157,7 @@ namespace Comet.Unity.Editor
                     Position = ToNumerics(t.position),
                     Rotation = Angles(t.rotation.eulerAngles),
                     Scale = ToNumerics(t.lossyScale),
+                    Color = placed.ownColor ? PlacedColors.ToRgb(placed.color) : (uint?)null,
                 }).ToArray();
             }
 
@@ -267,6 +268,7 @@ namespace Comet.Unity.Editor
                     var marker = thing.AddComponent<ZonePlacement>();
                     marker.asset = placement.Asset;
                     marker.placementName = placement.Name ?? "";
+                    SetColors(marker, settings, placement.Color);
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -279,6 +281,20 @@ namespace Comet.Unity.Editor
                     component.size = ToUnity(volume.Size);
                 }
             }
+        }
+
+        // A placement's colors: its asset's, from the library, and its own if it has one.
+        private static void SetColors(ZonePlacement placement, CometSettings settings, uint? own)
+        {
+            Color? asset = settings.assets != null && settings.assets.TryGet(placement.asset, out var entry) && entry.hasColor ? entry.color : null;
+            placement.ownColor = own != null;
+            if (own is { } rgb)
+            {
+                placement.color = PlacedColors.FromRgb(rgb);
+            }
+
+            var material = settings.placedMaterial != null && settings.placedMaterial.HasProperty("_BaseColor") ? settings.placedMaterial.GetColor("_BaseColor") : Color.gray;
+            placement.SetAssetColor(asset, asset ?? material);
         }
 
         // The asset's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
@@ -338,7 +354,9 @@ namespace Comet.Unity.Editor
             var parent = editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
             var thing = Instantiate(asset, settings, parent);
             thing.transform.position = position;
-            thing.AddComponent<ZonePlacement>().asset = asset;
+            var placement = thing.AddComponent<ZonePlacement>();
+            placement.asset = asset;
+            SetColors(placement, settings, null);
             Undo.RegisterCreatedObjectUndo(thing, $"Place {asset}");
             return thing;
         }
