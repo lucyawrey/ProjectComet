@@ -5,7 +5,7 @@ Comet's demo and reference game. Requirements, setup and the scripts are in the 
 | Folder | What it holds |
 | --- | --- |
 | `art/` | Source files for the art (such as `.blend`), plain in git (no Git LFS yet). Exports go into `ShapeLand.Unity/Assets/Models/` as `.glb`. |
-| `content/` | Game data: the shapes and the test zone's island, compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
+| `content/` | Game data: the shapes, the placeable assets, the game-wide settings (`settings/game.toml`), the interface text and the zone, made by hand in the zone editor. Compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
 | `src/` | The game server, the bots, the content build and `ShapeLand.Shared` (rules, world and messages used by server, bots and client). |
 | `ShapeLand.Unity/` | The Unity client. |
 | `tests/` | Tests for the .NET projects. |
@@ -17,7 +17,7 @@ How Comet's libraries fit together, and how a move travels from one player to th
 
 ### Shared: `src/ShapeLand.Shared`
 
-Used by the server, the bots and the Unity client alike: `World/ShapeLandRules.cs` (tick rate, name and chat rules, the color sets), `World/ShapeLandWorld.cs` (the movement rules and the test island's collision world), `Content/` (the shape type and the compiled content file) and `Messages/` (ShapeLand's own messages: joining, spawns and chat).
+Used by the server, the bots and the Unity client alike: `World/ShapeLandRules.cs` (tick rate, name and chat rules, spawn claim reach), `World/ShapeLandWorld.cs` (the collision world, built from the zone in content), `Content/` (the shape and game settings types and the compiled content file) and `Messages/` (ShapeLand's own messages: joining, spawns and chat).
 
 ### Server: `src/ShapeLand.GameServer`
 
@@ -29,7 +29,7 @@ The Game scene (`Assets/Scenes/Game.unity`) holds:
 
 | Object | Components | What they do |
 | --- | --- | --- |
-| Game | `CometConnection`, `JoinClient`, `GameView`, `JoinScreen` | Connecting and joining (`JoinClient`); drawing the island, blocks and players (`GameView`); the join card for name, shape and colors (`JoinScreen`, `Assets/UI/JoinScreen.uxml`). |
+| Game | `CometConnection`, `JoinClient`, `GameView`, `JoinScreen` | Connecting and joining (`JoinClient`); drawing the zone's terrain and placed objects, and the players (`GameView`); the join card for name, shape and colors (`JoinScreen`, `Assets/UI/JoinScreen.uxml`). |
 | Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, and the network numbers (F3). |
 | Camera | `OrbitCamera` | The third-person camera. |
 
@@ -47,6 +47,15 @@ Every label and message players see, by key (`[join]` then `name_taken` is `join
 
 `src/ShapeLand.Bots` runs headless players (honest wanderers, optional cheaters) for load and network runs. `src/ShapeLand.ContentBuild` compiles `content/` into `artifacts/content/shapeland/content.bin`.
 
+## Building the level
+
+ShapeLand has one zone, `content/zones/test` (`world.zone` in `game.toml` names it), built by hand with Comet's zone editor; [Comet's README](../comet/README.md#zones-and-the-zone-editor) describes the tools.
+
+- **Edit it:** in the Unity editor, Comet › Zones › Open… and pick the zone, then use the Terrain and Place tools. Ctrl+S saves the zone's files and rebuilds the content; commit the changed files under `content/zones/`.
+- **Spawn points:** add them with the Place tool's spawn point option. Each shape's `spawn` (in `content/shapes/<shape>.toml`) must name one of them, and one is the zone's default; the content build reports any that don't match. Markers are drawn in `unset_color` (`[spawns]` in `game.toml`) until a player claims one.
+- **A new asset:** model it in Blender, export it as a `.glb` into `ShapeLand.Unity/Assets/Models/`, and add `content/assets/<name>.toml` with its `id` (`asset.<name>`), its `model` path (relative to `Assets/`) and optionally `color` (0xRRGGBB) and `uniform_scale`. Objects named with a `-col` suffix are its collision mesh, hidden in the game; without them its whole mesh collides. Rebuild the content (Comet › Content › Build) and it appears in the Place panel.
+- **Default colors** for the whole game are in `[world]` in `game.toml`: `ground_color` and `under_color` for terrain, `placed_color` for objects whose asset has no color.
+
 ## Tuning movement
 
 Every movement number has one home. Clients, bots and the server read the same values, and the server checks each player's movement against them, so a change applies everywhere once everything is rebuilt.
@@ -59,16 +68,16 @@ Every movement number has one home. Clients, bots and the server read the same v
 | `jump_velocity` | Upward speed at take-off, in meters per second. A jump rises v² / 2g: with gravity 25, 8.5 rises about 1.45 m. |
 | `scale` | How big the shape is drawn, times its model's size. Looks only: collisions use the shared body below. |
 
-### Physics for every shape: `Rules` in `src/ShapeLand.Shared/World/ShapeLandWorld.cs`
+### Physics for every shape: `[movement]` in `content/settings/game.toml`
 
-| Value | What it does |
+| Key | What it does |
 | --- | --- |
-| `Gravity` | Downward acceleration, in m/s². Higher makes jumps shorter and snappier at the same take-off speed. |
-| `GroundAcceleration`, `AirAcceleration` | How quickly speed changes toward what the stick asks for, on the ground and in the air, in m/s². Low feels slippery, high feels instant. |
-| `TurnSpeed` | How fast a shape turns to face where it's going, in degrees per second. Only the facing turns; movement changes direction at once. |
-| `StepHeight` | The highest ledge walked up without jumping, in meters. |
-| `GroundSnap` | How far the ground may drop under the feet while staying grounded (walking downhill rather than falling), in meters. |
-| `BodyRadius`, `BodyHeight` | The collision body every shape shares: a square footprint `BodyRadius` from the center, and `BodyHeight` tall, in meters. |
+| `gravity` | Downward acceleration, in m/s². Higher makes jumps shorter and snappier at the same take-off speed. |
+| `ground_acceleration`, `air_acceleration` | How quickly speed changes toward what the stick asks for, on the ground and in the air, in m/s². Low feels slippery, high feels instant. |
+| `turn_speed` | How fast a shape turns to face where it's going, in degrees per second. Only the facing turns; movement changes direction at once. |
+| `step_height` | The highest ledge walked up without jumping, in meters. |
+| `ground_snap` | How far the ground may drop under the feet while staying grounded (walking downhill rather than falling), in meters. |
+| `body_radius`, `body_height` | The collision body every shape shares: a square footprint `body_radius` from the center, and `body_height` tall, in meters. |
 
 ### How shapes look: the models in `art/shapes.blend`
 
@@ -80,7 +89,7 @@ Each shape is an empty at the player's feet with a body mesh and eyes under it, 
 
 ### Server leniency: `MovementTolerances` in `comet/src/Comet.Server/Movement/MovementValidator.cs`
 
-How much faster or higher than the rules a report may be before the server snaps the player back. They're tuned for bad networks rather than feel; `MovementHeadroom` and the bad-profile runs (`tools/shapeland-netrun.sh`) show how much room honest players need. The checks follow the shape's speed and jump and `Gravity`, so tuning movement doesn't need changes here.
+How much faster or higher than the rules a report may be before the server snaps the player back. They're tuned for bad networks rather than feel; `MovementHeadroom` and the bad-profile runs (`tools/shapeland-netrun.sh`) show how much room honest players need. The checks follow the shape's speed and jump and `gravity`, so tuning movement doesn't need changes here.
 
 ### Trying a change
 
