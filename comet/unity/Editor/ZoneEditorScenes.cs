@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -8,7 +10,8 @@ namespace Comet.Unity.Editor
     /// <summary>
     /// Ties the zone editor to Unity's own scene workflow: saving a zone's working scene (File › Save, Ctrl+S) saves
     /// the zone's files, a zone's terrain preview is drawn again when its scene opens or play mode ends, and play mode
-    /// always starts in the game's own scene (the settings' Play Scene), so it plays the zone from content.
+    /// always starts in the game's own scene (the settings' Play Scene), so it plays the zone from content. A spawn
+    /// point that's duplicated or pasted gets a fresh key.
     /// </summary>
     [InitializeOnLoad]
     public static class ZoneEditorScenes
@@ -28,6 +31,8 @@ namespace Comet.Unity.Editor
                 }
             };
 
+            ObjectChangeEvents.changesPublished += FreshSpawnKeys;
+
             // The asset database isn't ready while scripts load.
             EditorApplication.delayCall += () => SetPlayScene(CometSettings.Find(quiet: true));
         }
@@ -41,6 +46,58 @@ namespace Comet.Unity.Editor
             if (settings != null)
             {
                 EditorSceneManager.playModeStartScene = settings.playScene;
+            }
+        }
+
+        // A new spawn point (duplicated or pasted) whose key another already has gets the first free one: key_2, key_3…
+        private static void FreshSpawnKeys(ref ObjectChangeEventStream stream)
+        {
+            for (var i = 0; i < stream.length; i++)
+            {
+                if (stream.GetEventType(i) != ObjectChangeKind.CreateGameObjectHierarchy)
+                {
+                    continue;
+                }
+
+                stream.GetCreateGameObjectHierarchyEvent(i, out var created);
+                if (!(EditorUtility.InstanceIDToObject(created.instanceId) is GameObject root))
+                {
+                    continue;
+                }
+
+                foreach (var spawn in root.GetComponentsInChildren<ZoneSpawn>())
+                {
+                    var zone = spawn.GetComponentInParent<ZoneEditing>();
+                    if (zone == null)
+                    {
+                        continue;
+                    }
+
+                    var others = zone.GetComponentsInChildren<ZoneSpawn>().Where(s => s != spawn).Select(s => s.key).ToHashSet();
+                    if (!others.Contains(spawn.key))
+                    {
+                        continue;
+                    }
+
+                    var stem = Regex.Replace(spawn.key, "_[0-9]+$", "");
+                    var n = 2;
+                    while (others.Contains($"{stem}_{n}"))
+                    {
+                        n++;
+                    }
+
+                    Undo.RecordObject(spawn, "Fresh spawn key");
+                    Undo.RecordObject(spawn.gameObject, "Fresh spawn key");
+                    spawn.key = $"{stem}_{n}";
+                    spawn.gameObject.name = spawn.key;
+                    foreach (var marker in spawn.GetComponentsInChildren<ZonePlacement>())
+                    {
+                        Undo.RecordObject(marker, "Fresh spawn key");
+                        Undo.RecordObject(marker.gameObject, "Fresh spawn key");
+                        marker.placementName = spawn.key;
+                        marker.gameObject.name = $"{spawn.key} marker";
+                    }
+                }
             }
         }
 
