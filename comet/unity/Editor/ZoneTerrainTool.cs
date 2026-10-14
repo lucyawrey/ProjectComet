@@ -26,14 +26,14 @@ namespace Comet.Unity.Editor
             Hole,
             Ground,
             Color,
-            UndersideUp,
-            UndersideDown,
-            UndersideColor,
         }
 
-        private static readonly string[] BrushNames = { "Raise", "Lower", "Smooth", "Flatten", "Hole", "Ground", "Color", "Under ↑", "Under ↓", "Under color" };
+        private static readonly string[] BrushNames = { "Raise", "Lower", "Smooth", "Flatten", "Hole", "Ground", "Color" };
+        private static readonly string[] SurfaceNames = { "Ground", "Underside" };
 
         [SerializeField] private Brush brush;
+        [Tooltip("Whether the brushes work on the ground or on the underside map (Hole and Ground only work on the ground).")]
+        [SerializeField] private bool underside;
         [SerializeField] private float radius = 3;
         [SerializeField] private float strength = 2;
         [SerializeField] private Color paint = new Color32(0x8c, 0x7a, 0x52, 0xff);
@@ -122,17 +122,23 @@ namespace Comet.Unity.Editor
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Brush", EditorStyles.boldLabel);
-            brush = (Brush)GUILayout.SelectionGrid((int)brush, BrushNames, 3);
+            underside = GUILayout.Toolbar(underside ? 1 : 0, SurfaceNames) == 1;
+            if ((int)brush >= BrushNames.Length || (underside && !OnUnderside(brush)))
+            {
+                brush = Brush.Raise;
+            }
+
+            BrushGrid();
             radius = EditorGUILayout.Slider("Radius (m)", radius, 0.5f, 32);
             strength = EditorGUILayout.Slider(brush == Brush.Smooth || brush == Brush.Flatten ? "Strength" : "Strength (m/s)", strength, 0.1f, 10);
-            if (brush == Brush.Color || brush == Brush.UndersideColor)
+            if (brush == Brush.Color)
             {
                 paint = EditorGUILayout.ColorField("Color", paint);
             }
 
-            if (brush == Brush.UndersideColor)
+            if (underside)
             {
-                EditorGUILayout.HelpBox("Paints the underside and the skirt walls above it, only where the piece has an underside map (Under ↑ and Under ↓ make one).", MessageType.None);
+                EditorGUILayout.HelpBox("The underside map sets where the piece's skirts end; painting it starts one. Color paints the underside and the skirt walls above it, where there's an underside map.", MessageType.None);
             }
 
             EditorGUILayout.HelpBox("Paint with the left mouse button; hold Alt to orbit as usual. Flatten and Ground use the height where the stroke starts.", MessageType.None);
@@ -160,6 +166,30 @@ namespace Comet.Unity.Editor
             EditorGUILayout.EndVertical();
         }
 
+        // The brushes, three to a row; on the underside, Hole and Ground are greyed out.
+        private void BrushGrid()
+        {
+            var brushes = (Brush[])System.Enum.GetValues(typeof(Brush));
+            for (var i = 0; i < brushes.Length; i += 3)
+            {
+                EditorGUILayout.BeginHorizontal();
+                foreach (var b in brushes.Skip(i).Take(3))
+                {
+                    using (new EditorGUI.DisabledScope(underside && !OnUnderside(b)))
+                    {
+                        if (GUILayout.Toggle(brush == b, BrushNames[(int)b], GUI.skin.button) && brush != b)
+                        {
+                            brush = b;
+                        }
+                    }
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        private static bool OnUnderside(Brush b) => b != Brush.Hole && b != Brush.Ground;
+
         private void PieceSettings(ZoneTerrainEditing terrain)
         {
             var settings = terrain.Zone.Pieces.First(p => p.Name == piece);
@@ -183,11 +213,11 @@ namespace Comet.Unity.Editor
                 terrain.Commit("Change piece settings", _settings!);
             }
 
-            // On once Under ↑ or Under ↓ has painted; turning it off removes the underside and its colors.
+            // On once the Underside brushes have painted; turning it off removes the underside and its colors.
             var hasUnderside = terrain.HasUnderside(piece);
             using (new EditorGUI.DisabledScope(!hasUnderside))
             {
-                var keep = EditorGUILayout.Toggle(new GUIContent("Underside map", "Made by painting with Under ↑ or Under ↓. Turn off to remove it and its colors; the skirts end at the bottom height again."), hasUnderside);
+                var keep = EditorGUILayout.Toggle(new GUIContent("Underside map", "Made by painting with the Underside brushes. Turn off to remove it and its colors; the skirts end at the bottom height again."), hasUnderside);
                 if (hasUnderside && !keep && EditorUtility.DisplayDialog("Remove the underside map", $"Remove '{piece}''s underside map and underside colors? Its skirts will end at its bottom height again.", "Remove", "Keep"))
                 {
                     terrain.ClearUnderside(piece);
@@ -269,7 +299,9 @@ namespace Comet.Unity.Editor
             {
                 case EventType.MouseDown when e.button == 0 && _hover != null:
                     _painting = true;
-                    _flattenHeight = _hover.Value.y;
+                    _flattenHeight = underside
+                        ? terrain.UndersideAt(piece, Mathf.RoundToInt(_hover.Value.x / ZoneGrid.SampleSpacing), Mathf.RoundToInt(_hover.Value.z / ZoneGrid.SampleSpacing))
+                        : _hover.Value.y;
                     GUIUtility.hotControl = control;
                     Paint(terrain, _hover.Value, 1f / 30);
                     e.Use();
@@ -287,7 +319,7 @@ namespace Comet.Unity.Editor
                     _painting = false;
                     _redraw = false;
                     GUIUtility.hotControl = 0;
-                    terrain.Commit($"Terrain: {BrushNames[(int)brush]}", _settings);
+                    terrain.Commit($"Terrain: {(underside ? "Underside " : "")}{BrushNames[(int)brush]}", _settings!);
                     if (_overlaps.Count > 0)
                     {
                         RefreshOverlaps();
@@ -374,6 +406,16 @@ namespace Comet.Unity.Editor
             foreach (var (x, z, weight) in changes)
             {
                 var has = terrain.TryGetHeight(piece, x, z, out var height);
+                if (underside)
+                {
+                    if (has)
+                    {
+                        PaintUnderside(terrain, x, z, height, seconds * weight, before);
+                    }
+
+                    continue;
+                }
+
                 switch (brush)
                 {
                     case Brush.Raise when has:
@@ -397,19 +439,10 @@ namespace Comet.Unity.Editor
                     case Brush.Color when has:
                         terrain.SetColor(piece, x, z, Rgb(paint), Rgb(_settings!.groundColor));
                         break;
-                    case Brush.UndersideUp when has:
-                        terrain.SetUnderside(piece, x, z, Mathf.Min(height, terrain.UndersideAt(piece, x, z) + strength * seconds * weight));
-                        break;
-                    case Brush.UndersideDown when has:
-                        terrain.SetUnderside(piece, x, z, terrain.UndersideAt(piece, x, z) - strength * seconds * weight);
-                        break;
-                    case Brush.UndersideColor when has:
-                        terrain.SetUndersideColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.SkirtColor ?? Rgb(_settings!.skirtColor));
-                        break;
                 }
             }
 
-            if (brush == Brush.Hole || brush == Brush.Ground)
+            if (!underside && (brush == Brush.Hole || brush == Brush.Ground))
             {
                 terrain.Reindex();
             }
@@ -430,6 +463,32 @@ namespace Comet.Unity.Editor
             }
         }
 
+        // The underside brushes at one ground sample (at `height`); `amount` is the stroke's time times its falloff.
+        // The underside never rises above the ground.
+        private void PaintUnderside(ZoneTerrainEditing terrain, int x, int z, float height, float amount, Dictionary<(int, int), float?>? before)
+        {
+            var under = terrain.UndersideAt(piece, x, z);
+            switch (brush)
+            {
+                case Brush.Raise:
+                    terrain.SetUnderside(piece, x, z, Mathf.Min(height, under + strength * amount));
+                    break;
+                case Brush.Lower:
+                    terrain.SetUnderside(piece, x, z, under - strength * amount);
+                    break;
+                case Brush.Smooth when before![(x, z)] is { } average:
+                    terrain.SetUnderside(piece, x, z, Mathf.Min(height, Mathf.Lerp(under, average, Mathf.Clamp01(strength * amount * 3))));
+                    break;
+                case Brush.Flatten:
+                    terrain.SetUnderside(piece, x, z, Mathf.Min(height, Mathf.Lerp(under, _flattenHeight, Mathf.Clamp01(strength * amount * 3))));
+                    break;
+                case Brush.Color:
+                    terrain.SetUndersideColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.SkirtColor ?? Rgb(_settings!.skirtColor));
+                    break;
+            }
+        }
+
+        // The average of a sample and its neighbors that have ground: of their heights, or on the underside, their undersides.
         private float? Average(ZoneTerrainEditing terrain, int x, int z)
         {
             float sum = 0;
@@ -440,7 +499,7 @@ namespace Comet.Unity.Editor
                 {
                     if (terrain.TryGetHeight(piece, x + dx, z + dz, out var h))
                     {
-                        sum += h;
+                        sum += underside ? terrain.UndersideAt(piece, x + dx, z + dz) : h;
                         count++;
                     }
                 }
