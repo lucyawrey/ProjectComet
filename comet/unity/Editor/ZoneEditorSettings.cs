@@ -26,5 +26,8 @@ namespace Comet.Unity.Editor
 
         [Tooltip("The color of terrain's skirts: the walls and bottoms where its ground ends.")]
         public Color skirtColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
+
+        [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
+        public float bodyHeight = 1;
     }
 }

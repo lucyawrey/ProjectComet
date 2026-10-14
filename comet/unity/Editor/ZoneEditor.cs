@@ -24,7 +24,7 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Open…", priority = 1)]
         public static void OpenMenu()
         {
-            var settings = Settings();
+            var settings = Settings(quiet: false);
             if (settings == null)
             {
                 return;
@@ -63,6 +63,7 @@ namespace Comet.Unity.Editor
             }
 
             EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            ZoneTerrainEditing.Forget();
             var root = new GameObject($"Zone {zone.Id}");
             var editing = root.AddComponent<ZoneEditing>();
             editing.folder = RelativeToProject(folder);
@@ -155,6 +156,9 @@ namespace Comet.Unity.Editor
                 }).ToArray();
             }
 
+            // Tiles are kept whole-chunk while editing; the files keep only their ground.
+            ZoneTerrainEditing.Crop(zone);
+
             // A chunk left with nothing in it is no longer part of the zone.
             zone.Chunks = chunks.Values
                 .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Volumes.Length > 0)
@@ -163,20 +167,40 @@ namespace Comet.Unity.Editor
             return zone;
         }
 
-        private static void Build(Transform root, Zone zone, ZoneEditorSettings settings)
+        /// <summary>Redraws a zone's terrain preview from <paramref name="zone"/>'s pieces.</summary>
+        public static void RebuildTerrain(ZoneEditing editing, Zone zone, ZoneEditorSettings settings)
         {
-            var terrain = Child(root, "Terrain (preview)");
-            terrain.gameObject.hideFlags = HideFlags.NotEditable;
+            var root = editing.transform;
+            var old = root.Find(TerrainName);
+            if (old != null)
+            {
+                foreach (var filter in old.GetComponentsInChildren<MeshFilter>())
+                {
+                    UnityEngine.Object.DestroyImmediate(filter.sharedMesh);
+                }
+
+                UnityEngine.Object.DestroyImmediate(old.gameObject);
+            }
+
+            var terrain = Child(root, TerrainName);
+            terrain.SetAsFirstSibling();
+            terrain.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
             foreach (var chunk in TerrainMesher.Build(new ZoneTerrain(zone), Rgb(settings.groundColor), Rgb(settings.skirtColor)))
             {
                 var name = $"Chunk {chunk.Key}";
                 var drawn = Child(terrain, name);
-                drawn.gameObject.hideFlags = HideFlags.NotEditable;
+                drawn.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
                 drawn.localPosition = new Vector3(chunk.Key.Origin.X, chunk.Key.Origin.Y, chunk.Key.Origin.Z);
                 drawn.gameObject.AddComponent<MeshFilter>().sharedMesh = TerrainMeshes.Build(name, chunk.Value);
                 drawn.gameObject.AddComponent<MeshRenderer>().sharedMaterial = settings.terrainMaterial;
             }
+        }
 
+        private const string TerrainName = "Terrain (preview)";
+
+        private static void Build(Transform root, Zone zone, ZoneEditorSettings settings)
+        {
+            RebuildTerrain(root.GetComponent<ZoneEditing>(), zone, settings);
             var placed = Child(root, "Placed");
             var spawns = Child(root, "Spawns");
             var volumes = Child(root, "Volumes");
@@ -246,11 +270,17 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        private static ZoneEditorSettings Settings()
+        /// <summary>The project's zone editor settings, or null (with a dialog unless <paramref name="quiet"/>) if it has none.</summary>
+        public static ZoneEditorSettings Settings(bool quiet)
         {
             var found = AssetDatabase.FindAssets($"t:{nameof(ZoneEditorSettings)}");
             if (found.Length == 0)
             {
+                if (quiet)
+                {
+                    return null;
+                }
+
                 EditorUtility.DisplayDialog("No zone editor settings", "This project has no Zone Editor Settings asset. Make one with Create › Comet › Zone Editor Settings.", "OK");
                 return null;
             }
