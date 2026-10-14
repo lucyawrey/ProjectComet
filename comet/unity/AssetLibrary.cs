@@ -26,7 +26,9 @@ namespace Comet.Unity
 
         [SerializeField] private List<Entry> entries = new List<Entry>();
 
-        private Dictionary<string, Entry> _byKey;
+        // Positions in entries, not copies of them: a copy's model reference goes stale when Unity unloads and
+        // reloads the model (as when play mode changes scenes), while the serialized list is kept up to date.
+        private Dictionary<string, int> _byKey;
 
         public IReadOnlyList<Entry> Entries => entries;
 
@@ -38,14 +40,21 @@ namespace Comet.Unity
         {
             if (_byKey == null)
             {
-                _byKey = new Dictionary<string, Entry>();
-                foreach (var e in entries)
+                _byKey = new Dictionary<string, int>();
+                for (var i = 0; i < entries.Count; i++)
                 {
-                    _byKey[e.key] = e;
+                    _byKey[entries[i].key] = i;
                 }
             }
 
-            return _byKey.TryGetValue(key, out entry);
+            if (_byKey.TryGetValue(key, out var index) && index < entries.Count)
+            {
+                entry = entries[index];
+                return true;
+            }
+
+            entry = default;
+            return false;
         }
 
         /// <summary>Replaces the entries (the editor's content sync does this).</summary>
