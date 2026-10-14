@@ -98,6 +98,36 @@ namespace Comet.Unity.Editor
             tile.Colors.Colors[tz * tile.Colors.SizeX + tx] = color;
         });
 
+        /// <summary>
+        /// Paints a world sample's underside color (0xRRGGBB), where the piece has an underside map, starting a map
+        /// of <paramref name="skirt"/> where there's none.
+        /// </summary>
+        public void SetUndersideColor(string piece, int x, int z, uint color, uint skirt) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>
+        {
+            if (tile.Underside is null)
+            {
+                return;
+            }
+
+            tile.UndersideColors ??= new ColorMap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Colors = Enumerable.Repeat(skirt, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray() };
+            tile.UndersideColors.Colors[tz * tile.UndersideColors.SizeX + tx] = color;
+        });
+
+        /// <summary>Whether any of the piece's tiles has an underside map.</summary>
+        public bool HasUnderside(string piece) => Zone.Chunks.SelectMany(c => c.Tiles).Any(t => t.Piece == piece && t.Underside != null);
+
+        /// <summary>Removes the piece's underside maps and their colors, so its skirts end at its flat bottom again.</summary>
+        public void ClearUnderside(string piece)
+        {
+            foreach (var tile in Zone.Chunks.SelectMany(c => c.Tiles).Where(t => t.Piece == piece))
+            {
+                tile.Underside = null;
+                tile.UndersideColors = null;
+            }
+
+            Reindex();
+        }
+
         /// <summary>Adds a piece, flat at <paramref name="height"/> over a square of <paramref name="size"/> samples around <paramref name="center"/>.</summary>
         public void AddPiece(TerrainPiece settings, (int X, int Z) center, int size, float height)
         {
@@ -159,7 +189,7 @@ namespace Comet.Unity.Editor
 
         /// <summary>
         /// Crops each tile to the samples with ground (and drops tiles with none), as the zone's files keep them.
-        /// Underside and color maps are cropped the same way.
+        /// Underside and color maps (ground and underside) are cropped the same way.
         /// </summary>
         public static void Crop(Zone zone)
         {
@@ -204,6 +234,7 @@ namespace Comet.Unity.Editor
                         Heights = Cut(map, minX, minZ, maxX, maxZ),
                         Underside = tile.Underside is { } under ? Cut(under, minX, minZ, maxX, maxZ) : null,
                         Colors = tile.Colors is { } colors ? Cut(colors, minX, minZ, maxX, maxZ) : null,
+                        UndersideColors = tile.UndersideColors is { } underColors ? Cut(underColors, minX, minZ, maxX, maxZ) : null,
                     });
                 }
 
@@ -218,6 +249,7 @@ namespace Comet.Unity.Editor
             var heights = new Heightmap { SizeX = size, SizeZ = size, Scale = tile.Heights.Scale, Offset = tile.Heights.Offset, Samples = new ushort[size * size] };
             var under = tile.Underside is { } u ? new Heightmap { SizeX = size, SizeZ = size, Scale = u.Scale, Offset = u.Offset, Samples = new ushort[size * size] } : null;
             var colors = tile.Colors != null ? new ColorMap { SizeX = size, SizeZ = size, Colors = new uint[size * size] } : null;
+            var underColors = tile.UndersideColors != null ? new ColorMap { SizeX = size, SizeZ = size, Colors = new uint[size * size] } : null;
             for (var z = 0; z < tile.Heights.SizeZ; z++)
             {
                 for (var x = 0; x < tile.Heights.SizeX; x++)
@@ -233,10 +265,15 @@ namespace Comet.Unity.Editor
                     {
                         colors.Colors[to] = tile.Colors![x, z];
                     }
+
+                    if (underColors != null)
+                    {
+                        underColors.Colors[to] = tile.UndersideColors![x, z];
+                    }
                 }
             }
 
-            return new TerrainTile { Piece = tile.Piece, Heights = heights, Underside = under, Colors = colors };
+            return new TerrainTile { Piece = tile.Piece, Heights = heights, Underside = under, Colors = colors, UndersideColors = underColors };
         }
 
         // Runs `change` on every tile of the piece holding world sample (x, z), making one for its own chunk if

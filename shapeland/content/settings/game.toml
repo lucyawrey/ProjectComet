@@ -13,12 +13,13 @@ air_acceleration = 15.0
 turn_speed = 900.0 # how fast a shape turns to face the way it moves, in degrees per second
 
 [world]
+zone = "zone.test" # the zone the game plays in
 kill_height = -30.0 # falling below this is out of the world: back to the player's spawn
 ground_color = 0x739E4D # unpainted terrain
 skirt_color = 0x7A5C3E # the walls and bottoms where terrain ends
 
 [spawns]
-claim_seconds = 3.0 # standing in another spawn point's radius this long makes it the player's
+claim_seconds = 2.0 # standing in another spawn point's radius this long makes it the player's
 marker_asset = "asset.cylinder" # drawn flattened as each spawn point's marker
 marker_height = 0.4 # how tall a new marker is, sunk halfway into the ground; move it in the editor after
 unset_color = 0x8A8F96 # a marker that isn't the player's spawn: a grey used nowhere else

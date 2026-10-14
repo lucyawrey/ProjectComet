@@ -85,6 +85,9 @@ namespace Comet.Content
 
         /// <summary>Whether the edges of holes inside the piece get skirts (chasm walls).</summary>
         [Key(3)] public bool HoleSkirts { get; set; } = true;
+
+        /// <summary>The color of the piece's skirts as 0xRRGGBB, if not the game's.</summary>
+        [Key(4)] public uint? SkirtColor { get; set; }
     }
 
     /// <summary>One chunk of a zone: the terrain tiles, placed objects, spawns and volumes whose pivots are in it.</summary>
@@ -126,6 +129,9 @@ namespace Comet.Content
 
         /// <summary>Painted colors, if any.</summary>
         [Key(5)] public ColorMap? Colors { get; set; }
+
+        /// <summary>Painted colors of the underside and the skirt walls above it, if any; only with an <see cref="Underside"/>.</summary>
+        [Key(6)] public ColorMap? UndersideColors { get; set; }
     }
 
     /// <summary>An asset placed in a chunk: free position and full rotation, with uniform or non-uniform scale.</summary>

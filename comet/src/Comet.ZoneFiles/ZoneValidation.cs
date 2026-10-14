@@ -268,6 +268,18 @@ namespace Comet.ZoneFiles
                 {
                     error(file, $"tile {tile.Piece}: the colors are {colors.SizeX}×{colors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}.");
                 }
+
+                if (tile.UndersideColors is { } underColors)
+                {
+                    if (tile.Underside is null)
+                    {
+                        error(file, $"tile {tile.Piece}: has underside colors but no underside (delete its .under.color file).");
+                    }
+                    else if (underColors.SizeX != heights.SizeX || underColors.SizeZ != heights.SizeZ)
+                    {
+                        error(file, $"tile {tile.Piece}: the underside colors are {underColors.SizeX}×{underColors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}.");
+                    }
+                }
             }
         }
 

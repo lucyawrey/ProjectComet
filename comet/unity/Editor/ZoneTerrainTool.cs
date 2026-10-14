@@ -28,9 +28,10 @@ namespace Comet.Unity.Editor
             Color,
             UndersideUp,
             UndersideDown,
+            UndersideColor,
         }
 
-        private static readonly string[] BrushNames = { "Raise", "Lower", "Smooth", "Flatten", "Hole", "Ground", "Color", "Under ↑", "Under ↓" };
+        private static readonly string[] BrushNames = { "Raise", "Lower", "Smooth", "Flatten", "Hole", "Ground", "Color", "Under ↑", "Under ↓", "Under color" };
 
         [SerializeField] private Brush brush;
         [SerializeField] private float radius = 3;
@@ -124,9 +125,14 @@ namespace Comet.Unity.Editor
             brush = (Brush)GUILayout.SelectionGrid((int)brush, BrushNames, 3);
             radius = EditorGUILayout.Slider("Radius (m)", radius, 0.5f, 32);
             strength = EditorGUILayout.Slider(brush == Brush.Smooth || brush == Brush.Flatten ? "Strength" : "Strength (m/s)", strength, 0.1f, 10);
-            if (brush == Brush.Color)
+            if (brush == Brush.Color || brush == Brush.UndersideColor)
             {
                 paint = EditorGUILayout.ColorField("Color", paint);
+            }
+
+            if (brush == Brush.UndersideColor)
+            {
+                EditorGUILayout.HelpBox("Paints the underside and the skirt walls above it, only where the piece has a painted underside (Under ↑ and Under ↓ make one).", MessageType.None);
             }
 
             EditorGUILayout.HelpBox("Paint with the left mouse button; hold Alt to orbit as usual. Flatten and Ground use the height where the stroke starts.", MessageType.None);
@@ -161,12 +167,32 @@ namespace Comet.Unity.Editor
             var bottom = EditorGUILayout.FloatField("Bottom height (m)", settings.BottomHeight);
             var rim = EditorGUILayout.Toggle("Rim skirts", settings.RimSkirts);
             var holes = EditorGUILayout.Toggle("Hole skirts", settings.HoleSkirts);
+            var ownSkirt = EditorGUILayout.Toggle(new GUIContent("Own skirt color", "Off: the game's skirt color."), settings.SkirtColor != null);
+            var skirt = settings.SkirtColor ?? Rgb(_settings!.skirtColor);
+            if (ownSkirt)
+            {
+                skirt = Rgb(EditorGUILayout.ColorField("Skirt color", ToColor(skirt)));
+            }
+
             if (EditorGUI.EndChangeCheck())
             {
                 settings.BottomHeight = bottom;
                 settings.RimSkirts = rim;
                 settings.HoleSkirts = holes;
+                settings.SkirtColor = ownSkirt ? skirt : (uint?)null;
                 terrain.Commit("Change piece settings", _settings!);
+            }
+
+            // On once Under ↑ or Under ↓ has painted; turning it off removes the underside and its colors.
+            var hasUnderside = terrain.HasUnderside(piece);
+            using (new EditorGUI.DisabledScope(!hasUnderside))
+            {
+                var keep = EditorGUILayout.Toggle(new GUIContent("Painted underside", "Made by painting with Under ↑ or Under ↓. Turn off to remove it and its colors; the skirts end at the bottom height again."), hasUnderside);
+                if (hasUnderside && !keep && EditorUtility.DisplayDialog("Remove the painted underside", $"Remove '{piece}''s painted underside and underside colors? Its skirts will end at its bottom height again.", "Remove", "Keep"))
+                {
+                    terrain.ClearUnderside(piece);
+                    terrain.Commit("Remove painted underside", _settings!);
+                }
             }
 
             if (GUILayout.Button($"Delete piece '{piece}'") && EditorUtility.DisplayDialog("Delete piece", $"Delete the piece '{piece}' and all its terrain?", "Delete", "Keep"))
@@ -371,6 +397,9 @@ namespace Comet.Unity.Editor
                     case Brush.UndersideDown when has:
                         terrain.SetUnderside(piece, x, z, terrain.UndersideAt(piece, x, z) - strength * seconds * weight);
                         break;
+                    case Brush.UndersideColor when has:
+                        terrain.SetUndersideColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.SkirtColor ?? Rgb(_settings!.skirtColor));
+                        break;
                 }
             }
 
@@ -419,6 +448,8 @@ namespace Comet.Unity.Editor
             Color32 c = color;
             return (uint)(c.r << 16 | c.g << 8 | c.b);
         }
+
+        private static Color ToColor(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
     }
 
     /// <summary>The terrain tool's panel, shown in the Scene view while the tool is picked.</summary>

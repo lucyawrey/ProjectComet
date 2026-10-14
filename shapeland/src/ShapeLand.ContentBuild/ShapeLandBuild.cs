@@ -59,11 +59,20 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
+        // The game plays in the zone its settings name.
+        var zoneId = settings[0].World.Zone;
+        if (!result.Zones.Any(z => z.Id == zoneId))
+        {
+            var zones = result.Zones.Select(z => z.Id).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"world.zone: there's no zone '{zoneId}'; zones: {(zones.Count > 0 ? string.Join(", ", zones) : "(none)")}."));
+            return (null, errors);
+        }
+
         // Each shape starts at a spawn point of the game's zone.
-        var zoneSpawns = result.Zones.Where(z => z.Id == ShapeLandWorld.ZoneId).SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
+        var zoneSpawns = result.Zones.Where(z => z.Id == zoneId).SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
         foreach (var shape in result.Entries<Shape>().Where(s => !zoneSpawns.Contains(s.Spawn)))
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point in {ShapeLandWorld.ZoneId}; change the shape's 'spawn =' to one it has: {(zoneSpawns.Count > 0 ? string.Join(", ", zoneSpawns.OrderBy(k => k, StringComparer.Ordinal)) : "(none yet)")}."));
+            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point in {zoneId}; change the shape's 'spawn =' to one it has: {(zoneSpawns.Count > 0 ? string.Join(", ", zoneSpawns.OrderBy(k => k, StringComparer.Ordinal)) : "(none yet)")}."));
         }
 
         if (errors.Count > 0)
@@ -71,12 +80,6 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // The game plays in one zone for now.
-        if (!result.Zones.Any(z => z.Id == ShapeLandWorld.ZoneId))
-        {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "zones"), 1, 1, $"No zone '{ShapeLandWorld.ZoneId}': the game plays in it."));
-            return (null, errors);
-        }
 
         return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Asset>(), result.Zones), errors);
     }

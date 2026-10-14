@@ -86,6 +86,23 @@ namespace Comet.Simulation
                 return fallback;
             }
 
+            /// <summary>
+            /// The painted underside color at a world sample as 0xRRGGBB (for the underside and the skirt walls above
+            /// it), or <paramref name="fallback"/> where nothing is painted.
+            /// </summary>
+            public uint UndersideColorAt(int x, int z, uint fallback)
+            {
+                for (var i = 0; i < 4; i++)
+                {
+                    if (TileAt(x, z, i, out var tile, out var tx, out var tz))
+                    {
+                        return tile.UndersideColors is { } colors ? colors[tx, tz] : fallback;
+                    }
+                }
+
+                return fallback;
+            }
+
             private bool Interpolate(float x, float z, bool underside, out float height)
             {
                 height = 0;

@@ -64,6 +64,35 @@ public class TerrainMesherTests
     }
 
     [Fact]
+    public void APiecesOwnSkirtColorReplacesTheGames()
+    {
+        const uint Stone = 0x888888;
+        var zone = Piece(2, rim: true, holes: true, "###", "###", "###");
+        zone.Pieces[0].SkirtColor = Stone;
+
+        var triangles = Triangles(Mesh(zone)[new ChunkCoord(0, 0)]).ToList();
+
+        Assert.All(triangles.Where(t => t.A.Y < 2 || t.B.Y < 2 || t.C.Y < 2), t => Assert.Equal(Stone, t.Color));
+        Assert.All(triangles.Where(t => t.A.Y == 2 && t.B.Y == 2 && t.C.Y == 2), t => Assert.Equal(Grass, t.Color));
+    }
+
+    [Fact]
+    public void UndersideColorsPaintTheBottomAndTheWallsAboveIt()
+    {
+        const uint Moss = 0x336633;
+        var zone = Piece(2, rim: true, holes: true, "##", "##");
+        var tile = zone.Chunks[0].Tiles[0];
+        tile.Underside = new Heightmap { SizeX = 2, SizeZ = 2, Scale = 0.25f, Offset = -100, Samples = Enumerable.Repeat((ushort)(96 / 0.25f), 4).ToArray() };
+        tile.UndersideColors = new ColorMap { SizeX = 2, SizeZ = 2, Colors = [Moss, Moss, Moss, Moss] };
+
+        var triangles = Triangles(Mesh(zone)[new ChunkCoord(0, 0)]).ToList();
+
+        var below = triangles.Where(t => t.A.Y < 2 || t.B.Y < 2 || t.C.Y < 2).ToList();
+        Assert.NotEmpty(below);
+        Assert.All(below, t => Assert.Equal(Moss, t.Color));
+    }
+
+    [Fact]
     public void WallsFaceOutward()
     {
         var mesh = Mesh(Piece(2, rim: true, holes: true, "###", "###", "###"))[new ChunkCoord(0, 0)];

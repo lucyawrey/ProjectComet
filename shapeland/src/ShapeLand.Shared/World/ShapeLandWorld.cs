@@ -13,9 +13,6 @@ namespace ShapeLand.Shared.World
     /// </summary>
     public static class ShapeLandWorld
     {
-        /// <summary>The zone ShapeLand plays in, until it has more than one.</summary>
-        public const string ZoneId = "zone.test";
-
         /// <summary>Where players appear: the zone's default spawn point, on the ground.</summary>
         public static Vector3 SpawnPoint(ShapeLandContent content, CollisionWorld world)
         {
@@ -71,8 +68,8 @@ namespace ShapeLand.Shared.World
             return new CollisionWorld(new ZoneTerrain(zone), meshes, content.Settings.World.KillHeight);
         }
 
-        /// <summary>The zone ShapeLand plays in.</summary>
-        public static Zone Zone(ShapeLandContent content) => content.Zones[ZoneId];
+        /// <summary>The zone ShapeLand plays in: the one its settings name (<c>world.zone</c>).</summary>
+        public static Zone Zone(ShapeLandContent content) => content.Zones[content.Settings.World.Zone];
 
         private static Vector3 DefaultSpawn(ShapeLandContent content)
         {

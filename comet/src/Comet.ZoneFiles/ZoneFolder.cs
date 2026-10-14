@@ -14,7 +14,8 @@ namespace Comet.ZoneFiles
     /// A zone's folder: <c>zone.toml</c> (the zone's key, terrain pieces, borders, entrances and transition rooms),
     /// then a TOML file per chunk in <c>chunks/</c>, named by its grid position (<c>chunks/0_-1.toml</c>), with the
     /// chunk's terrain tiles beside it in a folder of the same name: <c>&lt;piece&gt;.height</c>, and optionally
-    /// <c>&lt;piece&gt;.under.height</c> and <c>&lt;piece&gt;.color</c>. The zone is its set of chunk files.
+    /// <c>&lt;piece&gt;.under.height</c>, <c>&lt;piece&gt;.color</c> and <c>&lt;piece&gt;.under.color</c> (the underside's
+    /// colors, only with an underside). The zone is its set of chunk files.
     /// </summary>
     public static class ZoneFolder
     {
@@ -31,7 +32,7 @@ namespace Comet.ZoneFiles
         /// <summary>The chunk file's path in the zone folder.</summary>
         public static string ChunkFile(ChunkCoord coord) => $"{ChunksFolder}/{coord}.toml";
 
-        /// <summary>The path in the zone folder of a tile file: <paramref name="kind"/> is <c>height</c>, <c>under.height</c> or <c>color</c>.</summary>
+        /// <summary>The path in the zone folder of a tile file: <paramref name="kind"/> is <c>height</c>, <c>under.height</c>, <c>color</c> or <c>under.color</c>.</summary>
         public static string TileFile(ChunkCoord coord, string piece, string kind) => $"{ChunksFolder}/{coord}/{piece}.{kind}";
 
         /// <summary>
@@ -89,7 +90,7 @@ namespace Comet.ZoneFiles
         public static void Write(string folder, Zone zone)
         {
             var written = new HashSet<string>(StringComparer.Ordinal);
-            WriteIfChanged(folder, ZoneFile, Encoding.UTF8.GetBytes(ZoneToml.Write(ZoneTable(zone))), written);
+            WriteIfChanged(folder, ZoneFile, Encoding.UTF8.GetBytes(HexColors(ZoneToml.Write(ZoneTable(zone)))), written);
             foreach (var chunk in zone.Chunks)
             {
                 WriteIfChanged(folder, ChunkFile(chunk.Coord), Encoding.UTF8.GetBytes(ZoneToml.Write(ChunkTable(chunk))), written);
@@ -104,6 +105,11 @@ namespace Comet.ZoneFiles
                     if (tile.Colors is not null)
                     {
                         WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "color"), Bytes(s => ColorMapFormat.Write(s, tile.Colors)), written);
+                    }
+
+                    if (tile.UndersideColors is not null)
+                    {
+                        WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "under.color"), Bytes(s => ColorMapFormat.Write(s, tile.UndersideColors)), written);
                     }
                 }
             }
@@ -123,13 +129,14 @@ namespace Comet.ZoneFiles
 
             zone.Pieces = toml.Tables(table, "piece").Select(t =>
             {
-                toml.CheckKeys(t.Table, t.Path, "name", "bottom_height", "rim_skirts", "hole_skirts");
+                toml.CheckKeys(t.Table, t.Path, "name", "bottom_height", "rim_skirts", "hole_skirts", "skirt_color");
                 return new TerrainPiece
                 {
                     Name = toml.String(t.Table, t.Path, "name"),
                     BottomHeight = toml.Float(t.Table, t.Path, "bottom_height"),
                     RimSkirts = toml.Bool(t.Table, t.Path, "rim_skirts", true),
                     HoleSkirts = toml.Bool(t.Table, t.Path, "hole_skirts", true),
+                    SkirtColor = t.Table.TryGetValue("skirt_color", out var color) ? Color(toml, color, $"{t.Path}.skirt_color") : null,
                 };
             }).ToArray();
             zone.Borders = toml.Tables(table, "border").Select(t =>
@@ -203,6 +210,7 @@ namespace Comet.ZoneFiles
                 tile.Heights = heights;
                 tile.Underside = ReadTileFile(folder, TileFile(coord, tile.Piece, "under.height"), HeightmapFormat.Read, required: false, errors, tileFiles);
                 tile.Colors = ReadTileFile(folder, TileFile(coord, tile.Piece, "color"), ColorMapFormat.Read, required: false, errors, tileFiles);
+                tile.UndersideColors = ReadTileFile(folder, TileFile(coord, tile.Piece, "under.color"), ColorMapFormat.Read, required: false, errors, tileFiles);
                 tiles.Add(tile);
             }
 
@@ -289,6 +297,22 @@ namespace Comet.ZoneFiles
             }
         }
 
+        // A color as 0xRRGGBB (a TOML integer, usually written in hex).
+        private static uint? Color(ZoneToml toml, object? value, string path)
+        {
+            if (value is long number && number >= 0 && number <= 0xFFFFFF)
+            {
+                return (uint)number;
+            }
+
+            toml.Error(path, "should be a color, 0x000000 to 0xFFFFFF.");
+            return null;
+        }
+
+        // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
+        private static string HexColors(string text) =>
+            Regex.Replace(text, @"^(skirt_color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
+
         private static TomlTable ZoneTable(Zone zone)
         {
             var table = new TomlTable { ["id"] = zone.Id };
@@ -297,12 +321,21 @@ namespace Comet.ZoneFiles
                 table["world_anchor"] = new TomlArray { (long)anchor.X, (long)anchor.Z };
             }
 
-            AddTables(table, "piece", zone.Pieces, p => new TomlTable
+            AddTables(table, "piece", zone.Pieces, p =>
             {
-                ["name"] = p.Name,
-                ["bottom_height"] = ZoneToml.Round(p.BottomHeight, LengthDecimals),
-                ["rim_skirts"] = p.RimSkirts,
-                ["hole_skirts"] = p.HoleSkirts,
+                var piece = new TomlTable
+                {
+                    ["name"] = p.Name,
+                    ["bottom_height"] = ZoneToml.Round(p.BottomHeight, LengthDecimals),
+                    ["rim_skirts"] = p.RimSkirts,
+                    ["hole_skirts"] = p.HoleSkirts,
+                };
+                if (p.SkirtColor is { } color)
+                {
+                    piece["skirt_color"] = (long)color;
+                }
+
+                return piece;
             });
             AddTables(table, "border", zone.Borders, b => new TomlTable
             {

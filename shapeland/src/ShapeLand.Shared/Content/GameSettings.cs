@@ -78,6 +78,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>The color of terrain's skirts (the walls and bottoms where its ground ends), as 0xRRGGBB.</summary>
         [JsonRequired] [Key(2)] public uint SkirtColor { get; set; }
+
+        /// <summary>The zone the game plays in (<c>zone.*</c>); it has one at a time for now.</summary>
+        [JsonRequired] [Key(3)] public string Zone { get; set; } = "";
     }
 
     [MessagePackObject]

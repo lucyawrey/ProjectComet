@@ -40,7 +40,7 @@ namespace Comet.Simulation
     {
         /// <summary>The meshes of <paramref name="terrain"/>'s pieces, by chunk.</summary>
         /// <param name="groundColor">The color of unpainted ground.</param>
-        /// <param name="skirtColor">The color of skirt walls and bottoms.</param>
+        /// <param name="skirtColor">The color of skirt walls and bottoms, for pieces without their own and where nothing is painted.</param>
         public static Dictionary<ChunkCoord, TerrainMesh> Build(ZoneTerrain terrain, uint groundColor, uint skirtColor)
         {
             var meshes = new Dictionary<ChunkCoord, TerrainMesh>();
@@ -77,7 +77,7 @@ namespace Comet.Simulation
                 _terrain = terrain;
                 _piece = piece;
                 _groundColor = groundColor;
-                _skirtColor = skirtColor;
+                _skirtColor = piece.Settings.SkirtColor ?? skirtColor;
                 _meshes = meshes;
                 var (minX, minZ, maxX, maxZ) = piece.Extent;
                 _minX = minX - 1;
@@ -198,7 +198,7 @@ namespace Comet.Simulation
                 if (settings.RimSkirts)
                 {
                     // The bottom face, under the triangle and facing down.
-                    mesh.Add(Bottom(a) - origin, Bottom(c) - origin, Bottom(b) - origin, _skirtColor, _skirtColor, _skirtColor);
+                    mesh.Add(Bottom(a) - origin, Bottom(c) - origin, Bottom(b) - origin, UnderColor(a), UnderColor(c), UnderColor(b));
                 }
 
                 var corners = new[] { a, b, c };
@@ -232,16 +232,16 @@ namespace Comet.Simulation
                 qTop -= origin;
                 pBottom -= origin;
                 qBottom -= origin;
-                var color = _skirtColor;
+                uint pColor = UnderColor(p), qColor = UnderColor(q);
                 if (Vector3.Dot(new Vector3(normal.X, 0, normal.Z), new Vector3(outward.X, 0, outward.Z)) >= 0)
                 {
-                    mesh.Add(pTop, qTop, qBottom, color, color, color);
-                    mesh.Add(pTop, qBottom, pBottom, color, color, color);
+                    mesh.Add(pTop, qTop, qBottom, pColor, qColor, qColor);
+                    mesh.Add(pTop, qBottom, pBottom, pColor, qColor, pColor);
                 }
                 else
                 {
-                    mesh.Add(pTop, qBottom, qTop, color, color, color);
-                    mesh.Add(pTop, pBottom, qBottom, color, color, color);
+                    mesh.Add(pTop, qBottom, qTop, pColor, qColor, qColor);
+                    mesh.Add(pTop, pBottom, qBottom, pColor, pColor, qColor);
                 }
             }
 
@@ -271,6 +271,9 @@ namespace Comet.Simulation
             }
 
             private uint Color((int X, int Z) sample) => _piece.ColorAt(sample.X, sample.Z, _groundColor);
+
+            // The underside and skirt walls: painted where the piece has underside colors, else its skirt color.
+            private uint UnderColor((int X, int Z) sample) => _piece.UndersideColorAt(sample.X, sample.Z, _skirtColor);
 
             private static Vector3 At((int X, int Z) sample, float height) =>
                 new Vector3(sample.X * ZoneGrid.SampleSpacing, height, sample.Z * ZoneGrid.SampleSpacing);
