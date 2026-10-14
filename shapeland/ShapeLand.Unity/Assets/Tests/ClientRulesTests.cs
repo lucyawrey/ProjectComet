@@ -137,26 +137,56 @@ namespace ShapeLand.Client.Tests
         }
 
         [Test]
-        public void BlocksFaceOutward()
+        public void TerrainFacesUpUnderUnitysNormals()
         {
-            var box = new Box(new System.Numerics.Vector3(1, 2, 3), new System.Numerics.Vector3(3, 3, 7));
-            var mesh = WorldMeshes.Block(box);
+            // A flat 3×3-sample piece without skirts: Unity's recalculated normals must agree with the mesher's winding.
+            var zone = new Comet.Content.Zone
+            {
+                Pieces = new[] { new Comet.Content.TerrainPiece { Name = "main", RimSkirts = false } },
+                Chunks = new[]
+                {
+                    new Comet.Content.ZoneChunk
+                    {
+                        Tiles = new[]
+                        {
+                            new Comet.Content.TerrainTile
+                            {
+                                Piece = "main",
+                                Heights = new Comet.Content.Heightmap { SizeX = 3, SizeZ = 3, Scale = 1, Offset = 0, Samples = Enumerable.Repeat((ushort)2, 9).ToArray() },
+                            },
+                        },
+                    },
+                },
+            };
+            var chunk = TerrainMesher.Build(new ZoneTerrain(zone), 0x336699, 0).Values.Single();
+            var mesh = WorldMeshes.Terrain("Test", chunk);
             try
             {
-                var center = WorldMeshes.ToUnity(box.Center);
-                var vertices = mesh.vertices;
-                var triangles = mesh.triangles;
-                Assert.That(triangles.Length, Is.EqualTo(36));
-                for (var i = 0; i < triangles.Length; i += 3)
-                {
-                    var (a, b, c) = (vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]]);
-                    Assert.That(Vector3.Dot(Vector3.Cross(b - a, c - a), (a + b + c) / 3 - center), Is.GreaterThan(0), $"Triangle {i / 3} faces inward.");
-                }
+                Assert.That(mesh.triangles.Length, Is.EqualTo(8 * 3));
+                Assert.That(mesh.normals, Has.All.EqualTo(Vector3.up));
+                Assert.That(mesh.colors32[0], Is.EqualTo(new Color32(0x33, 0x66, 0x99, 0xff)));
             }
             finally
             {
                 Object.DestroyImmediate(mesh);
             }
+        }
+
+        [TestCase(0, 45, 0)]
+        [TestCase(30, 0, 0)]
+        [TestCase(0, 0, 60)]
+        [TestCase(10, 200, -35)]
+        [TestCase(-80, 15, 170)]
+        public void PlacementRotationsMatchUnitys(float x, float y, float z)
+        {
+            // Zones store Euler angles; Comet turns them into rotations for collision, Unity for drawing. They must agree.
+            var comet = Comet.Content.ZoneGrid.Rotation(new System.Numerics.Vector3(x, y, z));
+            var unity = Quaternion.Euler(x, y, z);
+
+            var forward = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitZ, comet);
+            var right = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitX, comet);
+            Assert.That(Vector3.Distance(WorldMeshes.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(WorldMeshes.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
         }
 
         [Test]

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Comet.Client;
+using Comet.Content;
 using Comet.Simulation;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
@@ -10,7 +11,7 @@ using UnityEngine;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// The game scene's view: draws the island and its blocks once the content has loaded, the player's own shape
+    /// The game scene's view: draws the zone (its terrain and placed objects) once the content has loaded, the player's own shape
     /// (with eyes, to show its facing) once the server spawns it, with the orbit camera following, and the other
     /// players where the interpolation buffer puts them. Others fade out as they fall off the island and back in
     /// after respawning (<see cref="RespawnFade"/>); the player's own fall darkens the screen instead (<see cref="Hud"/>).
@@ -21,8 +22,16 @@ namespace ShapeLand.Client
         /// <summary>A layer the main camera doesn't draw, for the join screen's shape preview.</summary>
         public const int PreviewLayer = 31;
 
+        [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
         [SerializeField] private Material terrainMaterial;
+        [Tooltip("The material placed objects are drawn with (their models' own are ignored).")]
         [SerializeField] private Material blockMaterial;
+        [Tooltip("The models for asset keys, kept up to date by the editor from the content.")]
+        [SerializeField] private AssetLibrary assets;
+        [Tooltip("The color of terrain no one has painted.")]
+        [SerializeField] private Color groundColor = new Color32(0x73, 0x9e, 0x4d, 0xff);
+        [Tooltip("The color of terrain's skirts: the walls and bottoms where its ground ends.")]
+        [SerializeField] private Color skirtColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
         [Tooltip("The player shape for content's mesh = \"cube\".")]
         [SerializeField] private ShapeBody cubePrefab;
         [Tooltip("The player shape for content's mesh = \"diamond\".")]
@@ -96,15 +105,54 @@ namespace ShapeLand.Client
         private void OnContentLoaded(ShapeLandContent content)
         {
             _world = ShapeLandWorld.Create(content);
-            AddMesh("Island", WorldMeshes.Island(_world.Terrain), terrainMaterial, transform);
-            var blocks = new GameObject("Blocks").transform;
-            blocks.SetParent(transform, false);
-            foreach (var box in _world.Boxes)
+            var terrain = new GameObject("Terrain").transform;
+            terrain.SetParent(transform, false);
+            foreach (var chunk in TerrainMesher.Build(_world.Terrain, Rgb(groundColor), Rgb(skirtColor)))
             {
-                AddMesh("Block", WorldMeshes.Block(box), blockMaterial, blocks);
+                var name = $"Chunk {chunk.Key}";
+                var drawn = AddMesh(name, WorldMeshes.Terrain(name, chunk.Value), terrainMaterial, terrain);
+                drawn.transform.localPosition = WorldMeshes.ToUnity(chunk.Key.Origin);
             }
 
-            orbitCamera.Showcase(WorldMeshes.ToUnity(ShapeLandWorld.SpawnPoint(_world)));
+            var placed = new GameObject("Placed").transform;
+            placed.SetParent(transform, false);
+            foreach (var chunk in ShapeLandWorld.Zone(content).Chunks)
+            {
+                foreach (var placement in chunk.Placements)
+                {
+                    Place(placement, placed);
+                }
+            }
+
+            orbitCamera.Showcase(WorldMeshes.ToUnity(ShapeLandWorld.SpawnPoint(content, _world)));
+        }
+
+        // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.
+        private void Place(Placement placement, Transform parent)
+        {
+            var model = assets.Model(placement.Asset);
+            if (model == null)
+            {
+                Debug.LogWarning($"No model for {placement.Asset} in the asset library; is the content up to date in the editor?");
+                return;
+            }
+
+            var thing = Instantiate(model, parent, false);
+            thing.name = placement.Asset;
+            var rotation = placement.Rotation;
+            thing.transform.SetLocalPositionAndRotation(WorldMeshes.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
+            thing.transform.localScale = WorldMeshes.ToUnity(placement.Scale);
+            foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
+            {
+                if (renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal))
+                {
+                    renderer.enabled = false;
+                }
+                else
+                {
+                    renderer.sharedMaterial = blockMaterial;
+                }
+            }
         }
 
         // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
@@ -186,16 +234,24 @@ namespace ShapeLand.Client
             return drawn;
         }
 
-        private static void AddMesh(string name, Mesh mesh, Material material, Transform parent)
+        private static GameObject AddMesh(string name, Mesh mesh, Material material, Transform parent)
         {
             var thing = new GameObject(name);
             thing.transform.SetParent(parent, false);
             thing.AddComponent<MeshFilter>().sharedMesh = mesh;
             thing.AddComponent<MeshRenderer>().sharedMaterial = material;
+            return thing;
         }
 
         /// <summary>A 0xRRGGBB color as Unity's.</summary>
         public static Color Color(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
+
+        /// <summary>A Unity color as 0xRRGGBB.</summary>
+        public static uint Rgb(Color color)
+        {
+            Color32 c = color;
+            return (uint)(c.r << 16 | c.g << 8 | c.b);
+        }
 
         private void OnDestroy()
         {
