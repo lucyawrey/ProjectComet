@@ -4,6 +4,7 @@ Comet's demo and reference game. Requirements, setup and the scripts are in the 
 
 | Folder | What it holds |
 | --- | --- |
+| `art/` | Source files for the art (such as `.blend`), plain in git (no Git LFS yet). Exports go into `ShapeLand.Unity/Assets/Models/` as `.glb`. |
 | `content/` | Game data: the shapes and the test zone's island, compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
 | `src/` | The game server, the bots, the content build and `ShapeLand.Shared` (rules, world and messages used by server, bots and client). |
 | `ShapeLand.Unity/` | The Unity client. |
