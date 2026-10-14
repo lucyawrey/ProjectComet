@@ -19,3 +19,5 @@ MonoBehaviour:
   groundColor: {r: 0.4509804, g: 0.61960787, b: 0.3019608, a: 1}
   skirtColor: {r: 0.47843137, g: 0.36078432, b: 0.24313726, a: 1}
   bodyHeight: 1
+  spawnMarkerAsset: asset.cylinder
+  spawnMarkerHeight: 0.15
