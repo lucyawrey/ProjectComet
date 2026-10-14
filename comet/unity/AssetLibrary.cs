@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace ShapeLand.Client
+namespace Comet.Unity
 {
     /// <summary>
-    /// The model for each asset key (<c>asset.cube</c>), so the client can place what zones list. Filled in by the
-    /// editor from the content's asset entries whenever the content changes (ContentSync), so it's never edited by hand.
+    /// The model for each asset key (<c>asset.cube</c>), so the client and the zone editor can place what zones list. A
+    /// game fills it in from its content's asset entries (in ShapeLand, the editor's ContentSync), never by hand.
     /// </summary>
-    [CreateAssetMenu(menuName = "ShapeLand/Asset Library")]
+    [CreateAssetMenu(menuName = "Comet/Asset Library")]
     public sealed class AssetLibrary : ScriptableObject
     {
         [Serializable]

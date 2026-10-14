@@ -11,5 +11,5 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 98edff97e4214cac7606378e81047602, type: 3}
   m_Name: AssetLibrary
-  m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.AssetLibrary
+  m_EditorClassIdentifier: Comet.Unity::Comet.Unity.AssetLibrary
   entries: []
