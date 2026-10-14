@@ -190,11 +190,12 @@ namespace Comet.Unity.Editor
 
         private static bool OnUnderside(Brush b) => b != Brush.Hole && b != Brush.Ground;
 
-        // A piece's own color, or null for the game's: a toggle, and a color field while it's on.
-        private static uint? OwnColor(string toggle, string label, string what, uint? own, Color game)
+        // A piece's own color, or null for the game's: editing the field sets its own, the reset button clears it.
+        private static uint? OwnColor(string label, string what, uint? own, Color game)
         {
-            var on = EditorGUILayout.Toggle(new GUIContent(toggle, $"The color of the piece's {what}. Off: the game's, from Comet Settings."), own != null);
-            return on ? Rgb(EditorGUILayout.ColorField(label, ToColor(own ?? Rgb(game)))) : (uint?)null;
+            var content = new GUIContent(label, $"The color of the piece's {what}. Reset: the game's, from Comet Settings.");
+            var (color, changed, reset) = ColorFields.WithReset(content, ToColor(own ?? Rgb(game)), own != null);
+            return reset ? null : changed ? Rgb(color) : own;
         }
 
         private void PieceSettings(ZoneTerrainEditing terrain)
@@ -204,10 +205,11 @@ namespace Comet.Unity.Editor
             var depth = Mathf.Max(0, EditorGUILayout.FloatField(new GUIContent("Skirt depth (m)", "Without an underside map, the piece's flat bottom sits this far below its lowest ground."), settings.SkirtDepth));
             var rim = EditorGUILayout.Toggle("Rim skirts", settings.RimSkirts);
             var holes = EditorGUILayout.Toggle("Hole skirts", settings.HoleSkirts);
-            var ground = OwnColor("Own top color", "Top color", "unpainted ground", settings.GroundColor, _settings!.groundColor);
-            var under = OwnColor("Own underside color", "Underside color", "unpainted skirt walls and bottom", settings.UnderColor, _settings!.underColor);
+            var ground = OwnColor("Top color", "unpainted ground", settings.GroundColor, _settings!.groundColor);
+            var under = OwnColor("Underside color", "unpainted skirt walls and bottom", settings.UnderColor, _settings!.underColor);
 
-            if (EditorGUI.EndChangeCheck())
+            // The reset buttons may not count as a change.
+            if (EditorGUI.EndChangeCheck() || ground != settings.GroundColor || under != settings.UnderColor)
             {
                 settings.SkirtDepth = depth;
                 settings.RimSkirts = rim;

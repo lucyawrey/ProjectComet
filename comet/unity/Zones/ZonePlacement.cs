@@ -13,31 +13,31 @@ namespace Comet.Unity
         [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
         public string placementName = "";
 
-        [Tooltip("Off: drawn in its asset's color.")]
-        public bool ownColor;
-
-        [Tooltip("The placement's own color.")]
-        public Color color = Color.gray;
-
-        // The asset's color, set by the editor as it places the object; null for the material's.
+        // Drawn by the editor's inspector as one color field with a reset button: editing it gives the placement its
+        // own color, resetting goes back to the default (its asset's, else the placed material's).
+        [HideInInspector] public bool ownColor;
+        [HideInInspector] public Color color = Color.gray;
         [SerializeField, HideInInspector] private bool hasAssetColor;
-        [SerializeField, HideInInspector] private Color assetColor;
+        [SerializeField, HideInInspector] private Color defaultColor = Color.gray;
 
-        /// <summary>Sets the asset's color, and starts the own color from what the object shows now.</summary>
-        public void SetAssetColor(Color? color, Color shown)
+        /// <summary>The color it's drawn in without its own.</summary>
+        public Color DefaultColor => defaultColor;
+
+        /// <summary>Sets the default: the asset's color, or null for the material's (<paramref name="material"/>).</summary>
+        public void SetDefaultColor(Color? asset, Color material)
         {
-            hasAssetColor = color != null;
-            assetColor = color ?? default;
+            hasAssetColor = asset != null;
+            defaultColor = asset ?? material;
             if (!ownColor)
             {
-                this.color = shown;
+                color = defaultColor;
             }
 
             ApplyColor();
         }
 
         /// <summary>Draws the object in its color (property blocks aren't saved with the scene).</summary>
-        public void ApplyColor() => PlacedColors.Apply(gameObject, ownColor ? color : hasAssetColor ? assetColor : null);
+        public void ApplyColor() => PlacedColors.Apply(gameObject, ownColor ? color : hasAssetColor ? defaultColor : null);
 
         private void OnEnable() => ApplyColor();
 

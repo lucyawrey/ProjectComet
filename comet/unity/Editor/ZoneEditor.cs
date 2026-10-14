@@ -294,7 +294,7 @@ namespace Comet.Unity.Editor
             }
 
             var material = settings.placedMaterial != null && settings.placedMaterial.HasProperty("_BaseColor") ? settings.placedMaterial.GetColor("_BaseColor") : Color.gray;
-            placement.SetAssetColor(asset, asset ?? material);
+            placement.SetDefaultColor(asset, material);
         }
 
         // The asset's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
