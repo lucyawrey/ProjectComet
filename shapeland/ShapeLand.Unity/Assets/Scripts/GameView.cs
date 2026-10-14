@@ -112,7 +112,7 @@ namespace ShapeLand.Client
             _spawnPoints = new Spawns(ShapeLandWorld.Zone(content));
             var terrain = new GameObject("Terrain").transform;
             terrain.SetParent(transform, false);
-            foreach (var chunk in TerrainMesher.Build(_world.Terrain, content.Settings.World.GroundColor, content.Settings.World.SkirtColor))
+            foreach (var chunk in TerrainMesher.Build(_world.Terrain, content.Settings.World.GroundColor, content.Settings.World.UnderColor))
             {
                 var name = $"Chunk {chunk.Key}";
                 var drawn = AddMesh(name, TerrainMeshes.Build(name, chunk.Value), terrainMaterial, terrain);

@@ -65,11 +65,12 @@ public class ZoneFolderTests
     }
 
     [Fact]
-    public void SkirtColorsAndUndersideColorsRoundTrip()
+    public void PieceColorsAndUndersideColorsRoundTrip()
     {
         using var folder = new TempFolder();
         var zone = Zones.Sample();
-        zone.Pieces[0].SkirtColor = 0x7a5c3e;
+        zone.Pieces[0].UnderColor = 0x7a5c3e;
+        zone.Pieces[0].GroundColor = 0x739e4d;
         var tile = zone.Chunks[1].Tiles[0];
         var size = tile.Heights.SizeX * tile.Heights.SizeZ;
         tile.Underside = new Heightmap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Scale = 0.25f, Offset = -100, Samples = Enumerable.Repeat((ushort)360, size).ToArray() };
@@ -79,8 +80,10 @@ public class ZoneFolderTests
 
         Assert.Empty(errors);
         Assert.Empty(ZoneValidation.Check(read));
-        Assert.Equal(0x7a5c3eu, read.Pieces[0].SkirtColor);
-        Assert.Contains("skirt_color = 0x7A5C3E", File.ReadAllText(folder.PathOf("zone.toml")));
+        Assert.Equal(0x7a5c3eu, read.Pieces[0].UnderColor);
+        Assert.Equal(0x739e4du, read.Pieces[0].GroundColor);
+        Assert.Contains("under_color = 0x7A5C3E", File.ReadAllText(folder.PathOf("zone.toml")));
+        Assert.Contains("ground_color = 0x739E4D", File.ReadAllText(folder.PathOf("zone.toml")));
         Assert.Equal(0x336633u, read.Chunks[1].Tiles[0].UndersideColors![3, 5]);
         Assert.True(File.Exists(folder.PathOf("chunks/0_0/main.under.color")));
     }

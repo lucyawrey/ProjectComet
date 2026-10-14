@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Comet.Unity.Editor
 {
@@ -35,11 +36,12 @@ namespace Comet.Unity.Editor
         [Tooltip("If set, placed objects are drawn in it instead of their models' own materials.")]
         public Material? placedMaterial;
 
-        [Tooltip("The color of terrain no one has painted.")]
+        [Tooltip("The color of terrain no one has painted, for pieces without their own.")]
         public Color groundColor = new Color32(0x73, 0x9e, 0x4d, 0xff);
 
-        [Tooltip("The color of terrain's skirts: the walls and bottoms where its ground ends.")]
-        public Color skirtColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
+        [Tooltip("The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own.")]
+        [FormerlySerializedAs("skirtColor")]
+        public Color underColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
 
         [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
         public float bodyHeight = 1;

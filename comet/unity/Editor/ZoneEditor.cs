@@ -217,7 +217,7 @@ namespace Comet.Unity.Editor
             var terrain = Child(root, TerrainName);
             terrain.SetAsFirstSibling();
             terrain.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
-            foreach (var chunk in TerrainMesher.Build(new ZoneTerrain(zone), Rgb(settings.groundColor), Rgb(settings.skirtColor)))
+            foreach (var chunk in TerrainMesher.Build(new ZoneTerrain(zone), Rgb(settings.groundColor), Rgb(settings.underColor)))
             {
                 var name = $"Chunk {chunk.Key}";
                 var drawn = Child(terrain, name);

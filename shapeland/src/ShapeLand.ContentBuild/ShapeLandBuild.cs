@@ -115,7 +115,7 @@ public static class ShapeLandBuild
         InRange(spawns, nameof(SpawnSettings.ClaimSeconds), settings.Spawns.ClaimSeconds, 60);
         InRange(spawns, nameof(SpawnSettings.MarkerHeight), settings.Spawns.MarkerHeight, 5);
         IsColor(world, nameof(WorldSettings.GroundColor), settings.World.GroundColor);
-        IsColor(world, nameof(WorldSettings.SkirtColor), settings.World.SkirtColor);
+        IsColor(world, nameof(WorldSettings.UnderColor), settings.World.UnderColor);
         IsColor(spawns, nameof(SpawnSettings.UnsetColor), settings.Spawns.UnsetColor);
         foreach (var color in settings.Colors.Body)
         {

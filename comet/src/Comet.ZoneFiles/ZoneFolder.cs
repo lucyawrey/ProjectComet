@@ -129,14 +129,15 @@ namespace Comet.ZoneFiles
 
             zone.Pieces = toml.Tables(table, "piece").Select(t =>
             {
-                toml.CheckKeys(t.Table, t.Path, "name", "bottom_height", "rim_skirts", "hole_skirts", "skirt_color");
+                toml.CheckKeys(t.Table, t.Path, "name", "bottom_height", "rim_skirts", "hole_skirts", "ground_color", "under_color");
                 return new TerrainPiece
                 {
                     Name = toml.String(t.Table, t.Path, "name"),
                     BottomHeight = toml.Float(t.Table, t.Path, "bottom_height"),
                     RimSkirts = toml.Bool(t.Table, t.Path, "rim_skirts", true),
                     HoleSkirts = toml.Bool(t.Table, t.Path, "hole_skirts", true),
-                    SkirtColor = t.Table.TryGetValue("skirt_color", out var color) ? Color(toml, color, $"{t.Path}.skirt_color") : null,
+                    GroundColor = t.Table.TryGetValue("ground_color", out var ground) ? Color(toml, ground, $"{t.Path}.ground_color") : null,
+                    UnderColor = t.Table.TryGetValue("under_color", out var under) ? Color(toml, under, $"{t.Path}.under_color") : null,
                 };
             }).ToArray();
             zone.Borders = toml.Tables(table, "border").Select(t =>
@@ -311,7 +312,7 @@ namespace Comet.ZoneFiles
 
         // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
         private static string HexColors(string text) =>
-            Regex.Replace(text, @"^(skirt_color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
+            Regex.Replace(text, @"^((?:ground|under)_color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
 
         private static TomlTable ZoneTable(Zone zone)
         {
@@ -330,9 +331,14 @@ namespace Comet.ZoneFiles
                     ["rim_skirts"] = p.RimSkirts,
                     ["hole_skirts"] = p.HoleSkirts,
                 };
-                if (p.SkirtColor is { } color)
+                if (p.GroundColor is { } ground)
                 {
-                    piece["skirt_color"] = (long)color;
+                    piece["ground_color"] = (long)ground;
+                }
+
+                if (p.UnderColor is { } under)
+                {
+                    piece["under_color"] = (long)under;
                 }
 
                 return piece;

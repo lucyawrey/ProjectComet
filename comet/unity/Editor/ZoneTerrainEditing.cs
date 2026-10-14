@@ -113,6 +113,33 @@ namespace Comet.Unity.Editor
             tile.UndersideColors.Colors[tz * tile.UndersideColors.SizeX + tx] = color;
         });
 
+        /// <summary>
+        /// Recolors the piece's painted maps where they hold its old default colors, so changing a piece's top or
+        /// underside color also changes the samples the brushes left at that color (maps store plain colors).
+        /// </summary>
+        public void ReplaceDefaultColors(string piece, uint oldGround, uint newGround, uint oldUnder, uint newUnder)
+        {
+            static void Replace(ColorMap? map, uint from, uint to)
+            {
+                if (map != null && from != to)
+                {
+                    for (var i = 0; i < map.Colors.Length; i++)
+                    {
+                        if (map.Colors[i] == from)
+                        {
+                            map.Colors[i] = to;
+                        }
+                    }
+                }
+            }
+
+            foreach (var tile in Zone.Chunks.SelectMany(c => c.Tiles).Where(t => t.Piece == piece))
+            {
+                Replace(tile.Colors, oldGround, newGround);
+                Replace(tile.UndersideColors, oldUnder, newUnder);
+            }
+        }
+
         /// <summary>Whether any of the piece's tiles has an underside map.</summary>
         public bool HasUnderside(string piece) => Zone.Chunks.SelectMany(c => c.Tiles).Any(t => t.Piece == piece && t.Underside != null);
 

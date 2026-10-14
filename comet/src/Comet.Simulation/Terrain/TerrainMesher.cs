@@ -39,16 +39,16 @@ namespace Comet.Simulation
     public static class TerrainMesher
     {
         /// <summary>The meshes of <paramref name="terrain"/>'s pieces, by chunk.</summary>
-        /// <param name="groundColor">The color of unpainted ground.</param>
-        /// <param name="skirtColor">The color of skirt walls and bottoms, for pieces without their own and where nothing is painted.</param>
-        public static Dictionary<ChunkCoord, TerrainMesh> Build(ZoneTerrain terrain, uint groundColor, uint skirtColor)
+        /// <param name="groundColor">The color of unpainted ground, for pieces without their own.</param>
+        /// <param name="underColor">The color of unpainted undersides (skirt walls and bottoms), for pieces without their own.</param>
+        public static Dictionary<ChunkCoord, TerrainMesh> Build(ZoneTerrain terrain, uint groundColor, uint underColor)
         {
             var meshes = new Dictionary<ChunkCoord, TerrainMesh>();
             foreach (var piece in terrain.Pieces)
             {
                 if (piece.Tiles.Count > 0)
                 {
-                    new PieceMesher(terrain, piece, groundColor, skirtColor, meshes).Build();
+                    new PieceMesher(terrain, piece, groundColor, underColor, meshes).Build();
                 }
             }
 
@@ -62,7 +62,7 @@ namespace Comet.Simulation
             private readonly ZoneTerrain _terrain;
             private readonly ZoneTerrain.Piece _piece;
             private readonly uint _groundColor;
-            private readonly uint _skirtColor;
+            private readonly uint _underColor;
             private readonly Dictionary<ChunkCoord, TerrainMesh> _meshes;
             // The cells looked at: the piece's extent plus a margin of one empty cell on every side.
             private readonly int _minX;
@@ -72,12 +72,12 @@ namespace Comet.Simulation
             private readonly bool[] _ground;
             private readonly bool[] _outside;
 
-            public PieceMesher(ZoneTerrain terrain, ZoneTerrain.Piece piece, uint groundColor, uint skirtColor, Dictionary<ChunkCoord, TerrainMesh> meshes)
+            public PieceMesher(ZoneTerrain terrain, ZoneTerrain.Piece piece, uint groundColor, uint underColor, Dictionary<ChunkCoord, TerrainMesh> meshes)
             {
                 _terrain = terrain;
                 _piece = piece;
-                _groundColor = groundColor;
-                _skirtColor = piece.Settings.SkirtColor ?? skirtColor;
+                _groundColor = piece.Settings.GroundColor ?? groundColor;
+                _underColor = piece.Settings.UnderColor ?? underColor;
                 _meshes = meshes;
                 var (minX, minZ, maxX, maxZ) = piece.Extent;
                 _minX = minX - 1;
@@ -273,7 +273,7 @@ namespace Comet.Simulation
             private uint Color((int X, int Z) sample) => _piece.ColorAt(sample.X, sample.Z, _groundColor);
 
             // The underside and skirt walls: painted where the piece has underside colors, else its skirt color.
-            private uint UnderColor((int X, int Z) sample) => _piece.UndersideColorAt(sample.X, sample.Z, _skirtColor);
+            private uint UnderColor((int X, int Z) sample) => _piece.UndersideColorAt(sample.X, sample.Z, _underColor);
 
             private static Vector3 At((int X, int Z) sample, float height) =>
                 new Vector3(sample.X * ZoneGrid.SampleSpacing, height, sample.Z * ZoneGrid.SampleSpacing);

@@ -190,6 +190,13 @@ namespace Comet.Unity.Editor
 
         private static bool OnUnderside(Brush b) => b != Brush.Hole && b != Brush.Ground;
 
+        // A piece's own color, or null for the game's: a toggle, and a color field while it's on.
+        private static uint? OwnColor(string toggle, string label, string what, uint? own, Color game)
+        {
+            var on = EditorGUILayout.Toggle(new GUIContent(toggle, $"The color of the piece's {what}. Off: the game's, from Comet Settings."), own != null);
+            return on ? Rgb(EditorGUILayout.ColorField(label, ToColor(own ?? Rgb(game)))) : (uint?)null;
+        }
+
         private void PieceSettings(ZoneTerrainEditing terrain)
         {
             var settings = terrain.Zone.Pieces.First(p => p.Name == piece);
@@ -197,19 +204,20 @@ namespace Comet.Unity.Editor
             var bottom = EditorGUILayout.FloatField("Bottom height (m)", settings.BottomHeight);
             var rim = EditorGUILayout.Toggle("Rim skirts", settings.RimSkirts);
             var holes = EditorGUILayout.Toggle("Hole skirts", settings.HoleSkirts);
-            var ownSkirt = EditorGUILayout.Toggle(new GUIContent("Own skirt color", "Off: the game's skirt color."), settings.SkirtColor != null);
-            var skirt = settings.SkirtColor ?? Rgb(_settings!.skirtColor);
-            if (ownSkirt)
-            {
-                skirt = Rgb(EditorGUILayout.ColorField("Skirt color", ToColor(skirt)));
-            }
+            var ground = OwnColor("Own top color", "Top color", "unpainted ground", settings.GroundColor, _settings!.groundColor);
+            var under = OwnColor("Own underside color", "Underside color", "unpainted skirt walls and bottom", settings.UnderColor, _settings!.underColor);
 
             if (EditorGUI.EndChangeCheck())
             {
                 settings.BottomHeight = bottom;
                 settings.RimSkirts = rim;
                 settings.HoleSkirts = holes;
-                settings.SkirtColor = ownSkirt ? skirt : (uint?)null;
+                uint Ground() => settings.GroundColor ?? Rgb(_settings!.groundColor);
+                uint Under() => settings.UnderColor ?? Rgb(_settings!.underColor);
+                var (oldGround, oldUnder) = (Ground(), Under());
+                settings.GroundColor = ground;
+                settings.UnderColor = under;
+                terrain.ReplaceDefaultColors(piece, oldGround, Ground(), oldUnder, Under());
                 terrain.Commit("Change piece settings", _settings!);
             }
 
@@ -437,7 +445,7 @@ namespace Comet.Unity.Editor
                         terrain.SetHeight(piece, x, z, _flattenHeight);
                         break;
                     case Brush.Color when has:
-                        terrain.SetColor(piece, x, z, Rgb(paint), Rgb(_settings!.groundColor));
+                        terrain.SetColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.GroundColor ?? Rgb(_settings!.groundColor));
                         break;
                 }
             }
@@ -483,7 +491,7 @@ namespace Comet.Unity.Editor
                     terrain.SetUnderside(piece, x, z, Mathf.Min(height, Mathf.Lerp(under, _flattenHeight, Mathf.Clamp01(strength * amount * 3))));
                     break;
                 case Brush.Color:
-                    terrain.SetUndersideColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.SkirtColor ?? Rgb(_settings!.skirtColor));
+                    terrain.SetUndersideColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.UnderColor ?? Rgb(_settings!.underColor));
                     break;
             }
         }

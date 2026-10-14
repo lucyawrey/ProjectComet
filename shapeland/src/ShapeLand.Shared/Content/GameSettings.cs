@@ -73,11 +73,11 @@ namespace ShapeLand.Shared.Content
         /// <summary>Falling below this height, in meters, is out of the world: the player goes back to their spawn.</summary>
         [JsonRequired] [Key(0)] public float KillHeight { get; set; }
 
-        /// <summary>The color of terrain no one has painted, as 0xRRGGBB.</summary>
+        /// <summary>The color of terrain no one has painted, for pieces without their own, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(1)] public uint GroundColor { get; set; }
 
-        /// <summary>The color of terrain's skirts (the walls and bottoms where its ground ends), as 0xRRGGBB.</summary>
-        [JsonRequired] [Key(2)] public uint SkirtColor { get; set; }
+        /// <summary>The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own, as 0xRRGGBB.</summary>
+        [JsonRequired] [Key(2)] public uint UnderColor { get; set; }
 
         /// <summary>The zone the game plays in (<c>zone.*</c>); it has one at a time for now.</summary>
         [JsonRequired] [Key(3)] public string Zone { get; set; } = "";

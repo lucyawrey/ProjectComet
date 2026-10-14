@@ -64,16 +64,18 @@ public class TerrainMesherTests
     }
 
     [Fact]
-    public void APiecesOwnSkirtColorReplacesTheGames()
+    public void APiecesOwnColorsReplaceTheGames()
     {
         const uint Stone = 0x888888;
+        const uint Sand = 0xd8c690;
         var zone = Piece(2, rim: true, holes: true, "###", "###", "###");
-        zone.Pieces[0].SkirtColor = Stone;
+        zone.Pieces[0].UnderColor = Stone;
+        zone.Pieces[0].GroundColor = Sand;
 
         var triangles = Triangles(Mesh(zone)[new ChunkCoord(0, 0)]).ToList();
 
         Assert.All(triangles.Where(t => t.A.Y < 2 || t.B.Y < 2 || t.C.Y < 2), t => Assert.Equal(Stone, t.Color));
-        Assert.All(triangles.Where(t => t.A.Y == 2 && t.B.Y == 2 && t.C.Y == 2), t => Assert.Equal(Grass, t.Color));
+        Assert.All(triangles.Where(t => t.A.Y == 2 && t.B.Y == 2 && t.C.Y == 2), t => Assert.Equal(Sand, t.Color));
     }
 
     [Fact]

@@ -49,15 +49,15 @@ namespace ShapeLand.Client.Editor
 
             var game = content.Settings;
             var ground = GameView.Color(game.World.GroundColor);
-            var skirt = GameView.Color(game.World.SkirtColor);
-            if (settings.groundColor == ground && settings.skirtColor == skirt && settings.bodyHeight == game.Movement.BodyHeight
+            var under = GameView.Color(game.World.UnderColor);
+            if (settings.groundColor == ground && settings.underColor == under && settings.bodyHeight == game.Movement.BodyHeight
                 && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight)
             {
                 return;
             }
 
             settings.groundColor = ground;
-            settings.skirtColor = skirt;
+            settings.underColor = under;
             settings.bodyHeight = game.Movement.BodyHeight;
             settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
             settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
