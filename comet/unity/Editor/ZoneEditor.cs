@@ -128,6 +128,7 @@ namespace Comet.Unity.Editor
                 chunk.Placements = chunk.Placements.Append(new Placement
                 {
                     Asset = placed.asset,
+                    Name = string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
                     Position = ToNumerics(t.position),
                     Rotation = Angles(t.rotation.eulerAngles),
                     Scale = ToNumerics(t.lossyScale),
@@ -218,7 +219,9 @@ namespace Comet.Unity.Editor
                     var r = placement.Rotation;
                     thing.transform.SetPositionAndRotation(ToUnity(placement.Position), Quaternion.Euler(r.X, r.Y, r.Z));
                     thing.transform.localScale = ToUnity(placement.Scale);
-                    thing.AddComponent<ZonePlacement>().asset = placement.Asset;
+                    var marker = thing.AddComponent<ZonePlacement>();
+                    marker.asset = placement.Asset;
+                    marker.placementName = placement.Name;
                 }
 
                 foreach (var spawn in chunk.Spawns)
@@ -304,8 +307,11 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        /// <summary>Adds a spawn point at <paramref name="position"/> in an opened zone; the zone's first is its default.</summary>
-        public static GameObject AddSpawn(ZoneEditing editing, string key, Vector3 position)
+        /// <summary>
+        /// Adds a spawn point at <paramref name="position"/> in an opened zone (the zone's first is its default), with
+        /// its marker if the settings name one: the marker asset, flattened, sized to the spawn's radius and named with its key.
+        /// </summary>
+        public static GameObject AddSpawn(ZoneEditing editing, string key, Vector3 position, ZoneEditorSettings settings)
         {
             var parent = editing.transform.Find("Spawns") ?? Child(editing.transform, "Spawns");
             var marker = Child(parent, key);
@@ -314,6 +320,15 @@ namespace Comet.Unity.Editor
             spawn.key = key;
             spawn.isDefault = editing.GetComponentsInChildren<ZoneSpawn>().Length == 1;
             Undo.RegisterCreatedObjectUndo(marker.gameObject, $"Add {key}");
+            if (!string.IsNullOrEmpty(settings.spawnMarkerAsset))
+            {
+                var placed = Place(editing, settings.spawnMarkerAsset, position, settings);
+                var size = settings.assets != null && settings.assets.TryGet(settings.spawnMarkerAsset, out var entry) ? entry.bounds.size : Vector3.one;
+                placed.transform.localScale = new Vector3(2 * spawn.radius / Mathf.Max(size.x, 0.01f), settings.spawnMarkerHeight / Mathf.Max(size.y, 0.01f), 2 * spawn.radius / Mathf.Max(size.z, 0.01f));
+                placed.GetComponent<ZonePlacement>().placementName = key;
+                placed.name = $"{key} marker";
+            }
+
             return marker.gameObject;
         }
 

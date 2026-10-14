@@ -307,7 +307,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
     // another, starts over.
     private void Claim(Player player, uint tick)
     {
-        var standingIn = _spawns.StandingIn(player.Validator.Position, ClaimReach);
+        var standingIn = _spawns.StandingIn(player.Validator.Position, ShapeLandRules.SpawnClaimReach);
         if (standingIn == null || standingIn == player.SpawnPoint)
         {
             player.Claiming = null;
@@ -328,9 +328,6 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
             logger.LogInformation("{Name}'s spawn is now {Spawn}", player.Name, standingIn.Id);
         }
     }
-
-    /// <summary>How far above or below a spawn point a player can stand and still be in it, in meters (on its marker, or jumping in it).</summary>
-    public const float ClaimReach = 2;
 
     private static bool IsPowerOfTen(int n)
     {

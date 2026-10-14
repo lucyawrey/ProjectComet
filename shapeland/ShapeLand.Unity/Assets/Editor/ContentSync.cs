@@ -53,7 +53,46 @@ namespace ShapeLand.Client.Editor
             }
 
             RefreshLibrary(content);
+            RefreshZoneEditorSettings(content);
             return true;
+        }
+
+        // The zone editor's settings that come from the game's content: terrain colors, the body height and spawn markers.
+        private static void RefreshZoneEditorSettings(byte[] contentFile)
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<Comet.Unity.Editor.ZoneEditorSettings>("Assets/Settings/ZoneEditorSettings.asset");
+            if (settings == null)
+            {
+                return;
+            }
+
+            ShapeLandContent content;
+            try
+            {
+                content = ShapeLandContent.Load(new MemoryStream(contentFile));
+            }
+            catch (Comet.Content.ContentException)
+            {
+                return; // RefreshLibrary has said so
+            }
+
+            var game = content.Settings;
+            var ground = GameView.Color(game.World.GroundColor);
+            var skirt = GameView.Color(game.World.SkirtColor);
+            if (settings.groundColor == ground && settings.skirtColor == skirt && settings.bodyHeight == game.Movement.BodyHeight
+                && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight)
+            {
+                return;
+            }
+
+            settings.groundColor = ground;
+            settings.skirtColor = skirt;
+            settings.bodyHeight = game.Movement.BodyHeight;
+            settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
+            settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssetIfDirty(settings);
+            Debug.Log("Updated the zone editor settings from the content.");
         }
 
         // Points each asset key at the model its entry names (a path under Assets/), saving only if something changed.

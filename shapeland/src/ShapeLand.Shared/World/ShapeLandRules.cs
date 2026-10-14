@@ -17,6 +17,9 @@ namespace ShapeLand.Shared.World
         /// <summary>Seconds a connection has to join before the server drops it; clients reconnect for a later try.</summary>
         public const int JoinDeadlineSeconds = 10;
 
+        /// <summary>How far above or below a spawn point a player can stand and still be in it, in meters (on its marker, or jumping in it).</summary>
+        public const float SpawnClaimReach = 2;
+
         private static readonly Regex NamePattern = new Regex("^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$");
 
         /// <summary>Trims a name and checks it: letters, digits, '-', '_' and single spaces, at most <see cref="MaxNameLength"/> characters.</summary>

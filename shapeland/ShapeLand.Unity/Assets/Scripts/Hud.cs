@@ -95,6 +95,12 @@ namespace ShapeLand.Client
                 }
             }
 
+            // Back to the spawn point, unless typing or on the look card. Becomes an action once Comet has them.
+            if (view.Controls.Game.ReturnToSpawn.WasPressedThisFrame() && !_chat.Open && !card.Changing)
+            {
+                Join.ReturnToSpawn();
+            }
+
             UpdateMoving();
             Darkness = view.Player != null ? view.Player.Darkness : 0;
             _fade.style.opacity = Darkness;

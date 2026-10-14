@@ -8,5 +8,8 @@ namespace Comet.Unity
     {
         [Tooltip("The asset's key (asset.cube).")]
         public string asset;
+
+        [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
+        public string placementName;
     }
 }

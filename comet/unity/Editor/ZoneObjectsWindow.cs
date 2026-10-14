@@ -67,7 +67,7 @@ namespace Comet.Unity.Editor
                 }
                 else
                 {
-                    Selection.activeGameObject = ZoneEditor.AddSpawn(editing, spawnKey, Drop(editing));
+                    Selection.activeGameObject = ZoneEditor.AddSpawn(editing, spawnKey, Drop(editing), settings);
                 }
             }
 

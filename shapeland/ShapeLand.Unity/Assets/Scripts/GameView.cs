@@ -28,10 +28,6 @@ namespace ShapeLand.Client
         [SerializeField] private Material blockMaterial;
         [Tooltip("The models for asset keys, kept up to date by the editor from the content.")]
         [SerializeField] private AssetLibrary assets;
-        [Tooltip("The color of terrain no one has painted.")]
-        [SerializeField] private Color groundColor = new Color32(0x73, 0x9e, 0x4d, 0xff);
-        [Tooltip("The color of terrain's skirts: the walls and bottoms where its ground ends.")]
-        [SerializeField] private Color skirtColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
         [Tooltip("The player shape for content's mesh = \"cube\".")]
         [SerializeField] private ShapeBody cubePrefab;
         [Tooltip("The player shape for content's mesh = \"diamond\".")]
@@ -42,6 +38,12 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
+        // Each spawn point's marker (the placement named with its key), by the spawn's content number.
+        private readonly Dictionary<int, Renderer[]> _markers = new Dictionary<int, Renderer[]>();
+        private MaterialPropertyBlock _markerColor;
+        private Spawns _spawnPoints;
+        private ShapeLandContent _content;
+        private (int Spawn, float Since)? _claiming;
         private JoinClient _join;
         private CollisionWorld _world;
         private ShapeLandControls _controls;
@@ -84,6 +86,7 @@ namespace ShapeLand.Client
         // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
         private void Update()
         {
+            ColorMarkers();
             if (_others.Count == 0)
             {
                 return;
@@ -104,10 +107,12 @@ namespace ShapeLand.Client
 
         private void OnContentLoaded(ShapeLandContent content)
         {
+            _content = content;
             _world = ShapeLandWorld.Create(content);
+            _spawnPoints = new Spawns(ShapeLandWorld.Zone(content));
             var terrain = new GameObject("Terrain").transform;
             terrain.SetParent(transform, false);
-            foreach (var chunk in TerrainMesher.Build(_world.Terrain, Rgb(groundColor), Rgb(skirtColor)))
+            foreach (var chunk in TerrainMesher.Build(_world.Terrain, content.Settings.World.GroundColor, content.Settings.World.SkirtColor))
             {
                 var name = $"Chunk {chunk.Key}";
                 var drawn = AddMesh(name, TerrainMeshes.Build(name, chunk.Value), terrainMaterial, terrain);
@@ -120,7 +125,11 @@ namespace ShapeLand.Client
             {
                 foreach (var placement in chunk.Placements)
                 {
-                    Place(placement, placed);
+                    var thing = Place(placement, placed);
+                    if (thing != null && placement.Name != null && _spawnPoints.TryGet(placement.Name, out var spawn))
+                    {
+                        _markers[spawn.Number] = thing.GetComponentsInChildren<Renderer>();
+                    }
                 }
             }
 
@@ -128,13 +137,13 @@ namespace ShapeLand.Client
         }
 
         // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.
-        private void Place(Placement placement, Transform parent)
+        private GameObject Place(Placement placement, Transform parent)
         {
             var model = assets.Model(placement.Asset);
             if (model == null)
             {
                 Debug.LogWarning($"No model for {placement.Asset} in the asset library; is the content up to date in the editor?");
-                return;
+                return null;
             }
 
             var thing = Instantiate(model, parent, false);
@@ -153,7 +162,54 @@ namespace ShapeLand.Client
                     renderer.sharedMaterial = blockMaterial;
                 }
             }
+
+            return thing;
         }
+
+        // The player's own spawn's marker takes their body color, the rest a grey used nowhere else. One they stand
+        // in, claiming it, pulses between the two until the server says it's theirs.
+        private void ColorMarkers()
+        {
+            if (_content == null || _markers.Count == 0)
+            {
+                return;
+            }
+
+            _markerColor ??= new MaterialPropertyBlock();
+            var settings = _content.Settings.Spawns;
+            var own = Player != null ? _join.SpawnNumber : null;
+            var body = Player != null && _join.Spawn is { } me ? Color(me.Color) : Color(settings.UnsetColor);
+            var standingIn = Player != null ? _spawnPoints.StandingIn(Vectors.ToNumerics(Player.transform.position), ShapeLandRules.SpawnClaimReach) : null;
+            if (standingIn == null || standingIn.Number == own)
+            {
+                _claiming = null;
+            }
+            else if (_claiming?.Spawn != standingIn.Number)
+            {
+                _claiming = (standingIn.Number, Time.time);
+            }
+
+            foreach (var marker in _markers)
+            {
+                var color = marker.Key == own ? body : Color(settings.UnsetColor);
+                if (_claiming is { } claiming && claiming.Spawn == marker.Key && Time.time - claiming.Since < settings.ClaimSeconds + 1)
+                {
+                    var pulse = 0.5f - 0.5f * Mathf.Cos((Time.time - claiming.Since) * 2 * Mathf.PI * 1.5f);
+                    color = UnityEngine.Color.Lerp(Color(settings.UnsetColor), body, pulse);
+                }
+
+                _markerColor.SetColor(BaseColor, color);
+                foreach (var renderer in marker.Value)
+                {
+                    if (renderer.enabled)
+                    {
+                        renderer.SetPropertyBlock(_markerColor);
+                    }
+                }
+            }
+        }
+
+        private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
         // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
         // the camera carry on as they were (the server's snap-back has already put the player where it has them).
@@ -164,7 +220,7 @@ namespace ShapeLand.Client
             if (Player == null)
             {
                 Player = new GameObject().AddComponent<LocalPlayer>();
-                Player.Begin(_join.Session, _world, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
+                Player.Begin(_join.Session, _world, _join.Content.Movement, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
                 orbitCamera.Follow(Player.transform, _controls, _world);
             }
             else
@@ -245,13 +301,6 @@ namespace ShapeLand.Client
 
         /// <summary>A 0xRRGGBB color as Unity's.</summary>
         public static Color Color(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
-
-        /// <summary>A Unity color as 0xRRGGBB.</summary>
-        public static uint Rgb(Color color)
-        {
-            Color32 c = color;
-            return (uint)(c.r << 16 | c.g << 8 | c.b);
-        }
 
         private void OnDestroy()
         {

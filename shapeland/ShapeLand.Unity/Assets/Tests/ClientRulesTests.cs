@@ -192,9 +192,10 @@ namespace ShapeLand.Client.Tests
         [Test]
         public void ShapeStatsAreSpeedAndJumpHeight()
         {
-            var (speed, jump) = JoinScreen.Stats(new Shape { MaxSpeed = 5, JumpVelocity = 8.5f });
+            var rules = new MovementRules { Gravity = 25 };
+            var (speed, jump) = JoinScreen.Stats(new Shape { MaxSpeed = 5, JumpVelocity = 8.5f }, rules);
             Assert.That(speed, Is.EqualTo(5));
-            Assert.That(jump, Is.EqualTo(8.5f * 8.5f / (2 * ShapeLandWorld.Rules.Gravity)).Within(1e-4f));
+            Assert.That(jump, Is.EqualTo(8.5f * 8.5f / (2 * 25)).Within(1e-4f));
         }
 
         // Every key the scripts, UXML and web page use is in the string file, so no "[key]" shows on screen.

@@ -4,7 +4,7 @@ namespace Comet.Unity.Editor
 {
     /// <summary>
     /// A game's settings for the zone editor: where its zones are and how to draw them. Each game's Unity project has
-    /// one (Create › Comet › Zone Editor Settings); the zone editor finds it.
+    /// one (Create › Comet › Zone Editor Settings); the zone editor finds it. A game may fill some in from its content.
     /// </summary>
     [CreateAssetMenu(menuName = "Comet/Zone Editor Settings")]
     public sealed class ZoneEditorSettings : ScriptableObject
@@ -29,5 +29,11 @@ namespace Comet.Unity.Editor
 
         [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
         public float bodyHeight = 1;
+
+        [Tooltip("If set, each new spawn point gets a marker: this asset, placed flattened under it and named with its key.")]
+        public string spawnMarkerAsset;
+
+        [Tooltip("How high a new spawn point's marker stands, in meters; it can be moved and scaled after.")]
+        public float spawnMarkerHeight = 0.15f;
     }
 }
