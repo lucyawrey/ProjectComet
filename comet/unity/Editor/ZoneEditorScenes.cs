@@ -11,7 +11,7 @@ namespace Comet.Unity.Editor
     /// Ties the zone editor to Unity's own scene workflow: saving a zone's working scene (File › Save, Ctrl+S) saves
     /// the zone's files, a zone's terrain preview is drawn again when its scene opens or play mode ends, and play mode
     /// always starts in the game's own scene (the settings' Play Scene), so it plays the zone from content. A spawn
-    /// point that's duplicated or pasted gets a fresh key.
+    /// point that's duplicated or pasted gets a fresh key, and isn't the default.
     /// </summary>
     [InitializeOnLoad]
     public static class ZoneEditorScenes
@@ -89,6 +89,7 @@ namespace Comet.Unity.Editor
                     Undo.RecordObject(spawn, "Fresh spawn key");
                     Undo.RecordObject(spawn.gameObject, "Fresh spawn key");
                     spawn.key = $"{stem}_{n}";
+                    spawn.isDefault = false; // the original stays the default
                     spawn.gameObject.name = spawn.key;
                     foreach (var marker in spawn.GetComponentsInChildren<ZonePlacement>())
                     {
