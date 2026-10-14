@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using Comet.Simulation;
-using ShapeLand.Shared.Content;
 using UnityEngine;
 
 namespace ShapeLand.Client
 {
     /// <summary>
     /// Flat-shaded meshes built in code: the island from the same triangles <see cref="TerrainGround"/> stands
-    /// players on, the blocks from the world's boxes, and the three player shapes.
+    /// players on, and the blocks from the world's boxes. Both must match what the server collides with, so they're
+    /// built from the same data rather than modeled. The player shapes are models (<c>Assets/Prefabs/Shapes/</c>).
     /// </summary>
     public static class WorldMeshes
     {
@@ -47,107 +47,13 @@ namespace ShapeLand.Client
             return Build("Island", vertices);
         }
 
-        /// <summary>
-        /// How each shape is drawn at scale 1, in meters. Each shape's <c>scale</c> in content multiplies all of it.
-        /// Looks only: every shape collides as the one shared body in <c>MovementRules</c> (0.4 m radius, 1 m tall),
-        /// so a shape drawn much bigger or smaller than it may poke into blocks or stop short of them.
-        /// </summary>
-        public static readonly IReadOnlyDictionary<MeshKind, ShapeLook> Looks = new Dictionary<MeshKind, ShapeLook>
-        {
-            [MeshKind.Cube] = new ShapeLook
-            {
-                Width = 0.7f, Depth = 0.7f, Height = 0.7f, Hover = 0.10f,
-                EyeWidth = 0.1f, EyeHeight = 0.14f, EyeSpacing = 0.24f, EyeLevel = 0.48f,
-            },
-            [MeshKind.Diamond] = new ShapeLook
-            {
-                Width = 0.8f, Depth = 0.8f, Height = 1.0f, Hover = 0.0f, Waist = 0.5f,
-                EyeWidth = 0.1f, EyeHeight = 0.14f, EyeSpacing = 0.24f, EyeLevel = 0.65f,
-            },
-            [MeshKind.Pyramid] = new ShapeLook
-            {
-                Width = 0.8f, Depth = 0.8f, Height = 0.8f, Hover = 0.05f,
-                EyeWidth = 0.1f, EyeHeight = 0.14f, EyeSpacing = 0.24f, EyeLevel = 0.4f,
-            },
-        };
-
-        /// <summary>A shape's look from <see cref="Looks"/>, at its scale in content.</summary>
-        public static ShapeLook LookOf(Shape shape) => Looks[shape.Mesh].Scaled(shape.Scale);
-
-        /// <summary>How far the eyes stand out of the face, in meters.</summary>
-        private const float EyeDepth = 0.06f;
-
-        /// <summary>A shape's mesh, standing on its origin, sized by its look.</summary>
-        public static Mesh Shape(MeshKind kind, ShapeLook look)
-        {
-            var x = look.Width / 2;
-            var z = look.Depth / 2;
-            var h = look.Height;
-            switch (kind)
-            {
-                case MeshKind.Diamond:
-                    var top = new Vector3(0, h, 0);
-                    var bottom = Vector3.zero;
-                    var w = look.Waist;
-                    var ring = new[] { new Vector3(-x, w, -z), new Vector3(x, w, -z), new Vector3(x, w, z), new Vector3(-x, w, z) };
-                    return Solid("Diamond", ring.SelectMany((p, i) => new[] { top, p, ring[(i + 1) % 4], bottom, p, ring[(i + 1) % 4] }), new Vector3(0, w, 0));
-                case MeshKind.Pyramid:
-                    var apex = new Vector3(0, h, 0);
-                    var corners = new[] { new Vector3(-x, 0, -z), new Vector3(x, 0, -z), new Vector3(x, 0, z), new Vector3(-x, 0, z) };
-                    var sides = corners.SelectMany((p, i) => new[] { apex, p, corners[(i + 1) % 4] });
-                    return Solid("Pyramid", sides.Concat(new[] { corners[0], corners[1], corners[2], corners[0], corners[2], corners[3] }));
-                default:
-                    return Cuboid("Cube", new Vector3(0, h / 2, 0), new Vector3(look.Width, h, look.Depth));
-            }
-        }
-
-        /// <summary>
-        /// Where a shape's front face (+Z) is on its center line at height <paramref name="y"/>: how far forward,
-        /// and how far it leans back from upright, in radians (negative leans forward, as under a diamond's waist).
-        /// </summary>
-        public static (float Forward, float Lean) FrontFace(MeshKind kind, ShapeLook look, float y)
-        {
-            var z = look.Depth / 2;
-            var h = look.Height;
-            switch (kind)
-            {
-                case MeshKind.Pyramid:
-                    return (z * (1 - y / h), Mathf.Atan2(z, h));
-                case MeshKind.Diamond:
-                    var w = look.Waist;
-                    return y >= w
-                        ? (z * (h - y) / (h - w), Mathf.Atan2(z, h - w))
-                        : (z * y / w, -Mathf.Atan2(z, w));
-                default:
-                    return (z, 0);
-            }
-        }
-
-        /// <summary>
-        /// Two eyes on the shape's front face (+Z), so its facing shows: small boxes standing slightly out of the
-        /// surface and tilted with it.
-        /// </summary>
-        public static Mesh Eyes(MeshKind kind, ShapeLook look)
-        {
-            var y = look.EyeLevel;
-            var (z, lean) = FrontFace(kind, look, y);
-            var size = new Vector3(look.EyeWidth, look.EyeHeight, EyeDepth);
-            var rotation = Quaternion.Euler(-lean * Mathf.Rad2Deg, 0, 0);
-            var triangles = new List<Vector3>();
-            foreach (var side in new[] { -1, 1 })
-            {
-                var center = new Vector3(side * look.EyeSpacing / 2, y, z) + rotation * new Vector3(0, 0, size.z / 4);
-                triangles.AddRange(Oriented(BoxTriangles(size).Select(v => center + rotation * v).ToList(), center));
-            }
-
-            return Build("Eyes", triangles);
-        }
-
-        /// <summary>A box mesh around <paramref name="center"/>.</summary>
-        public static Mesh Cuboid(string name, Vector3 center, Vector3 size) => Solid(name, BoxTriangles(size).Select(v => center + v), center);
-
         /// <summary>A box mesh for one of the world's blocks, in world space.</summary>
-        public static Mesh Block(Box box) => Cuboid("Block", ToUnity(box.Center), ToUnity(box.Size));
+        public static Mesh Block(Box box)
+        {
+            var center = ToUnity(box.Center);
+            var vertices = BoxTriangles(ToUnity(box.Size)).Select(v => center + v).ToList();
+            return Build("Block", Oriented(vertices, center));
+        }
 
         public static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
 
@@ -165,13 +71,6 @@ namespace ShapeLand.Client
 
             int[][] faces = { new[] { 0, 1, 3, 2 }, new[] { 4, 5, 7, 6 }, new[] { 0, 1, 5, 4 }, new[] { 2, 3, 7, 6 }, new[] { 0, 2, 6, 4 }, new[] { 1, 3, 7, 5 } };
             return faces.SelectMany(f => new[] { c[f[0]], c[f[1]], c[f[2]], c[f[0]], c[f[2]], c[f[3]] });
-        }
-
-        // A closed convex solid from loose triangles in any winding.
-        private static Mesh Solid(string name, IEnumerable<Vector3> triangles, Vector3? middle = null)
-        {
-            var vertices = triangles.ToList();
-            return Build(name, Oriented(vertices, middle ?? vertices.Aggregate(Vector3.zero, (sum, v) => sum + v) / vertices.Count));
         }
 
         // Turns each triangle of a convex solid to face away from a point inside it.
@@ -205,42 +104,5 @@ namespace ShapeLand.Client
             mesh.RecalculateBounds();
             return mesh;
         }
-    }
-
-    /// <summary>A shape's drawn size and eyes, in meters (<see cref="WorldMeshes.Looks"/>).</summary>
-    public sealed class ShapeLook
-    {
-        /// <summary>Size from side to side.</summary>
-        public float Width { get; set; }
-
-        /// <summary>Size from front to back.</summary>
-        public float Depth { get; set; }
-
-        public float Height { get; set; }
-
-        /// <summary>How far above its feet the shape is drawn.</summary>
-        public float Hover { get; set; }
-
-        /// <summary>Diamonds only: how far above the bottom tip the widest ring is.</summary>
-        public float Waist { get; set; }
-
-        /// <summary>Each eye's width.</summary>
-        public float EyeWidth { get; set; }
-
-        /// <summary>Each eye's height.</summary>
-        public float EyeHeight { get; set; }
-
-        /// <summary>From one eye's center to the other's.</summary>
-        public float EyeSpacing { get; set; }
-
-        /// <summary>How far above the shape's bottom the eyes' centers are; they sit on the front face there, tilted with it.</summary>
-        public float EyeLevel { get; set; }
-
-        /// <summary>This look with every size times <paramref name="scale"/>.</summary>
-        public ShapeLook Scaled(float scale) => new ShapeLook
-        {
-            Width = Width * scale, Depth = Depth * scale, Height = Height * scale, Hover = Hover * scale, Waist = Waist * scale,
-            EyeWidth = EyeWidth * scale, EyeHeight = EyeHeight * scale, EyeSpacing = EyeSpacing * scale, EyeLevel = EyeLevel * scale,
-        };
     }
 }

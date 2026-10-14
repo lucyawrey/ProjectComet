@@ -37,8 +37,8 @@ namespace ShapeLand.Shared.Content
         [Key(5)] public float JumpVelocity { get; set; }
 
         /// <summary>
-        /// How big the shape is drawn, times its look in the client's <c>WorldMeshes</c> (1 is as designed). Looks
-        /// only: every shape collides as the one shared body in <c>MovementRules</c>.
+        /// How big the shape is drawn, times its model's size (1 is as modeled). Looks only: every shape collides as
+        /// the one shared body in <c>MovementRules</c>.
         /// </summary>
         [JsonRequired]
         [Key(6)] public float Scale { get; set; }

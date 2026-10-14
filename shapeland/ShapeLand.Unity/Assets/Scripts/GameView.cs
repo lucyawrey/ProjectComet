@@ -23,15 +23,16 @@ namespace ShapeLand.Client
 
         [SerializeField] private Material terrainMaterial;
         [SerializeField] private Material blockMaterial;
-        [SerializeField] private Material shapeMaterial;
-        [SerializeField] private Material eyeMaterial;
-        [SerializeField] private Material shapeFadeMaterial;
-        [SerializeField] private Material eyeFadeMaterial;
+        [Tooltip("The player shape for content's mesh = \"cube\".")]
+        [SerializeField] private ShapeBody cubePrefab;
+        [Tooltip("The player shape for content's mesh = \"diamond\".")]
+        [SerializeField] private ShapeBody diamondPrefab;
+        [Tooltip("The player shape for content's mesh = \"pyramid\".")]
+        [SerializeField] private ShapeBody pyramidPrefab;
         [SerializeField] private OrbitCamera orbitCamera;
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
-        private readonly Dictionary<Shape, (Mesh Body, Mesh Eyes)> _meshes = new Dictionary<Shape, (Mesh Body, Mesh Eyes)>();
         private JoinClient _join;
         private CollisionWorld _world;
         private ShapeLandControls _controls;
@@ -167,36 +168,30 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin, sized and hovering as its
-        /// look and scale say (<see cref="WorldMeshes.LookOf"/>).
+        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin: the prefab for its mesh,
+        /// sized by its scale in content.
         /// </summary>
         public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent)
         {
-            var look = WorldMeshes.LookOf(shape);
-            if (!_meshes.TryGetValue(shape, out var meshes))
+            var prefab = shape.Mesh switch
             {
-                meshes = (WorldMeshes.Shape(shape.Mesh, look), WorldMeshes.Eyes(shape.Mesh, look));
-                _meshes[shape] = meshes;
-            }
-
-            var root = new GameObject(shape.DisplayName);
-            root.transform.SetParent(parent, false);
-            var body = AddMesh("Body", meshes.Body, shapeMaterial, root.transform);
-            body.transform.localPosition = new Vector3(0, look.Hover, 0);
-            var eyes = AddMesh("Eyes", meshes.Eyes, eyeMaterial, body.transform);
-            var drawn = root.AddComponent<ShapeBody>();
-            drawn.Setup(body.GetComponent<MeshRenderer>(), eyes.GetComponent<MeshRenderer>(), shapeFadeMaterial, eyeFadeMaterial);
+                MeshKind.Diamond => diamondPrefab,
+                MeshKind.Pyramid => pyramidPrefab,
+                _ => cubePrefab,
+            };
+            var drawn = Instantiate(prefab, parent, false);
+            drawn.name = shape.DisplayName;
+            drawn.transform.localScale = Vector3.one * shape.Scale;
             drawn.SetColors(color, eyeColor);
             return drawn;
         }
 
-        private static GameObject AddMesh(string name, Mesh mesh, Material material, Transform parent)
+        private static void AddMesh(string name, Mesh mesh, Material material, Transform parent)
         {
             var thing = new GameObject(name);
             thing.transform.SetParent(parent, false);
             thing.AddComponent<MeshFilter>().sharedMesh = mesh;
             thing.AddComponent<MeshRenderer>().sharedMaterial = material;
-            return thing;
         }
 
         /// <summary>A 0xRRGGBB color as Unity's.</summary>

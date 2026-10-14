@@ -33,9 +33,9 @@ The Game scene (`Assets/Scenes/Game.unity`) holds:
 | Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, and the network numbers (F3). |
 | Camera | `OrbitCamera` | The third-person camera. |
 
-Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape's colors and fading), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `WorldMeshes` (the island and blocks, built from the same data the server uses), `RespawnFade` (how falling fades), `UiText` (fills UXML text from the string file) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
+Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape's colors and fading, on each shape's prefab in `Assets/Prefabs/Shapes/`), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `WorldMeshes` (the island and blocks, built from the same data the server uses), `RespawnFade` (how falling fades), `UiText` (fills UXML text from the string file) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
 
-The editor scripts in `Assets/Editor` add the ShapeLand menu: builds (`Builds`), copying the content in (`ContentSync`, also done as play mode starts) and exporting the shape models as glTF (`ShapeModelExport`).
+The editor scripts in `Assets/Editor` add the ShapeLand menu: builds (`Builds`) and copying the content in (`ContentSync`, also done as play mode starts)
 
 The play-mode tests (`Assets/Tests`) load the Game scene against a real game server and join through the card: `JoinScreenTests`, `ChatTests` and `PlayTests`. `ClientRulesTests` need no server, and also check that every interface text key the scripts, UXML and web page use exists.
 
@@ -57,7 +57,7 @@ Every movement number has one home. Clients, bots and the server read the same v
 | --- | --- |
 | `max_speed` | Top ground speed, in meters per second. |
 | `jump_velocity` | Upward speed at take-off, in meters per second. A jump rises v² / 2g: with gravity 25, 8.5 rises about 1.45 m. |
-| `scale` | How big the shape is drawn, times its look in `WorldMeshes.Looks`. Looks only: collisions use the shared body below. |
+| `scale` | How big the shape is drawn, times its model's size. Looks only: collisions use the shared body below. |
 
 ### Physics for every shape: `Rules` in `src/ShapeLand.Shared/World/ShapeLandWorld.cs`
 
@@ -70,9 +70,9 @@ Every movement number has one home. Clients, bots and the server read the same v
 | `GroundSnap` | How far the ground may drop under the feet while staying grounded (walking downhill rather than falling), in meters. |
 | `BodyRadius`, `BodyHeight` | The collision body every shape shares: a square footprint `BodyRadius` from the center, and `BodyHeight` tall, in meters. |
 
-### How shapes look: `Looks` in `ShapeLand.Unity/Assets/Scripts/WorldMeshes.cs`
+### How shapes look: the models in `art/shapes.blend`
 
-Width, depth and height of each mesh, how far it hovers above its feet, the diamond's waist height, and the eyes' size, spacing and height, all in meters at scale 1. These change the drawing only.
+Each shape is an empty at the player's feet with a `Body` mesh and `Eyes` under it, in meters, facing -Y in Blender, toward the Front view (+Z in Unity). Export each one as `ShapeLand.Unity/Assets/Models/Shapes/<Shape>.glb` (glTF Binary, selected objects only, with the empty at the origin); the prefabs in `Assets/Prefabs/Shapes/` pick up the change. The prefabs set the materials, so the models' own are ignored. These change the drawing only.
 
 ### The camera: the Camera object in the Game scene
 

@@ -5,9 +5,7 @@
         "Comet.Unity",
         "ShapeLand.Client",
         "ShapeLand.Shared",
-        "Comet.Content",
-        "glTFast",
-        "glTFast.Export"
+        "Comet.Content"
     ],
     "includePlatforms": [
         "Editor"

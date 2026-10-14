@@ -3,9 +3,10 @@ using UnityEngine;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// A player's drawn shape, on the object at their feet: the body and eyes in the player's colors, and how far the
-    /// shape has faded. While it fades it swaps to transparent copies of its materials (made the first time), which
-    /// cast no shadow; fully visible, it's drawn opaque as usual. The materials it makes are freed with it.
+    /// A player's drawn shape, on the root of its prefab (<c>Assets/Prefabs/Shapes/</c>), at the player's feet: the
+    /// body and eyes in the player's colors, and how far the shape has faded. While it fades it swaps to transparent
+    /// copies of its materials (made the first time), which cast no shadow; fully visible, it's drawn opaque as usual.
+    /// The materials it makes are freed with it.
     /// </summary>
     public sealed class ShapeBody : MonoBehaviour
     {
@@ -24,6 +25,12 @@ namespace ShapeLand.Client
         private Material _eyesFade;
         private float _faded;
 
+        /// <summary>The body's renderer.</summary>
+        public MeshRenderer Body => body;
+
+        /// <summary>The eyes' renderer.</summary>
+        public MeshRenderer Eyes => eyes;
+
         /// <summary>The middle of the top of the body, in world space, where a name tag goes above.</summary>
         public Vector3 Top => new Vector3(transform.position.x, body.bounds.max.y, transform.position.z);
 
@@ -32,15 +39,6 @@ namespace ShapeLand.Client
         {
             get => _faded;
             set => SetFaded(Mathf.Clamp01(value));
-        }
-
-        /// <summary>Sets the parts for a shape built in code; prefabs set them in the editor.</summary>
-        public void Setup(MeshRenderer bodyRenderer, MeshRenderer eyesRenderer, Material bodyFade, Material eyesFade)
-        {
-            body = bodyRenderer;
-            eyes = eyesRenderer;
-            bodyFadeMaterial = bodyFade;
-            eyesFadeMaterial = eyesFade;
         }
 
         /// <summary>Colors the body and eyes, each as 0xRRGGBB.</summary>

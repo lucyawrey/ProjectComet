@@ -78,14 +78,9 @@ namespace ShapeLand.Client.Tests
         [Test]
         public void ShapesSwapToTransparentMaterialsWhileFading()
         {
-            var shape = new GameObject("Shape").AddComponent<ShapeBody>();
-            var body = new GameObject("Body").AddComponent<MeshRenderer>();
-            var eyes = new GameObject("Eyes").AddComponent<MeshRenderer>();
-            body.transform.SetParent(shape.transform);
-            eyes.transform.SetParent(body.transform);
-            body.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Shape.mat");
-            eyes.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Eyes.mat");
-            shape.Setup(body, eyes, AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/ShapeFade.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/EyesFade.mat"));
+            var shape = Object.Instantiate(ShapePrefab(MeshKind.Cube));
+            var body = shape.Body;
+            var eyes = shape.Eyes;
             try
             {
                 shape.SetColors(0xFF0000, 0x0000FF);
@@ -112,57 +107,32 @@ namespace ShapeLand.Client.Tests
             }
         }
 
+        // Each prefab is its model with a ShapeBody on the root: standing on its origin, facing +Z with its eyes on
+        // the front, and colored through the body and eyes.
         [TestCase(MeshKind.Cube)]
         [TestCase(MeshKind.Diamond)]
         [TestCase(MeshKind.Pyramid)]
-        public void ShapeMeshesFollowTheirLook(MeshKind kind)
+        public void EveryShapeHasAPrefab(MeshKind kind)
         {
-            var look = new ShapeLook { Width = 1.2f, Depth = 0.6f, Height = 0.5f, Waist = 0.2f, EyeWidth = 0.1f, EyeHeight = 0.1f, EyeSpacing = 0.4f, EyeLevel = 0.25f };
-            var body = WorldMeshes.Shape(kind, look).bounds;
-            Assert.That(body.size.x, Is.EqualTo(1.2f).Within(1e-4f));
-            Assert.That(body.size.y, Is.EqualTo(0.5f).Within(1e-4f));
-            Assert.That(body.size.z, Is.EqualTo(0.6f).Within(1e-4f));
-            Assert.That(body.min.y, Is.EqualTo(0).Within(1e-4f), "The shape doesn't stand on its origin.");
-
-            // The eyes sit on the front face at their level, either side of the center line.
-            var eyes = WorldMeshes.Eyes(kind, look).bounds;
-            var (forward, _) = WorldMeshes.FrontFace(kind, look, look.EyeLevel);
-            Assert.That(eyes.center.y, Is.EqualTo(look.EyeLevel).Within(0.02f));
-            Assert.That(eyes.center.x, Is.EqualTo(0).Within(1e-4f));
-            Assert.That(eyes.size.x, Is.EqualTo(look.EyeSpacing + look.EyeWidth).Within(0.01f));
-            Assert.That(eyes.center.z, Is.EqualTo(forward).Within(0.04f));
-        }
-
-        [TestCase(MeshKind.Cube)]
-        [TestCase(MeshKind.Diamond)]
-        [TestCase(MeshKind.Pyramid)]
-        public void EveryShapeHasALookThatFits(MeshKind kind)
-        {
-            var look = WorldMeshes.Looks[kind];
-            Assert.That(look.Width, Is.GreaterThan(0));
-            Assert.That(look.Depth, Is.GreaterThan(0));
-            Assert.That(look.Height, Is.GreaterThan(0));
-            Assert.That(look.Hover, Is.AtLeast(0));
-            Assert.That(look.EyeSpacing + look.EyeWidth, Is.LessThanOrEqualTo(look.Width), "The eyes are wider than the shape.");
-            Assert.That(look.EyeLevel, Is.InRange(0, look.Height), "The eyes aren't on the shape.");
-            if (kind == MeshKind.Diamond)
+            var shape = Object.Instantiate(ShapePrefab(kind));
+            try
             {
-                Assert.That(look.Waist, Is.GreaterThan(0).And.LessThan(look.Height), "A diamond's waist isn't between its tips.");
-            }
-            else
-            {
-                Assert.That(look.Waist, Is.EqualTo(0), "Only diamonds have a waist.");
-            }
-        }
+                var body = shape.Body;
+                var eyes = shape.Eyes;
+                Assert.That(body, Is.Not.Null.And.Not.SameAs(eyes), "The prefab's ShapeBody isn't set up.");
+                Assert.That(body.bounds.min.y, Is.InRange(0, 0.2f), "The shape doesn't stand on its origin.");
+                Assert.That(body.bounds.size.y, Is.InRange(0.3f, 2), "The shape isn't about a player's height.");
+                Assert.That(eyes.bounds.center.z, Is.GreaterThan(0.1f), "The eyes aren't on the front (+Z).");
+                Assert.That(Mathf.Abs(eyes.bounds.center.x), Is.LessThan(0.01f), "The eyes aren't centered.");
 
-        [Test]
-        public void AShapesScaleSizesItsWholeLook()
-        {
-            var look = WorldMeshes.LookOf(new Shape { Mesh = MeshKind.Cube, Scale = 2 });
-            var designed = WorldMeshes.Looks[MeshKind.Cube];
-            Assert.That(look.Height, Is.EqualTo(designed.Height * 2).Within(1e-5f));
-            Assert.That(look.Hover, Is.EqualTo(designed.Hover * 2).Within(1e-5f));
-            Assert.That(look.EyeSpacing, Is.EqualTo(designed.EyeSpacing * 2).Within(1e-5f));
+                shape.SetColors(0x00FF00, 0xFF0000);
+                Assert.That(body.sharedMaterial.color, Is.EqualTo(Color.green));
+                Assert.That(eyes.sharedMaterial.color, Is.EqualTo(Color.red));
+            }
+            finally
+            {
+                Object.DestroyImmediate(shape.gameObject);
+            }
         }
 
         [Test]
@@ -195,5 +165,8 @@ namespace ShapeLand.Client.Tests
             Assert.That(keys.Count, Is.GreaterThan(20), "The keys weren't found; has the markup changed?");
             Assert.That(keys.Where(k => !content.Strings.Contains(k.Key)).Select(k => $"{k.File}: {k.Key}"), Is.Empty);
         }
+
+        private static ShapeBody ShapePrefab(MeshKind kind) =>
+            AssetDatabase.LoadAssetAtPath<ShapeBody>($"Assets/Prefabs/Shapes/{kind}.prefab");
     }
 }
