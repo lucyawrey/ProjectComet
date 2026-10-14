@@ -43,6 +43,32 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
+    /// Reads assets (<see cref="Asset"/>) from <c>{folder}/**/*.toml</c>, baking each one's collision and bounds from
+    /// its model, which is found under <paramref name="modelRoot"/>. Zone placements are checked against them.
+    /// </summary>
+    public ContentBuilder AddAssets(string modelRoot, string folder = "assets")
+    {
+        var root = Path.GetFullPath(modelRoot);
+        return Add("asset", folder, CometToml.Default.Asset, (asset, validation) =>
+        {
+            if (Path.IsPathRooted(asset.Model) || asset.Model.Split('/', '\\').Contains(".."))
+            {
+                validation.Error(nameof(Asset.Model), $"'{asset.Model}' must be a path inside the model folder, without '..'.");
+                return;
+            }
+
+            try
+            {
+                ModelBaker.Bake(asset, Path.Combine(root, asset.Model));
+            }
+            catch (ContentException e)
+            {
+                validation.Error(nameof(Asset.Model), e.Message);
+            }
+        });
+    }
+
+    /// <summary>
     /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>), checked by
     /// <see cref="ZoneValidation"/>. Zone and spawn keys get registry numbers like other content.
     /// </summary>
@@ -73,7 +99,8 @@ public sealed class ContentBuilder
             }
         }
 
-        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), errors);
+        var assets = types.OfType<ReadContent<Asset>>().SingleOrDefault()?.Entries.ToDictionary(a => a.Id) ?? new Dictionary<string, Asset>();
+        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), assets, errors);
         if (errors.Count == 0)
         {
             foreach (var type in types)
@@ -92,7 +119,7 @@ public sealed class ContentBuilder
         return new ContentBuildResult(errors, types, strings, zones);
     }
 
-    private List<Zone> ReadZones(string folder, List<ContentError> errors)
+    private List<Zone> ReadZones(string folder, Dictionary<string, Asset> assets, List<ContentError> errors)
     {
         var zones = new List<Zone>();
         if (!Directory.Exists(folder))
@@ -109,6 +136,7 @@ public sealed class ContentBuilder
             if (zoneErrors.Count == 0)
             {
                 zoneErrors.AddRange(ZoneValidation.Check(zone));
+                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => assets.TryGetValue(key, out var asset) ? asset : null));
             }
 
             var zoneFile = DisplayPath(Path.Combine(zoneFolder, ZoneFolder.ZoneFile));

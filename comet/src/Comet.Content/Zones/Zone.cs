@@ -142,6 +142,10 @@ namespace Comet.Content
         [Key(2)] public Vector3 Rotation { get; set; }
 
         [Key(3)] public Vector3 Scale { get; set; } = Vector3.One;
+
+        /// <summary>The placement's transform from the asset's space to the world (scale, then rotation, then position).</summary>
+        public Matrix4x4 Matrix() =>
+            Matrix4x4.CreateScale(Scale) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);
     }
 
     /// <summary>How a player faces on arriving at a spawn point.</summary>

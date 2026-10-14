@@ -15,16 +15,23 @@ public static class ShapeLandBuild
     /// <summary>The test zone's folder, also made by the <c>terrain</c> command until it's built with the editor.</summary>
     public const string TestZonePath = "zones/test";
 
-    /// <summary>A content build for ShapeLand's content folder at <paramref name="contentRoot"/>.</summary>
-    public static ContentBuilder CreateBuilder(string contentRoot) => new ContentBuilder(contentRoot)
+    /// <summary>Where asset models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
+    public const string ModelRoot = "../ShapeLand.Unity/Assets";
+
+    /// <summary>
+    /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with asset models under
+    /// <paramref name="modelRoot"/> (by default <see cref="ModelRoot"/> from the content folder).
+    /// </summary>
+    public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) => new ContentBuilder(contentRoot)
         .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
         .AddStrings()
+        .AddAssets(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
         .AddZones();
 
     /// <summary>Checks and compiles the content folder; null content means there were errors.</summary>
-    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true)
+    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true, string? modelRoot = null)
     {
-        var result = CreateBuilder(contentRoot).Build(saveRegistry);
+        var result = CreateBuilder(contentRoot, modelRoot).Build(saveRegistry);
         var errors = result.Errors.ToList();
         var terrainFile = Path.Combine(contentRoot, TerrainPath);
         Heightmap? terrain = null;
@@ -51,7 +58,7 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        return (new ShapeLandContent(result.Entries<Shape>(), terrain, result.Strings!, result.Zones), errors);
+        return (new ShapeLandContent(result.Entries<Shape>(), terrain, result.Strings!, result.Entries<Asset>(), result.Zones), errors);
     }
 
     private static void ValidateShape(Shape shape, ContentValidation validation)

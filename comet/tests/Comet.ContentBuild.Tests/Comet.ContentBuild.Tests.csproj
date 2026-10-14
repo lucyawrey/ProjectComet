@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Tomlyn" />
+    <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 

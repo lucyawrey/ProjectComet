@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Tomlyn" />
+    <PackageReference Include="SharpGLTF.Core" />
   </ItemGroup>
 
   <ItemGroup>

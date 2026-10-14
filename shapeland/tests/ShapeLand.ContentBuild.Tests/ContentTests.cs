@@ -49,6 +49,19 @@ public class ContentTests
     }
 
     [Fact]
+    public void PrimitivesCollideAsModeled()
+    {
+        var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
+        Assert.Empty(errors);
+
+        Assert.Equal(["asset.cone", "asset.cube", "asset.cylinder", "asset.ramp", "asset.sphere"], built!.Assets.All.Select(a => a.Id).Order());
+        var cube = built.Assets["asset.cube"];
+        Assert.Equal(12 * 3, cube.Collision.Length);
+        Assert.Equal((new System.Numerics.Vector3(-1, 0, -1), new System.Numerics.Vector3(1, 2, 1)), (cube.BoundsMin, cube.BoundsMax));
+        Assert.All(built.Assets.All, a => Assert.Equal(0, a.BoundsMin.Y, 0.001f));
+    }
+
+    [Fact]
     public void TheTestZoneIsTheGeneratedOne()
     {
         // The terrain command writes it; if this fails, run it again (ShapeLand.ContentBuild terrain).
@@ -133,7 +146,7 @@ public class ContentTests
 
             File.WriteAllLines(file, lines);
 
-            var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false);
+            var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false, Path.Combine(ContentRoot, ShapeLandBuild.ModelRoot));
 
             Assert.Null(built);
             var error = Assert.Single(errors);
@@ -155,7 +168,7 @@ public class ContentTests
             CopyDirectory(ContentRoot, root);
             Directory.Move(Path.Combine(root, "shapes"), Path.Combine(root, "shapez"));
 
-            var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false);
+            var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false, Path.Combine(ContentRoot, ShapeLandBuild.ModelRoot));
 
             Assert.Null(built);
             Assert.Contains("No shapes", Assert.Single(errors).Message);

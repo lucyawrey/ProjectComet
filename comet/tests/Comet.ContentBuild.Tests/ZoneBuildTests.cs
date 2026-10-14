@@ -20,7 +20,19 @@ public class ZoneBuildTests
     };
 
     private static ContentBuildResult Build(ContentFolder folder) =>
-        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddZones().Build();
+        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddAssets(Path.Combine(folder.Root, "models")).AddZones().Build();
+
+    // A zone with one placement, and a 1 m plate asset (its model spans x -1..0, z 0..1 in Unity's space).
+    private static void WritePlacement(ContentFolder folder, Placement placement, bool uniformScale = false)
+    {
+        var model = TestModels.Model(("Plate", Vector3.Zero));
+        Directory.CreateDirectory(Path.Combine(folder.Root, "models"));
+        File.Move(model, Path.Combine(folder.Root, "models", "plate.glb"));
+        folder.Write("assets/plate.toml", $"id = \"asset.plate\"\nmodel = \"plate.glb\"\nuniform_scale = {(uniformScale ? "true" : "false")}\n");
+        var zone = Zone("zone.meadow");
+        zone.Chunks[0].Placements = [placement];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
+    }
 
     [Fact]
     public void ZonesAndSpawnsGetRegistryNumbers()
@@ -62,5 +74,64 @@ public class ZoneBuildTests
         Assert.Equal(
             ["'zone.meadow' is already used by", "spawn 'spawn.gate' is already used by zone.meadow."],
             Build(folder).Errors.Select(e => e.Message.StartsWith("'zone", StringComparison.Ordinal) ? e.Message[..32] : e.Message));
+    }
+
+    [Fact]
+    public void AssetsAreBakedFromTheirModels()
+    {
+        using var folder = new ContentFolder();
+        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10) });
+
+        var result = Build(folder);
+
+        Assert.Empty(result.Errors);
+        var asset = Assert.Single(result.Entries<Asset>());
+        Assert.Equal((1, 3), (asset.Number, asset.Collision.Length));
+        Assert.Equal((new Vector3(-1, 1, 0), new Vector3(0, 1, 1)), (asset.BoundsMin, asset.BoundsMax));
+    }
+
+    [Fact]
+    public void PlacementsNeedAKnownAsset()
+    {
+        using var folder = new ContentFolder();
+        WritePlacement(folder, new Placement { Asset = "asset.plank", Position = new Vector3(10, 0, 10) });
+
+        Assert.EndsWith("there's no asset 'asset.plank'.", Assert.Single(Build(folder).Errors).Message);
+    }
+
+    [Fact]
+    public void UniformScaleAssetsScaleEvenly()
+    {
+        using var folder = new ContentFolder();
+        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10), Scale = new Vector3(2, 1, 2) }, uniformScale: true);
+
+        Assert.EndsWith("asset.plate only scales evenly, the same on every axis.", Assert.Single(Build(folder).Errors).Message);
+    }
+
+    [Theory]
+    [InlineData(10, 0, 1, true)] // well inside
+    [InlineData(1, 0, 64, true)] // spans x -63..1: inside the chunk to the west
+    [InlineData(1, 0, 66, false)] // spans x -65..1: past it
+    [InlineData(1, 90, 126, true)] // turned so the plate runs toward +Z: z 1..127 (toward -Z it would reach -125)
+    [InlineData(1, 90, 128, false)] // z 1..129: past the chunk to the north
+    public void ObjectsReachAtMostOneChunkPastTheirOwn(float x, float yaw, float scale, bool fits)
+    {
+        using var folder = new ContentFolder();
+        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(x, 0, 1), Rotation = new Vector3(0, yaw, 0), Scale = new Vector3(scale, 1, 1) });
+
+        var errors = Build(folder).Errors;
+
+        Assert.Equal(fits, errors.Count == 0);
+        Assert.All(errors, e => Assert.Contains("reaches past the chunks around its own", e.Message));
+    }
+
+    [Fact]
+    public void ModelPathsStayInsideTheModelFolder()
+    {
+        using var folder = new ContentFolder();
+        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10) });
+        folder.Write("assets/plate.toml", "id = \"asset.plate\"\nmodel = \"../plate.glb\"\n");
+
+        Assert.Contains(Build(folder).Errors, e => e.Message.EndsWith("must be a path inside the model folder, without '..'.", StringComparison.Ordinal));
     }
 }

@@ -1,3 +1,6 @@
+using System;
+using System.Numerics;
+
 namespace Comet.Content
 {
     /// <summary>
@@ -17,5 +20,15 @@ namespace Comet.Content
         /// so the terrain meets without seams.
         /// </summary>
         public const int ChunkSamples = ChunkSize + 1;
+
+        /// <summary>
+        /// The rotation for Euler angles in degrees, applied in Unity's order: Z, then X, then Y. A positive turn about
+        /// Y takes +Z toward +X, as in Unity.
+        /// </summary>
+        public static Quaternion Rotation(Vector3 eulerDegrees)
+        {
+            const float toRadians = MathF.PI / 180;
+            return Quaternion.CreateFromYawPitchRoll(eulerDegrees.Y * toRadians, eulerDegrees.X * toRadians, eulerDegrees.Z * toRadians);
+        }
     }
 }

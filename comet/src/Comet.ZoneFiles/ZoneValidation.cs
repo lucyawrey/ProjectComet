@@ -140,6 +140,64 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
+        /// <summary>
+        /// The problems with <paramref name="zone"/>'s placements given its assets (found by key through
+        /// <paramref name="findAsset"/>, null for an unknown key): unknown assets, uneven scale on an asset that only
+        /// scales evenly, and objects reaching past the ring of chunks around their pivot's chunk.
+        /// </summary>
+        public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Asset?> findAsset)
+        {
+            var errors = new List<ZoneFileError>();
+            foreach (var chunk in zone.Chunks)
+            {
+                var file = ZoneFolder.ChunkFile(chunk.Coord);
+                foreach (var placement in chunk.Placements)
+                {
+                    var what = $"placement of {placement.Asset} at {Text(placement.Position)}";
+                    var asset = findAsset(placement.Asset);
+                    if (asset is null)
+                    {
+                        errors.Add(new ZoneFileError(file, $"{what}: there's no asset '{placement.Asset}'."));
+                        continue;
+                    }
+
+                    var scale = placement.Scale;
+                    if (asset.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
+                    {
+                        errors.Add(new ZoneFileError(file, $"{what}: {asset.Id} only scales evenly, the same on every axis."));
+                    }
+
+                    var (min, max) = Bounds(asset, placement.Matrix());
+                    var reachMin = new Vector3((chunk.Coord.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Coord.Z - 1) * ZoneGrid.ChunkSize);
+                    var reachMax = new Vector3((chunk.Coord.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Coord.Z + 2) * ZoneGrid.ChunkSize);
+                    if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
+                    {
+                        errors.Add(new ZoneFileError(file, $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."));
+                    }
+                }
+            }
+
+            return errors;
+        }
+
+        // The world box around an asset's bounds once placed.
+        private static (Vector3 Min, Vector3 Max) Bounds(Asset asset, Matrix4x4 matrix)
+        {
+            var min = new Vector3(float.MaxValue);
+            var max = new Vector3(float.MinValue);
+            for (var corner = 0; corner < 8; corner++)
+            {
+                var point = Vector3.Transform(new Vector3(
+                    (corner & 1) == 0 ? asset.BoundsMin.X : asset.BoundsMax.X,
+                    (corner & 2) == 0 ? asset.BoundsMin.Y : asset.BoundsMax.Y,
+                    (corner & 4) == 0 ? asset.BoundsMin.Z : asset.BoundsMax.Z), matrix);
+                min = Vector3.Min(min, point);
+                max = Vector3.Max(max, point);
+            }
+
+            return (min, max);
+        }
+
         private static void CheckNames(IEnumerable<string> names, string what, string file, Action<string, string> error)
         {
             var seen = new HashSet<string>();

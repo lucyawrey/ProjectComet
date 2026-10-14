@@ -54,7 +54,7 @@ int Build()
     }
 
     WriteSchemas();
-    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Zones.All.Count} zone(s), the test terrain and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
+    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Assets.All.Count} assets, {compiled.Zones.All.Count} zone(s), the test terrain and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
     return 0;
 }
 
