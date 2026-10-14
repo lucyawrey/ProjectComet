@@ -1,6 +1,6 @@
 id = "shape.cube"
 display_name = "Cube"
-mesh = "cube" # see shapeland/ShapeLand.Unity/Assets/Scripts/WorldMeshes.cs
+mesh = "cube" # the prefab GameView uses, from Assets/Prefabs/Shapes/ in shapeland/ShapeLand.Unity
 max_speed = 6.5
 jump_velocity = 8.5
 scale = 1.0

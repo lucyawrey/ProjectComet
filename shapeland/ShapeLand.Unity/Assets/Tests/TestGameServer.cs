@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using NUnit.Framework;
+using ShapeLand.Shared.Content;
 using UnityEngine;
 
 namespace ShapeLand.Client.Tests
@@ -17,6 +18,15 @@ namespace ShapeLand.Client.Tests
 
         private Process _process;
         private Process _bots;
+
+        /// <summary>The content play mode and the tests use; fails the test if it hasn't been copied in.</summary>
+        public static ShapeLandContent LoadContent()
+        {
+            var file = Path.Combine(Application.streamingAssetsPath, "content.bin");
+            Assert.That(File.Exists(file), "No content in StreamingAssets; run ShapeLand > Copy Content.");
+            using var stream = File.OpenRead(file);
+            return ShapeLandContent.Load(stream);
+        }
 
         /// <summary>The server's address, once <see cref="Start"/> has finished.</summary>
         public string Address { get; private set; }

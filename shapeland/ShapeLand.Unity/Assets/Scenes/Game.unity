@@ -131,6 +131,8 @@ GameObject:
   - component: {fileID: 910666501}
   - component: {fileID: 910666500}
   - component: {fileID: 910666499}
+  - component: {fileID: 910666504}
+  - component: {fileID: 910666503}
   m_Layer: 0
   m_Name: Hud
   m_TagString: Untagged
@@ -164,6 +166,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.Hud
   join: {fileID: 1117559768}
   view: {fileID: 1117559767}
+  card: {fileID: 1117559769}
 --- !u!114 &910666501
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -202,6 +205,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &910666503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910666498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ea0bb851f71e3ac0ab871b06443e8cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.NameTags
+--- !u!114 &910666504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910666498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32bd47a5e017f996bb5b54ce4907ae4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.Chat
 --- !u!1 &1117559766
 GameObject:
   m_ObjectHideFlags: 0
@@ -237,10 +264,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.GameView
   terrainMaterial: {fileID: 2100000, guid: 39ef6832ec4bb4c45bd3ae46f21fd7f1, type: 2}
   blockMaterial: {fileID: 2100000, guid: 43d7a230d1c5924a89d36b7efea1f91b, type: 2}
-  shapeMaterial: {fileID: 2100000, guid: 9620fa0eda73df2868773d48c4e0351c, type: 2}
-  eyeMaterial: {fileID: 2100000, guid: 2363a39ddd6cb0ff68d7c40daa468bf7, type: 2}
-  shapeFadeMaterial: {fileID: 2100000, guid: 61dd4b4118ed94a48a34b63a8dc64b5b, type: 2}
-  eyeFadeMaterial: {fileID: 2100000, guid: 71fb7ea9edb6b490c85ea0df884edb30, type: 2}
+  cubePrefab: {fileID: 3588937628090892900, guid: 21f87fe88e1c8dd619c7fe5ddce3469e, type: 3}
+  diamondPrefab: {fileID: 4242476006985550958, guid: b178253dd24bed7f5a731083f2b0d80c, type: 3}
+  pyramidPrefab: {fileID: 4601383380699552631, guid: fb8e25e71b70ab1858a0fc94f3ec2897, type: 3}
   orbitCamera: {fileID: 1791137201}
 --- !u!114 &1117559768
 MonoBehaviour:
@@ -255,8 +281,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.JoinClient
   address: localhost:5080
-  playerName: Player
-  joinOnStart: 0
 --- !u!114 &1117559769
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -269,6 +293,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f0a53ded89f845589f817da773f2b87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.JoinScreen
+  previewPrefab: {fileID: 6772503965695725735, guid: a9bfbeeb291c603a19241e4829118abd, type: 3}
 --- !u!114 &1117559770
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -452,6 +477,8 @@ MonoBehaviour:
   stickDegreesPerSecond: {x: 180, y: 120}
   pitchLimits: {x: -10, y: 70}
   groundClearance: 0.3
+  blockClearance: 0.2
+  zoomOutSpeed: 6
   showcase: {x: 30, y: 25, z: 6}
 --- !u!20 &1791137202
 Camera:

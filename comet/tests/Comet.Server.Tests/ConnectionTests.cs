@@ -48,7 +48,7 @@ public sealed class ConnectionTests : IAsyncLifetime
     public async Task EventsOverOneFrameSpreadOverTickFramesUnderTheClientLimit()
     {
         // Over 100 KB of events in one tick, like 60 players each saying three of the longest chat lines at once
-        // (the code review's S1), and a state for each of them.
+        // (which once overflowed the send buffer), and a state for each of them.
         const int events = 12_000;
         for (var i = 0; i < events; i++)
         {
@@ -95,7 +95,7 @@ public sealed class ConnectionTests : IAsyncLifetime
     [Fact]
     public async Task AFloodOfEmptyFramesDropsTheClient()
     {
-        // Frames with only a header carry no messages, but still cost the server to receive (the code review's S7).
+        // Frames with only a header carry no messages, but still cost the server to receive, so they count toward the flood limit.
         var empty = new byte[MessageWriter.TickSize];
         try
         {

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Comet.Client;
+using Comet.Content;
+using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -11,7 +13,7 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// The join screen (UI Toolkit, <c>Assets/UI/JoinScreen.uxml</c>): a card over the orbiting island where the
-    /// player picks a name, shape and colours, sees the shape turning with its speed and jump height, and joins.
+    /// player picks a name, shape and colors, sees the shape turning with its speed and jump height, and joins.
     /// The server's refusals and connection failures show on the card, which stays up for another try; it hides
     /// once the player spawns. The choices are remembered for next time. Desktop builds also have a server field;
     /// a web page joins the server it came from.
@@ -19,7 +21,10 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(UIDocument), typeof(JoinClient), typeof(GameView))]
     public sealed class JoinScreen : MonoBehaviour
     {
-        private const string NameKey = "join.name", ShapeKey = "join.shape", ColourKey = "join.colour", EyesKey = "join.eyes", ServerKey = "join.server";
+        [SerializeField] private ShapePreview previewPrefab;
+
+        // PlayerPrefs keys for the choices remembered for next time.
+        private const string NameKey = "remember.name", ShapeKey = "remember.shape", ColorKey = "remember.color", EyesKey = "remember.eyes", ServerKey = "remember.server";
 
         private JoinClient _join;
         private GameView _view;
@@ -27,7 +32,7 @@ namespace ShapeLand.Client
         private TextField _name;
         private TextField _server;
         private VisualElement _shapes;
-        private VisualElement _colours;
+        private VisualElement _colors;
         private VisualElement _eyes;
         private VisualElement _stats;
         private Label _error;
@@ -42,8 +47,8 @@ namespace ShapeLand.Client
         private const float OldSessionSeconds = 40;
         private ShapeLandContent _content;
         private Shape _shape;
-        private uint _colour;
-        private uint _eyeColour;
+        private uint _color;
+        private uint _eyeColor;
 
         /// <summary>Whether to remember the choices in PlayerPrefs for next time (off in tests).</summary>
         public bool Remember { get; set; } = true;
@@ -64,17 +69,24 @@ namespace ShapeLand.Client
         public static (float Speed, float JumpHeight) Stats(Shape shape) => (shape.MaxSpeed, ShapeLandWorld.Rules.JumpApex(shape.JumpVelocity));
 
         /// <summary>What the card says when the server refuses a join.</summary>
-        public static string RefusalMessage(JoinRejection reason, string name) => reason switch
+        public static string RefusalMessage(StringTable strings, JoinRejection reason, string name) => reason switch
         {
-            JoinRejection.NameTaken => $"Someone online is already called {name}. Pick another name.",
-            JoinRejection.InvalidName => NameRules,
-            JoinRejection.DifferentContent => Debug.isDebugBuild
-                ? "The server's content is different from this client's. Rerun tools/shapeland-dev.sh and restart play mode, or rebuild this client."
-                : "The server is running a different version of ShapeLand. Reload the page to update.",
-            _ => "The server didn't accept that shape or colour. It may be running a different version of ShapeLand.",
+            JoinRejection.NameTaken => strings.Format("join.name_taken", ("name", name)),
+            JoinRejection.InvalidName => strings.Get("join.name_rules"),
+            JoinRejection.DifferentContent => strings.Get(Debug.isDebugBuild ? "join.different_content_dev" : "join.different_content"),
+            _ => strings.Get("join.not_accepted"),
         };
 
-        private const string NameRules = "Names use letters, digits, spaces, - and _, up to 16 characters.";
+        /// <summary>What the card says after the connection was lost for <paramref name="reason"/>.</summary>
+        public static string LostMessage(StringTable strings, CloseReason reason) => strings.Get(reason switch
+        {
+            CloseReason.Lost => "connection.lost",
+            CloseReason.ServerClosed => "connection.server_closed",
+            CloseReason.ServerShutDown => "connection.server_shut_down",
+            CloseReason.FellBehind => "connection.fell_behind",
+            CloseReason.ProtocolError => "connection.protocol_error",
+            _ => "connection.failed",
+        });
 
         private void Awake()
         {
@@ -94,7 +106,7 @@ namespace ShapeLand.Client
             _name = tree.Q<TextField>("name");
             _server = tree.Q<TextField>("server");
             _shapes = tree.Q("shapes");
-            _colours = tree.Q("colours");
+            _colors = tree.Q("colors");
             _eyes = tree.Q("eyes");
             _stats = tree.Q("stats");
             _error = tree.Q<Label>("error");
@@ -117,8 +129,21 @@ namespace ShapeLand.Client
             _serverField.EnableInClassList("hidden", changing);
 #endif
             _cancelButton.EnableInClassList("hidden", !changing);
-            _joinButton.SetEnabled(true);
-            _joinButton.text = changing ? "Apply" : "Join";
+            SetButton(true, changing ? "join.apply" : "join.join");
+        }
+
+        private void SetButton(bool enabled, string key)
+        {
+            _joinButton.SetEnabled(enabled);
+            _joinButton.text = Text(key);
+        }
+
+        // Shows the card with the current choices.
+        private void Show()
+        {
+            OpenPreview();
+            Refresh();
+            _root.RemoveFromClassList("hidden");
         }
 
         /// <summary>Brings the card up over the game, filled in with the player's current look, to change it.</summary>
@@ -132,12 +157,10 @@ namespace ShapeLand.Client
             SetChanging(true);
             _name.value = spawn.Name;
             _shape = _content.Shapes[spawn.Shape];
-            _colour = spawn.Colour;
-            _eyeColour = spawn.EyeColour;
+            _color = spawn.Color;
+            _eyeColor = spawn.EyeColor;
             ShowError(null);
-            _preview ??= new ShapePreview(_view, _root.Q("preview"));
-            Refresh();
-            _root.RemoveFromClassList("hidden");
+            Show();
             _name.Focus();
         }
 
@@ -153,91 +176,94 @@ namespace ShapeLand.Client
         private void Close()
         {
             _root.AddToClassList("hidden");
-            _preview?.Dispose();
-            _preview = null;
+            if (_preview != null)
+            {
+                Destroy(_preview.gameObject);
+                _preview = null;
+            }
             SetChanging(false);
         }
 
         private void OnContentLoaded(ShapeLandContent content)
         {
             _content = content;
+            UiText.Fill(_root, content.Strings);
+            SetChanging(false);
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = PlayerPrefs.GetString(ServerKey, _join.DefaultAddress);
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
-            _colour = Remembered(ColourKey, ShapeLandRules.BodyColours);
-            _eyeColour = Remembered(EyesKey, ShapeLandRules.EyeColours);
+            _color = Remembered(ColorKey, ShapeLandRules.BodyColors);
+            _eyeColor = Remembered(EyesKey, ShapeLandRules.EyeColors);
 
             foreach (var shape in content.Shapes.All)
             {
-                var button = new Button(() => Pick(shape)) { userData = shape };
+                var button = new Button(() =>
+                {
+                    _shape = shape;
+                    Refresh();
+                }) { userData = shape };
                 button.AddToClassList("shape-button");
-                button.Add(new ShapeIcon(shape.Mesh, GameView.Colour(_colour)));
+                button.Add(new ShapeIcon(shape.Mesh, GameView.Color(_color)));
                 button.Add(new Label(shape.DisplayName));
                 _shapes.Add(button);
             }
 
-            AddSwatches(_colours, ShapeLandRules.BodyColours, colour => _colour = colour);
-            AddSwatches(_eyes, ShapeLandRules.EyeColours, colour => _eyeColour = colour);
-            _preview = new ShapePreview(_view, _root.Q("preview"));
-            Refresh();
-            _root.RemoveFromClassList("hidden");
+            AddSwatches(_colors, ShapeLandRules.BodyColors, color => _color = color);
+            AddSwatches(_eyes, ShapeLandRules.EyeColors, color => _eyeColor = color);
+            Show();
             _name.Focus();
         }
 
-        // The first colour unless a remembered one is still in the set.
+        // The first color unless a remembered one is still in the set.
         private static uint Remembered(string key, uint[] set)
         {
             var saved = (uint)PlayerPrefs.GetInt(key, (int)set[0]);
             return set.Contains(saved) ? saved : set[0];
         }
 
-        private void AddSwatches(VisualElement row, uint[] colours, System.Action<uint> pick)
+        private void AddSwatches(VisualElement row, uint[] colors, System.Action<uint> pick)
         {
-            foreach (var colour in colours)
+            foreach (var color in colors)
             {
                 var swatch = new Button(() =>
                 {
-                    pick(colour);
+                    pick(color);
                     Refresh();
-                }) { userData = colour, tooltip = $"#{colour:X6}" };
+                }) { userData = color, tooltip = $"#{color:X6}" };
                 swatch.AddToClassList("swatch");
-                swatch.style.backgroundColor = GameView.Colour(colour);
+                swatch.style.backgroundColor = GameView.Color(color);
                 row.Add(swatch);
             }
         }
 
-        private void Pick(Shape shape)
-        {
-            _shape = shape;
-            Refresh();
-        }
-
-        // Marks the choices, recolours the icons, and updates the preview and the stats.
+        // Marks the choices, recolors the icons, and updates the preview and the stats.
         private void Refresh()
         {
             foreach (var button in _shapes.Children())
             {
                 button.EnableInClassList("on", button.userData == _shape);
-                button.Q<ShapeIcon>().Set(((Shape)button.userData).Mesh, GameView.Colour(_colour));
+                button.Q<ShapeIcon>().Set(((Shape)button.userData).Mesh, GameView.Color(_color));
             }
 
-            foreach (var swatch in _colours.Children())
-            {
-                swatch.EnableInClassList("on", (uint)swatch.userData == _colour);
-            }
+            MarkSwatch(_colors, _color);
+            MarkSwatch(_eyes, _eyeColor);
 
-            foreach (var swatch in _eyes.Children())
-            {
-                swatch.EnableInClassList("on", (uint)swatch.userData == _eyeColour);
-            }
-
-            _preview.Show(_shape, _colour, _eyeColour);
+            _preview.Show(_view, _shape, _color, _eyeColor);
 
             var best = _content.Shapes.All.Select(Stats).ToList();
             var (speed, jump) = Stats(_shape);
             _stats.Clear();
-            _stats.Add(Stat("Speed", $"{speed:0.#} m/s", speed / best.Max(s => s.Speed)));
-            _stats.Add(Stat("Jump", $"{jump:0.0} m", jump / best.Max(s => s.JumpHeight)));
+            var strings = _content.Strings;
+            _stats.Add(Stat(strings.Get("join.speed"), strings.Format("join.speed_value", ("speed", speed.ToString("0.#"))), speed / best.Max(s => s.Speed)));
+            _stats.Add(Stat(strings.Get("join.jump"), strings.Format("join.jump_value", ("height", jump.ToString("0.0"))), jump / best.Max(s => s.JumpHeight)));
+        }
+
+        private static void MarkSwatch(VisualElement row, uint color)
+        {
+            foreach (var swatch in row.Children())
+            {
+                swatch.EnableInClassList("on", (uint)swatch.userData == color);
+            }
         }
 
         private static VisualElement Stat(string name, string value, float share)
@@ -278,9 +304,9 @@ namespace ShapeLand.Client
                 return;
             }
 
-            if (!ShapeLandRules.TryNormaliseName(_name.value, out var name))
+            if (!ShapeLandRules.TryNormalizeName(_name.value, out var name))
             {
-                ShowError(NameRules);
+                ShowError(Text("join.name_rules"));
                 return;
             }
 
@@ -289,8 +315,8 @@ namespace ShapeLand.Client
             {
                 PlayerPrefs.SetString(NameKey, name);
                 PlayerPrefs.SetString(ShapeKey, _shape.Id);
-                PlayerPrefs.SetInt(ColourKey, (int)_colour);
-                PlayerPrefs.SetInt(EyesKey, (int)_eyeColour);
+                PlayerPrefs.SetInt(ColorKey, (int)_color);
+                PlayerPrefs.SetInt(EyesKey, (int)_eyeColor);
 #if !UNITY_WEBGL || UNITY_EDITOR
                 PlayerPrefs.SetString(ServerKey, server);
 #endif
@@ -298,78 +324,70 @@ namespace ShapeLand.Client
             }
 
             ShowError(null);
-            var request = new JoinRequest { Name = name, Shape = _shape.Number, Colour = _colour, EyeColour = _eyeColour };
+            var request = new JoinRequest { Name = name, Shape = _shape.Number, Color = _color, EyeColor = _eyeColor };
             if (Changing)
             {
                 var current = _join.Spawn.Value;
-                if (name == current.Name && request.Shape == current.Shape && request.Colour == current.Colour && request.EyeColour == current.EyeColour)
+                if (name == current.Name && request.Shape == current.Shape && request.Color == current.Color && request.EyeColor == current.EyeColor)
                 {
                     Close();
                     return;
                 }
 
-                _joinButton.SetEnabled(false);
-                _joinButton.text = "Applying…";
+                SetButton(false, "join.applying");
                 _join.Change(request);
                 return;
             }
 
-            _joinButton.SetEnabled(false);
-            _joinButton.text = "Joining…";
+            SetButton(false, "join.joining");
             _join.Join(server, request);
         }
 
         private void OnRefused(JoinRejection reason)
         {
-            var message = RefusalMessage(reason, _join.PlayerName);
+            var message = RefusalMessage(_content.Strings, reason, _join.PlayerName);
             if (reason == JoinRejection.NameTaken && _lostAt is float lostAt && Time.unscaledTime - lostAt < OldSessionSeconds)
             {
                 // Likely this player's own old session, which the server hasn't noticed is gone yet.
-                message = $"The server still has your last session as {_join.PlayerName}. Try again in a few seconds.";
+                message = _content.Strings.Format("join.old_session", ("name", _join.PlayerName));
             }
 
             Retry(message);
         }
 
         // The card comes back with the reason, and the choices made before.
-        private void OnConnectionLost(string reason)
+        private void OnConnectionLost(CloseReason reason)
         {
             _lostAt = Time.unscaledTime;
             SetChanging(false);
-            _preview ??= new ShapePreview(_view, _root.Q("preview"));
-            Refresh();
-            _root.RemoveFromClassList("hidden");
-            Retry(LostMessage(reason));
+            Show();
+            Retry(LostMessage(_content.Strings, reason));
         }
 
-        /// <summary>What the card says after the connection was lost for <paramref name="reason"/>.</summary>
-        public static string LostMessage(string reason) =>
-            reason == ClientSession.LostMessage ? reason : $"{ClientSession.LostMessage} {reason}";
-
-        private void OnFailed(string error)
+        private void OnFailed(JoinFailure failure)
         {
             if (_content == null)
             {
                 return; // the content didn't load; nothing to show the card with
             }
 
-            if (_join.BadAddress || error == JoinClient.JoinUnanswered)
+            var address = _server.value.Trim();
+            Retry(failure switch
             {
-                Retry(error);
-                return;
-            }
-
-            Retry(Application.platform == RuntimePlatform.WebGLPlayer
-                ? "Couldn't reach the game server. It may not be running right now."
-                : $"Couldn't reach the server at {_server.value.Trim()}. Check the address, or whether it's running.");
+                JoinFailure.BadAddress => _content.Strings.Format("join.bad_address", ("address", address)),
+                JoinFailure.Unanswered => Text("join.unanswered"),
+                _ when Application.platform == RuntimePlatform.WebGLPlayer => Text("join.unreachable_web"),
+                _ => _content.Strings.Format("join.unreachable", ("address", address)),
+            });
         }
 
         private void Retry(string message)
         {
             ShowError(message);
-            _joinButton.SetEnabled(true);
-            _joinButton.text = Changing ? "Apply" : "Join";
+            SetButton(true, Changing ? "join.apply" : "join.join");
         }
+
+        private string Text(string key) => _content?.Strings.Get(key) ?? "";
 
         private void ShowError(string message)
         {
@@ -379,7 +397,14 @@ namespace ShapeLand.Client
 
         private void OnOwnSpawned(PlayerSpawn spawn) => Close();
 
-        private void Update() => _preview?.Turn(Time.unscaledDeltaTime);
+        private void OpenPreview()
+        {
+            if (_preview == null)
+            {
+                _preview = Instantiate(previewPrefab);
+                _preview.ShowIn(_root.Q("preview"));
+            }
+        }
 
         private void OnDestroy()
         {
@@ -388,80 +413,9 @@ namespace ShapeLand.Client
             _join.JoinRefused -= OnRefused;
             _join.Failed -= OnFailed;
             _join.ConnectionLost -= OnConnectionLost;
-            _preview?.Dispose();
-        }
-
-        /// <summary>
-        /// The chosen shape, built like any player's, turning in front of its own camera on a layer the main
-        /// camera doesn't draw, far below the island, and shown on the card through a render texture.
-        /// </summary>
-        private sealed class ShapePreview : System.IDisposable
-        {
-            private const float DegreesPerSecond = 40;
-            private static readonly Vector3 Place = new Vector3(0, -500, 0);
-
-            private readonly GameView _view;
-            private readonly GameObject _stand;
-            private readonly RenderTexture _texture;
-            private GameObject _shape;
-            private ShapeFade _materials;
-
-            public ShapePreview(GameView view, VisualElement target)
+            if (_preview != null)
             {
-                _view = view;
-                _texture = new RenderTexture(256, 256, 24, RenderTextureFormat.ARGB32) { name = "Shape preview" };
-                _stand = new GameObject("Shape preview") { layer = GameView.PreviewLayer };
-                _stand.transform.position = Place;
-                var camera = new GameObject("Preview camera", typeof(Camera)).GetComponent<Camera>();
-                camera.gameObject.layer = GameView.PreviewLayer;
-                camera.transform.SetParent(_stand.transform, false);
-                camera.transform.SetLocalPositionAndRotation(new Vector3(0, 1.3f, -3.4f), Quaternion.Euler(14, 0, 0));
-                camera.fieldOfView = 28;
-                camera.clearFlags = CameraClearFlags.SolidColor;
-                camera.backgroundColor = new Color(0, 0, 0, 0);
-                camera.cullingMask = 1 << GameView.PreviewLayer;
-                camera.targetTexture = _texture;
-                target.style.backgroundImage = Background.FromRenderTexture(_texture);
-            }
-
-            public void Show(Shape shape, uint colour, uint eyeColour)
-            {
-                var facing = _shape != null ? _shape.transform.localRotation : Quaternion.Euler(0, 200, 0);
-                Clear();
-                _shape = _view.BuildShape(shape, colour, eyeColour, "Previewed shape", out _materials);
-                _shape.transform.SetParent(_stand.transform, false);
-                _shape.transform.localRotation = facing;
-                foreach (var renderer in _shape.GetComponentsInChildren<Renderer>())
-                {
-                    renderer.gameObject.layer = GameView.PreviewLayer;
-                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                }
-            }
-
-            public void Turn(float seconds)
-            {
-                if (_shape != null)
-                {
-                    _shape.transform.Rotate(0, DegreesPerSecond * seconds, 0);
-                }
-            }
-
-            private void Clear()
-            {
-                if (_shape != null)
-                {
-                    _materials.Destroy();
-                    Object.Destroy(_shape);
-                    _shape = null;
-                }
-            }
-
-            public void Dispose()
-            {
-                Clear();
-                Object.Destroy(_stand);
-                _texture.Release();
-                Object.Destroy(_texture);
+                Destroy(_preview.gameObject); // its own object, so it doesn't go with the card
             }
         }
     }

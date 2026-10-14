@@ -21,8 +21,8 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 ## Layout
 
-- `comet/`: Comet, the shared base: protocol, simulation, client and server libraries, content tools, and the Unity package.
-- `shapeland/`: ShapeLand, the demo game: content, game server, bots, Unity client and deployment.
+- `comet/`: Comet, the shared base: protocol, simulation, client and server libraries, content tools, and the Unity package. Its [README](comet/README.md) explains how they fit together.
+- `shapeland/`: ShapeLand, the demo game: content, game server, bots, Unity client and deployment. Its [README](shapeland/README.md) maps the code and the tuning values.
 - `tools/`: scripts for building, running and testing (below), and the stack benchmark.
 - `docs/`: project notes and the proposal.
 
@@ -48,7 +48,6 @@ Run them from the repository root. Each script's options are listed below and in
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
 | `tools/unity-batch.sh` | Run Unity in batch mode (tests, builds) and return when the work is done, since the editor often hangs while quitting. |
 | `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
-| `tools/observe.cs` | Join a local server as a player standing still and print how other players' movement arrives. |
 | `tools/StackBench/` | The stack benchmark: Comet's message layer under load, with no game logic. See its [README](tools/StackBench/README.md). |
 
 ### Play locally in a browser
@@ -99,21 +98,11 @@ The first argument is the profile on the server's link: `none`, `good`, `bad` or
 
 Results also go to a file stamped with the profile and commit. The default port (5091) lets a `shapeland-dev.sh` session keep running alongside.
 
-### Watching movement
-
-With a server and moving players (bots, for instance) running, and the content built:
-
-```sh
-dotnet run tools/observe.cs -- --url ws://localhost:5080/ws --seconds 20
-```
-
-`--url` is the server's WebSocket address (default `ws://localhost:5080/ws`) and `--seconds` how long to watch (default 20).
-
 ### Unity batch jobs
 
 ```sh
 tools/unity-batch.sh -- -runTests -testPlatform PlayMode -testResults Logs/results.xml
-tools/unity-batch.sh -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
+tools/unity-batch.sh -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.Web -quit
 ```
 
 Everything after `--` goes to Unity. Before it:

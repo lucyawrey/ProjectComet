@@ -23,28 +23,8 @@ namespace Comet.Client
     /// </remarks>
     public sealed class ClientSession
     {
-        private readonly MessagePackSerializerOptions _options;
-        private readonly MessageWriter _messages;
-        private readonly MessageWriter _frame;
-        private uint? _reportTick;
-        private readonly float _gravity;
-        private readonly Func<Vector3, float?>? _groundHeight;
-        private double _lastUpdate;
-        private readonly double _pingInterval;
-        private readonly float _teleportSpeed;
-        private ServerClock? _clock;
-        private RemoteEntities? _entities;
-        private InterpolationDelay? _delay;
-        private bool _catchingUp;
-
         /// <summary>A gap between updates longer than this, in seconds, is a stall on this side rather than the network's.</summary>
         public const double LocalStallSeconds = 0.25;
-        private double _nextPing;
-        // Ping times as sent, in whole microseconds, so a pong's echo compares exactly.
-        private long _lastPingSent;
-        private long? _oldestUnansweredPing;
-        private (uint Tick, Vector3 Position, Vector3 Velocity, float Facing)? _heldReport;
-        private string? _closeReason;
 
         /// <summary>
         /// A ping unanswered for this long, in seconds, means our sends are stuck (e.g. wifi roaming): position
@@ -55,11 +35,36 @@ namespace Comet.Client
 
         /// <summary>
         /// A ping unanswered for this long, in seconds, means the server is gone (a machine that vanished closes
-        /// nothing, and TCP takes minutes to notice): the session closes with <see cref="LostMessage"/>.
+        /// nothing, and TCP takes minutes to notice): the session closes with <see cref="CloseReason.Lost"/>.
         /// </summary>
         public const double LostSeconds = 10;
 
-        public const string LostMessage = "Lost the connection to the game server.";
+        private readonly MessagePackSerializerOptions _options;
+        private readonly MessageWriter _messages;
+        private readonly MessageWriter _frame;
+        private readonly double _pingInterval;
+        private readonly float _teleportSpeed;
+        private readonly float _gravity;
+        private readonly Func<Vector3, float?>? _groundHeight;
+
+        // Set up by the server's welcome.
+        private ServerClock? _clock;
+        private RemoteEntities? _entities;
+        private InterpolationDelay? _delay;
+
+        private double _lastUpdate;
+        private bool _catchingUp;
+        private uint? _reportTick;
+        private (uint Tick, Vector3 Position, Vector3 Velocity, float Facing)? _heldReport;
+
+        // Ping times as sent, in whole microseconds, so a pong's echo compares exactly.
+        private double _nextPing;
+        private long _lastPingSent;
+        private long? _oldestUnansweredPing;
+
+        // Why this side gave up on the session (a protocol error, or the server gone quiet), with the details.
+        private CloseReason _ownReason;
+        private string? _ownError;
 
         /// <param name="options">Serializer options covering Comet's messages and the game's.</param>
         /// <param name="pingInterval">Seconds between pings for the server-tick estimate.</param>
@@ -79,6 +84,7 @@ namespace Comet.Client
             _teleportSpeed = teleportSpeed;
         }
 
+        /// <summary>The connection to the server.</summary>
         public IClientTransport Transport { get; }
 
         /// <summary>True once the server's <see cref="Welcome"/> has arrived.</summary>
@@ -101,11 +107,14 @@ namespace Comet.Client
         /// <summary>Entity states received, for diagnostics.</summary>
         public int StatesReceived { get; private set; }
 
-        /// <summary>Why the session ended: a protocol error here, or the transport's error.</summary>
-        public string? Error => _closeReason ?? Transport.Error;
+        /// <summary>Why the session ended: given up on here, or the transport's reason.</summary>
+        public CloseReason CloseReason => _ownReason != CloseReason.None ? _ownReason : Transport.CloseReason;
 
-        /// <summary>Closed by either side, or given up on (a protocol error, or the server gone quiet); <see cref="Error"/> says why.</summary>
-        public bool Closed => _closeReason != null || Transport.State == TransportState.Closed;
+        /// <summary>The details of <see cref="CloseReason"/>, in English, for logs.</summary>
+        public string? Error => _ownError ?? Transport.Error;
+
+        /// <summary>Closed by either side, or given up on (a protocol error, or the server gone quiet); <see cref="CloseReason"/> says why.</summary>
+        public bool Closed => _ownReason != CloseReason.None || Transport.State == TransportState.Closed;
 
         /// <summary>The server's welcome arrived; <see cref="Clock"/> and <see cref="Entities"/> are ready.</summary>
         public event Action<Welcome>? WelcomeArrived;
@@ -116,6 +125,7 @@ namespace Comet.Client
         /// <summary>An entity left view; it has already been removed from <see cref="Entities"/>.</summary>
         public event Action<uint>? EntityDespawned;
 
+        /// <summary>A message for the game (ID <see cref="MessageIds.FirstGameMessage"/> or higher), which the session doesn't handle itself.</summary>
         public event GameMessageHandler? GameMessage;
 
         /// <summary>The tick other entities are drawn at, at <paramref name="now"/>.</summary>
@@ -128,7 +138,7 @@ namespace Comet.Client
             // before now, so they say nothing about the network's delay; don't let them push the delay up.
             _catchingUp = now - _lastUpdate > LocalStallSeconds;
             _lastUpdate = now;
-            while (_closeReason == null && Transport.TryReceive(out var frame))
+            while (_ownReason == CloseReason.None && Transport.TryReceive(out var frame))
             {
                 try
                 {
@@ -136,8 +146,7 @@ namespace Comet.Client
                 }
                 catch (ProtocolException e)
                 {
-                    _closeReason = e.Message;
-                    Transport.Close();
+                    GiveUp(CloseReason.ProtocolError, e.Message);
                 }
             }
 
@@ -159,10 +168,9 @@ namespace Comet.Client
             // Pongs handled above came first, so frames that waited through a stall of our own count as answers.
             var unanswered = _oldestUnansweredPing is { } oldest ? now - oldest / 1_000_000.0 : 0;
             ReportsHeld = unanswered > ReportHoldSeconds;
-            if (unanswered > LostSeconds && _closeReason == null)
+            if (unanswered > LostSeconds && _ownReason == CloseReason.None)
             {
-                _closeReason = LostMessage;
-                Transport.Close();
+                GiveUp(CloseReason.Lost, $"No answer from the server for {LostSeconds} s.");
                 return;
             }
 
@@ -323,6 +331,13 @@ namespace Comet.Client
                         break; // an unknown Comet message, from a newer server
                 }
             }
+        }
+
+        private void GiveUp(CloseReason reason, string error)
+        {
+            _ownReason = reason;
+            _ownError = error;
+            Transport.Close();
         }
 
         private static InvalidOperationException NotWelcomed() => new InvalidOperationException("The server hasn't welcomed this client yet.");

@@ -230,13 +230,13 @@ public class MovementValidatorTests
         Assert.Equal(new Vector3(4.4f, 0, 4), _validator.Position);
     }
 
-    // Attacks from the first code review: a client's numbers are never trusted as sent.
+    // Attacks a cheating client might try: a client's numbers are never trusted as sent.
 
     [Fact]
     public void AFakedVelocityDoesNotCarryASilentFall()
     {
         // An accepted hop reporting 300 m/s sideways, then silence: the server's fall starts from the allowed
-        // speed, so it lands about where a real hop at full speed would (~2 m), not hundreds of metres away.
+        // speed, so it lands about where a real hop at full speed would (~2 m), not hundreds of meters away.
         Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(4, 0.6f, 4), new Vector3(300, 0, 0), tick: 103));
         Assert.True(_validator.Velocity.Length() <= MaxSpeed * new MovementTolerances().SpeedFactor + 0.001f);
         var result = FallResult.None;
@@ -303,7 +303,7 @@ public class MovementValidatorTests
     public void AReportGuessingTheNextSequenceDuringAServerFallIsStale()
     {
         // Off the edge and silent, so the server takes the fall over; a report then guessing the sequence the landing
-        // will carry is still stale, so the fall isn't left half-finished (the code review's S4).
+        // will carry is still stale, so the fall isn't left half-finished.
         _validator.Reset(new Vector3(31.6f, 0, 4), 0, 108);
         Assert.Equal(MovementVerdict.Accepted, Report(new Vector3(32.4f, -0.2f, 4), new Vector3(MaxSpeed, -2, 0), tick: 112));
         var tick = 113u;

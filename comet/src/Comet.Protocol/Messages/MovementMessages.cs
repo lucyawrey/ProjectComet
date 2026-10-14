@@ -49,7 +49,7 @@ namespace Comet.Protocol.Messages
         [Key(5)] public uint Tick;
 
         /// <summary>
-        /// Velocity in metres per second, as the mover reported it: clients that run out of states keep drawing
+        /// Velocity in meters per second, as the mover reported it: clients that run out of states keep drawing
         /// the entity along it until the next one arrives (dead reckoning).
         /// </summary>
         [Key(6)] public float VelocityX;

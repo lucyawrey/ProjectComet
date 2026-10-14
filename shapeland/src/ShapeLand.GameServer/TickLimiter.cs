@@ -15,6 +15,7 @@ public sealed class TickLimiter(int tickRate, int burst, float secondsPerTake)
     /// <summary>Join attempts: far more than a player retrying a taken name needs; each one scans every player.</summary>
     public static TickLimiter Join(int tickRate) => new(tickRate, burst: 5, secondsPerTake: 1);
 
+    /// <summary>Takes one action at <paramref name="tick"/> if the limit allows it.</summary>
     public bool TryTake(uint tick)
     {
         if (_lastTick != 0)

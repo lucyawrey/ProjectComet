@@ -9,19 +9,27 @@ var LibraryCometWebSocket = {
 
   // Opens a socket and returns its id. State: 0 connecting, 1 open, 2 closed. Connecting fails after connectMs, and
   // the socket closes once more than maxQueued bytes of messages wait untaken (they pile up while a hidden tab
-  // doesn't run the game), each with the reason given.
+  // doesn't run the game). Each ending records a reason, the numbers of Comet.Client.CloseReason, and English
+  // details for logs.
   CometWs_Open__deps: ['$UTF8ToString'],
-  CometWs_Open__sig: 'ipiipp',
-  CometWs_Open: function (urlPtr, connectMs, maxQueued, timedOutPtr, fellBehindPtr) {
+  CometWs_Open__sig: 'ipii',
+  CometWs_Open: function (urlPtr, connectMs, maxQueued) {
+    var ConnectFailed = 1, ConnectTimedOut = 2, ServerClosed = 3, ServerShutDown = 4, Failed = 5, FellBehind = 6;
     var id = cometWs.nextId++;
-    var entry = { socket: null, state: 0, error: null, closing: false, queue: [], queued: 0, timer: 0 };
+    var entry = { socket: null, state: 0, reason: 0, error: null, closing: false, queue: [], queued: 0, timer: 0 };
     cometWs.sockets[id] = entry;
-    var timedOut = UTF8ToString(timedOutPtr);
-    var fellBehind = UTF8ToString(fellBehindPtr);
+
+    // Records why the socket ended, unless it already has a reason or this side closed it.
+    function end(reason, error) {
+      if (!entry.closing && !entry.reason) {
+        entry.reason = reason;
+        entry.error = error;
+      }
+    }
 
     // Gives up on the socket with a reason, ignoring what it reports afterwards.
-    function fail(reason) {
-      entry.error = reason;
+    function fail(reason, error) {
+      end(reason, error);
       entry.state = 2;
       entry.queue = [];
       entry.queued = 0;
@@ -33,14 +41,14 @@ var LibraryCometWebSocket = {
       entry.socket = new WebSocket(UTF8ToString(urlPtr));
     } catch (e) {
       entry.state = 2;
-      entry.error = 'Could not connect: ' + (e && e.message ? e.message : e);
+      end(ConnectFailed, 'Could not connect: ' + (e && e.message ? e.message : e));
       return id;
     }
 
     entry.socket.binaryType = 'arraybuffer';
     entry.timer = setTimeout(function () {
       if (entry.state === 0) {
-        fail(timedOut);
+        fail(ConnectTimedOut, 'Timed out connecting to the server.');
       }
     }, connectMs);
     entry.socket.onopen = function () {
@@ -52,25 +60,32 @@ var LibraryCometWebSocket = {
         entry.queue.push(new Uint8Array(event.data));
         entry.queued += event.data.byteLength;
         if (entry.queued > maxQueued) {
-          fail(fellBehind);
+          fail(FellBehind, "Fell too far behind the server (the game wasn't running for too long).");
         }
       }
     };
     // Browsers hide the reason for a failed connection; onclose follows with the details there are.
     entry.socket.onerror = function () {
-      if (!entry.closing && !entry.error) {
-        entry.error = entry.state === 0 ? 'Could not connect.' : 'The connection failed.';
+      if (entry.state === 0) {
+        end(ConnectFailed, 'Could not connect.');
+      } else {
+        end(Failed, 'The connection failed.');
       }
     };
     entry.socket.onclose = function (event) {
       clearTimeout(entry.timer);
-      if (!entry.closing && !entry.error) {
-        // The server's reason, if it gave one (e.g. that it's shutting down).
-        entry.error = event.reason || 'The server closed the connection (code ' + event.code + ').';
-      }
+      // 1001 (going away) is the server shutting down; its words, if it gave any, go in the details.
+      end(event.code === 1001 ? ServerShutDown : ServerClosed, event.reason || 'The server closed the connection (code ' + event.code + ').');
       entry.state = 2;
     };
     return id;
+  },
+
+  // The reason the socket ended (Comet.Client.CloseReason), or 0 for none.
+  CometWs_Reason__sig: 'ii',
+  CometWs_Reason: function (id) {
+    var entry = cometWs.sockets[id];
+    return entry ? entry.reason : 0;
   },
 
   CometWs_State__sig: 'ii',

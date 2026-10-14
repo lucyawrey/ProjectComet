@@ -24,6 +24,7 @@ namespace Comet.Client
             _sharpTurnCos = MathF.Cos(sharpTurnDegrees * MathF.PI / 180);
         }
 
+        /// <summary>How often the position is reported while moving, in seconds.</summary>
         public double Interval { get; }
 
         // Step times (a step number over the step rate) round, so an interval of exactly four steps can come out a

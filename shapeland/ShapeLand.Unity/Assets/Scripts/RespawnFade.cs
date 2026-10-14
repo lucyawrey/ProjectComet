@@ -5,14 +5,14 @@ namespace ShapeLand.Client
     /// <summary>
     /// How falling off and respawning fade, with its numbers in one place (placeholders, adjusted by playing). A
     /// respawn arrives without warning, so the fade starts while falling: your own screen darkens as you fall
-    /// towards the world's kill height, is already dark when the server's respawn arrives, and lightens again
+    /// toward the world's kill height, is already dark when the server's respawn arrives, and lightens again
     /// after it. Other players' shapes fade out and back in the same way, which leaves a snap-back (made at full
     /// visibility) as a plain jump.
     /// </summary>
     public static class RespawnFade
     {
         /// <summary>
-        /// How far above the kill height falling starts to fade, in metres. At the island's falling speeds this
+        /// How far above the kill height falling starts to fade, in meters. At the island's falling speeds this
         /// takes about half a second; the island's lowest ground is well above where it starts.
         /// </summary>
         public const float FadeDistance = 18f;

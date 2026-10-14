@@ -1,13 +1,14 @@
 using System.Collections;
-using System.IO;
 using Comet.Unity;
 using NUnit.Framework;
+using ShapeLand.Shared.Messages;
+using ShapeLand.Shared.World;
 using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace ShapeLand.Client.Tests
 {
-    // Joins the real ShapeLand game server from Play mode (step 3b): builds it, starts it on a free port and
+    // Joins the real ShapeLand game server from Play mode with the join client alone: builds it, starts it on a free port and
     // checks the welcome, the player's own spawn and the first pong. Needs the dotnet SDK on the PATH and the
     // content built and copied (ShapeLand > Copy Content).
     public class JoinTests
@@ -30,7 +31,7 @@ namespace ShapeLand.Client.Tests
         [UnityTest]
         public IEnumerator JoinsTheGameServer()
         {
-            Assert.That(File.Exists(Path.Combine(Application.streamingAssetsPath, "content.bin")), "No content in StreamingAssets; run ShapeLand > Copy Content.");
+            TestGameServer.LoadContent();
 
             _server = new TestGameServer();
             yield return _server.Start();
@@ -39,8 +40,13 @@ namespace ShapeLand.Client.Tests
             _client.SetActive(false);
             _client.AddComponent<CometConnection>();
             var join = _client.AddComponent<JoinClient>();
-            join.Address = _server.Address;
-            join.PlayerName = "Unity test";
+            join.ContentLoaded += content => join.Join(_server.Address, new JoinRequest
+            {
+                Name = "Unity test",
+                Shape = content.Shapes.All[0].Number,
+                Color = ShapeLandRules.BodyColors[0],
+                EyeColor = ShapeLandRules.EyeColors[0],
+            });
             _client.SetActive(true);
 
             yield return TestGameServer.WaitFor(() => join.Joined && join.Session.Clock.Synced || join.Error != null || join.Rejected != null, 15);

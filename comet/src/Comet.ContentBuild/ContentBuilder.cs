@@ -13,13 +13,16 @@ namespace Comet.ContentBuild;
 /// Reads a game's content folder: one TOML file per entry, in folders by type. Each file is checked against its
 /// C# type (syntax, unknown keys, missing or mistyped fields, the id's form and uniqueness, then the type's own
 /// validation rules) and, if everything passes, gets its number from the ID registry. Games register their types
-/// and Tomlyn's source-generated metadata for them, then write the compiled file themselves.
+/// and Tomlyn's source-generated metadata for them, then write the compiled file themselves. A game with interface
+/// text also registers its string file (<see cref="AddStrings"/>).
 /// </summary>
 public sealed class ContentBuilder
 {
     private readonly string _root;
     private readonly List<IContentType> _types = new();
+    private string? _stringFile;
 
+    /// <summary>A builder for the content folder at <paramref name="contentRoot"/>.</summary>
     public ContentBuilder(string contentRoot) => _root = Path.GetFullPath(contentRoot);
 
     /// <summary>Registers a content type read from <c>{folder}/**/*.toml</c>, with ids of the form <c>{kind}.name</c>.</summary>
@@ -30,6 +33,13 @@ public sealed class ContentBuilder
         return this;
     }
 
+    /// <summary>Reads interface text from <c>{folder}/en.toml</c> (<see cref="StringFile"/>); the file must exist.</summary>
+    public ContentBuilder AddStrings(string folder = "strings")
+    {
+        _stringFile = Path.Combine(folder, "en.toml");
+        return this;
+    }
+
     /// <summary>Reads and checks every registered type, assigning registry numbers and saving new ones if it all passes.</summary>
     public ContentBuildResult Build(bool saveRegistry = true)
     {
@@ -37,6 +47,20 @@ public sealed class ContentBuilder
         var registryPath = Path.Combine(_root, "ids.toml");
         var registry = IdRegistry.Load(registryPath, DisplayPath(registryPath), errors);
         var types = _types.Select(t => t.Read(this, errors)).ToList();
+        StringTable? strings = null;
+        if (_stringFile is not null)
+        {
+            var path = ContentPath(_stringFile);
+            if (File.Exists(path))
+            {
+                strings = StringFile.Read(path, DisplayPath(path), errors);
+            }
+            else
+            {
+                errors.Add(new ContentError(DisplayPath(path), 1, 1, "No string file: the game's interface text goes here."));
+            }
+        }
+
         if (errors.Count == 0)
         {
             foreach (var type in types)
@@ -50,12 +74,13 @@ public sealed class ContentBuilder
             }
         }
 
-        return new ContentBuildResult(errors, types);
+        return new ContentBuildResult(errors, types, strings);
     }
 
     /// <summary>A JSON Schema per content type, keyed by kind, for editor autocompletion and checking.</summary>
     public IReadOnlyDictionary<string, JsonNode> Schemas() => _types.ToDictionary(t => t.Kind, t => t.Schema());
 
+    /// <summary><paramref name="path"/> as errors show it: relative to the working folder when it's inside it.</summary>
     internal string DisplayPath(string path)
     {
         var relative = Path.GetRelativePath(Environment.CurrentDirectory, path);
@@ -64,11 +89,19 @@ public sealed class ContentBuilder
 
     internal string ContentPath(string folder) => Path.Combine(_root, folder);
 
+    /// <summary>An error at a TOML span, with 1-based line and column.</summary>
     internal static ContentError ErrorAt(string file, SourceSpan span, string message) =>
         new(file, span.Start.Line + 1, span.Start.Column + 1, message);
 
-    internal static string KeyText(KeySyntax key) =>
-        string.Join('.', new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!)).Select(KeyText));
+    /// <summary>A name in ids and string keys: a lowercase letter, then lowercase letters, digits and underscores.</summary>
+    internal const string NamePattern = "[a-z][a-z0-9_]*";
+
+    /// <summary>A dotted key as written, without quotes (<c>a."b"</c> is <c>a.b</c>).</summary>
+    internal static string KeyText(KeySyntax key) => string.Join('.', KeyParts(key).Select(KeyText));
+
+    /// <summary>The parts of a dotted key, in order.</summary>
+    internal static IEnumerable<BareKeyOrStringValueSyntax> KeyParts(KeySyntax key) =>
+        new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!));
 
     internal static string KeyText(BareKeyOrStringValueSyntax key) => key switch
     {
@@ -86,6 +119,7 @@ public sealed class ContentBuilder
         JsonNode Schema();
     }
 
+    /// <summary>One content type's entries after reading, before they get their numbers.</summary>
     internal interface IReadContent
     {
         Type EntryType { get; }
@@ -107,7 +141,7 @@ public sealed class ContentBuilder
             _folder = folder;
             _toml = toml;
             _validate = validate;
-            _idPattern = new Regex($"^{Regex.Escape(kind)}\\.[a-z][a-z0-9_]*$");
+            _idPattern = new Regex($"^{Regex.Escape(kind)}\\.{NamePattern}$");
         }
 
         public string Kind { get; }

@@ -16,7 +16,7 @@ namespace Comet.Client
         private double _now;
 
         /// <param name="stepsPerSecond">The simulation rate.</param>
-        /// <param name="maxSteps">The most steps one frame runs; time beyond that (a long hitch) is dropped, so the simulation slows instead of spiralling.</param>
+        /// <param name="maxSteps">The most steps one frame runs; time beyond that (a long hitch) is dropped, so the simulation slows instead of spiraling.</param>
         public FixedStep(int stepsPerSecond, int maxSteps = 15)
         {
             if (stepsPerSecond <= 0)
@@ -29,10 +29,13 @@ namespace Comet.Client
             MaxSteps = maxSteps;
         }
 
+        /// <summary>The simulation rate.</summary>
         public int StepsPerSecond { get; }
 
+        /// <summary>How long one step is, in seconds.</summary>
         public double StepSeconds { get; }
 
+        /// <summary>The most steps one frame runs; time beyond that (a long hitch) is dropped.</summary>
         public int MaxSteps { get; }
 
         /// <summary>The number of the last step run (or of the grid point the clock started at).</summary>

@@ -90,7 +90,8 @@ public sealed class WebSocketTransportTests : IDisposable
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(TransportState.Closed, transport.State);
-        Assert.Null(transport.Error); // closing was our choice
+        Assert.Equal(CloseReason.None, transport.CloseReason); // closing was our choice
+        Assert.Null(transport.Error);
     }
 
     [Fact]
@@ -100,6 +101,7 @@ public sealed class WebSocketTransportTests : IDisposable
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(TransportState.Closed, transport.State);
+        Assert.Equal(CloseReason.ConnectFailed, transport.CloseReason);
         Assert.NotNull(transport.Error);
     }
 
@@ -112,7 +114,7 @@ public sealed class WebSocketTransportTests : IDisposable
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(TransportState.Closed, transport.State);
-        Assert.Equal(TransportLimits.ConnectTimedOut, transport.Error);
+        Assert.Equal(CloseReason.ConnectTimedOut, transport.CloseReason);
     }
 
     [Fact]
@@ -138,7 +140,7 @@ public sealed class WebSocketTransportTests : IDisposable
         }
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.Equal(TransportLimits.FellBehind, transport.Error);
+        Assert.Equal(CloseReason.FellBehind, transport.CloseReason);
         Assert.False(transport.TryReceive(out _), "The frames waiting were kept, to be handled all at once.");
     }
 }

@@ -22,8 +22,10 @@ public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerO
     private readonly Dictionary<IPAddress, int> _openByAddress = [];
     private int _open;
 
+    /// <summary>Traffic and trouble counts across every connection.</summary>
     public NetworkStats Stats { get; } = new();
 
+    /// <summary>How connections encode messages.</summary>
     public MessagePackSerializerOptions SerializerOptions { get; } = serializerOptions ?? ProtocolSerializer.Options;
 
     public Connection[] Snapshot => Volatile.Read(ref _snapshot);
@@ -67,6 +69,7 @@ public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerO
         }
     }
 
+    /// <summary>Uncounts a connection counted by <see cref="TryReserve"/>, once it has closed or was never accepted.</summary>
     internal void Release(IPAddress? address)
     {
         var key = AddressKey(address);

@@ -7,15 +7,20 @@ public sealed class ContentBuildResult
 {
     private readonly IReadOnlyList<ContentBuilder.IReadContent> _types;
 
-    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentBuilder.IReadContent> types)
+    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings)
     {
         Errors = errors;
         _types = types;
+        Strings = strings;
     }
 
+    /// <summary>Every problem found, with its file, line and column; empty if the build succeeded.</summary>
     public IReadOnlyList<ContentError> Errors { get; }
 
     public bool Succeeded => Errors.Count == 0;
+
+    /// <summary>The interface text, if the game registered a string file (<see cref="ContentBuilder.AddStrings"/>).</summary>
+    public StringTable? Strings { get; }
 
     /// <summary>The entries of one registered type, in number order.</summary>
     public IReadOnlyList<T> Entries<T>()

@@ -23,7 +23,7 @@ set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 work="$repo/artifacts/testbuild"
-web="$repo/artifacts/unity/shapeland/web-game"
+web="$repo/artifacts/unity/shapeland/web"
 content="$repo/artifacts/content/shapeland/content.bin"
 config_dir="$HOME/.config/shapeland-testbuild"
 
@@ -247,7 +247,7 @@ page() {
   local out="$work/$vercel_project" url
   if [ "$build" -eq 1 ]; then
     echo "== Building the web page (Unity, a few minutes; close the editor first)"
-    "$repo/tools/unity-batch.sh" -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
+    "$repo/tools/unity-batch.sh" -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.Web -quit
     # A web build rewrites the project settings; those changes aren't kept.
     git -C "$repo" checkout -q -- shapeland/ShapeLand.Unity/ProjectSettings/ProjectSettings.asset 2> /dev/null || true
   fi

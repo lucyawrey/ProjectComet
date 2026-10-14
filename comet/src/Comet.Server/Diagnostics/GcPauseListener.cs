@@ -22,6 +22,7 @@ public sealed class GcPauseListener : EventListener
     private bool _startedInPause;
     private GcHeapStats? _heapStats;
 
+    /// <summary>A pause ended; raised on the runtime's event thread.</summary>
     public event Action<GcPause>? PauseRecorded;
 
     protected override void OnEventSourceCreated(EventSource eventSource)

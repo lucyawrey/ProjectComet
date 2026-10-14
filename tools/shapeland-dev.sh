@@ -32,7 +32,7 @@ set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 project="$repo/shapeland/ShapeLand.Unity"
-web="$repo/artifacts/unity/shapeland/web-game"
+web="$repo/artifacts/unity/shapeland/web"
 content="$repo/artifacts/content/shapeland/content.bin"
 
 rebuild=0
@@ -84,6 +84,7 @@ stale() {
   [ -n "$(find "$project/Assets" "$project/Packages" "$project/ProjectSettings" \
     "$repo/comet/src/Comet.Client" "$repo/comet/src/Comet.Content" "$repo/comet/src/Comet.Protocol" \
     "$repo/comet/src/Comet.Simulation" "$repo/comet/unity" "$repo/shapeland/src/ShapeLand.Shared" \
+    "$repo/shapeland/content/strings" \
     -type f -newer "$web/index.html" ! -name '*.meta' ! -path '*/StreamingAssets/*' -print 2>/dev/null | head -n 1)" ]
 }
 
@@ -96,7 +97,7 @@ elif [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
     echo "The Unity editor has the project open; close it first (or use --no-build)." >&2
     exit 1
   fi
-  "$repo/tools/unity-batch.sh" -l Logs/web.log -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.WebGame -quit
+  "$repo/tools/unity-batch.sh" -l Logs/web.log -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.Web -quit
   # Marks the build as up to date, but only a build that made its page.
   [ -f "$web/index.html" ] || { echo "The Unity build made no page at $web/index.html (log: $project/Logs/web.log)" >&2; exit 1; }
   touch "$web/index.html"

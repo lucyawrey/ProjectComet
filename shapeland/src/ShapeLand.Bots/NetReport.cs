@@ -4,18 +4,24 @@ using Comet.Client;
 namespace ShapeLand.Bots;
 
 /// <summary>
-/// What a bot run measured under a network profile, for 3c's tuning: a summary printed at the end and, with
+/// What a bot run measured under a network profile, for tuning the netcode: a summary printed at the end and, with
 /// <c>--results</c>, a JSON file with the summary, the run's settings and every bot's samples. Network numbers
 /// come from honest bots only, after the warmup; cheaters only show whether they were caught.
 /// </summary>
 public sealed class NetReport
 {
+    /// <summary>The <c>--meta</c> pairs the run was given, such as the commit and network profile.</summary>
     public required Dictionary<string, string> Meta { get; init; }
+    /// <summary>The run's command-line settings.</summary>
     public required RunSettings Run { get; init; }
+    /// <summary>The client's tuning numbers at the time.</summary>
     public required TuningSettings Tuning { get; init; }
+    /// <summary>The run's totals, as printed.</summary>
     public required Summary Totals { get; init; }
+    /// <summary>Each bot's numbers and samples.</summary>
     public required List<BotResult> Bots { get; init; }
 
+    /// <summary>The run's command-line settings (see <c>tools/shapeland-netrun.sh</c>).</summary>
     public sealed record RunSettings(string Url, int Bots, int Cheaters, double Seconds, int Seed, double WarmupSeconds);
 
     /// <summary>The client's tuning numbers this run used; the server's (validation margins) go by the commit in Meta.</summary>
@@ -23,6 +29,7 @@ public sealed class NetReport
         double DelayWindowSeconds, double DelayPercentile, double DelayGrowRate, double DelayShrinkRate,
         double DelayMarginMs, double DelayFloorMs, double DelayHoldSeconds, double IdleGapMs);
 
+    /// <summary>The totals printed at the end of a run: network numbers from honest bots only, after the warmup.</summary>
     public sealed record Summary(
         int HonestSnapBacks, int Respawns, int CheatersCaught, int Cheaters,
         double PingMedianMs, double PingP95Ms, double BestPingMedianMs,
@@ -30,6 +37,7 @@ public sealed class NetReport
         double TargetSwingMsPerSecond, double DelaySwingMsPerSecond, double HoldPercent, double HoldMeanMs, double HeldMsPerMove, long MoveStates, long Jumps, long SpeedHitches, double OwnHitchPercent,
         double VisibleHitchesPerMinute, long Overruns, long VisibleBlendBacks);
 
+    /// <summary>One bot's numbers after the warmup, with its samples.</summary>
     public sealed record BotResult(
         string Name, bool Cheater, bool Joined, int SnapBacks, int Respawns, long MoveStates, long Holds,
         double HeldSeconds, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks, double WatchedSeconds, DateTimeOffset StartedAt, List<NetSample> Samples)
@@ -37,6 +45,7 @@ public sealed class NetReport
         public long VisibleHitches => Overruns + VisibleBlendBacks + Jumps;
     }
 
+    /// <summary>The report for <paramref name="bots"/>, where <paramref name="cheaters"/> marks which of them cheated.</summary>
     public static NetReport Create(IReadOnlyList<Bot> bots, IReadOnlyList<bool> cheaters, RunSettings run, Dictionary<string, string> meta)
     {
         var results = bots.Select((bot, i) => new BotResult(

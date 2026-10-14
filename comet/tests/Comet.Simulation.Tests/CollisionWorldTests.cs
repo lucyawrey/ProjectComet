@@ -12,7 +12,7 @@ public class CollisionWorldTests
         Assert.True(_world.TryGetGround(new Vector3(4, 3, 4), 0.4f, 3, out var top));
         Assert.Equal(3f, top);
 
-        // Centre just past the edge, footprint still on the box.
+        // Center just past the edge, footprint still on the box.
         Assert.True(_world.TryGetGround(new Vector3(5.3f, 3, 4), 0.4f, 3, out top));
         Assert.Equal(3f, top);
     }

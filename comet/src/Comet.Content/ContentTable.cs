@@ -10,6 +10,7 @@ namespace Comet.Content
         private readonly Dictionary<int, T> _byNumber = new Dictionary<int, T>();
         private readonly List<T> _all = new List<T>();
 
+        /// <summary>A table of <paramref name="entries"/>; <paramref name="kind"/> names the type in errors (<c>shape</c>).</summary>
         public ContentTable(string kind, IEnumerable<T> entries)
         {
             Kind = kind;
@@ -45,8 +46,10 @@ namespace Comet.Content
             ? entry
             : throw new ContentException($"Unknown {Kind} number {number}.");
 
+        /// <summary>The entry with <paramref name="key"/>, if there is one.</summary>
         public bool TryGet(string key, out T entry) => _byKey.TryGetValue(key, out entry!);
 
+        /// <summary>The entry with <paramref name="number"/>, if there is one.</summary>
         public bool TryGet(int number, out T entry) => _byNumber.TryGetValue(number, out entry!);
     }
 }

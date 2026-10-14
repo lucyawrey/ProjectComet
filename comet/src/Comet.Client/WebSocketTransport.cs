@@ -24,7 +24,9 @@ namespace Comet.Client
         private readonly TimeSpan _connectTimeout;
         private long _queuedBytes;
         private volatile TransportState _state = TransportState.Connecting;
-        private volatile string? _error;
+        private readonly object _endLock = new object();
+        private CloseReason _closeReason;
+        private string? _error;
         private volatile bool _closing;
 
         /// <summary>Starts connecting to <paramref name="url"/>.</summary>
@@ -41,7 +43,27 @@ namespace Comet.Client
 
         public TransportState State => _state;
 
-        public string? Error => _error;
+        public CloseReason CloseReason
+        {
+            get
+            {
+                lock (_endLock)
+                {
+                    return _closeReason;
+                }
+            }
+        }
+
+        public string? Error
+        {
+            get
+            {
+                lock (_endLock)
+                {
+                    return _error;
+                }
+            }
+        }
 
         /// <summary>Finishes when the connection is closed and the socket released.</summary>
         public Task Completion { get; }
@@ -93,7 +115,16 @@ namespace Comet.Client
                     // Any failure to connect (refused, a bad address such as an http:// URL, an address that never
                     // answers, disposed meanwhile) ends the connection with its reason, never leaving it Connecting.
                     _socket.Dispose();
-                    Finish(timeout.IsCancellationRequested ? TransportLimits.ConnectTimedOut : e.Message);
+                    if (timeout.IsCancellationRequested)
+                    {
+                        End(CloseReason.ConnectTimedOut, "Timed out connecting to the server.");
+                    }
+                    else
+                    {
+                        End(CloseReason.ConnectFailed, e.Message);
+                    }
+
+                    _state = TransportState.Closed;
                     return;
                 }
             }
@@ -116,14 +147,21 @@ namespace Comet.Client
             finally
             {
                 _socket.Dispose();
-                Finish(_error);
+                _state = TransportState.Closed;
             }
         }
 
-        private void Finish(string? error)
+        // Records why the connection ended; the first reason wins, and none is kept for a close of our own.
+        private void End(CloseReason reason, string error)
         {
-            _error = error;
-            _state = TransportState.Closed;
+            lock (_endLock)
+            {
+                if (_closeReason == CloseReason.None && !_closing)
+                {
+                    _closeReason = reason;
+                    _error = error;
+                }
+            }
         }
 
         private async Task SendLoopAsync()
@@ -152,10 +190,7 @@ namespace Comet.Client
             catch (Exception e) when (e is WebSocketException || e is ObjectDisposedException || e is OperationCanceledException)
             {
                 // Aborting the socket (Dispose, or a close the server didn't answer) cancels a pending send.
-                if (!_closing)
-                {
-                    _error ??= e.Message;
-                }
+                End(CloseReason.Failed, e.Message);
             }
         }
 
@@ -170,11 +205,8 @@ namespace Comet.Client
                     var result = await _socket.ReceiveAsync(new ArraySegment<byte>(buffer, length, buffer.Length - length), CancellationToken.None).ConfigureAwait(false);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        if (!_closing)
-                        {
-                            // The server's reason, if it gave one (e.g. that it's shutting down).
-                            _error ??= string.IsNullOrEmpty(result.CloseStatusDescription) ? "The server closed the connection." : result.CloseStatusDescription;
-                        }
+                        End(result.CloseStatus == WebSocketCloseStatus.EndpointUnavailable ? CloseReason.ServerShutDown : CloseReason.ServerClosed,
+                            string.IsNullOrEmpty(result.CloseStatusDescription) ? "The server closed the connection." : result.CloseStatusDescription!);
 
                         return;
                     }
@@ -192,7 +224,8 @@ namespace Comet.Client
                             }
 
                             Interlocked.Exchange(ref _queuedBytes, 0);
-                            throw new ProtocolException(TransportLimits.FellBehind);
+                            End(CloseReason.FellBehind, "Fell too far behind the server (the game wasn't running for too long).");
+                            return;
                         }
 
                         _received.Enqueue(buffer.AsSpan(0, length).ToArray());
@@ -204,12 +237,13 @@ namespace Comet.Client
                     }
                 }
             }
-            catch (Exception e) when (e is WebSocketException || e is ProtocolException || e is ObjectDisposedException || e is OperationCanceledException)
+            catch (ProtocolException e)
             {
-                if (!_closing)
-                {
-                    _error ??= e.Message;
-                }
+                End(CloseReason.ProtocolError, e.Message);
+            }
+            catch (Exception e) when (e is WebSocketException || e is ObjectDisposedException || e is OperationCanceledException)
+            {
+                End(CloseReason.Failed, e.Message);
             }
             finally
             {

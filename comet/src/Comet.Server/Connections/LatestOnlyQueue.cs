@@ -22,6 +22,7 @@ public sealed class LatestOnlyQueue<T>
         return replaced;
     }
 
+    /// <summary>Queues <paramref name="value"/> for <paramref name="key"/>, replacing one still queued for it in place.</summary>
     public void Set(uint key, in T value)
     {
         if (_indexByKey.TryGetValue(key, out var index))

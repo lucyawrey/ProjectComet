@@ -2,13 +2,45 @@ using System;
 
 namespace Comet.Client
 {
+    /// <summary>Where a client connection is in its life.</summary>
     public enum TransportState
     {
         Connecting,
         Open,
 
-        /// <summary>Closed by either side, or failed to connect; <see cref="IClientTransport.Error"/> says which.</summary>
+        /// <summary>Closed by either side, or failed to connect; <see cref="IClientTransport.CloseReason"/> says which.</summary>
         Closed,
+    }
+
+    /// <summary>Why a connection ended, as a code for the game to put in its own words.</summary>
+    public enum CloseReason
+    {
+        /// <summary>Still open, or closed by this side.</summary>
+        None,
+
+        /// <summary>Couldn't connect: refused, a bad address, or a network error.</summary>
+        ConnectFailed,
+
+        /// <summary>Connecting took longer than <see cref="TransportLimits.ConnectTimeoutSeconds"/>.</summary>
+        ConnectTimedOut,
+
+        /// <summary>The server closed the connection.</summary>
+        ServerClosed,
+
+        /// <summary>The server closed the connection because it's shutting down.</summary>
+        ServerShutDown,
+
+        /// <summary>The connection failed while open, such as the network dropping it.</summary>
+        Failed,
+
+        /// <summary>Received frames piled up past <see cref="TransportLimits.MaxQueuedBytes"/> while the game wasn't running.</summary>
+        FellBehind,
+
+        /// <summary>The server sent something malformed or too large.</summary>
+        ProtocolError,
+
+        /// <summary>The server stopped answering pings for <see cref="ClientSession.LostSeconds"/>.</summary>
+        Lost,
     }
 
     /// <summary>
@@ -20,7 +52,10 @@ namespace Comet.Client
     {
         TransportState State { get; }
 
-        /// <summary>Why the connection failed or was lost; null while open or after a normal close.</summary>
+        /// <summary>Why the connection failed or was lost; <see cref="CloseReason.None"/> while open or after closing it.</summary>
+        CloseReason CloseReason { get; }
+
+        /// <summary>The details of <see cref="CloseReason"/>, in English, for logs; null when there's no reason.</summary>
         string? Error { get; }
 
         /// <summary>Queues a frame to send; the bytes are copied. Ignored unless open.</summary>

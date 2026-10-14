@@ -12,6 +12,7 @@ namespace Comet.Simulation
     {
         private readonly List<Box> _boxes;
 
+        /// <summary>A world of <paramref name="terrain"/> (if any) and <paramref name="boxes"/>, where falling below <paramref name="killHeight"/> meters is out of the world.</summary>
         public CollisionWorld(TerrainGround? terrain, IEnumerable<Box> boxes, float killHeight)
         {
             Terrain = terrain;
@@ -19,6 +20,7 @@ namespace Comet.Simulation
             KillHeight = killHeight;
         }
 
+        /// <summary>The ground, or null for a world of boxes only.</summary>
         public TerrainGround? Terrain { get; }
 
         public IReadOnlyList<Box> Boxes => _boxes;
@@ -28,7 +30,7 @@ namespace Comet.Simulation
 
         /// <summary>
         /// The highest surface under a body's footprint that is at or below <paramref name="maxY"/>: terrain under its
-        /// centre (allowed up to <paramref name="terrainClimb"/> higher, for slopes), or the top of a box its footprint
+        /// center (allowed up to <paramref name="terrainClimb"/> higher, for slopes), or the top of a box its footprint
         /// overlaps. False if there is none (over a hole, past the edge).
         /// </summary>
         public bool TryGetGround(Vector3 feet, float radius, float maxY, out float height, float terrainClimb = 0)

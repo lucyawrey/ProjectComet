@@ -30,7 +30,7 @@ services:
       - ../../tools/docker:/netem:ro
       - ../../artifacts/bin:/app/bin:ro
       - ../../artifacts/content/shapeland:/app/content:ro
-      - ${SHAPELAND_WEB_DIR:-../../artifacts/unity/shapeland/web-game}:/app/web:ro
+      - ${SHAPELAND_WEB_DIR:-../../artifacts/unity/shapeland/web}:/app/web:ro
     healthcheck:
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/5080"]
       interval: 1s

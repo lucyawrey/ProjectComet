@@ -9,12 +9,13 @@ namespace Comet.Server.Movement;
 /// States sent to others carry that stamp shifted by the player's smoothed latency (<see cref="Broadcast"/>):
 /// the median of arrival minus stamp over the last <see cref="SmoothingSeconds"/>, approached at no more than
 /// <see cref="SlewRate"/>. The spacing between the player's states stays as they sent it, but their steady
-/// latency no longer counts towards everyone else's interpolation delay; only their jitter and stalls do. A
+/// latency no longer counts toward everyone else's interpolation delay; only their jitter and stalls do. A
 /// broadcast stamp may be a little later than the tick its report arrived, by up to the shift.
 /// </para>
 /// </summary>
 public sealed class StateStamp
 {
+    /// <summary>How far before a report's arrival its stamp may be, in seconds.</summary>
     public const double MaxLagSeconds = 0.5;
 
     /// <summary>How many seconds of reports the latency's median covers.</summary>
@@ -37,6 +38,7 @@ public sealed class StateStamp
     private long _wholeShift;
     private uint _lastArrival;
 
+    /// <summary>A stamp for one player on a server running <paramref name="tickRate"/> ticks per second.</summary>
     public StateStamp(int tickRate, double maxLagSeconds = MaxLagSeconds)
     {
         _maxLag = (uint)Math.Round(maxLagSeconds * tickRate);
@@ -53,6 +55,7 @@ public sealed class StateStamp
     /// <summary>Broadcast stamps given so far, and how many of them were held back to keep stamps from going backwards.</summary>
     public int Broadcasts { get; private set; }
 
+    /// <summary>Broadcast stamps held back to keep them from going backwards.</summary>
     public int Clamped { get; private set; }
 
     /// <summary>The smoothed latency the broadcast stamps are shifted by, in ticks (0 before the first report).</summary>

@@ -34,7 +34,7 @@ Label { padding: 0; margin: 0; }
 .hint { font-size: 12px; margin-left: 6px; color: rgb(141, 151, 171); }
 
 .input { margin: 0; }
-/* Centred by padding, not a fixed height: Unity draws an empty field's caret at the top of the text box. */
+/* Centered by padding, not a fixed height: Unity draws an empty field's caret at the top of the text box. */
 .input .unity-base-text-field__input {
     padding: 8px 10px; margin: 0;
     -unity-text-align: upper-left;
@@ -117,9 +117,11 @@ Label { padding: 0; margin: 0; }
     color: rgb(238, 241, 246);
 }
 .hud.hidden { display: none; }
+/* The respawn fade: black over everything in the HUD, its opacity set by Hud. */
+.screen-fade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: black; opacity: 0; }
 .tags { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 
-/* The chat box and its hint fade in code (Hud), not with USS transitions. */
+/* The chat box and its hint fade in code (Chat), not with USS transitions. */
 .chat { position: absolute; left: 16px; bottom: 16px; width: 380px; }
 .chat-log { padding: 8px 10px; background-color: rgba(18, 22, 30, 0.7); border-radius: 6px; }
 .chat-log.empty { display: none; }

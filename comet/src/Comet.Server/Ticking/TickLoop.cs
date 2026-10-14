@@ -23,6 +23,7 @@ public sealed class TickLoop
     private volatile bool _stopping;
     private uint _tick;
 
+    /// <summary>A loop calling <paramref name="onTick"/> with each tick number, <paramref name="tickRate"/> times a second, once started.</summary>
     public TickLoop(int tickRate, Action<uint> onTick)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tickRate);
@@ -32,8 +33,10 @@ public sealed class TickLoop
         _thread = new Thread(Run) { Name = "Tick loop", IsBackground = true, Priority = ThreadPriority.AboveNormal };
     }
 
+    /// <summary>Ticks per second.</summary>
     public int TickRate { get; }
 
+    /// <summary>The time between tick starts.</summary>
     public TimeSpan Period { get; }
 
     /// <summary>The last tick started. Safe to read from any thread.</summary>
@@ -49,8 +52,10 @@ public sealed class TickLoop
     /// </summary>
     public event Action<uint, Exception>? Failed;
 
+    /// <summary>Starts the tick thread.</summary>
     public void Start() => _thread.Start();
 
+    /// <summary>Stops after the current tick, waiting for it unless called from the tick thread itself.</summary>
     public void Stop()
     {
         _stopping = true;

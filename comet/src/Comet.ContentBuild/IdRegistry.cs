@@ -22,6 +22,7 @@ public sealed class IdRegistry
 
     private IdRegistry(string path) => Path = path;
 
+    /// <summary>The registry file's path.</summary>
     public string Path { get; }
 
     /// <summary>Whether <see cref="Assign"/> added any numbers since loading.</summary>

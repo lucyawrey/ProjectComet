@@ -3,24 +3,25 @@ namespace Comet.Simulation
     /// <summary>Movement constants shared by every player: the body's size and the world's physics.</summary>
     public sealed class MovementRules
     {
-        /// <summary>Downward acceleration, in metres per second squared.</summary>
+        /// <summary>Downward acceleration, in meters per second squared.</summary>
         public float Gravity { get; set; } = 25f;
 
-        /// <summary>The player's collision body: a square footprint this far from its centre, in metres.</summary>
+        /// <summary>The player's collision body: a square footprint this far from its center, in meters.</summary>
         public float BodyRadius { get; set; } = 0.4f;
 
-        /// <summary>The player's collision body height, in metres.</summary>
+        /// <summary>The player's collision body height, in meters.</summary>
         public float BodyHeight { get; set; } = 1f;
 
-        /// <summary>The highest ledge a player walks up without jumping, in metres.</summary>
+        /// <summary>The highest ledge a player walks up without jumping, in meters.</summary>
         public float StepHeight { get; set; } = 0.35f;
 
-        /// <summary>How far below the feet the ground can drop while a player stays grounded (walking downhill), in metres.</summary>
+        /// <summary>How far below the feet the ground can drop while a player stays grounded (walking downhill), in meters.</summary>
         public float GroundSnap { get; set; } = 0.4f;
 
-        /// <summary>Horizontal acceleration on the ground and in the air, in metres per second squared.</summary>
+        /// <summary>Horizontal acceleration on the ground, in meters per second squared.</summary>
         public float GroundAcceleration { get; set; } = 40f;
 
+        /// <summary>Horizontal acceleration in the air, in meters per second squared.</summary>
         public float AirAcceleration { get; set; } = 15f;
 
         /// <summary>How fast a player turns to face the way it's moving, in degrees per second. Only facing turns; movement changes direction at once.</summary>

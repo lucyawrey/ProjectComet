@@ -13,6 +13,7 @@ namespace Comet.Protocol.Framing
     /// </summary>
     public sealed class MessageWriter : IBufferWriter<byte>
     {
+        /// <summary>The frame header's length in bytes: the tick.</summary>
         public const int TickSize = 4;
 
         private readonly MessagePackSerializerOptions _options;
@@ -29,6 +30,7 @@ namespace Comet.Protocol.Framing
 
         public int Length => _length;
 
+        /// <summary>How many messages were written since the last clear.</summary>
         public int MessageCount { get; private set; }
 
         public ReadOnlyMemory<byte> WrittenMemory => new ReadOnlyMemory<byte>(_buffer, 0, _length);
@@ -50,6 +52,7 @@ namespace Comet.Protocol.Framing
             MessageCount = 0;
         }
 
+        /// <summary>Appends <paramref name="message"/> with its ID and length.</summary>
         public void Write<T>(ushort messageId, in T message)
         {
             _length += Varint.Write(GetSpan(Varint.MaxLength), messageId);
