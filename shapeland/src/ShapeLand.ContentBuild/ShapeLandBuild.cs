@@ -11,7 +11,6 @@ namespace ShapeLand.ContentBuild;
 public static class ShapeLandBuild
 {
     /// <summary>The test zone's folder, made by the <c>terrain</c> command until ShapeLand's level is built with the editor.</summary>
-    public const string TestZonePath = "zones/test";
 
     /// <summary>Where asset models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
     public const string ModelRoot = "../ShapeLand.Unity/Assets";

@@ -40,7 +40,8 @@ public class ContentTests
         built!.Save(file);
         file.Position = 0;
 
-        Assert.NotEmpty(ShapeLandContent.Load(file).Zones[TestTerrain.ZoneId].Chunks);
+        var content = ShapeLandContent.Load(file);
+        Assert.NotEmpty(content.Zones[content.Settings.World.Zone].Chunks);
     }
 
     [Fact]

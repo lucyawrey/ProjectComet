@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Comet.Content;
-using Comet.ZoneFiles;
 using ShapeLand.ContentBuild;
 
 // ShapeLand's content tool. Paths are fixed relative to the repository, so it runs the same from anywhere.
@@ -15,10 +14,6 @@ switch (args)
     case ["schema"]:
         WriteSchemas();
         return 0;
-    case ["terrain"]:
-        return Terrain(1);
-    case ["terrain", "--seed", var seedText] when int.TryParse(seedText, out var seed):
-        return Terrain(seed);
     default:
         Console.Error.WriteLine(
             """
@@ -27,7 +22,6 @@ switch (args)
               build                 check shapeland/content, add new ids to ids.toml, write the compiled
                                     content and the editor schemas to artifacts/content/shapeland
               schema                write only the editor schemas
-              terrain [--seed N]    generate the test zone (seed 1 by default)
             """);
         return 2;
 }
@@ -68,14 +62,6 @@ void WriteSchemas()
     }
 
     Console.WriteLine($"Wrote editor schemas to {Path.GetRelativePath(repo, schemas)}.");
-}
-
-int Terrain(int seed)
-{
-    var zone = Path.Combine(content, ShapeLandBuild.TestZonePath);
-    ZoneFolder.Write(zone, TestTerrain.GenerateZone(seed));
-    Console.WriteLine($"Wrote the test zone (seed {seed}) to {Path.GetRelativePath(repo, zone)}.");
-    return 0;
 }
 
 static string FindRepoRoot()

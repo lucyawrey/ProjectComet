@@ -2,10 +2,10 @@ using System.Numerics;
 using Comet.Content;
 using Comet.Simulation;
 
-namespace ShapeLand.ContentBuild;
+namespace ShapeLand.ContentBuild.Tests;
 
 /// <summary>
-/// A seeded test zone, a stand-in until ShapeLand's level is built with the editor: a floating disc of gentle hills
+/// A seeded zone for tests (ShapeLand's own zone is made by hand in the editor): a floating disc of gentle hills
 /// centered on the origin across four chunks, dropping off into open sky at its edge, with a few cube blocks to jump
 /// on. The same for the same seed on every machine.
 /// </summary>
