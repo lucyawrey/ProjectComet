@@ -10,8 +10,8 @@ namespace Comet.Unity
     public sealed class ZoneEditing : MonoBehaviour
     {
         [Tooltip("The zone's folder, relative to the Unity project.")]
-        public string folder;
+        public string folder = "";
 
-        [HideInInspector] public byte[] zoneData;
+        [HideInInspector] public byte[] zoneData = System.Array.Empty<byte>();
     }
 }

@@ -26,12 +26,12 @@ namespace Comet.Unity
 
         [SerializeField] private List<Entry> entries = new List<Entry>();
 
-        private Dictionary<string, Entry> _byKey;
+        private Dictionary<string, Entry>? _byKey;
 
         public IReadOnlyList<Entry> Entries => entries;
 
         /// <summary>The model for <paramref name="key"/>, or null if the library has none.</summary>
-        public GameObject Model(string key) => TryGet(key, out var entry) ? entry.model : null;
+        public GameObject? Model(string key) => TryGet(key, out var entry) ? entry.model : null;
 
         /// <summary>The entry for <paramref name="key"/>, if the library has one.</summary>
         public bool TryGet(string key, out Entry entry)

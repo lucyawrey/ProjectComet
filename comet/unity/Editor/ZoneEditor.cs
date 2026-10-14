@@ -390,7 +390,7 @@ namespace Comet.Unity.Editor
         public static void RedrawIfMissing(ZoneEditing editing)
         {
             var settings = CometSettings.Find(quiet: true);
-            if (settings == null || editing.zoneData == null || editing.transform.Find(TerrainName) != null)
+            if (settings == null || editing.zoneData.Length == 0 || editing.transform.Find(TerrainName) != null)
             {
                 return;
             }

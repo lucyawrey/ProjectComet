@@ -16,7 +16,7 @@ namespace Comet.Unity
         }
 
         [Tooltip("The spawn's key (spawn.meadow_gate), unique across zones.")]
-        public string key;
+        public string key = "";
 
         [Tooltip("How far from the point arrivals scatter, in meters.")]
         [Min(0)] public float radius = 2;

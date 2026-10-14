@@ -7,9 +7,9 @@ namespace Comet.Unity
     public sealed class ZonePlacement : MonoBehaviour
     {
         [Tooltip("The asset's key (asset.cube).")]
-        public string asset;
+        public string asset = "";
 
         [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
-        public string placementName;
+        public string placementName = "";
     }
 }
