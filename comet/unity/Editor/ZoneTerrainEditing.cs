@@ -21,7 +21,7 @@ namespace Comet.Unity.Editor
         private const float NewOffset = -64f;
 
         private static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(MessagePack.Resolvers.StandardResolver.Instance);
-        private static readonly Dictionary<int, ZoneTerrainEditing> Open = new Dictionary<int, ZoneTerrainEditing>();
+        private static readonly Dictionary<ZoneEditing, ZoneTerrainEditing> Open = new Dictionary<ZoneEditing, ZoneTerrainEditing>();
 
         private ZoneTerrainEditing(ZoneEditing editing)
         {
@@ -45,10 +45,10 @@ namespace Comet.Unity.Editor
         /// <summary>The terrain being edited for a zone opened in the editor, made on first use.</summary>
         public static ZoneTerrainEditing For(ZoneEditing editing)
         {
-            if (!Open.TryGetValue(editing.GetInstanceID(), out var terrain) || terrain.Editing == null)
+            if (!Open.TryGetValue(editing, out var terrain) || terrain.Editing == null)
             {
                 terrain = new ZoneTerrainEditing(editing);
-                Open[editing.GetInstanceID()] = terrain;
+                Open[editing] = terrain;
             }
 
             return terrain;
