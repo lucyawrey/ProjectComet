@@ -78,19 +78,20 @@ public static class TestTerrain
             }];
         }
 
-        // Spawn points, each with its marker: a flat cylinder (2 m across, 2 m tall as modeled) named with its key.
+        // Spawn points, each with its marker: a flat cylinder (2 m across, 2 m tall as modeled, its pivot at its base)
+        // named with its key, sunk halfway into the ground, with the spawn point on its top.
         foreach (var (id, x, z, isDefault) in new[] { ("spawn.test_center", 0f, 0f, true), ("spawn.test_east", 18f, 8f, false) })
         {
-            const float radius = 2, markerHeight = 0.15f;
+            const float radius = 2, markerHeight = 0.4f;
             island.TryGetHeightAt(x, z, out var ground);
             ground = MathF.Round(ground, 3);
             var chunk = zone.Chunks.Single(c => c.Coord.Equals(ChunkCoord.Containing(new Vector3(x, 0, z))));
-            chunk.Spawns = [.. chunk.Spawns, new SpawnPoint { Id = id, Position = new Vector3(x, ground, z), Radius = radius, Facing = SpawnFacing.Random, IsDefault = isDefault }];
+            chunk.Spawns = [.. chunk.Spawns, new SpawnPoint { Id = id, Position = new Vector3(x, ground + markerHeight / 2, z), Radius = radius, Facing = SpawnFacing.Random, IsDefault = isDefault }];
             chunk.Placements = [.. chunk.Placements, new Placement
             {
                 Asset = "asset.cylinder",
                 Name = id,
-                Position = new Vector3(x, ground, z),
+                Position = new Vector3(x, ground - markerHeight / 2, z),
                 Scale = new Vector3(radius, markerHeight / 2, radius),
             }];
         }

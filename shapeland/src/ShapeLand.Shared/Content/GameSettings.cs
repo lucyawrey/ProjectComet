@@ -89,7 +89,7 @@ namespace ShapeLand.Shared.Content
         /// <summary>The asset drawn as a spawn point's marker, flattened (the editor places it with each new spawn).</summary>
         [JsonRequired] [Key(1)] public string MarkerAsset { get; set; } = "";
 
-        /// <summary>How high a new marker stands above the ground, in meters; it can be moved in the editor after.</summary>
+        /// <summary>How tall a new marker is, in meters, sunk halfway into the ground; it can be moved in the editor after.</summary>
         [JsonRequired] [Key(2)] public float MarkerHeight { get; set; }
 
         /// <summary>A marker's color while it isn't the player's spawn, as 0xRRGGBB: a grey used nowhere else.</summary>

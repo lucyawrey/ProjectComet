@@ -358,8 +358,10 @@ namespace Comet.Unity.Editor
                 var size = bounds.size;
                 placed.transform.localScale = new Vector3(2 * spawn.radius / Mathf.Max(size.x, 0.01f), settings.spawnMarkerHeight / Mathf.Max(size.y, 0.01f), 2 * spawn.radius / Mathf.Max(size.z, 0.01f));
 
-                // The marker stands on the ground and players arrive on its top.
-                marker.position = position + Vector3.up * (bounds.max.y * placed.transform.localScale.y);
+                // The marker is sunk halfway into the ground and players arrive on its top.
+                var scaleY = placed.transform.localScale.y;
+                placed.transform.position = position - Vector3.up * (bounds.center.y * scaleY);
+                marker.position = position + Vector3.up * (bounds.extents.y * scaleY);
                 placed.GetComponent<ZonePlacement>().placementName = key;
                 placed.name = $"{key} marker";
                 Undo.SetTransformParent(placed.transform, marker, $"Add {key}");

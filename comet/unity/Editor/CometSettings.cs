@@ -47,8 +47,8 @@ namespace Comet.Unity.Editor
         [Tooltip("If set, each new spawn point gets a marker: this asset, placed flattened under it and named with its key.")]
         public string spawnMarkerAsset;
 
-        [Tooltip("How high a new spawn point's marker stands, in meters; it can be moved and scaled after.")]
-        public float spawnMarkerHeight = 0.15f;
+        [Tooltip("How tall a new spawn point's marker is, in meters, sunk halfway into the ground; it can be moved and scaled after.")]
+        public float spawnMarkerHeight = 0.4f;
 
         private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
 

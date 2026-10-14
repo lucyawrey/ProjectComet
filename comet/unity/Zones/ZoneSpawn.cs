@@ -2,8 +2,10 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>A spawn point in a zone opened in the editor, at the object's position. Drawn as a ring of its radius.</summary>
+    /// <summary>A spawn point in a zone opened in the editor, at the object's position. Drawn as a ring of its radius.
+    /// Clicking its marker in the Scene view selects the spawn point first.</summary>
     [DisallowMultipleComponent]
+    [SelectionBase]
     public sealed class ZoneSpawn : MonoBehaviour
     {
         public enum FacingMode
