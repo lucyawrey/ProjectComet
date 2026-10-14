@@ -26,7 +26,7 @@ namespace Comet.Unity.Editor
         private ZoneTerrainEditing(ZoneEditing editing)
         {
             Editing = editing;
-            Zone = MessagePackSerializer.Deserialize<Zone>(editing.zoneData, Serializer);
+            Zone = MessagePackSerializer.Deserialize<Zone>(editing.ZoneData, Serializer);
             foreach (var chunk in Zone.Chunks)
             {
                 chunk.Tiles = chunk.Tiles.Select(Expand).ToArray();
@@ -61,7 +61,7 @@ namespace Comet.Unity.Editor
         public void Commit(string undoName, CometSettings settings)
         {
             Undo.RecordObject(Editing, undoName);
-            Editing.zoneData = MessagePackSerializer.Serialize(Zone, Serializer);
+            Editing.ZoneData = MessagePackSerializer.Serialize(Zone, Serializer);
             EditorUtility.SetDirty(Editing);
             Terrain = new ZoneTerrain(Zone);
             ZoneEditor.RebuildTerrain(Editing, Zone, settings);

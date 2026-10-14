@@ -86,7 +86,7 @@ namespace Comet.Unity.Editor
                 chunk.Volumes = new CollisionVolume[0];
             }
 
-            editing.zoneData = MessagePackSerializer.Serialize(zone, Serializer);
+            editing.ZoneData = MessagePackSerializer.Serialize(zone, Serializer);
 
             // Saved at once into the ignored scenes folder, so the scene has the zone's name and Unity's Save saves the zone.
             Directory.CreateDirectory(ProjectPath(settings.scenesFolder));
@@ -130,7 +130,7 @@ namespace Comet.Unity.Editor
         /// <summary>The zone as the scene has it now: its stored parts plus the objects under <paramref name="editing"/>.</summary>
         public static Zone Gather(ZoneEditing editing)
         {
-            var zone = MessagePackSerializer.Deserialize<Zone>(editing.zoneData, Serializer);
+            var zone = MessagePackSerializer.Deserialize<Zone>(editing.ZoneData, Serializer);
             var chunks = zone.Chunks.ToDictionary(c => c.Coord);
             ZoneChunk ChunkAt(System.Numerics.Vector3 position)
             {
@@ -390,13 +390,13 @@ namespace Comet.Unity.Editor
         public static void RedrawIfMissing(ZoneEditing editing)
         {
             var settings = CometSettings.Find(quiet: true);
-            if (settings == null || editing.zoneData.Length == 0 || editing.transform.Find(TerrainName) != null)
+            if (settings == null || !editing.HasZoneData || editing.transform.Find(TerrainName) != null)
             {
                 return;
             }
 
             ZoneTerrainEditing.Forget();
-            RebuildTerrain(editing, MessagePackSerializer.Deserialize<Zone>(editing.zoneData, Serializer), settings);
+            RebuildTerrain(editing, MessagePackSerializer.Deserialize<Zone>(editing.ZoneData, Serializer), settings);
         }
 
         // Scale in world space; the same as localScale under an unscaled, unrotated parent.
