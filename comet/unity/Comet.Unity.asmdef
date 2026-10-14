@@ -1,7 +1,7 @@
 {
     "name": "Comet.Unity",
     "rootNamespace": "Comet.Unity",
-    "references": ["Comet.Client", "Comet.Content", "Comet.Protocol"],
+    "references": ["Comet.Client", "Comet.Content", "Comet.Protocol", "Comet.Simulation"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

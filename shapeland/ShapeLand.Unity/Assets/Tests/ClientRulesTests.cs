@@ -159,7 +159,7 @@ namespace ShapeLand.Client.Tests
                 },
             };
             var chunk = TerrainMesher.Build(new ZoneTerrain(zone), 0x336699, 0).Values.Single();
-            var mesh = WorldMeshes.Terrain("Test", chunk);
+            var mesh = Comet.Unity.TerrainMeshes.Build("Test", chunk);
             try
             {
                 Assert.That(mesh.triangles.Length, Is.EqualTo(8 * 3));
@@ -185,8 +185,8 @@ namespace ShapeLand.Client.Tests
 
             var forward = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitZ, comet);
             var right = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitX, comet);
-            Assert.That(Vector3.Distance(WorldMeshes.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
-            Assert.That(Vector3.Distance(WorldMeshes.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Vectors.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Vectors.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
         }
 
         [Test]

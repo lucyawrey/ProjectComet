@@ -96,7 +96,7 @@ namespace ShapeLand.Client
                 if (session.Entities.TrySample(other.Key, renderTick, out var pose))
                 {
                     var shape = other.Value;
-                    shape.transform.SetPositionAndRotation(WorldMeshes.ToUnity(pose.Position), Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
+                    shape.transform.SetPositionAndRotation(Vectors.ToUnity(pose.Position), Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
                     shape.Faded = RespawnFade.Step(shape.Faded, pose.Position.Y, _world.KillHeight, Time.unscaledDeltaTime);
                 }
             }
@@ -110,8 +110,8 @@ namespace ShapeLand.Client
             foreach (var chunk in TerrainMesher.Build(_world.Terrain, Rgb(groundColor), Rgb(skirtColor)))
             {
                 var name = $"Chunk {chunk.Key}";
-                var drawn = AddMesh(name, WorldMeshes.Terrain(name, chunk.Value), terrainMaterial, terrain);
-                drawn.transform.localPosition = WorldMeshes.ToUnity(chunk.Key.Origin);
+                var drawn = AddMesh(name, TerrainMeshes.Build(name, chunk.Value), terrainMaterial, terrain);
+                drawn.transform.localPosition = Vectors.ToUnity(chunk.Key.Origin);
             }
 
             var placed = new GameObject("Placed").transform;
@@ -124,7 +124,7 @@ namespace ShapeLand.Client
                 }
             }
 
-            orbitCamera.Showcase(WorldMeshes.ToUnity(ShapeLandWorld.SpawnPoint(content, _world)));
+            orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, _world)));
         }
 
         // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.
@@ -140,8 +140,8 @@ namespace ShapeLand.Client
             var thing = Instantiate(model, parent, false);
             thing.name = placement.Asset;
             var rotation = placement.Rotation;
-            thing.transform.SetLocalPositionAndRotation(WorldMeshes.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
-            thing.transform.localScale = WorldMeshes.ToUnity(placement.Scale);
+            thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
+            thing.transform.localScale = Vectors.ToUnity(placement.Scale);
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
             {
                 if (renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal))

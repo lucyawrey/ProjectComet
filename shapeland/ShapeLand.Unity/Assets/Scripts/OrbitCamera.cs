@@ -95,14 +95,14 @@ namespace ShapeLand.Client
             // Pull in at once when a block is in the way, so it never shows from inside; ease back out.
             var back = rotation * Vector3.back;
             var wanted = distance;
-            if (_world != null && _world.Raycast(WorldMeshes.ToNumerics(look), WorldMeshes.ToNumerics(back), distance, blockClearance, out var hit))
+            if (_world != null && _world.Raycast(Vectors.ToNumerics(look), Vectors.ToNumerics(back), distance, blockClearance, out var hit))
             {
                 wanted = hit;
             }
 
             _distance = wanted < _distance ? wanted : Mathf.MoveTowards(_distance, wanted, zoomOutSpeed * Time.unscaledDeltaTime);
             var position = look + back * _distance;
-            if (_world != null && _world.TryGetGround(WorldMeshes.ToNumerics(position), 0, position.y + 1000, out var ground) && position.y < ground + groundClearance)
+            if (_world != null && _world.TryGetGround(Vectors.ToNumerics(position), 0, position.y + 1000, out var ground) && position.y < ground + groundClearance)
             {
                 position.y = ground + groundClearance;
                 rotation = Quaternion.LookRotation(look - position);

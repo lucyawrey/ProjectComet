@@ -33,7 +33,7 @@ The Game scene (`Assets/Scenes/Game.unity`) holds:
 | Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, and the network numbers (F3). |
 | Camera | `OrbitCamera` | The third-person camera. |
 
-Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape's colors and fading, on each shape's prefab in `Assets/Prefabs/Shapes/`), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `WorldMeshes` (the island and blocks, built from the same data the server uses), `RespawnFade` (how falling fades) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
+Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape's colors and fading, on each shape's prefab in `Assets/Prefabs/Shapes/`), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `Vectors` (conversions between shared code's vectors and Unity's), `RespawnFade` (how falling fades) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
 
 The editor scripts in `Assets/Editor` add the ShapeLand menu: builds (`Builds`) and copying the content in (`ContentSync`, also done as play mode starts)
 

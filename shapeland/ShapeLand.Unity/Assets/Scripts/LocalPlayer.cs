@@ -68,7 +68,7 @@ namespace ShapeLand.Client
             _shape = shape;
             _camera = orbitCamera;
             _controls = controls;
-            _motor = new MotorState { Position = WorldMeshes.ToNumerics(position), Grounded = true, Facing = facing };
+            _motor = new MotorState { Position = Vectors.ToNumerics(position), Grounded = true, Facing = facing };
             _previous = _motor;
             _session.Corrected += OnCorrected;
             Draw(1);
@@ -132,7 +132,7 @@ namespace ShapeLand.Client
         {
             _drawn = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha) + _blend.Offset;
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
-            transform.SetPositionAndRotation(WorldMeshes.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+            transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
         }
 
         private void OnCorrected(PositionCorrection correction)

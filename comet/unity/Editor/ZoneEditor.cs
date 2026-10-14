@@ -1,0 +1,304 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Comet.Content;
+using Comet.Simulation;
+using Comet.ZoneFiles;
+using MessagePack;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+namespace Comet.Unity.Editor
+{
+    /// <summary>
+    /// Opens a zone into a new, unsaved scene and saves it back to its files (Comet › Zones). The scene is never the
+    /// source of truth: the zone's files are. Terrain shows as preview meshes; placed assets, spawns and volumes are
+    /// objects to move with Unity's own tools, and on saving each belongs to the chunk holding its pivot.
+    /// </summary>
+    public static class ZoneEditor
+    {
+        private static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(MessagePack.Resolvers.StandardResolver.Instance);
+
+        [MenuItem("Comet/Zones/Open…", priority = 1)]
+        public static void OpenMenu()
+        {
+            var settings = Settings();
+            if (settings == null)
+            {
+                return;
+            }
+
+            var picked = EditorUtility.OpenFolderPanel("Open zone", ProjectPath(settings.zonesFolder), "");
+            if (string.IsNullOrEmpty(picked) || !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
+            Open(picked, settings);
+        }
+
+        [MenuItem("Comet/Zones/Save", priority = 2)]
+        public static void SaveMenu()
+        {
+            foreach (var zone in UnityEngine.Object.FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None))
+            {
+                Save(zone);
+            }
+        }
+
+        [MenuItem("Comet/Zones/Save", true)]
+        private static bool CanSave() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
+
+        /// <summary>Opens the zone in <paramref name="folder"/> into a new scene; false (with the reasons logged) if its files have errors.</summary>
+        public static bool Open(string folder, ZoneEditorSettings settings)
+        {
+            var errors = new List<ZoneFileError>();
+            var zone = ZoneFolder.Read(folder, errors);
+            if (errors.Count > 0)
+            {
+                Report($"Can't open {folder}", errors);
+                return false;
+            }
+
+            EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            var root = new GameObject($"Zone {zone.Id}");
+            var editing = root.AddComponent<ZoneEditing>();
+            editing.folder = RelativeToProject(folder);
+            Build(root.transform, zone, settings);
+
+            // Keep everything but the objects, which the scene holds now.
+            foreach (var chunk in zone.Chunks)
+            {
+                chunk.Placements = new Placement[0];
+                chunk.Spawns = new SpawnPoint[0];
+                chunk.Volumes = new CollisionVolume[0];
+            }
+
+            editing.zoneData = MessagePackSerializer.Serialize(zone, Serializer);
+            Selection.activeGameObject = root;
+            return true;
+        }
+
+        /// <summary>Writes an opened zone back to its files; false (with the reasons logged) if it doesn't validate.</summary>
+        public static bool Save(ZoneEditing editing)
+        {
+            var zone = Gather(editing);
+            var errors = ZoneValidation.Check(zone);
+            if (errors.Count > 0)
+            {
+                Report($"Didn't save {zone.Id}", errors);
+                return false;
+            }
+
+            ZoneFolder.Write(ProjectPath(editing.folder), zone);
+            Debug.Log($"Saved {zone.Id} to {editing.folder}.");
+            return true;
+        }
+
+        /// <summary>The zone as the scene has it now: its stored parts plus the objects under <paramref name="editing"/>.</summary>
+        public static Zone Gather(ZoneEditing editing)
+        {
+            var zone = MessagePackSerializer.Deserialize<Zone>(editing.zoneData, Serializer);
+            var chunks = zone.Chunks.ToDictionary(c => c.Coord);
+            ZoneChunk ChunkAt(System.Numerics.Vector3 position)
+            {
+                var coord = ChunkCoord.Containing(position);
+                if (!chunks.TryGetValue(coord, out var chunk))
+                {
+                    chunk = new ZoneChunk { Coord = coord };
+                    chunks.Add(coord, chunk);
+                }
+
+                return chunk;
+            }
+
+            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>())
+            {
+                var t = placed.transform;
+                var chunk = ChunkAt(ToNumerics(t.position));
+                chunk.Placements = chunk.Placements.Append(new Placement
+                {
+                    Asset = placed.asset,
+                    Position = ToNumerics(t.position),
+                    Rotation = Angles(t.rotation.eulerAngles),
+                    Scale = ToNumerics(t.lossyScale),
+                }).ToArray();
+            }
+
+            foreach (var spawn in editing.GetComponentsInChildren<ZoneSpawn>())
+            {
+                var t = spawn.transform;
+                var chunk = ChunkAt(ToNumerics(t.position));
+                chunk.Spawns = chunk.Spawns.Append(new SpawnPoint
+                {
+                    Id = spawn.key,
+                    Position = ToNumerics(t.position),
+                    Radius = spawn.radius,
+                    Facing = (SpawnFacing)spawn.facing,
+                    Yaw = Angle(t.rotation.eulerAngles.y),
+                    IsDefault = spawn.isDefault,
+                }).ToArray();
+            }
+
+            foreach (var volume in editing.GetComponentsInChildren<ZoneVolume>())
+            {
+                var t = volume.transform;
+                var chunk = ChunkAt(ToNumerics(t.position));
+                chunk.Volumes = chunk.Volumes.Append(new CollisionVolume
+                {
+                    Kind = (VolumeKind)volume.kind,
+                    Position = ToNumerics(t.position),
+                    Rotation = Angles(t.rotation.eulerAngles),
+                    Size = ToNumerics(volume.size),
+                }).ToArray();
+            }
+
+            // A chunk left with nothing in it is no longer part of the zone.
+            zone.Chunks = chunks.Values
+                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Volumes.Length > 0)
+                .OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z)
+                .ToArray();
+            return zone;
+        }
+
+        private static void Build(Transform root, Zone zone, ZoneEditorSettings settings)
+        {
+            var terrain = Child(root, "Terrain (preview)");
+            terrain.gameObject.hideFlags = HideFlags.NotEditable;
+            foreach (var chunk in TerrainMesher.Build(new ZoneTerrain(zone), Rgb(settings.groundColor), Rgb(settings.skirtColor)))
+            {
+                var name = $"Chunk {chunk.Key}";
+                var drawn = Child(terrain, name);
+                drawn.gameObject.hideFlags = HideFlags.NotEditable;
+                drawn.localPosition = new Vector3(chunk.Key.Origin.X, chunk.Key.Origin.Y, chunk.Key.Origin.Z);
+                drawn.gameObject.AddComponent<MeshFilter>().sharedMesh = TerrainMeshes.Build(name, chunk.Value);
+                drawn.gameObject.AddComponent<MeshRenderer>().sharedMaterial = settings.terrainMaterial;
+            }
+
+            var placed = Child(root, "Placed");
+            var spawns = Child(root, "Spawns");
+            var volumes = Child(root, "Volumes");
+            foreach (var chunk in zone.Chunks)
+            {
+                foreach (var placement in chunk.Placements)
+                {
+                    var thing = Instantiate(placement.Asset, settings, placed);
+                    var r = placement.Rotation;
+                    thing.transform.SetPositionAndRotation(ToUnity(placement.Position), Quaternion.Euler(r.X, r.Y, r.Z));
+                    thing.transform.localScale = ToUnity(placement.Scale);
+                    thing.AddComponent<ZonePlacement>().asset = placement.Asset;
+                }
+
+                foreach (var spawn in chunk.Spawns)
+                {
+                    var marker = Child(spawns, spawn.Id);
+                    marker.SetPositionAndRotation(ToUnity(spawn.Position), Quaternion.Euler(0, spawn.Yaw, 0));
+                    var component = marker.gameObject.AddComponent<ZoneSpawn>();
+                    component.key = spawn.Id;
+                    component.radius = spawn.Radius;
+                    component.facing = (ZoneSpawn.FacingMode)spawn.Facing;
+                    component.isDefault = spawn.IsDefault;
+                }
+
+                foreach (var volume in chunk.Volumes)
+                {
+                    var box = Child(volumes, $"{volume.Kind} volume");
+                    var r = volume.Rotation;
+                    box.SetPositionAndRotation(ToUnity(volume.Position), Quaternion.Euler(r.X, r.Y, r.Z));
+                    var component = box.gameObject.AddComponent<ZoneVolume>();
+                    component.kind = (ZoneVolume.VolumeKind)volume.Kind;
+                    component.size = ToUnity(volume.Size);
+                }
+            }
+        }
+
+        // The asset's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
+        private static GameObject Instantiate(string asset, ZoneEditorSettings settings, Transform parent)
+        {
+            var model = settings.assets != null ? settings.assets.Model(asset) : null;
+            GameObject thing;
+            if (model != null)
+            {
+                thing = (GameObject)PrefabUtility.InstantiatePrefab(model, parent);
+            }
+            else
+            {
+                Debug.LogWarning($"No model for {asset} in the asset library; showing a stand-in cube.");
+                thing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                thing.transform.SetParent(parent, false);
+            }
+
+            thing.name = asset;
+            foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
+            {
+                if (renderer.name.EndsWith(Asset.CollisionSuffix, StringComparison.Ordinal))
+                {
+                    renderer.enabled = false;
+                }
+                else if (settings.placedMaterial != null)
+                {
+                    renderer.sharedMaterial = settings.placedMaterial;
+                }
+            }
+
+            return thing;
+        }
+
+        private static ZoneEditorSettings Settings()
+        {
+            var found = AssetDatabase.FindAssets($"t:{nameof(ZoneEditorSettings)}");
+            if (found.Length == 0)
+            {
+                EditorUtility.DisplayDialog("No zone editor settings", "This project has no Zone Editor Settings asset. Make one with Create › Comet › Zone Editor Settings.", "OK");
+                return null;
+            }
+
+            return AssetDatabase.LoadAssetAtPath<ZoneEditorSettings>(AssetDatabase.GUIDToAssetPath(found[0]));
+        }
+
+        private static void Report(string title, List<ZoneFileError> errors)
+        {
+            foreach (var error in errors)
+            {
+                Debug.LogError($"{title}: {error}");
+            }
+
+            var shown = string.Join("\n", errors.Take(8).Select(e => e.ToString()));
+            EditorUtility.DisplayDialog(title, errors.Count > 8 ? $"{shown}\n…and {errors.Count - 8} more (see the Console)." : shown, "OK");
+        }
+
+        private static Transform Child(Transform parent, string name)
+        {
+            var child = new GameObject(name).transform;
+            child.SetParent(parent, false);
+            return child;
+        }
+
+        private static string ProjectRoot => Path.GetDirectoryName(Application.dataPath)!;
+
+        private static string ProjectPath(string relative) => Path.GetFullPath(Path.Combine(ProjectRoot, relative));
+
+        private static string RelativeToProject(string path) => Path.GetRelativePath(ProjectRoot, path).Replace('\\', '/');
+
+        // Euler angles in (-180, 180], so a placement turned a hair below zero saves as -0.01 rather than 359.99.
+        private static System.Numerics.Vector3 Angles(Vector3 euler) => new System.Numerics.Vector3(Angle(euler.x), Angle(euler.y), Angle(euler.z));
+
+        private static float Angle(float degrees)
+        {
+            degrees %= 360;
+            return degrees > 180 ? degrees - 360 : degrees <= -180 ? degrees + 360 : degrees;
+        }
+
+        private static uint Rgb(Color color)
+        {
+            Color32 c = color;
+            return (uint)(c.r << 16 | c.g << 8 | c.b);
+        }
+
+        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
+
+        private static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
+    }
+}
