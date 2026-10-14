@@ -1,0 +1,46 @@
+id = "settings.game"
+
+# Movement physics, the same for every shape (each shape's speed, jump and scale are in its own file). The server
+# checks movement against these. In meters, seconds and degrees.
+[movement]
+gravity = 25.0
+body_radius = 0.4 # the collision body every shape shares: a square footprint this far from the center
+body_height = 1.0
+step_height = 0.35 # the highest ledge a player walks up without jumping
+ground_snap = 0.4 # how far the ground may drop under the feet while staying grounded (walking downhill)
+ground_acceleration = 40.0
+air_acceleration = 15.0
+turn_speed = 900.0 # how fast a shape turns to face the way it moves, in degrees per second
+
+[world]
+zone = "zone.test" # the zone the game plays in
+kill_height = -30.0 # falling below this is out of the world: back to the player's spawn
+ground_color = 0x739E4D # default unpainted terrain color
+under_color = 0x7A5C3E # default unpainted terrain underside color
+placed_color = 0x9E8C7A # default placed object color, for assets without their own
+
+[spawns]
+claim_seconds = 2.0 # standing in another spawn point's radius this long makes it the player's
+marker_asset = "asset.cylinder" # drawn flattened as each spawn point's marker
+marker_height = 0.4 # how tall a new marker is, sunk halfway into the ground; move it in the editor after
+unset_color = 0xEDE8DA # a marker that isn't the player's spawn: a pale cream used nowhere else
+
+# The colors players pick from. Placeholders: the final sets are the project lead's.
+[colors]
+body = [
+  0xE53935, # red
+  0x1E88E5, # blue
+  0xFDD835, # yellow
+  0x43A047, # green
+  0xFB8C00, # orange
+  0x8E24AA, # purple
+  0x00ACC1, # cyan
+  0xEC407A, # pink
+]
+eyes = [
+  0x16161C, # ink
+  0xFFFFFF, # white
+  0x5D4037, # brown
+  0x1565C0, # deep blue
+  0x2E7D32, # deep green
+]

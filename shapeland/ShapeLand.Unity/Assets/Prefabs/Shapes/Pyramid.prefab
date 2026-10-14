@@ -8,10 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: -8950939236306619879, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
+    - target: {fileID: -5709015677575836357, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 9620fa0eda73df2868773d48c4e0351c, type: 2}
+      objectReference: {fileID: 2100000, guid: 2363a39ddd6cb0ff68d7c40daa468bf7, type: 2}
     - target: {fileID: -1538428983292410067, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
       propertyPath: m_Name
       value: Pyramid
@@ -56,10 +56,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6971417342790260210, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
+    - target: {fileID: 6919814954227422035, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 2363a39ddd6cb0ff68d7c40daa468bf7, type: 2}
+      objectReference: {fileID: 2100000, guid: 9620fa0eda73df2868773d48c4e0351c, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -68,9 +68,9 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 4601383380699552631}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
---- !u!23 &2378269484778725871 stripped
+--- !u!23 &2429167893574362958 stripped
 MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 6971417342790260210, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
+  m_CorrespondingSourceObject: {fileID: 6919814954227422035, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
   m_PrefabInstance: {fileID: 4737290232303580189}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &3105331588138873648 stripped
@@ -90,12 +90,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7582ec7e8499564eab52a1f8dd630c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.ShapeBody
-  body: {fileID: 4790102042544145924}
-  eyes: {fileID: 2378269484778725871}
+  body: {fileID: 2429167893574362958}
+  eyes: {fileID: 8177336397780564262}
   bodyFadeMaterial: {fileID: 2100000, guid: 61dd4b4118ed94a48a34b63a8dc64b5b, type: 2}
   eyesFadeMaterial: {fileID: 2100000, guid: 71fb7ea9edb6b490c85ea0df884edb30, type: 2}
---- !u!23 &4790102042544145924 stripped
+--- !u!23 &8177336397780564262 stripped
 MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -8950939236306619879, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
+  m_CorrespondingSourceObject: {fileID: -5709015677575836357, guid: 37363cc19e114b1d7876b0c88cbe48e1, type: 3}
   m_PrefabInstance: {fileID: 4737290232303580189}
   m_PrefabAsset: {fileID: 0}

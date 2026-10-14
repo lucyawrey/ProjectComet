@@ -15,6 +15,9 @@ public sealed class TickLimiter(int tickRate, int burst, float secondsPerTake)
     /// <summary>Join attempts: far more than a player retrying a taken name needs; each one scans every player.</summary>
     public static TickLimiter Join(int tickRate) => new(tickRate, burst: 5, secondsPerTake: 1);
 
+    /// <summary>Returns to the spawn point: a couple at once, then one a second (each one is a teleport everyone sees).</summary>
+    public static TickLimiter Return(int tickRate) => new(tickRate, burst: 2, secondsPerTake: 1);
+
     /// <summary>Takes one action at <paramref name="tick"/> if the limit allows it.</summary>
     public bool TryTake(uint tick)
     {

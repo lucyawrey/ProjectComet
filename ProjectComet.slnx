@@ -7,6 +7,7 @@
     <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
     <Project Path="comet/src/Comet.Server/Comet.Server.csproj" />
     <Project Path="comet/src/Comet.Simulation/Comet.Simulation.csproj" />
+    <Project Path="comet/src/Comet.ZoneFiles/Comet.ZoneFiles.csproj" />
   </Folder>
   <Folder Name="/comet/tests/">
     <Project Path="comet/tests/Comet.Client.Tests/Comet.Client.Tests.csproj" />
@@ -14,6 +15,7 @@
     <Project Path="comet/tests/Comet.Protocol.Tests/Comet.Protocol.Tests.csproj" />
     <Project Path="comet/tests/Comet.Server.Tests/Comet.Server.Tests.csproj" />
     <Project Path="comet/tests/Comet.Simulation.Tests/Comet.Simulation.Tests.csproj" />
+    <Project Path="comet/tests/Comet.ZoneFiles.Tests/Comet.ZoneFiles.Tests.csproj" />
   </Folder>
   <Folder Name="/shapeland/" />
   <Folder Name="/shapeland/src/">

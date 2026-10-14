@@ -7,8 +7,9 @@ public sealed class ContentBuildResult
 {
     private readonly IReadOnlyList<ContentBuilder.IReadContent> _types;
 
-    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings)
+    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings, IReadOnlyList<Zone> zones)
     {
+        Zones = zones;
         Errors = errors;
         _types = types;
         Strings = strings;
@@ -21,6 +22,9 @@ public sealed class ContentBuildResult
 
     /// <summary>The interface text, if the game registered a string file (<see cref="ContentBuilder.AddStrings"/>).</summary>
     public StringTable? Strings { get; }
+
+    /// <summary>The zones, in number order, if the game registered a zones folder (<see cref="ContentBuilder.AddZones"/>).</summary>
+    public IReadOnlyList<Zone> Zones { get; }
 
     /// <summary>The entries of one registered type, in number order.</summary>
     public IReadOnlyList<T> Entries<T>()

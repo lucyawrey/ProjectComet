@@ -48,11 +48,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -4246343793800429108, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
+    - target: {fileID: -4679627036405575602, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 2363a39ddd6cb0ff68d7c40daa468bf7, type: 2}
-    - target: {fileID: 592879029350731013, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
+    - target: {fileID: -3168506760922883939, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 9620fa0eda73df2868773d48c4e0351c, type: 2}
@@ -68,9 +68,9 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 3588937628090892900}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
---- !u!23 &3340357745474785021 stripped
+--- !u!23 &1832861680946516918 stripped
 MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 592879029350731013, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
+  m_CorrespondingSourceObject: {fileID: -4679627036405575602, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
   m_PrefabInstance: {fileID: 2765493836255151096}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &4684852078441237104 stripped
@@ -90,12 +90,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7582ec7e8499564eab52a1f8dd630c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.ShapeBody
-  body: {fileID: 3340357745474785021}
-  eyes: {fileID: 7165496579608150580}
+  body: {fileID: 8243331274597587813}
+  eyes: {fileID: 1832861680946516918}
   bodyFadeMaterial: {fileID: 2100000, guid: 61dd4b4118ed94a48a34b63a8dc64b5b, type: 2}
   eyesFadeMaterial: {fileID: 2100000, guid: 71fb7ea9edb6b490c85ea0df884edb30, type: 2}
---- !u!23 &7165496579608150580 stripped
+--- !u!23 &8243331274597587813 stripped
 MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -4246343793800429108, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
+  m_CorrespondingSourceObject: {fileID: -3168506760922883939, guid: 97df64b6fcb78b44893fd0a47d574b23, type: 3}
   m_PrefabInstance: {fileID: 2765493836255151096}
   m_PrefabAsset: {fileID: 0}

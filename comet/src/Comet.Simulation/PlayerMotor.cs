@@ -19,7 +19,7 @@ namespace Comet.Simulation
 
     /// <summary>
     /// Moves a player one step: slides toward the wanted horizontal velocity, jumps, falls, stands on ground
-    /// and slides along boxes. Clients and bots move with it, so their movement fits the rules the server checks.
+    /// and slides along solid meshes and terrain walls. Clients and bots move with it, so their movement fits the rules the server checks.
     /// </summary>
     public static class PlayerMotor
     {
@@ -64,19 +64,19 @@ namespace Comet.Simulation
                 velocityY -= rules.Gravity * seconds;
             }
 
-            // Move horizontally, sliding along boxes one axis at a time.
+            // Move horizontally, sliding along walls one axis at a time.
             var position = state.Position;
             var stepUp = state.Grounded ? rules.StepHeight : 0;
             position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), stepUp, world, rules, ref current.X);
             position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), stepUp, world, rules, ref current.Y);
 
-            // Move vertically, landing on ground or stopping under a box.
+            // Move vertically, landing on ground or stopping under something solid.
             var startY = position.Y;
             var targetY = startY + velocityY * seconds;
             if (velocityY > 0)
             {
                 var up = new Vector3(position.X, targetY, position.Z);
-                if (world.IsBlocked(up, rules.BodyRadius, rules.BodyHeight))
+                if (world.IsBlocked(up, rules.BodyRadius, rules.BodyHeight) || world.IsBlockedByTerrain(up, rules.BodyRadius, rules.BodyHeight, 0))
                 {
                     velocityY = 0;
                     targetY = startY;
@@ -118,8 +118,10 @@ namespace Comet.Simulation
                 return position;
             }
 
+            // Terrain may rise by up to twice the distance moved, as for landing below, plus a step.
+            var climb = stepUp + 2 * delta.Length();
             var moved = position + delta;
-            if (!world.IsBlocked(moved, rules.BodyRadius, rules.BodyHeight))
+            if (!world.IsBlocked(moved, rules.BodyRadius, rules.BodyHeight) && !world.IsBlockedByTerrain(moved, rules.BodyRadius, rules.BodyHeight, climb))
             {
                 return moved;
             }
@@ -128,7 +130,7 @@ namespace Comet.Simulation
             if (stepUp > 0 && world.TryGetGround(moved, rules.BodyRadius, position.Y + stepUp, out var ledge) && ledge > position.Y)
             {
                 var stepped = new Vector3(moved.X, ledge, moved.Z);
-                if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight))
+                if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight) && !world.IsBlockedByTerrain(stepped, rules.BodyRadius, rules.BodyHeight, climb))
                 {
                     return stepped;
                 }

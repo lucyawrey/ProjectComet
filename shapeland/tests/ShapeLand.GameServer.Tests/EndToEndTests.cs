@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Net.WebSockets;
 using Comet.Protocol;
 using Comet.Protocol.Framing;
@@ -113,7 +114,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         await bea.ConnectAsync(_url);
         var shapes = _content.Shapes.All;
         JoinRequest Look(string name, int index) =>
-            new() { Name = name, Shape = shapes[index].Number, Color = ShapeLandRules.BodyColors[index], EyeColor = ShapeLandRules.EyeColors[index], ContentFingerprint = _content.Fingerprint };
+            new() { Name = name, Shape = shapes[index].Number, Color = _content.Settings.Colors.Body[index], EyeColor = _content.Settings.Colors.Eyes[index], ContentFingerprint = _content.Fingerprint };
 
         // A client with other content is turned away before anything else is checked.
         await ada.SendAsync(ShapeLandMessageIds.JoinRequest, Look("Ada", 0) with { ContentFingerprint = _content.Fingerprint + 1 });
@@ -144,6 +145,29 @@ public sealed class EndToEndTests : IAsyncLifetime
             Assert.Equal((change.Shape, change.Color, change.EyeColor), (spawn.Shape, spawn.Color, spawn.EyeColor));
             Assert.Equal((joined.X, joined.Y, joined.Z), (spawn.X, spawn.Y, spawn.Z));
         }
+    }
+
+    [Fact]
+    public async Task PlayersStartAtTheirShapesSpawnAndCanReturnToIt()
+    {
+        using var ada = new RawClient();
+        await ada.ConnectAsync(_url);
+        var shape = _content.Shapes.All[0];
+        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest
+        {
+            Name = "Ada", Shape = shape.Number, Color = _content.Settings.Colors.Body[0], EyeColor = _content.Settings.Colors.Eyes[0], ContentFingerprint = _content.Fingerprint,
+        });
+
+        var spawns = new Comet.Simulation.Spawns(ShapeLandWorld.Zone(_content));
+        Assert.True(spawns.TryGet(shape.Spawn, out var home));
+        var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+        Assert.Equal(home.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
+        Assert.InRange(Vector2.Distance(new Vector2(joined.X, joined.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
+
+        await ada.SendAsync(ShapeLandMessageIds.ReturnToSpawn, new ReturnToSpawn());
+        var back = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
+        Assert.Equal(CorrectionReason.Respawn, back.Reason);
+        Assert.InRange(Vector2.Distance(new Vector2(back.X, back.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
     }
 
     /// <summary>A bare WebSocket client, for tests that send and read single messages.</summary>

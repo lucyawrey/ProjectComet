@@ -42,5 +42,12 @@ namespace ShapeLand.Shared.Content
         /// </summary>
         [JsonRequired]
         [Key(6)] public float Scale { get; set; }
+
+        /// <summary>
+        /// The spawn point (<c>spawn.*</c>) a player of this shape starts at when they join, until they claim another.
+        /// Changing shape later doesn't change a player's spawn.
+        /// </summary>
+        [JsonRequired]
+        [Key(7)] public string Spawn { get; set; } = "";
     }
 }

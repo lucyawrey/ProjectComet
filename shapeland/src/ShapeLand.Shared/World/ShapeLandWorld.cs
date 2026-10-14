@@ -1,51 +1,32 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Comet.Content;
 using Comet.Simulation;
 using ShapeLand.Shared.Content;
 
 namespace ShapeLand.Shared.World
 {
     /// <summary>
-    /// The phase 0 world: the test island from content, centered on the origin, plus a few hard-coded blocks to
-    /// jump on, until zone files exist. Built the same way on client and server.
+    /// ShapeLand's world: its one zone from content (terrain, placed objects and wall volumes), built the same way on
+    /// client and server.
     /// </summary>
     public static class ShapeLandWorld
     {
-        /// <summary>Meters between the terrain's height samples.</summary>
-        public const float TerrainSpacing = 2f;
-        /// <summary>Falling below this height, in meters, is out of the world: the player respawns.</summary>
-        public const float KillHeight = -30f;
-
-        /// <summary>
-        /// ShapeLand's movement physics, the same for every shape (each shape's speed, jump and scale are in its
-        /// content file). The server checks movement against these, so clients, bots and server all use this one copy.
-        /// </summary>
-        public static readonly MovementRules Rules = new MovementRules
+        /// <summary>Where players appear: the zone's default spawn point, on the ground.</summary>
+        public static Vector3 SpawnPoint(ShapeLandContent content, CollisionWorld world)
         {
-            Gravity = 25f,
-            BodyRadius = 0.4f,
-            BodyHeight = 1f,
-            StepHeight = 0.35f,
-            GroundSnap = 0.4f,
-            GroundAcceleration = 40f,
-            AirAcceleration = 15f,
-            TurnSpeed = 900f,
-        };
-
-        /// <summary>Where players appear: the center of the island, on the ground.</summary>
-        public static Vector3 SpawnPoint(CollisionWorld world)
-        {
-            world.TryGetGround(Vector3.Zero, Rules.BodyRadius, 1000, out var ground);
-            return new Vector3(0, ground, 0);
+            var spawn = DefaultSpawn(content);
+            world.TryGetGround(spawn, content.Movement.BodyRadius, spawn.Y + 1000, out var ground);
+            return new Vector3(spawn.X, ground, spawn.Z);
         }
 
         /// <summary>
-        /// The highest ground under a position at or below it (terrain, or a block's top under the shared body), or
+        /// The highest ground under a position at or below it (terrain, or a mesh's top under the shared body), or
         /// null over a hole or past the edge: for dead-reckoning other players (Comet.Client's RemoteEntities).
         /// </summary>
-        public static Func<Vector3, float?> GroundHeight(CollisionWorld world) =>
-            feet => world.TryGetGround(feet, Rules.BodyRadius, feet.Y, out var height) ? height : null;
+        public static Func<Vector3, float?> GroundHeight(ShapeLandContent content, CollisionWorld world) =>
+            feet => world.TryGetGround(feet, content.Movement.BodyRadius, feet.Y, out var height) ? height : null;
 
         /// <summary>
         /// Other players moving faster than this (across the ground, or upwards) are drawn jumping rather than
@@ -63,27 +44,47 @@ namespace ShapeLand.Shared.World
             return 1.5f * fastest;
         }
 
-        /// <summary>The world from <paramref name="content"/>, the same on client and server.</summary>
+        /// <summary>The world from <paramref name="content"/>'s zone, the same on client and server.</summary>
         public static CollisionWorld Create(ShapeLandContent content)
         {
-            var terrain = TerrainGround.Centered(content.Terrain, TerrainSpacing, Vector3.Zero);
-            var blocks = new List<Box>
+            var zone = Zone(content);
+            var meshes = new List<CollisionMesh>();
+            foreach (var chunk in zone.Chunks)
             {
-                // A low step, a block to jump onto, a taller one to jump up to from the first, and a long platform.
-                Block(terrain, 6, 2, new Vector3(2, 0.3f, 2)),
-                Block(terrain, 10, -4, new Vector3(3, 1f, 3)),
-                Block(terrain, 13, -7, new Vector3(2, 2f, 2)),
-                Block(terrain, -8, 8, new Vector3(6, 0.8f, 2)),
-            };
-            return new CollisionWorld(terrain, blocks, KillHeight);
+                foreach (var placement in chunk.Placements)
+                {
+                    meshes.Add(CollisionMesh.Placed(content.Assets[placement.Asset].Collision, placement.Matrix()));
+                }
+
+                foreach (var volume in chunk.Volumes)
+                {
+                    if (volume.Kind == VolumeKind.Wall)
+                    {
+                        meshes.Add(CollisionMesh.Box(volume.Size, Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(volume.Rotation)) * Matrix4x4.CreateTranslation(volume.Position)));
+                    }
+                }
+            }
+
+            return new CollisionWorld(new ZoneTerrain(zone), meshes, content.Settings.World.KillHeight);
         }
 
-        // Stands a block on the terrain at (x, z), sunk 0.5 m so no gap shows on slopes.
-        private static Box Block(TerrainGround terrain, float x, float z, Vector3 size)
+        /// <summary>The zone ShapeLand plays in: the one its settings name (<c>world.zone</c>).</summary>
+        public static Zone Zone(ShapeLandContent content) => content.Zones[content.Settings.World.Zone];
+
+        private static Vector3 DefaultSpawn(ShapeLandContent content)
         {
-            terrain.TryGetHeight(x, z, out var ground);
-            const float sink = 0.5f;
-            return Box.Standing(x, z, ground - sink, new Vector3(size.X, size.Y + sink, size.Z));
+            foreach (var chunk in Zone(content).Chunks)
+            {
+                foreach (var spawn in chunk.Spawns)
+                {
+                    if (spawn.IsDefault)
+                    {
+                        return spawn.Position;
+                    }
+                }
+            }
+
+            return Vector3.Zero;
         }
     }
 }

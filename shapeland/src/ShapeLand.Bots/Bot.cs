@@ -137,7 +137,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     {
         var transport = new WebSocketTransport(url);
         _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
-            gravity: ShapeLandWorld.Rules.Gravity, groundHeight: ShapeLandWorld.GroundHeight(world));
+            gravity: content.Movement.Gravity, groundHeight: ShapeLandWorld.GroundHeight(content, world));
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
         _session.EntityDespawned += id =>
@@ -165,8 +165,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                     {
                         Name = name,
                         Shape = _shape.Number,
-                        Color = settings.Color ?? ShapeLandRules.BodyColors[_random.Next(ShapeLandRules.BodyColors.Length)],
-                        EyeColor = ShapeLandRules.EyeColors[_random.Next(ShapeLandRules.EyeColors.Length)],
+                        Color = settings.Color ?? content.Settings.Colors.Body[_random.Next(content.Settings.Colors.Body.Length)],
+                        EyeColor = content.Settings.Colors.Eyes[_random.Next(content.Settings.Colors.Eyes.Length)],
                         ContentFingerprint = content.Fingerprint,
                     });
                 }
@@ -223,7 +223,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
-        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, world, ShapeLandWorld.Rules);
+        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, world, content.Movement);
         // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
         if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond))
         {

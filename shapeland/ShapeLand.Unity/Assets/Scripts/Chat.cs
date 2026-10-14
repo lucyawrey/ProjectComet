@@ -137,12 +137,23 @@ namespace ShapeLand.Client
             _hud.UpdateMoving();
         }
 
+        /// <summary>Typed in chat, sends the player back to their spawn point instead of saying it.</summary>
+        public const string ReturnCommand = "/return";
+
         /// <summary>Sends what's typed (if anything) and closes the input.</summary>
         public void Send()
         {
             if (ShapeLandRules.TryNormalizeChat(_input.value, out var text))
             {
-                _hud.Join.Say(text);
+                // A command rather than chat. Becomes an action once Comet has them.
+                if (text.Equals(ReturnCommand, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    _hud.Join.ReturnToSpawn();
+                }
+                else
+                {
+                    _hud.Join.Say(text);
+                }
             }
 
             CloseInput();

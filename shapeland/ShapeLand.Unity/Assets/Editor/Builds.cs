@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Comet.Unity.Editor;
 using ShapeLand.Shared.Content;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -55,16 +56,13 @@ namespace ShapeLand.Client.Editor
             }
         }
 
-        /// <summary>
-        /// Copies the compiled content into StreamingAssets (gitignored), as the content build left it. Entering play
-        /// mode does this too (<see cref="ContentSync"/>); builds call it to fail early when there's no content.
-        /// </summary>
-        [MenuItem("ShapeLand/Copy Content")]
-        public static void CopyContent()
+        // Copies the compiled content into StreamingAssets (gitignored), as the content build left it; Comet does this as
+        // play mode starts too (ContentBuild). Builds fail early when there's no content.
+        private static void CopyContent()
         {
-            if (!ContentSync.Sync())
+            if (!ContentBuild.Copy())
             {
-                throw new FileNotFoundException("Run the content build first: dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build", ContentSync.Source);
+                throw new FileNotFoundException("Run the content build first: Comet › Content › Build, or dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build", ContentBuild.Source);
             }
 
             AssetDatabase.Refresh();
@@ -89,7 +87,7 @@ namespace ShapeLand.Client.Editor
         private static string PageText()
         {
             ShapeLandContent content;
-            using (var stream = File.OpenRead(ContentSync.Source))
+            using (var stream = File.OpenRead(ContentBuild.Source))
             {
                 content = ShapeLandContent.Load(stream);
             }

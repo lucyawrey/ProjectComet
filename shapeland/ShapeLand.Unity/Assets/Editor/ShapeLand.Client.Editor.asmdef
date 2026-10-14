@@ -5,7 +5,8 @@
         "Comet.Unity",
         "ShapeLand.Client",
         "ShapeLand.Shared",
-        "Comet.Content"
+        "Comet.Content",
+        "Comet.Unity.Editor"
     ],
     "includePlatforms": [
         "Editor"

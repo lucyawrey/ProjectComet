@@ -26,7 +26,7 @@ namespace Comet.Unity
         /// <param name="gravity">For dead-reckoning other entities in the air.</param>
         /// <param name="groundHeight">The highest ground under a position at or below it, so dead reckoning never goes below it.</param>
         public ClientSession Connect(Uri url, MessagePackSerializerOptions options, float teleportSpeed = float.PositiveInfinity,
-            float gravity = 0, Func<System.Numerics.Vector3, float?> groundHeight = null)
+            float gravity = 0, Func<System.Numerics.Vector3, float?>? groundHeight = null)
         {
             Disconnect();
             if (GetComponent<CometFlush>() == null)

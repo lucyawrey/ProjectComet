@@ -1,0 +1,29 @@
+[[tile]]
+piece = "island"
+origin = [10, 0]
+
+[[placement]]
+asset = "asset.cube"
+position = [-8.0, 4.262, 8.0]
+scale = [3.0, 0.65, 1.0]
+
+[[placement]]
+asset = "asset.cube"
+position = [-0.023, 6.157, 17.269]
+
+[[placement]]
+asset = "asset.cylinder"
+position = [-2.552, 5.915, 19.538]
+
+[[placement]]
+asset = "asset.cylinder"
+name = "spawn.bridge"
+position = [-47.603, 1.202, 2.426]
+scale = [2.0, 0.2, 2.0]
+
+[[spawn]]
+id = "spawn.bridge"
+position = [-47.603, 1.602, 2.426]
+radius = 2.0
+facing = "direction"
+yaw = 0.0

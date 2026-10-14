@@ -1,0 +1,26 @@
+[[tile]]
+piece = "island"
+origin = [0, 37]
+
+[[placement]]
+asset = "asset.cube"
+position = [10.0, 5.07, -4.0]
+scale = [1.5, 0.75, 1.5]
+
+[[placement]]
+asset = "asset.cube"
+position = [13.0, 5.234, -7.0]
+scale = [1.0, 1.25, 1.0]
+
+[[placement]]
+asset = "asset.sphere"
+position = [25.66, -1.29, -22.05]
+scale = [10.0, 10.0, 10.0]
+
+[[placement]]
+asset = "asset.cone"
+position = [3.011, 0.0, -0.353]
+
+[[placement]]
+asset = "asset.cube"
+position = [12.911, 0.0, -13.434]

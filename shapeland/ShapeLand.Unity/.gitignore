@@ -22,3 +22,7 @@
 # Copied from artifacts/ by the build script
 /Assets/StreamingAssets/content.bin
 /Assets/StreamingAssets/content.bin.meta
+
+# The zone editor's working scenes (Comet › Zones); the zone files are what's kept
+/Assets/ZoneEditing/
+/Assets/ZoneEditing.meta

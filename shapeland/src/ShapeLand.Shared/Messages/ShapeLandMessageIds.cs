@@ -14,5 +14,9 @@ namespace ShapeLand.Shared.Messages
         public const ushort ChatSend = MessageIds.FirstGameMessage + 10;
         public const ushort ChatMessage = MessageIds.FirstGameMessage + 11;
         public const ushort ChatRejected = MessageIds.FirstGameMessage + 12;
+
+        // Spawn points
+        public const ushort SpawnSet = MessageIds.FirstGameMessage + 20;
+        public const ushort ReturnToSpawn = MessageIds.FirstGameMessage + 21;
     }
 }

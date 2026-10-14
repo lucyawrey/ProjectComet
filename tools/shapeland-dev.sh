@@ -143,12 +143,14 @@ local_address() {
 url="http://localhost:$port/"
 if curl -s -o /dev/null "$url"; then
   echo "Something is already using port $port (another run of this script?); stop it or use --port." >&2
+  # Which process, where the system says (lsof works on both Linux and macOS).
+  lsof -nP -iTCP:"$port" -sTCP:LISTEN 2> /dev/null | sed 's/^/  /' >&2 || true
   exit 1
 fi
 
 pids=()
 cleanup() {
-  trap - EXIT INT TERM
+  trap - EXIT INT TERM HUP
   if [ -n "$net" ]; then
     "${compose[@]}" --profile bots down -t 2 > /dev/null 2>&1 || true
   fi
@@ -160,6 +162,8 @@ cleanup() {
 trap cleanup EXIT
 trap 'cleanup; exit 130' INT
 trap 'cleanup; exit 143' TERM
+# Closing the terminal sends a hangup: stop everything then too, rather than leaving the server holding the port.
+trap 'cleanup; exit 129' HUP
 
 if [ -n "$net" ]; then
   # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.

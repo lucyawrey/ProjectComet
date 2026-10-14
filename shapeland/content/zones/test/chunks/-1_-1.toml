@@ -1,0 +1,19 @@
+[[tile]]
+piece = "island"
+origin = [12, 37]
+
+[[placement]]
+asset = "asset.cylinder"
+position = [-1.66, 4.42, -10.79]
+
+[[placement]]
+asset = "asset.cylinder"
+position = [-8.61, 3.25, -10.79]
+
+[[placement]]
+asset = "asset.cylinder"
+position = [-1.66, 3.34, -4.6]
+
+[[placement]]
+asset = "asset.cone"
+position = [-2.554, 0.0, -3.188]

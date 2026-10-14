@@ -14,10 +14,6 @@ switch (args)
     case ["schema"]:
         WriteSchemas();
         return 0;
-    case ["terrain"]:
-        return Terrain(1);
-    case ["terrain", "--seed", var seedText] when int.TryParse(seedText, out var seed):
-        return Terrain(seed);
     default:
         Console.Error.WriteLine(
             """
@@ -26,7 +22,6 @@ switch (args)
               build                 check shapeland/content, add new ids to ids.toml, write the compiled
                                     content and the editor schemas to artifacts/content/shapeland
               schema                write only the editor schemas
-              terrain [--seed N]    generate the test zone's heightmap (seed 1 by default)
             """);
         return 2;
 }
@@ -53,7 +48,7 @@ int Build()
     }
 
     WriteSchemas();
-    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, the test terrain and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
+    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Assets.All.Count} assets, {compiled.Zones.All.Count} zone(s) and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
     return 0;
 }
 
@@ -67,19 +62,6 @@ void WriteSchemas()
     }
 
     Console.WriteLine($"Wrote editor schemas to {Path.GetRelativePath(repo, schemas)}.");
-}
-
-int Terrain(int seed)
-{
-    var file = Path.Combine(content, ShapeLandBuild.TerrainPath);
-    Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-    using (var stream = File.Create(file))
-    {
-        HeightmapFormat.Write(stream, TestTerrain.Generate(seed));
-    }
-
-    Console.WriteLine($"Wrote the test terrain (seed {seed}) to {Path.GetRelativePath(repo, file)}.");
-    return 0;
 }
 
 static string FindRepoRoot()
