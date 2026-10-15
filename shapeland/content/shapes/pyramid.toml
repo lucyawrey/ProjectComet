@@ -4,4 +4,4 @@ mesh = "pyramid" # the prefab GameView uses, from Assets/Prefabs/Shapes/ in shap
 max_speed = 6.0
 jump_velocity = 9.0
 scale = 1.0
-spawn = "spawn.start" # where players of this shape start
+spawn = "spawn.pyramid" # where players of this shape start

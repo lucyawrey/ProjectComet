@@ -9,20 +9,22 @@ scale = [3.0, 0.65, 1.0]
 
 [[placement]]
 asset = "asset.cube"
-position = [-0.023, 6.157, 17.269]
+position = [-6.04, 8.707, 43.3]
+color = 0xFF0000
+
+[[placement]]
+asset = "asset.cube"
+position = [-3.23, 8.707, 46.79]
+color = 0x00A1FF
 
 [[placement]]
 asset = "asset.cylinder"
-position = [-2.552, 5.915, 19.538]
-
-[[placement]]
-asset = "asset.cylinder"
-name = "spawn.bridge"
+name = "spawn.diamond"
 position = [-47.603, 1.202, 2.426]
 scale = [2.0, 0.2, 2.0]
 
 [[spawn]]
-id = "spawn.bridge"
+id = "spawn.diamond"
 position = [-47.603, 1.602, 2.426]
 radius = 2.0
 facing = "direction"

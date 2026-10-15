@@ -22,6 +22,10 @@ test_east = 2
 blorbsd = 3
 bridge = 4
 start = 5
+cube = 6
+diamond = 7
+pyramid = 8
+blue = 9
 
 [zone]
 test = 1

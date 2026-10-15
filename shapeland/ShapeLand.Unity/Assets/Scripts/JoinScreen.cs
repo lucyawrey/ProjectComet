@@ -177,6 +177,7 @@ namespace ShapeLand.Client
         private void Close()
         {
             _root.AddToClassList("hidden");
+            _root.focusController?.focusedElement?.Blur(); // or Enter and the controller's submit button still reach the hidden card
             if (_preview != null)
             {
                 Destroy(_preview.gameObject);

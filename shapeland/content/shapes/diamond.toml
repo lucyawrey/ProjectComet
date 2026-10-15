@@ -4,4 +4,4 @@ mesh = "diamond" # the prefab GameView uses, from Assets/Prefabs/Shapes/ in shap
 max_speed = 7.5
 jump_velocity = 8.0
 scale = 1.0
-spawn = "spawn.start" # where players of this shape start
+spawn = "spawn.diamond" # where players of this shape start

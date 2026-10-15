@@ -3,25 +3,45 @@ piece = "island"
 origin = [0, 0]
 
 [[placement]]
-asset = "asset.cylinder"
-position = [20.71, 5.11, 2.91]
+asset = "asset.cube"
+position = [5.73, 5.35, 17.269]
 
 [[placement]]
 asset = "asset.cube"
-position = [6.0, 5.059, 2.0]
-scale = [1.0, 0.4, 1.0]
+position = [0.15, 4.12, 42.56]
+rotation = [0.0, 1.99, 0.0]
+scale = [9.849, 2.299, 6.571]
 
 [[placement]]
 asset = "asset.cone"
-position = [7.13, 6.709, 16.332]
+position = [17.02, 6.709, 12.62]
+scale = [2.0, 2.0, 2.0]
 
 [[placement]]
 asset = "asset.cone"
-position = [3.277, 6.397, 17.105]
+position = [18.54, 6.29, 8.06]
+scale = [2.0, 2.0, 2.0]
+
+[[placement]]
+asset = "asset.cone"
+position = [20.47, 6.0, 3.34]
+scale = [2.0, 2.0, 2.0]
+
+[[placement]]
+asset = "asset.cone"
+position = [16.15, 6.0, 3.34]
+scale = [2.0, 2.0, 2.0]
+
+[[placement]]
+asset = "asset.cone"
+position = [13.75, 6.28, 8.92]
+scale = [2.0, 2.0, 2.0]
 
 [[placement]]
 asset = "asset.ramp"
-position = [6.035, 6.389, 21.043]
+position = [0.51, 3.92, 27.54]
+rotation = [0.0, -88.0, 0.0]
+scale = [8.396, 2.407, 6.584]
 
 [[placement]]
 asset = "asset.sphere"
@@ -30,14 +50,27 @@ scale = [10.162, 1.0, 1.0]
 
 [[placement]]
 asset = "asset.cylinder"
-name = "spawn.start"
-position = [12.488, 6.197, 6.454]
+name = "spawn.pyramid"
+position = [8.98, 6.28, 3.83]
+scale = [2.0, 0.2, 2.0]
+
+[[placement]]
+asset = "asset.cylinder"
+name = "spawn.cube"
+position = [5.0, 8.547, 43.71]
 scale = [2.0, 0.2, 2.0]
 
 [[spawn]]
-id = "spawn.start"
-position = [12.488, 6.597, 6.454]
+id = "spawn.pyramid"
+position = [8.98, 6.68, 3.83]
 radius = 2.0
 facing = "direction"
 yaw = 0.0
 default = true
+
+[[spawn]]
+id = "spawn.cube"
+position = [5.0, 8.947, 43.71]
+radius = 2.0
+facing = "direction"
+yaw = 0.0

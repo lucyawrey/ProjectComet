@@ -3,13 +3,13 @@
     <ui:VisualElement name="hud" class="hud hidden" picking-mode="Ignore">
         <ui:VisualElement name="tags" class="tags" picking-mode="Ignore" />
         <ui:VisualElement name="chat" class="chat" picking-mode="Ignore">
-            <ui:VisualElement name="log" class="chat-log empty" picking-mode="Ignore" />
+            <ui:ScrollView name="log" class="chat-log empty" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" />
             <ui:VisualElement name="chat-input-row" class="chat-input-row hidden">
                 <ui:TextField name="chat-input" max-length="200" class="input chat-input" />
                 <ui:Label text="#chat.keys" class="chat-keys" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:Button name="look-button" text="#hud.change_look" class="look-button" />
+        <ui:Button name="look-button" text="#hud.change_look" class="look-button" focusable="false" />
         <ui:Label name="chat-hint" text="#chat.hint" class="chat-hint" picking-mode="Ignore" />
         <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
             <ui:VisualElement class="net-row" picking-mode="Ignore">
