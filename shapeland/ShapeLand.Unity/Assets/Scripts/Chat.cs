@@ -3,13 +3,15 @@ using Comet.Client;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
     /// <summary>
     /// The chat box in the HUD's lower corner: the log, which fades after a while without messages, and an input
-    /// that Enter opens (the shape stops moving while it's open). Speech bubbles are <see cref="NameTags"/>' part.
+    /// that Enter opens (the shape stops moving while it's open) and a click outside the box closes. The log scrolls
+    /// back through older lines. Speech bubbles are <see cref="NameTags"/>' part.
     /// </summary>
     [RequireComponent(typeof(Hud))]
     public sealed class Chat : MonoBehaviour
@@ -17,8 +19,8 @@ namespace ShapeLand.Client
         /// <summary>Seconds without a message before the log fades out.</summary>
         private const float LogSeconds = 10;
 
-        /// <summary>How many lines the log keeps.</summary>
-        private const int MaxLines = 8;
+        /// <summary>How many lines the log keeps to scroll back through.</summary>
+        private const int MaxLines = 100;
 
         // Enter or Esc that opened or closed the chat may reach another handler too; ignore it for this long.
         private const float KeyDebounce = 0.2f;
@@ -29,7 +31,7 @@ namespace ShapeLand.Client
 
         private Hud _hud;
         private VisualElement _box;
-        private VisualElement _log;
+        private ScrollView _log;
         private VisualElement _inputRow;
         private TextField _input;
         private Label _hint;
@@ -58,7 +60,7 @@ namespace ShapeLand.Client
             _hud = GetComponent<Hud>();
             var tree = GetComponent<UIDocument>().rootVisualElement;
             _box = tree.Q("chat");
-            _log = tree.Q("log");
+            _log = tree.Q<ScrollView>("log");
             _inputRow = tree.Q("chat-input-row");
             _input = tree.Q<TextField>("chat-input");
             _hint = tree.Q<Label>("chat-hint");
@@ -104,6 +106,11 @@ namespace ShapeLand.Client
                 OpenInput();
             }
 
+            if (Open && ClickedOutsideBox())
+            {
+                CloseInput();
+            }
+
             var logShown = Open || Time.unscaledTime - _lastLine < LogSeconds;
             Opacity = Open ? 1 : Mathf.MoveTowards(Opacity, logShown ? 1 : 0, Time.unscaledDeltaTime / FadeSeconds);
             _box.style.opacity = Opacity;
@@ -117,6 +124,7 @@ namespace ShapeLand.Client
             Open = true;
             _toggledAt = Time.unscaledTime;
             _inputRow.RemoveFromClassList("hidden");
+            _log.verticalScrollerVisibility = ScrollerVisibility.Auto;
             _input.value = "";
             _input.Focus();
             _hud.UpdateMoving();
@@ -134,8 +142,28 @@ namespace ShapeLand.Client
             _toggledAt = Time.unscaledTime;
             _input.Blur();
             _inputRow.AddToClassList("hidden");
+            _log.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+            ScrollToEnd();
             _hud.UpdateMoving();
         }
+
+        // A mouse click this frame that landed outside the chat box.
+        private bool ClickedOutsideBox()
+        {
+            var mouse = Mouse.current;
+            if (mouse == null || _box.panel == null || !(mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+            {
+                return false;
+            }
+
+            var screen = mouse.position.ReadValue();
+            var point = RuntimePanelUtils.ScreenToPanel(_box.panel, new Vector2(screen.x, Screen.height - screen.y));
+            return !_box.worldBound.Contains(point);
+        }
+
+        // Shows the newest line once the log has laid out the lines just added.
+        private void ScrollToEnd() =>
+            _log.schedule.Execute(() => _log.verticalScroller.value = _log.verticalScroller.highValue);
 
         /// <summary>Typed in chat, sends the player back to their spawn point instead of saying it.</summary>
         public const string ReturnCommand = "/return";
@@ -212,6 +240,9 @@ namespace ShapeLand.Client
 
         private void AddLine(VisualElement line)
         {
+            // Follow new lines unless the player has scrolled back to read older ones.
+            var scroller = _log.verticalScroller;
+            var follow = !Open || scroller.value >= scroller.highValue - 1;
             _log.Add(line);
             while (_log.childCount > MaxLines)
             {
@@ -220,6 +251,10 @@ namespace ShapeLand.Client
 
             _log.RemoveFromClassList("empty");
             _lastLine = Time.unscaledTime;
+            if (follow)
+            {
+                ScrollToEnd();
+            }
         }
 
         /// <summary>The log's lines as text, oldest first.</summary>
