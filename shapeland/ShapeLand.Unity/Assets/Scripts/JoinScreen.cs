@@ -16,8 +16,10 @@ namespace ShapeLand.Client
     /// The join screen (UI Toolkit, <c>Assets/UI/JoinScreen.uxml</c>): a card over the orbiting island where the
     /// player picks a name, shape and colors, sees the shape turning with its speed and jump height, and joins.
     /// The server's refusals and connection failures show on the card, which stays up for another try; it hides
-    /// once the player spawns. The choices are remembered for next time. Desktop builds also have a server field;
-    /// a web page joins the server it came from.
+    /// once the player spawns. When the server shuts down (as a restart does), the card tries joining again for a
+    /// minute; if the server came back with new content, a web page reloads to load it and joins again by itself.
+    /// The choices are remembered for next time. Desktop builds also have a server field; a web page joins the
+    /// server it came from.
     /// </summary>
     [RequireComponent(typeof(UIDocument), typeof(JoinClient), typeof(GameView))]
     public sealed class JoinScreen : MonoBehaviour
@@ -46,6 +48,11 @@ namespace ShapeLand.Client
         // How long after a lost connection a taken name is probably the player's own old session: the server notices a
         // dead connection within about 30 s (keep-alive).
         private const float OldSessionSeconds = 40;
+
+        // After the server shuts down (a restart sends that), the card tries joining again once a second for this long.
+        private const float RejoinSeconds = 60;
+        private float? _rejoinUntil;
+        private float _nextRejoin;
         private ShapeLandContent _content;
         private Shape _shape;
         private uint _color;
@@ -214,6 +221,10 @@ namespace ShapeLand.Client
             AddSwatches(_eyes, _content.Settings.Colors.Eyes, color => _eyeColor = color);
             Show();
             _name.Focus();
+            if (WebPage.TakeRejoin())
+            {
+                Submit(); // the page reloaded for new content while rejoining; carry on with the remembered choices
+            }
         }
 
         // The first color unless a remembered one is still in the set.
@@ -325,7 +336,11 @@ namespace ShapeLand.Client
                 PlayerPrefs.Save();
             }
 
-            ShowError(null);
+            if (_rejoinUntil == null)
+            {
+                ShowError(null); // while rejoining, the card keeps saying so between tries
+            }
+
             var request = new JoinRequest { Name = name, Shape = _shape.Number, Color = _color, EyeColor = _eyeColor };
             if (Changing)
             {
@@ -347,6 +362,13 @@ namespace ShapeLand.Client
 
         private void OnRefused(JoinRejection reason)
         {
+            var rejoining = _rejoinUntil != null;
+            _rejoinUntil = null;
+            if (rejoining && reason == JoinRejection.DifferentContent && WebPage.Reload())
+            {
+                return; // the server came back with new content; the reloaded page loads it and rejoins
+            }
+
             var message = RefusalMessage(_content.Strings, reason, _join.PlayerName);
             if (reason == JoinRejection.NameTaken && _lostAt is float lostAt && Time.unscaledTime - lostAt < OldSessionSeconds)
             {
@@ -363,7 +385,34 @@ namespace ShapeLand.Client
             _lostAt = Time.unscaledTime;
             SetChanging(false);
             Show();
+            if (reason == CloseReason.ServerShutDown)
+            {
+                _rejoinUntil = Time.unscaledTime + RejoinSeconds;
+                _nextRejoin = Time.unscaledTime + 1;
+                Retry(Text("join.rejoining"));
+                return;
+            }
+
             Retry(LostMessage(_content.Strings, reason));
+        }
+
+        // While rejoining, tries again each second while the card waits for the player.
+        private void Update()
+        {
+            if (_rejoinUntil is not float until || !_joinButton.enabledSelf || Time.unscaledTime < _nextRejoin)
+            {
+                return;
+            }
+
+            if (Time.unscaledTime > until)
+            {
+                _rejoinUntil = null;
+                Retry(LostMessage(_content.Strings, CloseReason.ServerShutDown));
+                return;
+            }
+
+            _nextRejoin = Time.unscaledTime + 1;
+            Submit();
         }
 
         private void OnFailed(JoinFailure failure)
@@ -371,6 +420,12 @@ namespace ShapeLand.Client
             if (_content == null)
             {
                 return; // the content didn't load; nothing to show the card with
+            }
+
+            if (_rejoinUntil != null && failure != JoinFailure.BadAddress)
+            {
+                Retry(Text("join.rejoining")); // not back yet
+                return;
             }
 
             var address = _server.value.Trim();
@@ -397,7 +452,11 @@ namespace ShapeLand.Client
             _error.EnableInClassList("shown", message != null);
         }
 
-        private void OnOwnSpawned(PlayerSpawn spawn) => Close();
+        private void OnOwnSpawned(PlayerSpawn spawn)
+        {
+            _rejoinUntil = null;
+            Close();
+        }
 
         private void OpenPreview()
         {
