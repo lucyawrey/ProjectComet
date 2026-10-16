@@ -75,6 +75,31 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
+        public IEnumerator RejoinsAServerThatRestarted()
+        {
+            yield return StartGame(join: false);
+            Field("name").value = "Pebble";
+            Click(ShapeButton(MeshKind.Cube));
+            Click(Screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => View.Player != null, 15);
+            Assert.That(View.Player, Is.Not.Null, "Never spawned.");
+
+            yield return Server.ShutDownServer();
+            yield return TestGameServer.WaitFor(() => Screen.Error == Strings.Get("join.rejoining"), 10);
+            Assert.That(Screen.Showing, Is.True, "The join screen didn't come back.");
+            Assert.That(Screen.Error, Is.EqualTo(Strings.Get("join.rejoining")), "The card doesn't say it's rejoining.");
+            yield return Wait(3); // several tries fail meanwhile
+            Assert.That(Screen.Error, Is.EqualTo(Strings.Get("join.rejoining")), "A failed try replaced the rejoining message.");
+
+            yield return Server.StartAgain();
+            yield return TestGameServer.WaitFor(() => View.Player != null, 15);
+            Assert.That(View.Player, Is.Not.Null, "Didn't rejoin the restarted server.");
+            Assert.That(Screen.Showing, Is.False, "The join screen stayed up.");
+            Assert.That(Join.Spawn.Value.Name, Is.EqualTo("Pebble"));
+            Assert.That(Join.Content.Shapes[Join.Spawn.Value.Shape].Mesh, Is.EqualTo(MeshKind.Cube));
+        }
+
+        [UnityTest]
         public IEnumerator ShowsRefusalsAndTriesAgain()
         {
             yield return StartGame(join: false);

@@ -91,6 +91,13 @@ public static class ShapeLandServer
             ContentTypeProvider = types,
             OnPrepareResponse = context =>
             {
+                if (context.File.Name == "content.bin")
+                {
+                    // Checked on every load, so a page reloaded for new content gets it.
+                    context.Context.Response.Headers.CacheControl = "no-cache";
+                    return;
+                }
+
                 if (!context.File.Name.EndsWith(".unityweb", StringComparison.Ordinal))
                 {
                     return;
