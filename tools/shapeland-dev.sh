@@ -2,17 +2,17 @@
 # Runs ShapeLand locally for development: by default the web client served from the game server, for testing
 # in a browser without opening the Unity editor; with --no-web, just the server, for the editor's play mode or
 # a desktop build. Builds the content, makes the Unity web build in batch mode (skipped when nothing it uses
-# changed since the last one), starts the game server, optionally starts bots, and opens the page. Ctrl+C
-# stops everything.
+# changed since the last one), starts the game server, optionally starts bots, and opens the page. Then it watches the content
+# sources and restarts the server when they change. Ctrl+C stops everything.
 #
 #   tools/shapeland-dev.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
-#                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat]
+#                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat] [--no-watch]
 #
 #   --rebuild      make the Unity web build even if it looks up to date
 #   --no-build     use the last web build as it is (content still rebuilds)
 #   --no-web       no web build or page: just the server, for the Unity editor's play mode or a desktop build.
-#                  Rerun it after changing content or server code, then restart play mode (which picks up the
-#                  new content), so client and server use the same numbers
+#                  Rerun it after changing server code. After a content change, restart play mode (which picks up
+#                  the new content), so client and server use the same numbers
 #   --bots N       start N honest bots (default 0)
 #   --cheaters N   start N speed-cheating bots (default 0)
 #   --bots-chat    let the bots chat now and then (they stay quiet otherwise)
@@ -23,6 +23,9 @@
 #                  every client gets them (shapeland/docker): none, good (about 80 ms round trip, 1% loss),
 #                  bad (about 200 ms, 2% loss) or awful (about 200 ms, 5% loss). Desktop builds join it too.
 #   --bots-net P   with --net, a profile the bots get on top of it (default none), e.g. for high-ping bots
+#   --no-watch     don't watch the content sources. Without it, saving a change under shapeland/content/ (content
+#                  numbers, zones saved from Comet › Zones) rebuilds the content and restarts the server and bots;
+#                  players rejoin, after reloading the page (web) or restarting play mode (editor) for the new content
 #
 # The profiles are in tools/shapeland-net-profiles.sh. Docker needs the traffic-shaping kernel modules loaded
 # (tools/StackBench/README.md, Docker runs).
@@ -46,6 +49,7 @@ open_page=1
 net=""
 bots_net=none
 bots_chat=()
+watch=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --rebuild) rebuild=1; shift ;;
@@ -59,7 +63,8 @@ while [ $# -gt 0 ]; do
     --net) net="$2"; shift 2 ;;
     --bots-net) bots_net="$2"; shift 2 ;;
     --bots-chat) bots_chat=(--chat); shift ;;
-    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --no-watch) watch=0; shift ;;
+    -h|--help) sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -75,8 +80,14 @@ elif [ "$bots_net" != none ]; then
   exit 2
 fi
 
+build_content() {
+  dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
+}
+
+# Changes to the content sources after this (made with the build below) start a rebuild, when watching.
+stamp=$(mktemp)
 echo "== Content"
-dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
+build_content
 
 # The Unity build is up to date when no file it's made from is newer than its page.
 stale() {
@@ -109,10 +120,12 @@ else
 fi
 
 # Content changes need no Unity build: the page loads it from StreamingAssets.
-if [ -n "$web" ]; then
+copy_content() {
+  [ -n "$web" ] || return 0
   mkdir -p "$web/StreamingAssets"
   cmp -s "$content" "$web/StreamingAssets/content.bin" || cp "$content" "$web/StreamingAssets/content.bin"
-fi
+}
+copy_content
 
 echo "== Game server"
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
@@ -148,16 +161,18 @@ if curl -s -o /dev/null "$url"; then
   exit 1
 fi
 
-pids=()
+server_pid=""
+bots_pid=""
 cleanup() {
   trap - EXIT INT TERM HUP
   if [ -n "$net" ]; then
     "${compose[@]}" --profile bots down -t 2 > /dev/null 2>&1 || true
   fi
-  for pid in "${pids[@]+"${pids[@]}"}"; do
+  for pid in $server_pid $bots_pid; do
     kill "$pid" 2> /dev/null || true
   done
   wait 2> /dev/null || true
+  rm -f "$stamp"
 }
 trap cleanup EXIT
 trap 'cleanup; exit 130' INT
@@ -165,35 +180,50 @@ trap 'cleanup; exit 143' TERM
 # Closing the terminal sends a hangup: stop everything then too, rather than leaving the server holding the port.
 trap 'cleanup; exit 129' HUP
 
-if [ -n "$net" ]; then
-  # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
-  export SHAPELAND_WEBROOT="${web:+/app/web}" SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}"
-  "${compose[@]}" up --no-log-prefix server &
-  pids+=($!)
-else
-  # The built programs run directly: stopping `dotnet run` can leave the program it started running.
-  dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
-    --urls "http://$host:$port" --ShapeLand:WebRoot="$web" \
-    --Comet:Connections:MaxConnectionsPerAddress=1000 & # the bots all come from this machine
-  pids+=($!)
-fi
+start_server() {
+  if [ -n "$net" ]; then
+    # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
+    export SHAPELAND_WEBROOT="${web:+/app/web}" SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}"
+    "${compose[@]}" up --no-log-prefix server &
+  else
+    # The built programs run directly: stopping `dotnet run` can leave the program it started running.
+    dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
+      --urls "http://$host:$port" --ShapeLand:WebRoot="$web" \
+      --Comet:Connections:MaxConnectionsPerAddress=1000 & # the bots all come from this machine
+  fi
+  server_pid=$!
 
-for _ in $(seq 1 60); do
-  kill -0 "${pids[0]}" 2> /dev/null || { echo "The game server stopped." >&2; exit 1; }
-  curl -sf -o /dev/null "${url}health" && break
-  sleep 0.5
-done
-# Answering, and still running (so it's this server, not one that started meanwhile).
-curl -sf -o /dev/null "${url}health" && kill -0 "${pids[0]}" 2> /dev/null ||
-  { echo "The game server didn't start at $url." >&2; exit 1; }
+  for _ in $(seq 1 60); do
+    kill -0 "$server_pid" 2> /dev/null || { echo "The game server stopped." >&2; exit 1; }
+    curl -sf -o /dev/null "${url}health" && break
+    sleep 0.5
+  done
+  # Answering, and still running (so it's this server, not one that started meanwhile).
+  curl -sf -o /dev/null "${url}health" && kill -0 "$server_pid" 2> /dev/null ||
+    { echo "The game server didn't start at $url." >&2; exit 1; }
 
-if [ $((bots + cheaters)) -gt 0 ] && [ -n "$net" ]; then
-  "${compose[@]}" --profile bots up -d bots > /dev/null 2>&1
-elif [ $((bots + cheaters)) -gt 0 ]; then
-  dotnet "$repo/artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll" \
-    --url "ws://localhost:$port/ws" --count "$bots" --cheaters "$cheaters" "${bots_chat[@]+"${bots_chat[@]}"}" > /dev/null &
-  pids+=($!)
-fi
+  if [ $((bots + cheaters)) -gt 0 ] && [ -n "$net" ]; then
+    "${compose[@]}" --profile bots up -d bots > /dev/null 2>&1
+  elif [ $((bots + cheaters)) -gt 0 ]; then
+    dotnet "$repo/artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll" \
+      --url "ws://localhost:$port/ws" --count "$bots" --cheaters "$cheaters" "${bots_chat[@]+"${bots_chat[@]}"}" > /dev/null &
+    bots_pid=$!
+  fi
+}
+
+stop_server() {
+  if [ -n "$net" ]; then
+    "${compose[@]}" --profile bots down -t 2 > /dev/null 2>&1 || true
+  fi
+  for pid in $bots_pid $server_pid; do
+    kill "$pid" 2> /dev/null || true
+    wait "$pid" 2> /dev/null || true
+  done
+  server_pid=""
+  bots_pid=""
+}
+
+start_server
 
 if [ -n "$web" ]; then
   echo "== Playing at $url (Ctrl+C stops)${net:+, network profile $net}"
@@ -205,6 +235,9 @@ if [ "$host" = 0.0.0.0 ]; then
   [ -n "$address" ] || address="<this machine's address>"
   echo "   Other devices: http://$address:$port/"
 fi
+if [ "$watch" = 1 ]; then
+  echo "   Watching shapeland/content/: saving a change there rebuilds the content and restarts the server."
+fi
 if [ "$open_page" = 1 ]; then
   case "$(uname)" in
     Darwin) open "$url" ;;
@@ -212,4 +245,32 @@ if [ "$open_page" = 1 ]; then
   esac
 fi
 
-wait "${pids[0]}"
+if [ "$watch" = 0 ]; then
+  wait "$server_pid"
+  exit
+fi
+
+# Polls rather than using a file-watching tool, so it needs nothing installed on Linux or macOS. Directories count
+# too: theirs change when a file is added, removed or renamed.
+while kill -0 "$server_pid" 2> /dev/null; do
+  sleep 1
+  [ -n "$(find "$repo/shapeland/content" -newer "$stamp" -print 2> /dev/null | head -n 1)" ] || continue
+  sleep 0.5 # let an editor finish saving several files
+  touch "$stamp" # changes from here on start another round
+  echo "== Content changed; rebuilding"
+  if ! build_content; then
+    echo "== The content build failed; the server keeps the old content. Fix it and save again."
+    continue
+  fi
+  copy_content
+  echo "== Restarting the game server"
+  stop_server
+  start_server
+  if [ -n "$web" ]; then
+    echo "== Restarted with the new content. Reload the page to play with it."
+  else
+    echo "== Restarted with the new content. Restart play mode to play with it."
+  fi
+done
+echo "The game server stopped." >&2
+exit 1
