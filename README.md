@@ -43,7 +43,7 @@ Run them from the repository root. Each script's options are listed below and in
 | Script | What it's for |
 | --- | --- |
 | `tools/blender-export-glb.py` | Export each top-level object in a `.blend` file as a `.glb`, into the folder named by the file's `export_dir` property. Run it from Blender's Text Editor, or with `blender -b <file> --python tools/blender-export-glb.py`; the script's header has the setup. |
-| `tools/shapeland-dev.sh` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the server, for the editor's play mode or a desktop build. |
+| `tools/shapeland-dev.sh` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the server, for the editor's play mode or a desktop build. It restarts the server when the content changes. |
 | `tools/shapeland-netrun.sh` | Headless bot runs under a simulated network profile, printing what the bots measured (snap-backs, cheaters caught, ping, interpolation delay). |
 | `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
