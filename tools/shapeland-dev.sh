@@ -25,7 +25,7 @@
 #   --bots-net P   with --net, a profile the bots get on top of it (default none), e.g. for high-ping bots
 #   --no-watch     don't watch the content sources. Without it, saving a change under shapeland/content/ (content
 #                  numbers, zones saved from Comet › Zones) rebuilds the content and restarts the server and bots;
-#                  players rejoin, after reloading the page (web) or restarting play mode (editor) for the new content
+#                  clients rejoin by themselves (a web page reloads first for the new content; play mode needs a restart)
 #
 # The profiles are in tools/shapeland-net-profiles.sh. Docker needs the traffic-shaping kernel modules loaded
 # (tools/StackBench/README.md, Docker runs).
@@ -267,7 +267,7 @@ while kill -0 "$server_pid" 2> /dev/null; do
   stop_server
   start_server
   if [ -n "$web" ]; then
-    echo "== Restarted with the new content. Reload the page to play with it."
+    echo "== Restarted with the new content. Browsers reload and rejoin by themselves."
   else
     echo "== Restarted with the new content. Restart play mode to play with it."
   fi

@@ -18,6 +18,7 @@ namespace ShapeLand.Client.Tests
 
         private Process _process;
         private Process _bots;
+        private int _port;
 
         /// <summary>The content play mode and the tests use; fails the test if it hasn't been copied in.</summary>
         public static ShapeLandContent LoadContent()
@@ -43,20 +44,46 @@ namespace ShapeLand.Client.Tests
                 Assert.That(build.ExitCode, Is.EqualTo(0), "The game server didn't build.");
             }
 
+            _port = FreePort();
+            yield return Launch();
+            Address = $"127.0.0.1:{_port}";
+        }
+
+        // Starts the built server on this server's port and waits until it listens.
+        private IEnumerator Launch()
+        {
             // The server's output isn't read: reading a child's output asynchronously keeps Unity's editor from exiting.
-            var port = FreePort();
-            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{port}");
+            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port}");
             var listening = false;
             var deadline = Time.realtimeSinceStartup + 30;
             while (!listening && !_process.HasExited && Time.realtimeSinceStartup < deadline)
             {
-                listening = Accepts(port);
+                listening = Accepts(_port);
                 yield return null;
             }
 
             Assert.That(listening, "The game server didn't start.");
-            Address = $"127.0.0.1:{port}";
         }
+
+        /// <summary>
+        /// Stops the game server the way Ctrl+C or tools/shapeland-dev.sh's restart does: it tells its clients it's
+        /// shutting down. <see cref="StartAgain"/> brings it back at the same address.
+        /// </summary>
+        public IEnumerator ShutDownServer()
+        {
+            using (var term = Process.Start("kill", $"-TERM {_process.Id}")) // Linux and macOS, where the tests run
+            {
+                term.WaitForExit();
+            }
+
+            yield return WaitFor(() => _process.HasExited, 10);
+            Assert.That(_process.HasExited, "The game server didn't stop.");
+            _process.Dispose();
+            _process = null;
+        }
+
+        /// <summary>Starts the server again after <see cref="ShutDownServer"/>, at the same address.</summary>
+        public IEnumerator StartAgain() => Launch();
 
         /// <summary>Runs the bot program against this server: <paramref name="count"/> honest, chatting bots for <paramref name="seconds"/>.</summary>
         public IEnumerator StartBots(int count, double seconds)
