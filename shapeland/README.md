@@ -94,5 +94,6 @@ How much faster or higher than the rules a report may be before the server snaps
 ### Trying a change
 
 - **In a browser:** `tools/shapeland-dev.sh` rebuilds the content and the server on every run, and the web build whenever the client's code changed.
-- **In the editor (fastest):** `tools/shapeland-dev.sh --no-web` builds the content and starts the server on `localhost:5080` (add `--bots N` for company). After each change, rerun it and restart play mode, which copies in the new content as it starts: the server and play mode each load the numbers once. If they still differ, the join screen says so.
+- **In the editor (fastest):** `tools/shapeland-dev.sh --no-web` builds the content and starts the server on `localhost:5080` (add `--bots N` for company). Restart play mode after each change, which copies in the new content as it starts: the server and play mode each load the numbers once. If they still differ, the join screen says so.
+- **Content changes** (the numbers under `content/`, zones saved from Comet › Zones) need no rerun: while it runs, `shapeland-dev.sh` watches `content/`, rebuilds the content when something there changes and restarts the server and bots. Players then rejoin: reload the page in a browser, or restart play mode. A failed build leaves the old server running. Code changes still need a rerun; `--no-watch` turns the watching off.
 - **Play-mode tests** read the same copy, refreshed when they start; rebuild the content first.
