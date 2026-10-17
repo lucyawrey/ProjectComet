@@ -47,7 +47,7 @@ Run them from the repository root. Each script's options are listed below and in
 | `tools/shapeland-netrun.sh` | Headless bot runs under a simulated network profile, printing what the bots measured (snap-backs, cheaters caught, ping, interpolation delay). |
 | `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
-| `tools/unity-batch.sh` | Run Unity in batch mode (tests, builds) and return when the work is done, since the editor often hangs while quitting. |
+| `tools/unity-batch.sh` | Run a Unity build or tests and return when the work is done: in the open editor when it has the project open, else in batch mode (where the editor often hangs while quitting). |
 | `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
 | `tools/StackBench/` | The stack benchmark: Comet's message layer under load, with no game logic. See its [README](tools/StackBench/README.md). |
 
@@ -102,16 +102,19 @@ Results also go to a file stamped with the profile and commit. The default port 
 ### Unity batch jobs
 
 ```sh
-tools/unity-batch.sh -- -runTests -testPlatform PlayMode -testResults Logs/results.xml
-tools/unity-batch.sh -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.Web -quit
+tools/unity-batch.sh build Web ../../artifacts/unity/shapeland/web
+tools/unity-batch.sh test PlayMode
+tools/unity-batch.sh -- <Unity arguments>
 ```
 
-Everything after `--` goes to Unity. Before it:
+`build` builds one of the build profiles in `Assets/Settings/Build Profiles/` (`Web`, `Linux`; the same ones as File › Build Profiles in the editor) into the given folder. `test` runs `PlayMode` (the default) or `EditMode` tests and writes the results (`Logs/results.xml`, or `Logs/results.json` from an open editor). Everything after `--` goes to a batch-mode editor as it is.
+
+When a Unity editor has the project open, `build` and `test` run in it, through the [Unity CLI](https://docs.unity.com/en-us/unity-cli) (`unity` and `jq` on the path) and the project's Unity Pipeline package. A build there needs the editor on the profile's platform already, since switching reimports the whole project. Without an open editor they run in batch mode. Options, before the job:
 
 | Option | What it does |
 | --- | --- |
 | `-p project` | The Unity project (default `shapeland/ShapeLand.Unity`). |
-| `-l logfile` | The editor's log (default `Logs/batch.log`). Relative paths, here and in Unity arguments, are relative to the project. |
+| `-l logfile` | The editor's log, or an open editor's build report (default `Logs/batch.log`). Relative paths, here and in the job's arguments, are relative to the project. |
 | `-t minutes` | The time limit (default 30). |
 
 The exit code is the editor's (tests: 0 passed, 2 failed), 1 if it gave no result, and 124 on the time limit.

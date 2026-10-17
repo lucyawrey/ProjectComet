@@ -246,10 +246,8 @@ log() {
 page() {
   local out="$work/$vercel_project" url
   if [ "$build" -eq 1 ]; then
-    echo "== Building the web page (Unity, a few minutes; close the editor first)"
-    "$repo/tools/unity-batch.sh" -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.Web -quit
-    # A web build rewrites the project settings; those changes aren't kept.
-    git -C "$repo" checkout -q -- shapeland/ShapeLand.Unity/ProjectSettings/ProjectSettings.asset 2> /dev/null || true
+    echo "== Building the web page (Unity, a few minutes)"
+    "$repo/tools/unity-batch.sh" build Web "$web"
   fi
   [ -f "$web/index.html" ] || { echo "No web build at $web." >&2; exit 1; }
 
