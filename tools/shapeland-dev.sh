@@ -29,8 +29,8 @@
 #
 # The profiles are in tools/shapeland-net-profiles.sh. Docker needs the traffic-shaping kernel modules loaded
 # (tools/StackBench/README.md, Docker runs).
-# The Unity build fails while the editor has the project open; close it first. ShapeLand only: Anima's
-# page comes from the Login server.
+# With the Unity editor open on the project, the web build runs in it (tools/unity-batch.sh); it must be on the Web
+# profile. ShapeLand only: Anima's page comes from the Login server.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
@@ -104,11 +104,7 @@ if [ "$serve_web" = 0 ]; then
   web=""
 elif [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
   echo "== Unity web build (a few minutes)"
-  if [ -e "$project/Temp/UnityLockfile" ] && pgrep -fi "projectpath.*shapeland/ShapeLand.Unity" > /dev/null 2>&1; then
-    echo "The Unity editor has the project open; close it first (or use --no-build)." >&2
-    exit 1
-  fi
-  "$repo/tools/unity-batch.sh" -l Logs/web.log -- -buildTarget WebGL -executeMethod ShapeLand.Client.Editor.Builds.Web -quit
+  "$repo/tools/unity-batch.sh" -l Logs/web.log build Web "$web"
   # Marks the build as up to date, but only a build that made its page.
   [ -f "$web/index.html" ] || { echo "The Unity build made no page at $web/index.html (log: $project/Logs/web.log)" >&2; exit 1; }
   touch "$web/index.html"

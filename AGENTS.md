@@ -15,7 +15,7 @@ Notes for coding agents (and anyone else) working in this repo. Requirements, la
 ## Building and testing
 
 - `dotnet build ProjectComet.slnx` and `dotnet test --solution ProjectComet.slnx`.
-- Run Unity batch jobs (tests, builds) through `tools/unity-batch.sh`: the editor often hangs while quitting. Close the Unity editor before a build; it fails while the editor has the project open.
+- Run Unity tests and builds through `tools/unity-batch.sh` (`build <profile> <output>`, `test`): it uses the open editor when one has the project, else batch mode, where the editor often hangs while quitting. Builds are the build profiles in `Assets/Settings/Build Profiles/`.
 - Run `tools/unity-restore.sh` after a fresh clone and whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes.
 - Play mode and Unity's play-mode tests read `shapeland/ShapeLand.Unity/Assets/StreamingAssets/content.bin`, an ignored copy of `artifacts/content/shapeland/content.bin` that the editor refreshes when it loads and as play mode starts. Rebuild the content after changing it, or they use the old content.
 - `TickLoopTests.RunsAtTheTickRate` can miss when every test suite runs at once; it passes alone.
