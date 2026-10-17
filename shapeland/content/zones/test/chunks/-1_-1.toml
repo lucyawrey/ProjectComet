@@ -61,6 +61,16 @@ position = [-62.2, 9.66, -56.519]
 scale = [6.0, 0.5, 6.0]
 
 [[placement]]
+asset = "asset.cube"
+position = [-22.97, 1.28, -15.39]
+scale = [0.5, 0.5, 0.5]
+
+[[placement]]
+asset = "asset.cube"
+position = [-24.0, 2.73, -14.27]
+scale = [0.5, 0.5, 0.5]
+
+[[placement]]
 asset = "asset.cylinder"
 name = "spawn.blue"
 position = [-21.55, 4.0, -55.24]
