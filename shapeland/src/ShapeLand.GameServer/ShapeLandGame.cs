@@ -33,9 +33,6 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
 
     public ShapeLandContent Content => content;
 
-    /// <summary>The zone this server plays.</summary>
-    public Zone Zone => zone;
-
     public CollisionWorld World => _world;
 
     // Receive flows.
