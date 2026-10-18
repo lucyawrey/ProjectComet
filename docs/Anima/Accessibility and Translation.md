@@ -1,1 +1,0 @@
-# Accessibility and translation
