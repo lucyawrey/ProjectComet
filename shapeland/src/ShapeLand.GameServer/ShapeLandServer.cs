@@ -53,6 +53,7 @@ public static class ShapeLandServer
 
         var tickLoop = app.Services.GetRequiredService<TickLoop>();
         app.Services.GetRequiredService<ShapeLandGame>(); // load content and build the world before accepting players
+        app.Logger.LogInformation("Playing {Zone}", app.Services.GetRequiredService<Zone>().Id);
         tickLoop.Failed += (tick, e) =>
         {
             // Fail fast: the world may be half-updated, so stop rather than play on; the host flushes the log.
