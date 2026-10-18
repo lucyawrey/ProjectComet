@@ -1,0 +1,7 @@
+id = "zone.tests"
+
+[[piece]]
+name = "ground"
+skirt_depth = 4.0
+rim_skirts = true
+hole_skirts = true

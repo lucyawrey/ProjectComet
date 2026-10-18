@@ -13,9 +13,14 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.GameServer.Tests;
 
-/// <summary>Runs the real server in-process on a free port, with bots connecting over WebSockets.</summary>
+/// <summary>
+/// Runs the real server in-process on a free port, with bots connecting over WebSockets. It plays the tests' own zone
+/// (<see cref="TestsZone"/>), so editing ShapeLand's zones can't break the tests.
+/// </summary>
 public sealed class EndToEndTests : IAsyncLifetime
 {
+    private const string TestsZone = "zone.tests";
+
     private readonly string _contentFile = Path.Combine(Path.GetTempPath(), $"shapeland-content-{Guid.NewGuid():N}.bin");
     private ShapeLandContent _content = null!;
     private WebApplication _server = null!;
@@ -31,13 +36,20 @@ public sealed class EndToEndTests : IAsyncLifetime
             _content.Save(file);
         }
 
-        _server = ShapeLandServer.Build([], builder =>
+        (_server, _url) = await StartServer(TestsZone);
+    }
+
+    // A server on a free port playing zone (null for none given: the default zone).
+    private async Task<(WebApplication Server, Uri Url)> StartServer(string? zone)
+    {
+        var server = ShapeLandServer.Build([], builder =>
         {
             builder.Configuration["ShapeLand:ContentFile"] = _contentFile;
+            builder.Configuration["ShapeLand:Zone"] = zone;
             builder.Configuration["Urls"] = "http://127.0.0.1:0";
         });
-        await _server.StartAsync(TestContext.Current.CancellationToken);
-        _url = new Uri(_server.Urls.First().Replace("http://", "ws://") + "/ws");
+        await server.StartAsync(TestContext.Current.CancellationToken);
+        return (server, new Uri(server.Urls.First().Replace("http://", "ws://") + "/ws"));
     }
 
     public async ValueTask DisposeAsync()
@@ -48,7 +60,7 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     private Bot NewBot(string name, int seed, BotSettings settings) =>
-        new(name, seed, settings, _content, ShapeLandWorld.Create(_content));
+        new(name, seed, settings, _content, new ZoneWorlds(_content));
 
     [Fact]
     public async Task PlayersSeeEachOtherChatAndCheatersGetSnappedBack()
@@ -148,27 +160,90 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PlayersStartAtTheirShapesSpawnAndCanReturnToIt()
+    public async Task TheServerNamesItsZoneInTheWelcome()
     {
         using var ada = new RawClient();
         await ada.ConnectAsync(_url);
-        var shape = _content.Shapes.All[0];
-        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest
-        {
-            Name = "Ada", Shape = shape.Number, Color = _content.Settings.Colors.Body[0], EyeColor = _content.Settings.Colors.Eyes[0], ContentFingerprint = _content.Fingerprint,
-        });
+        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]));
 
-        var spawns = new Comet.Simulation.Spawns(ShapeLandWorld.Zone(_content));
-        Assert.True(spawns.TryGet(shape.Spawn, out var home));
-        var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
-        Assert.Equal(home.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
-        Assert.InRange(Vector2.Distance(new Vector2(joined.X, joined.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
-
-        await ada.SendAsync(ShapeLandMessageIds.ReturnToSpawn, new ReturnToSpawn());
-        var back = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
-        Assert.Equal(CorrectionReason.Respawn, back.Reason);
-        Assert.InRange(Vector2.Distance(new Vector2(back.X, back.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
+        Assert.Equal(_content.Zones[TestsZone].Number, (await ada.NextAsync<Welcome>(MessageIds.Welcome)).Zone);
     }
+
+    [Fact]
+    public async Task WithNoZoneGivenTheServerPlaysTheDefaultZone()
+    {
+        await WithServer(null, async url =>
+        {
+            using var ada = new RawClient();
+            await ada.ConnectAsync(url);
+            await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]));
+
+            Assert.Equal(ShapeLandWorld.DefaultZone(_content).Number, (await ada.NextAsync<Welcome>(MessageIds.Welcome)).Zone);
+        });
+    }
+
+    [Fact]
+    public async Task AnUnknownZoneStopsTheServerFromStarting()
+    {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => StartServer("zone.nowhere"));
+        Assert.Contains("zone.nowhere", failure.Message);
+        Assert.Contains(TestsZone, failure.Message);
+    }
+
+    [Fact]
+    public async Task OutsideTheDefaultZonePlayersStartAtItsDefaultSpawn()
+    {
+        using var ada = new RawClient();
+        await ada.ConnectAsync(_url);
+        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]));
+
+        var start = new Comet.Simulation.Spawns(_content.Zones[TestsZone]).Default!;
+        Assert.Equal(start.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
+    }
+
+    [Fact]
+    public async Task PlayersStartAtTheirShapesSpawnAndCanReturnToIt()
+    {
+        // Shapes' spawns are in the default zone.
+        await WithServer(null, async url =>
+        {
+            using var ada = new RawClient();
+            await ada.ConnectAsync(url);
+            var shape = _content.Shapes.All[0];
+            await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(shape));
+
+            var spawns = new Comet.Simulation.Spawns(ShapeLandWorld.DefaultZone(_content));
+            Assert.True(spawns.TryGet(shape.Spawn, out var home));
+            var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+            Assert.Equal(home.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
+            Assert.InRange(Vector2.Distance(new Vector2(joined.X, joined.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
+
+            await ada.SendAsync(ShapeLandMessageIds.ReturnToSpawn, new ReturnToSpawn());
+            var back = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
+            Assert.Equal(CorrectionReason.Respawn, back.Reason);
+            Assert.InRange(Vector2.Distance(new Vector2(back.X, back.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
+        });
+    }
+
+    // Runs test against a second server playing zone (null: the default zone), then stops it.
+    private async Task WithServer(string? zone, Func<Uri, Task> test)
+    {
+        var (server, url) = await StartServer(zone);
+        try
+        {
+            await test(url);
+        }
+        finally
+        {
+            await server.StopAsync();
+            await server.DisposeAsync();
+        }
+    }
+
+    private JoinRequest AdaJoins(Shape shape) => new()
+    {
+        Name = "Ada", Shape = shape.Number, Color = _content.Settings.Colors.Body[0], EyeColor = _content.Settings.Colors.Eyes[0], ContentFingerprint = _content.Fingerprint,
+    };
 
     /// <summary>A bare WebSocket client, for tests that send and read single messages.</summary>
     private sealed class RawClient : IDisposable

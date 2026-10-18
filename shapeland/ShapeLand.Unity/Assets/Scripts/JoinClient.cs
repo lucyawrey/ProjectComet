@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using System.IO;
 using Comet.Client;
+using Comet.Content;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
+using Comet.Simulation;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
@@ -16,7 +18,8 @@ namespace ShapeLand.Client
     /// <summary>
     /// Joins ShapeLand: loads the content, connects to a game server, sends the join request and logs what the
     /// server says (welcome, spawns, despawns, chat). The join screen calls <see cref="Join"/> and can try again
-    /// after a refusal or a failed connection; the rest of the game scene draws on top of it.
+    /// after a refusal or a failed connection; the rest of the game scene draws on top of it. Holds the zone being
+    /// played: the default one until a server's Welcome names another.
     /// </summary>
     [RequireComponent(typeof(CometConnection))]
     public sealed class JoinClient : MonoBehaviour
@@ -85,6 +88,15 @@ namespace ShapeLand.Client
         /// <summary>Raised when the server doesn't deliver this player's chat line.</summary>
         public event Action<ChatRejection> ChatRefused;
 
+        /// <summary>A server's Welcome named a zone other than the one drawn; <see cref="Zone"/> and <see cref="World"/> are now its.</summary>
+        public event Action<Zone> ZoneChanged;
+
+        /// <summary>The zone being played, once the content has loaded: the default one until a server names another.</summary>
+        public Zone Zone { get; private set; }
+
+        /// <summary>The collision world of <see cref="Zone"/>.</summary>
+        public CollisionWorld World { get; private set; }
+
         /// <summary>The player's spawn point changed (on joining, and on claiming another), by content number.</summary>
         public event Action<int> SpawnSet;
 
@@ -125,6 +137,9 @@ namespace ShapeLand.Client
 
                 _content = ShapeLandContent.Load(new MemoryStream(request.downloadHandler.data));
             }
+
+            Zone = ShapeLandWorld.DefaultZone(_content);
+            World = ShapeLandWorld.Create(_content, Zone);
 
             ContentLoaded?.Invoke(_content);
         }
@@ -200,8 +215,12 @@ namespace ShapeLand.Client
             _url = serverUrl;
             _connectedAt = Time.realtimeSinceStartupAsDouble;
             var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
-                _content.Movement.Gravity, ShapeLandWorld.GroundHeight(_content, ShapeLandWorld.Create(_content)));
-            session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
+                _content.Movement.Gravity, ShapeLandWorld.GroundHeight(_content, World));
+            session.WelcomeArrived += welcome =>
+            {
+                Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
+                EnterZone(welcome.Zone);
+            };
             session.GameMessage += OnGameMessage;
             session.EntityDespawned += id =>
             {
@@ -359,6 +378,27 @@ namespace ShapeLand.Client
                     ChatRefused?.Invoke(refusal);
                     break;
             }
+        }
+
+        // Switches to the zone the server plays, if it isn't the one drawn. Arrives before this player's spawn.
+        private void EnterZone(int number)
+        {
+            if (number == Zone.Number)
+            {
+                return;
+            }
+
+            if (!_content.Zones.TryGet(number, out var zone))
+            {
+                Debug.LogWarning($"{LogPrefix}: the server plays zone {number}, which the content doesn't have.");
+                return;
+            }
+
+            Zone = zone;
+            World = ShapeLandWorld.Create(_content, zone);
+            Session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(_content, World);
+            Log($"playing {zone.Id}");
+            ZoneChanged?.Invoke(zone);
         }
 
         private void Fail(JoinFailure failure, string error)
