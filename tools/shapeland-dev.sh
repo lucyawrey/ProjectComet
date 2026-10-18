@@ -30,7 +30,7 @@
 # The profiles are in tools/shapeland-net-profiles.sh. Docker needs the traffic-shaping kernel modules loaded
 # (tools/StackBench/README.md, Docker runs).
 # With the Unity editor open on the project, the web build runs in it (tools/unity-batch.sh); it must be on the Web
-# profile. ShapeLand only: Anima's page comes from the Login server.
+# profile. ShapeLand only: Crystal's page comes from the Login server.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)

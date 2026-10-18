@@ -2,7 +2,7 @@
 
 Notes for coding agents (and anyone else) working in this repo. Requirements, layout, setup and the scripts are in `README.md`; the proposal is in `docs/`.
 
-**Names:** *Comet* is the shared base (servers, libraries, Unity package, tools); *Anima* is the working name of the game built on it; *ShapeLand* is Comet's small demo and reference game. *ProjectComet* covers the whole project.
+**Names:** *Comet* is the shared base (servers, libraries, Unity package, tools); *Crystal* is the working name of the game built on it; *ShapeLand* is Comet's small demo and reference game. *ProjectComet* covers the whole project.
 
 ## Ground rules
 
