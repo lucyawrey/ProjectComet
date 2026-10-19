@@ -113,6 +113,42 @@ public class ZoneFolderTests
     }
 
     [Fact]
+    public void PrimitivesRoundTrip()
+    {
+        using var folder = new TempFolder();
+        var zone = Zones.Sample();
+        var placement = zone.Chunks[0].Placements[0];
+        placement.Asset = "";
+        placement.Primitive = new Primitive { Kind = PrimitiveKind.Arch, Sides = 8, OpeningWidth = 1.2f, OpeningHeight = 2.2f };
+        placement.Blockout = true;
+
+        var read = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+
+        Assert.Empty(errors);
+        Assert.Equal("", read.Asset);
+        Assert.True(read.Blockout);
+        Assert.True(placement.Primitive.SameAs(read.Primitive!));
+        var text = File.ReadAllText(folder.PathOf("chunks/-1_0.toml"));
+        Assert.Contains("primitive = \"arch\"", text);
+        Assert.Contains("opening = [1.2, 2.2]", text);
+        Assert.Contains("blockout = true", text);
+    }
+
+    [Fact]
+    public void APlacementHasAnAssetOrAPrimitive()
+    {
+        using var folder = new TempFolder();
+        folder.Write("zone.toml", "id = \"zone.test\"\n");
+        folder.Write("chunks/0_0.toml", "[[placement]]\nasset = \"asset.rock\"\nprimitive = \"box\"\nposition = [1.0, 0.0, 1.0]\n\n[[placement]]\nasset = \"asset.rock\"\nbevel = 0.1\nposition = [2.0, 0.0, 1.0]\n");
+
+        var errors = new List<ZoneFileError>();
+        ZoneFolder.Read(folder.Root, errors);
+
+        Assert.Contains(errors, e => e.Message.Contains("an asset or a primitive, not both"));
+        Assert.Contains(errors, e => e.Message.Contains("'bevel' is for primitives"));
+    }
+
+    [Fact]
     public void PlacementsKeepTheirNames()
     {
         using var folder = new TempFolder();

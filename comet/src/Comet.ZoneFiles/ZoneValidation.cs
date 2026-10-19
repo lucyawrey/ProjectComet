@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Comet.Content;
+using Comet.Simulation;
 
 namespace Comet.ZoneFiles
 {
@@ -109,8 +110,12 @@ namespace Comet.ZoneFiles
                 CheckTiles(chunk, pieces, file, Error);
                 foreach (var placement in chunk.Placements)
                 {
-                    var what = $"placement of {placement.Asset}";
-                    if (!IsKey(placement.Asset, "asset"))
+                    var what = $"placement of {Placed(placement)}";
+                    if (placement.Primitive is { } primitive)
+                    {
+                        CheckPrimitive(primitive, $"{what} at {Text(placement.Position)}", file, Error);
+                    }
+                    else if (!IsKey(placement.Asset, "asset"))
                     {
                         Error(file, $"placement: '{placement.Asset}' isn't an asset key.");
                     }
@@ -180,21 +185,31 @@ namespace Comet.ZoneFiles
                 var file = ZoneFolder.ChunkFile(chunk.Coord);
                 foreach (var placement in chunk.Placements)
                 {
-                    var what = $"placement of {placement.Asset} at {Text(placement.Position)}";
-                    var asset = findAsset(placement.Asset);
-                    if (asset is null)
+                    var what = $"placement of {Placed(placement)} at {Text(placement.Position)}";
+                    (Vector3 Min, Vector3 Max) local;
+                    if (placement.Primitive is { } primitive)
                     {
-                        errors.Add(new ZoneFileError(file, $"{what}: there's no asset '{placement.Asset}'."));
-                        continue;
+                        local = PrimitiveMesher.Bounds(primitive, placement.Scale);
+                    }
+                    else
+                    {
+                        var asset = findAsset(placement.Asset);
+                        if (asset is null)
+                        {
+                            errors.Add(new ZoneFileError(file, $"{what}: there's no asset '{placement.Asset}'."));
+                            continue;
+                        }
+
+                        var scale = placement.Scale;
+                        if (asset.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
+                        {
+                            errors.Add(new ZoneFileError(file, $"{what}: {asset.Id} only scales evenly, the same on every axis."));
+                        }
+
+                        local = (asset.BoundsMin, asset.BoundsMax);
                     }
 
-                    var scale = placement.Scale;
-                    if (asset.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
-                    {
-                        errors.Add(new ZoneFileError(file, $"{what}: {asset.Id} only scales evenly, the same on every axis."));
-                    }
-
-                    var (min, max) = Bounds(asset, placement.Matrix());
+                    var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
                     var reachMin = new Vector3((chunk.Coord.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Coord.Z - 1) * ZoneGrid.ChunkSize);
                     var reachMax = new Vector3((chunk.Coord.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Coord.Z + 2) * ZoneGrid.ChunkSize);
                     if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
@@ -207,17 +222,54 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
-        // The world box around an asset's bounds once placed.
-        private static (Vector3 Min, Vector3 Max) Bounds(Asset asset, Matrix4x4 matrix)
+        // What a placement places, for messages: its asset's key or its primitive's kind.
+        private static string Placed(Placement placement) =>
+            placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Asset;
+
+        // A primitive's values: in range, and only those its kind uses.
+        private static void CheckPrimitive(Primitive primitive, string what, string file, Action<string, string> error)
+        {
+            var kind = primitive.Kind;
+            if (primitive.Sides is { } sides)
+            {
+                if (kind is not (PrimitiveKind.Cylinder or PrimitiveKind.Cone or PrimitiveKind.Sphere or PrimitiveKind.Arch))
+                {
+                    error(file, $"{what}: only cylinders, cones, spheres and arches have sides.");
+                }
+                else if (sides < 3 || sides > 256)
+                {
+                    error(file, $"{what}: sides must be from 3 to 256.");
+                }
+            }
+
+            if (primitive.Bevel != 0 && (kind != PrimitiveKind.Box || primitive.Bevel < 0))
+            {
+                error(file, $"{what}: only boxes have a bevel, and it can't be negative.");
+            }
+
+            if (primitive.Steps != 0 && (kind != PrimitiveKind.Stairs || primitive.Steps < 0 || primitive.Steps > 256))
+            {
+                error(file, $"{what}: only stairs have steps, from 1 to 256.");
+            }
+
+            if ((primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0) &&
+                (kind is not (PrimitiveKind.Wall or PrimitiveKind.Arch) || primitive.OpeningWidth < 0 || primitive.OpeningHeight < 0))
+            {
+                error(file, $"{what}: only walls and arches have an opening, and it can't be negative.");
+            }
+        }
+
+        // The world box around a mesh's bounds once placed.
+        private static (Vector3 Min, Vector3 Max) Bounds(Vector3 boundsMin, Vector3 boundsMax, Matrix4x4 matrix)
         {
             var min = new Vector3(float.MaxValue);
             var max = new Vector3(float.MinValue);
             for (var corner = 0; corner < 8; corner++)
             {
                 var point = Vector3.Transform(new Vector3(
-                    (corner & 1) == 0 ? asset.BoundsMin.X : asset.BoundsMax.X,
-                    (corner & 2) == 0 ? asset.BoundsMin.Y : asset.BoundsMax.Y,
-                    (corner & 4) == 0 ? asset.BoundsMin.Z : asset.BoundsMax.Z), matrix);
+                    (corner & 1) == 0 ? boundsMin.X : boundsMax.X,
+                    (corner & 2) == 0 ? boundsMin.Y : boundsMax.Y,
+                    (corner & 4) == 0 ? boundsMin.Z : boundsMax.Z), matrix);
                 min = Vector3.Min(min, point);
                 max = Vector3.Max(max, point);
             }

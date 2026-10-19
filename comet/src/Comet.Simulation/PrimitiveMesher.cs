@@ -15,6 +15,28 @@ namespace Comet.Simulation
     /// </summary>
     public static class PrimitiveMesher
     {
+        private static readonly Dictionary<(PrimitiveKind, int?, float, int, float, float, Vector3, float, int, int), Vector3[]> Cache =
+            new Dictionary<(PrimitiveKind, int?, float, int, float, float, Vector3, float, int, int), Vector3[]>();
+
+        /// <summary>
+        /// The triangles of <paramref name="placement"/>'s primitive, built once for each kind, values and size and
+        /// shared: don't change them. In the primitive's own space; place them with <see cref="Placement.Matrix"/>.
+        /// </summary>
+        public static Vector3[] For(Placement placement, PolygonBudget budget)
+        {
+            var p = placement.Primitive ?? throw new ArgumentException("Not a primitive's placement.", nameof(placement));
+            var key = (p.Kind, p.Sides, p.Bevel, p.Steps, p.OpeningWidth, p.OpeningHeight, placement.Scale, budget.FacetLength, budget.MinSides, budget.MaxSides);
+            lock (Cache)
+            {
+                if (!Cache.TryGetValue(key, out var triangles))
+                {
+                    Cache[key] = triangles = Build(p, placement.Scale, budget);
+                }
+
+                return triangles;
+            }
+        }
+
         /// <summary>About how high each step of a stairway is when its step count isn't set, in meters.</summary>
         public const float DefaultStepHeight = 0.25f;
 

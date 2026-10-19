@@ -218,10 +218,13 @@ namespace Comet.ZoneFiles
             chunk.Tiles = tiles.ToArray();
             chunk.Placements = toml.Tables(table, "placement").Select(p =>
             {
-                toml.CheckKeys(p.Table, p.Path, "asset", "name", "position", "rotation", "scale", "color");
+                toml.CheckKeys(p.Table, p.Path, "asset", "primitive", "sides", "bevel", "steps", "opening", "blockout", "name", "position", "rotation", "scale", "color");
+                var primitive = ReadPrimitive(toml, p.Table, p.Path);
                 return new Placement
                 {
-                    Asset = toml.String(p.Table, p.Path, "asset"),
+                    Asset = primitive is null ? toml.String(p.Table, p.Path, "asset") : "",
+                    Primitive = primitive,
+                    Blockout = toml.Bool(p.Table, p.Path, "blockout", false),
                     Name = p.Table.ContainsKey("name") ? toml.String(p.Table, p.Path, "name") : null,
                     Position = toml.Vector(p.Table, p.Path, "position"),
                     Rotation = toml.Vector(p.Table, p.Path, "rotation", Vector3.Zero),
@@ -370,6 +373,68 @@ namespace Comet.ZoneFiles
             return table;
         }
 
+        // A placement's primitive and its values, or null if it places an asset (it must do one or the other).
+        private static Primitive? ReadPrimitive(ZoneToml toml, TomlTable table, string path)
+        {
+            if (!table.ContainsKey("primitive"))
+            {
+                foreach (var key in new[] { "sides", "bevel", "steps", "opening" })
+                {
+                    if (table.ContainsKey(key))
+                    {
+                        toml.Error(path, $"'{key}' is for primitives; this places an asset.");
+                    }
+                }
+
+                return null;
+            }
+
+            if (table.ContainsKey("asset"))
+            {
+                toml.Error(path, "a placement has an asset or a primitive, not both.");
+            }
+
+            var primitive = new Primitive
+            {
+                Kind = toml.Enum<PrimitiveKind>(table, path, "primitive"),
+                Sides = table.TryGetValue("sides", out var sides) ? toml.Int(sides, $"{path}.sides") : (int?)null,
+                Bevel = toml.Float(table, path, "bevel", 0),
+                Steps = table.TryGetValue("steps", out var steps) ? toml.Int(steps, $"{path}.steps") : 0,
+            };
+            if (table.ContainsKey("opening"))
+            {
+                var (width, height) = toml.Pair2(table, path, "opening");
+                primitive.OpeningWidth = width;
+                primitive.OpeningHeight = height;
+            }
+
+            return primitive;
+        }
+
+        private static void WritePrimitive(TomlTable placement, Primitive primitive)
+        {
+            placement["primitive"] = ZoneToml.SnakeCase(primitive.Kind.ToString());
+            if (primitive.Sides is { } sides)
+            {
+                placement["sides"] = (long)sides;
+            }
+
+            if (primitive.Bevel != 0)
+            {
+                placement["bevel"] = ZoneToml.Round(primitive.Bevel, LengthDecimals);
+            }
+
+            if (primitive.Steps != 0)
+            {
+                placement["steps"] = (long)primitive.Steps;
+            }
+
+            if (primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0)
+            {
+                placement["opening"] = new TomlArray { ZoneToml.Round(primitive.OpeningWidth, LengthDecimals), ZoneToml.Round(primitive.OpeningHeight, LengthDecimals) };
+            }
+        }
+
         private static TomlTable ChunkTable(ZoneChunk chunk)
         {
             var table = new TomlTable();
@@ -380,7 +445,21 @@ namespace Comet.ZoneFiles
             });
             AddTables(table, "placement", chunk.Placements, p =>
             {
-                var placement = new TomlTable { ["asset"] = p.Asset };
+                var placement = new TomlTable();
+                if (p.Primitive is { } primitive)
+                {
+                    WritePrimitive(placement, primitive);
+                }
+                else
+                {
+                    placement["asset"] = p.Asset;
+                }
+
+                if (p.Blockout)
+                {
+                    placement["blockout"] = true;
+                }
+
                 if (p.Name is not null)
                 {
                     placement["name"] = p.Name;

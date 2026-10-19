@@ -108,6 +108,38 @@ public class ZoneValidationTests
     }
 
     [Fact]
+    public void PrimitiveValuesFitTheirKind()
+    {
+        var zone = Zones.Sample();
+        var placements = zone.Chunks[0].Placements;
+        placements[0].Primitive = new Primitive { Kind = PrimitiveKind.Box, Sides = 8 };
+        zone.Chunks[0].Placements = placements.Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Cylinder, Sides = 2 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Stairs, Steps = -1 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Wall, OpeningWidth = 1, OpeningHeight = 2 } })
+            .ToArray();
+
+        var errors = Errors(zone).ToList();
+
+        Assert.Contains(errors, e => e.Contains("a box") && e.Contains("only cylinders, cones, spheres and arches have sides"));
+        Assert.Contains(errors, e => e.Contains("a cylinder") && e.Contains("sides must be from 3"));
+        Assert.Contains(errors, e => e.Contains("a stairs") && e.Contains("only stairs have steps"));
+        Assert.DoesNotContain(errors, e => e.Contains("a wall"));
+    }
+
+    [Fact]
+    public void PrimitivesReachAsFarAsTheirSize()
+    {
+        var zone = Zones.Sample();
+        var placement = zone.Chunks[0].Placements[0];
+        placement.Primitive = new Primitive { Kind = PrimitiveKind.Box };
+        placement.Scale = new Vector3(2, 2, 2);
+        Assert.Empty(ZoneValidation.CheckPlacements(zone, _ => null));
+
+        placement.Scale = new Vector3(ZoneGrid.ChunkSize * 4, 2, 2);
+        Assert.Contains(ZoneValidation.CheckPlacements(zone, _ => null), e => e.Message.Contains("reaches past the chunks around its own"));
+    }
+
+    [Fact]
     public void PlacementNamesAreUniqueAndValid()
     {
         var zone = Zones.Sample();

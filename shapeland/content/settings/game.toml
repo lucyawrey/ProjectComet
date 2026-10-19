@@ -25,6 +25,13 @@ marker_asset = "asset.cylinder" # drawn flattened as each spawn point's marker
 marker_height = 0.4 # how tall a new marker is, sunk halfway into the ground; move it in the editor after
 unset_color = 0xEDE8DA # a marker that isn't the player's spawn: a pale cream used nowhere else
 
+# How finely round primitives (cylinders, cones, spheres, arches) are cut, so large and small ones look equally
+# faceted. Tune it in the editor with Comet › Zones › Polygon Budget, which previews it and saves it here.
+[primitives]
+facet_length = 0.5 # about how long each side is, in meters
+min_sides = 6 # the fewest sides, however small
+max_sides = 48 # the most sides, however large
+
 # The colors players pick from. Placeholders: the final sets are the project lead's.
 [colors]
 body = [

@@ -31,6 +31,10 @@ namespace ShapeLand.Shared.Content
         [JsonRequired]
         [Key(5)] public ColorSettings Colors { get; set; } = new ColorSettings();
 
+        /// <summary>How finely round primitives are cut, the same for all of them (players' shapes are regular solids, so it doesn't change them).</summary>
+        [JsonRequired]
+        [Key(6)] public PolygonBudget Primitives { get; set; } = new PolygonBudget();
+
         /// <summary>The movement physics as the shared motor and the server's checks take them.</summary>
         public MovementRules Rules() => new MovementRules
         {
