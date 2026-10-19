@@ -507,10 +507,11 @@ namespace Comet.Unity.Editor
             _redraw = true;
         }
 
-        // A stroke redraws only the chunks it changed, at most 20 times a second; its end redraws in full.
+        // A stroke redraws only the chunks it changed (about 2 ms a chunk), at most 60 times a second; its end redraws
+        // in full.
         private void RedrawDuringStroke(ZoneTerrainEditing terrain)
         {
-            if (_redraw && EditorApplication.timeSinceStartup - _lastRedraw >= 0.05)
+            if (_redraw && EditorApplication.timeSinceStartup - _lastRedraw >= 1.0 / 60)
             {
                 ZoneEditor.RebuildTerrain(terrain.Editing, terrain.Zone, _settings!, _changed);
                 _lastRedraw = EditorApplication.timeSinceStartup;
