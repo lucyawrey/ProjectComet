@@ -491,6 +491,8 @@ namespace Comet.Unity.Editor
                         break;
                     case Brush.Ground when !has:
                         terrain.SetHeight(piece, x, z, _flattenHeight);
+                        var pieceSettings = terrain.Terrain[piece].Settings;
+                        terrain.ResetColors(piece, x, z, pieceSettings.GroundColor ?? Rgb(_settings!.groundColor), pieceSettings.UnderColor ?? Rgb(_settings!.underColor));
                         break;
                     case Brush.Color when has:
                         terrain.SetColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.GroundColor ?? Rgb(_settings!.groundColor));
