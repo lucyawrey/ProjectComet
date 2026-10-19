@@ -34,7 +34,7 @@ dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
-Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes.
+Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes, before opening the project in the editor. The scripts that run Unity (`unity-batch.sh`, and `shapeland-dev.sh` through it) run it themselves when it's needed.
 
 ## Scripts
 

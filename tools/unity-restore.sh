@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Restores a Unity project's NuGet packages (MessagePack) before its first open; run it after a fresh clone
-# and whenever packages.config changes. The editor can't compile the shared packages, and so can't run
+# and whenever packages.config changes (tools/unity-batch.sh runs it itself then). The editor can't compile the shared packages, and so can't run
 # NuGetForUnity's own restore, until MessagePack is there.
 #
 #   tools/unity-restore.sh [project]   (relative to the repository, or absolute; default: shapeland/ShapeLand.Unity)
@@ -109,4 +109,6 @@ for package in "$project"/Assets/Packages/Tomlyn.*/; do
   done < <(find "$package" -name '*.dll' | sed 's/$/.meta/')
 done
 
+# When it last finished, so tools/unity-batch.sh can tell whether packages.config changed since. Unity skips dot files.
+touch "$project/Assets/Packages/.restored"
 echo "Restored $project; rewrote $fixed analyzer .meta file(s) and set $editor_only package DLL(s) to the editor only."
