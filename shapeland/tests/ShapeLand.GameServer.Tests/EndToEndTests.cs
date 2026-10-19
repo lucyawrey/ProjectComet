@@ -400,6 +400,16 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task InfoNamesTheZoneToAnyPage()
+    {
+        using var http = new HttpClient();
+        var response = await http.GetAsync(new Uri(_server.Urls.First() + "/info"), TestContext.Current.CancellationToken);
+
+        Assert.Equal($"{{\"zone\":\"{TestsZone}\"}}", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal("*", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+    }
+
+    [Fact]
     public async Task HealthSaysOkToAnyPage()
     {
         using var http = new HttpClient();

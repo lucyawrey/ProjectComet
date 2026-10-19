@@ -51,9 +51,17 @@ public static class ShapeLandServer
             return "ok";
         });
 
+        // What the join screen shows before joining (the zone this server plays), for any page, like /health.
+        var playedZone = app.Services.GetRequiredService<Zone>().Id;
+        app.MapGet("/info", (HttpContext context) =>
+        {
+            context.Response.Headers.AccessControlAllowOrigin = "*";
+            return Results.Json(new ServerInfo(playedZone));
+        });
+
         var tickLoop = app.Services.GetRequiredService<TickLoop>();
         app.Services.GetRequiredService<ShapeLandGame>(); // load content and build the world before accepting players
-        app.Logger.LogInformation("Playing {Zone}", app.Services.GetRequiredService<Zone>().Id);
+        app.Logger.LogInformation("Playing {Zone}", playedZone);
         tickLoop.Failed += (tick, e) =>
         {
             // Fail fast: the world may be half-updated, so stop rather than play on; the host flushes the log.
@@ -116,6 +124,9 @@ public static class ShapeLandServer
         });
         app.Logger.LogInformation("Serving the web build in {WebRoot}", webRoot);
     }
+
+    // /info's answer, written in camelCase ({"zone": "zone.hub"}).
+    private sealed record ServerInfo(string Zone);
 
     // The zone to play: ShapeLand:Zone, else the content's default. An unknown key stops the server, listing the zones.
     private static Zone PlayedZone(ShapeLandContent content, ShapeLandServerOptions options)
