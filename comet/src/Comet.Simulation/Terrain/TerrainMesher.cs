@@ -139,14 +139,18 @@ namespace Comet.Simulation
                     }
                 }
 
-                for (var cz = _minZ; cz < _minZ + _depth; cz++)
+                // A cell's corners are samples s (x, z), s + 1 (x+1, z), s + row (x, z+1) and s + row + 1; half 0 is the
+                // first three, half 1 the last three.
+                var row = _width + 1;
+                for (var cz = 0; cz < _depth; cz++)
                 {
-                    for (var cx = _minX; cx < _minX + _width; cx++)
+                    for (var cx = 0; cx < _width; cx++)
                     {
-                        for (var half = 0; half < 2; half++)
-                        {
-                            _ground[Index(cx, cz, half)] = IsGround(cx, cz, half);
-                        }
+                        var s = cz * row + cx;
+                        bool corner = !float.IsNaN(_top[s + 1]) && !float.IsNaN(_top[s + row]);
+                        var cell = (cz * _width + cx) * 2;
+                        _ground[cell] = corner && !float.IsNaN(_top[s]);
+                        _ground[cell + 1] = corner && !float.IsNaN(_top[s + row + 1]);
                     }
                 }
 
@@ -178,17 +182,9 @@ namespace Comet.Simulation
 
             private int Sample((int X, int Z) sample) => Sample(sample.X, sample.Z);
 
-            private bool InRange(int cx, int cz) => cx >= _minX && cz >= _minZ && cx < _minX + _width && cz < _minZ + _depth;
-
             private static ((int X, int Z) A, (int X, int Z) B, (int X, int Z) C) Corners(int cx, int cz, int half) => half == 0
                 ? ((cx, cz), (cx, cz + 1), (cx + 1, cz))
                 : ((cx + 1, cz), (cx, cz + 1), (cx + 1, cz + 1));
-
-            private bool IsGround(int cx, int cz, int half)
-            {
-                var (a, b, c) = Corners(cx, cz, half);
-                return !float.IsNaN(_top[Sample(a)]) && !float.IsNaN(_top[Sample(b)]) && !float.IsNaN(_top[Sample(c)]);
-            }
 
             // The triangle across edge `edge` of a triangle: edges a-b, b-c and c-a in Corners' order.
             private static (int X, int Z, int Half) Neighbor(int cx, int cz, int half, int edge) => half == 0
@@ -197,46 +193,65 @@ namespace Comet.Simulation
 
             // Flood-fills the empty triangles reachable from the margin: they're past the piece's outer edge, and the
             // empty triangles left over are holes.
+            // Works on triangle indices (Index) with a plain array as the queue, since this pass covers the whole piece.
             private void MarkOutside()
             {
-                var queue = new Queue<(int X, int Z, int Half)>();
-                for (var cz = _minZ; cz < _minZ + _depth; cz++)
+                var queue = new int[_ground.Length];
+                int head = 0, tail = 0;
+                for (var cz = 0; cz < _depth; cz++)
                 {
-                    for (var cx = _minX; cx < _minX + _width; cx++)
+                    for (var cx = 0; cx < _width; cx++)
                     {
-                        if (cx == _minX || cz == _minZ || cx == _minX + _width - 1 || cz == _minZ + _depth - 1)
+                        if (cx == 0 || cz == 0 || cx == _width - 1 || cz == _depth - 1)
                         {
-                            for (var half = 0; half < 2; half++)
-                            {
-                                Visit(cx, cz, half, queue);
-                            }
+                            Visit((cz * _width + cx) * 2, queue, ref tail);
+                            Visit((cz * _width + cx) * 2 + 1, queue, ref tail);
                         }
                     }
                 }
 
-                while (queue.Count > 0)
+                while (head < tail)
                 {
-                    var (cx, cz, half) = queue.Dequeue();
-                    for (var edge = 0; edge < 3; edge++)
+                    var index = queue[head++];
+                    var cell = index >> 1;
+                    int cx = cell % _width, cz = cell / _width;
+                    if ((index & 1) == 0)
                     {
-                        var (nx, nz, nh) = Neighbor(cx, cz, half, edge);
-                        Visit(nx, nz, nh, queue);
+                        // Half 0's neighbors (as Neighbor gives them): half 1 of the cells west and south, and of its own.
+                        Visit(index + 1, queue, ref tail);
+                        if (cx > 0)
+                        {
+                            Visit(index - 1, queue, ref tail);
+                        }
+
+                        if (cz > 0)
+                        {
+                            Visit(index - _width * 2 + 1, queue, ref tail);
+                        }
+                    }
+                    else
+                    {
+                        // Half 1's: half 0 of its own cell and of the cells north and east.
+                        Visit(index - 1, queue, ref tail);
+                        if (cz < _depth - 1)
+                        {
+                            Visit(index + _width * 2 - 1, queue, ref tail);
+                        }
+
+                        if (cx < _width - 1)
+                        {
+                            Visit(index + 1, queue, ref tail);
+                        }
                     }
                 }
             }
 
-            private void Visit(int cx, int cz, int half, Queue<(int, int, int)> queue)
+            private void Visit(int index, int[] queue, ref int tail)
             {
-                if (!InRange(cx, cz))
-                {
-                    return;
-                }
-
-                var index = Index(cx, cz, half);
                 if (!_ground[index] && !_outside[index])
                 {
                     _outside[index] = true;
-                    queue.Enqueue((cx, cz, half));
+                    queue[tail++] = index;
                 }
             }
 
