@@ -137,11 +137,14 @@ namespace Comet.Content
         [Key(6)] public ColorMap? UndersideColors { get; set; }
     }
 
-    /// <summary>An asset placed in a chunk: free position and full rotation, with uniform or non-uniform scale.</summary>
+    /// <summary>
+    /// An asset or a primitive placed in a chunk: free position and full rotation, with uniform or non-uniform scale.
+    /// A primitive's scale is its size in meters, and its mesh is built at that size (<see cref="Matrix"/>).
+    /// </summary>
     [MessagePackObject]
     public sealed class Placement
     {
-        /// <summary>The asset's key (<c>asset.cube</c>).</summary>
+        /// <summary>The asset's key (<c>asset.prop</c>), or empty for a primitive.</summary>
         [Key(0)] public string Asset { get; set; } = "";
 
         /// <summary>The pivot's world position, in meters; it lies in the placement's chunk.</summary>
@@ -161,9 +164,18 @@ namespace Comet.Content
         /// <summary>The placement's own color as 0xRRGGBB, or null for its asset's.</summary>
         [Key(5)] public uint? Color { get; set; }
 
-        /// <summary>The placement's transform from the asset's space to the world (scale, then rotation, then position).</summary>
+        /// <summary>The primitive placed, or null for an asset.</summary>
+        [Key(6)] public Primitive? Primitive { get; set; }
+
+        /// <summary>Whether this is blockout: a stand-in for finished geometry, drawn in a dev look while a level is built.</summary>
+        [Key(7)] public bool Blockout { get; set; }
+
+        /// <summary>
+        /// The placement's transform from its mesh's space to the world: for an asset, scale, then rotation, then
+        /// position; for a primitive, whose mesh is built at its size, rotation then position.
+        /// </summary>
         public Matrix4x4 Matrix() =>
-            Matrix4x4.CreateScale(Scale) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);
+            (Primitive is null ? Matrix4x4.CreateScale(Scale) : Matrix4x4.Identity) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);
     }
 
     /// <summary>How a player faces on arriving at a spawn point.</summary>
