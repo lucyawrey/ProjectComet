@@ -26,8 +26,11 @@
 - Life/Enemy (Poison):
 - Time/Enemy (Slow):
 **Tech 1**: Unmake
+- Costs Manaburst, changes alignment to Raw.
 **Tech 2**: Restore
+- Costs Manaburst, changes alignment to Life.
 **Tech 3**: Accelerate
+- Costs Manaburst, changes alignment to Time.
 **Tech 4**: Contagion
 - All targets in a small area at range spread their current status effects to other nearby targets. Status effects with a longer duration take priority. Negative status effects are only spread from enemy to enemy and positive status effects are only spread from ally to ally.
 **Special**: Checkmate
