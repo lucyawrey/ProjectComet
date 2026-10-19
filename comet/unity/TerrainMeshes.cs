@@ -13,6 +13,14 @@ namespace Comet.Unity
         /// <summary>A terrain chunk's mesh, flat-shaded, with its colors as vertex colors (for the Comet/Vertex Color Lit shader).</summary>
         public static Mesh Build(string name, TerrainMesh terrain)
         {
+            var mesh = new Mesh { name = name };
+            Fill(mesh, terrain);
+            return mesh;
+        }
+
+        /// <summary>Replaces <paramref name="mesh"/>'s contents with <paramref name="terrain"/> (the zone editor redrawing a chunk).</summary>
+        public static void Fill(Mesh mesh, TerrainMesh terrain)
+        {
             var vertices = new List<Vector3>(terrain.Positions.Count);
             foreach (var position in terrain.Positions)
             {
@@ -27,11 +35,8 @@ namespace Comet.Unity
             }
 
             // Every triangle has its own corners, so the recalculated normals are flat: one per face.
-            var mesh = new Mesh { name = name };
-            if (vertices.Count > 65535)
-            {
-                mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            }
+            mesh.Clear();
+            mesh.indexFormat = vertices.Count > 65535 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
 
             mesh.SetVertices(vertices);
             mesh.SetColors(colors);
@@ -44,7 +49,6 @@ namespace Comet.Unity
             mesh.SetTriangles(indices, 0);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
-            return mesh;
         }
     }
 }

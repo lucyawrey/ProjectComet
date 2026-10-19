@@ -44,6 +44,9 @@ namespace Comet.Unity.Editor
         private CometSettings? _settings;
         private bool _painting;
         private bool _redraw;
+        // The chunks the stroke changed since its last redraw; null when it changed which ground there is (holes and
+        // ground decide which edges are the piece's outside, anywhere on it), so everything is redrawn.
+        private HashSet<ChunkCoord>? _changed = new HashSet<ChunkCoord>();
         private double _lastRedraw;
         private float _flattenHeight;
         private Vector3? _hover;
@@ -354,6 +357,7 @@ namespace Comet.Unity.Editor
                 case EventType.MouseUp when _painting && e.button == 0:
                     _painting = false;
                     _redraw = false;
+                    _changed = new HashSet<ChunkCoord>();
                     GUIUtility.hotControl = 0;
                     terrain.Commit($"Terrain: {(underside ? "Underside " : "")}{BrushNames[(int)brush]}", _settings!);
                     if (_overlaps.Count > 0)
@@ -423,6 +427,22 @@ namespace Comet.Unity.Editor
             var spacing = ZoneGrid.SampleSpacing;
             int minX = Mathf.FloorToInt((center.x - radius) / spacing), maxX = Mathf.CeilToInt((center.x + radius) / spacing);
             int minZ = Mathf.FloorToInt((center.z - radius) / spacing), maxZ = Mathf.CeilToInt((center.z + radius) / spacing);
+            if (!underside && (brush == Brush.Hole || brush == Brush.Ground))
+            {
+                _changed = null;
+            }
+            else if (_changed != null)
+            {
+                // The cells around each changed sample, and so their chunks (a sample on a border is in both).
+                for (var cz = FloorDiv(minZ - 1, ZoneGrid.ChunkSize); cz <= FloorDiv(maxZ, ZoneGrid.ChunkSize); cz++)
+                {
+                    for (var cx = FloorDiv(minX - 1, ZoneGrid.ChunkSize); cx <= FloorDiv(maxX, ZoneGrid.ChunkSize); cx++)
+                    {
+                        _changed.Add(new ChunkCoord(cx, cz));
+                    }
+                }
+            }
+
             var changes = new List<(int X, int Z, float Weight)>();
             for (var z = minZ; z <= maxZ; z++)
             {
@@ -487,17 +507,19 @@ namespace Comet.Unity.Editor
             _redraw = true;
         }
 
-        // Meshing the terrain takes about 5 ms a chunk, too slow for every mouse event, so a stroke redraws at most
-        // 20 times a second; its end redraws in full.
+        // A stroke redraws only the chunks it changed, at most 20 times a second; its end redraws in full.
         private void RedrawDuringStroke(ZoneTerrainEditing terrain)
         {
             if (_redraw && EditorApplication.timeSinceStartup - _lastRedraw >= 0.05)
             {
-                ZoneEditor.RebuildTerrain(terrain.Editing, terrain.Zone, _settings!);
+                ZoneEditor.RebuildTerrain(terrain.Editing, terrain.Zone, _settings!, _changed);
                 _lastRedraw = EditorApplication.timeSinceStartup;
                 _redraw = false;
+                _changed = new HashSet<ChunkCoord>();
             }
         }
+
+        private static int FloorDiv(int a, int b) => a >= 0 ? a / b : (a - b + 1) / b;
 
         // The underside brushes at one ground sample (at `height`); `amount` is the stroke's time times its falloff.
         // The underside never rises above the ground.
