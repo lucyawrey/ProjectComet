@@ -99,6 +99,24 @@ namespace Comet.Unity.Editor
         });
 
         /// <summary>
+        /// Gives a world sample the piece's default colors (<paramref name="ground"/> and <paramref name="skirt"/>) in
+        /// the color maps its tiles have, so new ground starts unpainted. Tiles grown to their whole chunk for editing
+        /// have no colors past their old edge (zero, which is black).
+        /// </summary>
+        public void ResetColors(string piece, int x, int z, uint ground, uint skirt) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>
+        {
+            if (tile.Colors is { } colors)
+            {
+                colors.Colors[tz * colors.SizeX + tx] = ground;
+            }
+
+            if (tile.UndersideColors is { } underColors)
+            {
+                underColors.Colors[tz * underColors.SizeX + tx] = skirt;
+            }
+        });
+
+        /// <summary>
         /// Paints a world sample's underside color (0xRRGGBB), where the piece has an underside map, starting a map
         /// of <paramref name="skirt"/> where there's none.
         /// </summary>
