@@ -144,17 +144,44 @@ namespace ShapeLand.Client
             placed.SetParent(_drawnZone, false);
             foreach (var chunk in zone.Chunks)
             {
+                // Primitives without a name are drawn as one mesh per chunk; named ones stay apart for game code to find.
+                var primitives = new PrimitiveMeshes.Builder();
+                var toChunk = System.Numerics.Matrix4x4.CreateTranslation(-chunk.Coord.Origin);
                 foreach (var placement in chunk.Placements)
                 {
-                    var thing = Place(placement, placed);
+                    if (placement.Primitive != null && placement.Name == null)
+                    {
+                        primitives.Add(PrimitiveMesher.For(placement, content.Settings.Primitives), placement.Matrix() * toChunk, placement.Color ?? content.Settings.World.PlacedColor);
+                        continue;
+                    }
+
+                    var thing = placement.Primitive != null ? PlacePrimitive(placement, placed) : Place(placement, placed);
                     if (thing != null && placement.Name != null && _spawnPoints.TryGet(placement.Name, out var spawn))
                     {
                         _markers[spawn.Number] = thing.GetComponentsInChildren<Renderer>();
                     }
                 }
+
+                if (primitives.VertexCount > 0)
+                {
+                    var name = $"Primitives {chunk.Coord}";
+                    var mesh = new Mesh { name = name };
+                    primitives.Fill(mesh);
+                    AddMesh(name, mesh, terrainMaterial, placed).transform.localPosition = Vectors.ToUnity(chunk.Coord.Origin);
+                }
             }
 
             orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, zone, _world)));
+        }
+
+        // A named primitive on its own, in the placed objects' material, so game code can find and color it.
+        private GameObject PlacePrimitive(Placement placement, Transform parent)
+        {
+            var thing = AddMesh(placement.Name, PrimitiveMeshes.For(placement, _content.Settings.Primitives), blockMaterial, parent);
+            var rotation = placement.Rotation;
+            thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
+            PlacedColors.Apply(thing, Color(placement.Color ?? _content.Settings.World.PlacedColor));
+            return thing;
         }
 
         // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.

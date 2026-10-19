@@ -1,3 +1,4 @@
+using Comet.Content;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -49,7 +50,7 @@ namespace Comet.Unity.Editor
         [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
         public float bodyHeight = 1;
 
-        [Tooltip("If set, each new spawn point gets a marker: this asset, placed flattened under it and named with its key.")]
+        [Tooltip("If set, each new spawn point gets a marker: this asset (asset.prop) or primitive (cylinder), placed flattened under it and named with its key.")]
         public string spawnMarkerAsset = "";
 
         [Tooltip("How tall a new spawn point's marker is, in meters, sunk halfway into the ground; it can be moved and scaled after.")]
@@ -57,6 +58,25 @@ namespace Comet.Unity.Editor
 
         [Tooltip("The color spawn markers are drawn in, as the game draws a marker that isn't the player's.")]
         public Color spawnMarkerColor = Color.white;
+
+        [Header("Polygon budget (Comet › Zones › Polygon Budget)")]
+        [Tooltip("About how long each side of a round primitive is, in meters.")]
+        [Min(0.01f)] public float facetLength = 0.5f;
+
+        [Tooltip("The fewest sides a round primitive has.")]
+        [Min(3)] public int minSides = 6;
+
+        [Tooltip("The most sides a round primitive has.")]
+        [Min(3)] public int maxSides = 48;
+
+        [Tooltip("The game's settings file holding the budget, relative to the Unity project, where the budget window saves it.")]
+        public string budgetFile = "";
+
+        [Tooltip("The table in that file holding the budget's facet_length, min_sides and max_sides.")]
+        public string budgetTable = "primitives";
+
+        /// <summary>The polygon budget these settings hold.</summary>
+        public PolygonBudget Budget => new PolygonBudget { FacetLength = facetLength, MinSides = minSides, MaxSides = Mathf.Max(minSides, maxSides) };
 
         private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
 
