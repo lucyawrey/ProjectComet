@@ -45,6 +45,13 @@ namespace Comet.Simulation
         public sealed class Piece
         {
             private readonly Dictionary<ChunkCoord, TerrainTile> _tiles = new Dictionary<ChunkCoord, TerrainTile>();
+            // The same tiles in a grid over the chunks they span, since every sample lookup finds its tile: index
+            // (z - _gridMinZ) * _gridWidth + (x - _gridMinX), null where a chunk has no tile.
+            private TerrainTile?[] _grid = new TerrainTile?[0];
+            private int _gridMinX;
+            private int _gridMinZ;
+            private int _gridWidth;
+            private int _gridDepth;
 
             internal Piece(TerrainPiece settings) => Settings = settings;
 
@@ -55,6 +62,57 @@ namespace Comet.Simulation
 
             /// <summary>The lowest and highest world samples any tile covers, on each axis.</summary>
             public (int MinX, int MinZ, int MaxX, int MaxZ) Extent { get; private set; } = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
+
+            /// <summary>
+            /// Every ground height in a block of world samples, as <see cref="TryGetHeight"/> gives them, NaN elsewhere:
+            /// row-major from (<paramref name="minX"/>, <paramref name="minZ"/>), <paramref name="width"/> samples a row.
+            /// Reads each tile once rather than looking up every sample.
+            /// </summary>
+            internal void ReadHeights(int minX, int minZ, int width, float[] heights)
+            {
+                var depth = heights.Length / width;
+                // Which candidate tile (TileAt's order) gave each height: the first with ground there wins.
+                var rank = new byte[heights.Length];
+                for (var i = 0; i < heights.Length; i++)
+                {
+                    heights[i] = float.NaN;
+                    rank[i] = 4;
+                }
+
+                foreach (var pair in _tiles)
+                {
+                    var tile = pair.Value;
+                    var map = tile.Heights;
+                    int originX = pair.Key.X * ZoneGrid.ChunkSize + tile.OriginX, originZ = pair.Key.Z * ZoneGrid.ChunkSize + tile.OriginZ;
+                    for (var tz = 0; tz < map.SizeZ; tz++)
+                    {
+                        int z = originZ + tz, row = z - minZ;
+                        var southward = FloorDiv(z, ZoneGrid.ChunkSize) - pair.Key.Z;
+                        if (row < 0 || row >= depth || southward < 0 || southward > 1)
+                        {
+                            continue;
+                        }
+
+                        for (var tx = 0; tx < map.SizeX; tx++)
+                        {
+                            int x = originX + tx, column = x - minX;
+                            var westward = FloorDiv(x, ZoneGrid.ChunkSize) - pair.Key.X;
+                            if (column < 0 || column >= width || westward < 0 || westward > 1 || !map.TryGetHeight(tx, tz, out var height))
+                            {
+                                continue;
+                            }
+
+                            var i = row * width + column;
+                            var which = (byte)(westward + 2 * southward);
+                            if (which < rank[i])
+                            {
+                                heights[i] = height;
+                                rank[i] = which;
+                            }
+                        }
+                    }
+                }
+            }
 
             /// <summary>The ground height at world sample (<paramref name="x"/>, <paramref name="z"/>), or false over a hole or past the piece.</summary>
             public bool TryGetHeight(int x, int z, out float height) => TryGet(x, z, underside: false, out height);
@@ -159,10 +217,30 @@ namespace Comet.Simulation
             {
                 _tiles[chunk] = tile;
                 _bottomHeight = null;
+                IndexTiles();
                 var x = chunk.X * ZoneGrid.ChunkSize + tile.OriginX;
                 var z = chunk.Z * ZoneGrid.ChunkSize + tile.OriginZ;
                 var (minX, minZ, maxX, maxZ) = Extent;
                 Extent = (System.Math.Min(minX, x), System.Math.Min(minZ, z), System.Math.Max(maxX, x + tile.Heights.SizeX - 1), System.Math.Max(maxZ, z + tile.Heights.SizeZ - 1));
+            }
+
+            private void IndexTiles()
+            {
+                int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+                foreach (var coord in _tiles.Keys)
+                {
+                    minX = System.Math.Min(minX, coord.X);
+                    minZ = System.Math.Min(minZ, coord.Z);
+                    maxX = System.Math.Max(maxX, coord.X);
+                    maxZ = System.Math.Max(maxZ, coord.Z);
+                }
+
+                (_gridMinX, _gridMinZ, _gridWidth, _gridDepth) = (minX, minZ, maxX - minX + 1, maxZ - minZ + 1);
+                _grid = new TerrainTile?[_gridWidth * _gridDepth];
+                foreach (var pair in _tiles)
+                {
+                    _grid[(pair.Key.Z - _gridMinZ) * _gridWidth + (pair.Key.X - _gridMinX)] = pair.Value;
+                }
             }
 
             private bool TryGet(int x, int z, bool underside, out float height)
@@ -190,10 +268,14 @@ namespace Comet.Simulation
                 var chunkX = FloorDiv(x, ZoneGrid.ChunkSize) - (which & 1);
                 var chunkZ = FloorDiv(z, ZoneGrid.ChunkSize) - (which >> 1);
                 tx = tz = 0;
-                if (!_tiles.TryGetValue(new ChunkCoord(chunkX, chunkZ), out tile!))
+                int gx = chunkX - _gridMinX, gz = chunkZ - _gridMinZ;
+                if (gx < 0 || gz < 0 || gx >= _gridWidth || gz >= _gridDepth || _grid[gz * _gridWidth + gx] is not { } found)
                 {
+                    tile = null!;
                     return false;
                 }
+
+                tile = found;
 
                 tx = x - chunkX * ZoneGrid.ChunkSize - tile.OriginX;
                 tz = z - chunkZ * ZoneGrid.ChunkSize - tile.OriginZ;

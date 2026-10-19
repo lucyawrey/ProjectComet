@@ -41,14 +41,18 @@ namespace Comet.Simulation
         /// <summary>The meshes of <paramref name="terrain"/>'s pieces, by chunk.</summary>
         /// <param name="groundColor">The color of unpainted ground, for pieces without their own.</param>
         /// <param name="underColor">The color of unpainted undersides (skirt walls and bottoms), for pieces without their own.</param>
-        public static Dictionary<ChunkCoord, TerrainMesh> Build(ZoneTerrain terrain, uint groundColor, uint underColor)
+        /// <param name="only">
+        /// Mesh only these chunks (the editor redrawing where a brush went); null for all. A chunk left with no
+        /// terrain has no entry.
+        /// </param>
+        public static Dictionary<ChunkCoord, TerrainMesh> Build(ZoneTerrain terrain, uint groundColor, uint underColor, ISet<ChunkCoord>? only = null)
         {
             var meshes = new Dictionary<ChunkCoord, TerrainMesh>();
             foreach (var piece in terrain.Pieces)
             {
                 if (piece.Tiles.Count > 0)
                 {
-                    new PieceMesher(terrain, piece, groundColor, underColor, meshes).Build();
+                    new PieceMesher(terrain, piece, groundColor, underColor, meshes, only).Build();
                 }
             }
 
@@ -56,7 +60,8 @@ namespace Comet.Simulation
         }
 
         // Meshes one piece. Triangles are addressed by cell and half: half 0 has corners (x, z), (x, z+1), (x+1, z);
-        // half 1 has (x+1, z), (x, z+1), (x+1, z+1).
+        // half 1 has (x+1, z), (x, z+1), (x+1, z+1). The piece's samples are read once into flat arrays, since looking
+        // each up in its tile is slow and every sample is used by up to six triangles.
         private sealed class PieceMesher
         {
             private readonly ZoneTerrain _terrain;
@@ -64,6 +69,7 @@ namespace Comet.Simulation
             private readonly uint _groundColor;
             private readonly uint _underColor;
             private readonly Dictionary<ChunkCoord, TerrainMesh> _meshes;
+            private readonly ISet<ChunkCoord>? _only;
             // The cells looked at: the piece's extent plus a margin of one empty cell on every side.
             private readonly int _minX;
             private readonly int _minZ;
@@ -71,14 +77,21 @@ namespace Comet.Simulation
             private readonly int _depth;
             private readonly bool[] _ground;
             private readonly bool[] _outside;
+            // Per sample over those cells' corners ((_width + 1) by (_depth + 1)): the ground height (NaN where there's
+            // none), the bottom (the underside, else the flat bottom), and the ground and underside colors.
+            private readonly float[] _top;
+            private readonly float[] _bottom;
+            private readonly uint[] _color;
+            private readonly uint[] _under;
 
-            public PieceMesher(ZoneTerrain terrain, ZoneTerrain.Piece piece, uint groundColor, uint underColor, Dictionary<ChunkCoord, TerrainMesh> meshes)
+            public PieceMesher(ZoneTerrain terrain, ZoneTerrain.Piece piece, uint groundColor, uint underColor, Dictionary<ChunkCoord, TerrainMesh> meshes, ISet<ChunkCoord>? only)
             {
                 _terrain = terrain;
                 _piece = piece;
                 _groundColor = piece.Settings.GroundColor ?? groundColor;
                 _underColor = piece.Settings.UnderColor ?? underColor;
                 _meshes = meshes;
+                _only = only;
                 var (minX, minZ, maxX, maxZ) = piece.Extent;
                 _minX = minX - 1;
                 _minZ = minZ - 1;
@@ -86,18 +99,58 @@ namespace Comet.Simulation
                 _depth = maxZ - minZ + 2;
                 _ground = new bool[_width * _depth * 2];
                 _outside = new bool[_ground.Length];
+                var samples = (_width + 1) * (_depth + 1);
+                _top = new float[samples];
+                _bottom = new float[samples];
+                _color = new uint[samples];
+                _under = new uint[samples];
             }
 
             public void Build()
             {
-                for (var cz = _minZ; cz < _minZ + _depth; cz++)
+                // Every height, to tell the outside from holes; the rest only where triangles are made (the chunks
+                // meshed, and their edge samples).
+                var (fromX, fromZ, toX, toZ) = (int.MinValue, int.MinValue, int.MaxValue, int.MaxValue);
+                if (_only != null)
                 {
-                    for (var cx = _minX; cx < _minX + _width; cx++)
+                    (fromX, fromZ, toX, toZ) = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
+                    foreach (var chunk in _only)
                     {
-                        for (var half = 0; half < 2; half++)
+                        fromX = Math.Min(fromX, chunk.X * ZoneGrid.ChunkSize);
+                        fromZ = Math.Min(fromZ, chunk.Z * ZoneGrid.ChunkSize);
+                        toX = Math.Max(toX, (chunk.X + 1) * ZoneGrid.ChunkSize);
+                        toZ = Math.Max(toZ, (chunk.Z + 1) * ZoneGrid.ChunkSize);
+                    }
+                }
+
+                var flatBottom = _piece.BottomHeight;
+                _piece.ReadHeights(_minX, _minZ, _width + 1, _top);
+                for (var z = Math.Max(_minZ, fromZ); z <= Math.Min(_minZ + _depth, toZ); z++)
+                {
+                    for (var x = Math.Max(_minX, fromX); x <= Math.Min(_minX + _width, toX); x++)
+                    {
+                        var i = Sample(x, z);
+                        if (!float.IsNaN(_top[i]))
                         {
-                            _ground[Index(cx, cz, half)] = IsGround(cx, cz, half);
+                            _bottom[i] = _piece.TryGetUnderside(x, z, out var under) ? under : flatBottom;
+                            _color[i] = _piece.ColorAt(x, z, _groundColor);
+                            _under[i] = _piece.UndersideColorAt(x, z, _underColor);
                         }
+                    }
+                }
+
+                // A cell's corners are samples s (x, z), s + 1 (x+1, z), s + row (x, z+1) and s + row + 1; half 0 is the
+                // first three, half 1 the last three.
+                var row = _width + 1;
+                for (var cz = 0; cz < _depth; cz++)
+                {
+                    for (var cx = 0; cx < _width; cx++)
+                    {
+                        var s = cz * row + cx;
+                        bool corner = !float.IsNaN(_top[s + 1]) && !float.IsNaN(_top[s + row]);
+                        var cell = (cz * _width + cx) * 2;
+                        _ground[cell] = corner && !float.IsNaN(_top[s]);
+                        _ground[cell + 1] = corner && !float.IsNaN(_top[s + row + 1]);
                     }
                 }
 
@@ -106,11 +159,17 @@ namespace Comet.Simulation
                 {
                     for (var cx = _minX; cx < _minX + _width; cx++)
                     {
+                        var chunk = new ChunkCoord(FloorDiv(cx, ZoneGrid.ChunkSize), FloorDiv(cz, ZoneGrid.ChunkSize));
+                        if (_only != null && !_only.Contains(chunk))
+                        {
+                            continue;
+                        }
+
                         for (var half = 0; half < 2; half++)
                         {
                             if (_ground[Index(cx, cz, half)])
                             {
-                                AddTriangle(cx, cz, half);
+                                AddTriangle(chunk, cx, cz, half);
                             }
                         }
                     }
@@ -119,70 +178,85 @@ namespace Comet.Simulation
 
             private int Index(int cx, int cz, int half) => ((cz - _minZ) * _width + (cx - _minX)) * 2 + half;
 
-            private bool InRange(int cx, int cz) => cx >= _minX && cz >= _minZ && cx < _minX + _width && cz < _minZ + _depth;
+            private int Sample(int x, int z) => (z - _minZ) * (_width + 1) + (x - _minX);
+
+            private int Sample((int X, int Z) sample) => Sample(sample.X, sample.Z);
 
             private static ((int X, int Z) A, (int X, int Z) B, (int X, int Z) C) Corners(int cx, int cz, int half) => half == 0
                 ? ((cx, cz), (cx, cz + 1), (cx + 1, cz))
                 : ((cx + 1, cz), (cx, cz + 1), (cx + 1, cz + 1));
 
-            private bool IsGround(int cx, int cz, int half)
-            {
-                var (a, b, c) = Corners(cx, cz, half);
-                return _piece.TryGetHeight(a.X, a.Z, out _) && _piece.TryGetHeight(b.X, b.Z, out _) && _piece.TryGetHeight(c.X, c.Z, out _);
-            }
-
-            // The triangle across each edge of a triangle: edges a-b, b-c and c-a in Corners' order.
-            private static (int X, int Z, int Half)[] Neighbors(int cx, int cz, int half) => half == 0
-                ? new[] { (cx - 1, cz, 1), (cx, cz, 1), (cx, cz - 1, 1) }
-                : new[] { (cx, cz, 0), (cx, cz + 1, 0), (cx + 1, cz, 0) };
+            // The triangle across edge `edge` of a triangle: edges a-b, b-c and c-a in Corners' order.
+            private static (int X, int Z, int Half) Neighbor(int cx, int cz, int half, int edge) => half == 0
+                ? edge == 0 ? (cx - 1, cz, 1) : edge == 1 ? (cx, cz, 1) : (cx, cz - 1, 1)
+                : edge == 0 ? (cx, cz, 0) : edge == 1 ? (cx, cz + 1, 0) : (cx + 1, cz, 0);
 
             // Flood-fills the empty triangles reachable from the margin: they're past the piece's outer edge, and the
             // empty triangles left over are holes.
+            // Works on triangle indices (Index) with a plain array as the queue, since this pass covers the whole piece.
             private void MarkOutside()
             {
-                var queue = new Queue<(int X, int Z, int Half)>();
-                for (var cz = _minZ; cz < _minZ + _depth; cz++)
+                var queue = new int[_ground.Length];
+                int head = 0, tail = 0;
+                for (var cz = 0; cz < _depth; cz++)
                 {
-                    for (var cx = _minX; cx < _minX + _width; cx++)
+                    for (var cx = 0; cx < _width; cx++)
                     {
-                        if (cx == _minX || cz == _minZ || cx == _minX + _width - 1 || cz == _minZ + _depth - 1)
+                        if (cx == 0 || cz == 0 || cx == _width - 1 || cz == _depth - 1)
                         {
-                            for (var half = 0; half < 2; half++)
-                            {
-                                Visit(cx, cz, half, queue);
-                            }
+                            Visit((cz * _width + cx) * 2, queue, ref tail);
+                            Visit((cz * _width + cx) * 2 + 1, queue, ref tail);
                         }
                     }
                 }
 
-                while (queue.Count > 0)
+                while (head < tail)
                 {
-                    var (cx, cz, half) = queue.Dequeue();
-                    foreach (var (nx, nz, nh) in Neighbors(cx, cz, half))
+                    var index = queue[head++];
+                    var cell = index >> 1;
+                    int cx = cell % _width, cz = cell / _width;
+                    if ((index & 1) == 0)
                     {
-                        Visit(nx, nz, nh, queue);
+                        // Half 0's neighbors (as Neighbor gives them): half 1 of the cells west and south, and of its own.
+                        Visit(index + 1, queue, ref tail);
+                        if (cx > 0)
+                        {
+                            Visit(index - 1, queue, ref tail);
+                        }
+
+                        if (cz > 0)
+                        {
+                            Visit(index - _width * 2 + 1, queue, ref tail);
+                        }
+                    }
+                    else
+                    {
+                        // Half 1's: half 0 of its own cell and of the cells north and east.
+                        Visit(index - 1, queue, ref tail);
+                        if (cz < _depth - 1)
+                        {
+                            Visit(index + _width * 2 - 1, queue, ref tail);
+                        }
+
+                        if (cx < _width - 1)
+                        {
+                            Visit(index + 1, queue, ref tail);
+                        }
                     }
                 }
             }
 
-            private void Visit(int cx, int cz, int half, Queue<(int, int, int)> queue)
+            private void Visit(int index, int[] queue, ref int tail)
             {
-                if (!InRange(cx, cz))
-                {
-                    return;
-                }
-
-                var index = Index(cx, cz, half);
                 if (!_ground[index] && !_outside[index])
                 {
                     _outside[index] = true;
-                    queue.Enqueue((cx, cz, half));
+                    queue[tail++] = index;
                 }
             }
 
-            private void AddTriangle(int cx, int cz, int half)
+            private void AddTriangle(ChunkCoord chunk, int cx, int cz, int half)
             {
-                var chunk = new ChunkCoord(FloorDiv(cx, ZoneGrid.ChunkSize), FloorDiv(cz, ZoneGrid.ChunkSize));
                 if (!_meshes.TryGetValue(chunk, out var mesh))
                 {
                     mesh = new TerrainMesh();
@@ -191,28 +265,27 @@ namespace Comet.Simulation
 
                 var origin = chunk.Origin;
                 var (a, b, c) = Corners(cx, cz, half);
-                var top = new[] { Top(a) - origin, Top(b) - origin, Top(c) - origin };
-                mesh.Add(top[0], top[1], top[2], Color(a), Color(b), Color(c));
+                mesh.Add(Top(a) - origin, Top(b) - origin, Top(c) - origin, _color[Sample(a)], _color[Sample(b)], _color[Sample(c)]);
 
                 var settings = _piece.Settings;
                 if (settings.RimSkirts)
                 {
                     // The bottom face, under the triangle and facing down.
-                    mesh.Add(Bottom(a) - origin, Bottom(c) - origin, Bottom(b) - origin, UnderColor(a), UnderColor(c), UnderColor(b));
+                    mesh.Add(Bottom(a) - origin, Bottom(c) - origin, Bottom(b) - origin, _under[Sample(a)], _under[Sample(c)], _under[Sample(b)]);
                 }
 
-                var corners = new[] { a, b, c };
-                var neighbors = Neighbors(cx, cz, half);
                 for (var edge = 0; edge < 3; edge++)
                 {
-                    var (nx, nz, nh) = neighbors[edge];
+                    var (nx, nz, nh) = Neighbor(cx, cz, half, edge);
                     var index = Index(nx, nz, nh);
                     if (_ground[index] || !(_outside[index] ? settings.RimSkirts : settings.HoleSkirts))
                     {
                         continue;
                     }
 
-                    AddWall(mesh, origin, corners[edge], corners[(edge + 1) % 3], corners[(edge + 2) % 3]);
+                    // Edge p-q, with the triangle's third corner inside.
+                    var (p, q, inner) = edge == 0 ? (a, b, c) : edge == 1 ? (b, c, a) : (c, a, b);
+                    AddWall(mesh, origin, p, q, inner);
                 }
             }
 
@@ -232,7 +305,7 @@ namespace Comet.Simulation
                 qTop -= origin;
                 pBottom -= origin;
                 qBottom -= origin;
-                uint pColor = UnderColor(p), qColor = UnderColor(q);
+                uint pColor = _under[Sample(p)], qColor = _under[Sample(q)];
                 if (Vector3.Dot(new Vector3(normal.X, 0, normal.Z), new Vector3(outward.X, 0, outward.Z)) >= 0)
                 {
                     mesh.Add(pTop, qTop, qBottom, pColor, qColor, qColor);
@@ -245,14 +318,9 @@ namespace Comet.Simulation
                 }
             }
 
-            private Vector3 Top((int X, int Z) sample)
-            {
-                _piece.TryGetHeight(sample.X, sample.Z, out var height);
-                return At(sample, height);
-            }
+            private Vector3 Top((int X, int Z) sample) => At(sample, _top[Sample(sample)]);
 
-            private Vector3 Bottom((int X, int Z) sample) =>
-                At(sample, _piece.TryGetUnderside(sample.X, sample.Z, out var under) ? under : _piece.BottomHeight);
+            private Vector3 Bottom((int X, int Z) sample) => At(sample, _bottom[Sample(sample)]);
 
             // A wall's foot: the piece's bottom, unless other terrain lower than the edge but higher than that is in
             // the way, where the wall stops on it.
@@ -269,11 +337,6 @@ namespace Comet.Simulation
 
                 return bottom;
             }
-
-            private uint Color((int X, int Z) sample) => _piece.ColorAt(sample.X, sample.Z, _groundColor);
-
-            // The underside and skirt walls: painted where the piece has underside colors, else its skirt color.
-            private uint UnderColor((int X, int Z) sample) => _piece.UndersideColorAt(sample.X, sample.Z, _underColor);
 
             private static Vector3 At((int X, int Z) sample, float height) =>
                 new Vector3(sample.X * ZoneGrid.SampleSpacing, height, sample.Z * ZoneGrid.SampleSpacing);

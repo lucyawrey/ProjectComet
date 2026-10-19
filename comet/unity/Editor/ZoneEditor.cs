@@ -207,34 +207,72 @@ namespace Comet.Unity.Editor
             return zone;
         }
 
-        /// <summary>Redraws a zone's terrain preview from <paramref name="zone"/>'s pieces.</summary>
-        public static void RebuildTerrain(ZoneEditing editing, Zone zone, CometSettings settings)
+        /// <summary>
+        /// Redraws a zone's terrain preview from <paramref name="zone"/>'s pieces: only the chunks in
+        /// <paramref name="only"/> (where a brush went), or all of them when it's null. Chunk objects and their meshes
+        /// are reused. A piece's flat bottom follows its lowest ground, so when that moves, every chunk is redrawn.
+        /// </summary>
+        public static void RebuildTerrain(ZoneEditing editing, Zone zone, CometSettings settings, ISet<ChunkCoord>? only = null)
         {
             var root = editing.transform;
-            var old = root.Find(TerrainName);
-            if (old != null)
+            var terrain = root.Find(TerrainName);
+            if (terrain == null)
             {
-                foreach (var filter in old.GetComponentsInChildren<MeshFilter>())
+                terrain = Child(root, TerrainName);
+                terrain.SetAsFirstSibling();
+                terrain.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
+                only = null;
+            }
+
+            var zoneTerrain = new ZoneTerrain(zone);
+            var bottoms = zoneTerrain.Pieces.Select(p => p.BottomHeight).ToArray();
+            if (!DrawnBottoms.TryGetValue(editing, out var drawn) || !drawn.SequenceEqual(bottoms))
+            {
+                only = null;
+            }
+
+            DrawnBottoms.AddOrUpdate(editing, bottoms);
+            var meshes = TerrainMesher.Build(zoneTerrain, Rgb(settings.groundColor), Rgb(settings.underColor), only);
+
+            // Chunks redrawn without terrain go; the rest are refilled, or made.
+            var keep = new HashSet<string>(meshes.Keys.Select(ChunkName));
+            var redrawn = only?.Select(ChunkName).ToHashSet();
+            foreach (var chunk in terrain.Cast<Transform>().ToList())
+            {
+                if (!keep.Contains(chunk.name) && (redrawn == null || redrawn.Contains(chunk.name)))
                 {
-                    UnityEngine.Object.DestroyImmediate(filter.sharedMesh);
+                    if (chunk.GetComponent<MeshFilter>() is { } filter)
+                    {
+                        UnityEngine.Object.DestroyImmediate(filter.sharedMesh);
+                    }
+
+                    UnityEngine.Object.DestroyImmediate(chunk.gameObject);
+                }
+            }
+
+            foreach (var mesh in meshes)
+            {
+                var name = ChunkName(mesh.Key);
+                var chunk = terrain.Find(name);
+                if (chunk == null)
+                {
+                    chunk = Child(terrain, name);
+                    chunk.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
+                    chunk.localPosition = new Vector3(mesh.Key.Origin.X, mesh.Key.Origin.Y, mesh.Key.Origin.Z);
+                    chunk.gameObject.AddComponent<MeshFilter>().sharedMesh = new Mesh { name = name };
+                    chunk.gameObject.AddComponent<MeshRenderer>();
                 }
 
-                UnityEngine.Object.DestroyImmediate(old.gameObject);
-            }
-
-            var terrain = Child(root, TerrainName);
-            terrain.SetAsFirstSibling();
-            terrain.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
-            foreach (var chunk in TerrainMesher.Build(new ZoneTerrain(zone), Rgb(settings.groundColor), Rgb(settings.underColor)))
-            {
-                var name = $"Chunk {chunk.Key}";
-                var drawn = Child(terrain, name);
-                drawn.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
-                drawn.localPosition = new Vector3(chunk.Key.Origin.X, chunk.Key.Origin.Y, chunk.Key.Origin.Z);
-                drawn.gameObject.AddComponent<MeshFilter>().sharedMesh = TerrainMeshes.Build(name, chunk.Value);
-                drawn.gameObject.AddComponent<MeshRenderer>().sharedMaterial = settings.terrainMaterial;
+                chunk.GetComponent<MeshRenderer>().sharedMaterial = settings.terrainMaterial;
+                TerrainMeshes.Fill(chunk.GetComponent<MeshFilter>().sharedMesh, mesh.Value);
             }
         }
+
+        private static string ChunkName(ChunkCoord coord) => $"Chunk {coord}";
+
+        // Each zone's pieces' flat bottoms as last drawn, to tell when a partial redraw isn't enough.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ZoneEditing, float[]> DrawnBottoms =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<ZoneEditing, float[]>();
 
         private const string TerrainName = "Terrain (preview)";
 
