@@ -27,6 +27,7 @@ diamond = 7
 pyramid = 8
 blue = 9
 tests_start = 10
+theatre = 11
 
 [zone]
 hub = 1

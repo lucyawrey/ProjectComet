@@ -1,0 +1,94 @@
+[[tile]]
+piece = "island"
+origin = [31, 23]
+
+[[placement]]
+asset = "asset.cylinder"
+position = [-146.662, 3.232, -18.338]
+scale = [8.77, 0.394, 13.104]
+color = 0xECAB4F
+
+[[placement]]
+asset = "asset.cube"
+position = [-148.81, -0.28, -7.08]
+scale = [0.6, 2.0, 0.6]
+
+[[placement]]
+asset = "asset.cube"
+position = [-144.45, -0.28, -7.08]
+scale = [0.6, 2.0, 0.6]
+
+[[placement]]
+asset = "asset.cube"
+position = [-133.52, 1.18, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-136.79, 2.543, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-137.46, 2.79, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-138.07, 3.046, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-134.19, 1.427, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-135.5, 2.014, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-136.22, 2.3, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-134.8, 1.683, -19.159]
+scale = [0.381, 0.413, 4.918]
+
+[[placement]]
+asset = "asset.cube"
+position = [-146.66, 3.753, -28.12]
+scale = [5.406, 4.686, 0.3]
+
+[[placement]]
+asset = "asset.cube"
+position = [-146.66, 3.753, -9.8]
+scale = [5.406, 4.686, 0.3]
+
+[[placement]]
+asset = "asset.cube"
+position = [-151.69, 3.753, -18.93]
+rotation = [0.0, 90.0, 0.0]
+scale = [8.854, 4.686, 0.3]
+
+[[placement]]
+asset = "asset.ramp"
+position = [-146.74, 13.15, -18.91]
+rotation = [0.0, 90.0, 0.0]
+scale = [10.0, 1.0, 5.376]
+
+[[placement]]
+asset = "asset.cylinder"
+name = "spawn.theatre"
+position = [-148.051, 3.819, -19.334]
+scale = [2.0, 0.2, 2.0]
+
+[[spawn]]
+id = "spawn.theatre"
+position = [-148.051, 4.219, -19.334]
+radius = 2.0
+facing = "direction"
+yaw = 0.0
