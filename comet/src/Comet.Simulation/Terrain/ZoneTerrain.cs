@@ -63,6 +63,57 @@ namespace Comet.Simulation
             /// <summary>The lowest and highest world samples any tile covers, on each axis.</summary>
             public (int MinX, int MinZ, int MaxX, int MaxZ) Extent { get; private set; } = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
 
+            /// <summary>
+            /// Every ground height in a block of world samples, as <see cref="TryGetHeight"/> gives them, NaN elsewhere:
+            /// row-major from (<paramref name="minX"/>, <paramref name="minZ"/>), <paramref name="width"/> samples a row.
+            /// Reads each tile once rather than looking up every sample.
+            /// </summary>
+            internal void ReadHeights(int minX, int minZ, int width, float[] heights)
+            {
+                var depth = heights.Length / width;
+                // Which candidate tile (TileAt's order) gave each height: the first with ground there wins.
+                var rank = new byte[heights.Length];
+                for (var i = 0; i < heights.Length; i++)
+                {
+                    heights[i] = float.NaN;
+                    rank[i] = 4;
+                }
+
+                foreach (var pair in _tiles)
+                {
+                    var tile = pair.Value;
+                    var map = tile.Heights;
+                    int originX = pair.Key.X * ZoneGrid.ChunkSize + tile.OriginX, originZ = pair.Key.Z * ZoneGrid.ChunkSize + tile.OriginZ;
+                    for (var tz = 0; tz < map.SizeZ; tz++)
+                    {
+                        int z = originZ + tz, row = z - minZ;
+                        var southward = FloorDiv(z, ZoneGrid.ChunkSize) - pair.Key.Z;
+                        if (row < 0 || row >= depth || southward < 0 || southward > 1)
+                        {
+                            continue;
+                        }
+
+                        for (var tx = 0; tx < map.SizeX; tx++)
+                        {
+                            int x = originX + tx, column = x - minX;
+                            var westward = FloorDiv(x, ZoneGrid.ChunkSize) - pair.Key.X;
+                            if (column < 0 || column >= width || westward < 0 || westward > 1 || !map.TryGetHeight(tx, tz, out var height))
+                            {
+                                continue;
+                            }
+
+                            var i = row * width + column;
+                            var which = (byte)(westward + 2 * southward);
+                            if (which < rank[i])
+                            {
+                                heights[i] = height;
+                                rank[i] = which;
+                            }
+                        }
+                    }
+                }
+            }
+
             /// <summary>The ground height at world sample (<paramref name="x"/>, <paramref name="z"/>), or false over a hole or past the piece.</summary>
             public bool TryGetHeight(int x, int z, out float height) => TryGet(x, z, underside: false, out height);
 

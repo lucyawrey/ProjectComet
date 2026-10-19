@@ -108,16 +108,34 @@ namespace Comet.Simulation
 
             public void Build()
             {
-                var flatBottom = _piece.BottomHeight;
-                for (var z = _minZ; z <= _minZ + _depth; z++)
+                // Every height, to tell the outside from holes; the rest only where triangles are made (the chunks
+                // meshed, and their edge samples).
+                var (fromX, fromZ, toX, toZ) = (int.MinValue, int.MinValue, int.MaxValue, int.MaxValue);
+                if (_only != null)
                 {
-                    for (var x = _minX; x <= _minX + _width; x++)
+                    (fromX, fromZ, toX, toZ) = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
+                    foreach (var chunk in _only)
+                    {
+                        fromX = Math.Min(fromX, chunk.X * ZoneGrid.ChunkSize);
+                        fromZ = Math.Min(fromZ, chunk.Z * ZoneGrid.ChunkSize);
+                        toX = Math.Max(toX, (chunk.X + 1) * ZoneGrid.ChunkSize);
+                        toZ = Math.Max(toZ, (chunk.Z + 1) * ZoneGrid.ChunkSize);
+                    }
+                }
+
+                var flatBottom = _piece.BottomHeight;
+                _piece.ReadHeights(_minX, _minZ, _width + 1, _top);
+                for (var z = Math.Max(_minZ, fromZ); z <= Math.Min(_minZ + _depth, toZ); z++)
+                {
+                    for (var x = Math.Max(_minX, fromX); x <= Math.Min(_minX + _width, toX); x++)
                     {
                         var i = Sample(x, z);
-                        _top[i] = _piece.TryGetHeight(x, z, out var height) ? height : float.NaN;
-                        _bottom[i] = _piece.TryGetUnderside(x, z, out var under) ? under : flatBottom;
-                        _color[i] = _piece.ColorAt(x, z, _groundColor);
-                        _under[i] = _piece.UndersideColorAt(x, z, _underColor);
+                        if (!float.IsNaN(_top[i]))
+                        {
+                            _bottom[i] = _piece.TryGetUnderside(x, z, out var under) ? under : flatBottom;
+                            _color[i] = _piece.ColorAt(x, z, _groundColor);
+                            _under[i] = _piece.UndersideColorAt(x, z, _underColor);
+                        }
                     }
                 }
 
