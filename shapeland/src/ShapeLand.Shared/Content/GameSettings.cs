@@ -82,8 +82,8 @@ namespace ShapeLand.Shared.Content
         /// <summary>The color placed objects are drawn in when neither they nor their asset have one, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(4)] public uint PlacedColor { get; set; }
 
-        /// <summary>The zone the game plays in (<c>zone.*</c>); it has one at a time for now.</summary>
-        [JsonRequired] [Key(3)] public string Zone { get; set; } = "";
+        /// <summary>The zone a server plays unless it's told another (<c>zone.*</c>); every shape's spawn is in it.</summary>
+        [JsonRequired] [Key(3)] public string DefaultZone { get; set; } = "";
     }
 
     [MessagePackObject]

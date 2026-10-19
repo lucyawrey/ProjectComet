@@ -40,8 +40,9 @@ public readonly record struct NetSample(double Seconds, double PingMs, double Be
 /// occasionally. A cheating bot slides faster than its shape allows and should be snapped back. Runs on the
 /// same client session as the Unity client (tick estimate, interpolation buffer, report schedule), so load
 /// tests exercise that code too. Counts what it sees, so tests and the bot program can check the server.
+/// Moves in the zone the server's Welcome names, its world from <paramref name="worlds"/> (shared by many bots).
 /// </summary>
-public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, CollisionWorld world)
+public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, ZoneWorlds worlds)
 {
     private const int StepsPerSecond = 30;
 
@@ -54,6 +55,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private readonly FixedStep _fixed = new(StepsPerSecond);
     private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
     private ClientSession _session = null!;
+    private CollisionWorld _world = worlds.For(ShapeLandWorld.DefaultZone(content));
     private MotorState _motor;
     private Shape _shape = null!;
     private Vector2 _target;
@@ -137,7 +139,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     {
         var transport = new WebSocketTransport(url);
         _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
-            gravity: content.Movement.Gravity, groundHeight: ShapeLandWorld.GroundHeight(content, world));
+            gravity: content.Movement.Gravity);
+        _session.WelcomeArrived += welcome =>
+        {
+            _world = worlds.For(content.Zones[welcome.Zone]);
+            _session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(content, _world);
+        };
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
         _session.EntityDespawned += id =>
@@ -223,7 +230,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
-        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, world, content.Movement);
+        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, _world, content.Movement);
         // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
         if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond))
         {

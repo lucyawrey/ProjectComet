@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
+using Comet.Content;
 using Comet.Protocol;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
@@ -14,17 +15,17 @@ using ShapeLand.Shared.World;
 namespace ShapeLand.GameServer;
 
 /// <summary>
-/// ShapeLand's phase 0 game: players join with a name and shape, slide and jump on the test island, and chat in one
-/// shared channel. Everyone sees everyone (grid interest management comes with the full load test).
+/// ShapeLand's phase 0 game: players join with a name and shape, slide and jump in one zone, and chat in one shared
+/// channel. Everyone sees everyone (grid interest management comes with the full load test).
 /// <para>
 /// Connections decode messages on their own receive flows and queue them; the tick thread handles the queue in
 /// order, so all game state belongs to the tick thread.
 /// </para>
 /// </summary>
-public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry registry, ILogger<ShapeLandGame> logger) : IConnectionHandler
+public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, ConnectionRegistry registry, ILogger<ShapeLandGame> logger) : IConnectionHandler
 {
-    private readonly CollisionWorld _world = ShapeLandWorld.Create(content);
-    private readonly Spawns _spawns = new(ShapeLandWorld.Zone(content));
+    private readonly CollisionWorld _world = ShapeLandWorld.Create(content, zone);
+    private readonly Spawns _spawns = new(zone);
     private readonly MovementTolerances _tolerances = new();
     private readonly ConcurrentQueue<Input> _inbox = new();
     private readonly Dictionary<Connection, Player> _players = [];
@@ -180,7 +181,8 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
         }
 
         player.Validator = new MovementValidator(_world, content.Movement, _tolerances, ShapeLandRules.TickRate);
-        _spawns.TryGet(shape.Spawn, out var spawnPoint); // the content build checks every shape's spawn exists
+        // Each shape's spawn is in the default zone (the content build checks it); in another zone, its default spawn.
+        var spawnPoint = _spawns.TryGet(shape.Spawn, out var own) ? own : _spawns.Default!;
         player.SpawnPoint = spawnPoint;
         var (feet, facing) = Spawns.Arrive(spawnPoint, _world, content.Movement, _random);
         player.Validator.Reset(feet, facing, tick);
@@ -188,7 +190,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, ConnectionRegistry r
 
         var connection = player.Connection;
         var spawn = player.Spawn();
-        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate });
+        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate, Zone = zone.Number });
         connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
         connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = spawnPoint.Number });
         foreach (var other in _players.Values)

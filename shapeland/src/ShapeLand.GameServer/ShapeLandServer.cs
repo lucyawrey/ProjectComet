@@ -1,3 +1,4 @@
+using Comet.Content;
 using Comet.Server;
 using Comet.Server.Connections;
 using Comet.Server.Ticking;
@@ -27,6 +28,7 @@ public static class ShapeLandServer
 
         builder.Services.Configure<ShapeLandServerOptions>(builder.Configuration.GetSection("ShapeLand"));
         builder.Services.AddSingleton(services => LoadContent(services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value));
+        builder.Services.AddSingleton(services => PlayedZone(services.GetRequiredService<ShapeLandContent>(), services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value));
         builder.Services.AddSingleton(new ConnectionRegistry(ShapeLandProtocol.Options));
         builder.Services.AddSingleton(builder.Configuration.GetSection("Comet:Connections").Get<ConnectionLimits>() ?? new ConnectionLimits());
         builder.Services.AddSingleton<ShapeLandGame>();
@@ -49,8 +51,17 @@ public static class ShapeLandServer
             return "ok";
         });
 
+        // What the join screen shows before joining (the zone this server plays), for any page, like /health.
+        var playedZone = app.Services.GetRequiredService<Zone>().Id;
+        app.MapGet("/info", (HttpContext context) =>
+        {
+            context.Response.Headers.AccessControlAllowOrigin = "*";
+            return Results.Json(new ServerInfo(playedZone));
+        });
+
         var tickLoop = app.Services.GetRequiredService<TickLoop>();
         app.Services.GetRequiredService<ShapeLandGame>(); // load content and build the world before accepting players
+        app.Logger.LogInformation("Playing {Zone}", playedZone);
         tickLoop.Failed += (tick, e) =>
         {
             // Fail fast: the world may be half-updated, so stop rather than play on; the host flushes the log.
@@ -112,6 +123,21 @@ public static class ShapeLandServer
             },
         });
         app.Logger.LogInformation("Serving the web build in {WebRoot}", webRoot);
+    }
+
+    // /info's answer, written in camelCase ({"zone": "zone.hub"}).
+    private sealed record ServerInfo(string Zone);
+
+    // The zone to play: ShapeLand:Zone, else the content's default. An unknown key stops the server, listing the zones.
+    private static Zone PlayedZone(ShapeLandContent content, ShapeLandServerOptions options)
+    {
+        var key = string.IsNullOrEmpty(options.Zone) ? content.Settings.World.DefaultZone : options.Zone;
+        if (!content.Zones.TryGet(key, out var zone))
+        {
+            throw new InvalidOperationException($"ShapeLand:Zone: there's no zone '{key}'; zones: {string.Join(", ", content.Zones.All.Select(z => z.Id))}.");
+        }
+
+        return zone;
     }
 
     private static ShapeLandContent LoadContent(ShapeLandServerOptions options)

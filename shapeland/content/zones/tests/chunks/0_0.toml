@@ -1,0 +1,17 @@
+[[tile]]
+piece = "ground"
+origin = [0, 0]
+
+[[placement]]
+asset = "asset.cylinder"
+name = "spawn.tests_start"
+position = [6.0, -0.2, 4.0]
+scale = [1.0, 0.2, 1.0]
+
+[[spawn]]
+id = "spawn.tests_start"
+position = [6.0, 0.2, 4.0]
+radius = 0.0
+facing = "direction"
+yaw = 0.0
+default = true

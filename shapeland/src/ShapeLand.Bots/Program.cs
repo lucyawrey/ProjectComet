@@ -1,6 +1,5 @@
 using ShapeLand.Bots;
 using ShapeLand.Shared.Content;
-using ShapeLand.Shared.World;
 
 // ShapeLand bots for phase 0: honest wanderers plus optional cheaters that slide too fast.
 //   dotnet run --project shapeland/src/ShapeLand.Bots -- [--url ws://localhost:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
@@ -32,10 +31,10 @@ using (var stream = File.OpenRead(contentFile != "" ? contentFile : Path.Combine
     content = ShapeLandContent.Load(stream);
 }
 
-var world = ShapeLandWorld.Create(content);
+var worlds = new ZoneWorlds(content);
 var bots = Enumerable.Range(1, count)
-    .Select(i => new Bot($"{prefix} {i:00}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }, content, world))
-    .Concat(Enumerable.Range(1, cheaters).Select(i => new Bot($"{(prefix == "Bot" ? "Cheater" : prefix + " cheater")} {i:00}", seed * 1000 + 500 + i, new BotSettings { SpeedCheat = cheatSpeed, JumpCheat = cheatJump, ChatEverySeconds = chat }, content, world)))
+    .Select(i => new Bot($"{prefix} {i:00}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }, content, worlds))
+    .Concat(Enumerable.Range(1, cheaters).Select(i => new Bot($"{(prefix == "Bot" ? "Cheater" : prefix + " cheater")} {i:00}", seed * 1000 + 500 + i, new BotSettings { SpeedCheat = cheatSpeed, JumpCheat = cheatJump, ChatEverySeconds = chat }, content, worlds)))
     .ToList();
 var isCheater = bots.Select((_, i) => i >= count).ToList();
 
