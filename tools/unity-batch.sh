@@ -65,10 +65,15 @@ mkdir -p "$(dirname "$log")"
 : > "$log"
 
 # The open editor's Pipeline port, if one has this project open and ready. unity status fails when none is open.
+# macOS paths ignore case, so a shell in ~/developer must still find an editor opened on ~/Developer.
 editor_port() {
   command -v unity > /dev/null 2>&1 && command -v jq > /dev/null 2>&1 || return 0
+  local nocase=false
+  [ "$(uname)" = Darwin ] && nocase=true
   { unity status --json --non-interactive 2> /dev/null || true; } \
-    | jq -r --arg p "$project" '.data.instances[]? | select(.project == $p and .state == "ready") | .port' | head -n 1
+    | jq -r --arg p "$project" --argjson nocase "$nocase" \
+      'def key: if $nocase then ascii_downcase else . end;
+       .data.instances[]? | select((.project | key) == ($p | key) and .state == "ready") | .port' | head -n 1
 }
 
 # Runs a command in the open editor; prints its result as JSON, or fails with its error. Build reports and test
