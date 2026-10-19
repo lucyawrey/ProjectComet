@@ -145,6 +145,23 @@ public class TerrainMesherTests
     }
 
     [Fact]
+    public void MeshingSomeChunksGivesTheSameMeshesAsMeshingAll()
+    {
+        // A hole on chunk 0's side of the border, so walls are part of what has to match.
+        var zone = Zone(
+            new TerrainPiece { Name = "main", SkirtDepth = 6, RimSkirts = true, HoleSkirts = true },
+            Tile("main", -1, 0, 62, 0, 2, "###", "###", "###"),
+            Tile("main", 0, 0, 0, 0, 2, "###", "#.#", "###"));
+        var all = Mesh(zone);
+
+        var some = TerrainMesher.Build(new ZoneTerrain(zone), Grass, Earth, new HashSet<ChunkCoord> { new(0, 0) });
+
+        Assert.Equal([new ChunkCoord(0, 0)], some.Keys);
+        Assert.Equal(all[new ChunkCoord(0, 0)].Positions, some[new ChunkCoord(0, 0)].Positions);
+        Assert.Equal(all[new ChunkCoord(0, 0)].Colors, some[new ChunkCoord(0, 0)].Colors);
+    }
+
+    [Fact]
     public void BottomsFollowTheUndersideMap()
     {
         var zone = Piece(2, rim: true, holes: true, "##", "##");
