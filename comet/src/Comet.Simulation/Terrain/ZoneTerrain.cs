@@ -45,6 +45,13 @@ namespace Comet.Simulation
         public sealed class Piece
         {
             private readonly Dictionary<ChunkCoord, TerrainTile> _tiles = new Dictionary<ChunkCoord, TerrainTile>();
+            // The same tiles in a grid over the chunks they span, since every sample lookup finds its tile: index
+            // (z - _gridMinZ) * _gridWidth + (x - _gridMinX), null where a chunk has no tile.
+            private TerrainTile?[] _grid = new TerrainTile?[0];
+            private int _gridMinX;
+            private int _gridMinZ;
+            private int _gridWidth;
+            private int _gridDepth;
 
             internal Piece(TerrainPiece settings) => Settings = settings;
 
@@ -159,10 +166,30 @@ namespace Comet.Simulation
             {
                 _tiles[chunk] = tile;
                 _bottomHeight = null;
+                IndexTiles();
                 var x = chunk.X * ZoneGrid.ChunkSize + tile.OriginX;
                 var z = chunk.Z * ZoneGrid.ChunkSize + tile.OriginZ;
                 var (minX, minZ, maxX, maxZ) = Extent;
                 Extent = (System.Math.Min(minX, x), System.Math.Min(minZ, z), System.Math.Max(maxX, x + tile.Heights.SizeX - 1), System.Math.Max(maxZ, z + tile.Heights.SizeZ - 1));
+            }
+
+            private void IndexTiles()
+            {
+                int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+                foreach (var coord in _tiles.Keys)
+                {
+                    minX = System.Math.Min(minX, coord.X);
+                    minZ = System.Math.Min(minZ, coord.Z);
+                    maxX = System.Math.Max(maxX, coord.X);
+                    maxZ = System.Math.Max(maxZ, coord.Z);
+                }
+
+                (_gridMinX, _gridMinZ, _gridWidth, _gridDepth) = (minX, minZ, maxX - minX + 1, maxZ - minZ + 1);
+                _grid = new TerrainTile?[_gridWidth * _gridDepth];
+                foreach (var pair in _tiles)
+                {
+                    _grid[(pair.Key.Z - _gridMinZ) * _gridWidth + (pair.Key.X - _gridMinX)] = pair.Value;
+                }
             }
 
             private bool TryGet(int x, int z, bool underside, out float height)
@@ -190,10 +217,14 @@ namespace Comet.Simulation
                 var chunkX = FloorDiv(x, ZoneGrid.ChunkSize) - (which & 1);
                 var chunkZ = FloorDiv(z, ZoneGrid.ChunkSize) - (which >> 1);
                 tx = tz = 0;
-                if (!_tiles.TryGetValue(new ChunkCoord(chunkX, chunkZ), out tile!))
+                int gx = chunkX - _gridMinX, gz = chunkZ - _gridMinZ;
+                if (gx < 0 || gz < 0 || gx >= _gridWidth || gz >= _gridDepth || _grid[gz * _gridWidth + gx] is not { } found)
                 {
+                    tile = null!;
                     return false;
                 }
+
+                tile = found;
 
                 tx = x - chunkX * ZoneGrid.ChunkSize - tile.OriginX;
                 tz = z - chunkZ * ZoneGrid.ChunkSize - tile.OriginZ;
