@@ -46,6 +46,7 @@ namespace ShapeLand.Client
         private (int Spawn, float Since)? _claiming;
         private JoinClient _join;
         private CollisionWorld _world;
+        private Transform _drawnZone;
         private ShapeLandControls _controls;
         private ShapeBody _playerShape;
 
@@ -74,6 +75,7 @@ namespace ShapeLand.Client
         {
             _join = GetComponent<JoinClient>();
             _join.ContentLoaded += OnContentLoaded;
+            _join.ZoneChanged += OnZoneChanged;
             _join.OwnSpawned += OnOwnSpawned;
             _join.OtherSpawned += OnOtherSpawned;
             _join.OtherLeft += OnOtherLeft;
@@ -108,10 +110,29 @@ namespace ShapeLand.Client
         private void OnContentLoaded(ShapeLandContent content)
         {
             _content = content;
-            _world = ShapeLandWorld.Create(content);
-            _spawnPoints = new Spawns(ShapeLandWorld.Zone(content));
+            DrawZone();
+        }
+
+        // A server plays another zone than the one drawn: draw that instead (before this player spawns in it).
+        private void OnZoneChanged(Zone zone)
+        {
+            Destroy(_drawnZone.gameObject);
+            _markers.Clear();
+            _claiming = null;
+            DrawZone();
+        }
+
+        // Draws the join client's zone: its terrain, placed objects and spawn markers.
+        private void DrawZone()
+        {
+            var content = _content;
+            var zone = _join.Zone;
+            _world = _join.World;
+            _spawnPoints = new Spawns(zone);
+            _drawnZone = new GameObject(zone.Id).transform;
+            _drawnZone.SetParent(transform, false);
             var terrain = new GameObject("Terrain").transform;
-            terrain.SetParent(transform, false);
+            terrain.SetParent(_drawnZone, false);
             foreach (var chunk in TerrainMesher.Build(_world.Terrain, content.Settings.World.GroundColor, content.Settings.World.UnderColor))
             {
                 var name = $"Chunk {chunk.Key}";
@@ -120,8 +141,8 @@ namespace ShapeLand.Client
             }
 
             var placed = new GameObject("Placed").transform;
-            placed.SetParent(transform, false);
-            foreach (var chunk in ShapeLandWorld.Zone(content).Chunks)
+            placed.SetParent(_drawnZone, false);
+            foreach (var chunk in zone.Chunks)
             {
                 foreach (var placement in chunk.Placements)
                 {
@@ -133,7 +154,7 @@ namespace ShapeLand.Client
                 }
             }
 
-            orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, _world)));
+            orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, zone, _world)));
         }
 
         // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.
@@ -308,6 +329,7 @@ namespace ShapeLand.Client
         private void OnDestroy()
         {
             _join.ContentLoaded -= OnContentLoaded;
+            _join.ZoneChanged -= OnZoneChanged;
             _join.OwnSpawned -= OnOwnSpawned;
             _join.OtherSpawned -= OnOtherSpawned;
             _join.OtherLeft -= OnOtherLeft;

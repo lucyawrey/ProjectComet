@@ -26,6 +26,8 @@ cube = 6
 diamond = 7
 pyramid = 8
 blue = 9
+tests_start = 10
 
 [zone]
-test = 1
+hub = 1
+tests = 2

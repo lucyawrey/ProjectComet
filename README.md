@@ -34,7 +34,7 @@ dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
-Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes.
+Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes, before opening the project in the editor. The scripts that run Unity (`unity-batch.sh`, and `shapeland-dev.sh` through it) run it themselves when it's needed.
 
 ## Scripts
 
@@ -58,6 +58,7 @@ tools/shapeland-dev.sh                      # build if needed, start the server,
 tools/shapeland-dev.sh --bots 10 --bots-chat
 tools/shapeland-dev.sh --net bad --bots 5   # everyone gets about 200 ms round trip and 2% loss (Docker)
 tools/shapeland-dev.sh --lan                # let other devices on the network join
+tools/shapeland-dev.sh --zone zone.tests    # play another zone than the default
 ```
 
 | Option | What it does |

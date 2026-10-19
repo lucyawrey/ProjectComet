@@ -3,6 +3,7 @@ using Comet.Simulation;
 using MessagePack;
 using ShapeLand.ContentBuild;
 using ShapeLand.Shared.Content;
+using ShapeLand.Shared.World;
 
 namespace ShapeLand.ContentBuild.Tests;
 
@@ -41,7 +42,30 @@ public class ContentTests
         file.Position = 0;
 
         var content = ShapeLandContent.Load(file);
-        Assert.NotEmpty(content.Zones[content.Settings.World.Zone].Chunks);
+        Assert.NotEmpty(content.Zones[content.Settings.World.DefaultZone].Chunks);
+    }
+
+    [Fact]
+    public void TheTestsZoneHasWhatThePlayTestsCountOn()
+    {
+        // The play-mode tests walk straight ahead from its default spawn (facing +Z, no scatter) and jump there, then
+        // walk on off the edge. Change zones/tests only along with them.
+        var (content, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
+        Assert.Empty(errors);
+        var zone = content!.Zones["zone.tests"];
+        var world = ShapeLandWorld.Create(content, zone);
+        var spawn = new Spawns(zone).Default!;
+        Assert.Equal((SpawnFacing.Direction, 0f, 0f), (spawn.Facing, spawn.Yaw, spawn.Radius));
+
+        var feet = ShapeLandWorld.SpawnPoint(content, zone, world);
+        var radius = content.Movement.BodyRadius;
+        for (var ahead = 2; ahead <= 19; ahead++) // past the spawn marker, flat ground at 0 m
+        {
+            Assert.True(world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, ahead), radius, feet.Y + 1, out var ground), $"No ground {ahead} m ahead.");
+            Assert.Equal(0f, ground, 0.01f);
+        }
+
+        Assert.False(world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, 22), radius, feet.Y + 1, out _), "No drop 22 m ahead.");
     }
 
     [Fact]

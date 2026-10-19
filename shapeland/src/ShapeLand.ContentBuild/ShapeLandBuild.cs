@@ -58,16 +58,16 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // The game plays in the zone its settings name.
-        var zoneId = settings[0].World.Zone;
+        // A server plays the default zone unless it's told another.
+        var zoneId = settings[0].World.DefaultZone;
         if (!result.Zones.Any(z => z.Id == zoneId))
         {
             var zones = result.Zones.Select(z => z.Id).OrderBy(k => k, StringComparer.Ordinal).ToList();
-            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"world.zone: there's no zone '{zoneId}'; zones: {(zones.Count > 0 ? string.Join(", ", zones) : "(none)")}."));
+            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"world.default_zone: there's no zone '{zoneId}'; zones: {(zones.Count > 0 ? string.Join(", ", zones) : "(none)")}."));
             return (null, errors);
         }
 
-        // Each shape starts at a spawn point of the game's zone.
+        // Each shape starts at a spawn point of the default zone (in other zones, at that zone's default spawn).
         var zoneSpawns = result.Zones.Where(z => z.Id == zoneId).SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
         foreach (var shape in result.Entries<Shape>().Where(s => !zoneSpawns.Contains(s.Spawn)))
         {

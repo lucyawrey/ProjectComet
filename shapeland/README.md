@@ -49,10 +49,13 @@ Every label and message players see, by key (`[join]` then `name_taken` is `join
 
 ## Building the level
 
-ShapeLand has one zone, `content/zones/test` (`world.zone` in `game.toml` names it), built by hand with Comet's zone editor; [Comet's README](../comet/README.md#zones-and-the-zone-editor) describes the tools.
+ShapeLand's zone is `content/zones/hub` (`world.default_zone` in `game.toml` names it), built by hand with Comet's zone editor; [Comet's README](../comet/README.md#zones-and-the-zone-editor) describes the tools.
+
+- **Which zone a server plays:** the default zone, unless `ShapeLand:Zone` names another (`--ShapeLand:Zone zone.tests`). The server names its zone in Comet's `Welcome`, and the client and the bots switch to it; the join screen shows the default zone until then.
+- **The tests' zone:** `content/zones/tests` is laid out for the play-mode and end-to-end tests, which play it so editing the hub can't break them: flat ground straight ahead of its spawn, then a drop, with a slope and a gap off to the side. Change it only along with the tests (`ContentTests` checks the layout they count on).
 
 - **Edit it:** in the Unity editor, Comet › Zones › Open… and pick the zone, then use the Terrain and Place tools. Ctrl+S saves the zone's files and rebuilds the content; commit the changed files under `content/zones/`.
-- **Spawn points:** add them with the Place tool's spawn point option. Each shape's `spawn` (in `content/shapes/<shape>.toml`) must name one of them, and one is the zone's default; the content build reports any that don't match. Markers are drawn in `unset_color` (`[spawns]` in `game.toml`) until a player claims one.
+- **Spawn points:** add them with the Place tool's spawn point option. Each shape's `spawn` (in `content/shapes/<shape>.toml`) must name one in the default zone, and one in each zone is its default (where every shape starts in the other zones); the content build reports any that don't match. Markers are drawn in `unset_color` (`[spawns]` in `game.toml`) until a player claims one.
 - **A new asset:** model it in Blender, export it as a `.glb` into `ShapeLand.Unity/Assets/Models/`, and add `content/assets/<name>.toml` with its `id` (`asset.<name>`), its `model` path (relative to `Assets/`) and optionally `color` (0xRRGGBB) and `uniform_scale`. Objects named with a `-col` suffix are its collision mesh, hidden in the game; without them its whole mesh collides. Rebuild the content (Comet › Content › Build) and it appears in the Place panel.
 - **Default colors** for the whole game are in `[world]` in `game.toml`: `ground_color` and `under_color` for terrain, `placed_color` for objects whose asset has no color.
 

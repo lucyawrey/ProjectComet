@@ -14,6 +14,17 @@ namespace ShapeLand.Client.Tests
     public class JoinScreenTests : GameSceneTest
     {
         [UnityTest]
+        public IEnumerator ShowsTheServersZoneBeforeJoining()
+        {
+            yield return StartGame(join: false);
+            yield return TestGameServer.WaitFor(() => View.transform.Find(TestGameServer.Zone) != null, 5);
+
+            Assert.That(View.transform.Find(TestGameServer.Zone), Is.Not.Null, "The server's zone wasn't drawn behind the join screen.");
+            Assert.That(View.transform.Find(Join.Content.Settings.World.DefaultZone), Is.Null, "The default zone is still drawn.");
+            Assert.That(View.Player, Is.Null, "Joined before pressing Join.");
+        }
+
+        [UnityTest]
         public IEnumerator JoinsWithTheChosenShapeAndColors()
         {
             yield return StartGame(join: false);

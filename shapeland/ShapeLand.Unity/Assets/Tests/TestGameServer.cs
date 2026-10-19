@@ -10,10 +10,14 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Tests
 {
-    // The real ShapeLand game server for Play mode tests: builds it and starts it on a free port. Needs the dotnet
-    // SDK on the PATH and the content built.
+    // The real ShapeLand game server for Play mode tests: builds it and starts it on a free port, playing the tests'
+    // own zone (content/zones/tests), so editing ShapeLand's zones can't break them. Needs the dotnet SDK on the PATH
+    // and the content built.
     public sealed class TestGameServer : IDisposable
     {
+        /// <summary>The zone the tests play, laid out for them: change it only along with them.</summary>
+        public const string Zone = "zone.tests";
+
         private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
 
         private Process _process;
@@ -53,7 +57,7 @@ namespace ShapeLand.Client.Tests
         private IEnumerator Launch()
         {
             // The server's output isn't read: reading a child's output asynchronously keeps Unity's editor from exiting.
-            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port}");
+            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port} --ShapeLand:Zone {Zone}");
             var listening = false;
             var deadline = Time.realtimeSinceStartup + 30;
             while (!listening && !_process.HasExited && Time.realtimeSinceStartup < deadline)

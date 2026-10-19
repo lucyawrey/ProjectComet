@@ -18,7 +18,8 @@
 #
 # The project defaults to shapeland/ShapeLand.Unity, the log to Logs/batch.log and the time limit to 30 minutes. Relative
 # paths, in the log, the output, the results and Unity arguments, are relative to the project. Exit code: 0 done
-# (tests passed), 2 tests failed, 1 if it failed or gave no result, 124 on the time limit.
+# (tests passed), 2 tests failed, 1 if it failed or gave no result, 124 on the time limit. Runs tools/unity-restore.sh
+# first when the project's NuGet packages were never restored or packages.config changed since.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd -P)
@@ -54,6 +55,11 @@ case "$job" in
     case "$mode" in PlayMode|EditMode) ;; *) echo "test takes PlayMode or EditMode" >&2; exit 2 ;; esac
     ;;
 esac
+
+# A fresh clone or worktree has no NuGet packages, and the editor can't compile without them.
+if [ -f Assets/packages.config ] && ! [ Assets/Packages/.restored -nt Assets/packages.config ]; then
+  "$repo/tools/unity-restore.sh" "$project"
+fi
 
 mkdir -p "$(dirname "$log")"
 : > "$log"

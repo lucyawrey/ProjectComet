@@ -9,7 +9,7 @@ using UnityEngine.UIElements;
 namespace ShapeLand.Client.Tests
 {
     // Playing in the Game scene: the player walks and jumps with no snap-backs and the camera follows; the speed
-    // cheat is snapped back with a blend; walking off the island darkens the screen before the respawn and lightens
+    // cheat is snapped back with a blend; walking off the edge darkens the screen before the respawn and lightens
     // it after; real bots are drawn moving and removed when they leave; F3 shows the network numbers.
     public class PlayTests : GameSceneTest
     {
@@ -25,7 +25,7 @@ namespace ShapeLand.Client.Tests
             var walked = Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude;
             Assert.That(walked, Is.GreaterThan(2f), "Didn't walk forward.");
 
-            // Stop, then jump in place, so the hills don't change the height reached.
+            // Stop, then jump in place.
             Press();
             yield return Wait(0.5f);
             var ground = player.Motor.Position.Y;
@@ -89,7 +89,7 @@ namespace ShapeLand.Client.Tests
 
             yield return Wait(RespawnFade.FadeInSeconds + 0.3f);
             Assert.That(Hud.Darkness, Is.EqualTo(0), "The screen didn't lighten again.");
-            Assert.That(player.Motor.Position.Y, Is.GreaterThan(0), "Not back on the island.");
+            Assert.That(player.Motor.Position.Y, Is.GreaterThan(-1), "Not back on the ground.");
             Assert.That(player.SnapBacks, Is.EqualTo(0), "The server snapped the player back.");
         }
 

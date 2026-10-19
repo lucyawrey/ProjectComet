@@ -6,7 +6,7 @@
 # sources and restarts the server when they change. Ctrl+C stops everything.
 #
 #   tools/shapeland-dev.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
-#                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat] [--no-watch]
+#                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat] [--no-watch] [--zone KEY]
 #
 #   --rebuild      make the Unity web build even if it looks up to date
 #   --no-build     use the last web build as it is (content still rebuilds)
@@ -26,6 +26,7 @@
 #   --no-watch     don't watch the content sources. Without it, saving a change under shapeland/content/ (content
 #                  numbers, zones saved from Comet › Zones) rebuilds the content and restarts the server and bots;
 #                  clients rejoin by themselves (a web page reloads first for the new content; play mode needs a restart)
+#   --zone KEY     the zone the server plays, e.g. zone.tests (default: world.default_zone in the content)
 #
 # The profiles are in tools/shapeland-net-profiles.sh. Docker needs the traffic-shaping kernel modules loaded
 # (tools/StackBench/README.md, Docker runs).
@@ -50,6 +51,7 @@ net=""
 bots_net=none
 bots_chat=()
 watch=1
+zone=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --rebuild) rebuild=1; shift ;;
@@ -64,7 +66,8 @@ while [ $# -gt 0 ]; do
     --bots-net) bots_net="$2"; shift 2 ;;
     --bots-chat) bots_chat=(--chat); shift ;;
     --no-watch) watch=0; shift ;;
-    -h|--help) sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --zone) zone="$2"; shift 2 ;;
+    -h|--help) sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -179,12 +182,12 @@ trap 'cleanup; exit 129' HUP
 start_server() {
   if [ -n "$net" ]; then
     # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
-    export SHAPELAND_WEBROOT="${web:+/app/web}" SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}"
+    export SHAPELAND_WEBROOT="${web:+/app/web}" SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}" SHAPELAND_ZONE="$zone"
     "${compose[@]}" up --no-log-prefix server &
   else
     # The built programs run directly: stopping `dotnet run` can leave the program it started running.
     dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
-      --urls "http://$host:$port" --ShapeLand:WebRoot="$web" \
+      --urls "http://$host:$port" --ShapeLand:WebRoot="$web" --ShapeLand:Zone="$zone" \
       --Comet:Connections:MaxConnectionsPerAddress=1000 & # the bots all come from this machine
   fi
   server_pid=$!
@@ -222,9 +225,9 @@ stop_server() {
 start_server
 
 if [ -n "$web" ]; then
-  echo "== Playing at $url (Ctrl+C stops)${net:+, network profile $net}"
+  echo "== Playing at $url (Ctrl+C stops)${zone:+, zone $zone}${net:+, network profile $net}"
 else
-  echo "== Server at localhost:$port, for the editor's play mode (Ctrl+C stops)${net:+, network profile $net}"
+  echo "== Server at localhost:$port, for the editor's play mode (Ctrl+C stops)${zone:+, zone $zone}${net:+, network profile $net}"
 fi
 if [ "$host" = 0.0.0.0 ]; then
   address=$(local_address || true)

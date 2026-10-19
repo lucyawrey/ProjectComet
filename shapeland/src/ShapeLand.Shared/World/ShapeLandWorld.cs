@@ -8,15 +8,15 @@ using ShapeLand.Shared.Content;
 namespace ShapeLand.Shared.World
 {
     /// <summary>
-    /// ShapeLand's world: its one zone from content (terrain, placed objects and wall volumes), built the same way on
-    /// client and server.
+    /// ShapeLand's world: a zone from content (terrain, placed objects and wall volumes), built the same way on client
+    /// and server. A server plays one zone, the default unless it's told another, and names it in its Welcome.
     /// </summary>
     public static class ShapeLandWorld
     {
-        /// <summary>Where players appear: the zone's default spawn point, on the ground.</summary>
-        public static Vector3 SpawnPoint(ShapeLandContent content, CollisionWorld world)
+        /// <summary>Where players appear: <paramref name="zone"/>'s default spawn point, on the ground.</summary>
+        public static Vector3 SpawnPoint(ShapeLandContent content, Zone zone, CollisionWorld world)
         {
-            var spawn = DefaultSpawn(content);
+            var spawn = DefaultSpawn(zone);
             world.TryGetGround(spawn, content.Movement.BodyRadius, spawn.Y + 1000, out var ground);
             return new Vector3(spawn.X, ground, spawn.Z);
         }
@@ -44,10 +44,9 @@ namespace ShapeLand.Shared.World
             return 1.5f * fastest;
         }
 
-        /// <summary>The world from <paramref name="content"/>'s zone, the same on client and server.</summary>
-        public static CollisionWorld Create(ShapeLandContent content)
+        /// <summary>The world of <paramref name="zone"/>, one of <paramref name="content"/>'s, the same on client and server.</summary>
+        public static CollisionWorld Create(ShapeLandContent content, Zone zone)
         {
-            var zone = Zone(content);
             var meshes = new List<CollisionMesh>();
             foreach (var chunk in zone.Chunks)
             {
@@ -68,12 +67,12 @@ namespace ShapeLand.Shared.World
             return new CollisionWorld(new ZoneTerrain(zone), meshes, content.Settings.World.KillHeight);
         }
 
-        /// <summary>The zone ShapeLand plays in: the one its settings name (<c>world.zone</c>).</summary>
-        public static Zone Zone(ShapeLandContent content) => content.Zones[content.Settings.World.Zone];
+        /// <summary>The zone a server plays unless it's told another (<c>world.default_zone</c>).</summary>
+        public static Zone DefaultZone(ShapeLandContent content) => content.Zones[content.Settings.World.DefaultZone];
 
-        private static Vector3 DefaultSpawn(ShapeLandContent content)
+        private static Vector3 DefaultSpawn(Zone zone)
         {
-            foreach (var chunk in Zone(content).Chunks)
+            foreach (var chunk in zone.Chunks)
             {
                 foreach (var spawn in chunk.Spawns)
                 {

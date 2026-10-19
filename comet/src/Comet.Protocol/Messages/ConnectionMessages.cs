@@ -11,6 +11,9 @@ namespace Comet.Protocol.Messages
 
         /// <summary>Server simulation ticks per second.</summary>
         [Key(1)] public int TickRate;
+
+        /// <summary>The zone this server plays, by its content number; 0 for a game without zones.</summary>
+        [Key(2)] public int Zone;
     }
 
     /// <summary>Client input: asks for a <see cref="Pong"/>, answered immediately rather than on the next tick.</summary>
