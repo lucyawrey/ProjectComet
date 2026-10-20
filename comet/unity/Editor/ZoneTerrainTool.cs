@@ -102,7 +102,7 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>The tool's panel in the Scene view.</summary>
-        internal void PanelGui()
+        internal void PanelGui(float width)
         {
             var editing = Editing;
             if (editing == null || _settings == null)
@@ -114,7 +114,7 @@ namespace Comet.Unity.Editor
             var terrain = ZoneTerrainEditing.For(editing);
             var names = terrain.Zone.Pieces.Select(p => p.Name).ToArray();
             EditorGUIUtility.labelWidth = 110;
-            EditorGUILayout.BeginVertical(GUILayout.Width(280));
+            EditorGUILayout.BeginVertical(GUILayout.Width(width));
             EditorGUILayout.LabelField(terrain.Zone.Id, EditorStyles.boldLabel);
 
             if (names.Length > 0)
@@ -635,12 +635,34 @@ namespace Comet.Unity.Editor
         private static Color ToColor(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
     }
 
-    /// <summary>The terrain tool's panel, shown in the Scene view while the tool is picked.</summary>
+    /// <summary>
+    /// The terrain tool's panel, shown in the Scene view while the tool is picked. Drag its edge to resize it; its
+    /// contents scroll when they don't fit.
+    /// </summary>
     [Overlay(typeof(SceneView), "comet-zone-terrain", "Zone Terrain")]
     internal sealed class ZoneTerrainPanel : IMGUIOverlay, ITransientOverlay
     {
+        private Vector2 _scroll;
+
         public bool visible => ToolManager.activeToolType == typeof(ZoneTerrainTool) && ZoneTerrainTool.Instance != null;
 
-        public override void OnGUI() => ZoneTerrainTool.Instance?.PanelGui();
+        public override void OnCreated()
+        {
+            minSize = new Vector2(300, 160);
+            maxSize = new Vector2(900, 2000);
+            if (size.y < minSize.y)
+            {
+                size = new Vector2(310, 520);
+            }
+        }
+
+        public override void OnGUI()
+        {
+            // The overlay's size less its title bar and margins.
+            var width = Mathf.Max(minSize.x, size.x) - 12;
+            _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Width(width), GUILayout.Height(Mathf.Max(minSize.y, size.y) - 34));
+            ZoneTerrainTool.Instance?.PanelGui(width - 20);
+            EditorGUILayout.EndScrollView();
+        }
     }
 }

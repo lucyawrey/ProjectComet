@@ -158,7 +158,7 @@ namespace Comet.Unity.Editor
         private static ZoneEditing Editing => FindAnyObjectByType<ZoneEditing>();
 
         /// <summary>The tool's panel in the Scene view.</summary>
-        internal void PanelGui()
+        internal void PanelGui(float width)
         {
             var editing = Editing;
             var settings = CometSettings.Find(quiet: true);
@@ -169,7 +169,7 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUIUtility.labelWidth = 40;
-            EditorGUILayout.BeginVertical(GUILayout.Width(280));
+            EditorGUILayout.BeginVertical(GUILayout.Width(width));
             if (editing.IsGroup)
             {
                 EditorGUILayout.HelpBox($"Editing {editing.groupKey}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.", MessageType.Info);
@@ -196,7 +196,9 @@ namespace Comet.Unity.Editor
             ColorRow(settings);
             EditorGUILayout.Space();
 
-            const int size = 64, perRow = 4;
+            // As many buttons to a row as the panel's width fits.
+            const int size = 64;
+            var perRow = Mathf.Max(1, (int)(width / (size + 4)));
             var budget = settings.Budget;
             var budgetKey = $"{budget.FacetLength}/{budget.MinSides}/{budget.MaxSides}";
             void Grid(List<(string Key, string Label, Texture2D? Picture)> items)
@@ -469,12 +471,34 @@ namespace Comet.Unity.Editor
         }
     }
 
-    /// <summary>The place tool's panel, shown in the Scene view while the tool is picked.</summary>
+    /// <summary>
+    /// The place tool's panel, shown in the Scene view while the tool is picked. Drag its edge to resize it; its
+    /// contents scroll when they don't fit.
+    /// </summary>
     [Overlay(typeof(SceneView), "comet-zone-place", "Zone Place")]
     internal sealed class ZonePlacePanel : IMGUIOverlay, ITransientOverlay
     {
+        private Vector2 _scroll;
+
         public bool visible => ToolManager.activeToolType == typeof(ZonePlaceTool) && ZonePlaceTool.Instance != null;
 
-        public override void OnGUI() => ZonePlaceTool.Instance?.PanelGui();
+        public override void OnCreated()
+        {
+            minSize = new Vector2(300, 160);
+            maxSize = new Vector2(900, 2000);
+            if (size.y < minSize.y)
+            {
+                size = new Vector2(310, 520);
+            }
+        }
+
+        public override void OnGUI()
+        {
+            // The overlay's size less its title bar and margins.
+            var width = Mathf.Max(minSize.x, size.x) - 12;
+            _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Width(width), GUILayout.Height(Mathf.Max(minSize.y, size.y) - 34));
+            ZonePlaceTool.Instance?.PanelGui(width - 20);
+            EditorGUILayout.EndScrollView();
+        }
     }
 }
