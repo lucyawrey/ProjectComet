@@ -12,24 +12,34 @@ public static class ShapeLandBuild
 {
     /// <summary>The test zone's folder, made by the <c>terrain</c> command until ShapeLand's level is built with the editor.</summary>
 
-    /// <summary>Where asset models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
+    /// <summary>Where prop models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
     public const string ModelRoot = "../ShapeLand.Unity/Assets";
 
     /// <summary>
-    /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with asset models under
+    /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with prop models under
     /// <paramref name="modelRoot"/> (by default <see cref="ModelRoot"/> from the content folder).
     /// </summary>
     public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) => new ContentBuilder(contentRoot)
         .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
         .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
         .AddStrings()
-        .AddAssets(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
+        .AddProps(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
+        .AddGroups()
         .AddZones();
 
-    /// <summary>Checks and compiles the content folder; null content means there were errors.</summary>
-    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true, string? modelRoot = null)
+    /// <summary>
+    /// Checks and compiles the content folder; null content means there were errors. Warnings (blockout placements)
+    /// go into <paramref name="warnings"/>, or with <paramref name="release"/> are errors.
+    /// </summary>
+    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true, string? modelRoot = null,
+        bool release = false, ICollection<ContentError>? warnings = null)
     {
-        var result = CreateBuilder(contentRoot, modelRoot).Build(saveRegistry);
+        var result = CreateBuilder(contentRoot, modelRoot).Build(saveRegistry, release);
+        foreach (var warning in result.Warnings)
+        {
+            warnings?.Add(warning);
+        }
+
         var errors = result.Errors.ToList();
         if (errors.Count > 0)
         {
@@ -44,7 +54,7 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // One set of game-wide values, and the marker it names must be an asset.
+        // One set of game-wide values, and the marker it names must be a prop.
         var settings = result.Entries<GameSettings>();
         if (settings.Count != 1)
         {
@@ -52,9 +62,9 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        if (result.Entries<Asset>().All(a => a.Id != settings[0].Spawns.MarkerAsset))
+        if (PrimitiveKinds.Named(settings[0].Spawns.Marker) == null)
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"spawns.marker_asset: there's no asset '{settings[0].Spawns.MarkerAsset}'."));
+            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"spawns.marker: '{settings[0].Spawns.Marker}' isn't a primitive kind."));
             return (null, errors);
         }
 
@@ -65,6 +75,34 @@ public static class ShapeLandBuild
             var zones = result.Zones.Select(z => z.Id).OrderBy(k => k, StringComparer.Ordinal).ToList();
             errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"world.default_zone: there's no zone '{zoneId}'; zones: {(zones.Count > 0 ? string.Join(", ", zones) : "(none)")}."));
             return (null, errors);
+        }
+
+        // Each shape's look is a group with a body for the player's color (errors against the shape's own file, by its key).
+        var groups = result.Groups.ToDictionary(g => g.Id);
+        foreach (var shape in result.Entries<Shape>())
+        {
+            var file = Path.Combine(contentRoot, "shapes", shape.Id.Substring("shape.".Length) + ".toml");
+            if (!File.Exists(file))
+            {
+                file = Path.Combine(contentRoot, "shapes");
+            }
+
+            if (!groups.ContainsKey(shape.Look))
+            {
+                errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: look '{shape.Look}' isn't a group (groups/*.toml)."));
+            }
+            else
+            {
+                var parts = Groups.Expand(new Placement { Group = shape.Look }, key => groups.TryGetValue(key, out var g) ? g : null);
+                if (parts.FirstOrDefault(p => p.Primitive == null) is { } prop)
+                {
+                    errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has {prop.Prop}, but looks are built only from primitives."));
+                }
+                else if (!parts.Any(p => p.Role == "body"))
+                {
+                    errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has no part with role = \"body\" to take the player's color."));
+                }
+            }
         }
 
         // Each shape starts at a spawn point of the default zone (in other zones, at that zone's default spawn).
@@ -80,7 +118,7 @@ public static class ShapeLandBuild
         }
 
 
-        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Asset>(), result.Zones), errors);
+        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Prop>(), result.Zones, result.Groups), errors);
     }
 
     private static void ValidateSettings(GameSettings settings, ContentValidation validation)
@@ -101,7 +139,7 @@ public static class ShapeLandBuild
             }
         }
 
-        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), colors = nameof(GameSettings.Colors);
+        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), colors = nameof(GameSettings.Colors), primitives = nameof(GameSettings.Primitives);
         var m = settings.Movement;
         InRange(movement, nameof(m.Gravity), m.Gravity, 200);
         InRange(movement, nameof(m.BodyRadius), m.BodyRadius, 5);
@@ -113,6 +151,18 @@ public static class ShapeLandBuild
         InRange(movement, nameof(m.TurnSpeed), m.TurnSpeed, 10000);
         InRange(spawns, nameof(SpawnSettings.ClaimSeconds), settings.Spawns.ClaimSeconds, 60);
         InRange(spawns, nameof(SpawnSettings.MarkerHeight), settings.Spawns.MarkerHeight, 5);
+        var budget = settings.Primitives;
+        InRange(primitives, nameof(budget.FacetLength), budget.FacetLength, 100);
+        if (budget.MinSides < 3)
+        {
+            validation.Error(primitives, nameof(budget.MinSides), $"{budget.MinSides} is too few: a round primitive needs at least 3 sides.");
+        }
+
+        if (budget.MaxSides < budget.MinSides || budget.MaxSides > 256)
+        {
+            validation.Error(primitives, nameof(budget.MaxSides), $"{budget.MaxSides} is out of range (at least min_sides, {budget.MinSides}, and at most 256).");
+        }
+
         IsColor(world, nameof(WorldSettings.GroundColor), settings.World.GroundColor);
         IsColor(world, nameof(WorldSettings.UnderColor), settings.World.UnderColor);
         IsColor(world, nameof(WorldSettings.PlacedColor), settings.World.PlacedColor);
@@ -158,6 +208,11 @@ public static class ShapeLandBuild
         if (shape.Scale is <= 0 or > 4)
         {
             validation.Error(nameof(Shape.Scale), $"{shape.Scale} is out of range (above 0, at most 4).");
+        }
+
+        if (shape.Hover is < 0 or > 2)
+        {
+            validation.Error(nameof(Shape.Hover), $"{shape.Hover} is out of range (0 to 2 m).");
         }
     }
 }

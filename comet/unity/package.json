@@ -2,7 +2,7 @@
   "name": "com.comet.unity",
   "version": "0.1.0",
   "displayName": "Comet Unity",
-  "description": "Comet's Unity glue: the browser WebSocket transport, the component that drives a client session each frame, UI text from a string table, terrain meshes and asset models, and the zone editor.",
+  "description": "Comet's Unity glue: the browser WebSocket transport, the component that drives a client session each frame, UI text from a string table, terrain meshes and prop models, and the zone editor.",
   "unity": "6000.6",
   "license": "MIT",
   "dependencies": {

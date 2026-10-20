@@ -1,0 +1,31 @@
+id = "group.trees"
+
+[[part]]
+primitive = "cone"
+position = [-0.085, 2.96, 4.7]
+scale = [14.524, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[part]]
+primitive = "cone"
+position = [-0.98, 0.66, 1.0]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[part]]
+primitive = "cone"
+position = [-0.955, 2.251, -4.58]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[part]]
+primitive = "cone"
+position = [3.365, 2.251, -4.7]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[part]]
+primitive = "cone"
+position = [1.435, 0.991, 0.14]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A

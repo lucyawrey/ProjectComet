@@ -1,6 +1,7 @@
 using System.Numerics;
 using Comet.Content;
 using Comet.ZoneFiles;
+using Group = Comet.Content.Group;
 
 namespace Comet.ContentBuild.Tests;
 
@@ -20,15 +21,15 @@ public class ZoneBuildTests
     };
 
     private static ContentBuildResult Build(ContentFolder folder) =>
-        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddAssets(Path.Combine(folder.Root, "models")).AddZones().Build();
+        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddProps(Path.Combine(folder.Root, "models")).AddGroups().AddZones().Build();
 
-    // A zone with one placement, and a 1 m plate asset (its model spans x -1..0, z 0..1 in Unity's space).
+    // A zone with one placement, and a 1 m plate prop (its model spans x -1..0, z 0..1 in Unity's space).
     private static void WritePlacement(ContentFolder folder, Placement placement, bool uniformScale = false)
     {
         var model = TestModels.Model(("Plate", Vector3.Zero));
         Directory.CreateDirectory(Path.Combine(folder.Root, "models"));
         File.Move(model, Path.Combine(folder.Root, "models", "plate.glb"));
-        folder.Write("assets/plate.toml", $"id = \"asset.plate\"\nmodel = \"plate.glb\"\nuniform_scale = {(uniformScale ? "true" : "false")}\n");
+        folder.Write("props/plate.toml", $"id = \"prop.plate\"\nmodel = \"plate.glb\"\nuniform_scale = {(uniformScale ? "true" : "false")}\n");
         var zone = Zone("zone.meadow");
         zone.Chunks[0].Placements = [placement];
         ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
@@ -77,35 +78,35 @@ public class ZoneBuildTests
     }
 
     [Fact]
-    public void AssetsAreBakedFromTheirModels()
+    public void PropsAreBakedFromTheirModels()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10) });
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(10, 0, 10) });
 
         var result = Build(folder);
 
         Assert.Empty(result.Errors);
-        var asset = Assert.Single(result.Entries<Asset>());
-        Assert.Equal((1, 3), (asset.Number, asset.Collision.Length));
-        Assert.Equal((new Vector3(-1, 1, 0), new Vector3(0, 1, 1)), (asset.BoundsMin, asset.BoundsMax));
+        var prop = Assert.Single(result.Entries<Prop>());
+        Assert.Equal((1, 3), (prop.Number, prop.Collision.Length));
+        Assert.Equal((new Vector3(-1, 1, 0), new Vector3(0, 1, 1)), (prop.BoundsMin, prop.BoundsMax));
     }
 
     [Fact]
-    public void PlacementsNeedAKnownAsset()
+    public void PlacementsNeedAKnownProp()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plank", Position = new Vector3(10, 0, 10) });
+        WritePlacement(folder, new Placement { Prop = "prop.plank", Position = new Vector3(10, 0, 10) });
 
-        Assert.EndsWith("there's no asset 'asset.plank'.", Assert.Single(Build(folder).Errors).Message);
+        Assert.EndsWith("there's no prop 'prop.plank'.", Assert.Single(Build(folder).Errors).Message);
     }
 
     [Fact]
     public void UniformScaleAssetsScaleEvenly()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10), Scale = new Vector3(2, 1, 2) }, uniformScale: true);
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(10, 0, 10), Scale = new Vector3(2, 1, 2) }, uniformScale: true);
 
-        Assert.EndsWith("asset.plate only scales evenly, the same on every axis.", Assert.Single(Build(folder).Errors).Message);
+        Assert.EndsWith("prop.plate only scales evenly, the same on every axis.", Assert.Single(Build(folder).Errors).Message);
     }
 
     [Theory]
@@ -117,7 +118,7 @@ public class ZoneBuildTests
     public void ObjectsReachAtMostOneChunkPastTheirOwn(float x, float yaw, float scale, bool fits)
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(x, 0, 1), Rotation = new Vector3(0, yaw, 0), Scale = new Vector3(scale, 1, 1) });
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(x, 0, 1), Rotation = new Vector3(0, yaw, 0), Scale = new Vector3(scale, 1, 1) });
 
         var errors = Build(folder).Errors;
 
@@ -129,9 +130,95 @@ public class ZoneBuildTests
     public void ModelPathsStayInsideTheModelFolder()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10) });
-        folder.Write("assets/plate.toml", "id = \"asset.plate\"\nmodel = \"../plate.glb\"\n");
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(10, 0, 10) });
+        folder.Write("props/plate.toml", "id = \"prop.plate\"\nmodel = \"../plate.glb\"\n");
 
         Assert.Contains(Build(folder).Errors, e => e.Message.EndsWith("must be a path inside the model folder, without '..'.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GroupCopiesAreExpandedAndGroupsNumbered()
+    {
+        using var folder = new ContentFolder();
+        var box = new Primitive { Kind = PrimitiveKind.Box };
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post.toml"), new Group { Id = "group.post", Parts = [new Placement { Primitive = box, Scale = new Vector3(0.2f, 1, 0.2f) }] });
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "fence.toml"), new Group
+        {
+            Id = "group.fence",
+            Parts = [new Placement { Group = "group.post" }, new Placement { Group = "group.post", Position = new Vector3(2, 0, 0) }, new Placement { Primitive = box, Position = new Vector3(1, 0.5f, 0), Scale = new Vector3(2, 0.1f, 0.1f) }],
+        });
+        var zone = Zone("zone.meadow");
+        zone.Chunks[0].Placements = [new Placement { Group = "group.fence", Position = new Vector3(10, 0, 10), Rotation = new Vector3(0, 90, 0) }];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
+
+        var result = Build(folder);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal([("group.fence", 1), ("group.post", 2)], result.Groups.Select(g => (g.Id, g.Number)));
+        var placed = result.Zones[0].Chunks.SelectMany(c => c.Placements).ToList();
+        Assert.Equal(3, placed.Count);
+        Assert.All(placed, p => Assert.Equal(PrimitiveKind.Box, p.Primitive!.Kind));
+        Assert.Contains("[group]\nfence = 1\npost = 2\n", File.ReadAllText(folder.Registry).ReplaceLineEndings("\n"));
+    }
+
+    [Fact]
+    public void BlockoutPlacementsWarnOrFailARelease()
+    {
+        using var folder = new ContentFolder();
+        var box = new Primitive { Kind = PrimitiveKind.Box };
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "hut.toml"), new Group { Id = "group.hut", Parts = [new Placement { Primitive = box, Blockout = true }, new Placement { Primitive = box }] });
+        var zone = Zone("zone.meadow");
+        zone.Chunks[0].Placements =
+        [
+            new Placement { Primitive = box, Position = new Vector3(5, 0, 5), Blockout = true },
+            new Placement { Group = "group.hut", Position = new Vector3(10, 0, 10) },
+            new Placement { Primitive = box, Position = new Vector3(20, 0, 20) },
+        ];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
+        ContentBuilder Builder() => new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddGroups().AddZones();
+
+        var result = Builder().Build();
+
+        Assert.Empty(result.Errors);
+        Assert.Equal(2, result.Warnings.Count);
+        Assert.All(result.Warnings, w => Assert.True(w.Warning));
+        Assert.Contains(result.Warnings, w => w.Message.Contains("a box at [5, 0, 5] is blockout") && w.File.EndsWith("0_0.toml", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, w => w.Message.Contains("group.hut at [10, 0, 10] has 1 blockout part"));
+        Assert.Contains(": warning: ", result.Warnings[0].ToString());
+
+        var release = Builder().Build(release: true);
+
+        Assert.Equal(2, release.Errors.Count);
+        Assert.Empty(release.Warnings);
+        Assert.Contains(": error: ", release.Errors[0].ToString());
+    }
+
+    [Fact]
+    public void GroupsSharingAnIdAreReportedNotThrown()
+    {
+        using var folder = new ContentFolder();
+        var post = new Group { Id = "group.post", Parts = [new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Box } }] };
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post.toml"), post);
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post_copy.toml"), post);
+
+        Assert.Contains("is already used by", Assert.Single(Build(folder).Errors).Message);
+    }
+
+    [Fact]
+    public void GroupErrorsNameTheGroupFile()
+    {
+        using var folder = new ContentFolder();
+        folder.Write("groups/loop.toml", "id = \"group.loop\"\n\n[[part]]\ngroup = \"group.loop\"\nposition = [0.0, 0.0, 0.0]\n");
+
+        // A zone's copy of a sound group isn't reported as unknown because another group is broken.
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post.toml"), new Group { Id = "group.post", Parts = [new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Box } }] });
+        var zone = Zone("zone.meadow");
+        zone.Chunks[0].Placements = [new Placement { Group = "group.post", Position = new Vector3(10, 0, 10) }];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
+
+        var error = Assert.Single(Build(folder).Errors);
+
+        Assert.EndsWith(Path.Combine("groups", "loop.toml"), error.File);
+        Assert.Contains("contains itself", error.Message);
     }
 }

@@ -16,14 +16,14 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Id = "meadow";
         zone.Pieces = [zone.Pieces[0], new TerrainPiece { Name = "main" }, new TerrainPiece { Name = "Sky Island" }];
-        zone.Chunks[0].Placements[0].Asset = "cube";
+        zone.Chunks[0].Placements[0].Prop = "cube";
 
         Assert.Equal(
             [
                 "zone.toml: id: 'meadow' isn't a valid zone key: use 'zone.' then lowercase letters, digits and underscores.",
                 "zone.toml: piece: 'main' is used twice.",
                 "zone.toml: piece: 'Sky Island' isn't a valid name: use lowercase letters, digits and underscores, starting with a letter.",
-                "chunks/-1_0.toml: placement: 'cube' isn't an asset key.",
+                "chunks/-1_0.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop key.",
             ],
             Errors(zone));
     }
@@ -101,10 +101,46 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of asset.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
+                "chunks/-1_0.toml: placement of prop.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
                 "chunks/0_0.toml: wall volume at [64, 0, 1] is in chunk 1_0: objects belong to the chunk holding their pivot.",
             ],
             Errors(zone));
+    }
+
+    [Fact]
+    public void PrimitiveValuesFitTheirKind()
+    {
+        var zone = Zones.Sample();
+        var placements = zone.Chunks[0].Placements;
+        placements[0].Primitive = new Primitive { Kind = PrimitiveKind.Box, Sides = 8 };
+        zone.Chunks[0].Placements = placements.Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Cylinder, Sides = 2 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Stairs, Steps = -1 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Doorway, OpeningWidth = 1, OpeningHeight = 2 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Wall, OpeningWidth = 1, OpeningHeight = 2 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Box, Thickness = 0.5f } })
+            .ToArray();
+
+        var errors = Errors(zone).ToList();
+
+        Assert.Contains(errors, e => e.Contains("a box") && e.Contains("only cylinders, cones, spheres and arches have sides"));
+        Assert.Contains(errors, e => e.Contains("a cylinder") && e.Contains("sides must be from 3"));
+        Assert.Contains(errors, e => e.Contains("a stairs") && e.Contains("only stairs have steps"));
+        Assert.Contains(errors, e => e.Contains("a wall") && e.Contains("only doorways have an opening"));
+        Assert.Contains(errors, e => e.Contains("a box") && e.Contains("only arches have a thickness"));
+        Assert.DoesNotContain(errors, e => e.Contains("a doorway"));
+    }
+
+    [Fact]
+    public void PrimitivesReachAsFarAsTheirSize()
+    {
+        var zone = Zones.Sample();
+        var placement = zone.Chunks[0].Placements[0];
+        placement.Primitive = new Primitive { Kind = PrimitiveKind.Box };
+        placement.Scale = new Vector3(2, 2, 2);
+        Assert.Empty(ZoneValidation.CheckPlacements(zone, _ => null));
+
+        placement.Scale = new Vector3(ZoneGrid.ChunkSize * 4, 2, 2);
+        Assert.Contains(ZoneValidation.CheckPlacements(zone, _ => null), e => e.Message.Contains("reaches past the chunks around its own"));
     }
 
     [Fact]
@@ -113,15 +149,15 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements =
         [
-            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
-            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
-            new Placement { Asset = "asset.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
+            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
+            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
+            new Placement { Prop = "prop.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
         ];
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of asset.cube: the name 'gate' is already used in chunks/-1_0.toml.",
-                "chunks/-1_0.toml: placement of asset.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
+                "chunks/-1_0.toml: placement of prop.cube: the name 'gate' is already used in chunks/-1_0.toml.",
+                "chunks/-1_0.toml: placement of prop.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
             ],
             Errors(zone));
     }

@@ -10,14 +10,14 @@ namespace ShapeLand.Client.Editor
 {
     /// <summary>
     /// Keeps what the editor holds from ShapeLand's content in step with it each time Comet copies the content in
-    /// (<see cref="ContentBuild"/>): the asset library (<see cref="AssetLibrary"/>) follows the content's asset
-    /// entries, and the Comet settings take the game's terrain colors, body height and spawn markers.
+    /// (<see cref="ContentBuild"/>): the prop library (<see cref="PropLibrary"/>) follows the content's prop
+    /// entries, and the Comet settings take the game's terrain colors, body height, spawn markers and polygon budget.
     /// </summary>
     [InitializeOnLoad]
     public static class ContentSync
     {
-        /// <summary>Where the asset library lives; the game scene refers to it.</summary>
-        public const string LibraryPath = "Assets/Models/AssetLibrary.asset";
+        /// <summary>Where the prop library lives; the game scene refers to it.</summary>
+        public const string LibraryPath = "Assets/Models/PropLibrary.asset";
 
         static ContentSync()
         {
@@ -28,7 +28,8 @@ namespace ShapeLand.Client.Editor
             };
         }
 
-        // The Comet settings that come from the game's content: terrain colors, the body height and spawn markers.
+        // The Comet settings that come from the game's content: terrain colors, the body height, spawn markers and the
+        // polygon budget.
         private static void RefreshCometSettings(byte[] contentFile)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -52,8 +53,9 @@ namespace ShapeLand.Client.Editor
             var under = GameView.Color(game.World.UnderColor);
             var placed = GameView.Color(game.World.PlacedColor);
             if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
-                && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
-                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor))
+                && settings.spawnMarker == game.Spawns.Marker && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
+                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor)
+                && settings.facetLength == game.Primitives.FacetLength && settings.minSides == game.Primitives.MinSides && settings.maxSides == game.Primitives.MaxSides)
             {
                 return;
             }
@@ -62,15 +64,19 @@ namespace ShapeLand.Client.Editor
             settings.underColor = under;
             settings.placedColor = placed;
             settings.bodyHeight = game.Movement.BodyHeight;
-            settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
+            settings.spawnMarker = game.Spawns.Marker;
             settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
             settings.spawnMarkerColor = GameView.Color(game.Spawns.UnsetColor);
+            settings.facetLength = game.Primitives.FacetLength;
+            settings.minSides = game.Primitives.MinSides;
+            settings.maxSides = game.Primitives.MaxSides;
+            ZonePrimitiveEditing.Preview(settings);
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssetIfDirty(settings);
             Debug.Log("Updated the Comet settings from the content.");
         }
 
-        // Points each asset key at the model its entry names (a path under Assets/), saving only if something changed.
+        // Points each prop key at the model its entry names (a path under Assets/), saving only if something changed.
         private static void RefreshLibrary(byte[] contentFile)
         {
             ShapeLandContent content;
@@ -80,35 +86,35 @@ namespace ShapeLand.Client.Editor
             }
             catch (Comet.Content.ContentException e)
             {
-                Debug.LogWarning($"Can't read the content to update the asset library: {e.Message}");
+                Debug.LogWarning($"Can't read the content to update the prop library: {e.Message}");
                 return;
             }
 
-            var library = AssetDatabase.LoadAssetAtPath<AssetLibrary>(LibraryPath);
+            var library = AssetDatabase.LoadAssetAtPath<PropLibrary>(LibraryPath);
             if (library == null)
             {
-                library = ScriptableObject.CreateInstance<AssetLibrary>();
+                library = ScriptableObject.CreateInstance<PropLibrary>();
                 AssetDatabase.CreateAsset(library, LibraryPath);
             }
 
-            var entries = content.Assets.All.Select(asset =>
+            var entries = content.Props.All.Select(prop =>
             {
-                var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + asset.Model);
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + prop.Model);
                 if (model == null)
                 {
-                    Debug.LogWarning($"{asset.Id}'s model Assets/{asset.Model} isn't in the project.");
+                    Debug.LogWarning($"{prop.Id}'s model Assets/{prop.Model} isn't in the project.");
                 }
 
-                var min = new Vector3(asset.BoundsMin.X, asset.BoundsMin.Y, asset.BoundsMin.Z);
-                var max = new Vector3(asset.BoundsMax.X, asset.BoundsMax.Y, asset.BoundsMax.Z);
-                return new AssetLibrary.Entry
+                var min = new Vector3(prop.BoundsMin.X, prop.BoundsMin.Y, prop.BoundsMin.Z);
+                var max = new Vector3(prop.BoundsMax.X, prop.BoundsMax.Y, prop.BoundsMax.Z);
+                return new PropLibrary.Entry
                 {
-                    key = asset.Id,
+                    key = prop.Id,
                     model = model,
-                    uniformScale = asset.UniformScale,
+                    uniformScale = prop.UniformScale,
                     bounds = new Bounds((min + max) / 2, max - min),
-                    hasColor = asset.Color != null,
-                    color = asset.Color is { } color ? PlacedColors.FromRgb(color) : default,
+                    hasColor = prop.Color != null,
+                    color = prop.Color is { } color ? PlacedColors.FromRgb(color) : default,
                 };
             }).ToList();
             if (entries.SequenceEqual(library.Entries))
@@ -119,7 +125,7 @@ namespace ShapeLand.Client.Editor
             library.SetEntries(entries);
             EditorUtility.SetDirty(library);
             AssetDatabase.SaveAssetIfDirty(library);
-            Debug.Log($"Updated the asset library ({entries.Count} assets).");
+            Debug.Log($"Updated the prop library ({entries.Count} props).");
         }
     }
 }

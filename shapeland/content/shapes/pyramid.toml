@@ -1,6 +1,7 @@
 id = "shape.pyramid"
 display_name = "Pyramid"
-mesh = "pyramid" # the prefab GameView uses, from Assets/Prefabs/Shapes/ in shapeland/ShapeLand.Unity
+look = "group.shape_pyramid" # the group drawn as this shape (groups/shape_pyramid.toml): its body takes the player's color, its eyes their eye color
+hover = 0.05 # how far the look floats above the feet, in meters
 max_speed = 6.0
 jump_velocity = 9.0
 scale = 1.0

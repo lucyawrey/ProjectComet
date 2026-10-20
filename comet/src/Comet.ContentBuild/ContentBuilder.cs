@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.RegularExpressions;
 using Comet.Content;
+using Group = Comet.Content.Group;
 using Comet.ZoneFiles;
 using Tomlyn;
 using Tomlyn.Parsing;
@@ -23,6 +24,7 @@ public sealed class ContentBuilder
     private readonly List<IContentType> _types = new();
     private string? _stringFile;
     private string? _zonesFolder;
+    private string? _groupsFolder;
 
     /// <summary>A builder for the content folder at <paramref name="contentRoot"/>.</summary>
     public ContentBuilder(string contentRoot) => _root = Path.GetFullPath(contentRoot);
@@ -43,34 +45,45 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
-    /// Reads assets (<see cref="Asset"/>) from <c>{folder}/**/*.toml</c>, baking each one's collision and bounds from
+    /// Reads props (<see cref="Prop"/>) from <c>{folder}/**/*.toml</c>, baking each one's collision and bounds from
     /// its model, which is found under <paramref name="modelRoot"/>. Zone placements are checked against them.
     /// </summary>
-    public ContentBuilder AddAssets(string modelRoot, string folder = "assets")
+    public ContentBuilder AddProps(string modelRoot, string folder = "props")
     {
         var root = Path.GetFullPath(modelRoot);
-        return Add("asset", folder, CometToml.Default.Asset, (asset, validation) =>
+        return Add("prop", folder, CometToml.Default.Prop, (prop, validation) =>
         {
-            if (asset.Color > 0xFFFFFF)
+            if (prop.Color > 0xFFFFFF)
             {
-                validation.Error(nameof(Asset.Color), $"0x{asset.Color:X} isn't a color: use 0xRRGGBB.");
+                validation.Error(nameof(Prop.Color), $"0x{prop.Color:X} isn't a color: use 0xRRGGBB.");
             }
 
-            if (Path.IsPathRooted(asset.Model) || asset.Model.Split('/', '\\').Contains(".."))
+            if (Path.IsPathRooted(prop.Model) || prop.Model.Split('/', '\\').Contains(".."))
             {
-                validation.Error(nameof(Asset.Model), $"'{asset.Model}' must be a path inside the model folder, without '..'.");
+                validation.Error(nameof(Prop.Model), $"'{prop.Model}' must be a path inside the model folder, without '..'.");
                 return;
             }
 
             try
             {
-                ModelBaker.Bake(asset, Path.Combine(root, asset.Model));
+                ModelBaker.Bake(prop, Path.Combine(root, prop.Model));
             }
             catch (ContentException e)
             {
-                validation.Error(nameof(Asset.Model), e.Message);
+                validation.Error(nameof(Prop.Model), e.Message);
             }
         });
+    }
+
+    /// <summary>
+    /// Reads groups from <c>{folder}/**/*.toml</c> (<see cref="GroupFile"/>), checked by
+    /// <see cref="ZoneValidation.CheckGroups"/> and given registry numbers. Zones place copies of them, which the
+    /// build expands into their parts (<see cref="Groups.Expand(Zone, System.Func{string, Group?})"/>).
+    /// </summary>
+    public ContentBuilder AddGroups(string folder = "groups")
+    {
+        _groupsFolder = folder;
+        return this;
     }
 
     /// <summary>
@@ -83,10 +96,14 @@ public sealed class ContentBuilder
         return this;
     }
 
-    /// <summary>Reads and checks every registered type, assigning registry numbers and saving new ones if it all passes.</summary>
-    public ContentBuildResult Build(bool saveRegistry = true)
+    /// <summary>
+    /// Reads and checks every registered type, assigning registry numbers and saving new ones if it all passes. With
+    /// <paramref name="release"/>, what's otherwise a warning (blockout placements) is an error.
+    /// </summary>
+    public ContentBuildResult Build(bool saveRegistry = true, bool release = false)
     {
         var errors = new List<ContentError>();
+        var warnings = new List<ContentError>();
         var registryPath = Path.Combine(_root, "ids.toml");
         var registry = IdRegistry.Load(registryPath, DisplayPath(registryPath), errors);
         var types = _types.Select(t => t.Read(this, errors)).ToList();
@@ -104,8 +121,17 @@ public sealed class ContentBuilder
             }
         }
 
-        var assets = types.OfType<ReadContent<Asset>>().SingleOrDefault()?.Entries.ToDictionary(a => a.Id) ?? new Dictionary<string, Asset>();
-        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), assets, errors);
+        var props = types.OfType<ReadContent<Prop>>().SingleOrDefault()?.Entries.ToDictionary(a => a.Id) ?? new Dictionary<string, Prop>();
+        var groups = _groupsFolder is null ? new List<Group>() : ReadGroups(ContentPath(_groupsFolder), props, errors);
+        var groupsByKey = groups.ToDictionary(g => g.Id);
+        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), props, groupsByKey, errors, warnings);
+        if (release)
+        {
+            // A release ships no stand-ins.
+            errors.AddRange(warnings.Select(w => w with { Warning = false }));
+            warnings.Clear();
+        }
+
         if (errors.Count == 0)
         {
             foreach (var type in types)
@@ -114,6 +140,13 @@ public sealed class ContentBuilder
             }
 
             AssignZoneNumbers(zones, registry);
+            var groupNumbers = registry.Assign("group", groups.Select(g => g.Id));
+            foreach (var group in groups)
+            {
+                group.Number = groupNumbers[group.Id];
+            }
+
+            groups.Sort((a, b) => a.Number.CompareTo(b.Number));
 
             if (saveRegistry && registry.Changed)
             {
@@ -121,10 +154,21 @@ public sealed class ContentBuilder
             }
         }
 
-        return new ContentBuildResult(errors, types, strings, zones);
+        return new ContentBuildResult(errors, warnings, types, strings, zones, groups);
     }
 
-    private List<Zone> ReadZones(string folder, Dictionary<string, Asset> assets, List<ContentError> errors)
+    private List<Group> ReadGroups(string folder, Dictionary<string, Prop> props, List<ContentError> errors)
+    {
+        var groupErrors = new List<ZoneFileError>();
+        var groups = GroupFile.ReadFolder(folder, groupErrors);
+        groupErrors.AddRange(ZoneValidation.CheckGroups(groups, key => props.TryGetValue(key, out var prop) ? prop : null));
+        errors.AddRange(groupErrors.Select(e => new ContentError(DisplayPath(Path.Combine(folder, e.File)), 1, 1, e.Message)));
+        // Kept even with errors (the build fails on them anyway), so zones don't also report each copy as unknown; of
+        // groups sharing an id, the first.
+        return groups.Select(g => g.Group).GroupBy(g => g.Id).Select(same => same.First()).ToList();
+    }
+
+    private List<Zone> ReadZones(string folder, Dictionary<string, Prop> props, Dictionary<string, Group> groups, List<ContentError> errors, List<ContentError> warnings)
     {
         var zones = new List<Zone>();
         if (!Directory.Exists(folder))
@@ -141,7 +185,7 @@ public sealed class ContentBuilder
             if (zoneErrors.Count == 0)
             {
                 zoneErrors.AddRange(ZoneValidation.Check(zone));
-                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => assets.TryGetValue(key, out var asset) ? asset : null));
+                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => props.TryGetValue(key, out var prop) ? prop : null, key => groups.TryGetValue(key, out var group) ? group : null));
             }
 
             var zoneFile = DisplayPath(Path.Combine(zoneFolder, ZoneFolder.ZoneFile));
@@ -163,6 +207,11 @@ public sealed class ContentBuilder
             errors.AddRange(zoneErrors.Select(e => new ContentError(DisplayPath(Path.Combine(zoneFolder, e.File)), 1, 1, e.Message)));
             if (zoneErrors.Count == 0)
             {
+                warnings.AddRange(ZoneValidation.Blockout(zone, key => groups.TryGetValue(key, out var group) ? group : null)
+                    .Select(w => new ContentError(DisplayPath(Path.Combine(zoneFolder, w.File)), 1, 1, w.Message, Warning: true)));
+
+                // Group copies become their parts: the game loads plain placements.
+                Groups.Expand(zone, key => groups.TryGetValue(key, out var group) ? group : null);
                 zoneFolders.TryAdd(zone.Id, zoneFile);
                 zones.Add(zone);
             }

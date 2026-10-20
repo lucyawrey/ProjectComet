@@ -31,6 +31,10 @@ namespace ShapeLand.Shared.Content
         [JsonRequired]
         [Key(5)] public ColorSettings Colors { get; set; } = new ColorSettings();
 
+        /// <summary>How finely round primitives are cut, the same for all of them (players' shapes are regular solids, so it doesn't change them).</summary>
+        [JsonRequired]
+        [Key(6)] public PolygonBudget Primitives { get; set; } = new PolygonBudget();
+
         /// <summary>The movement physics as the shared motor and the server's checks take them.</summary>
         public MovementRules Rules() => new MovementRules
         {
@@ -79,7 +83,7 @@ namespace ShapeLand.Shared.Content
         /// <summary>The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(2)] public uint UnderColor { get; set; }
 
-        /// <summary>The color placed objects are drawn in when neither they nor their asset have one, as 0xRRGGBB.</summary>
+        /// <summary>The color placed objects are drawn in when neither they nor their prop have one, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(4)] public uint PlacedColor { get; set; }
 
         /// <summary>The zone a server plays unless it's told another (<c>zone.*</c>); every shape's spawn is in it.</summary>
@@ -92,8 +96,8 @@ namespace ShapeLand.Shared.Content
         /// <summary>How long a player stands inside another spawn point's radius to make it theirs, in seconds.</summary>
         [JsonRequired] [Key(0)] public float ClaimSeconds { get; set; }
 
-        /// <summary>The asset drawn as a spawn point's marker, flattened (the editor places it with each new spawn).</summary>
-        [JsonRequired] [Key(1)] public string MarkerAsset { get; set; } = "";
+        /// <summary>The primitive kind drawn as a spawn point's marker, flattened (the editor places it with each new spawn).</summary>
+        [JsonRequired] [Key(1)] public string Marker { get; set; } = "";
 
         /// <summary>How tall a new marker is, in meters, sunk halfway into the ground; it can be moved in the editor after.</summary>
         [JsonRequired] [Key(2)] public float MarkerHeight { get; set; }

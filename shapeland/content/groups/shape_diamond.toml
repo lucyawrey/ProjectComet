@@ -1,0 +1,21 @@
+id = "group.shape_diamond"
+
+[[part]]
+primitive = "octahedron"
+role = "body"
+position = [0.0, 0.0, 0.0]
+scale = [0.55, 0.55, 0.55]
+
+[[part]]
+primitive = "box"
+role = "eyes"
+position = [-0.12, 0.604, 0.304]
+rotation = [-35.26, 0.0, 0.0]
+scale = [0.1, 0.14, 0.06]
+
+[[part]]
+primitive = "box"
+role = "eyes"
+position = [0.12, 0.604, 0.304]
+rotation = [-35.26, 0.0, 0.0]
+scale = [0.1, 0.14, 0.06]

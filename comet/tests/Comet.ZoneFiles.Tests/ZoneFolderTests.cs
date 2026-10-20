@@ -29,7 +29,7 @@ public class ZoneFolderTests
 
         Assert.Equal([new ChunkCoord(-1, 0), new ChunkCoord(0, 0)], zone.Chunks.Select(c => c.Coord));
         var placement = Assert.Single(zone.Chunks[0].Placements);
-        Assert.Equal(("asset.cube", new Vector3(-10.5f, 4, 3.25f), new Vector3(0, 45, 0), new Vector3(2, 1, 2)), (placement.Asset, placement.Position, placement.Rotation, placement.Scale));
+        Assert.Equal(("prop.cube", new Vector3(-10.5f, 4, 3.25f), new Vector3(0, 45, 0), new Vector3(2, 1, 2)), (placement.Prop, placement.Position, placement.Rotation, placement.Scale));
         var tile = zone.Chunks[1].Tiles[0];
         Assert.Equal(Zones.Sample().Chunks[1].Tiles[0].Heights.Samples, tile.Heights.Samples);
         Assert.Equal(0x66aa33u, tile.Colors![3, 5]);
@@ -52,7 +52,7 @@ public class ZoneFolderTests
             origin = [32, 0]
 
             [[placement]]
-            asset = "asset.cube"
+            prop = "prop.cube"
             position = [-10.5, 4.0, 3.25]
             rotation = [0.0, 45.0, 0.0]
             scale = [2.0, 1.0, 2.0]
@@ -110,6 +110,44 @@ public class ZoneFolderTests
         tile.UndersideColors = new ColorMap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Colors = new uint[tile.Heights.SizeX * tile.Heights.SizeZ] };
 
         Assert.Contains(ZoneValidation.Check(zone), e => e.Message.Contains("underside colors but no underside"));
+    }
+
+    [Fact]
+    public void PrimitivesRoundTrip()
+    {
+        using var folder = new TempFolder();
+        var zone = Zones.Sample();
+        var placement = zone.Chunks[0].Placements[0];
+        placement.Prop = "";
+        placement.Primitive = new Primitive { Kind = PrimitiveKind.Arch, Sides = 8, Thickness = 0.4f };
+        zone.Chunks[0].Placements = [placement, new Placement { Position = placement.Position, Primitive = new Primitive { Kind = PrimitiveKind.Doorway, OpeningWidth = 1.2f, OpeningHeight = 2.2f } }];
+        placement.Blockout = true;
+
+        var read = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+
+        Assert.Empty(errors);
+        Assert.Equal("", read.Prop);
+        Assert.True(read.Blockout);
+        Assert.True(placement.Primitive.SameAs(read.Primitive!));
+        var text = File.ReadAllText(folder.PathOf("chunks/-1_0.toml"));
+        Assert.Contains("primitive = \"arch\"", text);
+        Assert.Contains("thickness = 0.4", text);
+        Assert.Contains("opening = [1.2, 2.2]", text);
+        Assert.Contains("blockout = true", text);
+    }
+
+    [Fact]
+    public void APlacementHasAPropOrAPrimitive()
+    {
+        using var folder = new TempFolder();
+        folder.Write("zone.toml", "id = \"zone.test\"\n");
+        folder.Write("chunks/0_0.toml", "[[placement]]\nprop = \"prop.rock\"\nprimitive = \"box\"\nposition = [1.0, 0.0, 1.0]\n\n[[placement]]\nprop = \"prop.rock\"\nbevel = 0.1\nposition = [2.0, 0.0, 1.0]\n");
+
+        var errors = new List<ZoneFileError>();
+        ZoneFolder.Read(folder.Root, errors);
+
+        Assert.Contains(errors, e => e.Message.Contains("places one of: a prop, a primitive or a group"));
+        Assert.Contains(errors, e => e.Message.Contains("'bevel' is for primitives"));
     }
 
     [Fact]
@@ -193,7 +231,7 @@ public class ZoneFolderTests
             origin = [0, 0]
 
             [[placement]]
-            asset = "asset.cube"
+            prop = "prop.cube"
             positon = [1, 2, 3]
 
             [[spawn]]

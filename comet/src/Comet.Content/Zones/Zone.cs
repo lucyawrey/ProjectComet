@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using MessagePack;
 
@@ -137,12 +138,16 @@ namespace Comet.Content
         [Key(6)] public ColorMap? UndersideColors { get; set; }
     }
 
-    /// <summary>An asset placed in a chunk: free position and full rotation, with uniform or non-uniform scale.</summary>
+    /// <summary>
+    /// A prop, a primitive or a group placed in a chunk (or a part of a group): free position and full rotation,
+    /// with uniform or non-uniform scale (a group's copies scale evenly). A primitive's scale is its size in meters, and
+    /// its mesh is built at that size (<see cref="Matrix"/>). The content build expands groups into their parts.
+    /// </summary>
     [MessagePackObject]
     public sealed class Placement
     {
-        /// <summary>The asset's key (<c>asset.cube</c>).</summary>
-        [Key(0)] public string Asset { get; set; } = "";
+        /// <summary>The prop's key (<c>prop.rock</c>), or empty for a primitive or a group.</summary>
+        [Key(0)] public string Prop { get; set; } = "";
 
         /// <summary>The pivot's world position, in meters; it lies in the placement's chunk.</summary>
         [Key(1)] public Vector3 Position { get; set; }
@@ -158,12 +163,36 @@ namespace Comet.Content
         /// </summary>
         [Key(4)] public string? Name { get; set; }
 
-        /// <summary>The placement's own color as 0xRRGGBB, or null for its asset's.</summary>
+        /// <summary>The placement's own color as 0xRRGGBB, or null for its prop's.</summary>
         [Key(5)] public uint? Color { get; set; }
 
-        /// <summary>The placement's transform from the asset's space to the world (scale, then rotation, then position).</summary>
+        /// <summary>The primitive placed, or null for a prop.</summary>
+        [Key(6)] public Primitive? Primitive { get; set; }
+
+        /// <summary>Whether this is blockout: a stand-in for finished geometry, drawn in a dev look while a level is built.</summary>
+        [Key(7)] public bool Blockout { get; set; }
+
+        /// <summary>The group placed (<c>group.tree</c>), or null for a prop or a primitive.</summary>
+        [Key(8)] public string? Group { get; set; }
+
+        /// <summary>
+        /// A group part's role (<c>body</c>, <c>eyes</c>), for game code to find or color the parts that play it; null
+        /// for most, and only parts of groups have one.
+        /// </summary>
+        [Key(9)] public string? Role { get; set; }
+
+        /// <summary>
+        /// A group copy's colors by role, as 0xRRGGBB: its parts with a listed role, however deeply nested, take that
+        /// color in place of their own (an outer copy's color wins); null for most.
+        /// </summary>
+        [Key(10)] public Dictionary<string, uint>? Colors { get; set; }
+
+        /// <summary>
+        /// The placement's transform from its mesh's space to the world: for a prop, scale, then rotation, then
+        /// position; for a primitive, whose mesh is built at its size, rotation then position.
+        /// </summary>
         public Matrix4x4 Matrix() =>
-            Matrix4x4.CreateScale(Scale) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);
+            (Primitive is null ? Matrix4x4.CreateScale(Scale) : Matrix4x4.Identity) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);
     }
 
     /// <summary>How a player faces on arriving at a spawn point.</summary>
