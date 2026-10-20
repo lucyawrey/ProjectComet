@@ -15,6 +15,12 @@ namespace Comet.Simulation
         /// <summary>Random spots tried for one with ground and room, before falling back to the center.</summary>
         public const int Tries = 8;
 
+        /// <summary>
+        /// How far below a box's or cylinder's bottom feet still count as inside, in meters: a volume usually stands
+        /// on its pad's top, and feet standing there can come out a hair lower in floating point.
+        /// </summary>
+        public const float BottomSlack = 0.05f;
+
         private readonly Dictionary<string, SpawnPoint> _spawnsByKey = new Dictionary<string, SpawnPoint>();
         private readonly Dictionary<int, SpawnPoint> _spawnsByNumber = new Dictionary<int, SpawnPoint>();
         private readonly Dictionary<string, Teleporter> _teleportersByKey = new Dictionary<string, Teleporter>();
@@ -87,7 +93,7 @@ namespace Comet.Simulation
 
         /// <summary>
         /// Whether <paramref name="feet"/> are inside <paramref name="volume"/>: a box or an upright cylinder from its
-        /// bottom to its top, or a sphere (an ellipsoid for an uneven size) filling its size.
+        /// bottom (less <see cref="BottomSlack"/>) to its top, or a sphere (an ellipsoid for an uneven size) filling its size.
         /// </summary>
         public static bool Inside(TriggerVolume volume, Vector3 feet)
         {
@@ -104,9 +110,9 @@ namespace Comet.Simulation
                     var d = new Vector3(local.X / half.X, (local.Y - half.Y) / half.Y, local.Z / half.Z);
                     return d.LengthSquared() <= 1;
                 case PrimitiveKind.Cylinder:
-                    return local.Y >= 0 && local.Y <= volume.Size.Y && Square(local.X / half.X) + Square(local.Z / half.Z) <= 1;
+                    return local.Y >= -BottomSlack && local.Y <= volume.Size.Y && Square(local.X / half.X) + Square(local.Z / half.Z) <= 1;
                 default:
-                    return local.Y >= 0 && local.Y <= volume.Size.Y && MathF.Abs(local.X) <= half.X && MathF.Abs(local.Z) <= half.Z;
+                    return local.Y >= -BottomSlack && local.Y <= volume.Size.Y && MathF.Abs(local.X) <= half.X && MathF.Abs(local.Z) <= half.Z;
             }
         }
 

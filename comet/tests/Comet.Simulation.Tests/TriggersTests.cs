@@ -16,6 +16,7 @@ public class TriggersTests
 
         Assert.True(Triggers.Inside(box, new Vector3(9.9f, 1, 8.9f)));
         Assert.False(Triggers.Inside(box, new Vector3(10.1f, 1, 8)));
+        Assert.True(Triggers.Inside(box, new Vector3(8, 0.97f, 8))); // a hair below the bottom: standing on its pad
         Assert.False(Triggers.Inside(box, new Vector3(8, 0.9f, 8))); // below the bottom
         Assert.False(Triggers.Inside(box, new Vector3(8, 3.1f, 8))); // above the top
         Assert.True(Triggers.Inside(cylinder, new Vector3(9.9f, 3, 8)));
@@ -67,6 +68,22 @@ public class TriggersTests
         var (feet, _) = Triggers.Arrive(volume, SpawnFacing.Direction, world, TestWorlds.Rules, new Random(4));
 
         Assert.Equal(1.4f, feet.Y, 3);
+    }
+
+    [Fact]
+    public void PlayersStandingOnAPadAreInsideTheVolumeOnItsTop()
+    {
+        // A hub teleporter's numbers: the pad from 9.208 m, 0.4 m tall, and the volume standing on its top.
+        var pad = new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Box }, Position = new Vector3(-0.408f, 9.208f, 41.307f), Scale = new Vector3(2, 0.4f, 2) };
+        var world = new CollisionWorld(null, [CollisionMesh.Placed(PrimitiveMesher.For(pad, new PolygonBudget()), pad.Matrix())], -100);
+        var volume = new TriggerVolume { Kind = PrimitiveKind.Box, Position = new Vector3(-0.408f, 9.608f, 41.307f), Size = new Vector3(2, 1, 2) };
+        var random = new Random(5);
+        for (var i = 0; i < 20; i++)
+        {
+            var (feet, _) = Triggers.Arrive(volume, SpawnFacing.Direction, world, TestWorlds.Rules, random);
+            Assert.True(world.TryGetGround(feet + new Vector3(0, 0.5f, 0), TestWorlds.Rules.BodyRadius, feet.Y + 0.5f, out var ground));
+            Assert.True(Triggers.Inside(volume, new Vector3(feet.X, ground, feet.Z)), $"standing at {ground} isn't inside a volume from {volume.Position.Y}");
+        }
     }
 
     [Fact]
