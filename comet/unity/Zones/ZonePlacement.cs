@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Comet.Content;
 using UnityEngine;
 
@@ -29,6 +30,9 @@ namespace Comet.Unity
         [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
         public bool blockout;
 
+        [Tooltip("A group part's role (body, leaves), for game code to find or color it by, and for copies to recolor it by; empty for most. Only a group's parts have one.")]
+        public string role = "";
+
         [Tooltip("The primitive's kind.")]
         public PrimitiveKind kind;
 
@@ -55,6 +59,17 @@ namespace Comet.Unity
         [HideInInspector] public bool ownColor;
         [HideInInspector] public Color color = Color.gray;
         [SerializeField, HideInInspector] private Color defaultColor = Color.gray;
+
+        /// <summary>A role a group copy recolors, and its color.</summary>
+        [System.Serializable]
+        public struct RoleColor
+        {
+            public string role;
+            public Color color;
+        }
+
+        // A group copy's colors by role, drawn by the editor's inspector: its parts with these roles take them.
+        [HideInInspector] public List<RoleColor> roleColors = new List<RoleColor>();
 
         /// <summary>How finely round primitives are cut while editing: the game's, set by the editor (Comet › Zones › Polygon Budget).</summary>
         public static PolygonBudget Budget { get; set; } = new PolygonBudget();
@@ -181,6 +196,11 @@ namespace Comet.Unity
         private void OnValidate()
         {
             ApplyColor();
+            if (IsGroup && !editingInPlace)
+            {
+                GroupDrawer?.Invoke(this); // its role colors may have changed, by an edit or an undo
+            }
+
 #if UNITY_EDITOR
             // Meshes can't be swapped in OnValidate itself.
             UnityEditor.EditorApplication.delayCall += Rebuild;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using MessagePack;
 
@@ -179,6 +180,12 @@ namespace Comet.Content
         /// for most, and only parts of groups have one.
         /// </summary>
         [Key(9)] public string? Role { get; set; }
+
+        /// <summary>
+        /// A group copy's colors by role, as 0xRRGGBB: its parts with a listed role, however deeply nested, take that
+        /// color in place of their own (an outer copy's color wins); null for most.
+        /// </summary>
+        [Key(10)] public Dictionary<string, uint>? Colors { get; set; }
 
         /// <summary>
         /// The placement's transform from its mesh's space to the world: for an asset, scale, then rotation, then

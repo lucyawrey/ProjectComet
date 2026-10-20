@@ -290,7 +290,7 @@ namespace Comet.ZoneFiles
         /// <summary>A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of asset, primitive or group, and its transform.</summary>
         internal static Placement ReadPlacement(ZoneToml toml, TomlTable table, string path)
         {
-            toml.CheckKeys(table, path, "asset", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "name", "role", "position", "rotation", "scale", "color");
+            toml.CheckKeys(table, path, "asset", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "name", "role", "position", "rotation", "scale", "color", "colors");
             if (new[] { "asset", "primitive", "group" }.Count(table.ContainsKey) != 1)
             {
                 toml.Error(path, "a placement places one of: an asset, a primitive or a group.");
@@ -310,7 +310,29 @@ namespace Comet.ZoneFiles
                 Rotation = toml.Vector(table, path, "rotation", Vector3.Zero),
                 Scale = toml.Vector(table, path, "scale", Vector3.One),
                 Color = table.TryGetValue("color", out var color) ? Color(toml, color, $"{path}.color") : null,
+                Colors = table.TryGetValue("colors", out var colors) ? RoleColors(toml, colors, $"{path}.colors") : null,
             };
+        }
+
+        // A group copy's colors by role: a table of role = 0xRRGGBB.
+        private static Dictionary<string, uint>? RoleColors(ZoneToml toml, object? value, string path)
+        {
+            if (value is not TomlTable table)
+            {
+                toml.Error(path, "should be a table of role = color, such as { leaves = 0x2F5D3A }.");
+                return null;
+            }
+
+            var colors = new Dictionary<string, uint>();
+            foreach (var (role, color) in table)
+            {
+                if (Color(toml, color, $"{path}.{role}") is { } read)
+                {
+                    colors[role] = read;
+                }
+            }
+
+            return colors;
         }
 
         /// <summary>A placement as its table, leaving out the defaults most placements have, to keep the files short.</summary>
@@ -361,6 +383,17 @@ namespace Comet.ZoneFiles
                 placement["color"] = (long)color;
             }
 
+            if (p.Colors is { Count: > 0 } colors)
+            {
+                var table = new TomlTable(true);
+                foreach (var (role, roleColor) in colors.OrderBy(c => c.Key, StringComparer.Ordinal))
+                {
+                    table[role] = (long)roleColor;
+                }
+
+                placement["colors"] = table;
+            }
+
             return placement;
         }
 
@@ -377,8 +410,11 @@ namespace Comet.ZoneFiles
         }
 
         // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
-        internal static string HexColors(string text) =>
-            Regex.Replace(text, @"^((?:ground_|under_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
+        internal static string HexColors(string text)
+        {
+            text = Regex.Replace(text, @"^((?:ground_|under_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
+            return Regex.Replace(text, @"^colors = \{.*\}$", line => Regex.Replace(line.Value, @"= (\d+)", m => $"= 0x{long.Parse(m.Groups[1].Value):X6}"), RegexOptions.Multiline);
+        }
 
         private static TomlTable ZoneTable(Zone zone)
         {

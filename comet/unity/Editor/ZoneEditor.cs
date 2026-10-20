@@ -372,6 +372,9 @@ namespace Comet.Unity.Editor
             marker.asset = placement.Asset;
             marker.placementName = placement.Name ?? "";
             marker.blockout = placement.Blockout;
+            marker.role = placement.Role ?? "";
+            marker.roleColors = placement.Colors?.OrderBy(c => c.Key, System.StringComparer.Ordinal)
+                .Select(c => new ZonePlacement.RoleColor { role = c.Key, color = PlacedColors.FromRgb(c.Value) }).ToList() ?? new List<ZonePlacement.RoleColor>();
             SetColors(marker, settings, placement.Color, isMarker);
             return thing;
         }
@@ -399,7 +402,22 @@ namespace Comet.Unity.Editor
                 Rotation = Angles(rotation.eulerAngles),
                 Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),
                 Color = placed.ownColor && !placed.IsGroup ? PlacedColors.ToRgb(placed.color) : (uint?)null,
+                // Only a group's parts have a role: one unpacked into a zone drops it.
+                Role = !string.IsNullOrEmpty(placed.role) && (relativeTo != null || placed.GetComponentInParent<ZoneEditing>() is { IsGroup: true }) ? placed.role : null,
+                Colors = placed.IsGroup && placed.roleColors.Count > 0 ? RoleColors(placed) : null,
             };
+        }
+
+        // A copy's colors by role, each role once.
+        private static Dictionary<string, uint> RoleColors(ZonePlacement copy)
+        {
+            var colors = new Dictionary<string, uint>();
+            foreach (var c in copy.roleColors.Where(c => !string.IsNullOrEmpty(c.role)))
+            {
+                colors[c.role] = PlacedColors.ToRgb(c.color);
+            }
+
+            return colors;
         }
 
         // A placement's colors: its asset's, from the library (a spawn's marker: the settings' marker color), and its own if it has one.

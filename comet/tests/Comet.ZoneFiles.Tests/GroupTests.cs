@@ -78,6 +78,30 @@ public class GroupTests
     }
 
     [Fact]
+    public void CopiesRecolorPartsByRoleAndOuterColorsWin()
+    {
+        var tree = Tree();
+        tree.Parts[0].Role = "trunk";
+        tree.Parts[1].Role = "leaves";
+        var grove = new Group
+        {
+            Id = "group.grove",
+            Parts =
+            [
+                new Placement { Group = "group.tree", Colors = new() { ["leaves"] = 0xFFAA00, ["trunk"] = 0x333333 } },
+                new Placement { Group = "group.tree", Position = new Vector3(3, 0, 0) },
+            ],
+        };
+        Group? Find(string key) => key == tree.Id ? tree : key == grove.Id ? grove : null;
+
+        var parts = Groups.Expand(new Placement { Group = "group.grove", Colors = new() { ["leaves"] = 0x00FF00 } }, Find);
+
+        // The outer copy's leaves win over the inner copy's; the inner copy's trunk stays; the second tree only takes the leaves.
+        Assert.Equal([0x333333u, 0x00FF00u, 0x7A5C3Eu, 0x00FF00u], parts.Select(p => p.Color!.Value));
+        Assert.Equal(new SortedSet<string> { "leaves", "trunk" }, Groups.Roles("group.grove", Find));
+    }
+
+    [Fact]
     public void ExpandingAZoneMovesPartsIntoTheirChunks()
     {
         var tree = Tree();
@@ -101,7 +125,7 @@ public class GroupTests
         using var folder = new TempFolder();
         var tree = Tree();
         tree.Parts[0].Role = "trunk";
-        tree.Parts = [.. tree.Parts, new Placement { Group = "group.rock", Position = new Vector3(0, 0, 2), Scale = new Vector3(0.5f, 0.5f, 0.5f) }];
+        tree.Parts = [.. tree.Parts, new Placement { Group = "group.rock", Position = new Vector3(0, 0, 2), Scale = new Vector3(0.5f, 0.5f, 0.5f), Colors = new() { ["moss"] = 0x2F5D3A, ["face"] = 0x8A8F99 } }];
         GroupFile.Write(folder.PathOf("tree.toml"), tree);
 
         var errors = new List<ZoneFileError>();
@@ -117,6 +141,8 @@ public class GroupTests
         Assert.Contains("[[part]]", text);
         Assert.Contains("color = 0x43A047", text);
         Assert.Contains("group = \"group.rock\"", text);
+        Assert.Contains("colors = {face = 0x8A8F99, moss = 0x2F5D3A}", text.Replace(" }", "}").Replace("{ ", "{"));
+        Assert.Equal(0x2F5D3Au, read.Parts[2].Colors!["moss"]);
         Assert.Equal("tree.toml", GroupFile.FileFor("group.tree"));
     }
 
@@ -162,5 +188,30 @@ public class GroupTests
         Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("copies have no name"));
         Assert.Contains(errors, e => e.Contains("there's no group 'group.nowhere'"));
         Assert.Contains(errors, e => e.Contains("only a group's parts have a role"));
+    }
+
+    [Fact]
+    public void RoleColorsNameRolesTheGroupHas()
+    {
+        var tree = Tree();
+        tree.Parts[1].Role = "leaves";
+        var zone = Zones.Sample();
+        var at = zone.Chunks[0].Placements[0].Position;
+        zone.Chunks[0].Placements =
+        [
+            new Placement { Group = "group.tree", Position = at, Colors = new() { ["leaves"] = 0xFF0000 } },
+            new Placement { Group = "group.tree", Position = at, Colors = new() { ["bark"] = 0xFF0000 } },
+            Box(at, Vector3.One),
+        ];
+        zone.Chunks[0].Placements[2].Colors = new() { ["leaves"] = 0xFF0000 };
+        var grove = new Group { Id = "group.grove", Parts = [new Placement { Group = "group.tree", Colors = new() { ["roots"] = 0 } }] };
+
+        var errors = ZoneValidation.Check(zone).Concat(ZoneValidation.CheckPlacements(zone, _ => null, key => key == tree.Id ? tree : null))
+            .Concat(ZoneValidation.CheckGroups([(tree, "tree.toml"), (grove, "grove.toml")], _ => null)).Select(e => e.ToString()).ToList();
+
+        Assert.Single(errors, e => e.Contains("colors has 'bark', which none of group.tree's parts plays (leaves)"));
+        Assert.Contains(errors, e => e.Contains("only a group's copies have colors by role"));
+        Assert.Contains(errors, e => e.Contains("grove.toml") && e.Contains("colors has 'roots'"));
+        Assert.DoesNotContain(errors, e => e.Contains("'leaves'"));
     }
 }

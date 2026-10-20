@@ -74,7 +74,8 @@ namespace Comet.Content
 
         /// <summary>
         /// <paramref name="group"/>'s parts placed by a copy's transform (turned by its rotation, scaled by its even
-        /// scale, then moved to it), one level only: nested groups stay copies.
+        /// scale, then moved to it), one level only: nested groups stay copies. The copy's colors by role recolor the
+        /// parts with those roles and pass down to nested copies, over their own.
         /// </summary>
         public static List<Placement> Place(Placement copy, Group group)
         {
@@ -89,9 +90,31 @@ namespace Comet.Content
                 Position = copy.Position + Vector3.Transform(part.Position * scale, rotation),
                 Rotation = ZoneGrid.Euler(Quaternion.Concatenate(ZoneGrid.Rotation(part.Rotation), rotation)),
                 Scale = part.Scale * scale,
-                Color = part.Color,
+                Color = part.Role is { } role && copy.Colors?.TryGetValue(role, out var color) == true ? color : part.Color,
+                Colors = part.Group is null ? null : Over(copy.Colors, part.Colors),
                 Blockout = part.Blockout || copy.Blockout,
             }).ToList();
+        }
+
+        /// <summary>The roles a group's parts play, its nested groups' included.</summary>
+        public static SortedSet<string> Roles(string group, Func<string, Group?> find) =>
+            new(Expand(new Placement { Group = group }, find).Select(p => p.Role).OfType<string>());
+
+        // Colors by role with the outer ones winning, or null for none.
+        private static Dictionary<string, uint>? Over(Dictionary<string, uint>? outer, Dictionary<string, uint>? inner)
+        {
+            if (outer is null || inner is null)
+            {
+                return outer ?? inner;
+            }
+
+            var colors = new Dictionary<string, uint>(inner);
+            foreach (var (role, color) in outer)
+            {
+                colors[role] = color;
+            }
+
+            return colors;
         }
 
         private static void Add(Placement copy, Func<string, Group?> find, List<Placement> into, int depth)

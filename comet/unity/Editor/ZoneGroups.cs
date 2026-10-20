@@ -141,7 +141,7 @@ namespace Comet.Unity.Editor
             var root = new GameObject(PartsName).transform;
             root.SetParent(copy.transform, false);
             var material = settings.placedMaterial != null ? settings.placedMaterial : AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat");
-            var parts = Groups.Expand(new Placement { Group = copy.group }, Find);
+            var parts = Groups.Expand(new Placement { Group = copy.group, Colors = ZoneEditor.PlacementOf(copy).Colors }, Find);
             if (parts.Count == 0)
             {
                 Debug.LogWarning($"{copy.name}: there's no group '{copy.group}', or it has no parts.", copy);

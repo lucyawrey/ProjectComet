@@ -188,6 +188,7 @@ namespace Comet.ZoneFiles
                         continue;
                     }
 
+                    CheckRoleColors(copy, $"placement of {key} at {Text(copy.Position)}", file, findGroup, (f, m) => errors.Add(new ZoneFileError(f, m)));
                     foreach (var part in Groups.Expand(copy, findGroup))
                     {
                         CheckReach(part, ChunkCoord.Containing(part.Position), $"placement of {key} at {Text(copy.Position)}, its part {Placed(part)} at {Text(part.Position)}", file, findAsset, errors);
@@ -279,6 +280,15 @@ namespace Comet.ZoneFiles
                 Visit(key);
             }
 
+            Group? Find(string key) => byKey.TryGetValue(key, out var found) ? found.Group : null;
+            foreach (var (group, file) in groups)
+            {
+                foreach (var (part, i) in group.Parts.Select((p, i) => (p, i)))
+                {
+                    CheckRoleColors(part, $"part {i + 1} ({Placed(part)})", file, Find, Error);
+                }
+            }
+
             return errors;
         }
 
@@ -321,6 +331,23 @@ namespace Comet.ZoneFiles
             }
         }
 
+        // A group copy's colors by role: each names a role its group's parts play.
+        private static void CheckRoleColors(Placement copy, string what, string file, Func<string, Group?> findGroup, Action<string, string> error)
+        {
+            if (copy.Colors is not { } colors || copy.Group is not { } group)
+            {
+                return;
+            }
+
+            var roles = Groups.Roles(group, findGroup);
+            foreach (var role in colors.Keys.Where(r => !roles.Contains(r)))
+            {
+                error(file, roles.Count == 0
+                    ? $"{what}: colors has '{role}', but {group}'s parts play no roles."
+                    : $"{what}: colors has '{role}', which none of {group}'s parts plays ({string.Join(", ", roles)}).");
+            }
+        }
+
         // What a placement places, for messages: its asset's or group's key, or its primitive's kind.
         private static string Placed(Placement placement) =>
             placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Group ?? placement.Asset;
@@ -350,7 +377,7 @@ namespace Comet.ZoneFiles
 
                 if (placement.Color != null)
                 {
-                    error(file, $"{what}: a group's copies have no color of their own; change the group's parts instead.");
+                    error(file, $"{what}: a group's copies have no color of their own; set colors by role (colors = {{ role = 0x… }}) or change the group's parts.");
                 }
 
                 if (!inGroup && placement.Name != null)
@@ -376,6 +403,11 @@ namespace Comet.ZoneFiles
             if (placement.Role is { } role && (!inGroup || !IsName(role)))
             {
                 error(file, inGroup ? $"{what}: '{role}' isn't a valid role: use lowercase letters, digits and underscores." : $"{what}: only a group's parts have a role.");
+            }
+
+            if (placement.Colors is { } colors && placement.Group is null)
+            {
+                error(file, $"{what}: only a group's copies have colors by role; give it a color instead.");
             }
         }
 
