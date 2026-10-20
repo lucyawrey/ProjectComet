@@ -287,20 +287,20 @@ namespace Comet.ZoneFiles
             }
         }
 
-        /// <summary>A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of asset, primitive or group, and its transform.</summary>
+        /// <summary>A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of prop, primitive or group, and its transform.</summary>
         internal static Placement ReadPlacement(ZoneToml toml, TomlTable table, string path)
         {
-            toml.CheckKeys(table, path, "asset", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "name", "role", "position", "rotation", "scale", "color", "colors");
-            if (new[] { "asset", "primitive", "group" }.Count(table.ContainsKey) != 1)
+            toml.CheckKeys(table, path, "prop", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "name", "role", "position", "rotation", "scale", "color", "colors");
+            if (new[] { "prop", "primitive", "group" }.Count(table.ContainsKey) != 1)
             {
-                toml.Error(path, "a placement places one of: an asset, a primitive or a group.");
+                toml.Error(path, "a placement places one of: a prop, a primitive or a group.");
             }
 
             var primitive = ReadPrimitive(toml, table, path);
             var group = primitive is null && table.ContainsKey("group") ? toml.String(table, path, "group") : null;
             return new Placement
             {
-                Asset = primitive is null && group is null && table.ContainsKey("asset") ? toml.String(table, path, "asset") : "",
+                Prop = primitive is null && group is null && table.ContainsKey("prop") ? toml.String(table, path, "prop") : "",
                 Primitive = primitive,
                 Group = group,
                 Blockout = toml.Bool(table, path, "blockout", false),
@@ -349,7 +349,7 @@ namespace Comet.ZoneFiles
             }
             else
             {
-                placement["asset"] = p.Asset;
+                placement["prop"] = p.Prop;
             }
 
             if (p.Blockout)
@@ -471,7 +471,7 @@ namespace Comet.ZoneFiles
             return table;
         }
 
-        // A placement's primitive and its values, or null if it places an asset or a group.
+        // A placement's primitive and its values, or null if it places a prop or a group.
         private static Primitive? ReadPrimitive(ZoneToml toml, TomlTable table, string path)
         {
             if (!table.ContainsKey("primitive"))
@@ -480,7 +480,7 @@ namespace Comet.ZoneFiles
                 {
                     if (table.ContainsKey(key))
                     {
-                        toml.Error(path, $"'{key}' is for primitives; this places {(table.ContainsKey("group") ? "a group" : "an asset")}.");
+                        toml.Error(path, $"'{key}' is for primitives; this places {(table.ContainsKey("group") ? "a group" : "a prop")}.");
                     }
                 }
 

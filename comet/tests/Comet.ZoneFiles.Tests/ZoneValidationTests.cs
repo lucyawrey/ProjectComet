@@ -16,14 +16,14 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Id = "meadow";
         zone.Pieces = [zone.Pieces[0], new TerrainPiece { Name = "main" }, new TerrainPiece { Name = "Sky Island" }];
-        zone.Chunks[0].Placements[0].Asset = "cube";
+        zone.Chunks[0].Placements[0].Prop = "cube";
 
         Assert.Equal(
             [
                 "zone.toml: id: 'meadow' isn't a valid zone key: use 'zone.' then lowercase letters, digits and underscores.",
                 "zone.toml: piece: 'main' is used twice.",
                 "zone.toml: piece: 'Sky Island' isn't a valid name: use lowercase letters, digits and underscores, starting with a letter.",
-                "chunks/-1_0.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't an asset key.",
+                "chunks/-1_0.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop key.",
             ],
             Errors(zone));
     }
@@ -101,7 +101,7 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of asset.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
+                "chunks/-1_0.toml: placement of prop.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
                 "chunks/0_0.toml: wall volume at [64, 0, 1] is in chunk 1_0: objects belong to the chunk holding their pivot.",
             ],
             Errors(zone));
@@ -149,15 +149,15 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements =
         [
-            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
-            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
-            new Placement { Asset = "asset.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
+            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
+            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
+            new Placement { Prop = "prop.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
         ];
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of asset.cube: the name 'gate' is already used in chunks/-1_0.toml.",
-                "chunks/-1_0.toml: placement of asset.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
+                "chunks/-1_0.toml: placement of prop.cube: the name 'gate' is already used in chunks/-1_0.toml.",
+                "chunks/-1_0.toml: placement of prop.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
             ],
             Errors(zone));
     }

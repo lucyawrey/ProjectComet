@@ -45,32 +45,32 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
-    /// Reads assets (<see cref="Asset"/>) from <c>{folder}/**/*.toml</c>, baking each one's collision and bounds from
+    /// Reads props (<see cref="Prop"/>) from <c>{folder}/**/*.toml</c>, baking each one's collision and bounds from
     /// its model, which is found under <paramref name="modelRoot"/>. Zone placements are checked against them.
     /// </summary>
-    public ContentBuilder AddAssets(string modelRoot, string folder = "assets")
+    public ContentBuilder AddProps(string modelRoot, string folder = "props")
     {
         var root = Path.GetFullPath(modelRoot);
-        return Add("asset", folder, CometToml.Default.Asset, (asset, validation) =>
+        return Add("prop", folder, CometToml.Default.Prop, (prop, validation) =>
         {
-            if (asset.Color > 0xFFFFFF)
+            if (prop.Color > 0xFFFFFF)
             {
-                validation.Error(nameof(Asset.Color), $"0x{asset.Color:X} isn't a color: use 0xRRGGBB.");
+                validation.Error(nameof(Prop.Color), $"0x{prop.Color:X} isn't a color: use 0xRRGGBB.");
             }
 
-            if (Path.IsPathRooted(asset.Model) || asset.Model.Split('/', '\\').Contains(".."))
+            if (Path.IsPathRooted(prop.Model) || prop.Model.Split('/', '\\').Contains(".."))
             {
-                validation.Error(nameof(Asset.Model), $"'{asset.Model}' must be a path inside the model folder, without '..'.");
+                validation.Error(nameof(Prop.Model), $"'{prop.Model}' must be a path inside the model folder, without '..'.");
                 return;
             }
 
             try
             {
-                ModelBaker.Bake(asset, Path.Combine(root, asset.Model));
+                ModelBaker.Bake(prop, Path.Combine(root, prop.Model));
             }
             catch (ContentException e)
             {
-                validation.Error(nameof(Asset.Model), e.Message);
+                validation.Error(nameof(Prop.Model), e.Message);
             }
         });
     }
@@ -121,10 +121,10 @@ public sealed class ContentBuilder
             }
         }
 
-        var assets = types.OfType<ReadContent<Asset>>().SingleOrDefault()?.Entries.ToDictionary(a => a.Id) ?? new Dictionary<string, Asset>();
-        var groups = _groupsFolder is null ? new List<Group>() : ReadGroups(ContentPath(_groupsFolder), assets, errors);
+        var props = types.OfType<ReadContent<Prop>>().SingleOrDefault()?.Entries.ToDictionary(a => a.Id) ?? new Dictionary<string, Prop>();
+        var groups = _groupsFolder is null ? new List<Group>() : ReadGroups(ContentPath(_groupsFolder), props, errors);
         var groupsByKey = groups.ToDictionary(g => g.Id);
-        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), assets, groupsByKey, errors, warnings);
+        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), props, groupsByKey, errors, warnings);
         if (release)
         {
             // A release ships no stand-ins.
@@ -157,16 +157,16 @@ public sealed class ContentBuilder
         return new ContentBuildResult(errors, warnings, types, strings, zones, groups);
     }
 
-    private List<Group> ReadGroups(string folder, Dictionary<string, Asset> assets, List<ContentError> errors)
+    private List<Group> ReadGroups(string folder, Dictionary<string, Prop> props, List<ContentError> errors)
     {
         var groupErrors = new List<ZoneFileError>();
         var groups = GroupFile.ReadFolder(folder, groupErrors);
-        groupErrors.AddRange(ZoneValidation.CheckGroups(groups, key => assets.TryGetValue(key, out var asset) ? asset : null));
+        groupErrors.AddRange(ZoneValidation.CheckGroups(groups, key => props.TryGetValue(key, out var prop) ? prop : null));
         errors.AddRange(groupErrors.Select(e => new ContentError(DisplayPath(Path.Combine(folder, e.File)), 1, 1, e.Message)));
         return groupErrors.Count == 0 ? groups.Select(g => g.Group).ToList() : new List<Group>();
     }
 
-    private List<Zone> ReadZones(string folder, Dictionary<string, Asset> assets, Dictionary<string, Group> groups, List<ContentError> errors, List<ContentError> warnings)
+    private List<Zone> ReadZones(string folder, Dictionary<string, Prop> props, Dictionary<string, Group> groups, List<ContentError> errors, List<ContentError> warnings)
     {
         var zones = new List<Zone>();
         if (!Directory.Exists(folder))
@@ -183,7 +183,7 @@ public sealed class ContentBuilder
             if (zoneErrors.Count == 0)
             {
                 zoneErrors.AddRange(ZoneValidation.Check(zone));
-                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => assets.TryGetValue(key, out var asset) ? asset : null, key => groups.TryGetValue(key, out var group) ? group : null));
+                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => props.TryGetValue(key, out var prop) ? prop : null, key => groups.TryGetValue(key, out var group) ? group : null));
             }
 
             var zoneFile = DisplayPath(Path.Combine(zoneFolder, ZoneFolder.ZoneFile));

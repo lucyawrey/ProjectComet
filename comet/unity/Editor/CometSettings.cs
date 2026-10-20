@@ -31,8 +31,8 @@ namespace Comet.Unity.Editor
         [Tooltip("The scene play mode always starts in, whatever scene is open: the game's own, which loads its zones from content.")]
         public SceneAsset? playScene;
 
-        [Tooltip("The models for asset keys.")]
-        public AssetLibrary? assets;
+        [Tooltip("The models for prop keys.")]
+        public PropLibrary? props;
 
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
         public Material? terrainMaterial;
@@ -50,14 +50,14 @@ namespace Comet.Unity.Editor
         [FormerlySerializedAs("skirtColor")]
         public Color underColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
 
-        [Tooltip("The color of placed objects whose asset has none, unless they have their own.")]
+        [Tooltip("The color of placed objects whose prop has none, unless they have their own.")]
         public Color placedColor = new Color32(0x9e, 0x8c, 0x7a, 0xff);
 
         [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
         public float bodyHeight = 1;
 
-        [Tooltip("If set, each new spawn point gets a marker: this asset (asset.prop) or primitive (cylinder), placed flattened under it and named with its key.")]
-        public string spawnMarkerAsset = "";
+        [Tooltip("If set, each new spawn point gets a marker: this prop (prop.rock) or primitive (cylinder), placed flattened under it and named with its key.")]
+        public string spawnMarker = "";
 
         [Tooltip("How tall a new spawn point's marker is, in meters, sunk halfway into the ground; it can be moved and scaled after.")]
         public float spawnMarkerHeight = 0.4f;

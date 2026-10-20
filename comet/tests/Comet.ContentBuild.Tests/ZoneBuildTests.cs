@@ -21,15 +21,15 @@ public class ZoneBuildTests
     };
 
     private static ContentBuildResult Build(ContentFolder folder) =>
-        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddAssets(Path.Combine(folder.Root, "models")).AddGroups().AddZones().Build();
+        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddProps(Path.Combine(folder.Root, "models")).AddGroups().AddZones().Build();
 
-    // A zone with one placement, and a 1 m plate asset (its model spans x -1..0, z 0..1 in Unity's space).
+    // A zone with one placement, and a 1 m plate prop (its model spans x -1..0, z 0..1 in Unity's space).
     private static void WritePlacement(ContentFolder folder, Placement placement, bool uniformScale = false)
     {
         var model = TestModels.Model(("Plate", Vector3.Zero));
         Directory.CreateDirectory(Path.Combine(folder.Root, "models"));
         File.Move(model, Path.Combine(folder.Root, "models", "plate.glb"));
-        folder.Write("assets/plate.toml", $"id = \"asset.plate\"\nmodel = \"plate.glb\"\nuniform_scale = {(uniformScale ? "true" : "false")}\n");
+        folder.Write("props/plate.toml", $"id = \"prop.plate\"\nmodel = \"plate.glb\"\nuniform_scale = {(uniformScale ? "true" : "false")}\n");
         var zone = Zone("zone.meadow");
         zone.Chunks[0].Placements = [placement];
         ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
@@ -78,35 +78,35 @@ public class ZoneBuildTests
     }
 
     [Fact]
-    public void AssetsAreBakedFromTheirModels()
+    public void PropsAreBakedFromTheirModels()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10) });
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(10, 0, 10) });
 
         var result = Build(folder);
 
         Assert.Empty(result.Errors);
-        var asset = Assert.Single(result.Entries<Asset>());
-        Assert.Equal((1, 3), (asset.Number, asset.Collision.Length));
-        Assert.Equal((new Vector3(-1, 1, 0), new Vector3(0, 1, 1)), (asset.BoundsMin, asset.BoundsMax));
+        var prop = Assert.Single(result.Entries<Prop>());
+        Assert.Equal((1, 3), (prop.Number, prop.Collision.Length));
+        Assert.Equal((new Vector3(-1, 1, 0), new Vector3(0, 1, 1)), (prop.BoundsMin, prop.BoundsMax));
     }
 
     [Fact]
-    public void PlacementsNeedAKnownAsset()
+    public void PlacementsNeedAKnownProp()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plank", Position = new Vector3(10, 0, 10) });
+        WritePlacement(folder, new Placement { Prop = "prop.plank", Position = new Vector3(10, 0, 10) });
 
-        Assert.EndsWith("there's no asset 'asset.plank'.", Assert.Single(Build(folder).Errors).Message);
+        Assert.EndsWith("there's no prop 'prop.plank'.", Assert.Single(Build(folder).Errors).Message);
     }
 
     [Fact]
     public void UniformScaleAssetsScaleEvenly()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10), Scale = new Vector3(2, 1, 2) }, uniformScale: true);
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(10, 0, 10), Scale = new Vector3(2, 1, 2) }, uniformScale: true);
 
-        Assert.EndsWith("asset.plate only scales evenly, the same on every axis.", Assert.Single(Build(folder).Errors).Message);
+        Assert.EndsWith("prop.plate only scales evenly, the same on every axis.", Assert.Single(Build(folder).Errors).Message);
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public class ZoneBuildTests
     public void ObjectsReachAtMostOneChunkPastTheirOwn(float x, float yaw, float scale, bool fits)
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(x, 0, 1), Rotation = new Vector3(0, yaw, 0), Scale = new Vector3(scale, 1, 1) });
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(x, 0, 1), Rotation = new Vector3(0, yaw, 0), Scale = new Vector3(scale, 1, 1) });
 
         var errors = Build(folder).Errors;
 
@@ -130,8 +130,8 @@ public class ZoneBuildTests
     public void ModelPathsStayInsideTheModelFolder()
     {
         using var folder = new ContentFolder();
-        WritePlacement(folder, new Placement { Asset = "asset.plate", Position = new Vector3(10, 0, 10) });
-        folder.Write("assets/plate.toml", "id = \"asset.plate\"\nmodel = \"../plate.glb\"\n");
+        WritePlacement(folder, new Placement { Prop = "prop.plate", Position = new Vector3(10, 0, 10) });
+        folder.Write("props/plate.toml", "id = \"prop.plate\"\nmodel = \"../plate.glb\"\n");
 
         Assert.Contains(Build(folder).Errors, e => e.Message.EndsWith("must be a path inside the model folder, without '..'.", StringComparison.Ordinal));
     }

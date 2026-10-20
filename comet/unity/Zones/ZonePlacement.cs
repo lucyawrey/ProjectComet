@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// An asset, a primitive or a group copy placed in a zone opened in the editor (or in a group being edited): the
+    /// A prop, a primitive or a group copy placed in a zone opened in the editor (or in a group being edited): the
     /// object's transform is the placement's. A primitive's mesh is built at its size: the scale tool edits
     /// <see cref="size"/>, and any other scale is folded into it once a resize ends. A group copy's parts are drawn
     /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy.
@@ -15,13 +15,13 @@ namespace Comet.Unity
     [SelectionBase]
     public sealed class ZonePlacement : MonoBehaviour
     {
-        [Tooltip("The asset's key (asset.prop); empty for a primitive or a group copy.")]
-        public string asset = "";
+        [Tooltip("The prop's key (prop.rock); empty for a primitive or a group copy.")]
+        public string prop = "";
 
-        [Tooltip("The group this is a copy of (group.tree); empty for an asset or a primitive. Copies look like their group: edit the group to change them all.")]
+        [Tooltip("The group this is a copy of (group.tree); empty for a prop or a primitive. Copies look like their group: edit the group to change them all.")]
         public string group = "";
 
-        [Tooltip("Whether this places a primitive, built in code, instead of an asset.")]
+        [Tooltip("Whether this places a primitive, built in code, instead of a prop.")]
         public bool isPrimitive;
 
         [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
@@ -55,7 +55,7 @@ namespace Comet.Unity
         [Min(0)] public float thickness;
 
         // Drawn by the editor's inspector as one color field with a reset button: editing it gives the placement its
-        // own color, resetting goes back to the default (its asset's, else the game's).
+        // own color, resetting goes back to the default (its prop's, else the game's).
         [HideInInspector] public bool ownColor;
         [HideInInspector] public Color color = Color.gray;
         [SerializeField, HideInInspector] private Color defaultColor = Color.gray;
@@ -96,7 +96,7 @@ namespace Comet.Unity
         /// <summary>Whether this is placed in the zone itself, not a part of a copy whose group is being edited in place.</summary>
         public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>() == null;
 
-        /// <summary>The primitive placed, or null for an asset.</summary>
+        /// <summary>The primitive placed, or null for a prop.</summary>
         public Primitive? Primitive => isPrimitive
             ? new Primitive
             {
@@ -165,7 +165,7 @@ namespace Comet.Unity
         /// <summary>The color it's drawn in without its own.</summary>
         public Color DefaultColor => defaultColor;
 
-        /// <summary>Sets the default: its asset's color, else the game's.</summary>
+        /// <summary>Sets the default: its prop's color, else the game's.</summary>
         public void SetDefaultColor(Color value)
         {
             defaultColor = value;
@@ -192,7 +192,7 @@ namespace Comet.Unity
             {
                 foreach (var renderer in GetComponentsInChildren<Renderer>(true))
                 {
-                    if (!renderer.name.EndsWith(Comet.Content.Asset.CollisionSuffix, System.StringComparison.Ordinal) && renderer.sharedMaterial != material)
+                    if (!renderer.name.EndsWith(Comet.Content.Prop.CollisionSuffix, System.StringComparison.Ordinal) && renderer.sharedMaterial != material)
                     {
                         renderer.sharedMaterial = material;
                     }

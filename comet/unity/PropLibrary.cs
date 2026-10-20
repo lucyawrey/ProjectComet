@@ -5,11 +5,11 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// The model for each asset key (<c>asset.prop</c>), so the client and the zone editor can place what zones list. A
-    /// game fills it in from its content's asset entries (in ShapeLand, the editor's ContentSync), never by hand.
+    /// The model for each prop key (<c>prop.rock</c>), so the client and the zone editor can place what zones list. A
+    /// game fills it in from its content's prop entries (in ShapeLand, the editor's ContentSync), never by hand.
     /// </summary>
-    [CreateAssetMenu(menuName = "Comet/Asset Library")]
-    public sealed class AssetLibrary : ScriptableObject
+    [CreateAssetMenu(menuName = "Comet/Prop Library")]
+    public sealed class PropLibrary : ScriptableObject
     {
         [Serializable]
         public struct Entry

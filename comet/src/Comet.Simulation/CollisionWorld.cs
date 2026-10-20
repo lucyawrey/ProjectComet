@@ -6,7 +6,7 @@ namespace Comet.Simulation
 {
     /// <summary>
     /// What players stand on and bump into: a zone's terrain pieces (heightmaps, possibly stacked), solid triangle
-    /// meshes (placed assets and volumes), and a kill height below which a player has fallen out of the world.
+    /// meshes (placed props and volumes), and a kill height below which a player has fallen out of the world.
     /// Players are an upright box: a square footprint <c>radius</c> from the feet's center, <c>bodyHeight</c> tall.
     /// The same on client and server; safe to query from several threads at once (bots share one).
     /// </summary>

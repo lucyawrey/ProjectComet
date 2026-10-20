@@ -83,7 +83,7 @@ namespace ShapeLand.Shared.Content
         /// <summary>The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(2)] public uint UnderColor { get; set; }
 
-        /// <summary>The color placed objects are drawn in when neither they nor their asset have one, as 0xRRGGBB.</summary>
+        /// <summary>The color placed objects are drawn in when neither they nor their prop have one, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(4)] public uint PlacedColor { get; set; }
 
         /// <summary>The zone a server plays unless it's told another (<c>zone.*</c>); every shape's spawn is in it.</summary>

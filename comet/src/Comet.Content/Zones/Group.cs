@@ -7,7 +7,7 @@ using MessagePack;
 namespace Comet.Content
 {
     /// <summary>
-    /// A saved set of parts (primitives, assets and other groups), placed as one: every copy looks like the group, so
+    /// A saved set of parts (primitives, props and other groups), placed as one: every copy looks like the group, so
     /// editing it changes them all. Parts are placements relative to the group's pivot. The content build expands each
     /// copy into its parts (<see cref="Groups.Expand(Zone, Func{string, Group?})"/>).
     /// </summary>
@@ -83,7 +83,7 @@ namespace Comet.Content
             var scale = copy.Scale.X;
             return group.Parts.Select(part => new Placement
             {
-                Asset = part.Asset,
+                Prop = part.Prop,
                 Primitive = part.Primitive,
                 Group = part.Group,
                 Role = part.Role,

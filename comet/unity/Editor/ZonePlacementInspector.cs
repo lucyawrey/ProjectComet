@@ -32,7 +32,7 @@ namespace Comet.Unity.Editor
             }
             else
             {
-                hidden.AddRange(new[] { nameof(ZonePlacement.asset), nameof(ZonePlacement.isPrimitive), nameof(ZonePlacement.placementName) });
+                hidden.AddRange(new[] { nameof(ZonePlacement.prop), nameof(ZonePlacement.isPrimitive), nameof(ZonePlacement.placementName) });
             }
 
             // Only a group's parts have a role: in a group's own scene, or under a copy edited in place.
@@ -55,7 +55,7 @@ namespace Comet.Unity.Editor
             var color = serializedObject.FindProperty(nameof(ZonePlacement.color));
             EditorGUI.showMixedValue = own.hasMultipleDifferentValues || color.hasMultipleDifferentValues;
             var (picked, changed, reset) = ColorFields.WithReset(
-                new UnityEngine.GUIContent("Color", "The placement's color. Reset: its asset's, else the game's (Comet Settings)."),
+                new UnityEngine.GUIContent("Color", "The placement's color. Reset: its prop's, else the game's (Comet Settings)."),
                 placement.ownColor ? placement.color : placement.DefaultColor, own.boolValue || own.hasMultipleDifferentValues);
             EditorGUI.showMixedValue = false;
             if (changed)
@@ -84,34 +84,34 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Swapping in place, as blockout becomes a finished level: a primitive for an asset, an asset for a box.
+        // Swapping in place, as blockout becomes a finished level: a primitive for a prop, a prop for a box.
         private static void SwapButtons(ZonePlacement placed)
         {
             var settings = CometSettings.Find(quiet: true);
-            if (settings == null || settings.assets == null)
+            if (settings == null || settings.props == null)
             {
                 return;
             }
 
             if (placed.isPrimitive)
             {
-                var keys = settings.assets.Entries.Select(e => e.key).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
+                var keys = settings.props.Entries.Select(e => e.key).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
                 using (new EditorGUI.DisabledScope(keys.Count == 0))
                 {
-                    var label = new GUIContent("Swap for asset…", keys.Count == 0 ? "The game has no assets yet." : "Replace it with an asset scaled to its size, standing where it stands.");
+                    var label = new GUIContent("Swap for prop…", keys.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands.");
                     if (GUILayout.Button(label))
                     {
                         var menu = new GenericMenu();
                         foreach (var key in keys)
                         {
-                            menu.AddItem(new GUIContent(key), false, () => ZoneSwap.ForAsset(placed, key, settings));
+                            menu.AddItem(new GUIContent(key), false, () => ZoneSwap.ForProp(placed, key, settings));
                         }
 
                         menu.ShowAsContext();
                     }
                 }
             }
-            else if (settings.assets.TryGet(placed.asset, out _) && GUILayout.Button(new GUIContent("Swap for box", "Replace it with a box filling its bounds, standing where it stands.")))
+            else if (settings.props.TryGet(placed.prop, out _) && GUILayout.Button(new GUIContent("Swap for box", "Replace it with a box filling its bounds, standing where it stands.")))
             {
                 ZoneSwap.ForBox(placed, settings);
                 GUIUtility.ExitGUI();

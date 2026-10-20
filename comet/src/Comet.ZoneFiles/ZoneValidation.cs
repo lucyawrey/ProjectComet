@@ -162,13 +162,13 @@ namespace Comet.ZoneFiles
         }
 
         /// <summary>
-        /// The problems with <paramref name="zone"/>'s placements given its assets and groups (found by key through
-        /// <paramref name="findAsset"/> and <paramref name="findGroup"/>, null for an unknown key): unknown assets and
-        /// groups, uneven scale on an asset that only scales evenly, and objects reaching past the ring of chunks around
+        /// The problems with <paramref name="zone"/>'s placements given its props and groups (found by key through
+        /// <paramref name="findProp"/> and <paramref name="findGroup"/>, null for an unknown key): unknown props and
+        /// groups, uneven scale on a prop that only scales evenly, and objects reaching past the ring of chunks around
         /// their pivot's chunk. A group copy's parts are checked where they land, each against its own chunk, as the
         /// content build places them (<see cref="Groups.Expand(Zone, Func{string, Group?})"/>).
         /// </summary>
-        public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Asset?> findAsset, Func<string, Group?>? findGroup = null)
+        public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Prop?> findProp, Func<string, Group?>? findGroup = null)
         {
             var errors = new List<ZoneFileError>();
             foreach (var chunk in zone.Chunks)
@@ -178,7 +178,7 @@ namespace Comet.ZoneFiles
                 {
                     if (copy.Group is not { } key)
                     {
-                        CheckReach(copy, chunk.Coord, $"placement of {Placed(copy)} at {Text(copy.Position)}", file, findAsset, errors);
+                        CheckReach(copy, chunk.Coord, $"placement of {Placed(copy)} at {Text(copy.Position)}", file, findProp, errors);
                         continue;
                     }
 
@@ -191,7 +191,7 @@ namespace Comet.ZoneFiles
                     CheckRoleColors(copy, $"placement of {key} at {Text(copy.Position)}", file, findGroup, (f, m) => errors.Add(new ZoneFileError(f, m)));
                     foreach (var part in Groups.Expand(copy, findGroup))
                     {
-                        CheckReach(part, ChunkCoord.Containing(part.Position), $"placement of {key} at {Text(copy.Position)}, its part {Placed(part)} at {Text(part.Position)}", file, findAsset, errors);
+                        CheckReach(part, ChunkCoord.Containing(part.Position), $"placement of {key} at {Text(copy.Position)}, its part {Placed(part)} at {Text(part.Position)}", file, findProp, errors);
                     }
                 }
             }
@@ -201,9 +201,9 @@ namespace Comet.ZoneFiles
 
         /// <summary>
         /// The problems with a game's groups, each against its file: keys, parts that fit a group (no names; roles are
-        /// names), unknown assets and groups, and groups that contain themselves.
+        /// names), unknown props and groups, and groups that contain themselves.
         /// </summary>
-        public static List<ZoneFileError> CheckGroups(IReadOnlyList<(Group Group, string File)> groups, Func<string, Asset?> findAsset)
+        public static List<ZoneFileError> CheckGroups(IReadOnlyList<(Group Group, string File)> groups, Func<string, Prop?> findProp)
         {
             var errors = new List<ZoneFileError>();
             void Error(string file, string message) => errors.Add(new ZoneFileError(file, message));
@@ -236,14 +236,14 @@ namespace Comet.ZoneFiles
                     {
                         Error(file, $"{what}: there's no group '{inner}'.");
                     }
-                    else if (part.Primitive is null && part.Group is null && IsKey(part.Asset, "asset") && findAsset(part.Asset) is { } asset
-                        && asset.UniformScale && !Even(part.Scale))
+                    else if (part.Primitive is null && part.Group is null && IsKey(part.Prop, "prop") && findProp(part.Prop) is { } prop
+                        && prop.UniformScale && !Even(part.Scale))
                     {
-                        Error(file, $"{what}: {asset.Id} only scales evenly, the same on every axis.");
+                        Error(file, $"{what}: {prop.Id} only scales evenly, the same on every axis.");
                     }
-                    else if (part.Primitive is null && part.Group is null && IsKey(part.Asset, "asset") && findAsset(part.Asset) is null)
+                    else if (part.Primitive is null && part.Group is null && IsKey(part.Prop, "prop") && findProp(part.Prop) is null)
                     {
-                        Error(file, $"{what}: there's no asset '{part.Asset}'.");
+                        Error(file, $"{what}: there's no prop '{part.Prop}'.");
                     }
                 }
             }
@@ -318,7 +318,7 @@ namespace Comet.ZoneFiles
         }
 
         // A placement's reach: its bounds once placed stay within the ring of chunks around `chunk`.
-        private static void CheckReach(Placement placement, ChunkCoord chunk, string what, string file, Func<string, Asset?> findAsset, List<ZoneFileError> errors)
+        private static void CheckReach(Placement placement, ChunkCoord chunk, string what, string file, Func<string, Prop?> findProp, List<ZoneFileError> errors)
         {
             {
                 {
@@ -329,20 +329,20 @@ namespace Comet.ZoneFiles
                     }
                     else
                     {
-                        var asset = findAsset(placement.Asset);
-                        if (asset is null)
+                        var prop = findProp(placement.Prop);
+                        if (prop is null)
                         {
-                            errors.Add(new ZoneFileError(file, $"{what}: there's no asset '{placement.Asset}'."));
+                            errors.Add(new ZoneFileError(file, $"{what}: there's no prop '{placement.Prop}'."));
                             return;
                         }
 
                         var scale = placement.Scale;
-                        if (asset.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
+                        if (prop.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
                         {
-                            errors.Add(new ZoneFileError(file, $"{what}: {asset.Id} only scales evenly, the same on every axis."));
+                            errors.Add(new ZoneFileError(file, $"{what}: {prop.Id} only scales evenly, the same on every axis."));
                         }
 
-                        local = (asset.BoundsMin, asset.BoundsMax);
+                        local = (prop.BoundsMin, prop.BoundsMax);
                     }
 
                     var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
@@ -373,13 +373,13 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // What a placement places, for messages: its asset's or group's key, or its primitive's kind.
+        // What a placement places, for messages: its prop's or group's key, or its primitive's kind.
         private static string Placed(Placement placement) =>
-            placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Group ?? placement.Asset;
+            placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Group ?? placement.Prop;
 
         private static bool Even(Vector3 scale) => Math.Abs(scale.X - scale.Y) <= 1e-4f && Math.Abs(scale.X - scale.Z) <= 1e-4f;
 
-        // What a placement places and how, wherever it is: an asset key, a primitive's values or a group key; a scale
+        // What a placement places and how, wherever it is: a prop key, a primitive's values or a group key; a scale
         // above 0 (even for a group); a role only on a group's parts, a name only in a zone, and no name or color of a
         // group copy's own.
         private static void CheckPlaced(Placement placement, string what, bool inGroup, string file, Action<string, string> error)
@@ -410,9 +410,9 @@ namespace Comet.ZoneFiles
                     error(file, $"{what}: a group's copies have no name.");
                 }
             }
-            else if (!IsKey(placement.Asset, "asset"))
+            else if (!IsKey(placement.Prop, "prop"))
             {
-                error(file, $"{what}: '{placement.Asset}' isn't an asset key.");
+                error(file, $"{what}: '{placement.Prop}' isn't a prop key.");
             }
 
             if (placement.Scale.X <= 0 || placement.Scale.Y <= 0 || placement.Scale.Z <= 0)

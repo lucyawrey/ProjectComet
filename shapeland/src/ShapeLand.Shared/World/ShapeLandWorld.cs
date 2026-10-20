@@ -53,7 +53,7 @@ namespace ShapeLand.Shared.World
                 foreach (var placement in chunk.Placements)
                 {
                     var triangles = placement.Primitive is null
-                        ? content.Assets[placement.Asset].Collision
+                        ? content.Props[placement.Prop].Collision
                         : PrimitiveMesher.For(placement, content.Settings.Primitives);
                     meshes.Add(CollisionMesh.Placed(triangles, placement.Matrix()));
                 }

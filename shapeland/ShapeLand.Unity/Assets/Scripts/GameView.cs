@@ -28,8 +28,8 @@ namespace ShapeLand.Client
         [SerializeField] private Material blockMaterial;
         [Tooltip("The material blockout placements are drawn with (Comet/Blockout: a grid over their color).")]
         [SerializeField] private Material blockoutMaterial;
-        [Tooltip("The models for asset keys, kept up to date by the editor from the content.")]
-        [SerializeField] private AssetLibrary assets;
+        [Tooltip("The models for prop keys, kept up to date by the editor from the content.")]
+        [SerializeField] private PropLibrary props;
         [Tooltip("Players' shapes: their looks' parts other than eyes, colored per part.")]
         [SerializeField] private Material shapeMaterial;
         [Tooltip("Players' eyes (parts with the role eyes).")]
@@ -190,24 +190,24 @@ namespace ShapeLand.Client
             return thing;
         }
 
-        // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.
+        // A prop's model where a zone places it, in the placed objects' material; its collision objects are hidden.
         private GameObject Place(Placement placement, Transform parent)
         {
-            var model = assets.Model(placement.Asset);
+            var model = props.Model(placement.Prop);
             if (model == null)
             {
-                Debug.LogWarning($"No model for {placement.Asset} in the asset library; is the content up to date in the editor?");
+                Debug.LogWarning($"No model for {placement.Prop} in the prop library; is the content up to date in the editor?");
                 return null;
             }
 
             var thing = Instantiate(model, parent, false);
-            thing.name = placement.Asset;
+            thing.name = placement.Prop;
             var rotation = placement.Rotation;
             thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
             thing.transform.localScale = Vectors.ToUnity(placement.Scale);
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
             {
-                if (renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal))
+                if (renderer.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal))
                 {
                     renderer.enabled = false;
                 }
@@ -218,8 +218,8 @@ namespace ShapeLand.Client
             }
 
             var own = placement.Color is { } rgb ? PlacedColors.FromRgb(rgb) : (Color?)null;
-            var asset = assets.TryGet(placement.Asset, out var entry) && entry.hasColor ? entry.color : (Color?)null;
-            PlacedColors.Apply(thing, own ?? asset ?? Color(_content.Settings.World.PlacedColor));
+            var prop = props.TryGet(placement.Prop, out var entry) && entry.hasColor ? entry.color : (Color?)null;
+            PlacedColors.Apply(thing, own ?? prop ?? Color(_content.Settings.World.PlacedColor));
             return thing;
         }
 

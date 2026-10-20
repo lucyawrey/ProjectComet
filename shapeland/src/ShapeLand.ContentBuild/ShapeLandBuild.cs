@@ -12,18 +12,18 @@ public static class ShapeLandBuild
 {
     /// <summary>The test zone's folder, made by the <c>terrain</c> command until ShapeLand's level is built with the editor.</summary>
 
-    /// <summary>Where asset models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
+    /// <summary>Where prop models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
     public const string ModelRoot = "../ShapeLand.Unity/Assets";
 
     /// <summary>
-    /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with asset models under
+    /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with prop models under
     /// <paramref name="modelRoot"/> (by default <see cref="ModelRoot"/> from the content folder).
     /// </summary>
     public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) => new ContentBuilder(contentRoot)
         .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
         .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
         .AddStrings()
-        .AddAssets(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
+        .AddProps(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
         .AddGroups()
         .AddZones();
 
@@ -54,7 +54,7 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // One set of game-wide values, and the marker it names must be an asset.
+        // One set of game-wide values, and the marker it names must be a prop.
         var settings = result.Entries<GameSettings>();
         if (settings.Count != 1)
         {
@@ -110,7 +110,7 @@ public static class ShapeLandBuild
         }
 
 
-        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Asset>(), result.Zones, result.Groups), errors);
+        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Prop>(), result.Zones, result.Groups), errors);
     }
 
     private static void ValidateSettings(GameSettings settings, ContentValidation validation)

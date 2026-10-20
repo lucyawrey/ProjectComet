@@ -5,12 +5,12 @@ using MessagePack;
 namespace Comet.Content
 {
     /// <summary>
-    /// Something placed in zones (a kit piece, a prop, a primitive), authored as a TOML entry naming its model. The
+    /// A model placed in zones (a rock, a tree, a wall kit piece), authored as a TOML entry naming its model. The
     /// content build reads the model and bakes its collision triangles and bounds into the content file, so server
     /// and client collide against the same triangles.
     /// </summary>
     [MessagePackObject]
-    public sealed class Asset : IContentEntry
+    public sealed class Prop : IContentEntry
     {
         /// <summary>Marks the objects in a model that make up its collision mesh (<c>Cube-col</c>).</summary>
         public const string CollisionSuffix = "-col";
@@ -25,11 +25,11 @@ namespace Comet.Content
         [JsonRequired]
         [Key(2)] public string Model { get; set; } = "";
 
-        /// <summary>Whether placements may only scale it the same on every axis (for detailed props).</summary>
+        /// <summary>Whether placements may only scale it the same on every axis (for detailed models that look wrong stretched).</summary>
         [Key(3)] public bool UniformScale { get; set; }
 
         /// <summary>
-        /// The collision mesh in the asset's own space, in meters, three corners per triangle, wound clockwise seen
+        /// The collision mesh in the prop's own space, in meters, three corners per triangle, wound clockwise seen
         /// from outside (Unity's convention). Taken from the model's objects named with <see cref="CollisionSuffix"/>,
         /// or from all its meshes if it has none.
         /// </summary>

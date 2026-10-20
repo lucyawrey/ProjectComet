@@ -18,7 +18,7 @@ MonoBehaviour:
   groupsFolder: ../content/groups
   scenesFolder: Assets/ZoneEditing
   playScene: {fileID: 102900000, guid: 94972de62798f94f59138f7aba6f9af7, type: 3}
-  assets: {fileID: 11400000, guid: 2c366cc91512f1b414be159ca4ff4d57, type: 2}
+  props: {fileID: 11400000, guid: 2c366cc91512f1b414be159ca4ff4d57, type: 2}
   terrainMaterial: {fileID: 2100000, guid: 39ef6832ec4bb4c45bd3ae46f21fd7f1, type: 2}
   placedMaterial: {fileID: 2100000, guid: 43d7a230d1c5924a89d36b7efea1f91b, type: 2}
   blockoutMaterial: {fileID: 2100000, guid: 26029874649d843a982e5f6f09b2fa11, type: 2}
@@ -26,7 +26,7 @@ MonoBehaviour:
   underColor: {r: 0.47843137, g: 0.36078432, b: 0.24313726, a: 1}
   placedColor: {r: 0.61960787, g: 0.54901963, b: 0.47843137, a: 1}
   bodyHeight: 1
-  spawnMarkerAsset: cylinder
+  spawnMarker: cylinder
   spawnMarkerHeight: 0.4
   spawnMarkerColor: {r: 0.92941177, g: 0.9098039, b: 0.85490197, a: 1}
   swatches:

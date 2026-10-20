@@ -151,7 +151,7 @@ public class GroupTests
     {
         var a = new Group { Id = "group.a", Parts = [new Placement { Group = "group.b" }, Box(Vector3.Zero, Vector3.One)] };
         a.Parts[1].Name = "door";
-        var b = new Group { Id = "group.b", Parts = [new Placement { Group = "group.a", Scale = new Vector3(1, 2, 1) }, new Placement { Asset = "asset.missing" }] };
+        var b = new Group { Id = "group.b", Parts = [new Placement { Group = "group.a", Scale = new Vector3(1, 2, 1) }, new Placement { Prop = "prop.missing" }] };
         var empty = new Group { Id = "group.empty" };
         var bad = new Group { Id = "group.bad", Parts = [new Placement { Group = "group.nowhere" }, Box(Vector3.Zero, Vector3.One)] };
         bad.Parts[1].Role = "Not A Role";
@@ -160,7 +160,7 @@ public class GroupTests
 
         Assert.Contains(errors, e => e.Contains("a.toml") && e.Contains("a group's parts have no name"));
         Assert.Contains(errors, e => e.Contains("b.toml") && e.Contains("a group scales evenly"));
-        Assert.Contains(errors, e => e.Contains("b.toml") && e.Contains("there's no asset 'asset.missing'"));
+        Assert.Contains(errors, e => e.Contains("b.toml") && e.Contains("there's no prop 'prop.missing'"));
         Assert.Contains(errors, e => e.Contains("empty.toml") && e.Contains("at least one part"));
         Assert.Contains(errors, e => e.Contains("bad.toml") && e.Contains("there's no group 'group.nowhere'"));
         Assert.Contains(errors, e => e.Contains("bad.toml") && e.Contains("isn't a valid role"));

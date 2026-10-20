@@ -100,10 +100,10 @@ namespace Comet.Unity.Editor
                 {
                     meshes.Add((PrimitiveMeshes.For(part, settings.Budget), Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), Vector3.one), color));
                 }
-                else if (settings.assets != null && settings.assets.Model(part.Asset) is { } model)
+                else if (settings.props != null && settings.props.Model(part.Prop) is { } model)
                 {
                     var matrix = Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), ToUnity(part.Scale)) * model.transform.worldToLocalMatrix;
-                    foreach (var filter in model.GetComponentsInChildren<MeshFilter>().Where(f => f.sharedMesh != null && !f.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal)))
+                    foreach (var filter in model.GetComponentsInChildren<MeshFilter>().Where(f => f.sharedMesh != null && !f.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal)))
                     {
                         meshes.Add((filter.sharedMesh, matrix * filter.transform.localToWorldMatrix, color));
                     }
@@ -117,10 +117,10 @@ namespace Comet.Unity.Editor
         public static Material? PlacedMaterial(CometSettings settings, bool blockout) =>
             blockout && settings.blockoutMaterial != null ? settings.blockoutMaterial : settings.placedMaterial;
 
-        // A part's color: its own, else its asset's, else the game's.
+        // A part's color: its own, else its prop's, else the game's.
         private static Color PartColor(Placement part, CometSettings settings) =>
             part.Color is { } own ? PlacedColors.FromRgb(own)
-            : part.Primitive == null && settings.assets != null && settings.assets.TryGet(part.Asset, out var entry) && entry.hasColor ? entry.color
+            : part.Primitive == null && settings.props != null && settings.props.TryGet(part.Prop, out var entry) && entry.hasColor ? entry.color
             : settings.placedColor;
 
         /// <summary>Draws a copy's parts again now (after a change to it, such as its blockout flag).</summary>
@@ -171,15 +171,15 @@ namespace Comet.Unity.Editor
                 }
                 else
                 {
-                    var model = settings.assets != null ? settings.assets.Model(part.Asset) : null;
+                    var model = settings.props != null ? settings.props.Model(part.Prop) : null;
                     thing = model != null ? Object.Instantiate(model, root) : GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    thing.name = part.Asset;
+                    thing.name = part.Prop;
                     thing.transform.SetParent(root, false);
                     thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
                     thing.transform.localScale = ToUnity(part.Scale);
                     foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
                     {
-                        renderer.enabled = !renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal);
+                        renderer.enabled = !renderer.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal);
                         renderer.sharedMaterial = PlacedMaterial(settings, part.Blockout) ?? material;
                     }
                 }
@@ -612,7 +612,7 @@ namespace Comet.Unity.Editor
         private static bool Check(Group group, string file, CometSettings settings)
         {
             var groups = Load().Where(g => g.Group.Id != group.Id).Append((group, file)).ToList();
-            var errors = ZoneValidation.CheckGroups(groups, key => settings.assets != null ? ZoneEditor.AssetFor(settings.assets, key) : null)
+            var errors = ZoneValidation.CheckGroups(groups, key => settings.props != null ? ZoneEditor.PropFor(settings.props, key) : null)
                 .Where(e => e.File == file || e.Message.Contains(group.Id))
                 .ToList();
             if (errors.Count > 0)

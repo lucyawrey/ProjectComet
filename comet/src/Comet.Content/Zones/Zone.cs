@@ -139,15 +139,15 @@ namespace Comet.Content
     }
 
     /// <summary>
-    /// An asset, a primitive or a group placed in a chunk (or a part of a group): free position and full rotation,
+    /// A prop, a primitive or a group placed in a chunk (or a part of a group): free position and full rotation,
     /// with uniform or non-uniform scale (a group's copies scale evenly). A primitive's scale is its size in meters, and
     /// its mesh is built at that size (<see cref="Matrix"/>). The content build expands groups into their parts.
     /// </summary>
     [MessagePackObject]
     public sealed class Placement
     {
-        /// <summary>The asset's key (<c>asset.prop</c>), or empty for a primitive or a group.</summary>
-        [Key(0)] public string Asset { get; set; } = "";
+        /// <summary>The prop's key (<c>prop.rock</c>), or empty for a primitive or a group.</summary>
+        [Key(0)] public string Prop { get; set; } = "";
 
         /// <summary>The pivot's world position, in meters; it lies in the placement's chunk.</summary>
         [Key(1)] public Vector3 Position { get; set; }
@@ -163,16 +163,16 @@ namespace Comet.Content
         /// </summary>
         [Key(4)] public string? Name { get; set; }
 
-        /// <summary>The placement's own color as 0xRRGGBB, or null for its asset's.</summary>
+        /// <summary>The placement's own color as 0xRRGGBB, or null for its prop's.</summary>
         [Key(5)] public uint? Color { get; set; }
 
-        /// <summary>The primitive placed, or null for an asset.</summary>
+        /// <summary>The primitive placed, or null for a prop.</summary>
         [Key(6)] public Primitive? Primitive { get; set; }
 
         /// <summary>Whether this is blockout: a stand-in for finished geometry, drawn in a dev look while a level is built.</summary>
         [Key(7)] public bool Blockout { get; set; }
 
-        /// <summary>The group placed (<c>group.tree</c>), or null for an asset or a primitive.</summary>
+        /// <summary>The group placed (<c>group.tree</c>), or null for a prop or a primitive.</summary>
         [Key(8)] public string? Group { get; set; }
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace Comet.Content
         [Key(10)] public Dictionary<string, uint>? Colors { get; set; }
 
         /// <summary>
-        /// The placement's transform from its mesh's space to the world: for an asset, scale, then rotation, then
+        /// The placement's transform from its mesh's space to the world: for a prop, scale, then rotation, then
         /// position; for a primitive, whose mesh is built at its size, rotation then position.
         /// </summary>
         public Matrix4x4 Matrix() =>

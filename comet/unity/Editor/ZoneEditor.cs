@@ -15,7 +15,7 @@ namespace Comet.Unity.Editor
     /// <summary>
     /// Opens a zone into a working scene named after it and saves it back to its files (Comet › Zones, or saving the
     /// scene: <see cref="ZoneEditorScenes"/>). The scene is never the source of truth: the zone's files are, and the
-    /// scene file sits in an ignored folder. Terrain shows as preview meshes; placed assets, spawns and volumes are
+    /// scene file sits in an ignored folder. Terrain shows as preview meshes; placed props, spawns and volumes are
     /// objects to move with Unity's own tools, and on saving each belongs to the chunk holding its pivot. A spawn's
     /// marker is a child of its spawn point, so they move together.
     /// </summary>
@@ -101,7 +101,7 @@ namespace Comet.Unity.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             ZoneTerrainEditing.Forget();
 
-            // A new scene unloads assets nothing in it uses, the settings and asset library among them: load them again.
+            // A new scene unloads assets nothing in it uses, the settings and prop library among them: load them again.
             settings = CometSettings.Find(quiet: true) ?? settings;
             ZonePlacement.Budget = settings.Budget;
             var root = new GameObject($"Zone {zone.Id}");
@@ -158,10 +158,10 @@ namespace Comet.Unity.Editor
 
             var zone = Gather(editing);
             var errors = ZoneValidation.Check(zone);
-            var library = CometSettings.Find(quiet: true)?.assets;
+            var library = CometSettings.Find(quiet: true)?.props;
             if (library != null)
             {
-                errors.AddRange(ZoneValidation.CheckPlacements(zone, key => AssetFor(library, key), ZoneGroups.Find));
+                errors.AddRange(ZoneValidation.CheckPlacements(zone, key => PropFor(library, key), ZoneGroups.Find));
             }
 
             if (errors.Count > 0)
@@ -353,14 +353,14 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// The object for a placement (an asset, a primitive or a group copy) under <paramref name="parent"/>, at the
+        /// The object for a placement (a prop, a primitive or a group copy) under <paramref name="parent"/>, at the
         /// placement's world transform, with its marker component.
         /// </summary>
         internal static GameObject CreatePlaced(Placement placement, Transform parent, CometSettings settings, bool isMarker = false)
         {
             var thing = placement.Primitive is { } primitive ? CreatePrimitive(primitive, ToUnity(placement.Scale), settings, parent)
                 : placement.Group is { } group ? ZoneGroups.CreateCopy(group, parent)
-                : Instantiate(placement.Asset, settings, parent);
+                : Instantiate(placement.Prop, settings, parent);
             var r = placement.Rotation;
             thing.transform.SetPositionAndRotation(ToUnity(placement.Position), Quaternion.Euler(r.X, r.Y, r.Z));
             if (placement.Primitive is null)
@@ -369,7 +369,7 @@ namespace Comet.Unity.Editor
             }
 
             var marker = thing.GetComponent<ZonePlacement>() ?? thing.AddComponent<ZonePlacement>();
-            marker.asset = placement.Asset;
+            marker.prop = placement.Prop;
             marker.placementName = placement.Name ?? "";
             marker.blockout = placement.Blockout;
             marker.role = placement.Role ?? "";
@@ -391,7 +391,7 @@ namespace Comet.Unity.Editor
             var lossy = relativeTo != null ? Vector3.Scale(t.lossyScale, new Vector3(1 / relativeTo.lossyScale.x, 1 / relativeTo.lossyScale.y, 1 / relativeTo.lossyScale.z)) : t.lossyScale;
             return new Placement
             {
-                Asset = placed.isPrimitive || placed.IsGroup ? "" : placed.asset,
+                Prop = placed.isPrimitive || placed.IsGroup ? "" : placed.prop,
                 Primitive = placed.IsGroup ? null : placed.Primitive,
                 Group = placed.IsGroup ? placed.group : null,
                 Blockout = placed.blockout,
@@ -420,20 +420,20 @@ namespace Comet.Unity.Editor
             return colors;
         }
 
-        // A placement's colors: its asset's, from the library (a spawn's marker: the settings' marker color), and its own if it has one.
+        // A placement's colors: its prop's, from the library (a spawn's marker: the settings' marker color), and its own if it has one.
         internal static void SetColors(ZonePlacement placement, CometSettings settings, uint? own, bool spawnMarker = false)
         {
-            Color? asset = !placement.isPrimitive && settings.assets != null && settings.assets.TryGet(placement.asset, out var entry) && entry.hasColor ? entry.color : null;
+            Color? prop = !placement.isPrimitive && settings.props != null && settings.props.TryGet(placement.prop, out var entry) && entry.hasColor ? entry.color : null;
             placement.ownColor = own != null;
             if (own is { } rgb)
             {
                 placement.color = PlacedColors.FromRgb(rgb);
             }
 
-            placement.SetDefaultColor(spawnMarker ? settings.spawnMarkerColor : asset ?? settings.placedColor);
+            placement.SetDefaultColor(spawnMarker ? settings.spawnMarkerColor : prop ?? settings.placedColor);
         }
 
-        /// <summary>The primitive's kind for a placeable name: an asset key (<c>asset.prop</c>) is null.</summary>
+        /// <summary>The primitive's kind for a placeable name: a prop key (<c>prop.rock</c>) is null.</summary>
         public static PrimitiveKind? PrimitiveNamed(string name) => PrimitiveKinds.Named(name);
 
         /// <summary>A newly placed primitive of <paramref name="kind"/>: its values and the size it starts at.</summary>
@@ -472,10 +472,10 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        // The asset's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
-        private static GameObject Instantiate(string asset, CometSettings settings, Transform parent)
+        // The prop's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
+        private static GameObject Instantiate(string prop, CometSettings settings, Transform parent)
         {
-            var model = settings.assets != null ? settings.assets.Model(asset) : null;
+            var model = settings.props != null ? settings.props.Model(prop) : null;
             GameObject thing;
             if (model != null)
             {
@@ -483,17 +483,17 @@ namespace Comet.Unity.Editor
             }
             else
             {
-                Debug.LogWarning($"No model for {asset} in the asset library; showing a stand-in cube.");
+                Debug.LogWarning($"No model for {prop} in the prop library; showing a stand-in cube.");
                 thing = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 thing.transform.SetParent(parent, false);
             }
 
-            // Numbered like Unity's own copies (asset.prop, asset.prop (1), ...); saving ignores names.
+            // Numbered like Unity's own copies (prop.rock, prop.rock (1), ...); saving ignores names.
             thing.name = "";
-            thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, asset);
+            thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, prop);
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
             {
-                if (renderer.name.EndsWith(Asset.CollisionSuffix, StringComparison.Ordinal))
+                if (renderer.name.EndsWith(Prop.CollisionSuffix, StringComparison.Ordinal))
                 {
                     renderer.enabled = false;
                     continue;
@@ -514,15 +514,15 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        // What the placement checks need to know of an asset, from the library: its scale rule and bounds.
-        internal static Asset? AssetFor(AssetLibrary library, string key)
+        // What the placement checks need to know of a prop, from the library: its scale rule and bounds.
+        internal static Prop? PropFor(PropLibrary library, string key)
         {
             if (!library.TryGet(key, out var entry))
             {
                 return null;
             }
 
-            return new Asset
+            return new Prop
             {
                 Id = key,
                 UniformScale = entry.uniformScale,
@@ -532,47 +532,47 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Places an asset (by key) or a primitive (by kind, <c>box</c>) at <paramref name="position"/> in an opened
-        /// zone: an asset as a linked model with its placement marker, a primitive at its starting size. With a
+        /// Places a prop (by key), a primitive (by kind, <c>box</c>) or a group (by key) at <paramref name="position"/> in an opened
+        /// zone: a prop as a linked model with its placement marker, a primitive at its starting size. With a
         /// <paramref name="color"/>, the placement has it as its own.
         /// </summary>
-        public static GameObject Place(ZoneEditing editing, string asset, Vector3 position, CometSettings settings, Color? color = null)
+        public static GameObject Place(ZoneEditing editing, string placeable, Vector3 position, CometSettings settings, Color? color = null)
         {
             // While a group is edited in place, what's placed goes into it.
             var parent = ZoneGroups.InPlace is { } inPlace && inPlace.GetComponentInParent<ZoneEditing>() == editing ? inPlace.transform
                 : editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
             GameObject thing;
             ZonePlacement placement;
-            if (PrimitiveNamed(asset) is { } kind)
+            if (PrimitiveNamed(placeable) is { } kind)
             {
                 var (primitive, size) = Starting(kind);
                 thing = CreatePrimitive(primitive, size, settings, parent);
                 placement = thing.GetComponent<ZonePlacement>();
             }
-            else if (asset.StartsWith("group.", StringComparison.Ordinal))
+            else if (placeable.StartsWith("group.", StringComparison.Ordinal))
             {
                 // A copy looks like its group: it has no color of its own.
-                thing = ZoneGroups.CreateCopy(asset, parent);
+                thing = ZoneGroups.CreateCopy(placeable, parent);
                 thing.transform.position = position;
-                Undo.RegisterCreatedObjectUndo(thing, $"Place {asset}");
+                Undo.RegisterCreatedObjectUndo(thing, $"Place {placeable}");
                 return thing;
             }
             else
             {
-                thing = Instantiate(asset, settings, parent);
+                thing = Instantiate(placeable, settings, parent);
                 placement = thing.AddComponent<ZonePlacement>();
-                placement.asset = asset;
+                placement.prop = placeable;
             }
 
             thing.transform.position = position;
             SetColors(placement, settings, color is { } c ? PlacedColors.ToRgb(c) : (uint?)null);
-            Undo.RegisterCreatedObjectUndo(thing, $"Place {asset}");
+            Undo.RegisterCreatedObjectUndo(thing, $"Place {placeable}");
             return thing;
         }
 
         /// <summary>
         /// Adds a spawn point at <paramref name="position"/> in an opened zone (the zone's first is its default), with
-        /// its marker if the settings name one: the marker asset, flattened, sized to the spawn's radius and named with its key.
+        /// its marker if the settings name one: the marker prop, flattened, sized to the spawn's radius and named with its key.
         /// </summary>
         public static GameObject AddSpawn(ZoneEditing editing, string key, Vector3 position, CometSettings settings)
         {
@@ -583,9 +583,9 @@ namespace Comet.Unity.Editor
             spawn.key = key;
             spawn.isDefault = editing.GetComponentsInChildren<ZoneSpawn>().Length == 1;
             Undo.RegisterCreatedObjectUndo(marker.gameObject, $"Add {key}");
-            if (!string.IsNullOrEmpty(settings.spawnMarkerAsset))
+            if (!string.IsNullOrEmpty(settings.spawnMarker))
             {
-                var placed = Place(editing, settings.spawnMarkerAsset, position, settings);
+                var placed = Place(editing, settings.spawnMarker, position, settings);
                 var placement = placed.GetComponent<ZonePlacement>();
                 var markerSize = new Vector3(2 * spawn.radius, settings.spawnMarkerHeight, 2 * spawn.radius);
                 if (placement.isPrimitive)
@@ -598,7 +598,7 @@ namespace Comet.Unity.Editor
                 }
                 else
                 {
-                    var bounds = settings.assets != null && settings.assets.TryGet(settings.spawnMarkerAsset, out var entry) ? entry.bounds : new Bounds(Vector3.zero, Vector3.one);
+                    var bounds = settings.props != null && settings.props.TryGet(settings.spawnMarker, out var entry) ? entry.bounds : new Bounds(Vector3.zero, Vector3.one);
                     var size = bounds.size;
                     placed.transform.localScale = new Vector3(markerSize.x / Mathf.Max(size.x, 0.01f), markerSize.y / Mathf.Max(size.y, 0.01f), markerSize.z / Mathf.Max(size.z, 0.01f));
 
