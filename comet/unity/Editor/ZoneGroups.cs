@@ -121,7 +121,7 @@ namespace Comet.Unity.Editor
         // Draws a copy's parts under it as uneditable objects the scene doesn't save, built again each time.
         private static void Draw(ZonePlacement copy)
         {
-            if (copy == null)
+            if (copy == null || copy.EditingInPlace)
             {
                 return;
             }
@@ -192,7 +192,7 @@ namespace Comet.Unity.Editor
         public static bool SaveSelection(ZoneEditing editing, string key, CometSettings settings)
         {
             var selected = Selection.gameObjects.Select(g => g.GetComponent<ZonePlacement>())
-                .Where(p => p != null && p.GetComponentInParent<ZoneSpawn>() == null && p.GetComponentInParent<ZoneEditing>() == editing)
+                .Where(p => p != null && p.IsLoose && p.GetComponentInParent<ZoneSpawn>() == null && p.GetComponentInParent<ZoneEditing>() == editing)
                 .ToList();
             if (selected.Count == 0)
             {
@@ -344,7 +344,7 @@ namespace Comet.Unity.Editor
             var group = new Group
             {
                 Id = editing.groupKey,
-                Parts = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.GetComponentInParent<ZoneSpawn>() == null).Select(ZoneEditor.PlacementOf).ToArray(),
+                Parts = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneSpawn>() == null).Select(p => ZoneEditor.PlacementOf(p)).ToArray(),
             };
             var path = ZoneEditor.ProjectPath(editing.folder);
             if (!Check(group, Path.GetRelativePath(ZoneEditor.ProjectPath(settings.groupsFolder), path).Replace('\\', '/'), settings))
@@ -357,6 +357,135 @@ namespace Comet.Unity.Editor
             Debug.Log($"Saved {group.Id} to {editing.folder}.");
             return true;
         }
+
+        /// <summary>The copy whose group is being edited in place, if one is.</summary>
+        public static ZonePlacement? InPlace => Object.FindObjectsByType<ZonePlacement>().FirstOrDefault(p => p.EditingInPlace);
+
+        /// <summary>
+        /// Starts editing a copy's group in place: its parts become placements under it, edited like any other, and
+        /// what's placed meanwhile goes into it. <see cref="SaveInPlace"/> writes them to the group; <see cref="CancelInPlace"/> drops them.
+        /// </summary>
+        public static void EditInPlace(ZonePlacement copy, CometSettings settings)
+        {
+            if (InPlace is { } other)
+            {
+                EditorUtility.DisplayDialog("Edit in place", $"{other.group} is being edited in place already: save or cancel that first.", "OK");
+                return;
+            }
+
+            if (Find(copy.group) is not { } group)
+            {
+                return;
+            }
+
+            Undo.SetCurrentGroupName($"Edit {copy.group} in place");
+            var undoGroup = Undo.GetCurrentGroup();
+            Undo.RecordObject(copy, $"Edit {copy.group} in place");
+            copy.EditingInPlace = true;
+            var preview = copy.transform.Find(PartsName);
+            if (preview != null)
+            {
+                Object.DestroyImmediate(preview.gameObject);
+            }
+
+            var made = new List<GameObject>();
+            foreach (var part in group.Parts)
+            {
+                // Made at the part's place in the group, then put there under the copy, so the copy's transform applies.
+                var thing = ZoneEditor.CreatePlaced(part, copy.transform, settings);
+                var r = part.Rotation;
+                thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
+                var placement = thing.GetComponent<ZonePlacement>();
+                thing.transform.localScale = placement.isPrimitive && !placement.IsGroup ? Vector3.one : ToUnity(part.Scale);
+                Undo.RegisterCreatedObjectUndo(thing, $"Edit {copy.group} in place");
+                made.Add(thing);
+            }
+
+            Undo.CollapseUndoOperations(undoGroup);
+            Selection.objects = made.Cast<Object>().ToArray();
+            SceneView.RepaintAll();
+        }
+
+        /// <summary>Writes the parts of the copy being edited in place to its group, then shows every copy with them.</summary>
+        public static bool SaveInPlace(CometSettings settings)
+        {
+            if (InPlace is not { } copy || Load().FirstOrDefault(g => g.Group.Id == copy.group) is not { Group: not null } entry)
+            {
+                return false;
+            }
+
+            var parts = copy.GetComponentsInChildren<ZonePlacement>().Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>() == copy).ToList();
+            var group = new Group { Id = copy.group, Parts = parts.Select(p => ZoneEditor.PlacementOf(p, copy.transform)).ToArray() };
+            if (!Check(group, entry.File, settings))
+            {
+                return false;
+            }
+
+            GroupFile.Write(Path.Combine(ZoneEditor.ProjectPath(settings.groupsFolder), entry.File), group);
+            EndInPlace(copy, $"Save {copy.group}");
+            Debug.Log($"Saved {group.Id} ({settings.groupsFolder}/{entry.File}).");
+            return true;
+        }
+
+        /// <summary>Stops editing in place, dropping the changes: the copy shows its group as saved.</summary>
+        public static void CancelInPlace()
+        {
+            if (InPlace is { } copy)
+            {
+                EndInPlace(copy, $"Cancel editing {copy.group}");
+            }
+        }
+
+        private static void EndInPlace(ZonePlacement copy, string undoName)
+        {
+            Undo.SetCurrentGroupName(undoName);
+            var undoGroup = Undo.GetCurrentGroup();
+            foreach (var part in copy.GetComponentsInChildren<ZonePlacement>().Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>() == copy).ToList())
+            {
+                Undo.DestroyObjectImmediate(part.gameObject);
+            }
+
+            Undo.RecordObject(copy, undoName);
+            copy.EditingInPlace = false;
+            Undo.CollapseUndoOperations(undoGroup);
+            Selection.activeGameObject = copy.gameObject;
+            Reload();
+        }
+
+        // The bar shown in the Scene view while a group is edited in place.
+        [InitializeOnLoadMethod]
+        private static void InPlaceBar() => SceneView.duringSceneGui += view =>
+        {
+            if (Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint && Event.current.type != EventType.MouseDown && Event.current.type != EventType.MouseUp)
+            {
+                return;
+            }
+
+            if (InPlace is not { } copy || CometSettings.Find(quiet: true) is not { } settings)
+            {
+                return;
+            }
+
+            Handles.BeginGUI();
+            var width = 420f;
+            GUILayout.BeginArea(new Rect((view.position.width - width) / 2, 8, width, 30), EditorStyles.helpBox);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Editing {copy.group} in place", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Save group", GUILayout.Width(100)))
+            {
+                SaveInPlace(settings);
+            }
+
+            if (GUILayout.Button("Cancel", GUILayout.Width(70)))
+            {
+                CancelInPlace();
+            }
+
+            GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+            Handles.EndGUI();
+        };
 
         // Checks a new or changed group against the others: the problems in it, or in a loop it would make.
         private static bool Check(Group group, string file, CometSettings settings)

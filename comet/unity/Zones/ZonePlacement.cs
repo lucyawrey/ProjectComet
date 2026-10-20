@@ -65,6 +65,19 @@ namespace Comet.Unity
         /// <summary>Whether this is a group copy.</summary>
         public bool IsGroup => !string.IsNullOrEmpty(group);
 
+        // Set while a copy's group is edited in place: its parts are then real placements under it, not a preview.
+        [SerializeField, HideInInspector] private bool editingInPlace;
+
+        /// <summary>Whether this copy's group is being edited in place (its parts are placements under it).</summary>
+        public bool EditingInPlace
+        {
+            get => editingInPlace;
+            set => editingInPlace = value;
+        }
+
+        /// <summary>Whether this is placed in the zone itself, not a part of a copy whose group is being edited in place.</summary>
+        public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>() == null;
+
         /// <summary>The primitive placed, or null for an asset.</summary>
         public Primitive? Primitive => isPrimitive
             ? new Primitive
@@ -159,7 +172,7 @@ namespace Comet.Unity
         {
             Rebuild();
             ApplyColor();
-            if (IsGroup)
+            if (IsGroup && !editingInPlace)
             {
                 GroupDrawer?.Invoke(this);
             }

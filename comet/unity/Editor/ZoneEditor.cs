@@ -163,7 +163,8 @@ namespace Comet.Unity.Editor
                 return chunk;
             }
 
-            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>())
+            // A copy being edited in place is saved as the copy; its parts go to its group only when that's saved.
+            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose))
             {
                 var chunk = ChunkAt(ToNumerics(placed.transform.position));
                 chunk.Placements = chunk.Placements.Append(PlacementOf(placed)).ToArray();
@@ -345,10 +346,16 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        /// <summary>A placement as the object <paramref name="placed"/> has it now, at its world transform.</summary>
-        internal static Placement PlacementOf(ZonePlacement placed)
+        /// <summary>
+        /// A placement as the object <paramref name="placed"/> has it now: at its world transform, or relative to
+        /// <paramref name="relativeTo"/> (a copy whose group's parts are being saved).
+        /// </summary>
+        internal static Placement PlacementOf(ZonePlacement placed, Transform? relativeTo = null)
         {
             var t = placed.transform;
+            var position = relativeTo != null ? relativeTo.InverseTransformPoint(t.position) : t.position;
+            var rotation = relativeTo != null ? Quaternion.Inverse(relativeTo.rotation) * t.rotation : t.rotation;
+            var lossy = relativeTo != null ? Vector3.Scale(t.lossyScale, new Vector3(1 / relativeTo.lossyScale.x, 1 / relativeTo.lossyScale.y, 1 / relativeTo.lossyScale.z)) : t.lossyScale;
             return new Placement
             {
                 Asset = placed.isPrimitive || placed.IsGroup ? "" : placed.asset,
@@ -358,9 +365,9 @@ namespace Comet.Unity.Editor
                 // A spawn's marker is named with its key, which may have changed since.
                 Name = placed.GetComponentInParent<ZoneSpawn>() is { } spawn ? spawn.key
                     : string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
-                Position = ToNumerics(t.position),
-                Rotation = Angles(t.rotation.eulerAngles),
-                Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, t.lossyScale) : t.lossyScale),
+                Position = ToNumerics(position),
+                Rotation = Angles(rotation.eulerAngles),
+                Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),
                 Color = placed.ownColor && !placed.IsGroup ? PlacedColors.ToRgb(placed.color) : (uint?)null,
             };
         }
@@ -483,7 +490,9 @@ namespace Comet.Unity.Editor
         /// </summary>
         public static GameObject Place(ZoneEditing editing, string asset, Vector3 position, CometSettings settings, Color? color = null)
         {
-            var parent = editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
+            // While a group is edited in place, what's placed goes into it.
+            var parent = ZoneGroups.InPlace is { } inPlace && inPlace.GetComponentInParent<ZoneEditing>() == editing ? inPlace.transform
+                : editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
             GameObject thing;
             ZonePlacement placement;
             if (PrimitiveNamed(asset) is { } kind)

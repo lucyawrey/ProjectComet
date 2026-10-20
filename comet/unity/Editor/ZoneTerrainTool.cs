@@ -298,7 +298,7 @@ namespace Comet.Unity.Editor
             if (carry)
             {
                 // Found before the terrain moves. A spawn's marker moves with its spawn.
-                var carried = terrain.Editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.GetComponentInParent<ZoneSpawn>() == null).Select(p => p.transform)
+                var carried = terrain.Editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneSpawn>() == null).Select(p => p.transform)
                     .Concat(terrain.Editing.GetComponentsInChildren<ZoneSpawn>().Select(s => s.transform))
                     .Where(t => StandsOn(terrain, t.position))
                     .ToArray();

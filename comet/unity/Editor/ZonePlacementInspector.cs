@@ -73,7 +73,7 @@ namespace Comet.Unity.Editor
 
         private bool _resizing;
 
-        // A copy's own actions: edit its group (in a scene of its own), or unpack it into loose placements.
+        // A copy's own actions: edit its group (here, in place, or in a scene of its own), or unpack it into loose placements.
         private static void GroupButtons(ZonePlacement copy)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -82,9 +82,35 @@ namespace Comet.Unity.Editor
                 return;
             }
 
+            if (copy.EditingInPlace)
+            {
+                EditorGUILayout.HelpBox($"Editing {copy.group} in place: its parts are placed under this copy. Save the group to change every copy.", MessageType.Info);
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Save group"))
+                {
+                    ZoneGroups.SaveInPlace(settings);
+                    GUIUtility.ExitGUI();
+                }
+
+                if (GUILayout.Button("Cancel"))
+                {
+                    ZoneGroups.CancelInPlace();
+                    GUIUtility.ExitGUI();
+                }
+
+                EditorGUILayout.EndHorizontal();
+                return;
+            }
+
             EditorGUILayout.HelpBox("A copy looks like its group. Edit the group to change every copy; unpack this one to change it alone.", MessageType.None);
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button($"Edit {copy.group}"))
+            if (GUILayout.Button("Edit in place"))
+            {
+                ZoneGroups.EditInPlace(copy, settings);
+                GUIUtility.ExitGUI();
+            }
+
+            if (GUILayout.Button("Open group"))
             {
                 // After this GUI pass: opening replaces the scene the Inspector is drawing.
                 ZoneGroups.OpenLater(copy.group, settings);
