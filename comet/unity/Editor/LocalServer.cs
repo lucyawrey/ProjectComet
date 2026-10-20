@@ -277,7 +277,7 @@ namespace Comet.Unity.Editor
         private static string? Build(CometSettings settings)
         {
             var project = ContentBuild.ProjectPath(settings.serverProject);
-            var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"build \"{project}\" -nologo -v quiet -getProperty:TargetPath")
+            var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath")
             {
                 WorkingDirectory = ContentBuild.ProjectRoot,
                 UseShellExecute = false,
