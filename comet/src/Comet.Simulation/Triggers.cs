@@ -113,7 +113,7 @@ namespace Comet.Simulation
         /// <summary>
         /// Where a player arrives in <paramref name="volume"/> and which way they face (radians, 0 facing +Z, as
         /// <see cref="MotorState.Facing"/>): a random spot in its footprint (an ellipse for round kinds, else a
-        /// rectangle), standing on ground between a step below its bottom and its top, with nothing in the way; else
+        /// rectangle) kept a body's radius in from its edge where it's wide enough, standing on ground between a step below its bottom and its top, with nothing in the way; else
         /// its center on the ground there, else its bottom center.
         /// </summary>
         public static (Vector3 Feet, float Facing) Arrive(TriggerVolume volume, SpawnFacing facing, CollisionWorld world, MovementRules rules, Random random, ISet<int>? passThrough = null)
@@ -124,7 +124,7 @@ namespace Comet.Simulation
             var found = false;
             for (var i = 0; i < Tries && !found; i++)
             {
-                found = TryStand(RandomSpot(volume, random), out feet);
+                found = TryStand(RandomSpot(volume, rules.BodyRadius, random), out feet);
             }
 
             if (!found && !TryStand(volume.Position, out feet))
@@ -158,10 +158,10 @@ namespace Comet.Simulation
             }
         }
 
-        // A uniformly random point of the volume's footprint, at its bottom.
-        private static Vector3 RandomSpot(TriggerVolume volume, Random random)
+        // A uniformly random point of the volume's footprint, at its bottom, kept margin in from its edge.
+        private static Vector3 RandomSpot(TriggerVolume volume, float margin, Random random)
         {
-            var half = volume.Size / 2;
+            var half = Vector3.Max(volume.Size / 2 - new Vector3(margin), Vector3.Zero);
             float x, z;
             if (volume.Kind == PrimitiveKind.Box)
             {
