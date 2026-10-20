@@ -39,8 +39,9 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            ToolManager.activeToolChanged += Swap;
-            Selection.selectionChanged += Swap;
+            // A tick later: Unity tells the tools about a new selection after its own event.
+            ToolManager.activeToolChanged += () => EditorApplication.delayCall += Swap;
+            Selection.selectionChanged += () => EditorApplication.delayCall += Swap;
         }
 
         public override void OnToolGUI(EditorWindow window)
