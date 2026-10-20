@@ -29,7 +29,7 @@ color = 0x9E8C7A
 id = "spawn.hub.diamond"
 volume = "cylinder"
 position = [-47.603, 1.602, 2.426]
-size = [4.0, 2.0, 4.0]
+size = [4.0, 1.0, 4.0]
 stand_seconds = 2.0
 facing = "direction"
 
@@ -41,14 +41,14 @@ scale = [4.0, 0.4, 4.0]
 [[teleporter]]
 id = "teleporter.hub.cube"
 volume = "box"
-position = [-0.408, 8.918, 41.307]
-size = [2.0, 2.0, 2.0]
+position = [-2.91, 8.931, 43.32]
+size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
 target = "teleporter.hub.theatre"
 
 [teleporter.pad]
 primitive = "box"
-position = [-0.408, 8.518, 41.307]
+position = [-2.91, 8.531, 43.32]
 scale = [2.0, 0.4, 2.0]
 color = 0xB39DDB

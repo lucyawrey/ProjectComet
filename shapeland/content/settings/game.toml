@@ -25,14 +25,14 @@ stand_seconds = 2.0 # standing in another spawn point this long makes it the pla
 pad = "cylinder" # the primitive drawn flattened under a new spawn point
 pad_height = 0.4 # how tall a new pad is, sunk halfway into the ground; move it in the editor after
 unset_color = 0xEDE8DA # a pad that isn't the player's spawn: a pale cream used nowhere else
-volume_height = 2.0 # how tall a new spawn point's volume is above its pad; players in it can claim it
+volume_height = 1.0 # how tall a new spawn point's volume is above its pad; players in it can claim it
 
 [teleporters]
 stand_seconds = 1.0 # standing in a teleporter this long sends the player to its target
 pad = "box" # the primitive drawn flattened under a new teleporter
 pad_height = 0.4
 pad_color = 0xB39DDB # a new pad's color: a pale violet (a placeholder)
-volume_height = 2.0 # how tall a new teleporter's volume is above its pad
+volume_height = 1.0 # how tall a new teleporter's volume is above its pad
 
 [triggers]
 stand_seconds = 0.0 # 0 fires as soon as a player steps in, like a pressure plate; new triggers have no pad

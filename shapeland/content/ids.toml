@@ -50,6 +50,9 @@ theatre = 11
 "tests_far.back" = 4
 "hub.cube" = 5
 "hub.theatre" = 6
+"hub.to_test" = 7
+"hub.pancake" = 8
+"hub.pyramid" = 9
 
 [trigger]
 "tests.plate" = 1
