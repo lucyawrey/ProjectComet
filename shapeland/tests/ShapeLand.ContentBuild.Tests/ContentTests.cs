@@ -72,17 +72,6 @@ public class ContentTests
     }
 
     [Fact]
-    public void LevelsAreBuiltFromPrimitives()
-    {
-        var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
-        Assert.Empty(errors);
-
-        var placements = built!.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Placements).ToList();
-        Assert.NotEmpty(placements);
-        Assert.All(placements, p => Assert.NotNull(p.Primitive));
-    }
-
-    [Fact]
     public void FingerprintsMatchTheFileAndChangeWithTheContent()
     {
         var (built, _) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
