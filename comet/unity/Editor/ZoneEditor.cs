@@ -57,6 +57,36 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Save", true)]
         private static bool CanSave() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
 
+        /// <summary>Drops the opened zone's (or group's) unsaved changes, reading it again from its files.</summary>
+        [MenuItem("Comet/Zones/Discard Changes", priority = 3)]
+        public static void DiscardMenu()
+        {
+            var editing = UnityEngine.Object.FindAnyObjectByType<ZoneEditing>();
+            var settings = CometSettings.Find(quiet: false);
+            if (editing == null || settings == null)
+            {
+                return;
+            }
+
+            var what = editing.IsGroup ? editing.groupKey : Path.GetFileName(editing.folder);
+            if (!EditorUtility.DisplayDialog("Discard changes", $"Discard every change to {what} since it was last saved, and read it again from its files? This can't be undone.", "Discard", "Keep"))
+            {
+                return;
+            }
+
+            if (editing.IsGroup)
+            {
+                ZoneGroups.Open(editing.groupKey, settings);
+            }
+            else
+            {
+                Open(ProjectPath(editing.folder), settings);
+            }
+        }
+
+        [MenuItem("Comet/Zones/Discard Changes", true)]
+        private static bool CanDiscard() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
+
         /// <summary>Opens the zone in <paramref name="folder"/> into a new scene; false (with the reasons logged) if its files have errors.</summary>
         public static bool Open(string folder, CometSettings settings)
         {

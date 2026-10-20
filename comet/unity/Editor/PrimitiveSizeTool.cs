@@ -14,22 +14,46 @@ namespace Comet.Unity.Editor
     [EditorToolContext("Zone", typeof(ZonePlacement))]
     internal sealed class ZoneToolContext : EditorToolContext
     {
-        protected override Type? GetEditorToolType(Tool tool) => tool == Tool.Scale ? typeof(ZoneScaleTool) : null;
+        // Unity's own transform tools, which it doesn't make public: the rest of this context.
+        private static Type? Builtin(string name) => typeof(EditorTool).Assembly.GetType("UnityEditor." + name);
 
-        // Checked each editor update: Unity's selection events don't always come (selection set from code).
+        protected override Type? GetEditorToolType(Tool tool) => tool switch
+        {
+            Tool.Scale => typeof(ZoneScaleTool),
+            Tool.Move => Builtin("MoveTool"),
+            Tool.Rotate => Builtin("RotateTool"),
+            Tool.Rect => Builtin("RectTool"),
+            Tool.Transform => Builtin("TransformTool"),
+            _ => null,
+        };
+
+        // Follows the selection, checked each editor update (Unity's selection events don't always come): this
+        // context while a placement is selected, Unity's own otherwise. Left alone while a tool of its own (the zone
+        // place or terrain tool) is active, which a change of context would turn off.
         [InitializeOnLoadMethod]
         private static void FollowSelection() => EditorApplication.update += () =>
         {
-            if (Selection.gameObjects.Any(g => g.TryGetComponent<ZonePlacement>(out _)) && ToolManager.activeContextType != typeof(ZoneToolContext))
+            if (Tools.current == Tool.Custom && ToolManager.activeToolType != typeof(ZoneScaleTool))
             {
-                try
+                return;
+            }
+
+            var placements = Selection.gameObjects.Any(g => g.TryGetComponent<ZonePlacement>(out _));
+            var ours = ToolManager.activeContextType == typeof(ZoneToolContext);
+            try
+            {
+                if (placements && !ours)
                 {
                     ToolManager.SetActiveContext<ZoneToolContext>();
                 }
-                catch (InvalidOperationException)
+                else if (!placements && ours)
                 {
-                    // Unity hasn't told its tools about the new selection yet: next update.
+                    ToolManager.SetActiveContext<GameObjectToolContext>();
                 }
+            }
+            catch (InvalidOperationException)
+            {
+                // Unity hasn't told its tools about the new selection yet: next update.
             }
         };
     }
