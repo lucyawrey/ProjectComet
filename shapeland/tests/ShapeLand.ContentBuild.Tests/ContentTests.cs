@@ -45,23 +45,24 @@ public class ContentTests
         file.Position = 0;
 
         var content = ShapeLandContent.Load(file);
-        Assert.NotEmpty(content.Zones[content.Settings.World.DefaultZone].Chunks);
+        Assert.All(content.Shapes.All, shape => Assert.NotEmpty(ShapeLandWorld.StartOf(content, shape).Zone.Chunks));
     }
 
     [Fact]
     public void TheTestsZoneHasWhatThePlayTestsCountOn()
     {
-        // The play-mode tests walk straight ahead from its default spawn (facing +Z, no scatter) and jump there, then
-        // walk on off the edge. Change zones/tests only along with them.
+        // The play-mode tests walk straight ahead from its start spawn (facing +Z, next to no scatter) and jump there,
+        // then walk on off the edge. Change zones/tests only along with them.
         var (content, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
-        var zone = content!.Zones["zone.tests"];
-        var world = ShapeLandWorld.Create(content, zone);
-        var spawn = new Spawns(zone).Default!;
-        Assert.Equal((SpawnFacing.Direction, 0f, 0f), (spawn.Facing, spawn.Yaw, spawn.Radius));
+        var (zone, spawn) = ShapeLandWorld.FindSpawn(content!, "spawn.tests.start")!.Value;
+        Assert.Equal("zone.tests", zone.Id);
+        var world = ShapeLandWorld.Create(content!, zone);
+        Assert.Equal((SpawnFacing.Direction, 0f), (spawn.Facing, spawn.Volume.Yaw));
+        Assert.InRange(spawn.Volume.Size.X, 0, 0.25f);
 
-        var feet = ShapeLandWorld.SpawnPoint(content, zone, world);
-        var radius = content.Movement.BodyRadius;
+        var feet = ShapeLandWorld.Center(spawn, world);
+        var radius = content!.Movement.BodyRadius;
         for (var ahead = 2; ahead <= 19; ahead++) // past the spawn marker, flat ground at 0 m
         {
             Assert.True(world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, ahead), radius, feet.Y + 1, out var ground), $"No ground {ahead} m ahead.");

@@ -35,7 +35,24 @@ pyramid = 8
 blue = 9
 tests_start = 10
 theatre = 11
+"hub.blue" = 12
+"hub.cube" = 13
+"hub.diamond" = 14
+"hub.pyramid" = 15
+"hub.theatre" = 16
+"tests.second" = 17
+"tests.start" = 18
+
+[teleporter]
+"tests.east" = 1
+"tests.to_far" = 2
+"tests.west" = 3
+"tests_far.back" = 4
+
+[trigger]
+"tests.plate" = 1
 
 [zone]
 hub = 1
 tests = 2
+tests_far = 3

@@ -42,6 +42,7 @@ protocol_error = "The server sent something this client doesn't understand."
 someone = "Someone"
 too_fast = "You're sending messages too quickly. Wait a moment, then try again."
 invalid = "Messages can't be empty or longer than 200 characters."
+spawn_set = "Your spawn point is set."
 keys = "Enter sends · Esc closes"
 hint = "Enter to chat"
 

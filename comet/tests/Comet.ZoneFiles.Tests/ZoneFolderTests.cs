@@ -109,6 +109,7 @@ public class ZoneFolderTests
             volume = "sphere"
             position = [14.0, 4.0, 9.0]
             size = [2.0, 2.0, 2.0]
+            stand_seconds = 1.0
             rearm = "repeat"
 
             [[trigger.effect]]

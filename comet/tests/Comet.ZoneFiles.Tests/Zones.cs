@@ -79,7 +79,7 @@ internal static class Zones
                     new Trigger
                     {
                         Id = "trigger.meadow.plate",
-                        Volume = new TriggerVolume { Kind = PrimitiveKind.Sphere, Position = new Vector3(14, 4, 9), Size = new Vector3(2, 2, 2), Rearm = Rearm.Repeat },
+                        Volume = new TriggerVolume { Kind = PrimitiveKind.Sphere, Position = new Vector3(14, 4, 9), Size = new Vector3(2, 2, 2), StandSeconds = 1, Rearm = Rearm.Repeat },
                         Effects = [new ToggleEffect { Name = "gate", RevertSeconds = 5 }],
                     },
                 ],

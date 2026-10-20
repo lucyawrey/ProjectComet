@@ -9,12 +9,16 @@ namespace ShapeLand.Shared.Messages
         [Key(0)] public string Text;
     }
 
-    /// <summary>Server event: someone said something (including the sender, so everyone sees the same order).</summary>
+    /// <summary>
+    /// Server event: someone said something (including the sender, so everyone sees the same order). Chat is
+    /// server-wide, so it carries the sender's name: they may be in another zone, not in view.
+    /// </summary>
     [MessagePackObject]
     public struct ChatMessage
     {
         [Key(0)] public uint EntityId;
         [Key(1)] public string Text;
+        [Key(2)] public string Name;
     }
 
     /// <summary>Why the server didn't deliver a chat line.</summary>

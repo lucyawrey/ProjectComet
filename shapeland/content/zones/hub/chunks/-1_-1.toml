@@ -96,15 +96,15 @@ primitive = "box"
 position = [-25.13, 2.75, -12.32]
 color = 0x8A8F99
 
-[[placement]]
+[[spawn]]
+id = "spawn.hub.blue"
+volume = "cylinder"
+position = [-21.55, 4.4, -55.24]
+size = [4.0, 2.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
 primitive = "cylinder"
-name = "spawn.blue"
 position = [-21.55, 4.0, -55.24]
 scale = [4.0, 0.4, 4.0]
-
-[[spawn]]
-id = "spawn.blue"
-position = [-21.55, 4.4, -55.24]
-radius = 2.0
-facing = "direction"
-yaw = 0.0

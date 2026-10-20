@@ -206,10 +206,12 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks[1].Teleporters[0].Target = "teleporter.meadow.to_cave";
         zone.Chunks[1].Triggers[0].Effects = [new ToggleEffect { Name = "bridge", RevertSeconds = -2 }];
+        zone.Chunks[1].Triggers[0].Volume.StandSeconds = 0;
 
         Assert.Equal(
             [
                 "chunks/0_0.toml: teleporter.meadow.to_cave: a teleporter can't target itself.",
+                "chunks/0_0.toml: trigger.meadow.plate: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.",
                 "chunks/0_0.toml: trigger.meadow.plate: no placement in the zone is named 'bridge'.",
                 "chunks/0_0.toml: trigger.meadow.plate: revert_seconds can't be negative.",
             ],

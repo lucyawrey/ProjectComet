@@ -21,14 +21,28 @@ public class CollisionTogglesTests
         var inDoor = new Vector3(8, 1, 8);
 
         Assert.False(world.IsBlocked(inDoor, Rules.BodyRadius, Rules.BodyHeight));
-        world.SetOn("door", true);
+        world.SetFlipped("door", true);
         Assert.True(world.IsBlocked(inDoor, Rules.BodyRadius, Rules.BodyHeight));
         Assert.True(world.TryGetGround(new Vector3(8, 5, 8), Rules.BodyRadius, 5, out var top));
         Assert.Equal(3f, top, 3);
-        world.SetOn("door", false);
+        world.SetFlipped("door", false);
         Assert.False(world.IsBlocked(inDoor, Rules.BodyRadius, Rules.BodyHeight));
         Assert.True(world.TryGetGround(new Vector3(8, 5, 8), Rules.BodyRadius, 5, out var ground));
         Assert.Equal(1f, ground, 3);
+    }
+
+    [Fact]
+    public void FlippingSwapsMeshesThatStartOnForOnesThatStartOff()
+    {
+        var open = TestWorlds.Block(12, 8, 1, new Vector3(1, 1, 1));
+        open.Name = "door";
+        open.StartsOff = true;
+        var world = TestWorlds.Create(Door(), open);
+        var (closed, opened) = (world.MeshesNamed("door")[0], world.MeshesNamed("door")[1]);
+
+        Assert.Equal((true, false), (world.IsOn(closed), world.IsOn(opened)));
+        world.SetFlipped("door", true);
+        Assert.Equal((false, true), (world.IsOn(closed), world.IsOn(opened)));
     }
 
     [Fact]

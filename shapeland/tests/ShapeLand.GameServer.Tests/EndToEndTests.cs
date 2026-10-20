@@ -15,12 +15,13 @@ using ShapeLand.Shared.World;
 namespace ShapeLand.GameServer.Tests;
 
 /// <summary>
-/// Runs the real server in-process on a free port, with bots connecting over WebSockets. It plays the tests' own zone
-/// (<see cref="TestsZone"/>), so editing ShapeLand's zones can't break the tests.
+/// Runs the real server in-process on a free port, with bots connecting over WebSockets. Players start in the tests'
+/// own zone (<see cref="TestsZone"/>, at <see cref="StartSpawn"/>), so editing ShapeLand's zones can't break the tests.
 /// </summary>
 public sealed class EndToEndTests : IAsyncLifetime
 {
     private const string TestsZone = "zone.tests";
+    private const string StartSpawn = "spawn.tests.start";
 
     private readonly string _contentFile = Path.Combine(Path.GetTempPath(), $"shapeland-content-{Guid.NewGuid():N}.bin");
     private ShapeLandContent _content = null!;
@@ -37,16 +38,16 @@ public sealed class EndToEndTests : IAsyncLifetime
             _content.Save(file);
         }
 
-        (_server, _url) = await StartServer(TestsZone);
+        (_server, _url) = await StartServer(StartSpawn);
     }
 
-    // A server on a free port playing zone (null for none given: the default zone).
-    private async Task<(WebApplication Server, Uri Url)> StartServer(string? zone)
+    // A server on a free port starting every player at startSpawn (null for none: each at their shape's spawn).
+    private async Task<(WebApplication Server, Uri Url)> StartServer(string? startSpawn)
     {
         var server = ShapeLandServer.Build([], builder =>
         {
             builder.Configuration["ShapeLand:ContentFile"] = _contentFile;
-            builder.Configuration["ShapeLand:Zone"] = zone;
+            builder.Configuration["ShapeLand:StartSpawn"] = startSpawn;
             builder.Configuration["Urls"] = "http://127.0.0.1:0";
         });
         await server.StartAsync(TestContext.Current.CancellationToken);
@@ -161,51 +162,32 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task TheServerNamesItsZoneInTheWelcome()
+    public async Task PlayersStartAtTheStartSpawnInItsZone()
     {
         using var ada = new RawClient();
         await ada.ConnectAsync(_url);
         await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]));
 
-        Assert.Equal(_content.Zones[TestsZone].Number, (await ada.NextAsync<Welcome>(MessageIds.Welcome)).Zone);
+        var (zone, start) = ShapeLandWorld.FindSpawn(_content, StartSpawn)!.Value;
+        Assert.Equal(zone.Number, (await ada.NextAsync<Welcome>(MessageIds.Welcome)).Zone);
+        Assert.Equal(zone.Number, (await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Zone);
+        var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+        Assert.True(Comet.Simulation.Triggers.Inside(start.Volume, new Vector3(joined.X, joined.Y, joined.Z)));
+        var set = await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet);
+        Assert.Equal((start.Number, false), (set.Spawn, set.Claimed));
     }
 
     [Fact]
-    public async Task WithNoZoneGivenTheServerPlaysTheDefaultZone()
+    public async Task AnUnknownStartSpawnStopsTheServerFromStarting()
     {
-        await WithServer(null, async url =>
-        {
-            using var ada = new RawClient();
-            await ada.ConnectAsync(url);
-            await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]));
-
-            Assert.Equal(ShapeLandWorld.DefaultZone(_content).Number, (await ada.NextAsync<Welcome>(MessageIds.Welcome)).Zone);
-        });
-    }
-
-    [Fact]
-    public async Task AnUnknownZoneStopsTheServerFromStarting()
-    {
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => StartServer("zone.nowhere"));
-        Assert.Contains("zone.nowhere", failure.Message);
-        Assert.Contains(TestsZone, failure.Message);
-    }
-
-    [Fact]
-    public async Task OutsideTheDefaultZonePlayersStartAtItsDefaultSpawn()
-    {
-        using var ada = new RawClient();
-        await ada.ConnectAsync(_url);
-        await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]));
-
-        var start = new Comet.Simulation.Spawns(_content.Zones[TestsZone]).Default!;
-        Assert.Equal(start.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => StartServer("spawn.nowhere"));
+        Assert.Contains("spawn.nowhere", failure.Message);
+        Assert.Contains(StartSpawn, failure.Message);
     }
 
     [Fact]
     public async Task PlayersStartAtTheirShapesSpawnAndCanReturnToIt()
     {
-        // Shapes' spawns are in the default zone.
         await WithServer(null, async url =>
         {
             using var ada = new RawClient();
@@ -213,23 +195,150 @@ public sealed class EndToEndTests : IAsyncLifetime
             var shape = _content.Shapes.All[0];
             await ada.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(shape));
 
-            var spawns = new Comet.Simulation.Spawns(ShapeLandWorld.DefaultZone(_content));
-            Assert.True(spawns.TryGet(shape.Spawn, out var home));
+            var (zone, home) = ShapeLandWorld.StartOf(_content, shape);
+            Assert.Equal(zone.Number, (await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Zone);
             var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
             Assert.Equal(home.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
-            Assert.InRange(Vector2.Distance(new Vector2(joined.X, joined.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
+            Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(joined.X, joined.Y, joined.Z)));
 
             await ada.SendAsync(ShapeLandMessageIds.ReturnToSpawn, new ReturnToSpawn());
             var back = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
             Assert.Equal(CorrectionReason.Respawn, back.Reason);
-            Assert.InRange(Vector2.Distance(new Vector2(back.X, back.Z), new Vector2(home.Position.X, home.Position.Z)), 0, home.Radius + 0.01f);
+            Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(back.X, back.Y, back.Z)));
         });
     }
 
-    // Runs test against a second server playing zone (null: the default zone), then stops it.
-    private async Task WithServer(string? zone, Func<Uri, Task> test)
+    [Fact]
+    public async Task StandingInAnotherSpawnClaimsIt()
     {
-        var (server, url) = await StartServer(zone);
+        using var ada = new RawClient();
+        var at = await JoinAsync(ada, "Ada");
+        Assert.False((await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Claimed); // the start, on joining
+
+        var second = Spawn("spawn.tests.second");
+        await ada.WalkAsync(World(TestsZone), at, second.Volume.Position, sequence: 0);
+
+        var set = await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet);
+        Assert.Equal((second.Number, true), (set.Spawn, set.Claimed));
+    }
+
+    [Fact]
+    public async Task TeleportersSendPlayersWithinAZoneAndWaitForAStepOff()
+    {
+        using var ada = new RawClient();
+        var at = await JoinAsync(ada, "Ada");
+
+        await ada.WalkAsync(World(TestsZone), at, Teleporter("teleporter.tests.east").Volume.Position, sequence: 0);
+
+        var sent = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
+        Assert.Equal(CorrectionReason.Teleport, sent.Reason);
+        Assert.True(Comet.Simulation.Triggers.Inside(Teleporter("teleporter.tests.west").Volume, new Vector3(sent.X, sent.Y, sent.Z)));
+        // Arriving on the west pad, which targets the east one, doesn't send Ada back.
+        Assert.Null(await ada.TryNextAsync<PositionCorrection>(MessageIds.PositionCorrection, TimeSpan.FromSeconds(1.5)));
+    }
+
+    [Fact]
+    public async Task TeleportersSendPlayersToAnotherZone()
+    {
+        using var ada = new RawClient();
+        using var bea = new RawClient();
+        var at = await JoinAsync(ada, "Ada");
+        await JoinAsync(bea, "Bea");
+        var adaId = (await bea.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn)).EntityId;
+
+        await ada.WalkAsync(World(TestsZone), at, Teleporter("teleporter.tests.to_far").Volume.Position, sequence: 0);
+
+        var far = _content.Zones["zone.tests_far"];
+        var entered = await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered);
+        Assert.Equal((far.Number, 0), (entered.Zone, entered.Flipped.Length));
+        var sent = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
+        Assert.Equal(CorrectionReason.Teleport, sent.Reason);
+        Assert.True(Comet.Simulation.Triggers.Inside(new Comet.Simulation.Triggers(far).Teleporters[0].Volume, new Vector3(sent.X, sent.Y, sent.Z)));
+        Assert.Equal(adaId, (await bea.NextAsync<EntityDespawn>(MessageIds.EntityDespawn)).EntityId);
+
+        // Chat is server-wide, and names the sender, who's no longer in view.
+        await bea.SendAsync(ShapeLandMessageIds.ChatSend, new ChatSend { Text = "hello?" });
+        var heard = await ada.NextAsync<ChatMessage>(ShapeLandMessageIds.ChatMessage);
+        Assert.Equal(("Bea", "hello?"), (heard.Name, heard.Text));
+    }
+
+    [Fact]
+    public async Task TriggersFlipPlacementsForEveryoneInTheZoneAndFlipThemBack()
+    {
+        using var ada = new RawClient();
+        using var bea = new RawClient();
+        var at = await JoinAsync(ada, "Ada");
+        await JoinAsync(bea, "Bea");
+
+        await ada.WalkAsync(World(TestsZone), at, PlateCenter(), sequence: 0);
+
+        foreach (var client in new[] { ada, bea })
+        {
+            var flipped = await client.NextAsync<PlacementsFlipped>(ShapeLandMessageIds.PlacementsFlipped);
+            Assert.Equal(("door", true), (flipped.Name, flipped.Flipped));
+        }
+
+        // Someone joining now learns the door is open.
+        using var cy = new RawClient();
+        await cy.ConnectAsync(_url);
+        await cy.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]) with { Name = "Cy" });
+        Assert.Equal(["door"], (await cy.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Flipped);
+
+        // The plate's effect flips the door back after its revert time (3 s), however long Ada stands on it.
+        var back = await bea.NextAsync<PlacementsFlipped>(ShapeLandMessageIds.PlacementsFlipped);
+        Assert.Equal(("door", false), (back.Name, back.Flipped));
+    }
+
+    [Fact]
+    public async Task APlayerInsideAPlacementThatTurnsSolidPassesThroughIt()
+    {
+        using var ada = new RawClient();
+        var at = await JoinAsync(ada, "Ada");
+        var world = World(TestsZone);
+        at = await ada.WalkAsync(world, at, PlateCenter(), sequence: 0);
+        await ada.NextAsync<PlacementsFlipped>(ShapeLandMessageIds.PlacementsFlipped);
+        world.SetFlipped("door", true);
+
+        // Into the open doorway, and wait there for the door to close around Ada.
+        at = await ada.WalkAsync(world, at, new Vector3(18, 0, 12), sequence: 0);
+        Assert.False((await ada.NextAsync<PlacementsFlipped>(ShapeLandMessageIds.PlacementsFlipped)).Flipped);
+        world.SetFlipped("door", false);
+
+        // Walking out through it isn't snapped back.
+        await ada.WalkAsync(world, at, new Vector3(21, 0, 12), sequence: 0, passThrough: new HashSet<int>(world.MeshesNamed("door")));
+        Assert.Null(await ada.TryNextAsync<PositionCorrection>(MessageIds.PositionCorrection, TimeSpan.FromSeconds(0.5)));
+    }
+
+    private SpawnPoint Spawn(string key) => ShapeLandWorld.FindSpawn(_content, key)!.Value.Spawn;
+
+    private Teleporter Teleporter(string key) =>
+        _content.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Single(t => t.Id == key);
+
+    private Vector3 PlateCenter() =>
+        _content.Zones[TestsZone].Chunks.SelectMany(c => c.Triggers).Single(t => t.Id == "trigger.tests.plate").Volume.Position;
+
+    // A fresh copy of a zone's world, for working out the ground to walk on.
+    private Comet.Simulation.CollisionWorld World(string zone) => ShapeLandWorld.Create(_content, _content.Zones[zone]);
+
+    // Connects and joins as name on the tests' server; where they arrived.
+    private async Task<Vector3> JoinAsync(RawClient client, string name)
+    {
+        await client.ConnectAsync(_url);
+        await client.SendAsync(ShapeLandMessageIds.JoinRequest, AdaJoins(_content.Shapes.All[0]) with { Name = name });
+        while (true)
+        {
+            var spawn = await client.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+            if (spawn.Name == name)
+            {
+                return new Vector3(spawn.X, spawn.Y, spawn.Z);
+            }
+        }
+    }
+
+    // Runs test against a second server starting players at startSpawn (null: each at their shape's), then stops it.
+    private async Task WithServer(string? startSpawn, Func<Uri, Task> test)
+    {
+        var (server, url) = await StartServer(startSpawn);
         try
         {
             await test(url);
@@ -264,9 +373,54 @@ public sealed class EndToEndTests : IAsyncLifetime
 
         /// <summary>Skips messages until one with <paramref name="messageId"/> arrives.</summary>
         public async Task<T> NextAsync<T>(ushort messageId)
+            where T : struct => (await TryNextAsync<T>(messageId, TimeSpan.FromSeconds(8), throwOnTimeout: true))!.Value;
+
+        /// <summary>Skips messages until one with <paramref name="messageId"/> arrives, or <paramref name="wait"/> passes (then null).</summary>
+        public async Task<T?> TryNextAsync<T>(ushort messageId, TimeSpan wait, bool throwOnTimeout = false)
+            where T : struct
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            timeout.CancelAfter(wait);
+            try
+            {
+                return await Next<T>(messageId, timeout.Token);
+            }
+            catch (OperationCanceledException) when (!throwOnTimeout && !TestContext.Current.CancellationToken.IsCancellationRequested)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Walks from <paramref name="from"/> to <paramref name="to"/> at 5 m/s over the ground of <paramref name="world"/>,
+        /// reporting every 50 ms as a client would, echoing correction <paramref name="sequence"/>; where it ended.
+        /// </summary>
+        public async Task<Vector3> WalkAsync(Comet.Simulation.CollisionWorld world, Vector3 from, Vector3 to, uint sequence, ISet<int>? passThrough = null)
+        {
+            const float speed = 5, step = 0.05f;
+            var across = new Vector2(to.X - from.X, to.Z - from.Z);
+            var steps = Math.Max(1, (int)MathF.Ceiling(across.Length() / (speed * step)));
+            var velocity = across.Length() > 0 ? Vector2.Normalize(across) * speed : Vector2.Zero;
+            var at = from;
+            for (var i = 1; i <= steps; i++)
+            {
+                var flat = Vector2.Lerp(new Vector2(from.X, from.Z), new Vector2(to.X, to.Z), (float)i / steps);
+                world.TryGetGround(new Vector3(flat.X, at.Y + 1, flat.Y), 0.4f, at.Y + 1, out var ground, 0, passThrough);
+                at = new Vector3(flat.X, ground, flat.Y);
+                var moving = i < steps ? velocity : Vector2.Zero;
+                await SendAsync(MessageIds.PositionReport, new PositionReport
+                {
+                    X = at.X, Y = at.Y, Z = at.Z, VelocityX = moving.X, VelocityZ = moving.Y,
+                    Facing = MathF.Atan2(velocity.X, velocity.Y), CorrectionSequence = sequence,
+                });
+                await Task.Delay(TimeSpan.FromSeconds(step), TestContext.Current.CancellationToken);
+            }
+
+            return at;
+        }
+
+        private async Task<T> Next<T>(ushort messageId, CancellationToken cancel)
+        {
             while (true)
             {
                 while (_received.TryDequeue(out var message))
@@ -278,7 +432,7 @@ public sealed class EndToEndTests : IAsyncLifetime
                 }
 
                 var buffer = new byte[FrameReader.MaxServerFrameSize];
-                var result = await _socket.ReceiveAsync(buffer, timeout.Token);
+                var result = await _socket.ReceiveAsync(buffer, cancel);
                 Assert.True(result.EndOfMessage);
                 var reader = FrameReader.Create(buffer.AsMemory(0, result.Count));
                 while (reader.TryReadNext(out var id, out var payload))
@@ -401,13 +555,13 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task InfoNamesTheZoneToAnyPage()
+    public async Task InfoGivesTheContentHashToAnyPage()
     {
         using var http = new HttpClient();
         var response = await http.GetAsync(new Uri(_server.Urls.First() + "/info"), TestContext.Current.CancellationToken);
 
         var hash = ContentHash.Of(File.ReadAllBytes(_contentFile));
-        Assert.Equal($"{{\"zone\":\"{TestsZone}\",\"contentHash\":\"{hash}\"}}", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal($"{{\"contentHash\":\"{hash}\"}}", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal("*", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
     }
 

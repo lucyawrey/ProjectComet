@@ -54,7 +54,7 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // One set of game-wide values, and the marker it names must be a prop.
+        // One set of game-wide values, and the pads it names must be primitive kinds.
         var settings = result.Entries<GameSettings>();
         if (settings.Count != 1)
         {
@@ -62,19 +62,13 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        if (PrimitiveKinds.Named(settings[0].Spawns.Marker) == null)
+        foreach (var (field, pad) in new[] { ("spawns.pad", settings[0].Spawns.Pad), ("teleporters.pad", settings[0].Teleporters.Pad) })
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"spawns.marker: '{settings[0].Spawns.Marker}' isn't a primitive kind."));
-            return (null, errors);
-        }
-
-        // A server plays the default zone unless it's told another.
-        var zoneId = settings[0].World.DefaultZone;
-        if (!result.Zones.Any(z => z.Id == zoneId))
-        {
-            var zones = result.Zones.Select(z => z.Id).OrderBy(k => k, StringComparer.Ordinal).ToList();
-            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"world.default_zone: there's no zone '{zoneId}'; zones: {(zones.Count > 0 ? string.Join(", ", zones) : "(none)")}."));
-            return (null, errors);
+            if (PrimitiveKinds.Named(pad) == null)
+            {
+                errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"{field}: '{pad}' isn't a primitive kind."));
+                return (null, errors);
+            }
         }
 
         // Each shape's look is a group with a body for the player's color (errors against the shape's own file, by its key).
@@ -105,11 +99,11 @@ public static class ShapeLandBuild
             }
         }
 
-        // Each shape starts at a spawn point of the default zone (in other zones, at that zone's default spawn).
-        var zoneSpawns = result.Zones.Where(z => z.Id == zoneId).SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
-        foreach (var shape in result.Entries<Shape>().Where(s => !zoneSpawns.Contains(s.Spawn)))
+        // Each shape starts at a spawn point, in any zone.
+        var spawns = result.Zones.SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
+        foreach (var shape in result.Entries<Shape>().Where(s => !spawns.Contains(s.Spawn)))
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point in {zoneId}; change the shape's 'spawn =' to one it has: {(zoneSpawns.Count > 0 ? string.Join(", ", zoneSpawns.OrderBy(k => k, StringComparer.Ordinal)) : "(none yet)")}."));
+            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point; change the shape's 'spawn =' to one there is: {(spawns.Count > 0 ? string.Join(", ", spawns.OrderBy(k => k, StringComparer.Ordinal)) : "(none yet)")}."));
         }
 
         if (errors.Count > 0)
@@ -139,7 +133,7 @@ public static class ShapeLandBuild
             }
         }
 
-        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), colors = nameof(GameSettings.Colors), primitives = nameof(GameSettings.Primitives);
+        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), teleporters = nameof(GameSettings.Teleporters), triggers = nameof(GameSettings.Triggers), colors = nameof(GameSettings.Colors), primitives = nameof(GameSettings.Primitives);
         var m = settings.Movement;
         InRange(movement, nameof(m.Gravity), m.Gravity, 200);
         InRange(movement, nameof(m.BodyRadius), m.BodyRadius, 5);
@@ -149,8 +143,15 @@ public static class ShapeLandBuild
         InRange(movement, nameof(m.GroundAcceleration), m.GroundAcceleration, 1000);
         InRange(movement, nameof(m.AirAcceleration), m.AirAcceleration, 1000);
         InRange(movement, nameof(m.TurnSpeed), m.TurnSpeed, 10000);
-        InRange(spawns, nameof(SpawnSettings.ClaimSeconds), settings.Spawns.ClaimSeconds, 60);
-        InRange(spawns, nameof(SpawnSettings.MarkerHeight), settings.Spawns.MarkerHeight, 5);
+        InRange(spawns, nameof(SpawnSettings.StandSeconds), settings.Spawns.StandSeconds, 60);
+        InRange(spawns, nameof(SpawnSettings.PadHeight), settings.Spawns.PadHeight, 5);
+        InRange(teleporters, nameof(TeleporterSettings.StandSeconds), settings.Teleporters.StandSeconds, 60);
+        InRange(teleporters, nameof(TeleporterSettings.PadHeight), settings.Teleporters.PadHeight, 5);
+        if (settings.Triggers.StandSeconds < 0 || settings.Triggers.StandSeconds > 60)
+        {
+            validation.Error(triggers, nameof(TriggerSettings.StandSeconds), $"{settings.Triggers.StandSeconds} is out of range (0 to 60).");
+        }
+
         var budget = settings.Primitives;
         InRange(primitives, nameof(budget.FacetLength), budget.FacetLength, 100);
         if (budget.MinSides < 3)
@@ -167,6 +168,7 @@ public static class ShapeLandBuild
         IsColor(world, nameof(WorldSettings.UnderColor), settings.World.UnderColor);
         IsColor(world, nameof(WorldSettings.PlacedColor), settings.World.PlacedColor);
         IsColor(spawns, nameof(SpawnSettings.UnsetColor), settings.Spawns.UnsetColor);
+        IsColor(teleporters, nameof(TeleporterSettings.PadColor), settings.Teleporters.PadColor);
         foreach (var color in settings.Colors.Body)
         {
             IsColor(colors, nameof(ColorSettings.Body), color);

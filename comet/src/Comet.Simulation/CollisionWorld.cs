@@ -8,7 +8,7 @@ namespace Comet.Simulation
     /// What players stand on and bump into: a zone's terrain pieces (heightmaps, possibly stacked), solid triangle
     /// meshes (placed props and volumes), and a kill height below which a player has fallen out of the world.
     /// Players are an upright box: a square footprint <c>radius</c> from the feet's center, <c>bodyHeight</c> tall.
-    /// Named meshes can be turned off and on (<see cref="SetOn"/>), and queries can pass through a player's own set of
+    /// Named meshes can be flipped off and on (<see cref="SetFlipped"/>), and queries can pass through a player's own set of
     /// meshes (those turned on around them, until they're out). The same on client and server; safe to query from
     /// several threads at once (bots share one), with turning meshes on and off from one thread.
     /// </summary>
@@ -111,13 +111,16 @@ namespace Comet.Simulation
         /// <summary>Whether mesh <paramref name="mesh"/> is solid now.</summary>
         public bool IsOn(int mesh) => !_off[mesh];
 
-        /// <summary>Turns the meshes named <paramref name="name"/> on (solid) or off.</summary>
-        public void SetOn(string name, bool on)
+        /// <summary>
+        /// Flips the meshes named <paramref name="name"/> from how they start (<paramref name="flipped"/>), or back:
+        /// each one that starts on turns off, and each one that starts off turns on.
+        /// </summary>
+        public void SetFlipped(string name, bool flipped)
         {
             var off = (bool[])_off.Clone();
             foreach (var mesh in MeshesNamed(name))
             {
-                off[mesh] = !on;
+                off[mesh] = _meshes[mesh].StartsOff != flipped;
             }
 
             _off = off;

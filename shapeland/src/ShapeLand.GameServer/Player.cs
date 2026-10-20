@@ -40,8 +40,14 @@ internal sealed class Player(Connection connection, int tickRate)
     /// <summary>Where the player goes on falling out of the world or returning; for the session only.</summary>
     public SpawnPoint SpawnPoint { get; set; } = null!;
 
-    /// <summary>Another spawn point the player is standing in, claiming it, and the tick they stepped in; null if none.</summary>
-    public (SpawnPoint Spawn, uint Since)? Claiming { get; set; }
+    /// <summary>The zone the player is in, once joined.</summary>
+    public ZoneState Zone { get; set; } = null!;
+
+    /// <summary>Times the player standing in spawn points, to claim them.</summary>
+    public TriggerCharge SpawnCharge { get; } = new();
+
+    /// <summary>Times the player standing in teleporters.</summary>
+    public TriggerCharge TeleportCharge { get; } = new();
 
     /// <summary>The tick the connection arrived; it must join within <see cref="ShapeLandRules.JoinDeadlineSeconds"/>.</summary>
     public uint ConnectedTick { get; init; }

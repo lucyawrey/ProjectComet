@@ -658,6 +658,10 @@ namespace Comet.ZoneFiles
             {
                 error(file, $"{key}: stand_seconds can't be negative.");
             }
+            else if (volume.Rearm == Rearm.Repeat && volume.StandSeconds == 0)
+            {
+                error(file, $"{key}: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.");
+            }
 
             if (volume.Pad is { } pad)
             {
