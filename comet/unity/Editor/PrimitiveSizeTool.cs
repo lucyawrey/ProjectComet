@@ -23,25 +23,27 @@ namespace Comet.Unity.Editor
         private static ZonePlacement? Single =>
             Selection.count == 1 && Selection.activeGameObject != null && Selection.activeGameObject.TryGetComponent<ZonePlacement>(out var p) && p.isPrimitive && !p.IsGroup ? p : null;
 
+        // Checked each editor update rather than on Unity's events, which don't always come (selection set from code).
         [InitializeOnLoadMethod]
-        private static void SwapWithScale()
+        private static void SwapWithScale() => EditorApplication.update += () =>
         {
-            void Swap()
+            var single = Single != null;
+            if (single && Tools.current == Tool.Scale)
             {
-                if (Single != null && Tools.current == Tool.Scale)
+                try
                 {
                     ToolManager.SetActiveTool<PrimitiveSizeTool>();
                 }
-                else if (Single == null && ToolManager.activeToolType == typeof(PrimitiveSizeTool))
+                catch (System.InvalidOperationException)
                 {
-                    Tools.current = Tool.Scale;
+                    // Unity hasn't told its tools about the new selection yet: next update.
                 }
             }
-
-            // A tick later: Unity tells the tools about a new selection after its own event.
-            ToolManager.activeToolChanged += () => EditorApplication.delayCall += Swap;
-            Selection.selectionChanged += () => EditorApplication.delayCall += Swap;
-        }
+            else if (!single && ToolManager.activeToolType == typeof(PrimitiveSizeTool))
+            {
+                Tools.current = Tool.Scale;
+            }
+        };
 
         public override void OnToolGUI(EditorWindow window)
         {
