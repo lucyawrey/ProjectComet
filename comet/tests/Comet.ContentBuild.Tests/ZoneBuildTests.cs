@@ -194,6 +194,17 @@ public class ZoneBuildTests
     }
 
     [Fact]
+    public void GroupsSharingAnIdAreReportedNotThrown()
+    {
+        using var folder = new ContentFolder();
+        var post = new Group { Id = "group.post", Parts = [new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Box } }] };
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post.toml"), post);
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post_copy.toml"), post);
+
+        Assert.Contains("is already used by", Assert.Single(Build(folder).Errors).Message);
+    }
+
+    [Fact]
     public void GroupErrorsNameTheGroupFile()
     {
         using var folder = new ContentFolder();

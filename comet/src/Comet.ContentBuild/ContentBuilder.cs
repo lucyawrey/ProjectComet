@@ -163,8 +163,9 @@ public sealed class ContentBuilder
         var groups = GroupFile.ReadFolder(folder, groupErrors);
         groupErrors.AddRange(ZoneValidation.CheckGroups(groups, key => props.TryGetValue(key, out var prop) ? prop : null));
         errors.AddRange(groupErrors.Select(e => new ContentError(DisplayPath(Path.Combine(folder, e.File)), 1, 1, e.Message)));
-        // Kept even with errors (the build fails on them anyway), so zones don't also report each copy as unknown.
-        return groups.Select(g => g.Group).ToList();
+        // Kept even with errors (the build fails on them anyway), so zones don't also report each copy as unknown; of
+        // groups sharing an id, the first.
+        return groups.Select(g => g.Group).GroupBy(g => g.Id).Select(same => same.First()).ToList();
     }
 
     private List<Zone> ReadZones(string folder, Dictionary<string, Prop> props, Dictionary<string, Group> groups, List<ContentError> errors, List<ContentError> warnings)

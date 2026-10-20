@@ -492,7 +492,11 @@ namespace Comet.Unity.Editor
                             {
                                 Debug.Log("The content changed while the local game server started; restarting it.");
                                 Stop(quiet: true);
-                                Start(settings, build: false);
+                                if (!Start(settings, build: false, answers: false))
+                                {
+                                    Debug.LogError("The local game server didn't restart for the new content: start it again (Comet › Server › Start).");
+                                }
+
                                 return;
                             }
 

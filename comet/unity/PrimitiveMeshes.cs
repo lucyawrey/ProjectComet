@@ -13,9 +13,12 @@ namespace Comet.Unity
     /// </summary>
     public static class PrimitiveMeshes
     {
-        // Meshes by name, which spells out the primitive, size and budget each is built for, so a domain reload (which
-        // empties this but keeps the meshes, as they're DontSave) takes them back instead of leaking them.
+        // Meshes by name, which spells out the primitive, size and budget each is built for.
         private static Dictionary<string, Entry>? _meshes;
+
+        // Meshes an earlier domain built (a reload empties the dictionary but keeps them, as they're DontSave): not
+        // reused, since the mesher may have changed, but destroyed once nothing shows them.
+        private static List<Mesh> _strays = new List<Mesh>();
         private static int _uses;
         private static int _pruneAbove = PruneAbove;
 
@@ -33,7 +36,7 @@ namespace Comet.Unity
         /// <summary>A primitive placement's own mesh, flat-shaded, shared by every placement of the same primitive and size.</summary>
         public static Mesh For(Placement placement, PolygonBudget budget)
         {
-            var meshes = _meshes ??= Adopt();
+            var meshes = _meshes ??= FirstUse();
             var name = MeshName(placement, budget);
             if (!meshes.TryGetValue(name, out var entry) || entry.Mesh == null)
             {
@@ -54,23 +57,28 @@ namespace Comet.Unity
             return entry.Mesh;
         }
 
-        // The meshes an earlier domain built, by name.
-        private static Dictionary<string, Entry> Adopt()
+        // An empty dictionary, with the meshes an earlier domain built as strays, the ones nothing shows destroyed now.
+        private static Dictionary<string, Entry> FirstUse()
         {
-            var meshes = new Dictionary<string, Entry>();
             foreach (var mesh in Resources.FindObjectsOfTypeAll<Mesh>())
             {
-                if (mesh.hideFlags == HideFlags.DontSave && mesh.name.StartsWith(NamePrefix, System.StringComparison.Ordinal))
+                if (mesh.hideFlags == HideFlags.DontSave && mesh.name.StartsWith(NamePrefix, StringComparison.Ordinal))
                 {
-                    meshes[mesh.name] = new Entry { Mesh = mesh };
+                    _strays.Add(mesh);
                 }
             }
 
-            return meshes;
+            if (_strays.Count > 0)
+            {
+                var shown = Shown();
+                _strays.RemoveAll(mesh => Destroy(mesh, shown));
+            }
+
+            return new Dictionary<string, Entry>();
         }
 
-        // Destroys the meshes no mesh filter or collider uses that weren't asked for lately.
-        private static void Prune(Dictionary<string, Entry> meshes)
+        // The meshes some mesh filter or collider uses.
+        private static HashSet<Mesh> Shown()
         {
             var shown = new HashSet<Mesh>();
             foreach (var filter in Resources.FindObjectsOfTypeAll<MeshFilter>())
@@ -83,28 +91,48 @@ namespace Comet.Unity
                 shown.Add(collider.sharedMesh);
             }
 
+            return shown;
+        }
+
+        // Destroys mesh unless it's shown; true if it's gone.
+        private static bool Destroy(Mesh mesh, HashSet<Mesh> shown)
+        {
+            if (mesh == null)
+            {
+                return true;
+            }
+
+            if (shown.Contains(mesh))
+            {
+                return false;
+            }
+
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(mesh);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(mesh);
+            }
+
+            return true;
+        }
+
+        // Destroys the strays and meshes nothing shows, except those asked for lately.
+        private static void Prune(Dictionary<string, Entry> meshes)
+        {
+            var shown = Shown();
+            _strays.RemoveAll(mesh => Destroy(mesh, shown));
             foreach (var (name, entry) in new List<KeyValuePair<string, Entry>>(meshes))
             {
-                if (entry.Mesh == null || (!shown.Contains(entry.Mesh) && entry.Used <= _uses - KeepRecent))
+                if (entry.Used <= _uses - KeepRecent && Destroy(entry.Mesh, shown))
                 {
                     meshes.Remove(name);
-                    if (entry.Mesh == null)
-                    {
-                        continue;
-                    }
-
-                    if (Application.isPlaying)
-                    {
-                        UnityEngine.Object.Destroy(entry.Mesh);
-                    }
-                    else
-                    {
-                        UnityEngine.Object.DestroyImmediate(entry.Mesh);
-                    }
                 }
             }
 
-            _pruneAbove = System.Math.Max(PruneAbove, meshes.Count * 2);
+            _pruneAbove = Math.Max(PruneAbove, meshes.Count * 2);
         }
 
         /// <summary>Collects placed primitives into one mesh, each in its own color as vertex colors (for the Comet/Vertex Color Lit shader).</summary>
