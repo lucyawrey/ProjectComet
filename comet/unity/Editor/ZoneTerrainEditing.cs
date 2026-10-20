@@ -214,11 +214,13 @@ namespace Comet.Unity.Editor
 
                             var i = z * map.SizeX + x;
                             var key = (chunk.Coord.X * ZoneGrid.ChunkSize + tile.OriginX + x, chunk.Coord.Z * ZoneGrid.ChunkSize + tile.OriginZ + z);
+                            // Where tiles share a sample, one may have a map the other lacks: keep what either has.
+                            samples.TryGetValue(key, out var seen);
                             samples[key] = (
                                 map.Offset + map.Samples[i] * map.Scale,
-                                tile.Underside is { } under ? under.Offset + under.Samples[i] * under.Scale : (float?)null,
-                                tile.Colors?.Colors[i],
-                                tile.Underside != null ? tile.UndersideColors?.Colors[i] : null);
+                                tile.Underside is { } under ? under.Offset + under.Samples[i] * under.Scale : seen.Under,
+                                tile.Colors?.Colors[i] ?? seen.Color,
+                                (tile.Underside != null ? tile.UndersideColors?.Colors[i] : null) ?? seen.UnderColor);
                         }
                     }
                 }
