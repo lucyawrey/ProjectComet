@@ -95,16 +95,16 @@ namespace Comet.Unity.Editor
 
             if (placed.isPrimitive)
             {
-                var keys = settings.props.Entries.Select(e => e.id).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
-                using (new EditorGUI.DisabledScope(keys.Count == 0))
+                var ids = settings.props.Entries.Select(e => e.id).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
+                using (new EditorGUI.DisabledScope(ids.Count == 0))
                 {
-                    var label = new GUIContent("Swap for prop…", keys.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands.");
+                    var label = new GUIContent("Swap for prop…", ids.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands.");
                     if (GUILayout.Button(label))
                     {
                         var menu = new GenericMenu();
-                        foreach (var key in keys)
+                        foreach (var id in ids)
                         {
-                            menu.AddItem(new GUIContent(key), false, () => ZoneSwap.ForProp(placed, key, settings));
+                            menu.AddItem(new GUIContent(id), false, () => ZoneSwap.ForProp(placed, id, settings));
                         }
 
                         menu.ShowAsContext();

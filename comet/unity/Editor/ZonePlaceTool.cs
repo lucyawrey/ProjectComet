@@ -209,13 +209,13 @@ namespace Comet.Unity.Editor
                 for (var i = 0; i < items.Count; i += perRow)
                 {
                     EditorGUILayout.BeginHorizontal();
-                    foreach (var (key, label, picture) in items.Skip(i).Take(perRow))
+                    foreach (var (item, label, picture) in items.Skip(i).Take(perRow))
                     {
-                        var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, key);
-                        var picked = adding.Length == 0 && placeable == key;
+                        var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, item);
+                        var picked = adding.Length == 0 && placeable == item;
                         if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) && !picked)
                         {
-                            placeable = key;
+                            placeable = item;
                             adding = "";
                         }
                     }
@@ -257,8 +257,8 @@ namespace Comet.Unity.Editor
 
                 if (GUILayout.Button("Delete…", GUILayout.Width(70)))
                 {
-                    var key = placeable;
-                    EditorApplication.delayCall += () => ZoneGroups.Delete(key, editing, settings); // after this GUI pass
+                    var id = placeable;
+                    EditorApplication.delayCall += () => ZoneGroups.Delete(id, editing, settings); // after this GUI pass
                     placeable = "";
                 }
 

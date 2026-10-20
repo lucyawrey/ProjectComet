@@ -119,7 +119,7 @@ namespace ShapeLand.Client.Editor
                 var max = new Vector3(prop.BoundsMax.X, prop.BoundsMax.Y, prop.BoundsMax.Z);
                 return new PropLibrary.Entry
                 {
-                    key = prop.Id,
+                    id = prop.Id,
                     model = model,
                     uniformScale = prop.UniformScale,
                     bounds = new Bounds((min + max) / 2, max - min),

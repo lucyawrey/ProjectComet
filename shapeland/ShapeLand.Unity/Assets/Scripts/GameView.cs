@@ -240,7 +240,7 @@ namespace ShapeLand.Client
         }
 
         // A spawn point's, teleporter's or trigger's pad, if it has one: drawn on its own, to be colored.
-        private void AddPad(object owner, string key, TriggerVolume volume, Transform parent)
+        private void AddPad(object owner, string id, TriggerVolume volume, Transform parent)
         {
             if (volume.Pad is not { } pad)
             {
@@ -248,7 +248,7 @@ namespace ShapeLand.Client
             }
 
             var thing = PlacePrimitive(pad, parent);
-            thing.name = key;
+            thing.name = id;
             var color = owner is SpawnPoint ? Color(_content.Settings.Spawns.UnsetColor) : Color(pad.Color ?? _content.Settings.World.PlacedColor);
             _pads.Add(new Pad(owner, thing.GetComponentsInChildren<Renderer>(), color));
         }
@@ -461,7 +461,7 @@ namespace ShapeLand.Client
             Material shapeMaterial, Material eyesMaterial, Material shapeFadeMaterial, Material eyesFadeMaterial)
         {
             var drawn = ShapeBody.Create(shape.DisplayName, parent, shape.Scale, shape.Hover);
-            foreach (var part in Groups.Expand(new Placement { Group = shape.Look }, key => content.Groups.TryGet(key, out var group) ? group : null))
+            foreach (var part in Groups.Expand(new Placement { Group = shape.Look }, id => content.Groups.TryGet(id, out var group) ? group : null))
             {
                 if (part.Primitive == null)
                 {
