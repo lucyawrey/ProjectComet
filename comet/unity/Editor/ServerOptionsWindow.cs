@@ -19,6 +19,7 @@ namespace Comet.Unity.Editor
 
         private double _checkedAt = -StatusEvery;
         private double _webCheckedAt = -WebBuildEvery;
+        private double _copiedAt = -10;
         private bool _answers;
         private DateTime? _webBuiltAt;
         private string? _newerSource;
@@ -80,12 +81,17 @@ namespace Comet.Unity.Editor
             {
                 var scheme = with.Web ? "http://" : "";
                 var lines = $"Running on port {port}, started by the editor{(with.Bots > 0 ? $", with {with.Bots} bots" : "")}.\nThis computer: {scheme}localhost:{port}";
-                if (with.Lan)
+                var shared = with.Lan && LocalServer.LanAddress() is { } lan ? $"{scheme}{lan}:{port}" : null;
+                if (with.Lan && shared == null)
                 {
-                    lines += LocalServer.LanAddress() is { } lan ? $"\nOthers on the network: {scheme}{lan}:{port}" : "\nOthers on the network: (no network address found)";
+                    lines += "\nOthers on the network: (no network address found)";
                 }
 
                 EditorGUILayout.HelpBox(lines, MessageType.Info);
+                if (shared != null)
+                {
+                    SharedAddress(shared);
+                }
                 var chosen = LocalServer.Chosen;
                 if (chosen.Web != with.Web || chosen.Lan != with.Lan || chosen.Bots != with.Bots)
                 {
@@ -143,6 +149,26 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.EndHorizontal();
+        }
+
+        // The address others on the network join, selectable, with a button that copies it.
+        private void SharedAddress(string address)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel(new GUIContent("Others on the network", "Share this address with people on the same local network."));
+            EditorGUILayout.SelectableLabel(address, EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+            var copied = EditorApplication.timeSinceStartup - _copiedAt < 1.5;
+            if (GUILayout.Button(copied ? "Copied" : "Copy", GUILayout.Width(60)))
+            {
+                EditorGUIUtility.systemCopyBuffer = address;
+                _copiedAt = EditorApplication.timeSinceStartup;
+            }
+
+            EditorGUILayout.EndHorizontal();
+            if (copied)
+            {
+                Repaint(); // back to "Copy" once the moment passes
+            }
         }
 
         private static void OptionsGUI()
