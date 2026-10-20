@@ -200,13 +200,27 @@ namespace ShapeLand.Client
         // The server address in the card, or the default one when it's empty.
         private string ServerAddress() => string.IsNullOrWhiteSpace(_server.value) ? _join.DefaultAddress : _server.value.Trim();
 
+        // The server last joined, else the default. In the editor, one on this computer means its local game server,
+        // on whatever port that uses now (Comet › Server); one elsewhere (a teammate's) stays as it was.
+        private string RememberedServer()
+        {
+            var remembered = PlayerPrefs.GetString(ServerKey, "");
+#if UNITY_EDITOR
+            if (Comet.Unity.LocalServerPort.InEditor != null && JoinClient.TryServerUrl(remembered, out var url) && url.IsLoopback)
+            {
+                return _join.DefaultAddress;
+            }
+#endif
+            return string.IsNullOrWhiteSpace(remembered) ? _join.DefaultAddress : remembered;
+        }
+
         private void OnContentLoaded(ShapeLandContent content)
         {
             _content = content;
             UiText.Fill(_root, content.Strings);
             SetChanging(false);
             _name.value = PlayerPrefs.GetString(NameKey, "");
-            _server.value = PlayerPrefs.GetString(ServerKey, _join.DefaultAddress);
+            _server.value = RememberedServer();
             _join.Preview(ServerAddress());
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
             _color = Remembered(ColorKey, _content.Settings.Colors.Body);
