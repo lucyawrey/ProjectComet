@@ -189,6 +189,75 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
+        /// <summary>
+        /// Moves a piece: <paramref name="dx"/> and <paramref name="dz"/> whole samples sideways and
+        /// <paramref name="dy"/> meters up, with its underside and colors, so its shape stays the same.
+        /// </summary>
+        public void MovePiece(string name, int dx, int dz, float dy, uint ground, uint skirt)
+        {
+            // Every world sample the piece has, read from its tiles (chunks repeat their shared edges, so a sample may
+            // be read twice, with the same values).
+            var samples = new Dictionary<(int X, int Z), (float Height, float? Under, uint? Color, uint? UnderColor)>();
+            foreach (var chunk in Zone.Chunks)
+            {
+                foreach (var tile in chunk.Tiles.Where(t => t.Piece == name))
+                {
+                    var map = tile.Heights;
+                    for (var z = 0; z < map.SizeZ; z++)
+                    {
+                        for (var x = 0; x < map.SizeX; x++)
+                        {
+                            if (map.IsHole(x, z))
+                            {
+                                continue;
+                            }
+
+                            var i = z * map.SizeX + x;
+                            var key = (chunk.Coord.X * ZoneGrid.ChunkSize + tile.OriginX + x, chunk.Coord.Z * ZoneGrid.ChunkSize + tile.OriginZ + z);
+                            samples[key] = (
+                                map.Offset + map.Samples[i] * map.Scale,
+                                tile.Underside is { } under ? under.Offset + under.Samples[i] * under.Scale : (float?)null,
+                                tile.Colors?.Colors[i],
+                                tile.Underside != null ? tile.UndersideColors?.Colors[i] : null);
+                        }
+                    }
+                }
+            }
+
+            foreach (var chunk in Zone.Chunks)
+            {
+                chunk.Tiles = chunk.Tiles.Where(t => t.Piece != name).ToArray();
+            }
+
+            Reindex();
+            foreach (var ((x, z), sample) in samples)
+            {
+                SetHeight(name, x + dx, z + dz, sample.Height + dy);
+            }
+
+            Reindex();
+            foreach (var ((x, z), sample) in samples)
+            {
+                var (nx, nz) = (x + dx, z + dz);
+                if (sample.Under is { } under)
+                {
+                    SetUnderside(name, nx, nz, under + dy);
+                }
+
+                if (sample.Color is { } color)
+                {
+                    SetColor(name, nx, nz, color, ground);
+                }
+
+                if (sample.UnderColor is { } underColor)
+                {
+                    SetUndersideColor(name, nx, nz, underColor, skirt);
+                }
+            }
+
+            Reindex();
+        }
+
         /// <summary>Removes a piece and all its tiles.</summary>
         public void RemovePiece(string name)
         {
