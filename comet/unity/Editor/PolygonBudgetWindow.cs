@@ -136,7 +136,7 @@ namespace Comet.Unity.Editor
 
         private static void RebuildAll()
         {
-            foreach (var placement in Object.FindObjectsByType<ZonePlacement>(FindObjectsSortMode.None))
+            foreach (var placement in Object.FindObjectsByType<ZonePlacement>())
             {
                 placement.Rebuild();
             }
@@ -147,7 +147,7 @@ namespace Comet.Unity.Editor
         // Folds the scale of every scaled primitive in the open scenes into its size.
         private static void FoldScales()
         {
-            foreach (var placement in Object.FindObjectsByType<ZonePlacement>(FindObjectsSortMode.None))
+            foreach (var placement in Object.FindObjectsByType<ZonePlacement>())
             {
                 var t = placement.transform;
                 if (!placement.isPrimitive || t.localScale == Vector3.one)
