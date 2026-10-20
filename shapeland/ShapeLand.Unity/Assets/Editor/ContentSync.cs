@@ -86,7 +86,7 @@ namespace ShapeLand.Client.Editor
             Debug.Log("Updated the Comet settings from the content.");
         }
 
-        // Points each prop key at the model its entry names (a path under Assets/), saving only if something changed.
+        // Points each prop id at the model its entry names (a path under Assets/), saving only if something changed.
         private static void RefreshLibrary(byte[] contentFile)
         {
             ShapeLandContent content;

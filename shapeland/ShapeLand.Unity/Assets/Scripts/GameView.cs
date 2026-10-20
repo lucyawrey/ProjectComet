@@ -31,7 +31,7 @@ namespace ShapeLand.Client
         [SerializeField] private Material blockMaterial;
         [Tooltip("The material blockout placements are drawn with (Comet/Blockout: a grid over their color).")]
         [SerializeField] private Material blockoutMaterial;
-        [Tooltip("The models for prop keys, kept up to date by the editor from the content.")]
+        [Tooltip("The models for prop ids, kept up to date by the editor from the content.")]
         [SerializeField] private PropLibrary props;
         [Tooltip("Players' shapes: their looks' parts other than eyes, colored per part.")]
         [SerializeField] private Material shapeMaterial;

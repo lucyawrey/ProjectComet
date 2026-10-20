@@ -19,10 +19,10 @@ namespace Comet.Unity.Editor
     public sealed class ZonePlaceTool : EditorTool
     {
         [SerializeField] private string placeable = "";
-        // The kind of trigger to add (spawn, teleporter or trigger), or empty to place placeables; and its name.
+        // The kind of trigger to add (spawn, teleporter or trigger), or empty to place placeables; and its id.
         [SerializeField] private string adding = "";
-        [SerializeField] private string addingName = "";
-        [SerializeField] private string groupKey = "group.";
+        [SerializeField] private string addingId = "";
+        [SerializeField] private string groupId = "group.";
         [SerializeField] private Color color = Color.clear; // clear until first shown: then the game's placed color
         [SerializeField] private bool blockout;
 
@@ -66,7 +66,7 @@ namespace Comet.Unity.Editor
                 .Select(f => (f.sharedMesh, Matrix4x4.Scale(scale) * model.transform.worldToLocalMatrix * f.transform.localToWorldMatrix))
                 .ToList();
 
-        // What a placeable name (a prop key or a primitive's kind) draws at a scale, or nothing if it has no model.
+        // What a placeable name (a prop id or a primitive's kind) draws at a scale, or nothing if it has no model.
         private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(string placeable, CometSettings settings, Vector3? size = null)
         {
             if (ZoneEditor.PrimitiveNamed(placeable) is { } kind)
@@ -174,7 +174,7 @@ namespace Comet.Unity.Editor
             EditorGUILayout.BeginVertical(GUILayout.Width(width));
             if (editing.IsGroup)
             {
-                EditorGUILayout.HelpBox($"Editing {editing.groupKey}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.", MessageType.Info);
+                EditorGUILayout.HelpBox($"Editing {editing.groupId}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.", MessageType.Info);
                 var back = ZoneGroups.ReturnFolder;
                 if (back.Length > 0 && GUILayout.Button($"Back to {System.IO.Path.GetFileName(back)}"))
                 {
@@ -232,16 +232,16 @@ namespace Comet.Unity.Editor
             EditorGUILayout.LabelField("Props", EditorStyles.boldLabel);
             Grid(settings.props.Entries.Select(entry =>
             {
-                var label = entry.key.StartsWith("prop.") ? entry.key.Substring("prop.".Length) : entry.key;
+                var label = entry.id.StartsWith("prop.") ? entry.id.Substring("prop.".Length) : entry.id;
                 var preview = entry.model == null ? null
-                    : settings.placedMaterial != null ? Thumbnail(entry.key, Parts(entry.model, Vector3.one), settings.placedMaterial, color, size * 2)
+                    : settings.placedMaterial != null ? Thumbnail(entry.id, Parts(entry.model, Vector3.one), settings.placedMaterial, color, size * 2)
                     : AssetPreview.GetAssetPreview(entry.model);
-                return (entry.key, label, preview);
+                return (entry.id, label, preview);
             }).ToList());
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Groups", EditorStyles.boldLabel);
-            Grid(ZoneGroups.All.Where(g => g.Id != editing.groupKey).Select(g =>
+            Grid(ZoneGroups.All.Where(g => g.Id != editing.groupId).Select(g =>
             {
                 var label = g.Id.Substring("group.".Length);
                 var picture = settings.placedMaterial != null ? Thumbnail($"{g.Id} {ZoneGroups.Version} {budgetKey}", ZoneGroups.Meshes(g.Id, settings), settings.placedMaterial, Color.clear, size * 2) : null;
@@ -266,10 +266,10 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.BeginHorizontal();
-            groupKey = EditorGUILayout.TextField(groupKey);
+            groupId = EditorGUILayout.TextField(groupId);
             if (GUILayout.Button("Save selection as group", GUILayout.Width(160)))
             {
-                ZoneGroups.SaveSelection(editing, groupKey, settings);
+                ZoneGroups.SaveSelection(editing, groupId, settings);
             }
 
             EditorGUILayout.EndHorizontal();
@@ -302,6 +302,10 @@ namespace Comet.Unity.Editor
                 if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) != picked)
                 {
                     adding = picked ? "" : kind;
+                    // The id starts as the kind and the zone, keeping a name already typed.
+                    var prefix = $"{kind}.{ZoneName(editing)}.";
+                    var typed = addingId.Split('.') is { Length: 3 } parts ? parts[2] : "";
+                    addingId = prefix + typed;
                 }
             }
 
@@ -309,12 +313,15 @@ namespace Comet.Unity.Editor
             Adder("teleporter", "New teleporter", settings.teleporterPad, settings.teleporterPadSize, settings.teleporterPadColor);
             Adder("trigger", "New trigger", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
-            var zoneName = ZoneName(editing);
-            EditorGUILayout.LabelField(adding.Length > 0 ? $"Its name ({adding}.{zoneName}.…)" : "A new one's name");
-            addingName = EditorGUILayout.TextField(addingName);
-            foreach (var point in editing.GetComponentsInChildren<ZoneTrigger>().OrderBy(t => t.key, StringComparer.Ordinal))
+            if (adding.Length > 0)
             {
-                if (GUILayout.Button(point.key, EditorStyles.linkLabel))
+                EditorGUILayout.LabelField("ID");
+                addingId = EditorGUILayout.TextField(addingId);
+            }
+
+            foreach (var point in editing.GetComponentsInChildren<ZoneTrigger>().OrderBy(t => t.id, StringComparer.Ordinal))
+            {
+                if (GUILayout.Button(point.id, EditorStyles.linkLabel))
                 {
                     Selection.activeGameObject = point.gameObject;
                     SceneView.lastActiveSceneView?.FrameSelected();
@@ -419,22 +426,23 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            var key = $"{adding}.{ZoneName(editing)}.{addingName}";
-            if (!Comet.ZoneFiles.ZoneValidation.IsZonedKey(key, adding) || editing.GetComponentsInChildren<ZoneTrigger>().Any(t => t.key == key))
+            var id = addingId;
+            var prefix = $"{adding}.{ZoneName(editing)}.";
+            if (!id.StartsWith(prefix, StringComparison.Ordinal) || !Comet.ZoneFiles.ZoneValidation.IsZonedId(id, adding) || editing.GetComponentsInChildren<ZoneTrigger>().Any(t => t.id == id))
             {
-                EditorUtility.DisplayDialog($"New {adding}", "Pick a new name: lowercase letters, digits and underscores, starting with a letter.", "OK");
+                EditorUtility.DisplayDialog($"New {adding}", $"Pick a new id: '{prefix}' then lowercase letters, digits and underscores, starting with a letter.", "OK");
                 return;
             }
 
             Selection.activeGameObject = (adding switch
             {
-                "spawn" => (ZoneTrigger)ZoneEditor.AddTrigger<ZoneSpawn>(editing, key, at, settings),
-                "teleporter" => ZoneEditor.AddTrigger<ZoneTeleporter>(editing, key, at, settings),
-                _ => ZoneEditor.AddTrigger<ZoneToggleTrigger>(editing, key, at, settings),
+                "spawn" => (ZoneTrigger)ZoneEditor.AddTrigger<ZoneSpawn>(editing, id, at, settings),
+                "teleporter" => ZoneEditor.AddTrigger<ZoneTeleporter>(editing, id, at, settings),
+                _ => ZoneEditor.AddTrigger<ZoneToggleTrigger>(editing, id, at, settings),
             }).gameObject;
         }
 
-        // The opened zone's name (meadow, for zone.meadow), as its keys use it; its root is named after its key.
+        // The opened zone's name (meadow, for zone.meadow), as its ids use it; its root is named after its id.
         private static string ZoneName(ZoneEditing editing) =>
             editing.name.StartsWith("Zone zone.", StringComparison.Ordinal) ? editing.name.Substring("Zone zone.".Length) : "";
 

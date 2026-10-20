@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// What spawn points, teleporters and triggers share in a zone opened in the editor: a key, an invisible volume
+    /// What spawn points, teleporters and triggers share in a zone opened in the editor: a id, an invisible volume
     /// standing on the object's position and turned by its Y rotation, a stand time and re-arming, and an optional pad
     /// (a primitive placement as its child, solid in the game). The volume is drawn as a wireframe.
     /// </summary>
@@ -31,8 +31,8 @@ namespace Comet.Unity
             Repeat,
         }
 
-        [Tooltip("The key, naming its zone (spawn.meadow.gate).")]
-        public string key = "";
+        [Tooltip("The id, naming its zone (spawn.meadow.gate).")]
+        public string id = "";
 
         [Tooltip("The volume's shape: players are in it when their feet are inside.")]
         public VolumeKind volume = VolumeKind.Box;
@@ -46,7 +46,7 @@ namespace Comet.Unity
         [Tooltip("Step off: fires again only after stepping out. Repeat: again every stand time while inside.")]
         public RearmMode rearm;
 
-        /// <summary>The kind, as keys start: spawn, teleporter or trigger.</summary>
+        /// <summary>The kind, as ids start: spawn, teleporter or trigger.</summary>
         public abstract string Kind { get; }
 
         /// <summary>The wireframe's color.</summary>

@@ -15,7 +15,7 @@ namespace Comet.Unity
     [SelectionBase]
     public sealed class ZonePlacement : MonoBehaviour
     {
-        [Tooltip("The prop's key (prop.rock); empty for a primitive or a group copy.")]
+        [Tooltip("The prop's id (prop.rock); empty for a primitive or a group copy.")]
         public string prop = "";
 
         [Tooltip("The group this is a copy of (group.tree); empty for a prop or a primitive. Copies look like their group: edit the group to change them all.")]

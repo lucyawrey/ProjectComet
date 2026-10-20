@@ -52,7 +52,7 @@ namespace Comet.Unity.Editor
                 Rotation = new System.Numerics.Vector3(0, t.eulerAngles.y, 0),
                 Scale = new System.Numerics.Vector3(trigger.size.x, height, trigger.size.z),
             }, t, settings);
-            pad.name = $"{trigger.key} pad";
+            pad.name = $"{trigger.id} pad";
             Undo.RegisterCreatedObjectUndo(pad, "Add Pad");
             ZoneEditor.FitToPad(trigger);
         }

@@ -1,7 +1,6 @@
 using Comet.Content;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Comet.Unity.Editor
 {
@@ -31,7 +30,7 @@ namespace Comet.Unity.Editor
         [Tooltip("The scene play mode always starts in, whatever scene is open: the game's own, which loads its zones from content.")]
         public SceneAsset? playScene;
 
-        [Tooltip("The models for prop keys.")]
+        [Tooltip("The models for prop ids.")]
         public PropLibrary? props;
 
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
@@ -47,7 +46,6 @@ namespace Comet.Unity.Editor
         public Color groundColor = new Color32(0x73, 0x9e, 0x4d, 0xff);
 
         [Tooltip("The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own.")]
-        [FormerlySerializedAs("skirtColor")]
         public Color underColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
 
         [Tooltip("The color of placed objects whose prop has none, unless they have their own.")]

@@ -88,7 +88,7 @@ public sealed class ContentBuilder
 
     /// <summary>
     /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>), checked by
-    /// <see cref="ZoneValidation"/>. Zone, spawn, teleporter and trigger keys get registry numbers like other content.
+    /// <see cref="ZoneValidation"/>. Zone, spawn, teleporter and trigger ids get registry numbers like other content.
     /// </summary>
     public ContentBuilder AddZones(string folder = "zones")
     {
@@ -206,7 +206,7 @@ public sealed class ContentBuilder
             }
         }
 
-        // Teleporters may target any zone's; keys name their zone, so they're unique across zones already.
+        // Teleporters may target any zone's; ids name their zone, so they're unique across zones already.
         var teleporters = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Select(t => t.Id).ToHashSet();
         foreach (var zone in zones)
         {

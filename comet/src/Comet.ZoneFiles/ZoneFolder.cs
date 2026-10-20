@@ -11,7 +11,7 @@ using Tomlyn.Model;
 namespace Comet.ZoneFiles
 {
     /// <summary>
-    /// A zone's folder: <c>zone.toml</c> (the zone's key, terrain pieces, borders, entrances and transition rooms),
+    /// A zone's folder: <c>zone.toml</c> (the zone's id, terrain pieces, borders, entrances and transition rooms),
     /// then a TOML file per chunk in <c>chunks/</c>, named by its grid position (<c>chunks/0_-1.toml</c>), with the
     /// chunk's terrain tiles beside it in a folder of the same name: <c>&lt;piece&gt;.height</c>, and optionally
     /// <c>&lt;piece&gt;.under.height</c>, <c>&lt;piece&gt;.color</c> and <c>&lt;piece&gt;.under.color</c> (the underside's

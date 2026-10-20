@@ -66,7 +66,7 @@ public class ZoneBuildTests
         Assert.Contains("[spawn]\n\"meadow.gate\" = 1\n\"meadow.well\" = 2\n", registry);
         Assert.Contains("[teleporter]\n\"cave.to_meadow\" = 1\n\"meadow.to_cave\" = 2\n", registry);
 
-        // The quoted keys read back: a second build keeps the numbers.
+        // The quoted names read back: a second build keeps the numbers.
         Assert.Empty(Build(folder).Errors);
         Assert.Equal(registry, File.ReadAllText(folder.Registry).ReplaceLineEndings("\n"));
     }

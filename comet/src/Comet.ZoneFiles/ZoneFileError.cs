@@ -1,6 +1,6 @@
 namespace Comet.ZoneFiles
 {
-    /// <summary>A problem in a zone's files: the file it's in and what's wrong, naming the key where there is one.</summary>
+    /// <summary>A problem in a zone's files: the file it's in and what's wrong, naming the id where there is one.</summary>
     public sealed class ZoneFileError
     {
         public ZoneFileError(string file, string message)

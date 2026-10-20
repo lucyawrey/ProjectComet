@@ -95,7 +95,7 @@ namespace Comet.Unity.Editor
 
             if (placed.isPrimitive)
             {
-                var keys = settings.props.Entries.Select(e => e.key).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
+                var keys = settings.props.Entries.Select(e => e.id).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
                 using (new EditorGUI.DisabledScope(keys.Count == 0))
                 {
                     var label = new GUIContent("Swap for prop…", keys.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands.");

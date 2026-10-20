@@ -10,10 +10,10 @@ namespace Comet.Unity.Editor
     /// </summary>
     internal static class ZoneSwap
     {
-        /// <summary>Replaces the primitive <paramref name="placed"/> with the prop <paramref name="key"/>.</summary>
-        public static GameObject? ForProp(ZonePlacement placed, string key, CometSettings settings)
+        /// <summary>Replaces the primitive <paramref name="placed"/> with the prop <paramref name="id"/>.</summary>
+        public static GameObject? ForProp(ZonePlacement placed, string id, CometSettings settings)
         {
-            if (!placed.isPrimitive || placed.IsGroup || settings.props == null || !settings.props.TryGet(key, out var entry))
+            if (!placed.isPrimitive || placed.IsGroup || settings.props == null || !settings.props.TryGet(id, out var entry))
             {
                 return null;
             }
@@ -31,11 +31,11 @@ namespace Comet.Unity.Editor
             var rotation = placed.transform.rotation;
             var bottom = new Vector3(entry.bounds.center.x, entry.bounds.min.y, entry.bounds.center.z);
             placement.Primitive = null;
-            placement.Prop = key;
+            placement.Prop = id;
             placement.Blockout = false;
             placement.Scale = ZoneEditor.ToNumerics(scale);
             placement.Position = ZoneEditor.ToNumerics(placed.transform.position - rotation * Vector3.Scale(scale, bottom));
-            return Replace(placed, placement, settings, $"Swap for {key}");
+            return Replace(placed, placement, settings, $"Swap for {id}");
         }
 
         /// <summary>Replaces the prop <paramref name="placed"/> with a box filling its bounds.</summary>

@@ -16,7 +16,7 @@ namespace Comet.Content
     {
         [Key(0)] public int Number { get; set; }
 
-        /// <summary>The group's key (<c>group.tree</c>).</summary>
+        /// <summary>The group's id (<c>group.tree</c>).</summary>
         [Key(1)] public string Id { get; set; } = "";
 
         /// <summary>The group's parts, placed relative to its pivot.</summary>

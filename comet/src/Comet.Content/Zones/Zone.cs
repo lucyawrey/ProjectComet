@@ -13,7 +13,7 @@ namespace Comet.Content
     {
         [Key(0)] public int Number { get; set; }
 
-        /// <summary>The zone's key (<c>zone.meadow</c>).</summary>
+        /// <summary>The zone's id (<c>zone.meadow</c>).</summary>
         [Key(1)] public string Id { get; set; } = "";
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace Comet.Content
     [MessagePackObject]
     public sealed class Placement
     {
-        /// <summary>The prop's key (<c>prop.rock</c>), or empty for a primitive or a group.</summary>
+        /// <summary>The prop's id (<c>prop.rock</c>), or empty for a primitive or a group.</summary>
         [Key(0)] public string Prop { get; set; } = "";
 
         /// <summary>The pivot's world position, in meters; it lies in the placement's chunk.</summary>
@@ -251,7 +251,7 @@ namespace Comet.Content
     }
 
     /// <summary>
-    /// A place players arrive: a random spot in its volume's footprint, on the ground under it. Its key names its
+    /// A place players arrive: a random spot in its volume's footprint, on the ground under it. Its id names its
     /// zone (<c>spawn.meadow.gate</c>). When spawns are used and how players claim them is game policy.
     /// </summary>
     [MessagePackObject]
@@ -259,7 +259,7 @@ namespace Comet.Content
     {
         [Key(0)] public int Number { get; set; }
 
-        /// <summary>The spawn's key (<c>spawn.meadow.gate</c>), naming its zone.</summary>
+        /// <summary>The spawn's id (<c>spawn.meadow.gate</c>), naming its zone.</summary>
         [Key(1)] public string Id { get; set; } = "";
 
         [Key(2)] public TriggerVolume Volume { get; set; } = new TriggerVolume();
@@ -268,7 +268,7 @@ namespace Comet.Content
     }
 
     /// <summary>
-    /// A pad that sends players to another teleporter, in this zone or another, arriving as at a spawn point. Its key
+    /// A pad that sends players to another teleporter, in this zone or another, arriving as at a spawn point. Its id
     /// names its zone (<c>teleporter.meadow.to_cave</c>).
     /// </summary>
     [MessagePackObject]
@@ -276,7 +276,7 @@ namespace Comet.Content
     {
         [Key(0)] public int Number { get; set; }
 
-        /// <summary>The teleporter's key (<c>teleporter.meadow.to_cave</c>), naming its zone.</summary>
+        /// <summary>The teleporter's id (<c>teleporter.meadow.to_cave</c>), naming its zone.</summary>
         [Key(1)] public string Id { get; set; } = "";
 
         [Key(2)] public TriggerVolume Volume { get; set; } = new TriggerVolume();
@@ -288,13 +288,13 @@ namespace Comet.Content
         [Key(4)] public string Target { get; set; } = "";
     }
 
-    /// <summary>A trigger with toggle effects, such as a plate that opens a door. Its key names its zone (<c>trigger.meadow.gate_plate</c>).</summary>
+    /// <summary>A trigger with toggle effects, such as a plate that opens a door. Its id names its zone (<c>trigger.meadow.gate_plate</c>).</summary>
     [MessagePackObject]
     public sealed class Trigger : IContentEntry
     {
         [Key(0)] public int Number { get; set; }
 
-        /// <summary>The trigger's key (<c>trigger.meadow.gate_plate</c>), naming its zone.</summary>
+        /// <summary>The trigger's id (<c>trigger.meadow.gate_plate</c>), naming its zone.</summary>
         [Key(1)] public string Id { get; set; } = "";
 
         [Key(2)] public TriggerVolume Volume { get; set; } = new TriggerVolume();
@@ -357,7 +357,7 @@ namespace Comet.Content
 
         [Key(1)] public ChunkSide Side { get; set; }
 
-        /// <summary>The neighboring zone's key.</summary>
+        /// <summary>The neighboring zone's id.</summary>
         [Key(2)] public string Zone { get; set; } = "";
     }
 

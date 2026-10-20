@@ -15,7 +15,7 @@ public static class TestTerrain
     public const float Offset = -64f; // heights from -64 m to 192 m
     public const float Radius = 28f; // the disc's edge, in meters from the chunk's center
 
-    /// <summary>The test zone's key.</summary>
+    /// <summary>The test zone's id.</summary>
     public const string ZoneId = "zone.test";
 
     /// <summary>The island: one piece, cut into the four chunks around the origin, with blocks and two spawn points, the default at the center.</summary>

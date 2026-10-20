@@ -70,7 +70,7 @@ namespace Comet.ZoneFiles
             File.WriteAllBytes(path, bytes);
         }
 
-        /// <summary>The file a group's key is kept in, relative to the groups folder: <c>group.tree</c> in <c>tree.toml</c>.</summary>
+        /// <summary>The file a group with an id is kept in, relative to the groups folder: <c>group.tree</c> in <c>tree.toml</c>.</summary>
         public static string FileFor(string key) => (key.StartsWith("group.", StringComparison.Ordinal) ? key.Substring("group.".Length) : key) + ".toml";
     }
 }

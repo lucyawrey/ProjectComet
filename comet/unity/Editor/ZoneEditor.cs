@@ -68,7 +68,7 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            var what = editing.IsGroup ? editing.groupKey : Path.GetFileName(editing.folder);
+            var what = editing.IsGroup ? editing.groupId : Path.GetFileName(editing.folder);
             if (!EditorUtility.DisplayDialog("Discard changes", $"Discard every change to {what} since it was last saved, and read it again from its files? This can't be undone.", "Discard", "Keep"))
             {
                 return;
@@ -76,7 +76,7 @@ namespace Comet.Unity.Editor
 
             if (editing.IsGroup)
             {
-                ZoneGroups.Open(editing.groupKey, settings);
+                ZoneGroups.Open(editing.groupId, settings);
             }
             else
             {
@@ -163,7 +163,7 @@ namespace Comet.Unity.Editor
             var library = CometSettings.Find(quiet: true)?.props;
             if (library != null)
             {
-                errors.AddRange(ZoneValidation.CheckPlacements(zone, key => PropFor(library, key), ZoneGroups.Find));
+                errors.AddRange(ZoneValidation.CheckPlacements(zone, id => PropFor(library, id), ZoneGroups.Find));
             }
 
             if (errors.Count > 0)
@@ -206,7 +206,7 @@ namespace Comet.Unity.Editor
             foreach (var spawn in editing.GetComponentsInChildren<ZoneSpawn>())
             {
                 var chunk = ChunkAt(ToNumerics(spawn.transform.position));
-                chunk.Spawns = chunk.Spawns.Append(new SpawnPoint { Id = spawn.key, Volume = VolumeOf(spawn), Facing = (SpawnFacing)spawn.facing }).ToArray();
+                chunk.Spawns = chunk.Spawns.Append(new SpawnPoint { Id = spawn.id, Volume = VolumeOf(spawn), Facing = (SpawnFacing)spawn.facing }).ToArray();
             }
 
             foreach (var teleporter in editing.GetComponentsInChildren<ZoneTeleporter>())
@@ -214,7 +214,7 @@ namespace Comet.Unity.Editor
                 var chunk = ChunkAt(ToNumerics(teleporter.transform.position));
                 chunk.Teleporters = chunk.Teleporters.Append(new Teleporter
                 {
-                    Id = teleporter.key, Volume = VolumeOf(teleporter), Facing = (SpawnFacing)teleporter.facing, Target = teleporter.target,
+                    Id = teleporter.id, Volume = VolumeOf(teleporter), Facing = (SpawnFacing)teleporter.facing, Target = teleporter.target,
                 }).ToArray();
             }
 
@@ -223,7 +223,7 @@ namespace Comet.Unity.Editor
                 var chunk = ChunkAt(ToNumerics(trigger.transform.position));
                 chunk.Triggers = chunk.Triggers.Append(new Trigger
                 {
-                    Id = trigger.key,
+                    Id = trigger.id,
                     Volume = VolumeOf(trigger),
                     Effects = trigger.effects.Select(e => new ToggleEffect { Name = e.toggle, RevertSeconds = e.revertSeconds }).ToArray(),
                 }).ToArray();
@@ -386,14 +386,14 @@ namespace Comet.Unity.Editor
             typeof(T) == typeof(ZoneSpawn) ? "Spawns" : typeof(T) == typeof(ZoneTeleporter) ? "Teleporters" : "Triggers";
 
         // A spawn point's, teleporter's or trigger's object, with its volume and its pad.
-        private static T CreateTrigger<T>(Transform root, string key, TriggerVolume volume, CometSettings settings)
+        private static T CreateTrigger<T>(Transform root, string id, TriggerVolume volume, CometSettings settings)
             where T : ZoneTrigger
         {
             var parent = root.Find(TriggersFolder<T>()) ?? Child(root, TriggersFolder<T>());
-            var point = Child(parent, key);
+            var point = Child(parent, id);
             point.SetPositionAndRotation(ToUnity(volume.Position), Quaternion.Euler(0, volume.Yaw, 0));
             var component = point.gameObject.AddComponent<T>();
-            component.key = key;
+            component.id = id;
             component.volume = (ZoneTrigger.VolumeKind)System.Enum.Parse(typeof(ZoneTrigger.VolumeKind), volume.Kind.ToString());
             component.size = ToUnity(volume.Size);
             component.standSeconds = volume.StandSeconds;
@@ -401,7 +401,7 @@ namespace Comet.Unity.Editor
             if (volume.Pad is { } pad)
             {
                 var thing = CreatePlaced(pad, point, settings, PadColor(component, settings));
-                thing.name = $"{key} pad";
+                thing.name = $"{id} pad";
             }
 
             return component;
@@ -491,7 +491,7 @@ namespace Comet.Unity.Editor
             placement.SetDefaultColor(defaultColor ?? prop ?? settings.placedColor);
         }
 
-        /// <summary>The primitive's kind for a placeable name: a prop key (<c>prop.rock</c>) is null.</summary>
+        /// <summary>The primitive's kind for a placeable name: a prop id (<c>prop.rock</c>) is null.</summary>
         public static PrimitiveKind? PrimitiveNamed(string name) => PrimitiveKinds.Named(name);
 
         /// <summary>A newly placed primitive of <paramref name="kind"/>: its values and the size it starts at.</summary>
@@ -573,16 +573,16 @@ namespace Comet.Unity.Editor
         }
 
         // What the placement checks need to know of a prop, from the library: its scale rule and bounds.
-        internal static Prop? PropFor(PropLibrary library, string key)
+        internal static Prop? PropFor(PropLibrary library, string id)
         {
-            if (!library.TryGet(key, out var entry))
+            if (!library.TryGet(id, out var entry))
             {
                 return null;
             }
 
             return new Prop
             {
-                Id = key,
+                Id = id,
                 UniformScale = entry.uniformScale,
                 BoundsMin = ToNumerics(entry.bounds.min),
                 BoundsMax = ToNumerics(entry.bounds.max),
@@ -590,7 +590,7 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Places a prop (by key), a primitive (by kind, <c>box</c>) or a group (by key) at <paramref name="position"/> in an opened
+        /// Places a prop (by id), a primitive (by kind, <c>box</c>) or a group (by id) at <paramref name="position"/> in an opened
         /// zone: a prop as a linked model with its placement marker, a primitive at its starting size. With a
         /// <paramref name="color"/>, the placement has it as its own.
         /// </summary>
@@ -633,15 +633,15 @@ namespace Comet.Unity.Editor
         /// in an opened zone, with the settings' defaults for its kind: a pad (none for triggers), flattened and sunk
         /// halfway into the ground, with the volume fitted on its top.
         /// </summary>
-        public static T AddTrigger<T>(ZoneEditing editing, string key, Vector3 position, CometSettings settings)
+        public static T AddTrigger<T>(ZoneEditing editing, string id, Vector3 position, CometSettings settings)
             where T : ZoneTrigger
         {
             var parent = editing.transform.Find(TriggersFolder<T>()) ?? Child(editing.transform, TriggersFolder<T>());
-            var point = Child(parent, key);
+            var point = Child(parent, id);
             point.position = position;
             var trigger = point.gameObject.AddComponent<T>();
-            trigger.key = key;
-            Undo.RegisterCreatedObjectUndo(point.gameObject, $"Add {key}");
+            trigger.id = id;
+            Undo.RegisterCreatedObjectUndo(point.gameObject, $"Add {id}");
             var (padKind, padSize, standSeconds) = trigger switch
             {
                 ZoneSpawn => (settings.spawnPad, settings.spawnPadSize, settings.spawnStandSeconds),
@@ -664,8 +664,8 @@ namespace Comet.Unity.Editor
                     Scale = ToNumerics(padSize),
                     Color = trigger is ZoneTeleporter ? PlacedColors.ToRgb(settings.teleporterPadColor) : (uint?)null,
                 }, point, settings, PadColor(trigger, settings));
-                pad.name = $"{key} pad";
-                Undo.RegisterCreatedObjectUndo(pad, $"Add {key}");
+                pad.name = $"{id} pad";
+                Undo.RegisterCreatedObjectUndo(pad, $"Add {id}");
                 FitToPad(trigger);
             }
 

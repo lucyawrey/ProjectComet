@@ -20,8 +20,8 @@ namespace ShapeLand.Shared.World
         public static (Zone Zone, SpawnPoint Spawn) StartOf(ShapeLandContent content, Shape shape) =>
             FindSpawn(content, shape.Spawn) ?? throw new System.InvalidOperationException($"{shape.Id}'s spawn '{shape.Spawn}' isn't in any zone.");
 
-        /// <summary>The spawn point with key <paramref name="key"/> and its zone, or null if no zone has it.</summary>
-        public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(ShapeLandContent content, string key)
+        /// <summary>The spawn point with id <paramref name="id"/> and its zone, or null if no zone has it.</summary>
+        public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(ShapeLandContent content, string id)
         {
             foreach (var zone in content.Zones.All)
             {
@@ -29,7 +29,7 @@ namespace ShapeLand.Shared.World
                 {
                     foreach (var spawn in chunk.Spawns)
                     {
-                        if (spawn.Id == key)
+                        if (spawn.Id == id)
                         {
                             return (zone, spawn);
                         }
