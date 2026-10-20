@@ -7,10 +7,9 @@ namespace Comet.Unity.Editor
     /// <summary>
     /// The scale tool for one selected primitive: its handle edits the primitive's size rather than its transform's
     /// scale, so its facets follow the polygon budget as it's dragged. Picking Unity's scale tool (R) with one
-    /// primitive selected switches to it, and selecting anything else switches back. Scoped to Unity's own tool
-    /// context, so it has no button of its own: it stands in for the scale tool.
+    /// primitive selected switches to it, and selecting anything else switches back.
     /// </summary>
-    [EditorTool("Primitive Size", typeof(ZonePlacement), typeof(GameObjectToolContext))]
+    [EditorTool("Primitive Size", typeof(ZonePlacement))]
     internal sealed class PrimitiveSizeTool : EditorTool
     {
         private bool _resizing;
