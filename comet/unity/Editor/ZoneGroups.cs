@@ -29,6 +29,7 @@ namespace Comet.Unity.Editor
         {
             // Objects can't be made during a scene's load: draw once it's done.
             ZonePlacement.GroupDrawer = copy => EditorApplication.delayCall += () => Draw(copy);
+            ZonePlacement.MaterialFor = blockout => CometSettings.Find(quiet: true) is { } settings ? PlacedMaterial(settings, blockout) : null;
             EditorApplication.projectChanged += () => _groups = null;
         }
 
@@ -112,6 +113,10 @@ namespace Comet.Unity.Editor
             return meshes;
         }
 
+        /// <summary>The material placed objects are drawn in: the blockout one for blockout, if the settings name one.</summary>
+        public static Material? PlacedMaterial(CometSettings settings, bool blockout) =>
+            blockout && settings.blockoutMaterial != null ? settings.blockoutMaterial : settings.placedMaterial;
+
         // A part's color: its own, else its asset's, else the game's.
         private static Color PartColor(Placement part, CometSettings settings) =>
             part.Color is { } own ? PlacedColors.FromRgb(own)
@@ -141,7 +146,7 @@ namespace Comet.Unity.Editor
             var root = new GameObject(PartsName).transform;
             root.SetParent(copy.transform, false);
             var material = settings.placedMaterial != null ? settings.placedMaterial : AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat");
-            var parts = Groups.Expand(new Placement { Group = copy.group, Colors = ZoneEditor.PlacementOf(copy).Colors }, Find);
+            var parts = Groups.Expand(new Placement { Group = copy.group, Colors = ZoneEditor.PlacementOf(copy).Colors, Blockout = copy.blockout }, Find);
             if (parts.Count == 0)
             {
                 Debug.LogWarning($"{copy.name}: there's no group '{copy.group}', or it has no parts.", copy);
@@ -156,7 +161,7 @@ namespace Comet.Unity.Editor
                     thing = new GameObject(PrimitiveKinds.Name(primitive.Kind));
                     var mesh = PrimitiveMeshes.For(part, settings.Budget);
                     thing.AddComponent<MeshFilter>().sharedMesh = mesh;
-                    thing.AddComponent<MeshRenderer>().sharedMaterial = material;
+                    thing.AddComponent<MeshRenderer>().sharedMaterial = PlacedMaterial(settings, part.Blockout) ?? material;
                     thing.AddComponent<MeshCollider>().sharedMesh = mesh; // for Unity's surface snapping
                     thing.transform.SetParent(root, false);
                     thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
@@ -172,7 +177,7 @@ namespace Comet.Unity.Editor
                     foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
                     {
                         renderer.enabled = !renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal);
-                        renderer.sharedMaterial = material;
+                        renderer.sharedMaterial = PlacedMaterial(settings, part.Blockout) ?? material;
                     }
                 }
 

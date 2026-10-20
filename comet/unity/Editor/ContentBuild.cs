@@ -119,6 +119,18 @@ namespace Comet.Unity.Editor
                     Debug.Log("Built the content and copied it in.");
                 }
 
+                // Warnings (such as blockout placements) don't stop the build, but are worth seeing.
+                if (!failed)
+                {
+                    lock (output)
+                    {
+                        foreach (var line in output.ToString().Split('\n').Where(l => l.Contains(": warning: ")))
+                        {
+                            Debug.LogWarning($"Content build: {line.Trim()}");
+                        }
+                    }
+                }
+
                 if (buildAgain)
                 {
                     buildAgain = false;

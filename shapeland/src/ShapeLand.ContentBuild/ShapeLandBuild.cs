@@ -27,10 +27,19 @@ public static class ShapeLandBuild
         .AddGroups()
         .AddZones();
 
-    /// <summary>Checks and compiles the content folder; null content means there were errors.</summary>
-    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true, string? modelRoot = null)
+    /// <summary>
+    /// Checks and compiles the content folder; null content means there were errors. Warnings (blockout placements)
+    /// go into <paramref name="warnings"/>, or with <paramref name="release"/> are errors.
+    /// </summary>
+    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true, string? modelRoot = null,
+        bool release = false, ICollection<ContentError>? warnings = null)
     {
-        var result = CreateBuilder(contentRoot, modelRoot).Build(saveRegistry);
+        var result = CreateBuilder(contentRoot, modelRoot).Build(saveRegistry, release);
+        foreach (var warning in result.Warnings)
+        {
+            warnings?.Add(warning);
+        }
+
         var errors = result.Errors.ToList();
         if (errors.Count > 0)
         {

@@ -96,10 +96,14 @@ public sealed class ContentBuilder
         return this;
     }
 
-    /// <summary>Reads and checks every registered type, assigning registry numbers and saving new ones if it all passes.</summary>
-    public ContentBuildResult Build(bool saveRegistry = true)
+    /// <summary>
+    /// Reads and checks every registered type, assigning registry numbers and saving new ones if it all passes. With
+    /// <paramref name="release"/>, what's otherwise a warning (blockout placements) is an error.
+    /// </summary>
+    public ContentBuildResult Build(bool saveRegistry = true, bool release = false)
     {
         var errors = new List<ContentError>();
+        var warnings = new List<ContentError>();
         var registryPath = Path.Combine(_root, "ids.toml");
         var registry = IdRegistry.Load(registryPath, DisplayPath(registryPath), errors);
         var types = _types.Select(t => t.Read(this, errors)).ToList();
@@ -120,7 +124,14 @@ public sealed class ContentBuilder
         var assets = types.OfType<ReadContent<Asset>>().SingleOrDefault()?.Entries.ToDictionary(a => a.Id) ?? new Dictionary<string, Asset>();
         var groups = _groupsFolder is null ? new List<Group>() : ReadGroups(ContentPath(_groupsFolder), assets, errors);
         var groupsByKey = groups.ToDictionary(g => g.Id);
-        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), assets, groupsByKey, errors);
+        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), assets, groupsByKey, errors, warnings);
+        if (release)
+        {
+            // A release ships no stand-ins.
+            errors.AddRange(warnings.Select(w => w with { Warning = false }));
+            warnings.Clear();
+        }
+
         if (errors.Count == 0)
         {
             foreach (var type in types)
@@ -143,7 +154,7 @@ public sealed class ContentBuilder
             }
         }
 
-        return new ContentBuildResult(errors, types, strings, zones, groups);
+        return new ContentBuildResult(errors, warnings, types, strings, zones, groups);
     }
 
     private List<Group> ReadGroups(string folder, Dictionary<string, Asset> assets, List<ContentError> errors)
@@ -155,7 +166,7 @@ public sealed class ContentBuilder
         return groupErrors.Count == 0 ? groups.Select(g => g.Group).ToList() : new List<Group>();
     }
 
-    private List<Zone> ReadZones(string folder, Dictionary<string, Asset> assets, Dictionary<string, Group> groups, List<ContentError> errors)
+    private List<Zone> ReadZones(string folder, Dictionary<string, Asset> assets, Dictionary<string, Group> groups, List<ContentError> errors, List<ContentError> warnings)
     {
         var zones = new List<Zone>();
         if (!Directory.Exists(folder))
@@ -194,6 +205,9 @@ public sealed class ContentBuilder
             errors.AddRange(zoneErrors.Select(e => new ContentError(DisplayPath(Path.Combine(zoneFolder, e.File)), 1, 1, e.Message)));
             if (zoneErrors.Count == 0)
             {
+                warnings.AddRange(ZoneValidation.Blockout(zone, key => groups.TryGetValue(key, out var group) ? group : null)
+                    .Select(w => new ContentError(DisplayPath(Path.Combine(zoneFolder, w.File)), 1, 1, w.Message, Warning: true)));
+
                 // Group copies become their parts: the game loads plain placements.
                 Groups.Expand(zone, key => groups.TryGetValue(key, out var group) ? group : null);
                 zoneFolders.TryAdd(zone.Id, zoneFile);

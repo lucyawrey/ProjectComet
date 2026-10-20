@@ -162,6 +162,38 @@ public class ZoneBuildTests
     }
 
     [Fact]
+    public void BlockoutPlacementsWarnOrFailARelease()
+    {
+        using var folder = new ContentFolder();
+        var box = new Primitive { Kind = PrimitiveKind.Box };
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "hut.toml"), new Group { Id = "group.hut", Parts = [new Placement { Primitive = box, Blockout = true }, new Placement { Primitive = box }] });
+        var zone = Zone("zone.meadow");
+        zone.Chunks[0].Placements =
+        [
+            new Placement { Primitive = box, Position = new Vector3(5, 0, 5), Blockout = true },
+            new Placement { Group = "group.hut", Position = new Vector3(10, 0, 10) },
+            new Placement { Primitive = box, Position = new Vector3(20, 0, 20) },
+        ];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
+        ContentBuilder Builder() => new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddGroups().AddZones();
+
+        var result = Builder().Build();
+
+        Assert.Empty(result.Errors);
+        Assert.Equal(2, result.Warnings.Count);
+        Assert.All(result.Warnings, w => Assert.True(w.Warning));
+        Assert.Contains(result.Warnings, w => w.Message.Contains("a box at [5, 0, 5] is blockout") && w.File.EndsWith("0_0.toml", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, w => w.Message.Contains("group.hut at [10, 0, 10] has 1 blockout part"));
+        Assert.Contains(": warning: ", result.Warnings[0].ToString());
+
+        var release = Builder().Build(release: true);
+
+        Assert.Equal(2, release.Errors.Count);
+        Assert.Empty(release.Warnings);
+        Assert.Contains(": error: ", release.Errors[0].ToString());
+    }
+
+    [Fact]
     public void GroupErrorsNameTheGroupFile()
     {
         using var folder = new ContentFolder();

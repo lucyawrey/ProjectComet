@@ -7,17 +7,21 @@ public sealed class ContentBuildResult
 {
     private readonly IReadOnlyList<ContentBuilder.IReadContent> _types;
 
-    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings, IReadOnlyList<Zone> zones, IReadOnlyList<Group> groups)
+    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentError> warnings, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings, IReadOnlyList<Zone> zones, IReadOnlyList<Group> groups)
     {
         Zones = zones;
         Groups = groups;
         Errors = errors;
+        Warnings = warnings;
         _types = types;
         Strings = strings;
     }
 
     /// <summary>Every problem found, with its file, line and column; empty if the build succeeded.</summary>
     public IReadOnlyList<ContentError> Errors { get; }
+
+    /// <summary>What doesn't stop the build but should be dealt with before a release (blockout placements); errors in a release build.</summary>
+    public IReadOnlyList<ContentError> Warnings { get; }
 
     public bool Succeeded => Errors.Count == 0;
 

@@ -74,6 +74,9 @@ namespace Comet.Unity
         /// <summary>How finely round primitives are cut while editing: the game's, set by the editor (Comet › Zones › Polygon Budget).</summary>
         public static PolygonBudget Budget { get; set; } = new PolygonBudget();
 
+        /// <summary>The material placed objects are drawn in, by whether they're blockout (null: leave it); set by the editor.</summary>
+        public static System.Func<bool, Material?>? MaterialFor { get; set; }
+
         /// <summary>Draws a group copy's parts under it; set by the editor, which reads the groups.</summary>
         public static System.Action<ZonePlacement>? GroupDrawer { get; set; }
 
@@ -174,13 +177,29 @@ namespace Comet.Unity
             ApplyColor();
         }
 
-        /// <summary>Draws the object in its color (property blocks aren't saved with the scene); a group copy's parts keep their own.</summary>
+        /// <summary>
+        /// Draws the object in its color (property blocks aren't saved with the scene), in the blockout material if
+        /// it's blockout; a group copy's parts are drawn by the editor.
+        /// </summary>
         public void ApplyColor()
         {
-            if (!IsGroup)
+            if (IsGroup)
             {
-                PlacedColors.Apply(gameObject, ownColor ? color : defaultColor);
+                return;
             }
+
+            if (MaterialFor?.Invoke(blockout) is { } material)
+            {
+                foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+                {
+                    if (!renderer.name.EndsWith(Comet.Content.Asset.CollisionSuffix, System.StringComparison.Ordinal) && renderer.sharedMaterial != material)
+                    {
+                        renderer.sharedMaterial = material;
+                    }
+                }
+            }
+
+            PlacedColors.Apply(gameObject, ownColor ? color : defaultColor);
         }
 
         private void OnEnable()

@@ -40,6 +40,9 @@ namespace Comet.Unity.Editor
         [Tooltip("If set, placed objects are drawn in it instead of their models' own materials.")]
         public Material? placedMaterial;
 
+        [Tooltip("Blockout placements are drawn in it instead (Comet/Blockout: a grid over their color).")]
+        public Material? blockoutMaterial;
+
         [Tooltip("The color of terrain no one has painted, for pieces without their own.")]
         public Color groundColor = new Color32(0x73, 0x9e, 0x4d, 0xff);
 

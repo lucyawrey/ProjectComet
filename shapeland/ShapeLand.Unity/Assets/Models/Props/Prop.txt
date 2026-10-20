@@ -1,0 +1,12 @@
+Prop.glb goes here: ShapeLand's one hand-made prop, to keep placing a real model (not a primitive) in use.
+
+What it needs:
+- Exported from Blender as glTF binary (.glb) to this folder, as Prop.glb; its source .blend goes in shapeland/art/.
+- Sized in meters, standing on its origin (the pivot it's placed by), facing +Z.
+- Optional collision: objects named with a -col suffix (Prop-col) are its collision mesh, hidden in the game;
+  without one, its whole mesh collides. A simple collision mesh is cheaper.
+- Low-poly, flat colors (it's drawn in its placement's color unless the asset gives one).
+
+Then add shapeland/content/assets/prop.toml with id = "asset.prop" and model = "Models/Props/Prop.glb", rebuild
+the content (Comet › Content › Build) and place it from the place tool's Assets section. Delete this note once
+the model is in.

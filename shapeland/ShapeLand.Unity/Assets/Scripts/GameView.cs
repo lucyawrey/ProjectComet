@@ -26,6 +26,8 @@ namespace ShapeLand.Client
         [SerializeField] private Material terrainMaterial;
         [Tooltip("The material placed objects are drawn with (their models' own are ignored).")]
         [SerializeField] private Material blockMaterial;
+        [Tooltip("The material blockout placements are drawn with (Comet/Blockout: a grid over their color).")]
+        [SerializeField] private Material blockoutMaterial;
         [Tooltip("The models for asset keys, kept up to date by the editor from the content.")]
         [SerializeField] private AssetLibrary assets;
         [Tooltip("Players' shapes: their looks' parts other than eyes, colored per part.")]
@@ -146,12 +148,13 @@ namespace ShapeLand.Client
             placed.SetParent(_drawnZone, false);
             foreach (var chunk in zone.Chunks)
             {
-                // Primitives without a name are drawn as one mesh per chunk; named ones stay apart for game code to find.
+                // Primitives without a name are drawn as one mesh per chunk; named ones stay apart for game code to find,
+                // and blockout ones for their own material.
                 var primitives = new PrimitiveMeshes.Builder();
                 var toChunk = System.Numerics.Matrix4x4.CreateTranslation(-chunk.Coord.Origin);
                 foreach (var placement in chunk.Placements)
                 {
-                    if (placement.Primitive != null && placement.Name == null)
+                    if (placement.Primitive != null && placement.Name == null && !placement.Blockout)
                     {
                         primitives.Add(PrimitiveMesher.For(placement, content.Settings.Primitives), placement.Matrix() * toChunk, placement.Color ?? content.Settings.World.PlacedColor);
                         continue;
@@ -176,10 +179,11 @@ namespace ShapeLand.Client
             orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, zone, _world)));
         }
 
-        // A named primitive on its own, in the placed objects' material, so game code can find and color it.
+        // A named or blockout primitive on its own, in the placed objects' material (or blockout's), so game code can
+        // find and color it.
         private GameObject PlacePrimitive(Placement placement, Transform parent)
         {
-            var thing = AddMesh(placement.Name, PrimitiveMeshes.For(placement, _content.Settings.Primitives), blockMaterial, parent);
+            var thing = AddMesh(placement.Name ?? "Blockout", PrimitiveMeshes.For(placement, _content.Settings.Primitives), MaterialFor(placement), parent);
             var rotation = placement.Rotation;
             thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
             PlacedColors.Apply(thing, Color(placement.Color ?? _content.Settings.World.PlacedColor));
@@ -209,7 +213,7 @@ namespace ShapeLand.Client
                 }
                 else
                 {
-                    renderer.sharedMaterial = blockMaterial;
+                    renderer.sharedMaterial = MaterialFor(placement);
                 }
             }
 
@@ -218,6 +222,8 @@ namespace ShapeLand.Client
             PlacedColors.Apply(thing, own ?? asset ?? Color(_content.Settings.World.PlacedColor));
             return thing;
         }
+
+        private Material MaterialFor(Placement placement) => placement.Blockout && blockoutMaterial != null ? blockoutMaterial : blockMaterial;
 
         // The player's own spawn's marker takes their body color, the rest a grey used nowhere else. One they stand
         // in, claiming it, pulses between the two until the server says it's theirs.

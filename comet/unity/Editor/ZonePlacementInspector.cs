@@ -65,6 +65,11 @@ namespace Comet.Unity.Editor
             }
 
             serializedObject.ApplyModifiedProperties();
+            if (targets.Length == 1 && placement.IsLoose && placement.GetComponentInParent<ZoneSpawn>() == null)
+            {
+                SwapButtons(placement);
+            }
+
             if (reset)
             {
                 foreach (var t in targets)
@@ -76,6 +81,40 @@ namespace Comet.Unity.Editor
                     p.ApplyColor();
                     EditorUtility.SetDirty(p);
                 }
+            }
+        }
+
+        // Swapping in place, as blockout becomes a finished level: a primitive for an asset, an asset for a box.
+        private static void SwapButtons(ZonePlacement placed)
+        {
+            var settings = CometSettings.Find(quiet: true);
+            if (settings == null || settings.assets == null)
+            {
+                return;
+            }
+
+            if (placed.isPrimitive)
+            {
+                var keys = settings.assets.Entries.Select(e => e.key).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
+                using (new EditorGUI.DisabledScope(keys.Count == 0))
+                {
+                    var label = new GUIContent("Swap for asset…", keys.Count == 0 ? "The game has no assets yet." : "Replace it with an asset scaled to its size, standing where it stands.");
+                    if (GUILayout.Button(label))
+                    {
+                        var menu = new GenericMenu();
+                        foreach (var key in keys)
+                        {
+                            menu.AddItem(new GUIContent(key), false, () => ZoneSwap.ForAsset(placed, key, settings));
+                        }
+
+                        menu.ShowAsContext();
+                    }
+                }
+            }
+            else if (settings.assets.TryGet(placed.asset, out _) && GUILayout.Button(new GUIContent("Swap for box", "Replace it with a box filling its bounds, standing where it stands.")))
+            {
+                ZoneSwap.ForBox(placed, settings);
+                GUIUtility.ExitGUI();
             }
         }
 

@@ -292,6 +292,31 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
+        /// <summary>
+        /// The zone's blockout placements, each against its chunk file: stand-ins to finish before a release. A group
+        /// copy counts if it or any part it expands to is blockout.
+        /// </summary>
+        public static List<ZoneFileError> Blockout(Zone zone, Func<string, Group?> findGroup)
+        {
+            var found = new List<ZoneFileError>();
+            foreach (var chunk in zone.Chunks)
+            {
+                foreach (var placement in chunk.Placements)
+                {
+                    if (placement.Blockout)
+                    {
+                        found.Add(new ZoneFileError(ZoneFolder.ChunkFile(chunk.Coord), $"{Placed(placement)} at {Text(placement.Position)} is blockout; replace or finish it before a release."));
+                    }
+                    else if (placement.Group is { } key && Groups.Expand(placement, findGroup).Count(p => p.Blockout) is var parts and > 0)
+                    {
+                        found.Add(new ZoneFileError(ZoneFolder.ChunkFile(chunk.Coord), $"{key} at {Text(placement.Position)} has {parts} blockout {(parts == 1 ? "part" : "parts")}; replace or finish them before a release."));
+                    }
+                }
+            }
+
+            return found;
+        }
+
         // A placement's reach: its bounds once placed stay within the ring of chunks around `chunk`.
         private static void CheckReach(Placement placement, ChunkCoord chunk, string what, string file, Func<string, Asset?> findAsset, List<ZoneFileError> errors)
         {
