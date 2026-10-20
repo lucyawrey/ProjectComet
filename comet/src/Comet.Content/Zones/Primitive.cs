@@ -25,14 +25,20 @@ namespace Comet.Content
         /// <summary>Steps climbing toward +X.</summary>
         Stairs,
 
-        /// <summary>A wall (its face toward -Z) with a door-shaped opening at the bottom center.</summary>
+        /// <summary>A plain wall: a box with its face toward -Z.</summary>
         Wall,
 
-        /// <summary>A wall with a round-topped opening at the bottom center; the curve's sides come from the polygon budget.</summary>
+        /// <summary>A wall (its face toward -Z) with a door-shaped opening at the bottom center.</summary>
+        Doorway,
+
+        /// <summary>
+        /// A rounded band on two legs, its face toward -Z: round outside as well as inside, as thick as its thickness. The
+        /// curve's sides come from the polygon budget.
+        /// </summary>
         Arch,
 
-        // The regular solids other than the cube (a box), each standing as a player's shape does: 1 m tall at a scale of
-        // 1, regular at a uniform scale, and as wide as that makes it.
+        // The regular solids other than the cube (a box), each standing as a player's shape does. At a scale of 1 each
+        // holds as much as a 1 m cube, so they look about the same size; a uniform scale keeps them regular.
 
         /// <summary>A regular tetrahedron standing on a face, with a corner at the back and a face toward +Z.</summary>
         Tetrahedron,
@@ -103,15 +109,18 @@ namespace Comet.Content
         /// <summary>A stairway's number of steps, or 0 for steps about 0.25 m high.</summary>
         [Key(3)] public int Steps { get; set; }
 
-        /// <summary>A wall's or arch's opening: its width and its height (an arch's to the top of its curve), in meters.</summary>
+        /// <summary>A doorway's opening: its width and its height, in meters.</summary>
         [Key(4)] public float OpeningWidth { get; set; }
 
         [Key(5)] public float OpeningHeight { get; set; }
 
+        /// <summary>An arch's thickness: how wide its legs and band are, in meters.</summary>
+        [Key(6)] public float Thickness { get; set; }
+
         /// <summary>Whether two primitives build the same mesh at the same size.</summary>
         public bool SameAs(Primitive other) =>
             Kind == other.Kind && Sides == other.Sides && Bevel == other.Bevel && Steps == other.Steps &&
-            OpeningWidth == other.OpeningWidth && OpeningHeight == other.OpeningHeight;
+            OpeningWidth == other.OpeningWidth && OpeningHeight == other.OpeningHeight && Thickness == other.Thickness;
     }
 
     /// <summary>

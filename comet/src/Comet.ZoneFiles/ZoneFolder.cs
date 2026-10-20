@@ -218,7 +218,7 @@ namespace Comet.ZoneFiles
             chunk.Tiles = tiles.ToArray();
             chunk.Placements = toml.Tables(table, "placement").Select(p =>
             {
-                toml.CheckKeys(p.Table, p.Path, "asset", "primitive", "sides", "bevel", "steps", "opening", "blockout", "name", "position", "rotation", "scale", "color");
+                toml.CheckKeys(p.Table, p.Path, "asset", "primitive", "sides", "bevel", "steps", "opening", "thickness", "blockout", "name", "position", "rotation", "scale", "color");
                 var primitive = ReadPrimitive(toml, p.Table, p.Path);
                 return new Placement
                 {
@@ -378,7 +378,7 @@ namespace Comet.ZoneFiles
         {
             if (!table.ContainsKey("primitive"))
             {
-                foreach (var key in new[] { "sides", "bevel", "steps", "opening" })
+                foreach (var key in new[] { "sides", "bevel", "steps", "opening", "thickness" })
                 {
                     if (table.ContainsKey(key))
                     {
@@ -400,6 +400,7 @@ namespace Comet.ZoneFiles
                 Sides = table.TryGetValue("sides", out var sides) ? toml.Int(sides, $"{path}.sides") : (int?)null,
                 Bevel = toml.Float(table, path, "bevel", 0),
                 Steps = table.TryGetValue("steps", out var steps) ? toml.Int(steps, $"{path}.steps") : 0,
+                Thickness = toml.Float(table, path, "thickness", 0),
             };
             if (table.ContainsKey("opening"))
             {
@@ -432,6 +433,11 @@ namespace Comet.ZoneFiles
             if (primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0)
             {
                 placement["opening"] = new TomlArray { ZoneToml.Round(primitive.OpeningWidth, LengthDecimals), ZoneToml.Round(primitive.OpeningHeight, LengthDecimals) };
+            }
+
+            if (primitive.Thickness != 0)
+            {
+                placement["thickness"] = ZoneToml.Round(primitive.Thickness, LengthDecimals);
             }
         }
 

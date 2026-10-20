@@ -115,7 +115,9 @@ public class ZoneValidationTests
         placements[0].Primitive = new Primitive { Kind = PrimitiveKind.Box, Sides = 8 };
         zone.Chunks[0].Placements = placements.Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Cylinder, Sides = 2 } })
             .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Stairs, Steps = -1 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Doorway, OpeningWidth = 1, OpeningHeight = 2 } })
             .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Wall, OpeningWidth = 1, OpeningHeight = 2 } })
+            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Box, Thickness = 0.5f } })
             .ToArray();
 
         var errors = Errors(zone).ToList();
@@ -123,7 +125,9 @@ public class ZoneValidationTests
         Assert.Contains(errors, e => e.Contains("a box") && e.Contains("only cylinders, cones, spheres and arches have sides"));
         Assert.Contains(errors, e => e.Contains("a cylinder") && e.Contains("sides must be from 3"));
         Assert.Contains(errors, e => e.Contains("a stairs") && e.Contains("only stairs have steps"));
-        Assert.DoesNotContain(errors, e => e.Contains("a wall"));
+        Assert.Contains(errors, e => e.Contains("a wall") && e.Contains("only doorways have an opening"));
+        Assert.Contains(errors, e => e.Contains("a box") && e.Contains("only arches have a thickness"));
+        Assert.DoesNotContain(errors, e => e.Contains("a doorway"));
     }
 
     [Fact]

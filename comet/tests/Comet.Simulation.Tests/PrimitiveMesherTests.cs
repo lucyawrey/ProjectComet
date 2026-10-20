@@ -21,7 +21,9 @@ public class PrimitiveMesherTests
 
     private static Primitive Make(PrimitiveKind kind, float bevel = 0) => new()
     {
-        Kind = kind, Bevel = bevel, OpeningWidth = kind is PrimitiveKind.Wall or PrimitiveKind.Arch ? 1.2f : 0, OpeningHeight = 2.2f,
+        Kind = kind, Bevel = bevel,
+        OpeningWidth = kind == PrimitiveKind.Doorway ? 1.2f : 0, OpeningHeight = kind == PrimitiveKind.Doorway ? 2.2f : 0,
+        Thickness = kind == PrimitiveKind.Arch ? 0.4f : 0,
     };
 
     // Every edge is shared by exactly one other triangle running the other way: closed, and wound consistently.
@@ -104,11 +106,13 @@ public class PrimitiveMesherTests
     [InlineData(PrimitiveKind.Octahedron, 8)]
     [InlineData(PrimitiveKind.Dodecahedron, 12)]
     [InlineData(PrimitiveKind.Icosahedron, 20)]
-    public void SolidsAreRegularAndAMeterTall(PrimitiveKind kind, int faces)
+    public void SolidsAreRegularAndHoldACubicMeter(PrimitiveKind kind, int faces)
     {
         var triangles = PrimitiveMesher.Build(Make(kind), Vector3.One, Budget);
         Assert.Equal(0, triangles.Min(c => c.Y), 4);
-        Assert.Equal(1, triangles.Max(c => c.Y), 4);
+        var volume = Enumerable.Range(0, triangles.Length / 3)
+            .Sum(i => Vector3.Dot(triangles[3 * i], Vector3.Cross(triangles[3 * i + 1], triangles[3 * i + 2])) / 6);
+        Assert.Equal(1, volume, 3);
 
         var normals = Enumerable.Range(0, triangles.Length / 3)
             .Select(i => Vector3.Normalize(Vector3.Cross(triangles[3 * i + 1] - triangles[3 * i], triangles[3 * i + 2] - triangles[3 * i])))
@@ -132,8 +136,9 @@ public class PrimitiveMesherTests
     public void OctahedraAreRegular()
     {
         var corners = PrimitiveMesher.Build(Make(PrimitiveKind.Octahedron), Vector3.One, Budget);
-        var middle = new Vector3(0, 0.5f, 0);
-        Assert.All(corners, c => Assert.Equal(0.5f, Vector3.Distance(c, middle), 4));
+        var half = corners.Max(c => c.Y) / 2;
+        var middle = new Vector3(0, half, 0);
+        Assert.All(corners, c => Assert.Equal(half, Vector3.Distance(c, middle), 4));
     }
 
     [Fact]

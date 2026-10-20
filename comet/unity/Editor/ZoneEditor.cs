@@ -355,15 +355,16 @@ namespace Comet.Unity.Editor
         /// <summary>The primitive's kind for a placeable name: an asset key (<c>asset.prop</c>) is null.</summary>
         public static PrimitiveKind? PrimitiveNamed(string name) => PrimitiveKinds.Named(name);
 
-        /// <summary>The size a newly placed primitive of <paramref name="kind"/> starts at, and its opening if it has one.</summary>
-        public static (Vector3 Size, Vector2 Opening) StartingSize(PrimitiveKind kind) => kind switch
+        /// <summary>A newly placed primitive of <paramref name="kind"/>: its values and the size it starts at.</summary>
+        public static (Primitive Primitive, Vector3 Size) Starting(PrimitiveKind kind) => kind switch
         {
-            PrimitiveKind.Wedge => (new Vector3(2, 1, 2), Vector2.zero),
-            PrimitiveKind.Stairs => (new Vector3(2, 1, 1.5f), Vector2.zero),
-            PrimitiveKind.Wall => (new Vector3(4, 3, 0.3f), new Vector2(1.2f, 2.2f)),
-            PrimitiveKind.Arch => (new Vector3(4, 3.5f, 0.5f), new Vector2(1.6f, 2.6f)),
-            PrimitiveKind.Tetrahedron or PrimitiveKind.Octahedron or PrimitiveKind.Dodecahedron or PrimitiveKind.Icosahedron => (Vector3.one, Vector2.zero),
-            _ => (new Vector3(2, 2, 2), Vector2.zero),
+            PrimitiveKind.Wedge => (new Primitive { Kind = kind }, new Vector3(2, 1, 2)),
+            PrimitiveKind.Stairs => (new Primitive { Kind = kind }, new Vector3(2, 1, 1.5f)),
+            PrimitiveKind.Wall => (new Primitive { Kind = kind }, new Vector3(4, 3, 0.3f)),
+            PrimitiveKind.Doorway => (new Primitive { Kind = kind, OpeningWidth = 1.2f, OpeningHeight = 2.2f }, new Vector3(4, 3, 0.3f)),
+            PrimitiveKind.Arch => (new Primitive { Kind = kind, Thickness = 0.4f }, new Vector3(3, 3, 0.4f)),
+            PrimitiveKind.Tetrahedron or PrimitiveKind.Octahedron or PrimitiveKind.Dodecahedron or PrimitiveKind.Icosahedron => (new Primitive { Kind = kind }, Vector3.one),
+            _ => (new Primitive { Kind = kind }, new Vector3(2, 2, 2)),
         };
 
         // A primitive's object: its mesh built at its size, drawn in the placed objects' material, with a collider for
@@ -385,6 +386,7 @@ namespace Comet.Unity.Editor
             placement.bevel = primitive.Bevel;
             placement.steps = primitive.Steps;
             placement.opening = new Vector2(primitive.OpeningWidth, primitive.OpeningHeight);
+            placement.thickness = primitive.Thickness;
             placement.Rebuild();
             return thing;
         }
@@ -450,17 +452,18 @@ namespace Comet.Unity.Editor
 
         /// <summary>
         /// Places an asset (by key) or a primitive (by kind, <c>box</c>) at <paramref name="position"/> in an opened
-        /// zone: an asset as a linked model with its placement marker, a primitive at its starting size.
+        /// zone: an asset as a linked model with its placement marker, a primitive at its starting size. With a
+        /// <paramref name="color"/>, the placement has it as its own.
         /// </summary>
-        public static GameObject Place(ZoneEditing editing, string asset, Vector3 position, CometSettings settings)
+        public static GameObject Place(ZoneEditing editing, string asset, Vector3 position, CometSettings settings, Color? color = null)
         {
             var parent = editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
             GameObject thing;
             ZonePlacement placement;
             if (PrimitiveNamed(asset) is { } kind)
             {
-                var (size, opening) = StartingSize(kind);
-                thing = CreatePrimitive(new Primitive { Kind = kind, OpeningWidth = opening.x, OpeningHeight = opening.y }, size, settings, parent);
+                var (primitive, size) = Starting(kind);
+                thing = CreatePrimitive(primitive, size, settings, parent);
                 placement = thing.GetComponent<ZonePlacement>();
             }
             else
@@ -471,7 +474,7 @@ namespace Comet.Unity.Editor
             }
 
             thing.transform.position = position;
-            SetColors(placement, settings, null);
+            SetColors(placement, settings, color is { } c ? PlacedColors.ToRgb(c) : (uint?)null);
             Undo.RegisterCreatedObjectUndo(thing, $"Place {asset}");
             return thing;
         }

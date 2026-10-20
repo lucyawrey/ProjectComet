@@ -15,8 +15,8 @@ namespace Comet.Simulation
     /// </summary>
     public static class PrimitiveMesher
     {
-        private static readonly Dictionary<(PrimitiveKind, int?, float, int, float, float, Vector3, float, int, int), Vector3[]> Cache =
-            new Dictionary<(PrimitiveKind, int?, float, int, float, float, Vector3, float, int, int), Vector3[]>();
+        private static readonly Dictionary<(PrimitiveKind, int?, float, int, float, float, float, Vector3, float, int, int), Vector3[]> Cache =
+            new Dictionary<(PrimitiveKind, int?, float, int, float, float, float, Vector3, float, int, int), Vector3[]>();
 
         /// <summary>
         /// The triangles of <paramref name="placement"/>'s primitive, built once for each kind, values and size and
@@ -25,7 +25,7 @@ namespace Comet.Simulation
         public static Vector3[] For(Placement placement, PolygonBudget budget)
         {
             var p = placement.Primitive ?? throw new ArgumentException("Not a primitive's placement.", nameof(placement));
-            var key = (p.Kind, p.Sides, p.Bevel, p.Steps, p.OpeningWidth, p.OpeningHeight, placement.Scale, budget.FacetLength, budget.MinSides, budget.MaxSides);
+            var key = (p.Kind, p.Sides, p.Bevel, p.Steps, p.OpeningWidth, p.OpeningHeight, p.Thickness, placement.Scale, budget.FacetLength, budget.MinSides, budget.MaxSides);
             lock (Cache)
             {
                 if (!Cache.TryGetValue(key, out var triangles))
@@ -67,10 +67,13 @@ namespace Comet.Simulation
                     mesh.Prism(Stairs(size, primitive.Steps), size.Z);
                     break;
                 case PrimitiveKind.Wall:
-                    mesh.Prism(Wall(size, primitive.OpeningWidth, primitive.OpeningHeight), size.Z);
+                    mesh.Prism(Rectangle(size), size.Z);
+                    break;
+                case PrimitiveKind.Doorway:
+                    mesh.Prism(Doorway(size, primitive.OpeningWidth, primitive.OpeningHeight), size.Z);
                     break;
                 case PrimitiveKind.Arch:
-                    mesh.Prism(Arch(size, primitive.OpeningWidth, primitive.OpeningHeight, primitive.Sides, budget), size.Z);
+                    mesh.Prism(Arch(size, primitive.Thickness, primitive.Sides, budget), size.Z);
                     break;
                 default:
                     Solid(mesh, primitive.Kind, size);
@@ -126,9 +129,9 @@ namespace Comet.Simulation
             return profile.ToArray();
         }
 
-        // A wall's face (in X and Y, counterclockwise) with a door-shaped opening at the bottom center, kept inside the
-        // wall; no opening if either side of it is 0.
-        private static Vector2[] Wall(Vector3 size, float width, float height)
+        // A doorway's face (in X and Y, counterclockwise): a wall with a door-shaped opening at the bottom center, kept
+        // inside the wall; no opening if either side of it is 0.
+        private static Vector2[] Doorway(Vector3 size, float width, float height)
         {
             var (half, top) = Opening(size, width, height);
             if (half <= 0 || top <= 0)
@@ -143,34 +146,33 @@ namespace Comet.Simulation
             };
         }
 
-        // An arch's face: a wall whose opening's top is a half circle as wide as the opening.
-        private static Vector2[] Arch(Vector3 size, float width, float height, int? sides, PolygonBudget budget)
+        // An arch's face: a band of even thickness on two legs. Its outside is a half ellipse as wide as the arch on
+        // straight sides (a half circle when the arch is at least half as tall as it is wide); its inside is the same
+        // curve set in by the thickness, kept at least 5 cm wide and high.
+        private static Vector2[] Arch(Vector3 size, float thickness, int? sides, PolygonBudget budget)
         {
-            var (half, top) = Opening(size, width, height);
-            if (half <= 0 || top <= 0)
-            {
-                return Rectangle(size);
-            }
-
-            var radius = Math.Min(half, top);
-            var springs = top - radius; // where the curve starts, above the straight sides
-            var segments = Math.Max(2, (sides ?? budget.Sides(2 * MathF.PI * radius)) / 2);
-            var profile = new List<Vector2> { new Vector2(-size.X / 2, 0), new Vector2(-half, 0) };
+            const float least = 0.05f;
+            float outerX = size.X / 2, outerY = Math.Min(outerX, size.Y), springs = size.Y - outerY;
+            var t = Math.Clamp(thickness, least, Math.Max(least, Math.Min(outerX, outerY) - least));
+            float innerX = Math.Max(least, outerX - t), innerY = Math.Max(least, outerY - t);
+            var segments = Math.Max(2, (sides ?? budget.Sides(Ellipse(2 * outerX, 2 * outerY))) / 2);
+            var profile = new List<Vector2> { new Vector2(-outerX, 0), new Vector2(-innerX, 0) };
             for (var i = 0; i <= segments; i++)
             {
                 var angle = MathF.PI * (1 - (float)i / segments);
-                var point = new Vector2(half * MathF.Cos(angle), springs + radius * MathF.Sin(angle));
-                if (Vector2.DistanceSquared(point, profile[profile.Count - 1]) > 1e-8f)
-                {
-                    profile.Add(point);
-                }
+                profile.Add(new Vector2(innerX * MathF.Cos(angle), springs + innerY * MathF.Sin(angle)));
             }
 
-            profile.Add(new Vector2(half, 0));
-            profile.Add(new Vector2(size.X / 2, 0));
-            profile.Add(new Vector2(size.X / 2, size.Y));
-            profile.Add(new Vector2(-size.X / 2, size.Y));
-            return profile.ToArray();
+            profile.Add(new Vector2(innerX, 0));
+            profile.Add(new Vector2(outerX, 0));
+            for (var i = 0; i <= segments; i++)
+            {
+                var angle = MathF.PI * i / segments;
+                profile.Add(new Vector2(outerX * MathF.Cos(angle), springs + outerY * MathF.Sin(angle)));
+            }
+
+            // Where the legs have no straight part, a curve's end lands on its bottom corner: drop the repeat.
+            return profile.Where((point, i) => Vector2.DistanceSquared(point, profile[(i + profile.Count - 1) % profile.Count]) > 1e-8f).ToArray();
         }
 
         // An opening's half width and height, kept at least 5 cm inside the wall's sides and top.
@@ -295,7 +297,7 @@ namespace Comet.Simulation
             }
         }
 
-        // The regular solids, 1 m tall at a scale of 1, scaled to the size.
+        // The regular solids, holding 1 m³ at a scale of 1, scaled to the size.
         private static void Solid(Builder mesh, PrimitiveKind kind, Vector3 size)
         {
             var (points, faces) = UnitSolids.Get(kind);
@@ -307,7 +309,7 @@ namespace Comet.Simulation
             }
         }
 
-        // Each regular solid's corners and faces at 1 m tall, standing on its pivot, built once.
+        // Each regular solid's corners and faces at 1 m³, standing on its pivot, built once.
         private static class UnitSolids
         {
             public static bool IsSolid(PrimitiveKind kind) =>
@@ -321,11 +323,33 @@ namespace Comet.Simulation
                 {
                     if (!Solids.TryGetValue(kind, out var solid))
                     {
-                        Solids[kind] = solid = Make(kind);
+                        Solids[kind] = solid = OfUnitVolume(Make(kind));
                     }
 
                     return solid;
                 }
+            }
+
+            // Scales a solid standing on its pivot to hold 1 m³, measuring it as built: the sum of the cones from its
+            // middle to each triangle.
+            private static (Vector3[], int[][]) OfUnitVolume((Vector3[] Points, int[][] Faces) solid)
+            {
+                var middle = solid.Points.Aggregate(Vector3.Add) / solid.Points.Length;
+                var mesh = new Builder();
+                foreach (var face in solid.Faces)
+                {
+                    mesh.Convex(middle, face.Select(i => solid.Points[i] - middle).ToArray());
+                }
+
+                var t = mesh.Triangles;
+                var volume = 0f;
+                for (var i = 0; i < t.Count; i += 3)
+                {
+                    volume += MathF.Abs(Vector3.Dot(t[i], Vector3.Cross(t[i + 1], t[i + 2]))) / 6;
+                }
+
+                var scale = MathF.Pow(1 / volume, 1f / 3);
+                return (solid.Points.Select(p => p * scale).ToArray(), solid.Faces);
             }
 
             private static (Vector3[], int[][]) Make(PrimitiveKind kind)

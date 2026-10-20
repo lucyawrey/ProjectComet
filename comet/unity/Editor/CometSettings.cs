@@ -59,6 +59,15 @@ namespace Comet.Unity.Editor
         [Tooltip("The color spawn markers are drawn in, as the game draws a marker that isn't the player's.")]
         public Color spawnMarkerColor = Color.white;
 
+        [Tooltip("The colors the place tool offers to place things in, beside its color picker.")]
+        public System.Collections.Generic.List<Color> swatches = new System.Collections.Generic.List<Color>
+        {
+            new Color32(0xf2, 0xf2, 0xf2, 0xff), new Color32(0x9e, 0x9e, 0x9e, 0xff), new Color32(0x4a, 0x4a, 0x4a, 0xff),
+            new Color32(0x9e, 0x8c, 0x7a, 0xff), new Color32(0x7a, 0x5c, 0x3e, 0xff), new Color32(0xe5, 0x39, 0x35, 0xff),
+            new Color32(0xfb, 0x8c, 0x00, 0xff), new Color32(0xfd, 0xd8, 0x35, 0xff), new Color32(0x43, 0xa0, 0x47, 0xff),
+            new Color32(0x1e, 0x88, 0xe5, 0xff), new Color32(0x8e, 0x24, 0xaa, 0xff), new Color32(0xec, 0x40, 0x7a, 0xff),
+        };
+
         [Header("Polygon budget (Comet › Zones › Polygon Budget)")]
         [Tooltip("About how long each side of a round primitive is, in meters.")]
         [Min(0.01f)] public float facetLength = 0.5f;

@@ -20,7 +20,7 @@ namespace Comet.Unity
         [Tooltip("The primitive's kind.")]
         public PrimitiveKind kind;
 
-        [Tooltip("The primitive's size in meters (at 1, 1, 1 a regular solid is 1 m tall).")]
+        [Tooltip("The primitive's size in meters; a regular solid's scale (at 1, 1, 1 it holds as much as a 1 m cube).")]
         public Vector3 size = Vector3.one;
 
         [Tooltip("A round primitive's sides, or 0 to take them from the polygon budget.")]
@@ -32,8 +32,11 @@ namespace Comet.Unity
         [Tooltip("A stairway's steps, or 0 for steps about 0.25 m high.")]
         [Min(0)] public int steps;
 
-        [Tooltip("A wall's or arch's opening, width and height in meters (0 for none).")]
+        [Tooltip("A doorway's opening, width and height in meters.")]
         public Vector2 opening;
+
+        [Tooltip("An arch's thickness: how wide its legs and band are, in meters.")]
+        [Min(0)] public float thickness;
 
         [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
         public bool blockout;
@@ -55,7 +58,7 @@ namespace Comet.Unity
             ? new Primitive
             {
                 Kind = kind, Sides = sides > 0 ? sides : (int?)null, Bevel = bevel, Steps = steps,
-                OpeningWidth = opening.x, OpeningHeight = opening.y,
+                OpeningWidth = opening.x, OpeningHeight = opening.y, Thickness = thickness,
             }
             : null;
 

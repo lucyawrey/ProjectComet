@@ -21,6 +21,7 @@ namespace Comet.Unity.Editor
         [SerializeField] private string asset = "";
         [SerializeField] private bool spawn;
         [SerializeField] private string spawnKey = "spawn.";
+        [SerializeField] private Color color = Color.clear; // clear until first shown: then the game's placed color
 
         private GUIContent? _icon;
         private Vector3? _hover;
@@ -38,9 +39,10 @@ namespace Comet.Unity.Editor
 
         public override bool IsAvailable() => Editing != null;
 
-        // The panel's pictures of each model, drawn in the placed objects' material (Unity's own previews use the
-        // models' imported materials, which show purple where their shaders aren't ready).
-        private readonly Dictionary<(GameObject, Color?), Texture2D> _thumbnails = new Dictionary<(GameObject, Color?), Texture2D>();
+        // The panel's pictures of each model and primitive, drawn in the placed objects' material and the picked color
+        // (Unity's own previews use the models' imported materials, which show purple where their shaders aren't
+        // ready). Keyed by what's drawn, its color and, for primitives, the polygon budget.
+        private readonly Dictionary<(string, Color), Texture2D> _thumbnails = new Dictionary<(string, Color), Texture2D>();
 
         private void OnEnable() => Instance = this;
 
@@ -54,22 +56,41 @@ namespace Comet.Unity.Editor
             _thumbnails.Clear();
         }
 
-        private Texture2D? Thumbnail(GameObject model, Material? material, Color? color, int size)
+        // A model's meshes, in its own space, without its collision objects.
+        private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(GameObject model, Vector3 scale) =>
+            model.GetComponentsInChildren<MeshFilter>()
+                .Where(f => f.sharedMesh != null && !f.name.EndsWith(Asset.CollisionSuffix, StringComparison.Ordinal))
+                .Select(f => (f.sharedMesh, Matrix4x4.Scale(scale) * model.transform.worldToLocalMatrix * f.transform.localToWorldMatrix))
+                .ToList();
+
+        // What a placeable name (an asset key or a primitive's kind) draws at a scale, or nothing if it has no model.
+        private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(string placeable, CometSettings settings, Vector3? size = null)
         {
-            if (material == null)
+            if (ZoneEditor.PrimitiveNamed(placeable) is { } kind)
             {
-                return AssetPreview.GetAssetPreview(model);
+                var (primitive, starting) = ZoneEditor.Starting(kind);
+                var at = size ?? starting;
+                var mesh = PrimitiveMeshes.For(new Placement { Primitive = primitive, Scale = new System.Numerics.Vector3(at.x, at.y, at.z) }, settings.Budget);
+                return new List<(Mesh, Matrix4x4)> { (mesh, Matrix4x4.identity) };
             }
 
-            if (_thumbnails.TryGetValue((model, color), out var cached) && cached != null)
+            if (settings.assets == null || !settings.assets.TryGet(placeable, out var entry) || entry.model == null)
+            {
+                return new List<(Mesh, Matrix4x4)>();
+            }
+
+            var bounds = entry.bounds.size;
+            var scale = size is { } s ? new Vector3(s.x / Mathf.Max(bounds.x, 0.01f), s.y / Mathf.Max(bounds.y, 0.01f), s.z / Mathf.Max(bounds.z, 0.01f)) : Vector3.one;
+            return Parts(entry.model, scale);
+        }
+
+        private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix)> parts, Material material, Color color, int size)
+        {
+            if (_thumbnails.TryGetValue((key, color), out var cached) && cached != null)
             {
                 return cached;
             }
 
-            var parts = model.GetComponentsInChildren<MeshFilter>()
-                .Where(f => f.sharedMesh != null && !f.name.EndsWith(Asset.CollisionSuffix, StringComparison.Ordinal))
-                .Select(f => (f.sharedMesh, Matrix: model.transform.worldToLocalMatrix * f.transform.localToWorldMatrix))
-                .ToList();
             if (parts.Count == 0)
             {
                 return null;
@@ -85,12 +106,8 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            MaterialPropertyBlock? block = null;
-            if (color is { } c)
-            {
-                block = new MaterialPropertyBlock();
-                block.SetColor("_BaseColor", c);
-            }
+            var block = new MaterialPropertyBlock();
+            block.SetColor("_BaseColor", color);
 
             var preview = new PreviewRenderUtility();
             try
@@ -124,7 +141,7 @@ namespace Comet.Unity.Editor
 
                 var texture = preview.EndStaticPreview();
                 texture.hideFlags = HideFlags.HideAndDontSave;
-                _thumbnails[(model, color)] = texture;
+                _thumbnails[(key, color)] = texture;
                 return texture;
             }
             finally
@@ -148,46 +165,51 @@ namespace Comet.Unity.Editor
 
             EditorGUIUtility.labelWidth = 40;
             EditorGUILayout.BeginVertical(GUILayout.Width(280));
-            EditorGUILayout.LabelField("Primitives", EditorStyles.boldLabel);
-            const int size = 64, perRow = 4;
-            var kinds = PrimitiveKinds.All.Select(PrimitiveKinds.Name).ToList();
-            for (var i = 0; i < kinds.Count; i += perRow)
+            if (color.a == 0)
             {
-                EditorGUILayout.BeginHorizontal();
-                foreach (var kind in kinds.Skip(i).Take(perRow))
-                {
-                    var picked = !spawn && asset == kind;
-                    if (GUILayout.Toggle(picked, kind.Replace('_', ' '), GUI.skin.button, GUILayout.Width(size)) && !picked)
-                    {
-                        asset = kind;
-                        spawn = false;
-                    }
-                }
-
-                EditorGUILayout.EndHorizontal();
+                color = settings.placedColor;
             }
+
+            ColorRow(settings);
+            EditorGUILayout.Space();
+
+            const int size = 64, perRow = 4;
+            var budget = settings.Budget;
+            var budgetKey = $"{budget.FacetLength}/{budget.MinSides}/{budget.MaxSides}";
+            void Grid(List<(string Key, string Label, Texture2D? Picture)> items)
+            {
+                for (var i = 0; i < items.Count; i += perRow)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    foreach (var (key, label, picture) in items.Skip(i).Take(perRow))
+                    {
+                        var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, key);
+                        var picked = !spawn && asset == key;
+                        if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) && !picked)
+                        {
+                            asset = key;
+                            spawn = false;
+                        }
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+
+            EditorGUILayout.LabelField("Primitives", EditorStyles.boldLabel);
+            Grid(PrimitiveKinds.All.Select(PrimitiveKinds.Name).Select(kind =>
+                (kind, kind, settings.placedMaterial != null ? Thumbnail($"{kind} {budgetKey}", Parts(kind, settings), settings.placedMaterial, color, size * 2) : null)).ToList());
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Assets", EditorStyles.boldLabel);
-            var entries = settings.assets.Entries;
-            for (var i = 0; i < entries.Count; i += perRow)
+            Grid(settings.assets.Entries.Select(entry =>
             {
-                EditorGUILayout.BeginHorizontal();
-                foreach (var entry in entries.Skip(i).Take(perRow))
-                {
-                    var preview = entry.model != null ? Thumbnail(entry.model, settings.placedMaterial, entry.hasColor ? entry.color : settings.placedColor, size * 2) : null;
-                    var label = entry.key.StartsWith("asset.") ? entry.key.Substring("asset.".Length) : entry.key;
-                    var content = preview != null ? new GUIContent(preview, entry.key) : new GUIContent(label, entry.key);
-                    var picked = !spawn && asset == entry.key;
-                    if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) && !picked)
-                    {
-                        asset = entry.key;
-                        spawn = false;
-                    }
-                }
-
-                EditorGUILayout.EndHorizontal();
-            }
+                var label = entry.key.StartsWith("asset.") ? entry.key.Substring("asset.".Length) : entry.key;
+                var preview = entry.model == null ? null
+                    : settings.placedMaterial != null ? Thumbnail(entry.key, Parts(entry.model, Vector3.one), settings.placedMaterial, color, size * 2)
+                    : AssetPreview.GetAssetPreview(entry.model);
+                return (entry.key, label, preview);
+            }).ToList());
 
             // Previews load in the background; keep repainting until they're in.
             if (AssetPreview.IsLoadingAssetPreviews())
@@ -198,13 +220,23 @@ namespace Comet.Unity.Editor
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Spawn points", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
-            var spawnPicked = GUILayout.Toggle(spawn, "New spawn point", GUI.skin.button, GUILayout.Width(120));
+            // Its picture is the spawn marker, flattened as a new spawn's is, in the markers' color.
+            var marker = settings.placedMaterial != null && !string.IsNullOrEmpty(settings.spawnMarkerAsset)
+                ? Thumbnail($"spawn {settings.spawnMarkerAsset} {settings.spawnMarkerHeight} {budgetKey}",
+                    Parts(settings.spawnMarkerAsset, settings, new Vector3(2 * ZoneSpawn.DefaultRadius, settings.spawnMarkerHeight, 2 * ZoneSpawn.DefaultRadius)),
+                    settings.placedMaterial, settings.spawnMarkerColor, size * 2)
+                : null;
+            var spawnContent = marker != null ? new GUIContent(marker, "New spawn point") : new GUIContent("New spawn point");
+            var spawnPicked = GUILayout.Toggle(spawn, spawnContent, GUI.skin.button, GUILayout.Width(marker != null ? size : 120), GUILayout.Height(marker != null ? size : 20));
             if (spawnPicked != spawn)
             {
                 spawn = spawnPicked;
             }
 
+            EditorGUILayout.BeginVertical();
+            EditorGUILayout.LabelField("New spawn point's key");
             spawnKey = EditorGUILayout.TextField(spawnKey);
+            EditorGUILayout.EndVertical();
             EditorGUILayout.EndHorizontal();
             foreach (var point in editing.GetComponentsInChildren<ZoneSpawn>())
             {
@@ -216,9 +248,37 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.HelpBox(spawn || !string.IsNullOrEmpty(asset)
-                ? "Click in the scene to place it; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
+                ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
                 : "Pick a primitive, an asset or a new spawn point, then click in the scene to place it.", MessageType.None);
             EditorGUILayout.EndVertical();
+        }
+
+        // The color things are placed in: the settings' swatches, and a picker for any other.
+        private void ColorRow(CometSettings settings)
+        {
+            EditorGUILayout.LabelField("Color", EditorStyles.boldLabel);
+            const int swatch = 18, perRow = 12;
+            for (var i = 0; i < settings.swatches.Count; i += perRow)
+            {
+                var row = GUILayoutUtility.GetRect(perRow * (swatch + 2), swatch + 2, GUILayout.ExpandWidth(false));
+                foreach (var (option, k) in settings.swatches.Skip(i).Take(perRow).Select((c, k) => (c, k)))
+                {
+                    var r = new Rect(row.x + k * (swatch + 2) + 1, row.y + 1, swatch, swatch);
+                    if (option == color)
+                    {
+                        EditorGUI.DrawRect(new Rect(r.x - 1, r.y - 1, r.width + 2, r.height + 2), Color.white);
+                    }
+
+                    EditorGUI.DrawRect(r, option);
+                    if (Event.current.type == EventType.MouseDown && r.Contains(Event.current.mousePosition))
+                    {
+                        color = option;
+                        Event.current.Use();
+                    }
+                }
+            }
+
+            color = EditorGUILayout.ColorField(GUIContent.none, color, false, false, false, GUILayout.Width(perRow * (swatch + 2)));
         }
 
         public override void OnToolGUI(EditorWindow window)
@@ -270,7 +330,7 @@ namespace Comet.Unity.Editor
         {
             if (!spawn)
             {
-                Selection.activeGameObject = ZoneEditor.Place(editing, asset, at, settings);
+                Selection.activeGameObject = ZoneEditor.Place(editing, asset, at, settings, color);
                 return;
             }
 

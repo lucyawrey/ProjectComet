@@ -253,9 +253,14 @@ namespace Comet.ZoneFiles
             }
 
             if ((primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0) &&
-                (kind is not (PrimitiveKind.Wall or PrimitiveKind.Arch) || primitive.OpeningWidth < 0 || primitive.OpeningHeight < 0))
+                (kind != PrimitiveKind.Doorway || primitive.OpeningWidth < 0 || primitive.OpeningHeight < 0))
             {
-                error(file, $"{what}: only walls and arches have an opening, and it can't be negative.");
+                error(file, $"{what}: only doorways have an opening, and it can't be negative.");
+            }
+
+            if (primitive.Thickness != 0 && (kind != PrimitiveKind.Arch || primitive.Thickness < 0))
+            {
+                error(file, $"{what}: only arches have a thickness, and it can't be negative.");
             }
         }
 

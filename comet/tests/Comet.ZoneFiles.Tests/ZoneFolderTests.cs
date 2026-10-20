@@ -119,7 +119,8 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         var placement = zone.Chunks[0].Placements[0];
         placement.Asset = "";
-        placement.Primitive = new Primitive { Kind = PrimitiveKind.Arch, Sides = 8, OpeningWidth = 1.2f, OpeningHeight = 2.2f };
+        placement.Primitive = new Primitive { Kind = PrimitiveKind.Arch, Sides = 8, Thickness = 0.4f };
+        zone.Chunks[0].Placements = [placement, new Placement { Position = placement.Position, Primitive = new Primitive { Kind = PrimitiveKind.Doorway, OpeningWidth = 1.2f, OpeningHeight = 2.2f } }];
         placement.Blockout = true;
 
         var read = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
@@ -130,6 +131,7 @@ public class ZoneFolderTests
         Assert.True(placement.Primitive.SameAs(read.Primitive!));
         var text = File.ReadAllText(folder.PathOf("chunks/-1_0.toml"));
         Assert.Contains("primitive = \"arch\"", text);
+        Assert.Contains("thickness = 0.4", text);
         Assert.Contains("opening = [1.2, 2.2]", text);
         Assert.Contains("blockout = true", text);
     }
