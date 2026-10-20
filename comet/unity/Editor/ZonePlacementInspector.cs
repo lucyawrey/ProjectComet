@@ -87,8 +87,7 @@ namespace Comet.Unity.Editor
             if (GUILayout.Button($"Edit {copy.group}"))
             {
                 // After this GUI pass: opening replaces the scene the Inspector is drawing.
-                var key = copy.group;
-                EditorApplication.delayCall += () => ZoneGroups.Open(key, settings);
+                ZoneGroups.OpenLater(copy.group, settings);
             }
 
             if (GUILayout.Button("Unpack"))

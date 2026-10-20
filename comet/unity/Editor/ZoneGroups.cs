@@ -273,11 +273,20 @@ namespace Comet.Unity.Editor
             Selection.objects = made.Cast<Object>().ToArray();
         }
 
+        /// <summary>Asks to save the open scenes' changes, then opens a group (<see cref="Open"/>), after the current GUI pass.</summary>
+        public static void OpenLater(string key, CometSettings settings) => EditorApplication.delayCall += () =>
+        {
+            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                Open(key, settings);
+            }
+        };
+
         /// <summary>Opens a group in a scene of its own, its pivot at the origin; saving it updates every copy.</summary>
         public static bool Open(string key, CometSettings settings)
         {
             var entry = Load().FirstOrDefault(g => g.Group.Id == key);
-            if (entry.Group == null || !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (entry.Group == null)
             {
                 return false;
             }

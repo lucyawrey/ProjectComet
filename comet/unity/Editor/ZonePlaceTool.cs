@@ -244,8 +244,7 @@ namespace Comet.Unity.Editor
             }).ToList());
             if (!spawn && asset.StartsWith("group.", StringComparison.Ordinal) && GUILayout.Button($"Edit {asset}"))
             {
-                var key = asset;
-                EditorApplication.delayCall += () => ZoneGroups.Open(key, settings);
+                ZoneGroups.OpenLater(asset, settings);
             }
 
             EditorGUILayout.BeginHorizontal();
