@@ -5,7 +5,8 @@ namespace Comet.Unity
 {
     /// <summary>
     /// An asset or a primitive placed in a zone opened in the editor: the object's transform is the placement's. A
-    /// primitive's mesh is built at its size, so its scale is folded into <see cref="size"/> once a resize ends.
+    /// primitive's mesh is built at its size: the scale tool edits <see cref="size"/>, and any other scale is folded
+    /// into it once a resize ends.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
@@ -16,6 +17,12 @@ namespace Comet.Unity
 
         [Tooltip("Whether this places a primitive, built in code, instead of an asset.")]
         public bool isPrimitive;
+
+        [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
+        public string placementName = "";
+
+        [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
+        public bool blockout;
 
         [Tooltip("The primitive's kind.")]
         public PrimitiveKind kind;
@@ -38,12 +45,6 @@ namespace Comet.Unity
         [Tooltip("An arch's thickness: how wide its legs and band are, in meters.")]
         [Min(0)] public float thickness;
 
-        [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
-        public bool blockout;
-
-        [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
-        public string placementName = "";
-
         // Drawn by the editor's inspector as one color field with a reset button: editing it gives the placement its
         // own color, resetting goes back to the default (its asset's, else the game's).
         [HideInInspector] public bool ownColor;
@@ -61,6 +62,29 @@ namespace Comet.Unity
                 OpeningWidth = opening.x, OpeningHeight = opening.y, Thickness = thickness,
             }
             : null;
+
+        // The mesh shown while a resize is dragged: refilled at each size rather than cached, then dropped.
+        private Mesh? _dragMesh;
+
+        /// <summary>Shows the mesh at its size while a resize is dragged, without keeping a mesh for every size passed.</summary>
+        public void PreviewResize()
+        {
+            if (!isPrimitive || !TryGetComponent<MeshFilter>(out var filter))
+            {
+                return;
+            }
+
+            if (_dragMesh == null)
+            {
+                _dragMesh = new Mesh { name = "Resizing", hideFlags = HideFlags.DontSave };
+            }
+
+            var builder = new PrimitiveMeshes.Builder();
+            builder.Add(Comet.Simulation.PrimitiveMesher.Build(Primitive!, new System.Numerics.Vector3(size.x, size.y, size.z), Budget), System.Numerics.Matrix4x4.Identity, 0xFFFFFF);
+            _dragMesh.Clear();
+            builder.Fill(_dragMesh);
+            filter.sharedMesh = _dragMesh;
+        }
 
         /// <summary>Builds a primitive's mesh again at its size (the mesh isn't saved with the scene).</summary>
         public void Rebuild()
@@ -81,7 +105,20 @@ namespace Comet.Unity
             {
                 collider.sharedMesh = mesh;
             }
+
+            DropDragMesh();
         }
+
+        private void DropDragMesh()
+        {
+            if (_dragMesh != null)
+            {
+                DestroyImmediate(_dragMesh);
+                _dragMesh = null;
+            }
+        }
+
+        private void OnDestroy() => DropDragMesh();
 
         /// <summary>The color it's drawn in without its own.</summary>
         public Color DefaultColor => defaultColor;
