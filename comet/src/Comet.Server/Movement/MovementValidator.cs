@@ -95,7 +95,7 @@ public sealed class MovementTolerances
 /// </summary>
 public sealed class MovementValidator
 {
-    private readonly CollisionWorld _world;
+    private CollisionWorld _world;
     private readonly MovementRules _rules;
     private readonly MovementTolerances _tolerances;
     private readonly int _tickRate;
@@ -139,6 +139,15 @@ public sealed class MovementValidator
 
     /// <summary>How much of the tolerances this player's accepted reports have needed, for tuning them.</summary>
     public MovementHeadroom Headroom { get; } = new();
+
+    /// <summary>The world the player moves in (changed by <see cref="Teleport"/> to another zone).</summary>
+    public CollisionWorld World => _world;
+
+    /// <summary>
+    /// The meshes the player passes through: ones turned on around them, until they're fully out (game code keeps
+    /// it). Checks and server falls skip them.
+    /// </summary>
+    public HashSet<int> PassThrough { get; } = new();
 
     /// <summary>True while the server is moving the player down a fall, because their client went silent in the air.</summary>
     public bool ServerFalling => _serverFalling;
@@ -204,7 +213,7 @@ public sealed class MovementValidator
         var verdict =
             distance > _budget ? MovementVerdict.TooFast
             : position.Y > _groundY + AllowedRise(stamp ?? tick, jumpVelocity) ? MovementVerdict.TooHigh
-            : _world.IsBlocked(position, _rules.BodyRadius, _rules.BodyHeight) ? MovementVerdict.InsideSolid
+            : _world.IsBlocked(position, _rules.BodyRadius, _rules.BodyHeight, PassThrough) ? MovementVerdict.InsideSolid
             : _world.IsInsideTerrain(position, _tolerances.GroundSlack) ? MovementVerdict.UnderGround
             : MovementVerdict.Accepted;
 
@@ -256,7 +265,7 @@ public sealed class MovementValidator
     // Notes the ground under an accepted position, if it's standing on some; returns whether it is.
     private bool Land(Vector3 position, uint tick)
     {
-        if (_world.TryGetGround(position, _rules.BodyRadius, position.Y + _tolerances.HeightSlack, out var ground) && position.Y - ground <= _tolerances.HeightSlack)
+        if (_world.TryGetGround(position, _rules.BodyRadius, position.Y + _tolerances.HeightSlack, out var ground, 0, PassThrough) && position.Y - ground <= _tolerances.HeightSlack)
         {
             _groundY = ground;
             _groundTick = Math.Max(_groundTick, tick);
@@ -331,7 +340,7 @@ public sealed class MovementValidator
     // One server tick of a server fall; null while still in the air.
     private FallResult? StepFall(float maxSpeed, float jumpVelocity)
     {
-        PlayerMotor.Step(ref _fall, _fallMove, jump: false, 1f / _tickRate, maxSpeed, jumpVelocity, _world, _rules);
+        PlayerMotor.Step(ref _fall, _fallMove, jump: false, 1f / _tickRate, maxSpeed, jumpVelocity, _world, _rules, PassThrough);
         Position = _fall.Position;
         Facing = _fall.Facing;
         return Position.Y < _world.KillHeight ? FallResult.FellOut : _fall.Grounded ? FallResult.Landed : null;
@@ -367,17 +376,24 @@ public sealed class MovementValidator
     };
 
     /// <summary>
-    /// Moves the player somewhere new (a spawn point, say) and builds the correction that tells them, as a respawn.
-    /// Later reports must echo its sequence.
+    /// Moves the player somewhere new (a spawn point, a teleporter) and builds the correction that tells them, as
+    /// <paramref name="reason"/>; with <paramref name="world"/>, into that world (another zone), passing through
+    /// nothing yet. Later reports must echo its sequence.
     /// </summary>
-    public PositionCorrection Teleport(Vector3 position, float facing, uint tick)
+    public PositionCorrection Teleport(Vector3 position, float facing, uint tick, CorrectionReason reason = CorrectionReason.Respawn, CollisionWorld? world = null)
     {
+        if (world != null && world != _world)
+        {
+            _world = world;
+            PassThrough.Clear();
+        }
+
         CorrectionSequence++;
         Reset(position, facing, tick);
         return new PositionCorrection
         {
             Sequence = CorrectionSequence,
-            Reason = CorrectionReason.Respawn,
+            Reason = reason,
             X = position.X,
             Y = position.Y,
             Z = position.Z,

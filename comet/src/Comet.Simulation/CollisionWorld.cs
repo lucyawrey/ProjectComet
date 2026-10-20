@@ -8,7 +8,9 @@ namespace Comet.Simulation
     /// What players stand on and bump into: a zone's terrain pieces (heightmaps, possibly stacked), solid triangle
     /// meshes (placed props and volumes), and a kill height below which a player has fallen out of the world.
     /// Players are an upright box: a square footprint <c>radius</c> from the feet's center, <c>bodyHeight</c> tall.
-    /// The same on client and server; safe to query from several threads at once (bots share one).
+    /// Named meshes can be turned off and on (<see cref="SetOn"/>), and queries can pass through a player's own set of
+    /// meshes (those turned on around them, until they're out). The same on client and server; safe to query from
+    /// several threads at once (bots share one), with turning meshes on and off from one thread.
     /// </summary>
     public sealed class CollisionWorld
     {
@@ -28,6 +30,9 @@ namespace Comet.Simulation
         // Which mesh each triangle belongs to.
         private readonly int[] _meshOf;
         private readonly Dictionary<(int X, int Z), List<int>> _cells = new Dictionary<(int X, int Z), List<int>>();
+        private readonly Dictionary<string, List<int>> _named = new Dictionary<string, List<int>>();
+        // Which meshes are off, replaced whole on a change so queries on other threads see one state or the other.
+        private volatile bool[] _off;
 
         // Scratch space for clipping triangles to footprints, per thread.
         [ThreadStatic] private static List<Vector3>? _polygon;
@@ -50,6 +55,22 @@ namespace Comet.Simulation
 
             _corners = corners.ToArray();
             _meshOf = meshOf.ToArray();
+            _off = new bool[_meshes.Count];
+            for (var m = 0; m < _meshes.Count; m++)
+            {
+                _off[m] = _meshes[m].StartsOff;
+                if (_meshes[m].Name is { } name)
+                {
+                    if (!_named.TryGetValue(name, out var list))
+                    {
+                        list = new List<int>();
+                        _named.Add(name, list);
+                    }
+
+                    list.Add(m);
+                }
+            }
+
             _normals = new Vector3[_corners.Length / 3];
             _firstCells = new (int X, int Z)[_normals.Length];
             for (var t = 0; t < _normals.Length; t++)
@@ -84,12 +105,35 @@ namespace Comet.Simulation
         /// <summary>Below this height a player has fallen out of the world.</summary>
         public float KillHeight { get; }
 
+        /// <summary>The meshes named <paramref name="name"/>, by index in <see cref="Meshes"/>; none for an unknown name.</summary>
+        public IReadOnlyList<int> MeshesNamed(string name) => _named.TryGetValue(name, out var list) ? list : (IReadOnlyList<int>)Array.Empty<int>();
+
+        /// <summary>Whether mesh <paramref name="mesh"/> is solid now.</summary>
+        public bool IsOn(int mesh) => !_off[mesh];
+
+        /// <summary>Turns the meshes named <paramref name="name"/> on (solid) or off.</summary>
+        public void SetOn(string name, bool on)
+        {
+            var off = (bool[])_off.Clone();
+            foreach (var mesh in MeshesNamed(name))
+            {
+                off[mesh] = !on;
+            }
+
+            _off = off;
+        }
+
+        /// <summary>Whether a body standing at <paramref name="feet"/> overlaps mesh <paramref name="mesh"/>, on or off: touches a triangle of it, or is wholly inside it.</summary>
+        public bool Overlaps(int mesh, Vector3 feet, float radius, float bodyHeight) =>
+            TouchesMesh(feet, radius, bodyHeight, null, only: mesh) || IsInsideMesh(feet + new Vector3(0, bodyHeight / 2, 0), null, only: mesh);
+
         /// <summary>
         /// The highest ground under a body that is at or below <paramref name="maxY"/>: terrain under its center (any
         /// piece, allowed up to <paramref name="terrainClimb"/> higher, for slopes), or the highest point of a walkable
-        /// mesh triangle under its footprint. False if there is none (over a hole, past the edge).
+        /// mesh triangle under its footprint, skipping meshes that are off or in <paramref name="passThrough"/>. False if
+        /// there is none (over a hole, past the edge).
         /// </summary>
-        public bool TryGetGround(Vector3 feet, float radius, float maxY, out float height, float terrainClimb = 0)
+        public bool TryGetGround(Vector3 feet, float radius, float maxY, out float height, float terrainClimb = 0, ISet<int>? passThrough = null)
         {
             var found = TryGetTerrainHeight(feet.X, feet.Z, maxY + terrainClimb, out height);
             if (!found)
@@ -101,6 +145,7 @@ namespace Comet.Simulation
             var r = radius - Epsilon;
             var polygon = _polygon ??= new List<Vector3>(8);
             var scratch = _scratch ??= new List<Vector3>(8);
+            var off = _off;
             int fromX = Cell(feet.X - r), fromZ = Cell(feet.Z - r);
             for (var z = fromZ; z <= Cell(feet.Z + r); z++)
             {
@@ -113,7 +158,7 @@ namespace Comet.Simulation
 
                     foreach (var t in list)
                     {
-                        if (!FirstLook(t, x, z, fromX, fromZ) || _normals[t].Y < WalkableNormalY)
+                        if (!FirstLook(t, x, z, fromX, fromZ) || _normals[t].Y < WalkableNormalY || Skip(t, off, passThrough))
                         {
                             continue;
                         }
@@ -155,13 +200,16 @@ namespace Comet.Simulation
 
         /// <summary>
         /// Whether a body standing at <paramref name="feet"/> overlaps a solid mesh: touches one of its triangles, or is
-        /// wholly inside it. Terrain is checked by <see cref="IsBlockedByTerrain"/>.
+        /// wholly inside it, skipping meshes that are off or in <paramref name="passThrough"/>. Terrain is checked by
+        /// <see cref="IsBlockedByTerrain"/>.
         /// </summary>
-        public bool IsBlocked(Vector3 feet, float radius, float bodyHeight) =>
-            TouchesMesh(feet, radius, bodyHeight) || IsInsideMesh(feet + new Vector3(0, bodyHeight / 2, 0));
+        public bool IsBlocked(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null) =>
+            TouchesMesh(feet, radius, bodyHeight, passThrough) || IsInsideMesh(feet + new Vector3(0, bodyHeight / 2, 0), passThrough);
 
-        private bool TouchesMesh(Vector3 feet, float radius, float bodyHeight)
+        // Whether the body touches a mesh's triangle: any solid one not passed through, or only mesh only (on or off).
+        private bool TouchesMesh(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough, int only = -1)
         {
+            var off = _off;
             var min = new Vector3(feet.X - radius + Epsilon, feet.Y + Epsilon, feet.Z - radius + Epsilon);
             var max = new Vector3(feet.X + radius - Epsilon, feet.Y + bodyHeight - Epsilon, feet.Z + radius - Epsilon);
             int fromX = Cell(min.X), fromZ = Cell(min.Z);
@@ -176,7 +224,7 @@ namespace Comet.Simulation
 
                     foreach (var t in list)
                     {
-                        if (FirstLook(t, x, z, fromX, fromZ) && TriangleOverlapsBox(_corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2], min, max))
+                        if (FirstLook(t, x, z, fromX, fromZ) && (only < 0 ? !Skip(t, off, passThrough) : _meshOf[t] == only) && TriangleOverlapsBox(_corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2], min, max))
                         {
                             return true;
                         }
@@ -189,8 +237,9 @@ namespace Comet.Simulation
 
         // Whether a point is inside a closed mesh: a ray straight up from it crosses that mesh's surface an odd number
         // of times. Nudged off the grid a little, so the ray doesn't run exactly along an edge two triangles share.
-        private bool IsInsideMesh(Vector3 point)
+        private bool IsInsideMesh(Vector3 point, ISet<int>? passThrough, int only = -1)
         {
+            var off = _off;
             point += new Vector3(1.2345e-4f, 0, 2.3456e-4f);
             if (!_cells.TryGetValue((Cell(point.X), Cell(point.Z)), out var list))
             {
@@ -201,7 +250,7 @@ namespace Comet.Simulation
             crossings.Clear();
             foreach (var t in list)
             {
-                if (CrossesAbove(point, _corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2]))
+                if ((only < 0 ? !Skip(t, off, passThrough) : _meshOf[t] == only) && CrossesAbove(point, _corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2]))
                 {
                     crossings.TryGetValue(_meshOf[t], out var count);
                     crossings[_meshOf[t]] = count + 1;
@@ -297,14 +346,15 @@ namespace Comet.Simulation
 
         /// <summary>
         /// How far along a ray a sphere of <paramref name="radius"/> gets before touching a mesh, up to
-        /// <paramref name="maxDistance"/> (approximately: where the ray hits, less the radius). Terrain is ignored.
-        /// For keeping a camera out of objects.
+        /// <paramref name="maxDistance"/> (approximately: where the ray hits, less the radius). Terrain and meshes that
+        /// are off are ignored. For keeping a camera out of objects.
         /// </summary>
         public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, float radius, out float distance)
         {
             direction = Vector3.Normalize(direction);
             distance = maxDistance;
             var hit = false;
+            var off = _off;
             var end = origin + direction * (maxDistance + radius);
             var min = Vector3.Min(origin, end) - new Vector3(radius);
             var max = Vector3.Max(origin, end) + new Vector3(radius);
@@ -320,7 +370,7 @@ namespace Comet.Simulation
 
                     foreach (var t in list)
                     {
-                        if (FirstLook(t, x, z, fromX, fromZ) && RayHitsTriangle(origin, direction, _corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2], out var along))
+                        if (FirstLook(t, x, z, fromX, fromZ) && !Skip(t, off, null) && RayHitsTriangle(origin, direction, _corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2], out var along))
                         {
                             var reach = MathF.Max(0, along - radius);
                             if (reach < distance)
@@ -335,6 +385,9 @@ namespace Comet.Simulation
 
             return hit;
         }
+
+        // Whether a query skips triangle t: its mesh is off, or the player passes through it.
+        private bool Skip(int t, bool[] off, ISet<int>? passThrough) => off[_meshOf[t]] || (passThrough != null && passThrough.Count > 0 && passThrough.Contains(_meshOf[t]));
 
         private static int Cell(float coordinate) => (int)MathF.Floor(coordinate / CellSize);
 

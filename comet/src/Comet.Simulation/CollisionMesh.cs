@@ -13,6 +13,12 @@ namespace Comet.Simulation
 
         public Vector3[] Triangles { get; }
 
+        /// <summary>The name of the placement it belongs to, for toggling it (<see cref="CollisionWorld.SetOn"/>), or null.</summary>
+        public string? Name { get; set; }
+
+        /// <summary>Whether it starts off: not solid until it's turned on.</summary>
+        public bool StartsOff { get; set; }
+
         /// <summary>A prop's collision triangles (in its own space) placed by <paramref name="transform"/>.</summary>
         public static CollisionMesh Placed(IReadOnlyList<Vector3> triangles, Matrix4x4 transform)
         {

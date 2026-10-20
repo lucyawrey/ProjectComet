@@ -26,6 +26,8 @@ namespace Comet.ZoneFiles
         private const int LengthDecimals = 3;
         /// <summary>Decimal places written for angles: hundredths of a degree.</summary>
         private const int AngleDecimals = 2;
+        /// <summary>Decimal places written for times in seconds: milliseconds.</summary>
+        private const int TimeDecimals = 3;
 
         private static readonly Regex ChunkName = new Regex(@"^(-?\d+)_(-?\d+)$");
 
@@ -187,7 +189,7 @@ namespace Comet.ZoneFiles
                 return null;
             }
 
-            toml.CheckKeys(table, "", "tile", "placement", "spawn", "volume");
+            toml.CheckKeys(table, "", "tile", "placement", "spawn", "teleporter", "trigger", "volume");
             var chunk = new ZoneChunk { Coord = coord };
             var tiles = new List<TerrainTile>();
             var tileFiles = new HashSet<string>(StringComparer.Ordinal);
@@ -219,15 +221,42 @@ namespace Comet.ZoneFiles
             chunk.Placements = toml.Tables(table, "placement").Select(p => ReadPlacement(toml, p.Table, p.Path)).ToArray();
             chunk.Spawns = toml.Tables(table, "spawn").Select(s =>
             {
-                toml.CheckKeys(s.Table, s.Path, "id", "position", "radius", "facing", "yaw", "default");
+                toml.CheckKeys(s.Table, s.Path, VolumeKeys.Concat(new[] { "id", "facing" }).ToArray());
                 return new SpawnPoint
                 {
                     Id = toml.String(s.Table, s.Path, "id"),
-                    Position = toml.Vector(s.Table, s.Path, "position"),
-                    Radius = toml.Float(s.Table, s.Path, "radius"),
+                    Volume = ReadVolume(toml, s.Table, s.Path),
                     Facing = toml.Enum<SpawnFacing>(s.Table, s.Path, "facing", SpawnFacing.Direction),
-                    Yaw = toml.Float(s.Table, s.Path, "yaw", 0),
-                    IsDefault = toml.Bool(s.Table, s.Path, "default", false),
+                };
+            }).ToArray();
+            chunk.Teleporters = toml.Tables(table, "teleporter").Select(t =>
+            {
+                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "facing", "target" }).ToArray());
+                return new Teleporter
+                {
+                    Id = toml.String(t.Table, t.Path, "id"),
+                    Volume = ReadVolume(toml, t.Table, t.Path),
+                    Facing = toml.Enum<SpawnFacing>(t.Table, t.Path, "facing", SpawnFacing.Direction),
+                    Target = toml.String(t.Table, t.Path, "target"),
+                };
+            }).ToArray();
+            chunk.Triggers = toml.Tables(table, "trigger").Select(t =>
+            {
+                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "effect" }).ToArray());
+                return new Trigger
+                {
+                    Id = toml.String(t.Table, t.Path, "id"),
+                    Volume = ReadVolume(toml, t.Table, t.Path),
+                    Effects = toml.Tables(t.Table, "effect").Select(e =>
+                    {
+                        var path = $"{t.Path}.{e.Path}";
+                        toml.CheckKeys(e.Table, path, "toggle", "revert_seconds");
+                        return new ToggleEffect
+                        {
+                            Name = toml.String(e.Table, path, "toggle"),
+                            RevertSeconds = toml.Float(e.Table, path, "revert_seconds", 0),
+                        };
+                    }).ToArray(),
                 };
             }).ToArray();
             chunk.Volumes = toml.Tables(table, "volume").Select(v =>
@@ -290,7 +319,7 @@ namespace Comet.ZoneFiles
         /// <summary>A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of prop, primitive or group, and its transform.</summary>
         internal static Placement ReadPlacement(ZoneToml toml, TomlTable table, string path)
         {
-            toml.CheckKeys(table, path, "prop", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "name", "role", "position", "rotation", "scale", "color", "colors");
+            toml.CheckKeys(table, path, "prop", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "off", "name", "role", "position", "rotation", "scale", "color", "colors");
             if (new[] { "prop", "primitive", "group" }.Count(table.ContainsKey) != 1)
             {
                 toml.Error(path, "a placement places one of: a prop, a primitive or a group.");
@@ -304,6 +333,7 @@ namespace Comet.ZoneFiles
                 Primitive = primitive,
                 Group = group,
                 Blockout = toml.Bool(table, path, "blockout", false),
+                Off = toml.Bool(table, path, "off", false),
                 Name = table.ContainsKey("name") ? toml.String(table, path, "name") : null,
                 Role = table.ContainsKey("role") ? toml.String(table, path, "role") : null,
                 Position = toml.Vector(table, path, "position"),
@@ -355,6 +385,11 @@ namespace Comet.ZoneFiles
             if (p.Blockout)
             {
                 placement["blockout"] = true;
+            }
+
+            if (p.Off)
+            {
+                placement["off"] = true;
             }
 
             if (p.Name is not null)
@@ -545,24 +580,35 @@ namespace Comet.ZoneFiles
             AddTables(table, "placement", chunk.Placements, PlacementTable);
             AddTables(table, "spawn", chunk.Spawns, s =>
             {
-                var spawn = new TomlTable
+                var spawn = new TomlTable { ["id"] = s.Id };
+                WriteVolume(spawn, s.Volume);
+                spawn["facing"] = ZoneToml.SnakeCase(s.Facing.ToString());
+                return WritePad(spawn, s.Volume);
+            });
+            AddTables(table, "teleporter", chunk.Teleporters, t =>
+            {
+                var teleporter = new TomlTable { ["id"] = t.Id };
+                WriteVolume(teleporter, t.Volume);
+                teleporter["facing"] = ZoneToml.SnakeCase(t.Facing.ToString());
+                teleporter["target"] = t.Target;
+                return WritePad(teleporter, t.Volume);
+            });
+            AddTables(table, "trigger", chunk.Triggers, t =>
+            {
+                var trigger = new TomlTable { ["id"] = t.Id };
+                WriteVolume(trigger, t.Volume);
+                WritePad(trigger, t.Volume);
+                AddTables(trigger, "effect", t.Effects, e =>
                 {
-                    ["id"] = s.Id,
-                    ["position"] = ZoneToml.Array3(s.Position, LengthDecimals),
-                    ["radius"] = ZoneToml.Round(s.Radius, LengthDecimals),
-                    ["facing"] = ZoneToml.SnakeCase(s.Facing.ToString()),
-                };
-                if (s.Facing == SpawnFacing.Direction)
-                {
-                    spawn["yaw"] = ZoneToml.Round(s.Yaw, AngleDecimals);
-                }
+                    var effect = new TomlTable { ["toggle"] = e.Name };
+                    if (e.RevertSeconds != 0)
+                    {
+                        effect["revert_seconds"] = ZoneToml.Round(e.RevertSeconds, TimeDecimals);
+                    }
 
-                if (s.IsDefault)
-                {
-                    spawn["default"] = true;
-                }
-
-                return spawn;
+                    return effect;
+                });
+                return trigger;
             });
             AddTables(table, "volume", chunk.Volumes, v =>
             {
@@ -579,6 +625,67 @@ namespace Comet.ZoneFiles
                 volume["size"] = ZoneToml.Array3(v.Size, LengthDecimals);
                 return volume;
             });
+            return table;
+        }
+
+        // The keys every trigger kind's table has: its volume, stand time, re-arm and pad.
+        private static readonly string[] VolumeKeys = { "volume", "position", "yaw", "size", "stand_seconds", "rearm", "pad" };
+
+        private static TriggerVolume ReadVolume(ZoneToml toml, TomlTable table, string path)
+        {
+            var volume = new TriggerVolume
+            {
+                Kind = toml.Enum<PrimitiveKind>(table, path, "volume"),
+                Position = toml.Vector(table, path, "position"),
+                Yaw = toml.Float(table, path, "yaw", 0),
+                Size = toml.Vector(table, path, "size"),
+                StandSeconds = toml.Float(table, path, "stand_seconds", 0),
+                Rearm = toml.Enum<Rearm>(table, path, "rearm", Rearm.StepOff),
+            };
+            if (table.TryGetValue("pad", out var pad))
+            {
+                if (pad is TomlTable padTable)
+                {
+                    volume.Pad = ReadPlacement(toml, padTable, $"{path}.pad");
+                }
+                else
+                {
+                    toml.Error($"{path}.pad", "should be a table, such as [spawn.pad].");
+                }
+            }
+
+            return volume;
+        }
+
+        private static void WriteVolume(TomlTable table, TriggerVolume volume)
+        {
+            table["volume"] = ZoneToml.SnakeCase(volume.Kind.ToString());
+            table["position"] = ZoneToml.Array3(volume.Position, LengthDecimals);
+            if (ZoneToml.Round(volume.Yaw, AngleDecimals) != 0)
+            {
+                table["yaw"] = ZoneToml.Round(volume.Yaw, AngleDecimals);
+            }
+
+            table["size"] = ZoneToml.Array3(volume.Size, LengthDecimals);
+            if (volume.StandSeconds != 0)
+            {
+                table["stand_seconds"] = ZoneToml.Round(volume.StandSeconds, TimeDecimals);
+            }
+
+            if (volume.Rearm != Rearm.StepOff)
+            {
+                table["rearm"] = ZoneToml.SnakeCase(volume.Rearm.ToString());
+            }
+        }
+
+        // The pad goes last, as TOML writes a subtable after its parent's values.
+        private static TomlTable WritePad(TomlTable table, TriggerVolume volume)
+        {
+            if (volume.Pad is { } pad)
+            {
+                table["pad"] = PlacementTable(pad);
+            }
+
             return table;
         }
 

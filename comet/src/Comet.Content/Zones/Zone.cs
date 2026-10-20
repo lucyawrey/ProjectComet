@@ -107,6 +107,10 @@ namespace Comet.Content
         [Key(3)] public SpawnPoint[] Spawns { get; set; } = new SpawnPoint[0];
 
         [Key(4)] public CollisionVolume[] Volumes { get; set; } = new CollisionVolume[0];
+
+        [Key(5)] public Teleporter[] Teleporters { get; set; } = new Teleporter[0];
+
+        [Key(6)] public Trigger[] Triggers { get; set; } = new Trigger[0];
     }
 
     /// <summary>
@@ -158,8 +162,8 @@ namespace Comet.Content
         [Key(3)] public Vector3 Scale { get; set; } = Vector3.One;
 
         /// <summary>
-        /// An optional name, unique in the zone, for game code to find this placement by (in ShapeLand, a spawn
-        /// point's marker is named with the spawn's key); null for most.
+        /// An optional name for triggers' toggle effects (and game code) to find this placement by; several placements
+        /// may share one, to toggle together. Null for most.
         /// </summary>
         [Key(4)] public string? Name { get; set; }
 
@@ -187,6 +191,9 @@ namespace Comet.Content
         /// </summary>
         [Key(10)] public Dictionary<string, uint>? Colors { get; set; }
 
+        /// <summary>Whether the placement starts off: hidden and not solid until a trigger turns it on.</summary>
+        [Key(11)] public bool Off { get; set; }
+
         /// <summary>
         /// The placement's transform from its mesh's space to the world: for a prop, scale, then rotation, then
         /// position; for a primitive, whose mesh is built at its size, rotation then position.
@@ -195,37 +202,115 @@ namespace Comet.Content
             (Primitive is null ? Matrix4x4.CreateScale(Scale) : Matrix4x4.Identity) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);
     }
 
-    /// <summary>How a player faces on arriving at a spawn point.</summary>
+    /// <summary>How a player faces on arriving at a spawn point or teleporter.</summary>
     public enum SpawnFacing
     {
-        /// <summary>Toward <see cref="SpawnPoint.Yaw"/>.</summary>
+        /// <summary>The way the trigger volume faces (its yaw).</summary>
         Direction,
-        /// <summary>Toward the spawn point's center (for a scattered arrival).</summary>
+        /// <summary>Toward the volume's center (for a scattered arrival).</summary>
         TowardPoint,
         Random,
     }
 
-    /// <summary>A place players arrive: a random spot with ground within <see cref="Radius"/> of the point.</summary>
+    /// <summary>When a trigger fires again after firing.</summary>
+    public enum Rearm
+    {
+        /// <summary>Not until whoever it fired for has stepped out of it.</summary>
+        StepOff,
+        /// <summary>Again every stand time while still inside it.</summary>
+        Repeat,
+    }
+
+    /// <summary>
+    /// What spawn points, teleporters and triggers share: an invisible volume that fires when a player's feet have
+    /// been inside it for its stand time, and an optional solid pad drawn under it. Which kinds the volume can be:
+    /// <see cref="PrimitiveKind.Box"/>, <see cref="PrimitiveKind.Cylinder"/> or <see cref="PrimitiveKind.Sphere"/>.
+    /// </summary>
+    [MessagePackObject]
+    public sealed class TriggerVolume
+    {
+        /// <summary>The volume's kind: a box, a cylinder round around Y, or a sphere (an ellipsoid when its size is uneven).</summary>
+        [Key(0)] public PrimitiveKind Kind { get; set; } = PrimitiveKind.Box;
+
+        /// <summary>The volume's bottom center, in world meters; it lies in its chunk.</summary>
+        [Key(1)] public Vector3 Position { get; set; }
+
+        /// <summary>The volume's turn about the vertical axis, in degrees clockwise from +Z.</summary>
+        [Key(2)] public float Yaw { get; set; }
+
+        /// <summary>The volume's full size along its own axes, in meters.</summary>
+        [Key(3)] public Vector3 Size { get; set; } = Vector3.One;
+
+        /// <summary>How long a player stands inside before it fires, in seconds (0 fires at once).</summary>
+        [Key(4)] public float StandSeconds { get; set; }
+
+        [Key(5)] public Rearm Rearm { get; set; }
+
+        /// <summary>The solid primitive drawn under the volume (in world space, never toggled), or null for none.</summary>
+        [Key(6)] public Placement? Pad { get; set; }
+    }
+
+    /// <summary>
+    /// A place players arrive: a random spot in its volume's footprint, on the ground under it. Its key names its
+    /// zone (<c>spawn.meadow.gate</c>). When spawns are used and how players claim them is game policy.
+    /// </summary>
     [MessagePackObject]
     public sealed class SpawnPoint : IContentEntry
     {
         [Key(0)] public int Number { get; set; }
 
-        /// <summary>The spawn's key (<c>spawn.meadow_gate</c>), unique across zones.</summary>
+        /// <summary>The spawn's key (<c>spawn.meadow.gate</c>), naming its zone.</summary>
         [Key(1)] public string Id { get; set; } = "";
 
-        [Key(2)] public Vector3 Position { get; set; }
+        [Key(2)] public TriggerVolume Volume { get; set; } = new TriggerVolume();
 
-        /// <summary>How far from the point arrivals scatter, in meters.</summary>
-        [Key(3)] public float Radius { get; set; }
+        [Key(3)] public SpawnFacing Facing { get; set; }
+    }
 
-        [Key(4)] public SpawnFacing Facing { get; set; }
+    /// <summary>
+    /// A pad that sends players to another teleporter, in this zone or another, arriving as at a spawn point. Its key
+    /// names its zone (<c>teleporter.meadow.to_cave</c>).
+    /// </summary>
+    [MessagePackObject]
+    public sealed class Teleporter : IContentEntry
+    {
+        [Key(0)] public int Number { get; set; }
 
-        /// <summary>The facing for <see cref="SpawnFacing.Direction"/>, in degrees clockwise from +Z.</summary>
-        [Key(5)] public float Yaw { get; set; }
+        /// <summary>The teleporter's key (<c>teleporter.meadow.to_cave</c>), naming its zone.</summary>
+        [Key(1)] public string Id { get; set; } = "";
 
-        /// <summary>Whether this is the zone's default spawn (exactly one per zone with spawns).</summary>
-        [Key(6)] public bool IsDefault { get; set; }
+        [Key(2)] public TriggerVolume Volume { get; set; } = new TriggerVolume();
+
+        /// <summary>How players arriving here face.</summary>
+        [Key(3)] public SpawnFacing Facing { get; set; }
+
+        /// <summary>The teleporter it sends players to (<c>teleporter.cave.to_meadow</c>), in any zone.</summary>
+        [Key(4)] public string Target { get; set; } = "";
+    }
+
+    /// <summary>A trigger with toggle effects, such as a plate that opens a door. Its key names its zone (<c>trigger.meadow.gate_plate</c>).</summary>
+    [MessagePackObject]
+    public sealed class Trigger : IContentEntry
+    {
+        [Key(0)] public int Number { get; set; }
+
+        /// <summary>The trigger's key (<c>trigger.meadow.gate_plate</c>), naming its zone.</summary>
+        [Key(1)] public string Id { get; set; } = "";
+
+        [Key(2)] public TriggerVolume Volume { get; set; } = new TriggerVolume();
+
+        [Key(3)] public ToggleEffect[] Effects { get; set; } = new ToggleEffect[0];
+    }
+
+    /// <summary>Flips every placement with a name on or off, and optionally back after a time.</summary>
+    [MessagePackObject]
+    public sealed class ToggleEffect
+    {
+        /// <summary>The placements' name.</summary>
+        [Key(0)] public string Name { get; set; } = "";
+
+        /// <summary>Seconds until they flip back, or 0 to stay. Firing again before then restarts the wait instead of flipping.</summary>
+        [Key(1)] public float RevertSeconds { get; set; }
     }
 
     /// <summary>What a collision volume does.</summary>

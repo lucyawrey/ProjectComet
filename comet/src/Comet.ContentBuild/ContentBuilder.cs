@@ -88,7 +88,7 @@ public sealed class ContentBuilder
 
     /// <summary>
     /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>), checked by
-    /// <see cref="ZoneValidation"/>. Zone and spawn keys get registry numbers like other content.
+    /// <see cref="ZoneValidation"/>. Zone, spawn, teleporter and trigger keys get registry numbers like other content.
     /// </summary>
     public ContentBuilder AddZones(string folder = "zones")
     {
@@ -177,7 +177,6 @@ public sealed class ContentBuilder
         }
 
         var zoneFolders = new Dictionary<string, string>();
-        var spawnZones = new Dictionary<string, string>();
         foreach (var zoneFolder in Directory.EnumerateDirectories(folder).Order(StringComparer.Ordinal))
         {
             var zoneErrors = new List<ZoneFileError>();
@@ -194,16 +193,6 @@ public sealed class ContentBuilder
                 errors.Add(new ContentError(zoneFile, 1, 1, $"'{zone.Id}' is already used by {first}."));
             }
 
-            foreach (var spawn in zone.Chunks.SelectMany(c => c.Spawns))
-            {
-                if (spawnZones.TryGetValue(spawn.Id, out var other) && other != zone.Id)
-                {
-                    errors.Add(new ContentError(zoneFile, 1, 1, $"spawn '{spawn.Id}' is already used by {other}."));
-                }
-
-                spawnZones.TryAdd(spawn.Id, zone.Id);
-            }
-
             errors.AddRange(zoneErrors.Select(e => new ContentError(DisplayPath(Path.Combine(zoneFolder, e.File)), 1, 1, e.Message)));
             if (zoneErrors.Count == 0)
             {
@@ -217,6 +206,16 @@ public sealed class ContentBuilder
             }
         }
 
+        // Teleporters may target any zone's; keys name their zone, so they're unique across zones already.
+        var teleporters = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Select(t => t.Id).ToHashSet();
+        foreach (var zone in zones)
+        {
+            foreach (var teleporter in zone.Chunks.SelectMany(c => c.Teleporters).Where(t => !teleporters.Contains(t.Target)))
+            {
+                errors.Add(new ContentError(zoneFolders[zone.Id], 1, 1, $"{teleporter.Id}: there's no teleporter '{teleporter.Target}' to target."));
+            }
+        }
+
         return zones;
     }
 
@@ -225,6 +224,10 @@ public sealed class ContentBuilder
         var numbers = registry.Assign("zone", zones.Select(z => z.Id));
         var spawns = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).ToList();
         var spawnNumbers = registry.Assign("spawn", spawns.Select(s => s.Id));
+        var teleporters = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).ToList();
+        var teleporterNumbers = registry.Assign("teleporter", teleporters.Select(t => t.Id));
+        var triggers = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Triggers).ToList();
+        var triggerNumbers = registry.Assign("trigger", triggers.Select(t => t.Id));
         foreach (var zone in zones)
         {
             zone.Number = numbers[zone.Id];
@@ -233,6 +236,16 @@ public sealed class ContentBuilder
         foreach (var spawn in spawns)
         {
             spawn.Number = spawnNumbers[spawn.Id];
+        }
+
+        foreach (var teleporter in teleporters)
+        {
+            teleporter.Number = teleporterNumbers[teleporter.Id];
+        }
+
+        foreach (var trigger in triggers)
+        {
+            trigger.Number = triggerNumbers[trigger.Id];
         }
 
         zones.Sort((a, b) => a.Number.CompareTo(b.Number));

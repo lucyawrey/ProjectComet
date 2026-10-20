@@ -127,7 +127,8 @@ public sealed class IdRegistry
             text.Append('\n').Append('[').Append(kind).Append("]\n");
             foreach (var (number, key) in numbers)
             {
-                text.Append(key).Append(" = ").Append(number).Append('\n');
+                // Keys that name their zone (meadow.gate, for spawn.meadow.gate) are quoted, or TOML would read a table.
+                text.Append(key.Contains('.') ? $"\"{key}\"" : key).Append(" = ").Append(number).Append('\n');
             }
         }
 

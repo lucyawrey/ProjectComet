@@ -177,6 +177,16 @@ public class GroupTests
     }
 
     [Fact]
+    public void ANamedCopyNamesItsPartsAndStartsThemOff()
+    {
+        var tree = Tree();
+        var parts = Groups.Expand(new Placement { Group = tree.Id, Name = "gate", Off = true }, key => key == tree.Id ? tree : null);
+
+        Assert.All(parts, p => Assert.Equal(("gate", true), (p.Name, p.Off)));
+        Assert.All(Groups.Expand(new Placement { Group = tree.Id }, key => key == tree.Id ? tree : null), p => Assert.Equal((null, false), (p.Name, p.Off)));
+    }
+
+    [Fact]
     public void ZoneCopiesAreChecked()
     {
         var tree = Tree();
@@ -194,7 +204,7 @@ public class GroupTests
 
         Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("scales evenly"));
         Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("no color of their own"));
-        Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("copies have no name"));
+        Assert.DoesNotContain(errors, e => e.Contains("group.tree") && e.Contains("name"));
         Assert.Contains(errors, e => e.Contains("there's no group 'group.nowhere'"));
         Assert.Contains(errors, e => e.Contains("only a group's parts have a role"));
     }

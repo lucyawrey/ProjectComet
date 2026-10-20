@@ -75,7 +75,8 @@ namespace Comet.Content
         /// <summary>
         /// <paramref name="group"/>'s parts placed by a copy's transform (turned by its rotation, scaled by its even
         /// scale, then moved to it), one level only: nested groups stay copies. The copy's colors by role recolor the
-        /// parts with those roles and pass down to nested copies, over their own.
+        /// parts with those roles and pass down to nested copies, over their own. A named copy names all its parts (so a
+        /// door built as a group toggles as one), and a copy that starts off starts all its parts off.
         /// </summary>
         public static List<Placement> Place(Placement copy, Group group)
         {
@@ -93,6 +94,8 @@ namespace Comet.Content
                 Color = part.Role is { } role && copy.Colors?.TryGetValue(role, out var color) == true ? color : part.Color,
                 Colors = part.Group is null ? null : Over(copy.Colors, part.Colors),
                 Blockout = part.Blockout || copy.Blockout,
+                Name = copy.Name,
+                Off = part.Off || copy.Off,
             }).ToList();
         }
 

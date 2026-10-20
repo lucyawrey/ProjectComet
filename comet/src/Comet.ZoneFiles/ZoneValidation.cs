@@ -12,8 +12,8 @@ namespace Comet.ZoneFiles
     /// <summary>
     /// Checks what a zone's files mean, after <see cref="ZoneFolder.Read"/> has checked their form: keys and names,
     /// tiles that name a known piece and fit their chunk, terrain that matches where a piece's tiles meet, objects
-    /// whose pivots are in their own chunk, and one default spawn. Run by the content build, and by the editor
-    /// before it saves.
+    /// whose pivots are in their own chunk, spawn, teleporter and trigger keys that name their zone, and toggle effects
+    /// that name placements in it. Run by the content build, and by the editor before it saves.
     /// </summary>
     public static class ZoneValidation
     {
@@ -22,6 +22,16 @@ namespace Comet.ZoneFiles
 
         /// <summary>A name in keys and in the zone: a lowercase letter, then lowercase letters, digits and underscores.</summary>
         public static bool IsName(string name) => NamePattern.IsMatch(name);
+
+        /// <summary>Whether <paramref name="key"/> is <c>{kind}.zone.name</c>, as spawn, teleporter and trigger keys are.</summary>
+        public static bool IsZonedKey(string key, string kind) =>
+            key.StartsWith(kind + ".", StringComparison.Ordinal) && key.Substring(kind.Length + 1).Split('.') is { Length: 2 } parts && IsName(parts[0]) && IsName(parts[1]);
+
+        /// <summary>The zone named in a <c>{kind}.zone.name</c> key, as a zone key (<c>zone.zone</c>).</summary>
+        public static string ZoneOf(string key) => "zone." + key.Split('.')[1];
+
+        /// <summary>The kinds a trigger volume can be.</summary>
+        public static readonly PrimitiveKind[] VolumeKinds = { PrimitiveKind.Box, PrimitiveKind.Cylinder, PrimitiveKind.Sphere };
 
         /// <summary>Whether <paramref name="key"/> is <c>{kind}.name</c>.</summary>
         public static bool IsKey(string key, string kind) =>
@@ -81,30 +91,24 @@ namespace Comet.ZoneFiles
                 }
             }
 
-            var placementNames = new Dictionary<string, string>();
+            // Names may be shared: a toggle effect flips every placement with its name.
+            var placementNames = new HashSet<string>();
             foreach (var chunk in zone.Chunks)
             {
                 foreach (var placement in chunk.Placements.Where(p => p.Name is not null))
                 {
-                    var file = ZoneFolder.ChunkFile(chunk.Coord);
                     if (!PlacementName.IsMatch(placement.Name!))
                     {
-                        Error(file, $"placement of {Placed(placement)}: '{placement.Name}' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.");
+                        Error(ZoneFolder.ChunkFile(chunk.Coord), $"placement of {Placed(placement)}: '{placement.Name}' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.");
                     }
-                    else if (placementNames.TryGetValue(placement.Name!, out var first))
-                    {
-                        Error(file, $"placement of {Placed(placement)}: the name '{placement.Name}' is already used in {first}.");
-                    }
-                    else
-                    {
-                        placementNames.Add(placement.Name!, file);
-                    }
+
+                    placementNames.Add(placement.Name!);
                 }
             }
 
             var pieces = new HashSet<string>(zone.Pieces.Select(p => p.Name));
-            var spawnFiles = new Dictionary<string, string>();
-            var defaults = new List<string>();
+            var keyFiles = new Dictionary<string, string>();
+            var zoneName = zone.Id.StartsWith("zone.", StringComparison.Ordinal) ? zone.Id.Substring("zone.".Length) : zone.Id;
             foreach (var chunk in zone.Chunks)
             {
                 var file = ZoneFolder.ChunkFile(chunk.Coord);
@@ -118,28 +122,36 @@ namespace Comet.ZoneFiles
 
                 foreach (var spawn in chunk.Spawns)
                 {
-                    if (!IsKey(spawn.Id, "spawn"))
-                    {
-                        Error(file, $"spawn: '{spawn.Id}' isn't a valid spawn key: use 'spawn.' then lowercase letters, digits and underscores.");
-                    }
-                    else if (spawnFiles.TryGetValue(spawn.Id, out var first))
-                    {
-                        Error(file, $"spawn: '{spawn.Id}' is already used in {first}.");
-                    }
-                    else
-                    {
-                        spawnFiles.Add(spawn.Id, file);
-                    }
+                    CheckTrigger(spawn.Id, "spawn", spawn.Volume, chunk.Coord, zoneName, keyFiles, file, Error);
+                }
 
-                    CheckPivot(chunk.Coord, spawn.Position, $"spawn {spawn.Id}", file, Error);
-                    if (spawn.Radius < 0)
+                foreach (var teleporter in chunk.Teleporters)
+                {
+                    CheckTrigger(teleporter.Id, "teleporter", teleporter.Volume, chunk.Coord, zoneName, keyFiles, file, Error);
+                    if (!IsZonedKey(teleporter.Target, "teleporter"))
                     {
-                        Error(file, $"spawn {spawn.Id}: radius can't be negative.");
+                        Error(file, $"{teleporter.Id}: target '{teleporter.Target}' isn't a teleporter key: use 'teleporter.', the zone's name, '.' and a name.");
                     }
-
-                    if (spawn.IsDefault)
+                    else if (teleporter.Target == teleporter.Id)
                     {
-                        defaults.Add(spawn.Id);
+                        Error(file, $"{teleporter.Id}: a teleporter can't target itself.");
+                    }
+                }
+
+                foreach (var trigger in chunk.Triggers)
+                {
+                    CheckTrigger(trigger.Id, "trigger", trigger.Volume, chunk.Coord, zoneName, keyFiles, file, Error);
+                    foreach (var effect in trigger.Effects)
+                    {
+                        if (!placementNames.Contains(effect.Name))
+                        {
+                            Error(file, $"{trigger.Id}: no placement in the zone is named '{effect.Name}'.");
+                        }
+
+                        if (effect.RevertSeconds < 0)
+                        {
+                            Error(file, $"{trigger.Id}: revert_seconds can't be negative.");
+                        }
                     }
                 }
 
@@ -148,13 +160,6 @@ namespace Comet.ZoneFiles
                     CheckPivot(chunk.Coord, volume.Position, $"{ZoneToml.SnakeCase(volume.Kind.ToString())} volume", file, Error);
                     CheckBox(volume.Size, $"{ZoneToml.SnakeCase(volume.Kind.ToString())} volume at {Text(volume.Position)}", file, Error);
                 }
-            }
-
-            if (spawnFiles.Count > 0 && defaults.Count != 1)
-            {
-                Error(zoneFile, defaults.Count == 0
-                    ? "No default spawn: mark one of the zone's spawns with default = true."
-                    : $"{defaults.Count} default spawns ({string.Join(", ", defaults)}): a zone has one.");
             }
 
             CheckSharedEdges(zone, Error);
@@ -380,8 +385,8 @@ namespace Comet.ZoneFiles
         private static bool Even(Vector3 scale) => Math.Abs(scale.X - scale.Y) <= 1e-4f && Math.Abs(scale.X - scale.Z) <= 1e-4f;
 
         // What a placement places and how, wherever it is: a prop key, a primitive's values or a group key; a scale
-        // above 0 (even for a group); a role only on a group's parts, a name only in a zone, and no name or color of a
-        // group copy's own.
+        // above 0 (even for a group); a role only on a group's parts, a name and starting off only in a zone, and no
+        // color of a group copy's own.
         private static void CheckPlaced(Placement placement, string what, bool inGroup, string file, Action<string, string> error)
         {
             if (placement.Primitive is { } primitive)
@@ -404,11 +409,6 @@ namespace Comet.ZoneFiles
                 {
                     error(file, $"{what}: a group's copies have no color of their own; set colors by role (colors = {{ role = 0x… }}) or change the group's parts.");
                 }
-
-                if (!inGroup && placement.Name != null)
-                {
-                    error(file, $"{what}: a group's copies have no name.");
-                }
             }
             else if (!IsKey(placement.Prop, "prop"))
             {
@@ -422,7 +422,12 @@ namespace Comet.ZoneFiles
 
             if (inGroup && placement.Name != null)
             {
-                error(file, $"{what}: a group's parts have no name; give them a role for game code to find them by.");
+                error(file, $"{what}: a group's parts have no name; give them a role for game code to find them by, or name the copy.");
+            }
+
+            if (inGroup && placement.Off)
+            {
+                error(file, $"{what}: a group's parts don't start off; set it on the copy.");
             }
 
             if (placement.Role is { } role && (!inGroup || !IsName(role)))
@@ -623,6 +628,54 @@ namespace Comet.ZoneFiles
             if (size.X <= 0 || size.Y <= 0 || size.Z <= 0)
             {
                 error(file, $"{what}: size must be above 0 on every axis.");
+            }
+        }
+
+        // A spawn point's, teleporter's or trigger's key, volume and pad.
+        private static void CheckTrigger(string key, string kind, TriggerVolume volume, ChunkCoord chunk, string zoneName, Dictionary<string, string> keyFiles, string file, Action<string, string> error)
+        {
+            if (!IsZonedKey(key, kind) || key.Split('.')[1] != zoneName)
+            {
+                error(file, $"{kind}: '{key}' isn't a valid {kind} key here: use '{kind}.{zoneName}.' then lowercase letters, digits and underscores.");
+            }
+            else if (keyFiles.TryGetValue(key, out var first))
+            {
+                error(file, $"{kind}: '{key}' is already used in {first}.");
+            }
+            else
+            {
+                keyFiles.Add(key, file);
+            }
+
+            CheckPivot(chunk, volume.Position, key, file, error);
+            if (Array.IndexOf(VolumeKinds, volume.Kind) < 0)
+            {
+                error(file, $"{key}: a volume is a box, a cylinder or a sphere, not a {ZoneToml.SnakeCase(volume.Kind.ToString())}.");
+            }
+
+            CheckBox(volume.Size, key, file, error);
+            if (volume.StandSeconds < 0)
+            {
+                error(file, $"{key}: stand_seconds can't be negative.");
+            }
+
+            if (volume.Pad is { } pad)
+            {
+                if (pad.Primitive is null)
+                {
+                    error(file, $"{key}: a pad is a primitive.");
+                }
+                else
+                {
+                    CheckPlaced(pad, $"{key}'s pad", inGroup: false, file, error);
+                }
+
+                if (pad.Name is not null || pad.Off)
+                {
+                    error(file, $"{key}: a pad can't be named or start off; pads aren't toggled.");
+                }
+
+                CheckPivot(chunk, pad.Position, $"{key}'s pad", file, error);
             }
         }
 
