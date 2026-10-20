@@ -129,7 +129,7 @@ public sealed class ShapeLandGame : IConnectionHandler
         // The server knows gravity: players silent in the air fall, so going quiet mid-jump can't be used to hover. Connections that never join are
         // dropped, so they can't sit holding a place.
         var seconds = (float)tick / ShapeLandRules.TickRate;
-        foreach (var player in _players.Values.ToList())
+        foreach (var player in _players.Values)
         {
             if (player.Joined)
             {

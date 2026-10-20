@@ -129,6 +129,11 @@ namespace ShapeLand.Client
         // player arrives in it.
         private void OnZoneChanged(Zone zone)
         {
+            if (_drawnZone == null)
+            {
+                return; // the content just loaded: OnContentLoaded draws the zone shown by then
+            }
+
             Destroy(_drawnZone.gameObject);
             _pads.Clear();
             _named.Clear();
