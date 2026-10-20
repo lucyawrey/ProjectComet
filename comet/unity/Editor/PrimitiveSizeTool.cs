@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.EditorTools;
 using UnityEngine;
@@ -5,56 +7,65 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// The scale tool for one selected primitive: its handle edits the primitive's size rather than its transform's
-    /// scale, so its facets follow the polygon budget as it's dragged. Picking Unity's scale tool (R) with one
-    /// primitive selected switches to it, and selecting anything else switches back.
+    /// The tool context while zone placements are selected: Unity's own tools, except that scaling one primitive
+    /// edits its size rather than its transform's scale, so its facets follow the polygon budget as it's dragged.
+    /// Made the active context whenever a placement is selected.
     /// </summary>
-    [EditorTool("Primitive Size", typeof(ZonePlacement))]
-    internal sealed class PrimitiveSizeTool : EditorTool
+    [EditorToolContext("Zone", typeof(ZonePlacement))]
+    internal sealed class ZoneToolContext : EditorToolContext
     {
-        private bool _resizing;
-        private GUIContent? _icon;
+        protected override Type? GetEditorToolType(Tool tool) => tool == Tool.Scale ? typeof(ZoneScaleTool) : null;
 
-        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("ScaleTool").image, "Primitive Size: resize the selected primitive (R)");
-
-        public override bool IsAvailable() => Single != null;
-
-        // The one selected primitive, if exactly one is selected.
-        private static ZonePlacement? Single =>
-            Selection.count == 1 && Selection.activeGameObject != null && Selection.activeGameObject.TryGetComponent<ZonePlacement>(out var p) && p.isPrimitive && !p.IsGroup ? p : null;
-
-        // Checked each editor update rather than on Unity's events, which don't always come (selection set from code).
+        // Checked each editor update: Unity's selection events don't always come (selection set from code).
         [InitializeOnLoadMethod]
-        private static void SwapWithScale() => EditorApplication.update += () =>
+        private static void FollowSelection() => EditorApplication.update += () =>
         {
-            var single = Single != null;
-            if (single && Tools.current == Tool.Scale)
+            if (Selection.gameObjects.Any(g => g.TryGetComponent<ZonePlacement>(out _)) && ToolManager.activeContextType != typeof(ZoneToolContext))
             {
                 try
                 {
-                    ToolManager.SetActiveTool<PrimitiveSizeTool>();
+                    ToolManager.SetActiveContext<ZoneToolContext>();
                 }
-                catch (System.InvalidOperationException)
+                catch (InvalidOperationException)
                 {
                     // Unity hasn't told its tools about the new selection yet: next update.
                 }
             }
-            else if (!single && ToolManager.activeToolType == typeof(PrimitiveSizeTool))
-            {
-                Tools.current = Tool.Scale;
-            }
         };
+    }
+
+    /// <summary>
+    /// The Zone context's scale tool: one selected primitive is resized by its size (along its own axes); anything
+    /// else scales as with Unity's tool, each object's scale multiplied by the handle's.
+    /// </summary>
+    [EditorTool("Zone Scale", typeof(ZonePlacement), typeof(ZoneToolContext))]
+    internal sealed class ZoneScaleTool : EditorTool
+    {
+        private bool _resizing;
+        private Vector3[]? _start;
+        private Vector3 _handle = Vector3.one;
+
+        public override GUIContent toolbarIcon => EditorGUIUtility.IconContent("ScaleTool");
+
+        private static ZonePlacement? Single =>
+            Selection.count == 1 && Selection.activeGameObject != null && Selection.activeGameObject.TryGetComponent<ZonePlacement>(out var p) && p.isPrimitive && !p.IsGroup ? p : null;
 
         public override void OnToolGUI(EditorWindow window)
         {
-            if (Single is not { } placement)
+            if (Single is { } placement)
             {
-                return;
+                ResizePrimitive(placement);
             }
+            else
+            {
+                ScaleSelection();
+            }
+        }
 
+        private void ResizePrimitive(ZonePlacement placement)
+        {
             var t = placement.transform;
             EditorGUI.BeginChangeCheck();
-            // Along the primitive's own axes, as its size is.
             var size = Handles.ScaleHandle(placement.size, t.position, t.rotation, HandleUtility.GetHandleSize(t.position));
             if (EditorGUI.EndChangeCheck())
             {
@@ -69,6 +80,37 @@ namespace Comet.Unity.Editor
             {
                 _resizing = false;
                 placement.Rebuild();
+            }
+        }
+
+        // As Unity's scale tool: one handle at the active object, each selected object's scale multiplied by it.
+        private void ScaleSelection()
+        {
+            var transforms = Selection.transforms;
+            var active = Selection.activeTransform;
+            if (active == null || transforms.Length == 0)
+            {
+                return;
+            }
+
+            if (GUIUtility.hotControl == 0)
+            {
+                _start = null;
+                _handle = Vector3.one;
+            }
+
+            var rotation = transforms.Length == 1 ? active.rotation : Tools.handleRotation;
+            EditorGUI.BeginChangeCheck();
+            var handle = Handles.ScaleHandle(_handle, Tools.handlePosition, rotation, HandleUtility.GetHandleSize(Tools.handlePosition));
+            if (EditorGUI.EndChangeCheck())
+            {
+                _start ??= transforms.Select(t => t.localScale).ToArray();
+                _handle = handle;
+                Undo.RecordObjects(transforms.Cast<UnityEngine.Object>().ToArray(), "Scale");
+                for (var i = 0; i < transforms.Length; i++)
+                {
+                    transforms[i].localScale = Vector3.Scale(_start[i], handle);
+                }
             }
         }
     }
