@@ -81,6 +81,21 @@ namespace Comet.Unity.Editor
         [Tooltip("More command-line arguments for the local game server, such as --ShapeLand:Zone=zone.tests.")]
         public string serverArguments = "";
 
+        [Tooltip("The game's web build folder, relative to the Unity project: where Make Web Build puts it and the local server serves it from.")]
+        public string webBuildFolder = "";
+
+        [Tooltip("The build profile Make Web Build uses.")]
+        public UnityEditor.Build.Profile.BuildProfile? webBuildProfile;
+
+        [Tooltip("The server argument that serves a web build: {0} is its folder.")]
+        public string serverWebArgument = "";
+
+        [Tooltip("The bots project, relative to the Unity project, for the local server's bots; empty: no bots.")]
+        public string botsProject = "";
+
+        [Tooltip("The bots' arguments: {url} is the server's WebSocket URL and {count} how many to start.")]
+        public string botsArguments = "--url {url} --count {count}";
+
         [Header("Polygon budget (Comet › Zones › Polygon Budget)")]
         [Tooltip("About how long each side of a round primitive is, in meters.")]
         [Min(0.01f)] public float facetLength = 0.5f;

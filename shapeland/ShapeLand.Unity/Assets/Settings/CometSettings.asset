@@ -17,6 +17,11 @@ MonoBehaviour:
   serverProject: ../src/ShapeLand.GameServer
   serverPort: 5080
   serverArguments: 
+  webBuildFolder: ../../artifacts/unity/shapeland/web
+  webBuildProfile: {fileID: 11400000, guid: 3bacf60bee45438a593f152d5231d688, type: 2}
+  serverWebArgument: --ShapeLand:WebRoot={0}
+  botsProject: ../src/ShapeLand.Bots
+  botsArguments: --url {url} --count {count}
   zonesFolder: ../content/zones
   groupsFolder: ../content/groups
   scenesFolder: Assets/ZoneEditing

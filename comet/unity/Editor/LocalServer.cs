@@ -2,9 +2,10 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 using Comet.Content;
 using UnityEditor;
@@ -14,13 +15,14 @@ using Debug = UnityEngine.Debug;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Runs the game server (the Comet settings' server project) on this computer for play mode, so play mode needs no
-    /// terminal. With Comet › Server › Start with Play Mode on (each person's own choice, on by default), entering play
-    /// mode starts it unless a game server already answers <c>/health</c> on the port: one started elsewhere (a
-    /// script) is used as it is and never restarted or stopped from here. The editor's own server keeps running
-    /// between plays, restarts when the content changes, and stops when the editor quits. It logs to
-    /// <see cref="LogFile"/>. Which server it is (which pid, started when, with which content) is kept in
-    /// <c>Library/</c>, so the editor finds it again after a script reload, or after a restart if it crashed.
+    /// Runs the game server (the Comet settings' server project) on this computer, so play mode and local playtests
+    /// need no terminal. With Start with Play Mode on (each person's own choice, on by default), entering play mode
+    /// starts it unless a game server already answers <c>/health</c> on the port: one started elsewhere (a script) is
+    /// used as it is and never restarted or stopped from here. The editor's own server keeps running between plays,
+    /// restarts when the content changes, and stops when the editor quits. Each person's <see cref="Options"/> can also
+    /// serve the last web build, open it to the local network, and start bots (Comet › Server › Local Server…). It logs
+    /// to <see cref="LogFile"/>. Which server it is (pids, start times, content) is kept in <c>Library/</c>, so the
+    /// editor finds it again after a script reload, or after a restart if it crashed.
     /// </summary>
     [InitializeOnLoad]
     public static class LocalServer
@@ -30,7 +32,10 @@ namespace Comet.Unity.Editor
 
         private const string Menu = "Comet/Server/";
         private const string StartWithPlayKey = "Comet.LocalServer.StartWithPlayMode";
-        private const string StateFile = "Library/CometLocalServer.txt";
+        private const string WebKey = "Comet.LocalServer.Web";
+        private const string LanKey = "Comet.LocalServer.Lan";
+        private const string BotsKey = "Comet.LocalServer.Bots";
+        private const string StateFile = "Library/CometLocalServer.json";
         private const double StartTimeout = 60;
 
         private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
@@ -40,23 +45,91 @@ namespace Comet.Unity.Editor
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
             EditorApplication.quitting += () => Stop(quiet: true);
             ContentBuild.Copied += OnContentCopied;
+            EditorApplication.delayCall += SharePort;
 
             // A start that was still waiting for the server to answer when the scripts reloaded (entering play mode does).
-            if (Read() is { Waiting: true } state && Alive(state))
+            if (Read() is { waiting: true } state && Alive(state.pid, state.startTicks))
             {
                 Wait();
             }
         }
 
-        /// <summary>Whether entering play mode starts the server if none is running; this person's choice, on by default.</summary>
+        /// <summary>What the editor's server runs with: each person's own choices, kept in the editor's preferences.</summary>
+        public struct Options
+        {
+            /// <summary>Serve the last web build from the server, so a browser can play.</summary>
+            public bool Web;
+
+            /// <summary>Listen on every network interface, so others on the local network can join.</summary>
+            public bool Lan;
+
+            /// <summary>How many bots to start once the server answers.</summary>
+            public int Bots;
+        }
+
+        /// <summary>Whether entering play mode starts the server if none is running; on by default.</summary>
         public static bool StartWithPlayMode
         {
             get => EditorPrefs.GetBool(StartWithPlayKey, true);
             set => EditorPrefs.SetBool(StartWithPlayKey, value);
         }
 
+        /// <summary>The options the next start uses.</summary>
+        public static Options Chosen
+        {
+            get => new Options { Web = EditorPrefs.GetBool(WebKey, false), Lan = EditorPrefs.GetBool(LanKey, false), Bots = EditorPrefs.GetInt(BotsKey, 0) };
+            set
+            {
+                EditorPrefs.SetBool(WebKey, value.Web);
+                EditorPrefs.SetBool(LanKey, value.Lan);
+                EditorPrefs.SetInt(BotsKey, Mathf.Clamp(value.Bots, 0, MaxBots));
+            }
+        }
+
+        /// <summary>The most bots the editor starts.</summary>
+        public const int MaxBots = 50;
+
         /// <summary>Whether the editor's own server is running.</summary>
-        public static bool Running => Read() is { } state && Alive(state);
+        public static bool Running => Read() is { } state && Alive(state.pid, state.startTicks);
+
+        /// <summary>Whether it's still starting (built and launched, not yet answering).</summary>
+        public static bool Starting => Read() is { waiting: true } state && Alive(state.pid, state.startTicks);
+
+        /// <summary>The options the running server started with, or null if the editor's server isn't running.</summary>
+        public static Options? RunningWith =>
+            Read() is { } state && Alive(state.pid, state.startTicks) ? new Options { Web = state.web, Lan = state.lan, Bots = state.bots } : (Options?)null;
+
+        /// <summary>Whether a game server answers <c>/health</c> on the settings' port now (the editor's own or another).</summary>
+        public static bool Answers(CometSettings settings)
+        {
+            try
+            {
+                return Task.Run(() => Http.GetAsync($"http://localhost:{settings.serverPort}/health")).Result.IsSuccessStatusCode;
+            }
+            catch (AggregateException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>This computer's address on the local network (the interface with a gateway), or null if it has none.</summary>
+        public static string? LanAddress()
+        {
+            try
+            {
+                return NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                    .Select(n => n.GetIPProperties())
+                    .Where(p => p.GatewayAddresses.Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any)))
+                    .SelectMany(p => p.UnicastAddresses)
+                    .Select(a => a.Address)
+                    .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a))?.ToString();
+            }
+            catch (NetworkInformationException)
+            {
+                return null;
+            }
+        }
 
         [MenuItem(Menu + "Start", priority = 40)]
         private static void StartMenu()
@@ -73,24 +146,17 @@ namespace Comet.Unity.Editor
         [MenuItem(Menu + "Stop", priority = 41)]
         private static void StopMenu() => Stop(quiet: false);
 
-        [MenuItem(Menu + "Restart", priority = 42)]
-        private static void RestartMenu()
-        {
-            if (Settings() is { } settings)
-            {
-                Stop(quiet: true);
-                Start(settings, build: true);
-            }
-        }
-
         [MenuItem(Menu + "Stop", validate = true)]
         private static bool CanStop() => Running;
+
+        [MenuItem(Menu + "Restart", priority = 42)]
+        private static void RestartMenu() => Restart();
 
         [MenuItem(Menu + "Restart", validate = true)]
         private static bool CanRestart() => Running;
 
         [MenuItem(Menu + "Show Log", priority = 43)]
-        private static void ShowLog() => EditorUtility.OpenWithDefaultApp(ContentBuild.ProjectPath(LogFile));
+        public static void ShowLog() => EditorUtility.OpenWithDefaultApp(ContentBuild.ProjectPath(LogFile));
 
         [MenuItem(Menu + "Show Log", validate = true)]
         private static bool CanShowLog() => File.Exists(ContentBuild.ProjectPath(LogFile));
@@ -105,6 +171,16 @@ namespace Comet.Unity.Editor
             return true;
         }
 
+        /// <summary>Stops the editor's server and starts it again with the chosen options, building it first.</summary>
+        public static void Restart()
+        {
+            if (Settings() is { } settings)
+            {
+                Stop(quiet: true);
+                Start(settings, build: true);
+            }
+        }
+
         // Entering play mode: use the server that's running (restarting the editor's own if the content changed),
         // else start one; another program on the port stops play mode from starting.
         private static void OnPlayModeChanged(PlayModeStateChange change)
@@ -114,10 +190,11 @@ namespace Comet.Unity.Editor
                 return;
             }
 
+            SharePort();
             var content = ContentHashNow();
-            if (Read() is { } state && Alive(state))
+            if (Read() is { } state && Alive(state.pid, state.startTicks))
             {
-                if (content != null && content != state.Content)
+                if (content != null && content != state.content)
                 {
                     Debug.Log("The content changed since the local game server started; restarting it.");
                     Stop(quiet: true);
@@ -133,7 +210,7 @@ namespace Comet.Unity.Editor
             }
             else if (!Answers(settings))
             {
-                Start(settings, build: true);
+                Start(settings, build: true); // an incremental build is quick, and a pull may have changed the server
             }
         }
 
@@ -147,9 +224,9 @@ namespace Comet.Unity.Editor
             }
 
             var hash = ContentHash.Of(contentFile);
-            if (Read() is { } state && Alive(state))
+            if (Read() is { } state && Alive(state.pid, state.startTicks))
             {
-                if (state.Content != hash && !state.Waiting)
+                if (state.content != hash && !state.waiting)
                 {
                     Debug.Log("Restarting the local game server for the new content.");
                     Stop(quiet: true);
@@ -185,13 +262,14 @@ namespace Comet.Unity.Editor
                 return true;
             }
 
-            Debug.LogError($"Another program is using port {settings.serverPort}, so the local game server can't start there. Close it, or change the Comet settings' server port (and the port the game joins).");
+            Debug.LogError($"Another program is using port {settings.serverPort}, so the local game server can't start there. Close it, or change the Comet settings' server port.");
             return false;
         }
 
         /// <summary>
-        /// Builds the server (when <paramref name="build"/>, or when it never was) and starts it, then waits for it to
-        /// answer in the background. False (with the reason in the Console) if it couldn't start.
+        /// Starts the server with the chosen options, building it (and the bots, if any) first when
+        /// <paramref name="build"/> or when it never was, then waits for it to answer in the background and starts the
+        /// bots. False (with the reason in the Console) if it couldn't start.
         /// </summary>
         public static bool Start(CometSettings settings, bool build)
         {
@@ -207,14 +285,47 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            var program = Read()?.Program;
-            if (build || program == null || !File.Exists(program))
+            var options = Chosen;
+            var last = Read();
+            var program = last?.program;
+            if (build || string.IsNullOrEmpty(program) || !File.Exists(program))
             {
-                program = Build(settings);
+                program = Build(settings.serverProject, "game server");
                 if (program == null)
                 {
                     return false;
                 }
+            }
+
+            var bots = "";
+            if (options.Bots > 0)
+            {
+                bots = last?.botsProgram ?? "";
+                if ((build || bots.Length == 0 || !File.Exists(bots)) && (string.IsNullOrEmpty(settings.botsProject) || (bots = Build(settings.botsProject, "bots") ?? "").Length == 0))
+                {
+                    Debug.LogWarning(string.IsNullOrEmpty(settings.botsProject) ? "The Comet settings name no bots project, so no bots start." : "Starting the server without bots.");
+                    options.Bots = 0;
+                }
+            }
+
+            var arguments = $"\"{program}\" --urls http://{(options.Lan ? "0.0.0.0" : "localhost")}:{settings.serverPort} \"--Comet:LogFile={ContentBuild.ProjectPath(LogFile)}\"";
+            if (options.Web)
+            {
+                if (WebBuild(settings) is { } web)
+                {
+                    CopyContentInto(web);
+                    arguments += " " + string.Format(settings.serverWebArgument, $"\"{web}\"");
+                }
+                else
+                {
+                    Debug.LogWarning("There's no web build to serve yet: make one in Comet › Server › Local Server…. Starting the server without it.");
+                    options.Web = false;
+                }
+            }
+
+            if (options.Bots > 0)
+            {
+                arguments += " --Comet:Connections:MaxConnectionsPerAddress=1000"; // the bots all come from this computer
             }
 
             var log = ContentBuild.ProjectPath(LogFile);
@@ -222,7 +333,7 @@ namespace Comet.Unity.Editor
             File.WriteAllText(log, "");
 
             // The built program runs directly: stopping `dotnet run` can leave the program it started running.
-            var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"\"{program}\" --urls http://localhost:{settings.serverPort} \"--Comet:LogFile={log}\" {settings.serverArguments}")
+            var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"{arguments} {settings.serverArguments}")
             {
                 WorkingDirectory = ContentBuild.ProjectRoot,
                 UseShellExecute = false,
@@ -231,7 +342,18 @@ namespace Comet.Unity.Editor
             try
             {
                 using var process = Process.Start(start)!;
-                Write(new State { Pid = process.Id, StartTicks = process.StartTime.ToUniversalTime().Ticks, Content = content, Program = program, Waiting = true });
+                Write(new State
+                {
+                    pid = process.Id,
+                    startTicks = process.StartTime.ToUniversalTime().Ticks,
+                    content = content,
+                    program = program,
+                    botsProgram = bots,
+                    waiting = true,
+                    web = options.Web,
+                    lan = options.Lan,
+                    bots = options.Bots,
+                });
             }
             catch (Exception e)
             {
@@ -243,7 +365,7 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        /// <summary>Stops the editor's own server, if it's running; never one started elsewhere.</summary>
+        /// <summary>Stops the editor's own server and its bots, if it's running; never a server started elsewhere.</summary>
         public static void Stop(bool quiet)
         {
             if (Read() is not { } state)
@@ -251,32 +373,44 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            if (Alive(state))
+            Kill(state.botsPid, state.botsStartTicks);
+            if (Kill(state.pid, state.startTicks) && !quiet)
             {
-                try
-                {
-                    using var process = Process.GetProcessById(state.Pid);
-                    process.Kill();
-                    process.WaitForExit(3000);
-                }
-                catch (Exception e) when (e is InvalidOperationException or ArgumentException or System.ComponentModel.Win32Exception)
-                {
-                    // It has stopped by itself meanwhile.
-                }
-
-                if (!quiet)
-                {
-                    Debug.Log("Stopped the local game server.");
-                }
+                Debug.Log("Stopped the local game server.");
             }
 
             File.Delete(ContentBuild.ProjectPath(StateFile));
         }
 
-        // Builds the server project, returning the program built, or null (with the build's output in the Console).
-        private static string? Build(CometSettings settings)
+        /// <summary>The web build folder (a full path), if it has a page; null otherwise.</summary>
+        public static string? WebBuild(CometSettings settings)
         {
-            var project = ContentBuild.ProjectPath(settings.serverProject);
+            if (string.IsNullOrEmpty(settings.webBuildFolder))
+            {
+                return null;
+            }
+
+            var folder = ContentBuild.ProjectPath(settings.webBuildFolder);
+            return File.Exists(Path.Combine(folder, "index.html")) ? folder : null;
+        }
+
+        // The web build loads its content from its own StreamingAssets, so a content change needs only a copy, not a new build.
+        private static void CopyContentInto(string web)
+        {
+            if (ContentBuild.Source is not { } source || !File.Exists(source))
+            {
+                return;
+            }
+
+            var target = Path.Combine(web, "StreamingAssets", Path.GetFileName(source));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(source, target, overwrite: true);
+        }
+
+        // Builds a project, returning the program built, or null (with the build's output in the Console).
+        private static string? Build(string relativeProject, string what)
+        {
+            var project = ContentBuild.ProjectPath(relativeProject);
             var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath")
             {
                 WorkingDirectory = ContentBuild.ProjectRoot,
@@ -285,7 +419,7 @@ namespace Comet.Unity.Editor
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
-            EditorUtility.DisplayProgressBar("Local game server", "Building the game server…", 0.5f);
+            EditorUtility.DisplayProgressBar("Local game server", $"Building the {what}…", 0.5f);
             try
             {
                 using var process = Process.Start(start)!;
@@ -295,7 +429,7 @@ namespace Comet.Unity.Editor
                 var program = output.Split('\n').Select(line => line.Trim()).LastOrDefault(line => line.Length > 0);
                 if (process.ExitCode != 0 || program == null || !File.Exists(program))
                 {
-                    Debug.LogError($"Couldn't build the local game server ({project}):\n{output}{error.Result}");
+                    Debug.LogError($"Couldn't build the {what} ({project}):\n{output}{error.Result}");
                     return null;
                 }
 
@@ -303,7 +437,7 @@ namespace Comet.Unity.Editor
             }
             catch (Exception e)
             {
-                Debug.LogError($"Couldn't run dotnet to build the local game server: {e.Message}. Is the .NET SDK installed?");
+                Debug.LogError($"Couldn't run dotnet to build the {what}: {e.Message}. Is the .NET SDK installed?");
                 return null;
             }
             finally
@@ -312,7 +446,8 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Waits in the background for the server just started to answer, or to stop (saying why, from its log).
+        // Waits in the background for the server just started to answer (then starts its bots), or to stop (saying
+        // why, from its log).
         private static void Wait()
         {
             var settings = Settings();
@@ -325,13 +460,13 @@ namespace Comet.Unity.Editor
             Task<HttpResponseMessage>? asking = null;
             void Poll()
             {
-                if (Read() is not { Waiting: true } state)
+                if (Read() is not { waiting: true } state)
                 {
                     EditorApplication.update -= Poll; // stopped meanwhile
                     return;
                 }
 
-                if (!Alive(state))
+                if (!Alive(state.pid, state.startTicks))
                 {
                     EditorApplication.update -= Poll;
                     File.Delete(ContentBuild.ProjectPath(StateFile));
@@ -344,9 +479,10 @@ namespace Comet.Unity.Editor
                     if (asking.Status == TaskStatus.RanToCompletion && asking.Result.IsSuccessStatusCode)
                     {
                         EditorApplication.update -= Poll;
-                        state.Waiting = false;
+                        state.waiting = false;
+                        StartBots(state, settings);
                         Write(state);
-                        Debug.Log($"The local game server is running at localhost:{settings.serverPort}.");
+                        Debug.Log($"The local game server is running at {Describe(state, settings)}.");
                         return;
                     }
 
@@ -356,7 +492,7 @@ namespace Comet.Unity.Editor
                 if (EditorApplication.timeSinceStartup > giveUp)
                 {
                     EditorApplication.update -= Poll;
-                    state.Waiting = false;
+                    state.waiting = false;
                     Write(state);
                     Debug.LogWarning($"The local game server hasn't answered after {StartTimeout} s (Comet › Server › Show Log).");
                     return;
@@ -368,16 +504,39 @@ namespace Comet.Unity.Editor
             EditorApplication.update += Poll;
         }
 
-        // Whether a game server answers /health on the port now.
-        private static bool Answers(CometSettings settings)
+        // Where people reach it: this computer, and others on the network with LAN on; the page with the web build.
+        private static string Describe(State state, CometSettings settings)
         {
+            var scheme = state.web ? "http://" : "";
+            var here = $"{scheme}localhost:{settings.serverPort}";
+            var bots = state.bots > 0 ? $", with {state.bots} bots" : "";
+            return state.lan && LanAddress() is { } lan ? $"{here} (on the network: {scheme}{lan}:{settings.serverPort}){bots}" : here + bots;
+        }
+
+        private static void StartBots(State state, CometSettings settings)
+        {
+            if (state.bots <= 0 || string.IsNullOrEmpty(state.botsProgram))
+            {
+                return;
+            }
+
+            var arguments = settings.botsArguments
+                .Replace("{url}", $"ws://localhost:{settings.serverPort}/ws")
+                .Replace("{count}", state.bots.ToString());
             try
             {
-                return Task.Run(() => Http.GetAsync($"http://localhost:{settings.serverPort}/health")).Result.IsSuccessStatusCode;
+                using var process = Process.Start(new ProcessStartInfo(ContentBuild.Dotnet(), $"\"{state.botsProgram}\" {arguments}")
+                {
+                    WorkingDirectory = ContentBuild.ProjectRoot,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                })!;
+                state.botsPid = process.Id;
+                state.botsStartTicks = process.StartTime.ToUniversalTime().Ticks;
             }
-            catch (AggregateException)
+            catch (Exception e)
             {
-                return false;
+                Debug.LogError($"Couldn't start the bots: {e.Message}");
             }
         }
 
@@ -422,6 +581,15 @@ namespace Comet.Unity.Editor
         private static CometSettings? Settings() =>
             CometSettings.Find(quiet: true) is { } settings && !string.IsNullOrEmpty(settings.serverProject) ? settings : null;
 
+        // Tells play mode which port to join (LocalServerPort).
+        private static void SharePort()
+        {
+            if (Settings() is { } settings)
+            {
+                SessionState.SetInt(LocalServerPort.Key, settings.serverPort);
+            }
+        }
+
         // The last lines of the server's log.
         private static string Tail()
         {
@@ -437,43 +605,73 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // The editor's own server: its process (pid and start time, so a reused pid isn't taken for it), the content
-        // it started with, the program run, and whether it's still starting.
+        // The editor's own server and bots: their processes (pid and start time, so a reused pid isn't taken for
+        // theirs), the content and options it started with, the programs run, and whether it's still starting.
+        [Serializable]
         private sealed class State
         {
-            public int Pid;
-            public long StartTicks;
-            public string Content = "";
-            public string Program = "";
-            public bool Waiting;
+            public int pid;
+            public long startTicks;
+            public string content = "";
+            public string program = "";
+            public int botsPid;
+            public long botsStartTicks;
+            public string botsProgram = "";
+            public bool waiting;
+            public bool web;
+            public bool lan;
+            public int bots;
         }
 
         private static State? Read()
         {
             var path = ContentBuild.ProjectPath(StateFile);
-            if (!File.Exists(path))
+            try
+            {
+                return File.Exists(path) ? JsonUtility.FromJson<State>(File.ReadAllText(path)) : null;
+            }
+            catch (ArgumentException)
             {
                 return null;
             }
-
-            var lines = File.ReadAllLines(path);
-            return lines.Length >= 5 && int.TryParse(lines[0], out var pid) && long.TryParse(lines[1], out var ticks)
-                ? new State { Pid = pid, StartTicks = ticks, Content = lines[2], Program = lines[3], Waiting = lines[4] == "waiting" }
-                : null;
         }
 
-        private static void Write(State state) =>
-            File.WriteAllText(ContentBuild.ProjectPath(StateFile),
-                new StringBuilder().AppendLine(state.Pid.ToString()).AppendLine(state.StartTicks.ToString()).AppendLine(state.Content)
-                    .AppendLine(state.Program).AppendLine(state.Waiting ? "waiting" : "running").ToString());
+        private static void Write(State state) => File.WriteAllText(ContentBuild.ProjectPath(StateFile), JsonUtility.ToJson(state, true));
 
-        // Whether the process the state names is still the one the editor started.
-        private static bool Alive(State state)
+        // Stops a process the editor started, if it's still that one; whether it was running.
+        private static bool Kill(int pid, long startTicks)
         {
+            if (pid <= 0 || !Alive(pid, startTicks))
+            {
+                return false;
+            }
+
             try
             {
-                using var process = Process.GetProcessById(state.Pid);
-                return !process.HasExited && Math.Abs(process.StartTime.ToUniversalTime().Ticks - state.StartTicks) < TimeSpan.TicksPerSecond;
+                using var process = Process.GetProcessById(pid);
+                process.Kill();
+                process.WaitForExit(3000);
+            }
+            catch (Exception e) when (e is InvalidOperationException or ArgumentException or System.ComponentModel.Win32Exception)
+            {
+                // It has stopped by itself meanwhile.
+            }
+
+            return true;
+        }
+
+        // Whether a process is still the one the editor started.
+        private static bool Alive(int pid, long startTicks)
+        {
+            if (pid <= 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                return !process.HasExited && Math.Abs(process.StartTime.ToUniversalTime().Ticks - startTicks) < TimeSpan.TicksPerSecond;
             }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
             {
