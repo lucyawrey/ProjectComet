@@ -27,3 +27,8 @@ MonoBehaviour:
   spawnMarkerAsset: asset.cylinder
   spawnMarkerHeight: 0.4
   spawnMarkerColor: {r: 0.92941177, g: 0.9098039, b: 0.85490197, a: 1}
+  facetLength: 0.5
+  minSides: 6
+  maxSides: 48
+  budgetFile: ../content/settings/game.toml
+  budgetTable: primitives

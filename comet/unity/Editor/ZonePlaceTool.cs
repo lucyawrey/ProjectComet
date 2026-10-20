@@ -11,7 +11,7 @@ namespace Comet.Unity.Editor
 {
     /// <summary>
     /// The Scene view's place tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Place
-    /// Tool): pick an asset or a spawn point in its panel, then click in the scene to place it on whatever is under
+    /// Tool): pick a primitive, an asset or a spawn point in its panel, then click in the scene to place it on whatever is under
     /// the mouse. Placed objects are moved, turned and scaled with Unity's own tools; spawn points are edited in the
     /// Inspector.
     /// </summary>
@@ -34,7 +34,7 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Place Tool", true)]
         private static bool CanSelect() => Editing != null;
 
-        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Prefab Icon").image, "Zone Place: place assets and spawn points in the opened zone");
+        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Prefab Icon").image, "Zone Place: place primitives, assets and spawn points in the opened zone");
 
         public override bool IsAvailable() => Editing != null;
 
@@ -148,8 +148,27 @@ namespace Comet.Unity.Editor
 
             EditorGUIUtility.labelWidth = 40;
             EditorGUILayout.BeginVertical(GUILayout.Width(280));
-            EditorGUILayout.LabelField("Assets", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Primitives", EditorStyles.boldLabel);
             const int size = 64, perRow = 4;
+            var kinds = PrimitiveKinds.All.Select(PrimitiveKinds.Name).ToList();
+            for (var i = 0; i < kinds.Count; i += perRow)
+            {
+                EditorGUILayout.BeginHorizontal();
+                foreach (var kind in kinds.Skip(i).Take(perRow))
+                {
+                    var picked = !spawn && asset == kind;
+                    if (GUILayout.Toggle(picked, kind.Replace('_', ' '), GUI.skin.button, GUILayout.Width(size)) && !picked)
+                    {
+                        asset = kind;
+                        spawn = false;
+                    }
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Assets", EditorStyles.boldLabel);
             var entries = settings.assets.Entries;
             for (var i = 0; i < entries.Count; i += perRow)
             {
@@ -198,7 +217,7 @@ namespace Comet.Unity.Editor
 
             EditorGUILayout.HelpBox(spawn || !string.IsNullOrEmpty(asset)
                 ? "Click in the scene to place it; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
-                : "Pick an asset or a new spawn point, then click in the scene to place it.", MessageType.None);
+                : "Pick a primitive, an asset or a new spawn point, then click in the scene to place it.", MessageType.None);
             EditorGUILayout.EndVertical();
         }
 

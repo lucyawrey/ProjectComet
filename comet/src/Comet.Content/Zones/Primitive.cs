@@ -47,6 +47,44 @@ namespace Comet.Content
         Icosahedron,
     }
 
+    /// <summary>Primitive kinds by the names zone files and the editor use for them (<c>box</c>, <c>wedge</c>…).</summary>
+    public static class PrimitiveKinds
+    {
+        /// <summary>Every kind, in order.</summary>
+        public static readonly PrimitiveKind[] All = (PrimitiveKind[])System.Enum.GetValues(typeof(PrimitiveKind));
+
+        /// <summary><paramref name="kind"/>'s name: its enum name in snake case.</summary>
+        public static string Name(PrimitiveKind kind)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var c in kind.ToString())
+            {
+                if (char.IsUpper(c) && text.Length > 0)
+                {
+                    text.Append('_');
+                }
+
+                text.Append(char.ToLowerInvariant(c));
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>The kind named <paramref name="name"/>, or null if none is.</summary>
+        public static PrimitiveKind? Named(string name)
+        {
+            foreach (var kind in All)
+            {
+                if (Name(kind) == name)
+                {
+                    return kind;
+                }
+            }
+
+            return null;
+        }
+    }
+
     /// <summary>A primitive's kind and the values that shape it beyond its size (the placement's scale).</summary>
     [MessagePackObject]
     public sealed class Primitive

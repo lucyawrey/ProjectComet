@@ -353,9 +353,7 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>The primitive's kind for a placeable name: an asset key (<c>asset.prop</c>) is null.</summary>
-        public static PrimitiveKind? PrimitiveNamed(string name) =>
-            Enum.GetValues(typeof(PrimitiveKind)).Cast<PrimitiveKind>().Select(k => (PrimitiveKind?)k)
-                .FirstOrDefault(k => ZoneToml.SnakeCase(k.ToString()!) == name);
+        public static PrimitiveKind? PrimitiveNamed(string name) => PrimitiveKinds.Named(name);
 
         /// <summary>The size a newly placed primitive of <paramref name="kind"/> starts at, and its opening if it has one.</summary>
         public static (Vector3 Size, Vector2 Opening) StartingSize(PrimitiveKind kind) => kind switch
@@ -372,7 +370,7 @@ namespace Comet.Unity.Editor
         // surface snapping. Its placement component is added here, since the mesh comes from it.
         private static GameObject CreatePrimitive(Primitive primitive, Vector3 size, CometSettings settings, Transform parent)
         {
-            var name = ZoneToml.SnakeCase(primitive.Kind.ToString());
+            var name = PrimitiveKinds.Name(primitive.Kind);
             var thing = new GameObject();
             thing.transform.SetParent(parent, false);
             thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, name);

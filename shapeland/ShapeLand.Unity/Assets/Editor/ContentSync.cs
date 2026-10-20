@@ -11,7 +11,7 @@ namespace ShapeLand.Client.Editor
     /// <summary>
     /// Keeps what the editor holds from ShapeLand's content in step with it each time Comet copies the content in
     /// (<see cref="ContentBuild"/>): the asset library (<see cref="AssetLibrary"/>) follows the content's asset
-    /// entries, and the Comet settings take the game's terrain colors, body height and spawn markers.
+    /// entries, and the Comet settings take the game's terrain colors, body height, spawn markers and polygon budget.
     /// </summary>
     [InitializeOnLoad]
     public static class ContentSync
@@ -28,7 +28,8 @@ namespace ShapeLand.Client.Editor
             };
         }
 
-        // The Comet settings that come from the game's content: terrain colors, the body height and spawn markers.
+        // The Comet settings that come from the game's content: terrain colors, the body height, spawn markers and the
+        // polygon budget.
         private static void RefreshCometSettings(byte[] contentFile)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -53,7 +54,8 @@ namespace ShapeLand.Client.Editor
             var placed = GameView.Color(game.World.PlacedColor);
             if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
                 && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
-                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor))
+                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor)
+                && settings.facetLength == game.Primitives.FacetLength && settings.minSides == game.Primitives.MinSides && settings.maxSides == game.Primitives.MaxSides)
             {
                 return;
             }
@@ -65,6 +67,10 @@ namespace ShapeLand.Client.Editor
             settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
             settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
             settings.spawnMarkerColor = GameView.Color(game.Spawns.UnsetColor);
+            settings.facetLength = game.Primitives.FacetLength;
+            settings.minSides = game.Primitives.MinSides;
+            settings.maxSides = game.Primitives.MaxSides;
+            ZonePrimitiveEditing.Preview(settings);
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssetIfDirty(settings);
             Debug.Log("Updated the Comet settings from the content.");
