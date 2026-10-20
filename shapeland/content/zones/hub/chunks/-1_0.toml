@@ -21,6 +21,11 @@ scale = [2.0, 2.0, 2.0]
 color = 0x00A1FF
 
 [[placement]]
+prop = "prop.strange_shape"
+position = [-13.385, 5.87, 14.62]
+color = 0x9E8C7A
+
+[[placement]]
 primitive = "cylinder"
 name = "spawn.diamond"
 position = [-47.603, 1.202, 2.426]
