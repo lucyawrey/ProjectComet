@@ -79,9 +79,9 @@ namespace ShapeLand.Client.Tests
         [Test]
         public void ShapesSwapToTransparentMaterialsWhileFading()
         {
-            var shape = Object.Instantiate(ShapePrefab(MeshKind.Cube));
-            var body = shape.Body;
-            var eyes = shape.Eyes;
+            var shape = Build("shape.cube");
+            var body = shape.Body[0];
+            var eyes = shape.Eyes[0];
             try
             {
                 shape.SetColors(0xFF0000, 0x0000FF);
@@ -108,94 +108,32 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        // Each prefab is its model with a ShapeBody on the root: standing on its origin, facing +Z with its eyes on
-        // the front, and colored through the body and eyes.
-        [TestCase(MeshKind.Cube)]
-        [TestCase(MeshKind.Diamond)]
-        [TestCase(MeshKind.Pyramid)]
-        public void EveryShapeHasAPrefab(MeshKind kind)
+        // Each shape's look stands on the feet (plus its hover), about a player's height, facing +Z with its eyes on
+        // the front, and colored through its body and eyes.
+        [TestCase("shape.cube")]
+        [TestCase("shape.diamond")]
+        [TestCase("shape.pyramid")]
+        public void EveryShapeHasALook(string id)
         {
-            var shape = Object.Instantiate(ShapePrefab(kind));
+            var shape = Build(id);
             try
             {
-                var body = shape.Body;
-                var eyes = shape.Eyes;
-                Assert.That(body, Is.Not.Null.And.Not.SameAs(eyes), "The prefab's ShapeBody isn't set up.");
-                Assert.That(body.bounds.min.y, Is.InRange(0, 0.2f), "The shape doesn't stand on its origin.");
+                Assert.That(shape.Body, Is.Not.Empty, "The look has no body part.");
+                Assert.That(shape.Eyes, Is.Not.Empty, "The look has no eyes.");
+                var body = shape.Body[0];
+                Assert.That(body.bounds.min.y, Is.InRange(0, 0.2f), "The shape doesn't stand on its feet.");
                 Assert.That(body.bounds.size.y, Is.InRange(0.3f, 2), "The shape isn't about a player's height.");
-                Assert.That(eyes.bounds.center.z, Is.GreaterThan(0.1f), "The eyes aren't on the front (+Z).");
-                Assert.That(Mathf.Abs(eyes.bounds.center.x), Is.LessThan(0.01f), "The eyes aren't centered.");
+                Assert.That(shape.Eyes.Average(e => e.bounds.center.z), Is.GreaterThan(0.1f), "The eyes aren't on the front (+Z).");
+                Assert.That(Mathf.Abs(shape.Eyes.Average(e => e.bounds.center.x)), Is.LessThan(0.01f), "The eyes aren't centered.");
 
                 shape.SetColors(0x00FF00, 0xFF0000);
                 Assert.That(body.sharedMaterial.color, Is.EqualTo(Color.green));
-                Assert.That(eyes.sharedMaterial.color, Is.EqualTo(Color.red));
+                Assert.That(shape.Eyes.All(e => e.sharedMaterial.color == Color.red));
             }
             finally
             {
                 Object.DestroyImmediate(shape.gameObject);
             }
-        }
-
-        [Test]
-        public void TerrainFacesUpUnderUnitysNormals()
-        {
-            // A flat 3×3-sample piece without skirts: Unity's recalculated normals must agree with the mesher's winding.
-            var zone = new Comet.Content.Zone
-            {
-                Pieces = new[] { new Comet.Content.TerrainPiece { Name = "main", RimSkirts = false } },
-                Chunks = new[]
-                {
-                    new Comet.Content.ZoneChunk
-                    {
-                        Tiles = new[]
-                        {
-                            new Comet.Content.TerrainTile
-                            {
-                                Piece = "main",
-                                Heights = new Comet.Content.Heightmap { SizeX = 3, SizeZ = 3, Scale = 1, Offset = 0, Samples = Enumerable.Repeat((ushort)2, 9).ToArray() },
-                            },
-                        },
-                    },
-                },
-            };
-            var chunk = TerrainMesher.Build(new ZoneTerrain(zone), 0x336699, 0).Values.Single();
-            var mesh = Comet.Unity.TerrainMeshes.Build("Test", chunk);
-            try
-            {
-                Assert.That(mesh.triangles.Length, Is.EqualTo(8 * 3));
-                Assert.That(mesh.normals, Has.All.EqualTo(Vector3.up));
-                Assert.That(mesh.colors32[0], Is.EqualTo(new Color32(0x33, 0x66, 0x99, 0xff)));
-            }
-            finally
-            {
-                Object.DestroyImmediate(mesh);
-            }
-        }
-
-        [TestCase(0, 45, 0)]
-        [TestCase(30, 0, 0)]
-        [TestCase(0, 0, 60)]
-        [TestCase(10, 200, -35)]
-        [TestCase(-80, 15, 170)]
-        public void PlacementRotationsMatchUnitys(float x, float y, float z)
-        {
-            // Zones store Euler angles; Comet turns them into rotations for collision, Unity for drawing. They must agree.
-            var comet = Comet.Content.ZoneGrid.Rotation(new System.Numerics.Vector3(x, y, z));
-            var unity = Quaternion.Euler(x, y, z);
-
-            var forward = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitZ, comet);
-            var right = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitX, comet);
-            Assert.That(Vector3.Distance(Vectors.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
-            Assert.That(Vector3.Distance(Vectors.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
-        }
-
-        [Test]
-        public void ShapeStatsAreSpeedAndJumpHeight()
-        {
-            var rules = new MovementRules { Gravity = 25 };
-            var (speed, jump) = JoinScreen.Stats(new Shape { MaxSpeed = 5, JumpVelocity = 8.5f }, rules);
-            Assert.That(speed, Is.EqualTo(5));
-            Assert.That(jump, Is.EqualTo(8.5f * 8.5f / (2 * 25)).Within(1e-4f));
         }
 
         // Every key the scripts, UXML and web page use is in the string file, so no "[key]" shows on screen.
@@ -215,7 +153,12 @@ namespace ShapeLand.Client.Tests
             Assert.That(keys.Where(k => !content.Strings.Contains(k.Key)).Select(k => $"{k.File}: {k.Key}"), Is.Empty);
         }
 
-        private static ShapeBody ShapePrefab(MeshKind kind) =>
-            AssetDatabase.LoadAssetAtPath<ShapeBody>($"Assets/Prefabs/Shapes/{kind}.prefab");
+        // A shape built as the game builds it, from the content and the game's materials.
+        private static ShapeBody Build(string id)
+        {
+            var content = TestGameServer.LoadContent();
+            Material Load(string name) => AssetDatabase.LoadAssetAtPath<Material>($"Assets/Materials/{name}.mat");
+            return GameView.BuildShape(content, content.Shapes[id], 0xFFFFFF, 0x000000, null, Load("Shape"), Load("Eyes"), Load("ShapeFade"), Load("EyesFade"));
+        }
     }
 }

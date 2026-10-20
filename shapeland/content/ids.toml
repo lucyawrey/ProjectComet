@@ -8,6 +8,12 @@ cylinder = 3
 ramp = 4
 sphere = 5
 
+[group]
+shape_cube = 1
+shape_diamond = 2
+shape_pyramid = 3
+trees = 4
+
 [settings]
 game = 1
 

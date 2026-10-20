@@ -1,38 +1,48 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// A player's drawn shape, on the root of its prefab (<c>Assets/Prefabs/Shapes/</c>), at the player's feet: the
-    /// body and eyes in the player's colors, and how far the shape has faded. While it fades it swaps to transparent
-    /// copies of its materials (made the first time), which cast no shadow; fully visible, it's drawn opaque as usual.
-    /// The materials it makes are freed with it.
+    /// A player's drawn shape, at the player's feet, built from its look (a group, <see cref="GameView.BuildShape"/>):
+    /// parts with the role <c>body</c> in the player's color, <c>eyes</c> in their eye color, others in their own, and
+    /// how far the shape has faded. While it fades it swaps to transparent copies of its materials (made the first
+    /// time), which cast no shadow; fully visible, it's drawn opaque as usual. The materials it makes are freed with it.
     /// </summary>
     public sealed class ShapeBody : MonoBehaviour
     {
-        [SerializeField] private MeshRenderer body;
-        [SerializeField] private MeshRenderer eyes;
-        [Tooltip("The transparent material the body fades with; its color is set from the body's.")]
-        [SerializeField] private Material bodyFadeMaterial;
-        [Tooltip("The transparent material the eyes fade with; their color is set from the eyes'.")]
-        [SerializeField] private Material eyesFadeMaterial;
+        private sealed class Part
+        {
+            public MeshRenderer Renderer;
+            public string Role;
+            public Color Own;
+            public Material Template;
+            public Material FadeTemplate;
+            public Material Opaque;
+            public Material Fade;
+        }
 
-        private Material _bodyTemplate;
-        private Material _eyesTemplate;
-        private Material _bodyOpaque;
-        private Material _eyesOpaque;
-        private Material _bodyFade;
-        private Material _eyesFade;
+        private readonly List<Part> _parts = new List<Part>();
+        private Transform _look;
         private float _faded;
 
-        /// <summary>The body's renderer.</summary>
-        public MeshRenderer Body => body;
+        /// <summary>The body's renderers (role <c>body</c>).</summary>
+        public IReadOnlyList<MeshRenderer> Body => _parts.Where(p => p.Role == "body").Select(p => p.Renderer).ToList();
 
-        /// <summary>The eyes' renderer.</summary>
-        public MeshRenderer Eyes => eyes;
+        /// <summary>The eyes' renderers (role <c>eyes</c>).</summary>
+        public IReadOnlyList<MeshRenderer> Eyes => _parts.Where(p => p.Role == "eyes").Select(p => p.Renderer).ToList();
 
         /// <summary>The middle of the top of the body, in world space, where a name tag goes above.</summary>
-        public Vector3 Top => new Vector3(transform.position.x, body.bounds.max.y, transform.position.z);
+        public Vector3 Top
+        {
+            get
+            {
+                var body = Body.Count > 0 ? Body : _parts.Select(p => p.Renderer).ToList();
+                var top = body.Count > 0 ? body.Max(r => r.bounds.max.y) : transform.position.y;
+                return new Vector3(transform.position.x, top, transform.position.z);
+            }
+        }
 
         /// <summary>How far the shape has faded: 0 fully visible, 1 gone.</summary>
         public float Faded
@@ -41,31 +51,60 @@ namespace ShapeLand.Client
             set => SetFaded(Mathf.Clamp01(value));
         }
 
-        /// <summary>Colors the body and eyes, each as 0xRRGGBB.</summary>
+        /// <summary>
+        /// An empty shape named <paramref name="name"/> at <paramref name="parent"/>'s origin, its look drawn
+        /// <paramref name="scale"/> times its size and <paramref name="hover"/> meters (before scaling) above the feet.
+        /// </summary>
+        public static ShapeBody Create(string name, Transform parent, float scale, float hover)
+        {
+            var root = new GameObject(name);
+            root.transform.SetParent(parent, false);
+            var shape = root.AddComponent<ShapeBody>();
+            shape._look = new GameObject("Look").transform;
+            shape._look.SetParent(root.transform, false);
+            shape._look.localPosition = Vector3.up * (hover * scale);
+            shape._look.localScale = Vector3.one * scale;
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds one part of the look, placed in the look's space, drawn with <paramref name="material"/> (and
+        /// <paramref name="fadeMaterial"/> while fading), in its role's color or else <paramref name="own"/>.
+        /// </summary>
+        public void AddPart(Mesh mesh, Vector3 position, Quaternion rotation, string role, Color own, Material material, Material fadeMaterial)
+        {
+            var part = new GameObject(role ?? "part");
+            part.transform.SetParent(_look, false);
+            part.transform.SetLocalPositionAndRotation(position, rotation);
+            part.layer = gameObject.layer;
+            part.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = part.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            _parts.Add(new Part { Renderer = renderer, Role = role, Own = own, Template = material, FadeTemplate = fadeMaterial });
+        }
+
+        /// <summary>Colors the body and eyes, each as 0xRRGGBB; other parts keep their own color.</summary>
         public void SetColors(uint bodyColor, uint eyeColor)
         {
-            if (_bodyTemplate == null)
+            FreeMaterials();
+            foreach (var part in _parts)
             {
-                _bodyTemplate = body.sharedMaterial;
-                _eyesTemplate = eyes.sharedMaterial;
+                var color = part.Role == "body" ? GameView.Color(bodyColor) : part.Role == "eyes" ? GameView.Color(eyeColor) : part.Own;
+                part.Opaque = new Material(part.Template) { color = color };
+                part.Renderer.sharedMaterial = part.Opaque;
+                part.Renderer.enabled = true;
             }
 
-            FreeMaterials();
-            _bodyOpaque = new Material(_bodyTemplate) { color = GameView.Color(bodyColor) };
-            _eyesOpaque = new Material(_eyesTemplate) { color = GameView.Color(eyeColor) };
-            body.sharedMaterial = _bodyOpaque;
-            eyes.sharedMaterial = _eyesOpaque;
-            body.enabled = eyes.enabled = true;
             _faded = 0;
         }
 
         /// <summary>Turns off shadows and moves the shape's parts to <paramref name="layer"/>, as the join card's preview does.</summary>
         public void ShowOnLayer(int layer)
         {
-            foreach (var part in new[] { body, eyes })
+            foreach (var part in _parts)
             {
-                part.gameObject.layer = layer;
-                part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                part.Renderer.gameObject.layer = layer;
+                part.Renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
         }
 
@@ -77,44 +116,43 @@ namespace ShapeLand.Client
             }
 
             _faded = faded;
-            body.enabled = eyes.enabled = faded < 1;
-            if (faded <= 0)
+            foreach (var part in _parts)
             {
-                body.sharedMaterial = _bodyOpaque;
-                eyes.sharedMaterial = _eyesOpaque;
-                return;
+                part.Renderer.enabled = faded < 1;
+                if (faded <= 0)
+                {
+                    part.Renderer.sharedMaterial = part.Opaque;
+                    continue;
+                }
+
+                if (part.Fade == null)
+                {
+                    part.Fade = new Material(part.FadeTemplate) { color = part.Opaque != null ? part.Opaque.color : part.Own };
+                }
+
+                var color = part.Fade.color;
+                color.a = 1 - faded;
+                part.Fade.color = color;
+                part.Renderer.sharedMaterial = part.Fade;
             }
-
-            if (_bodyFade == null)
-            {
-                _bodyFade = new Material(bodyFadeMaterial) { color = _bodyOpaque.color };
-                _eyesFade = new Material(eyesFadeMaterial) { color = _eyesOpaque.color };
-            }
-
-            SetAlpha(_bodyFade, 1 - faded);
-            SetAlpha(_eyesFade, 1 - faded);
-            body.sharedMaterial = _bodyFade;
-            eyes.sharedMaterial = _eyesFade;
-        }
-
-        private static void SetAlpha(Material material, float alpha)
-        {
-            var color = material.color;
-            color.a = alpha;
-            material.color = color;
         }
 
         private void FreeMaterials()
         {
-            foreach (var material in new[] { _bodyOpaque, _eyesOpaque, _bodyFade, _eyesFade })
+            foreach (var part in _parts)
             {
-                if (material != null)
+                if (part.Opaque != null)
                 {
-                    Destroy(material);
+                    Destroy(part.Opaque);
                 }
-            }
 
-            _bodyFade = _eyesFade = null;
+                if (part.Fade != null)
+                {
+                    Destroy(part.Fade);
+                }
+
+                part.Opaque = part.Fade = null;
+            }
         }
 
         private void OnDestroy() => FreeMaterials();

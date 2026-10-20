@@ -28,12 +28,14 @@ namespace ShapeLand.Client
         [SerializeField] private Material blockMaterial;
         [Tooltip("The models for asset keys, kept up to date by the editor from the content.")]
         [SerializeField] private AssetLibrary assets;
-        [Tooltip("The player shape for content's mesh = \"cube\".")]
-        [SerializeField] private ShapeBody cubePrefab;
-        [Tooltip("The player shape for content's mesh = \"diamond\".")]
-        [SerializeField] private ShapeBody diamondPrefab;
-        [Tooltip("The player shape for content's mesh = \"pyramid\".")]
-        [SerializeField] private ShapeBody pyramidPrefab;
+        [Tooltip("Players' shapes: their looks' parts other than eyes, colored per part.")]
+        [SerializeField] private Material shapeMaterial;
+        [Tooltip("Players' eyes (parts with the role eyes).")]
+        [SerializeField] private Material eyesMaterial;
+        [Tooltip("The transparent material a shape's parts fade with; its color is set from each part's.")]
+        [SerializeField] private Material shapeFadeMaterial;
+        [Tooltip("The transparent material eyes fade with.")]
+        [SerializeField] private Material eyesFadeMaterial;
         [SerializeField] private OrbitCamera orbitCamera;
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
@@ -323,20 +325,30 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin: the prefab for its mesh,
-        /// sized by its scale in content.
+        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin: its look (a group of
+        /// primitives) at its scale and hover in content.
         /// </summary>
-        public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent)
+        public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent) =>
+            BuildShape(_content, shape, color, eyeColor, parent, shapeMaterial, eyesMaterial, shapeFadeMaterial, eyesFadeMaterial);
+
+        /// <summary><see cref="BuildShape(Shape, uint, uint, Transform)"/> with its content and materials given, as tests build shapes.</summary>
+        public static ShapeBody BuildShape(ShapeLandContent content, Shape shape, uint color, uint eyeColor, Transform parent,
+            Material shapeMaterial, Material eyesMaterial, Material shapeFadeMaterial, Material eyesFadeMaterial)
         {
-            var prefab = shape.Mesh switch
+            var drawn = ShapeBody.Create(shape.DisplayName, parent, shape.Scale, shape.Hover);
+            foreach (var part in Groups.Expand(new Placement { Group = shape.Look }, key => content.Groups.TryGet(key, out var group) ? group : null))
             {
-                MeshKind.Diamond => diamondPrefab,
-                MeshKind.Pyramid => pyramidPrefab,
-                _ => cubePrefab,
-            };
-            var drawn = Instantiate(prefab, parent, false);
-            drawn.name = shape.DisplayName;
-            drawn.transform.localScale = Vector3.one * shape.Scale;
+                if (part.Primitive == null)
+                {
+                    continue; // looks are built from primitives
+                }
+
+                var r = part.Rotation;
+                var eyes = part.Role == "eyes";
+                drawn.AddPart(PrimitiveMeshes.For(part, content.Settings.Primitives), Vectors.ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), part.Role,
+                    Color(part.Color ?? content.Settings.World.PlacedColor), eyes ? eyesMaterial : shapeMaterial, eyes ? eyesFadeMaterial : shapeFadeMaterial);
+            }
+
             drawn.SetColors(color, eyeColor);
             return drawn;
         }

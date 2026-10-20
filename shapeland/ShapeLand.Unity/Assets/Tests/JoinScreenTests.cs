@@ -31,11 +31,11 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.Player, Is.Null, "Joined before pressing Join.");
 
             Field("name").value = "Pebble";
-            Click(ShapeButton(MeshKind.Cube));
+            Click(ShapeButton("shape.cube"));
             Click(Swatch("colors", Join.Content.Settings.Colors.Body[1]));
             Click(Swatch("eyes", Join.Content.Settings.Colors.Eyes[3]));
             // From content, so tuning the cube doesn't break the test.
-            var cube = Join.Content.Shapes.All.First(shape => shape.Mesh == MeshKind.Cube);
+            var cube = Join.Content.Shapes.All.First(shape => shape.Id == "shape.cube");
             var (_, jump) = JoinScreen.Stats(cube, Join.Content.Movement);
             var expected = new[]
             {
@@ -51,7 +51,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(Screen.Showing, Is.False, "The join screen stayed up.");
             var spawn = Join.Spawn.Value;
             Assert.That(spawn.Name, Is.EqualTo("Pebble"));
-            Assert.That(Join.Content.Shapes[spawn.Shape].Mesh, Is.EqualTo(MeshKind.Cube));
+            Assert.That(Join.Content.Shapes[spawn.Shape].Id, Is.EqualTo("shape.cube"));
             Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Body[1]));
             Assert.That(spawn.EyeColor, Is.EqualTo(Join.Content.Settings.Colors.Eyes[3]));
 
@@ -67,7 +67,7 @@ namespace ShapeLand.Client.Tests
         {
             yield return StartGame(join: false);
             Field("name").value = "Pebble";
-            Click(ShapeButton(MeshKind.Diamond));
+            Click(ShapeButton("shape.diamond"));
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null, 15);
             Assert.That(View.Player, Is.Not.Null, "Never spawned.");
@@ -90,7 +90,7 @@ namespace ShapeLand.Client.Tests
         {
             yield return StartGame(join: false);
             Field("name").value = "Pebble";
-            Click(ShapeButton(MeshKind.Cube));
+            Click(ShapeButton("shape.cube"));
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null, 15);
             Assert.That(View.Player, Is.Not.Null, "Never spawned.");
@@ -107,7 +107,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.Player, Is.Not.Null, "Didn't rejoin the restarted server.");
             Assert.That(Screen.Showing, Is.False, "The join screen stayed up.");
             Assert.That(Join.Spawn.Value.Name, Is.EqualTo("Pebble"));
-            Assert.That(Join.Content.Shapes[Join.Spawn.Value.Shape].Mesh, Is.EqualTo(MeshKind.Cube));
+            Assert.That(Join.Content.Shapes[Join.Spawn.Value.Shape].Id, Is.EqualTo("shape.cube"));
         }
 
         [UnityTest]
@@ -140,7 +140,7 @@ namespace ShapeLand.Client.Tests
         {
             yield return StartGame(join: false);
             Field("name").value = "Pebble";
-            Click(ShapeButton(MeshKind.Cube));
+            Click(ShapeButton("shape.cube"));
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null, 15);
             var player = View.Player;
@@ -157,7 +157,7 @@ namespace ShapeLand.Client.Tests
 
             Hud.OpenLook();
             Field("name").value = "Pebbles";
-            Click(ShapeButton(MeshKind.Diamond));
+            Click(ShapeButton("shape.diamond"));
             Click(Swatch("colors", Join.Content.Settings.Colors.Body[2]));
             var at = player.transform.position;
             Click(Screen.Root.Q<Button>("join-button"));
@@ -167,7 +167,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.Player, Is.SameAs(player), "The player was rebuilt rather than changed where they stand.");
             var spawn = View.Spawns[id];
             Assert.That(spawn.Name, Is.EqualTo("Pebbles"));
-            Assert.That(Join.Content.Shapes[spawn.Shape].Mesh, Is.EqualTo(MeshKind.Diamond));
+            Assert.That(Join.Content.Shapes[spawn.Shape].Id, Is.EqualTo("shape.diamond"));
             Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Body[2]));
             Assert.That(Vector3.Distance(player.transform.position, at), Is.LessThan(0.5f), "The player moved.");
             Assert.That(player.name, Is.EqualTo("Pebbles (you)"));

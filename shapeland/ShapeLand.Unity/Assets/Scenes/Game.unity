@@ -265,9 +265,10 @@ MonoBehaviour:
   terrainMaterial: {fileID: 2100000, guid: 39ef6832ec4bb4c45bd3ae46f21fd7f1, type: 2}
   blockMaterial: {fileID: 2100000, guid: 43d7a230d1c5924a89d36b7efea1f91b, type: 2}
   assets: {fileID: 11400000, guid: 2c366cc91512f1b414be159ca4ff4d57, type: 2}
-  cubePrefab: {fileID: 3588937628090892900, guid: 21f87fe88e1c8dd619c7fe5ddce3469e, type: 3}
-  diamondPrefab: {fileID: 4242476006985550958, guid: b178253dd24bed7f5a731083f2b0d80c, type: 3}
-  pyramidPrefab: {fileID: 4601383380699552631, guid: fb8e25e71b70ab1858a0fc94f3ec2897, type: 3}
+  shapeMaterial: {fileID: 2100000, guid: 9620fa0eda73df2868773d48c4e0351c, type: 2}
+  eyesMaterial: {fileID: 2100000, guid: 2363a39ddd6cb0ff68d7c40daa468bf7, type: 2}
+  shapeFadeMaterial: {fileID: 2100000, guid: 61dd4b4118ed94a48a34b63a8dc64b5b, type: 2}
+  eyesFadeMaterial: {fileID: 2100000, guid: 71fb7ea9edb6b490c85ea0df884edb30, type: 2}
   orbitCamera: {fileID: 1791137201}
 --- !u!114 &1117559768
 MonoBehaviour:

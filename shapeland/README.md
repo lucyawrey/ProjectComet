@@ -4,8 +4,8 @@ Comet's demo and reference game. Requirements, setup and the scripts are in the 
 
 | Folder | What it holds |
 | --- | --- |
-| `art/` | Source files for the art (such as `.blend`), plain in git (no Git LFS yet). Exports go into `ShapeLand.Unity/Assets/Models/` as `.glb`. |
-| `content/` | Game data: the shapes, the placeable assets (`.glb` props; the levels are built from Comet's primitives), the game-wide settings (`settings/game.toml`), the interface text and the zone, made by hand in the zone editor. Compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
+| `art/` | Source files for the art (such as `.blend`), plain in git (no Git LFS yet); none yet, until the one prop's model. Exports go into `ShapeLand.Unity/Assets/Models/` as `.glb`. |
+| `content/` | Game data: the shapes, their looks and other groups (`groups/`), the placeable assets (`.glb` props; the levels are built from Comet's primitives), the game-wide settings (`settings/game.toml`), the interface text and the zone, made by hand in the zone editor. Compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
 | `src/` | The game server, the bots, the content build and `ShapeLand.Shared` (rules, world and messages used by server, bots and client). |
 | `ShapeLand.Unity/` | The Unity client. |
 | `tests/` | Tests for the .NET projects. |
@@ -33,7 +33,7 @@ The Game scene (`Assets/Scenes/Game.unity`) holds:
 | Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, and the network numbers (F3). |
 | Camera | `OrbitCamera` | The third-person camera. |
 
-Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape's colors and fading, on each shape's prefab in `Assets/Prefabs/Shapes/`), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `Vectors` (conversions between shared code's vectors and Unity's), `RespawnFade` (how falling fades) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
+Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape, built from its look by `GameView.BuildShape`: its colors and fading), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `Vectors` (conversions between shared code's vectors and Unity's), `RespawnFade` (how falling fades) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
 
 The builds are the build profiles in `Assets/Settings/Build Profiles/` (File › Build Profiles). The editor scripts in `Assets/Editor` add ShapeLand's steps to every build (`Builds`: the content copied in, the page's text filled in) and keep the asset library and Comet settings in step with the content each time Comet copies it in (`ContentSync`). Comet's own Content › Build menu runs the content build, and saving a zone does too.
 
@@ -82,9 +82,9 @@ Every movement number has one home. Clients, bots and the server read the same v
 | `ground_snap` | How far the ground may drop under the feet while staying grounded (walking downhill rather than falling), in meters. |
 | `body_radius`, `body_height` | The collision body every shape shares: a square footprint `body_radius` from the center, and `body_height` tall, in meters. |
 
-### How shapes look: the models in `art/shapes.blend`
+### How shapes look: the groups in `content/groups/shape_*.toml`
 
-Each shape is an empty at the player's feet with a body mesh and eyes under it, in meters, facing -Y in Blender, toward the Front view (+Z in Unity). `tools/blender-export-glb.py` exports each one as `ShapeLand.Unity/Assets/Models/Shapes/<Shape>.glb`, with the empty at the origin; the prefabs in `Assets/Prefabs/Shapes/` pick up the change. The prefabs set the materials, so the models' own are ignored. These change the drawing only.
+Each shape's `look` (in `content/shapes/<shape>.toml`) is a group of primitives standing on its pivot at the player's feet, facing +Z. Parts with `role = "body"` take the player's body color and `role = "eyes"` their eye color; other parts keep their own color. Edit a look like any group in the zone editor: place a copy (Groups in the place tool's panel) and use Open group or Edit in place, then delete the copy. The shape's own `scale` sizes the whole look and `hover` lifts it off the ground, in meters before scaling. These change the drawing only: every shape collides as the same body (`body_radius`, `body_height`). The 2D icon on buttons and chat lines is drawn by the kind of the body part (a box, an octahedron, or else a pyramid).
 
 ### The camera: the Camera object in the Game scene
 

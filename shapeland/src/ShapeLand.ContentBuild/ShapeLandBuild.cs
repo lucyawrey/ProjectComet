@@ -68,6 +68,26 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
+        // Each shape's look is a group with a body for the player's color (errors against the shape's own file, by its key).
+        var groups = result.Groups.ToDictionary(g => g.Id);
+        foreach (var shape in result.Entries<Shape>())
+        {
+            var file = Path.Combine(contentRoot, "shapes", shape.Id.Substring("shape.".Length) + ".toml");
+            if (!File.Exists(file))
+            {
+                file = Path.Combine(contentRoot, "shapes");
+            }
+
+            if (!groups.ContainsKey(shape.Look))
+            {
+                errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: look '{shape.Look}' isn't a group (groups/*.toml)."));
+            }
+            else if (!Groups.Expand(new Placement { Group = shape.Look }, key => groups.TryGetValue(key, out var g) ? g : null).Any(p => p.Role == "body"))
+            {
+                errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has no part with role = \"body\" to take the player's color."));
+            }
+        }
+
         // Each shape starts at a spawn point of the default zone (in other zones, at that zone's default spawn).
         var zoneSpawns = result.Zones.Where(z => z.Id == zoneId).SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
         foreach (var shape in result.Entries<Shape>().Where(s => !zoneSpawns.Contains(s.Spawn)))
@@ -81,7 +101,7 @@ public static class ShapeLandBuild
         }
 
 
-        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Asset>(), result.Zones), errors);
+        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Asset>(), result.Zones, result.Groups), errors);
     }
 
     private static void ValidateSettings(GameSettings settings, ContentValidation validation)
@@ -159,6 +179,11 @@ public static class ShapeLandBuild
         if (shape.Scale is <= 0 or > 4)
         {
             validation.Error(nameof(Shape.Scale), $"{shape.Scale} is out of range (above 0, at most 4).");
+        }
+
+        if (shape.Hover is < 0 or > 2)
+        {
+            validation.Error(nameof(Shape.Hover), $"{shape.Hover} is out of range (0 to 2 m).");
         }
     }
 }

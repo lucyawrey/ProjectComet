@@ -23,7 +23,10 @@ public class ContentTests
         var content = ShapeLandContent.Load(file);
 
         Assert.Equal(["shape.cube", "shape.diamond", "shape.pyramid"], content.Shapes.All.Select(s => s.Id));
-        Assert.Equal(MeshKind.Diamond, content.Shapes["shape.diamond"].Mesh);
+        Assert.Equal("group.shape_diamond", content.Shapes["shape.diamond"].Look);
+        Assert.Equal(PrimitiveKind.Octahedron, content.BodyKind(content.Shapes["shape.diamond"]));
+        Assert.Equal(PrimitiveKind.Tetrahedron, content.BodyKind(content.Shapes["shape.pyramid"]));
+        Assert.Equal(PrimitiveKind.Box, content.BodyKind(content.Shapes["shape.cube"]));
         Assert.Equal("Pyramid", content.Shapes["shape.pyramid"].DisplayName);
         Assert.True(content.Shapes["shape.cube"].MaxSpeed > 0);
         Assert.Same(content.Shapes["shape.cube"], content.Shapes[content.Shapes["shape.cube"].Number]);
@@ -141,7 +144,8 @@ public class ContentTests
     [InlineData("max_speed = 0.0", "max_speed: 0 is out of range")]
     [InlineData("jump_velocity = 99.0", "jump_velocity: 99 is out of range")]
     [InlineData("display_name = \" \"", "display_name: must not be empty")]
-    [InlineData("mesh = \"sphere\"", "Invalid enum name `sphere`")]
+    [InlineData("look = \"group.nowhere\"", "look 'group.nowhere' isn't a group")]
+    [InlineData("hover = 3.0", "hover: 3 is out of range")]
     [InlineData("scale = 0.0", "scale: 0 is out of range")]
     [InlineData("scale = 5.0", "scale: 5 is out of range")]
     [InlineData("max_speed = nan", "content numbers must be finite")]

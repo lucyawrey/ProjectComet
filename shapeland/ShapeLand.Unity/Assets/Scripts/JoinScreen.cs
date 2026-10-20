@@ -220,7 +220,7 @@ namespace ShapeLand.Client
                     Refresh();
                 }) { userData = shape };
                 button.AddToClassList("shape-button");
-                button.Add(new ShapeIcon(shape.Mesh, GameView.Color(_color)));
+                button.Add(new ShapeIcon(content.BodyKind(shape), GameView.Color(_color)));
                 button.Add(new Label(shape.DisplayName));
                 _shapes.Add(button);
             }
@@ -263,7 +263,7 @@ namespace ShapeLand.Client
             foreach (var button in _shapes.Children())
             {
                 button.EnableInClassList("on", button.userData == _shape);
-                button.Q<ShapeIcon>().Set(((Shape)button.userData).Mesh, GameView.Color(_color));
+                button.Q<ShapeIcon>().Set(_content.BodyKind((Shape)button.userData), GameView.Color(_color));
             }
 
             MarkSwatch(_colors, _color);
