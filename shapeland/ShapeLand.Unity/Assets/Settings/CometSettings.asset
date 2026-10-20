@@ -15,6 +15,7 @@ MonoBehaviour:
   contentBuildProject: ../src/ShapeLand.ContentBuild
   contentFile: ../../artifacts/content/shapeland/content.bin
   zonesFolder: ../content/zones
+  groupsFolder: ../content/groups
   scenesFolder: Assets/ZoneEditing
   playScene: {fileID: 102900000, guid: 94972de62798f94f59138f7aba6f9af7, type: 3}
   assets: {fileID: 11400000, guid: 2c366cc91512f1b414be159ca4ff4d57, type: 2}
@@ -40,7 +41,7 @@ MonoBehaviour:
   - {r: 0.11764706, g: 0.53333336, b: 0.8980392, a: 1}
   - {r: 0.5568628, g: 0.14117648, b: 0.6666667, a: 1}
   - {r: 0.9254902, g: 0.2509804, b: 0.47843137, a: 1}
-  facetLength: 0.4
+  facetLength: 0.5
   minSides: 6
   maxSides: 48
   budgetFile: ../content/settings/game.toml
