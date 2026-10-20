@@ -96,7 +96,7 @@ namespace Comet.Unity.Editor
                 return null;
             }
 
-            var bounds = new Bounds(parts[0].Matrix.MultiplyPoint3x4(parts[0].sharedMesh.bounds.center), Vector3.zero);
+            var bounds = new Bounds(parts[0].Matrix.MultiplyPoint3x4(parts[0].Mesh.bounds.center), Vector3.zero);
             foreach (var (mesh, matrix) in parts)
             {
                 var b = mesh.bounds;
