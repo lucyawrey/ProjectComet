@@ -18,8 +18,11 @@ namespace Comet.Unity
         [Tooltip("The spawn's key (spawn.meadow_gate), unique across zones.")]
         public string key = "";
 
+        /// <summary>A new spawn point's radius, in meters.</summary>
+        public const float DefaultRadius = 2;
+
         [Tooltip("How far from the point arrivals scatter, in meters.")]
-        [Min(0)] public float radius = 2;
+        [Min(0)] public float radius = DefaultRadius;
 
         [Tooltip("Direction: face the object's forward (its Y rotation). Toward point: face the center. Random.")]
         public FacingMode facing;

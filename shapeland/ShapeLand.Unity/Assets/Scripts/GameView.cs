@@ -26,14 +26,18 @@ namespace ShapeLand.Client
         [SerializeField] private Material terrainMaterial;
         [Tooltip("The material placed objects are drawn with (their models' own are ignored).")]
         [SerializeField] private Material blockMaterial;
-        [Tooltip("The models for asset keys, kept up to date by the editor from the content.")]
-        [SerializeField] private AssetLibrary assets;
-        [Tooltip("The player shape for content's mesh = \"cube\".")]
-        [SerializeField] private ShapeBody cubePrefab;
-        [Tooltip("The player shape for content's mesh = \"diamond\".")]
-        [SerializeField] private ShapeBody diamondPrefab;
-        [Tooltip("The player shape for content's mesh = \"pyramid\".")]
-        [SerializeField] private ShapeBody pyramidPrefab;
+        [Tooltip("The material blockout placements are drawn with (Comet/Blockout: a grid over their color).")]
+        [SerializeField] private Material blockoutMaterial;
+        [Tooltip("The models for prop keys, kept up to date by the editor from the content.")]
+        [SerializeField] private PropLibrary props;
+        [Tooltip("Players' shapes: their looks' parts other than eyes, colored per part.")]
+        [SerializeField] private Material shapeMaterial;
+        [Tooltip("Players' eyes (parts with the role eyes).")]
+        [SerializeField] private Material eyesMaterial;
+        [Tooltip("The transparent material a shape's parts fade with; its color is set from each part's.")]
+        [SerializeField] private Material shapeFadeMaterial;
+        [Tooltip("The transparent material eyes fade with.")]
+        [SerializeField] private Material eyesFadeMaterial;
         [SerializeField] private OrbitCamera orbitCamera;
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
@@ -144,51 +148,82 @@ namespace ShapeLand.Client
             placed.SetParent(_drawnZone, false);
             foreach (var chunk in zone.Chunks)
             {
+                // Primitives without a name are drawn as one mesh per chunk; named ones stay apart for game code to find,
+                // and blockout ones for their own material.
+                var primitives = new PrimitiveMeshes.Builder();
+                var toChunk = System.Numerics.Matrix4x4.CreateTranslation(-chunk.Coord.Origin);
                 foreach (var placement in chunk.Placements)
                 {
-                    var thing = Place(placement, placed);
+                    if (placement.Primitive != null && placement.Name == null && !placement.Blockout)
+                    {
+                        primitives.Add(PrimitiveMesher.For(placement, content.Settings.Primitives), placement.Matrix() * toChunk, placement.Color ?? content.Settings.World.PlacedColor);
+                        continue;
+                    }
+
+                    var thing = placement.Primitive != null ? PlacePrimitive(placement, placed) : Place(placement, placed);
                     if (thing != null && placement.Name != null && _spawnPoints.TryGet(placement.Name, out var spawn))
                     {
                         _markers[spawn.Number] = thing.GetComponentsInChildren<Renderer>();
                     }
+                }
+
+                if (primitives.VertexCount > 0)
+                {
+                    var name = $"Primitives {chunk.Coord}";
+                    var mesh = new Mesh { name = name };
+                    primitives.Fill(mesh);
+                    AddMesh(name, mesh, terrainMaterial, placed).transform.localPosition = Vectors.ToUnity(chunk.Coord.Origin);
                 }
             }
 
             orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, zone, _world)));
         }
 
-        // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.
+        // A named or blockout primitive on its own, in the placed objects' material (or blockout's), so game code can
+        // find and color it.
+        private GameObject PlacePrimitive(Placement placement, Transform parent)
+        {
+            var thing = AddMesh(placement.Name ?? "Blockout", PrimitiveMeshes.For(placement, _content.Settings.Primitives), MaterialFor(placement), parent);
+            var rotation = placement.Rotation;
+            thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
+            PlacedColors.Apply(thing, Color(placement.Color ?? _content.Settings.World.PlacedColor));
+            return thing;
+        }
+
+        // A prop's model where a zone places it, in the placed objects' material; its collision objects are hidden.
         private GameObject Place(Placement placement, Transform parent)
         {
-            var model = assets.Model(placement.Asset);
+            var model = props.Model(placement.Prop);
             if (model == null)
             {
-                Debug.LogWarning($"No model for {placement.Asset} in the asset library; is the content up to date in the editor?");
+                Debug.LogWarning($"No model for {placement.Prop} in the prop library; is the content up to date in the editor?");
                 return null;
             }
 
             var thing = Instantiate(model, parent, false);
-            thing.name = placement.Asset;
+            thing.name = placement.Prop;
             var rotation = placement.Rotation;
             thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
             thing.transform.localScale = Vectors.ToUnity(placement.Scale);
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
             {
-                if (renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal))
+                if (renderer.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal))
                 {
                     renderer.enabled = false;
                 }
                 else
                 {
-                    renderer.sharedMaterial = blockMaterial;
+                    renderer.sharedMaterial = MaterialFor(placement);
                 }
             }
 
             var own = placement.Color is { } rgb ? PlacedColors.FromRgb(rgb) : (Color?)null;
-            var asset = assets.TryGet(placement.Asset, out var entry) && entry.hasColor ? entry.color : (Color?)null;
-            PlacedColors.Apply(thing, own ?? asset ?? Color(_content.Settings.World.PlacedColor));
+            var prop = props.TryGet(placement.Prop, out var entry) && entry.hasColor ? entry.color : (Color?)null;
+            PlacedColors.Apply(thing, own ?? prop ?? Color(_content.Settings.World.PlacedColor));
             return thing;
         }
+
+        private Material MaterialFor(Placement placement) => placement.Blockout && blockoutMaterial != null ? blockoutMaterial : blockMaterial;
 
         // The player's own spawn's marker takes their body color, the rest a grey used nowhere else. One they stand
         // in, claiming it, pulses between the two until the server says it's theirs.
@@ -296,20 +331,30 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin: the prefab for its mesh,
-        /// sized by its scale in content.
+        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin: its look (a group of
+        /// primitives) at its scale and hover in content.
         /// </summary>
-        public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent)
+        public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent) =>
+            BuildShape(_content, shape, color, eyeColor, parent, shapeMaterial, eyesMaterial, shapeFadeMaterial, eyesFadeMaterial);
+
+        /// <summary><see cref="BuildShape(Shape, uint, uint, Transform)"/> with its content and materials given, as tests build shapes.</summary>
+        public static ShapeBody BuildShape(ShapeLandContent content, Shape shape, uint color, uint eyeColor, Transform parent,
+            Material shapeMaterial, Material eyesMaterial, Material shapeFadeMaterial, Material eyesFadeMaterial)
         {
-            var prefab = shape.Mesh switch
+            var drawn = ShapeBody.Create(shape.DisplayName, parent, shape.Scale, shape.Hover);
+            foreach (var part in Groups.Expand(new Placement { Group = shape.Look }, key => content.Groups.TryGet(key, out var group) ? group : null))
             {
-                MeshKind.Diamond => diamondPrefab,
-                MeshKind.Pyramid => pyramidPrefab,
-                _ => cubePrefab,
-            };
-            var drawn = Instantiate(prefab, parent, false);
-            drawn.name = shape.DisplayName;
-            drawn.transform.localScale = Vector3.one * shape.Scale;
+                if (part.Primitive == null)
+                {
+                    continue; // looks are built from primitives
+                }
+
+                var r = part.Rotation;
+                var eyes = part.Role == "eyes";
+                drawn.AddPart(PrimitiveMeshes.For(part, content.Settings.Primitives), Vectors.ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), part.Role,
+                    Color(part.Color ?? content.Settings.World.PlacedColor), eyes ? eyesMaterial : shapeMaterial, eyes ? eyesFadeMaterial : shapeFadeMaterial);
+            }
+
             drawn.SetColors(color, eyeColor);
             return drawn;
         }

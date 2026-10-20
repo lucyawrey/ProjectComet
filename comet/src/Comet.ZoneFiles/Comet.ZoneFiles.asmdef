@@ -2,7 +2,8 @@
     "name": "Comet.ZoneFiles",
     "rootNamespace": "Comet.ZoneFiles",
     "references": [
-        "Comet.Content"
+        "Comet.Content",
+        "Comet.Simulation"
     ],
     "includePlatforms": [
         "Editor"

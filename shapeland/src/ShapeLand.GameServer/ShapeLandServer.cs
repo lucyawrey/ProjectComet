@@ -25,9 +25,11 @@ public static class ShapeLandServer
             ContentRootPath = AppContext.BaseDirectory,
         });
         configure?.Invoke(builder);
+        builder.AddCometLogFile();
 
         builder.Services.Configure<ShapeLandServerOptions>(builder.Configuration.GetSection("ShapeLand"));
         builder.Services.AddSingleton(services => LoadContent(services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value));
+        builder.Services.AddSingleton(services => services.GetRequiredService<LoadedContent>().Content);
         builder.Services.AddSingleton(services => PlayedZone(services.GetRequiredService<ShapeLandContent>(), services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value));
         builder.Services.AddSingleton(new ConnectionRegistry(ShapeLandProtocol.Options));
         builder.Services.AddSingleton(builder.Configuration.GetSection("Comet:Connections").Get<ConnectionLimits>() ?? new ConnectionLimits());
@@ -51,12 +53,14 @@ public static class ShapeLandServer
             return "ok";
         });
 
-        // What the join screen shows before joining (the zone this server plays), for any page, like /health.
+        // What the join screen shows before joining (the zone this server plays), for any page, like /health; and the
+        // content's hash, so the editor can tell whether this server plays the content it has.
         var playedZone = app.Services.GetRequiredService<Zone>().Id;
+        var contentHash = app.Services.GetRequiredService<LoadedContent>().Hash;
         app.MapGet("/info", (HttpContext context) =>
         {
             context.Response.Headers.AccessControlAllowOrigin = "*";
-            return Results.Json(new ServerInfo(playedZone));
+            return Results.Json(new ServerInfo(playedZone, contentHash));
         });
 
         var tickLoop = app.Services.GetRequiredService<TickLoop>();
@@ -125,8 +129,11 @@ public static class ShapeLandServer
         app.Logger.LogInformation("Serving the web build in {WebRoot}", webRoot);
     }
 
-    // /info's answer, written in camelCase ({"zone": "zone.hub"}).
-    private sealed record ServerInfo(string Zone);
+    // /info's answer, written in camelCase ({"zone": "zone.hub", "contentHash": "…"}).
+    private sealed record ServerInfo(string Zone, string ContentHash);
+
+    // The content played, and its file's hash (Comet.Content.ContentHash).
+    private sealed record LoadedContent(ShapeLandContent Content, string Hash);
 
     // The zone to play: ShapeLand:Zone, else the content's default. An unknown key stops the server, listing the zones.
     private static Zone PlayedZone(ShapeLandContent content, ShapeLandServerOptions options)
@@ -140,7 +147,7 @@ public static class ShapeLandServer
         return zone;
     }
 
-    private static ShapeLandContent LoadContent(ShapeLandServerOptions options)
+    private static LoadedContent LoadContent(ShapeLandServerOptions options)
     {
         var path = options.ContentFile;
         if (string.IsNullOrEmpty(path))
@@ -155,8 +162,8 @@ public static class ShapeLandServer
                 path);
         }
 
-        using var stream = File.OpenRead(path);
-        return ShapeLandContent.Load(stream);
+        var file = File.ReadAllBytes(path);
+        return new LoadedContent(ShapeLandContent.Load(new MemoryStream(file)), ContentHash.Of(file));
     }
 
     private static string FindRepoRoot()

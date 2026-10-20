@@ -1,12 +1,19 @@
 # Content ID registry: each key's permanent number, per content type.
 # The content build adds new keys; numbers never change and are never reused. Commit this file.
 
-[asset]
+[group]
+shape_cube = 1
+shape_diamond = 2
+shape_pyramid = 3
+trees = 4
+
+[prop]
 cone = 1
 cube = 2
 cylinder = 3
 ramp = 4
 sphere = 5
+strange_shape = 6
 
 [settings]
 game = 1

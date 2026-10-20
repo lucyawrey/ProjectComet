@@ -3,88 +3,61 @@ piece = "island"
 origin = [31, 23]
 
 [[placement]]
-asset = "asset.cylinder"
+primitive = "cylinder"
 position = [-146.662, 3.232, -18.338]
-scale = [8.77, 0.394, 13.104]
+scale = [17.54, 0.788, 26.208]
 color = 0xECAB4F
 
 [[placement]]
-asset = "asset.cube"
+primitive = "box"
 position = [-148.81, -0.28, -7.08]
-scale = [0.6, 2.0, 0.6]
+scale = [1.2, 4.0, 1.2]
+color = 0x8A8F99
 
 [[placement]]
-asset = "asset.cube"
+primitive = "box"
 position = [-144.45, -0.28, -7.08]
-scale = [0.6, 2.0, 0.6]
+scale = [1.2, 4.0, 1.2]
+color = 0x8A8F99
 
 [[placement]]
-asset = "asset.cube"
-position = [-133.52, 1.18, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
-position = [-136.79, 2.543, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
-position = [-137.46, 2.79, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
-position = [-138.07, 3.046, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
-position = [-134.19, 1.427, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
-position = [-135.5, 2.014, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
-position = [-136.22, 2.3, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
-position = [-134.8, 1.683, -19.159]
-scale = [0.381, 0.413, 4.918]
-
-[[placement]]
-asset = "asset.cube"
+primitive = "box"
 position = [-146.66, 3.753, -28.12]
-scale = [5.406, 4.686, 0.3]
+scale = [10.812, 9.372, 0.6]
+color = 0x8A8F99
 
 [[placement]]
-asset = "asset.cube"
+primitive = "box"
 position = [-146.66, 3.753, -9.8]
-scale = [5.406, 4.686, 0.3]
+scale = [10.812, 9.372, 0.6]
+color = 0x8A8F99
 
 [[placement]]
-asset = "asset.cube"
+primitive = "box"
 position = [-151.69, 3.753, -18.93]
 rotation = [0.0, 90.0, 0.0]
-scale = [8.854, 4.686, 0.3]
+scale = [17.708, 9.372, 0.6]
+color = 0x8A8F99
 
 [[placement]]
-asset = "asset.ramp"
+primitive = "wedge"
 position = [-146.74, 13.15, -18.91]
 rotation = [0.0, 90.0, 0.0]
-scale = [10.0, 1.0, 5.376]
+scale = [20.0, 2.0, 10.752]
+color = 0xA0703C
 
 [[placement]]
-asset = "asset.cylinder"
+primitive = "stairs"
+position = [-136.03, 1.492, -18.19]
+rotation = [0.0, 180.0, 0.0]
+scale = [4.527, 2.466, 11.556]
+color = 0x9E8C7A
+
+[[placement]]
+primitive = "cylinder"
 name = "spawn.theatre"
 position = [-148.051, 3.819, -19.334]
-scale = [2.0, 0.2, 2.0]
+scale = [4.0, 0.4, 4.0]
 
 [[spawn]]
 id = "spawn.theatre"

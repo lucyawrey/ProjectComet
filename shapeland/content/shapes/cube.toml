@@ -1,6 +1,7 @@
 id = "shape.cube"
 display_name = "Cube"
-mesh = "cube" # the prefab GameView uses, from Assets/Prefabs/Shapes/ in shapeland/ShapeLand.Unity
+look = "group.shape_cube" # the group drawn as this shape (groups/shape_cube.toml): its body takes the player's color, its eyes their eye color
+hover = 0.1 # how far the look floats above the feet, in meters
 max_speed = 6.5
 jump_velocity = 8.5
 scale = 1.0

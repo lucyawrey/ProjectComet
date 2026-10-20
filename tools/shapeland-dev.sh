@@ -153,8 +153,12 @@ local_address() {
 }
 
 url="http://localhost:$port/"
-if curl -s -o /dev/null "$url"; then
-  echo "Something is already using port $port (another run of this script?); stop it or use --port." >&2
+if curl -sf -o /dev/null "${url}health"; then
+  echo "A game server is already running on port $port: another run of this script, or the Unity editor's" >&2
+  echo "(stop that one with Comet › Server › Stop). Stop it or use --port." >&2
+  exit 1
+elif curl -s -o /dev/null "$url"; then
+  echo "Something else is already using port $port; stop it or use --port." >&2
   # Which process, where the system says (lsof works on both Linux and macOS).
   lsof -nP -iTCP:"$port" -sTCP:LISTEN 2> /dev/null | sed 's/^/  /' >&2 || true
   exit 1

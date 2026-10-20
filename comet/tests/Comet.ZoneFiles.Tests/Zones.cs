@@ -33,7 +33,7 @@ internal static class Zones
             {
                 Coord = new ChunkCoord(-1, 0),
                 Tiles = [new TerrainTile { Piece = "main", OriginX = 32, OriginZ = 0, Heights = Flat(33, 65, 4) }],
-                Placements = [new Placement { Asset = "asset.cube", Position = new Vector3(-10.5f, 4, 3.25f), Rotation = new Vector3(0, 45, 0), Scale = new Vector3(2, 1, 2) }],
+                Placements = [new Placement { Prop = "prop.cube", Position = new Vector3(-10.5f, 4, 3.25f), Rotation = new Vector3(0, 45, 0), Scale = new Vector3(2, 1, 2) }],
             },
             new ZoneChunk
             {

@@ -109,8 +109,8 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        protected VisualElement ShapeButton(MeshKind kind) =>
-            Screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Mesh == kind);
+        protected VisualElement ShapeButton(string id) =>
+            Screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Id == id);
 
         protected VisualElement Swatch(string row, uint color) =>
             Screen.Root.Q(row).Children().First(b => (uint)b.userData == color);

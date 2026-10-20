@@ -23,7 +23,10 @@ public class ContentTests
         var content = ShapeLandContent.Load(file);
 
         Assert.Equal(["shape.cube", "shape.diamond", "shape.pyramid"], content.Shapes.All.Select(s => s.Id));
-        Assert.Equal(MeshKind.Diamond, content.Shapes["shape.diamond"].Mesh);
+        Assert.Equal("group.shape_diamond", content.Shapes["shape.diamond"].Look);
+        Assert.Equal(PrimitiveKind.Octahedron, content.BodyKind(content.Shapes["shape.diamond"]));
+        Assert.Equal(PrimitiveKind.Tetrahedron, content.BodyKind(content.Shapes["shape.pyramid"]));
+        Assert.Equal(PrimitiveKind.Box, content.BodyKind(content.Shapes["shape.cube"]));
         Assert.Equal("Pyramid", content.Shapes["shape.pyramid"].DisplayName);
         Assert.True(content.Shapes["shape.cube"].MaxSpeed > 0);
         Assert.Same(content.Shapes["shape.cube"], content.Shapes[content.Shapes["shape.cube"].Number]);
@@ -66,19 +69,6 @@ public class ContentTests
         }
 
         Assert.False(world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, 22), radius, feet.Y + 1, out _), "No drop 22 m ahead.");
-    }
-
-    [Fact]
-    public void PrimitivesCollideAsModeled()
-    {
-        var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
-        Assert.Empty(errors);
-
-        Assert.Equal(["asset.cone", "asset.cube", "asset.cylinder", "asset.ramp", "asset.sphere"], built!.Assets.All.Select(a => a.Id).Order());
-        var cube = built.Assets["asset.cube"];
-        Assert.Equal(12 * 3, cube.Collision.Length);
-        Assert.Equal((new System.Numerics.Vector3(-1, 0, -1), new System.Numerics.Vector3(1, 2, 1)), (cube.BoundsMin, cube.BoundsMax));
-        Assert.All(built.Assets.All, a => Assert.Equal(0, a.BoundsMin.Y, 0.001f));
     }
 
     [Fact]
@@ -126,7 +116,7 @@ public class ContentTests
         Assert.Equal(4, blocks.Count);
         Assert.All(blocks, b =>
         {
-            Assert.Equal("asset.cube", b.Asset);
+            Assert.Equal(PrimitiveKind.Box, b.Primitive!.Kind);
             Assert.True(island.TryGetHeightAt(b.Position.X, b.Position.Z, out var ground));
             Assert.Equal(ground - 0.5f, b.Position.Y, 2);
         });
@@ -143,18 +133,36 @@ public class ContentTests
     [InlineData("max_speed = 0.0", "max_speed: 0 is out of range")]
     [InlineData("jump_velocity = 99.0", "jump_velocity: 99 is out of range")]
     [InlineData("display_name = \" \"", "display_name: must not be empty")]
-    [InlineData("mesh = \"sphere\"", "Invalid enum name `sphere`")]
+    [InlineData("look = \"group.nowhere\"", "look 'group.nowhere' isn't a group")]
+    [InlineData("hover = 3.0", "hover: 3 is out of range")]
     [InlineData("scale = 0.0", "scale: 0 is out of range")]
     [InlineData("scale = 5.0", "scale: 5 is out of range")]
     [InlineData("max_speed = nan", "content numbers must be finite")]
     [InlineData("scale = nan", "content numbers must be finite")]
-    public void ShapeRulesAreChecked(string line, string message, string shape = "cube")
+    public void ShapeRulesAreChecked(string line, string message, string shape = "cube") =>
+        RuleIsChecked(Path.Combine("shapes", shape + ".toml"), line, message);
+
+    [Fact]
+    public void LooksAreOnlyPrimitives() =>
+        RuleIsChecked(Path.Combine("shapes", "cube.toml"), "look = \"group.prop_look\"", "looks are built only from primitives",
+            ("groups/prop_look.toml", "id = \"group.prop_look\"\n\n[[part]]\nprop = \"prop.strange_shape\"\nrole = \"body\"\nposition = [0.0, 0.0, 0.0]\n"));
+
+    [Theory]
+    [InlineData("facet_length = 0.0", "facet_length: 0 is out of range")]
+    [InlineData("min_sides = 2", "min_sides: 2 is too few")]
+    [InlineData("max_sides = 4", "max_sides: 4 is out of range")]
+    public void SettingsRulesAreChecked(string line, string message) =>
+        RuleIsChecked(Path.Combine("settings", "game.toml"), line, message);
+
+    // Builds a copy of the content with one line of a file replaced (or added) and perhaps a file added, expecting one
+    // error naming the changed file.
+    private static void RuleIsChecked(string relativeFile, string line, string message, (string Path, string Text)? extraFile = null)
     {
         var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
         try
         {
             CopyDirectory(ContentRoot, root);
-            var file = Path.Combine(root, "shapes", shape + ".toml");
+            var file = Path.Combine(root, relativeFile);
             var key = line[..line.IndexOf(' ')];
             var lines = File.ReadAllLines(file).ToList();
             var at = lines.FindIndex(l => l.StartsWith(key + " "));
@@ -168,12 +176,16 @@ public class ContentTests
             }
 
             File.WriteAllLines(file, lines);
+            if (extraFile is { } extra)
+            {
+                File.WriteAllText(Path.Combine(root, extra.Path), extra.Text);
+            }
 
             var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false, Path.Combine(ContentRoot, ShapeLandBuild.ModelRoot));
 
             Assert.Null(built);
             var error = Assert.Single(errors);
-            Assert.EndsWith(shape + ".toml", error.File);
+            Assert.EndsWith(Path.GetFileName(relativeFile), error.File);
             Assert.Contains(message, error.Message);
         }
         finally

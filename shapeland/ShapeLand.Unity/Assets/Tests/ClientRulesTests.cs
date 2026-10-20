@@ -79,9 +79,9 @@ namespace ShapeLand.Client.Tests
         [Test]
         public void ShapesSwapToTransparentMaterialsWhileFading()
         {
-            var shape = Object.Instantiate(ShapePrefab(MeshKind.Cube));
-            var body = shape.Body;
-            var eyes = shape.Eyes;
+            var shape = Build("shape.cube");
+            var body = shape.Body[0];
+            var eyes = shape.Eyes[0];
             try
             {
                 shape.SetColors(0xFF0000, 0x0000FF);
@@ -108,27 +108,27 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        // Each prefab is its model with a ShapeBody on the root: standing on its origin, facing +Z with its eyes on
-        // the front, and colored through the body and eyes.
-        [TestCase(MeshKind.Cube)]
-        [TestCase(MeshKind.Diamond)]
-        [TestCase(MeshKind.Pyramid)]
-        public void EveryShapeHasAPrefab(MeshKind kind)
+        // Each shape's look stands on the feet (plus its hover), about a player's height, facing +Z with its eyes on
+        // the front, and colored through its body and eyes.
+        [TestCase("shape.cube")]
+        [TestCase("shape.diamond")]
+        [TestCase("shape.pyramid")]
+        public void EveryShapeHasALook(string id)
         {
-            var shape = Object.Instantiate(ShapePrefab(kind));
+            var shape = Build(id);
             try
             {
-                var body = shape.Body;
-                var eyes = shape.Eyes;
-                Assert.That(body, Is.Not.Null.And.Not.SameAs(eyes), "The prefab's ShapeBody isn't set up.");
-                Assert.That(body.bounds.min.y, Is.InRange(0, 0.2f), "The shape doesn't stand on its origin.");
+                Assert.That(shape.Body, Is.Not.Empty, "The look has no body part.");
+                Assert.That(shape.Eyes, Is.Not.Empty, "The look has no eyes.");
+                var body = shape.Body[0];
+                Assert.That(body.bounds.min.y, Is.InRange(0, 0.2f), "The shape doesn't stand on its feet.");
                 Assert.That(body.bounds.size.y, Is.InRange(0.3f, 2), "The shape isn't about a player's height.");
-                Assert.That(eyes.bounds.center.z, Is.GreaterThan(0.1f), "The eyes aren't on the front (+Z).");
-                Assert.That(Mathf.Abs(eyes.bounds.center.x), Is.LessThan(0.01f), "The eyes aren't centered.");
+                Assert.That(shape.Eyes.Average(e => e.bounds.center.z), Is.GreaterThan(0.1f), "The eyes aren't on the front (+Z).");
+                Assert.That(Mathf.Abs(shape.Eyes.Average(e => e.bounds.center.x)), Is.LessThan(0.01f), "The eyes aren't centered.");
 
                 shape.SetColors(0x00FF00, 0xFF0000);
                 Assert.That(body.sharedMaterial.color, Is.EqualTo(Color.green));
-                Assert.That(eyes.sharedMaterial.color, Is.EqualTo(Color.red));
+                Assert.That(shape.Eyes.All(e => e.sharedMaterial.color == Color.red));
             }
             finally
             {
@@ -215,7 +215,12 @@ namespace ShapeLand.Client.Tests
             Assert.That(keys.Where(k => !content.Strings.Contains(k.Key)).Select(k => $"{k.File}: {k.Key}"), Is.Empty);
         }
 
-        private static ShapeBody ShapePrefab(MeshKind kind) =>
-            AssetDatabase.LoadAssetAtPath<ShapeBody>($"Assets/Prefabs/Shapes/{kind}.prefab");
+        // A shape built as the game builds it, from the content and the game's materials.
+        private static ShapeBody Build(string id)
+        {
+            var content = TestGameServer.LoadContent();
+            Material Load(string name) => AssetDatabase.LoadAssetAtPath<Material>($"Assets/Materials/{name}.mat");
+            return GameView.BuildShape(content, content.Shapes[id], 0xFFFFFF, 0x000000, null, Load("Shape"), Load("Eyes"), Load("ShapeFade"), Load("EyesFade"));
+        }
     }
 }

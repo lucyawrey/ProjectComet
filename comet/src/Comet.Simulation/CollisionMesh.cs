@@ -4,7 +4,7 @@ using System.Numerics;
 namespace Comet.Simulation
 {
     /// <summary>
-    /// Solid triangles placed in the world: an asset's collision mesh at its placement, or a hand-placed volume. Three
+    /// Solid triangles placed in the world: a prop's collision mesh at its placement, or a hand-placed volume. Three
     /// corners per triangle in world meters, wound clockwise seen from outside (Unity's convention).
     /// </summary>
     public sealed class CollisionMesh
@@ -13,7 +13,7 @@ namespace Comet.Simulation
 
         public Vector3[] Triangles { get; }
 
-        /// <summary>An asset's collision triangles (in its own space) placed by <paramref name="transform"/>.</summary>
+        /// <summary>A prop's collision triangles (in its own space) placed by <paramref name="transform"/>.</summary>
         public static CollisionMesh Placed(IReadOnlyList<Vector3> triangles, Matrix4x4 transform)
         {
             var placed = new Vector3[triangles.Count];

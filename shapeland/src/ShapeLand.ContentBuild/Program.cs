@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Comet.Content;
+using Comet.ContentBuild;
 using ShapeLand.ContentBuild;
 
 // ShapeLand's content tool. Paths are fixed relative to the repository, so it runs the same from anywhere.
@@ -10,7 +11,9 @@ var output = Path.Combine(repo, "artifacts", "content", "shapeland");
 switch (args)
 {
     case ["build"]:
-        return Build();
+        return Build(release: false);
+    case ["build", "--release"]:
+        return Build(release: true);
     case ["schema"]:
         WriteSchemas();
         return 0;
@@ -19,17 +22,19 @@ switch (args)
             """
             Usage: ShapeLand.ContentBuild <command>
 
-              build                 check shapeland/content, add new ids to ids.toml, write the compiled
-                                    content and the editor schemas to artifacts/content/shapeland
+              build [--release]     check shapeland/content, add new ids to ids.toml, write the compiled
+                                    content and the editor schemas to artifacts/content/shapeland;
+                                    blockout placements are warnings, or errors with --release
               schema                write only the editor schemas
             """);
         return 2;
 }
 
-int Build()
+int Build(bool release)
 {
-    var (compiled, errors) = ShapeLandBuild.Build(content);
-    foreach (var error in errors)
+    var warnings = new List<ContentError>();
+    var (compiled, errors) = ShapeLandBuild.Build(content, release: release, warnings: warnings);
+    foreach (var error in warnings.Concat(errors))
     {
         Console.Error.WriteLine(error);
     }
@@ -53,7 +58,7 @@ int Build()
     File.Move(temporary, file, overwrite: true);
 
     WriteSchemas();
-    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Assets.All.Count} assets, {compiled.Zones.All.Count} zone(s) and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
+    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Props.All.Count} props, {compiled.Zones.All.Count} zone(s) and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
     return 0;
 }
 

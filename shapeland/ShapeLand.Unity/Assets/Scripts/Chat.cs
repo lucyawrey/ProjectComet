@@ -219,7 +219,7 @@ namespace ShapeLand.Client
             line.AddToClassList("chat-line");
             if (known)
             {
-                line.Add(new ShapeIcon(_hud.Join.Content.Shapes[speaker.Shape].Mesh, GameView.Color(speaker.Color)));
+                line.Add(new ShapeIcon(_hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]), GameView.Color(speaker.Color)));
             }
 
             var name = new Label(known ? speaker.Name : strings.Get("chat.someone"));

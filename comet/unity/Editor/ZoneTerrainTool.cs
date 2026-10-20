@@ -40,6 +40,9 @@ namespace Comet.Unity.Editor
         [SerializeField] private string piece = "";
         [SerializeField] private string newPiece = "piece";
         [SerializeField] private float newHeight = 4;
+        [SerializeField] private Vector3 move;
+        [Tooltip("Whether moving a piece carries the placed objects and spawn points standing on it.")]
+        [SerializeField] private bool carry = true;
 
         private CometSettings? _settings;
         private bool _painting;
@@ -68,7 +71,7 @@ namespace Comet.Unity.Editor
 
         public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Terrain Icon").image, "Zone Terrain: paint the opened zone's terrain");
 
-        public override bool IsAvailable() => Editing != null;
+        public override bool IsAvailable() => Editing is { IsGroup: false };
 
         private void OnEnable()
         {
@@ -99,7 +102,7 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>The tool's panel in the Scene view.</summary>
-        internal void PanelGui()
+        internal void PanelGui(float width)
         {
             var editing = Editing;
             if (editing == null || _settings == null)
@@ -111,7 +114,7 @@ namespace Comet.Unity.Editor
             var terrain = ZoneTerrainEditing.For(editing);
             var names = terrain.Zone.Pieces.Select(p => p.Name).ToArray();
             EditorGUIUtility.labelWidth = 110;
-            EditorGUILayout.BeginVertical(GUILayout.Width(280));
+            EditorGUILayout.BeginVertical(GUILayout.Width(width));
             EditorGUILayout.LabelField(terrain.Zone.Id, EditorStyles.boldLabel);
 
             if (names.Length > 0)
@@ -264,12 +267,66 @@ namespace Comet.Unity.Editor
                 }
             }
 
+            EditorGUILayout.Space();
+            move = EditorGUILayout.Vector3Field(new GUIContent("Move by (m)", "Sideways (X and Z) in whole meters, the terrain's grid; up and down (Y) by any amount."), move);
+            move = new Vector3(Mathf.Round(move.x / ZoneGrid.SampleSpacing) * ZoneGrid.SampleSpacing, move.y, Mathf.Round(move.z / ZoneGrid.SampleSpacing) * ZoneGrid.SampleSpacing);
+            carry = EditorGUILayout.Toggle(new GUIContent("Carry what's on it", "Also move the placed objects and spawn points standing on the piece: those over its ground, with no other piece's ground between."), carry);
+            using (new EditorGUI.DisabledScope(move == Vector3.zero))
+            {
+                if (GUILayout.Button($"Move piece '{piece}'"))
+                {
+                    MovePiece(terrain, settings);
+                }
+            }
+
+            EditorGUILayout.Space();
             if (GUILayout.Button($"Delete piece '{piece}'") && EditorUtility.DisplayDialog("Delete piece", $"Delete the piece '{piece}' and all its terrain?", "Delete", "Keep"))
             {
                 terrain.RemovePiece(piece);
                 terrain.Commit("Delete piece", _settings!);
                 piece = "";
             }
+        }
+
+        private void MovePiece(ZoneTerrainEditing terrain, TerrainPiece settings)
+        {
+            var dx = Mathf.RoundToInt(move.x / ZoneGrid.SampleSpacing);
+            var dz = Mathf.RoundToInt(move.z / ZoneGrid.SampleSpacing);
+            var offset = new Vector3(dx * ZoneGrid.SampleSpacing, move.y, dz * ZoneGrid.SampleSpacing);
+            Undo.SetCurrentGroupName($"Move piece {piece}");
+            var group = Undo.GetCurrentGroup();
+            if (carry)
+            {
+                // Found before the terrain moves. A spawn's marker moves with its spawn.
+                var carried = terrain.Editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneSpawn>() == null).Select(p => p.transform)
+                    .Concat(terrain.Editing.GetComponentsInChildren<ZoneSpawn>().Select(s => s.transform))
+                    .Where(t => StandsOn(terrain, t.position))
+                    .ToArray();
+                Undo.RecordObjects(carried.Cast<Object>().ToArray(), $"Move piece {piece}");
+                foreach (var t in carried)
+                {
+                    t.position += offset;
+                }
+            }
+
+            terrain.MovePiece(piece, dx, dz, move.y, settings.GroundColor ?? Rgb(_settings!.groundColor), settings.UnderColor ?? Rgb(_settings!.underColor));
+            terrain.Commit($"Move piece {piece}", _settings!);
+            Undo.CollapseUndoOperations(group);
+            RefreshOverlaps();
+        }
+
+        // Whether a point stands on the selected piece: over its ground, which is the nearest ground below it (within
+        // a meter, since pivots are often sunk into it), with no other piece's ground in between.
+        private bool StandsOn(ZoneTerrainEditing terrain, Vector3 point)
+        {
+            const float sink = 1;
+            if (!terrain.Terrain[piece].TryGetHeightAt(point.x, point.z, out var ground) || ground > point.y + sink)
+            {
+                return false;
+            }
+
+            return !terrain.Terrain.Pieces.Any(other => other != terrain.Terrain[piece]
+                && other.TryGetHeightAt(point.x, point.z, out var height) && height > ground && height <= point.y + sink);
         }
 
         private void AddPiece(ZoneTerrainEditing terrain)
@@ -578,12 +635,34 @@ namespace Comet.Unity.Editor
         private static Color ToColor(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
     }
 
-    /// <summary>The terrain tool's panel, shown in the Scene view while the tool is picked.</summary>
+    /// <summary>
+    /// The terrain tool's panel, shown in the Scene view while the tool is picked. Drag its edge to resize it; its
+    /// contents scroll when they don't fit.
+    /// </summary>
     [Overlay(typeof(SceneView), "comet-zone-terrain", "Zone Terrain")]
     internal sealed class ZoneTerrainPanel : IMGUIOverlay, ITransientOverlay
     {
+        private Vector2 _scroll;
+
         public bool visible => ToolManager.activeToolType == typeof(ZoneTerrainTool) && ZoneTerrainTool.Instance != null;
 
-        public override void OnGUI() => ZoneTerrainTool.Instance?.PanelGui();
+        public override void OnCreated()
+        {
+            minSize = new Vector2(300, 160);
+            maxSize = new Vector2(900, 2000);
+            if (size.y < minSize.y)
+            {
+                size = new Vector2(310, 520);
+            }
+        }
+
+        public override void OnGUI()
+        {
+            // The overlay's size less its title bar and margins.
+            var width = Mathf.Max(minSize.x, size.x) - 12;
+            _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Width(width), GUILayout.Height(Mathf.Max(minSize.y, size.y) - 34));
+            ZoneTerrainTool.Instance?.PanelGui(width - 20);
+            EditorGUILayout.EndScrollView();
+        }
     }
 }

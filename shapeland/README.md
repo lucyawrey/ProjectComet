@@ -4,8 +4,8 @@ Comet's demo and reference game. Requirements, setup and the scripts are in the 
 
 | Folder | What it holds |
 | --- | --- |
-| `art/` | Source files for the art (such as `.blend`), plain in git (no Git LFS yet). Exports go into `ShapeLand.Unity/Assets/Models/` as `.glb`. |
-| `content/` | Game data: the shapes, the placeable assets, the game-wide settings (`settings/game.toml`), the interface text and the zone, made by hand in the zone editor. Compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
+| `art/` | Source files for the art (such as `.blend`), plain in git (no Git LFS yet); none yet, until the one prop's model. Exports go into `ShapeLand.Unity/Assets/Models/` as `.glb`. |
+| `content/` | Game data: the shapes, their looks and other groups (`groups/`), the props (placeable `.glb` models; the levels are mostly Comet's primitives, with a few simple props), the game-wide settings (`settings/game.toml`), the interface text and the zone, made by hand in the zone editor. Compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
 | `src/` | The game server, the bots, the content build and `ShapeLand.Shared` (rules, world and messages used by server, bots and client). |
 | `ShapeLand.Unity/` | The Unity client. |
 | `tests/` | Tests for the .NET projects. |
@@ -33,7 +33,7 @@ The Game scene (`Assets/Scenes/Game.unity`) holds:
 | Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, and the network numbers (F3). |
 | Camera | `OrbitCamera` | The third-person camera. |
 
-Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape's colors and fading, on each shape's prefab in `Assets/Prefabs/Shapes/`), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `Vectors` (conversions between shared code's vectors and Unity's), `RespawnFade` (how falling fades) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
+`GameView` draws primitives without a name as one mesh per chunk (Vertex Color Lit, colors in the vertices), and named and blockout ones on their own (blockout in `Assets/Materials/Blockout.mat`). Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape, built from its look by `GameView.BuildShape`: its colors and fading), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `Vectors` (conversions between shared code's vectors and Unity's), `RespawnFade` (how falling fades) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
 
 The builds are the build profiles in `Assets/Settings/Build Profiles/` (File › Build Profiles). The editor scripts in `Assets/Editor` add ShapeLand's steps to every build (`Builds`: the content copied in, the page's text filled in) and keep the asset library and Comet settings in step with the content each time Comet copies it in (`ContentSync`). Comet's own Content › Build menu runs the content build, and saving a zone does too.
 
@@ -54,10 +54,12 @@ ShapeLand's zone is `content/zones/hub` (`world.default_zone` in `game.toml` nam
 - **Which zone a server plays:** the default zone, unless `ShapeLand:Zone` names another (`--ShapeLand:Zone zone.tests`). The server names its zone in Comet's `Welcome`, and the client and the bots switch to it; the join screen shows the default zone until then.
 - **The tests' zone:** `content/zones/tests` is laid out for the play-mode and end-to-end tests, which play it so editing the hub can't break them: flat ground straight ahead of its spawn, then a drop, with a slope and a gap off to the side. Change it only along with the tests (`ContentTests` checks the layout they count on).
 
-- **Edit it:** in the Unity editor, Comet › Zones › Open… and pick the zone, then use the Terrain and Place tools. Ctrl+S saves the zone's files and rebuilds the content; commit the changed files under `content/zones/`.
+- **Edit it:** in the Unity editor, Comet › Zones › Open… and pick the zone, then use the Terrain and Place tools. The level is built mostly from Comet's primitives and groups (such as `groups/trees.toml`), with a few simple props; mark stand-ins as blockout (the place tool's Place as blockout) and swap them for props as those are made. Ctrl+S saves the zone's files and rebuilds the content; commit the changed files under `content/zones/` and `content/groups/`.
 - **Spawn points:** add them with the Place tool's spawn point option. Each shape's `spawn` (in `content/shapes/<shape>.toml`) must name one in the default zone, and one in each zone is its default (where every shape starts in the other zones); the content build reports any that don't match. Markers are drawn in `unset_color` (`[spawns]` in `game.toml`) until a player claims one.
-- **A new asset:** model it in Blender, export it as a `.glb` into `ShapeLand.Unity/Assets/Models/`, and add `content/assets/<name>.toml` with its `id` (`asset.<name>`), its `model` path (relative to `Assets/`) and optionally `color` (0xRRGGBB) and `uniform_scale`. Objects named with a `-col` suffix are its collision mesh, hidden in the game; without them its whole mesh collides. Rebuild the content (Comet › Content › Build) and it appears in the Place panel.
-- **Default colors** for the whole game are in `[world]` in `game.toml`: `ground_color` and `under_color` for terrain, `placed_color` for objects whose asset has no color.
+- **A new prop:** model it in Blender (source in `art/`), export it as a `.glb` into `ShapeLand.Unity/Assets/Models/Props/` (low-poly with flat colors, sized in meters, standing on its origin and facing +Z), and add `content/props/<name>.toml` with its `id` (`prop.<name>`), its `model` path (relative to `Assets/`) and optionally `color` (0xRRGGBB) and `uniform_scale`. Objects named with a `-col` suffix are its collision mesh, hidden in the game; without them its whole mesh collides. Rebuild the content (Comet › Content › Build) and it appears in the Place panel.
+- **Default colors** for the whole game are in `[world]` in `game.toml`: `ground_color` and `under_color` for terrain, `placed_color` for placements without their own color. The zone editor's place tool gives each new placement the color picked in its panel.
+- **The polygon budget** for round primitives is `[primitives]` in `game.toml` (`facet_length`, `min_sides`, `max_sides`), also tuned from Comet › Zones › Polygon Budget.
+- **Before a release:** `dotnet run --project src/ShapeLand.ContentBuild -- build --release` fails on any blockout placement left in a zone (a plain build lists them as warnings).
 
 ## Tuning movement
 
@@ -82,9 +84,9 @@ Every movement number has one home. Clients, bots and the server read the same v
 | `ground_snap` | How far the ground may drop under the feet while staying grounded (walking downhill rather than falling), in meters. |
 | `body_radius`, `body_height` | The collision body every shape shares: a square footprint `body_radius` from the center, and `body_height` tall, in meters. |
 
-### How shapes look: the models in `art/shapes.blend`
+### How shapes look: the groups in `content/groups/shape_*.toml`
 
-Each shape is an empty at the player's feet with a body mesh and eyes under it, in meters, facing -Y in Blender, toward the Front view (+Z in Unity). `tools/blender-export-glb.py` exports each one as `ShapeLand.Unity/Assets/Models/Shapes/<Shape>.glb`, with the empty at the origin; the prefabs in `Assets/Prefabs/Shapes/` pick up the change. The prefabs set the materials, so the models' own are ignored. These change the drawing only.
+Each shape's `look` (in `content/shapes/<shape>.toml`) is a group of primitives standing on its pivot at the player's feet, facing +Z. Parts with `role = "body"` take the player's body color and `role = "eyes"` their eye color; other parts keep their own color. Edit a look like any group in the zone editor: place a copy (Groups in the place tool's panel) and use Open group or Edit in place, then delete the copy. The shape's own `scale` sizes the whole look and `hover` lifts it off the ground, in meters before scaling. These change the drawing only: every shape collides as the same body (`body_radius`, `body_height`). The 2D icon on buttons and chat lines is drawn by the kind of the body part (a box, an octahedron, or else a pyramid).
 
 ### The camera: the Camera object in the Game scene
 
@@ -97,6 +99,6 @@ How much faster or higher than the rules a report may be before the server snaps
 ### Trying a change
 
 - **In a browser:** `tools/shapeland-dev.sh` rebuilds the content and the server on every run, and the web build whenever the client's code changed.
-- **In the editor (fastest):** `tools/shapeland-dev.sh --no-web` builds the content and starts the server on `localhost:5080` (add `--bots N` for company). Restart play mode after each change, which copies in the new content as it starts: the server and play mode each load the numbers once. If they still differ, the join screen says so.
-- **Content changes** (the numbers under `content/`, zones saved from Comet › Zones) need no rerun: while it runs, `shapeland-dev.sh` watches `content/`, rebuilds the content when something there changes and restarts the server and bots. Clients rejoin by themselves (the join card tries for a minute after the server shuts down), and a browser page reloads first to load the new content; play mode says to restart it. A failed build leaves the old server running. Code changes still need a rerun; `--no-watch` turns the watching off.
+- **In the editor (fastest):** press Play: the editor builds and starts the game server on `localhost:5080` if none is running ([Comet's local game server](../comet/README.md#the-local-game-server)), and keeps it running between plays. Comet › Server › Options… adds bots, the web build and the local network, so others can join a playtest. `tools/shapeland-dev.sh --no-web` still works instead (with `--net` profiles and cheaters); the editor uses a server it finds running and leaves it alone. Restart play mode after each change, which copies in the new content as it starts: the server and play mode each load the numbers once. If they still differ, the join screen says so.
+- **Content changes** (the numbers under `content/`, zones saved from Comet › Zones) need no rerun: the editor's own server restarts after each content build, and while it runs, `shapeland-dev.sh` watches `content/`, rebuilds the content when something there changes and restarts the server and bots. Clients rejoin by themselves (the join card tries for a minute after the server shuts down), and a browser page reloads first to load the new content; play mode says to restart it. A failed build leaves the old server running. Code changes still need a rerun; `--no-watch` turns the watching off.
 - **Play-mode tests** read the same copy, refreshed when they start; rebuild the content first.

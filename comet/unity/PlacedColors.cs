@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>Draws a placed asset in a color, over its material's own, without making a copy of the material.</summary>
+    /// <summary>Draws a placed prop in a color, over its material's own, without making a copy of the material.</summary>
     public static class PlacedColors
     {
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
@@ -17,7 +17,7 @@ namespace Comet.Unity
             return (uint)(c.r << 16 | c.g << 8 | c.b);
         }
 
-        /// <summary>Colors the visible renderers of a placed asset, or with null, puts back its material's color.</summary>
+        /// <summary>Colors the visible renderers of a placed prop, or with null, puts back its material's color.</summary>
         public static void Apply(GameObject thing, Color? color)
         {
             MaterialPropertyBlock? block = null;
@@ -29,7 +29,7 @@ namespace Comet.Unity
 
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>(true))
             {
-                if (!renderer.name.EndsWith(Comet.Content.Asset.CollisionSuffix, System.StringComparison.Ordinal))
+                if (!renderer.name.EndsWith(Comet.Content.Prop.CollisionSuffix, System.StringComparison.Ordinal))
                 {
                     renderer.SetPropertyBlock(block);
                 }

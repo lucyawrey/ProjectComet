@@ -3,10 +3,10 @@ piece = "ground"
 origin = [0, 0]
 
 [[placement]]
-asset = "asset.cylinder"
+primitive = "cylinder"
 name = "spawn.tests_start"
 position = [6.0, -0.2, 4.0]
-scale = [1.0, 0.2, 1.0]
+scale = [2.0, 0.4, 2.0]
 
 [[spawn]]
 id = "spawn.tests_start"

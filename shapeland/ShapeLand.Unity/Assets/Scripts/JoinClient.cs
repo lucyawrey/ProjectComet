@@ -42,7 +42,8 @@ namespace ShapeLand.Client
 
         /// <summary>
         /// The server to join unless the player names another: on the web, the page's <c>?server=</c>, else the one its
-        /// deploy names (<c>config.js</c>), else the one the page came from; elsewhere, <see cref="Address"/>.
+        /// deploy names (<c>config.js</c>), else the one the page came from; in the editor, its local game server's port
+        /// on this computer (Comet › Server); elsewhere, <see cref="Address"/>.
         /// </summary>
         public string DefaultAddress
         {
@@ -51,7 +52,7 @@ namespace ShapeLand.Client
 #if UNITY_WEBGL && !UNITY_EDITOR
                 return AddressForPage(Application.absoluteURL, address, ShapeLand_PageServer());
 #else
-                return address;
+                return Comet.Unity.LocalServerPort.InEditor is { } port ? $"localhost:{port}" : address;
 #endif
             }
         }

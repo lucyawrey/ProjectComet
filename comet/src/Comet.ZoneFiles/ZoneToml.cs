@@ -154,6 +154,14 @@ namespace Comet.ZoneFiles
             return numbers is null ? fallback ?? Vector3.Zero : new Vector3(numbers[0], numbers[1], numbers[2]);
         }
 
+        /// <summary>A pair of numbers, such as an opening's width and height.</summary>
+        public (float A, float B) Pair2(TomlTable table, string path, string key)
+        {
+            var value = Get(table, path, key, required: true);
+            var numbers = value is null ? null : Numbers(value, Join(path, key), 2);
+            return numbers is null ? (0, 0) : (numbers[0], numbers[1]);
+        }
+
         /// <summary>A pair of whole numbers, such as a chunk or a sample position.</summary>
         public (int X, int Z) Pair(TomlTable table, string path, string key)
         {
