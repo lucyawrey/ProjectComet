@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Comet.Content;
+using Group = Comet.Content.Group;
 using Comet.Simulation;
 
 namespace Comet.ZoneFiles
@@ -111,20 +112,8 @@ namespace Comet.ZoneFiles
                 foreach (var placement in chunk.Placements)
                 {
                     var what = $"placement of {Placed(placement)}";
-                    if (placement.Primitive is { } primitive)
-                    {
-                        CheckPrimitive(primitive, $"{what} at {Text(placement.Position)}", file, Error);
-                    }
-                    else if (!IsKey(placement.Asset, "asset"))
-                    {
-                        Error(file, $"placement: '{placement.Asset}' isn't an asset key.");
-                    }
-
+                    CheckPlaced(placement, $"{what} at {Text(placement.Position)}", inGroup: false, file, Error);
                     CheckPivot(chunk.Coord, placement.Position, what, file, Error);
-                    if (placement.Scale.X <= 0 || placement.Scale.Y <= 0 || placement.Scale.Z <= 0)
-                    {
-                        Error(file, $"{what} at {Text(placement.Position)}: scale must be above 0 on every axis.");
-                    }
                 }
 
                 foreach (var spawn in chunk.Spawns)
@@ -173,19 +162,131 @@ namespace Comet.ZoneFiles
         }
 
         /// <summary>
-        /// The problems with <paramref name="zone"/>'s placements given its assets (found by key through
-        /// <paramref name="findAsset"/>, null for an unknown key): unknown assets, uneven scale on an asset that only
-        /// scales evenly, and objects reaching past the ring of chunks around their pivot's chunk.
+        /// The problems with <paramref name="zone"/>'s placements given its assets and groups (found by key through
+        /// <paramref name="findAsset"/> and <paramref name="findGroup"/>, null for an unknown key): unknown assets and
+        /// groups, uneven scale on an asset that only scales evenly, and objects reaching past the ring of chunks around
+        /// their pivot's chunk. A group copy's parts are checked where they land, each against its own chunk, as the
+        /// content build places them (<see cref="Groups.Expand(Zone, Func{string, Group?})"/>).
         /// </summary>
-        public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Asset?> findAsset)
+        public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Asset?> findAsset, Func<string, Group?>? findGroup = null)
         {
             var errors = new List<ZoneFileError>();
             foreach (var chunk in zone.Chunks)
             {
                 var file = ZoneFolder.ChunkFile(chunk.Coord);
-                foreach (var placement in chunk.Placements)
+                foreach (var copy in chunk.Placements)
                 {
-                    var what = $"placement of {Placed(placement)} at {Text(placement.Position)}";
+                    if (copy.Group is not { } key)
+                    {
+                        CheckReach(copy, chunk.Coord, $"placement of {Placed(copy)} at {Text(copy.Position)}", file, findAsset, errors);
+                        continue;
+                    }
+
+                    if (findGroup?.Invoke(key) is null)
+                    {
+                        errors.Add(new ZoneFileError(file, $"placement of {key} at {Text(copy.Position)}: there's no group '{key}'."));
+                        continue;
+                    }
+
+                    foreach (var part in Groups.Expand(copy, findGroup))
+                    {
+                        CheckReach(part, ChunkCoord.Containing(part.Position), $"placement of {key} at {Text(copy.Position)}, its part {Placed(part)} at {Text(part.Position)}", file, findAsset, errors);
+                    }
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>
+        /// The problems with a game's groups, each against its file: keys, parts that fit a group (no names; roles are
+        /// names), unknown assets and groups, and groups that contain themselves.
+        /// </summary>
+        public static List<ZoneFileError> CheckGroups(IReadOnlyList<(Group Group, string File)> groups, Func<string, Asset?> findAsset)
+        {
+            var errors = new List<ZoneFileError>();
+            void Error(string file, string message) => errors.Add(new ZoneFileError(file, message));
+            var byKey = new Dictionary<string, (Group Group, string File)>();
+            foreach (var (group, file) in groups)
+            {
+                if (!IsKey(group.Id, "group"))
+                {
+                    Error(file, $"id: '{group.Id}' isn't a valid group key: use 'group.' then lowercase letters, digits and underscores.");
+                }
+                else if (byKey.TryGetValue(group.Id, out var first))
+                {
+                    Error(file, $"id: '{group.Id}' is already used by {first.File}.");
+                }
+                else
+                {
+                    byKey.Add(group.Id, (group, file));
+                }
+
+                if (group.Parts.Length == 0)
+                {
+                    Error(file, "a group needs at least one part ([[part]]).");
+                }
+
+                foreach (var (part, i) in group.Parts.Select((p, i) => (p, i)))
+                {
+                    var what = $"part {i + 1} ({Placed(part)})";
+                    CheckPlaced(part, what, inGroup: true, file, Error);
+                    if (part.Group is { } inner && IsKey(inner, "group") && !groups.Any(g => g.Group.Id == inner))
+                    {
+                        Error(file, $"{what}: there's no group '{inner}'.");
+                    }
+                    else if (part.Primitive is null && part.Group is null && IsKey(part.Asset, "asset") && findAsset(part.Asset) is { } asset
+                        && asset.UniformScale && !Even(part.Scale))
+                    {
+                        Error(file, $"{what}: {asset.Id} only scales evenly, the same on every axis.");
+                    }
+                    else if (part.Primitive is null && part.Group is null && IsKey(part.Asset, "asset") && findAsset(part.Asset) is null)
+                    {
+                        Error(file, $"{what}: there's no asset '{part.Asset}'.");
+                    }
+                }
+            }
+
+            // A group may not contain itself, however deep.
+            var visiting = new List<string>();
+            var done = new HashSet<string>();
+            void Visit(string key)
+            {
+                if (done.Contains(key) || !byKey.TryGetValue(key, out var found))
+                {
+                    return;
+                }
+
+                var at = visiting.IndexOf(key);
+                if (at >= 0)
+                {
+                    Error(found.File, $"{key} contains itself: {string.Join(" > ", visiting.Skip(at))} > {key}.");
+                    return;
+                }
+
+                visiting.Add(key);
+                foreach (var inner in found.Group.Parts.Select(p => p.Group).OfType<string>())
+                {
+                    Visit(inner);
+                }
+
+                visiting.RemoveAt(visiting.Count - 1);
+                done.Add(key);
+            }
+
+            foreach (var key in byKey.Keys.OrderBy(k => k, StringComparer.Ordinal))
+            {
+                Visit(key);
+            }
+
+            return errors;
+        }
+
+        // A placement's reach: its bounds once placed stay within the ring of chunks around `chunk`.
+        private static void CheckReach(Placement placement, ChunkCoord chunk, string what, string file, Func<string, Asset?> findAsset, List<ZoneFileError> errors)
+        {
+            {
+                {
                     (Vector3 Min, Vector3 Max) local;
                     if (placement.Primitive is { } primitive)
                     {
@@ -197,7 +298,7 @@ namespace Comet.ZoneFiles
                         if (asset is null)
                         {
                             errors.Add(new ZoneFileError(file, $"{what}: there's no asset '{placement.Asset}'."));
-                            continue;
+                            return;
                         }
 
                         var scale = placement.Scale;
@@ -210,21 +311,73 @@ namespace Comet.ZoneFiles
                     }
 
                     var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
-                    var reachMin = new Vector3((chunk.Coord.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Coord.Z - 1) * ZoneGrid.ChunkSize);
-                    var reachMax = new Vector3((chunk.Coord.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Coord.Z + 2) * ZoneGrid.ChunkSize);
+                    var reachMin = new Vector3((chunk.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Z - 1) * ZoneGrid.ChunkSize);
+                    var reachMax = new Vector3((chunk.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Z + 2) * ZoneGrid.ChunkSize);
                     if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
                     {
                         errors.Add(new ZoneFileError(file, $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."));
                     }
                 }
             }
-
-            return errors;
         }
 
-        // What a placement places, for messages: its asset's key or its primitive's kind.
+        // What a placement places, for messages: its asset's or group's key, or its primitive's kind.
         private static string Placed(Placement placement) =>
-            placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Asset;
+            placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Group ?? placement.Asset;
+
+        private static bool Even(Vector3 scale) => Math.Abs(scale.X - scale.Y) <= 1e-4f && Math.Abs(scale.X - scale.Z) <= 1e-4f;
+
+        // What a placement places and how, wherever it is: an asset key, a primitive's values or a group key; a scale
+        // above 0 (even for a group); a role only on a group's parts, a name only in a zone, and no name or color of a
+        // group copy's own.
+        private static void CheckPlaced(Placement placement, string what, bool inGroup, string file, Action<string, string> error)
+        {
+            if (placement.Primitive is { } primitive)
+            {
+                CheckPrimitive(primitive, what, file, error);
+            }
+            else if (placement.Group is { } group)
+            {
+                if (!IsKey(group, "group"))
+                {
+                    error(file, $"{what}: '{group}' isn't a group key.");
+                }
+
+                if (!Even(placement.Scale))
+                {
+                    error(file, $"{what}: a group scales evenly, the same on every axis.");
+                }
+
+                if (placement.Color != null)
+                {
+                    error(file, $"{what}: a group's copies have no color of their own; change the group's parts instead.");
+                }
+
+                if (!inGroup && placement.Name != null)
+                {
+                    error(file, $"{what}: a group's copies have no name.");
+                }
+            }
+            else if (!IsKey(placement.Asset, "asset"))
+            {
+                error(file, $"{what}: '{placement.Asset}' isn't an asset key.");
+            }
+
+            if (placement.Scale.X <= 0 || placement.Scale.Y <= 0 || placement.Scale.Z <= 0)
+            {
+                error(file, $"{what}: scale must be above 0 on every axis.");
+            }
+
+            if (inGroup && placement.Name != null)
+            {
+                error(file, $"{what}: a group's parts have no name; give them a role for game code to find them by.");
+            }
+
+            if (placement.Role is { } role && (!inGroup || !IsName(role)))
+            {
+                error(file, inGroup ? $"{what}: '{role}' isn't a valid role: use lowercase letters, digits and underscores." : $"{what}: only a group's parts have a role.");
+            }
+        }
 
         // A primitive's values: in range, and only those its kind uses.
         private static void CheckPrimitive(Primitive primitive, string what, string file, Action<string, string> error)

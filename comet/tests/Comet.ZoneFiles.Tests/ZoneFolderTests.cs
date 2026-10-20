@@ -146,7 +146,7 @@ public class ZoneFolderTests
         var errors = new List<ZoneFileError>();
         ZoneFolder.Read(folder.Root, errors);
 
-        Assert.Contains(errors, e => e.Message.Contains("an asset or a primitive, not both"));
+        Assert.Contains(errors, e => e.Message.Contains("places one of: an asset, a primitive or a group"));
         Assert.Contains(errors, e => e.Message.Contains("'bevel' is for primitives"));
     }
 

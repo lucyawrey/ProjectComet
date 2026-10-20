@@ -23,7 +23,7 @@ public class ZoneValidationTests
                 "zone.toml: id: 'meadow' isn't a valid zone key: use 'zone.' then lowercase letters, digits and underscores.",
                 "zone.toml: piece: 'main' is used twice.",
                 "zone.toml: piece: 'Sky Island' isn't a valid name: use lowercase letters, digits and underscores, starting with a letter.",
-                "chunks/-1_0.toml: placement: 'cube' isn't an asset key.",
+                "chunks/-1_0.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't an asset key.",
             ],
             Errors(zone));
     }

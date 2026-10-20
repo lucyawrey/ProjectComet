@@ -24,6 +24,7 @@ public static class ShapeLandBuild
         .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
         .AddStrings()
         .AddAssets(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
+        .AddGroups()
         .AddZones();
 
     /// <summary>Checks and compiles the content folder; null content means there were errors.</summary>

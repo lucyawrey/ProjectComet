@@ -1,6 +1,7 @@
 using System.Numerics;
 using Comet.Content;
 using Comet.ZoneFiles;
+using Group = Comet.Content.Group;
 
 namespace Comet.ContentBuild.Tests;
 
@@ -20,7 +21,7 @@ public class ZoneBuildTests
     };
 
     private static ContentBuildResult Build(ContentFolder folder) =>
-        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddAssets(Path.Combine(folder.Root, "models")).AddZones().Build();
+        new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddAssets(Path.Combine(folder.Root, "models")).AddGroups().AddZones().Build();
 
     // A zone with one placement, and a 1 m plate asset (its model spans x -1..0, z 0..1 in Unity's space).
     private static void WritePlacement(ContentFolder folder, Placement placement, bool uniformScale = false)
@@ -133,5 +134,42 @@ public class ZoneBuildTests
         folder.Write("assets/plate.toml", "id = \"asset.plate\"\nmodel = \"../plate.glb\"\n");
 
         Assert.Contains(Build(folder).Errors, e => e.Message.EndsWith("must be a path inside the model folder, without '..'.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GroupCopiesAreExpandedAndGroupsNumbered()
+    {
+        using var folder = new ContentFolder();
+        var box = new Primitive { Kind = PrimitiveKind.Box };
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post.toml"), new Group { Id = "group.post", Parts = [new Placement { Primitive = box, Scale = new Vector3(0.2f, 1, 0.2f) }] });
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "fence.toml"), new Group
+        {
+            Id = "group.fence",
+            Parts = [new Placement { Group = "group.post" }, new Placement { Group = "group.post", Position = new Vector3(2, 0, 0) }, new Placement { Primitive = box, Position = new Vector3(1, 0.5f, 0), Scale = new Vector3(2, 0.1f, 0.1f) }],
+        });
+        var zone = Zone("zone.meadow");
+        zone.Chunks[0].Placements = [new Placement { Group = "group.fence", Position = new Vector3(10, 0, 10), Rotation = new Vector3(0, 90, 0) }];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
+
+        var result = Build(folder);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal([("group.fence", 1), ("group.post", 2)], result.Groups.Select(g => (g.Id, g.Number)));
+        var placed = result.Zones[0].Chunks.SelectMany(c => c.Placements).ToList();
+        Assert.Equal(3, placed.Count);
+        Assert.All(placed, p => Assert.Equal(PrimitiveKind.Box, p.Primitive!.Kind));
+        Assert.Contains("[group]\nfence = 1\npost = 2\n", File.ReadAllText(folder.Registry).ReplaceLineEndings("\n"));
+    }
+
+    [Fact]
+    public void GroupErrorsNameTheGroupFile()
+    {
+        using var folder = new ContentFolder();
+        folder.Write("groups/loop.toml", "id = \"group.loop\"\n\n[[part]]\ngroup = \"group.loop\"\nposition = [0.0, 0.0, 0.0]\n");
+
+        var error = Assert.Single(Build(folder).Errors);
+
+        Assert.EndsWith(Path.Combine("groups", "loop.toml"), error.File);
+        Assert.Contains("contains itself", error.Message);
     }
 }

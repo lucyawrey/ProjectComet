@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.RegularExpressions;
 using Comet.Content;
+using Group = Comet.Content.Group;
 using Comet.ZoneFiles;
 using Tomlyn;
 using Tomlyn.Parsing;
@@ -23,6 +24,7 @@ public sealed class ContentBuilder
     private readonly List<IContentType> _types = new();
     private string? _stringFile;
     private string? _zonesFolder;
+    private string? _groupsFolder;
 
     /// <summary>A builder for the content folder at <paramref name="contentRoot"/>.</summary>
     public ContentBuilder(string contentRoot) => _root = Path.GetFullPath(contentRoot);
@@ -74,6 +76,17 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
+    /// Reads groups from <c>{folder}/**/*.toml</c> (<see cref="GroupFile"/>), checked by
+    /// <see cref="ZoneValidation.CheckGroups"/> and given registry numbers. Zones place copies of them, which the
+    /// build expands into their parts (<see cref="Groups.Expand(Zone, System.Func{string, Group?})"/>).
+    /// </summary>
+    public ContentBuilder AddGroups(string folder = "groups")
+    {
+        _groupsFolder = folder;
+        return this;
+    }
+
+    /// <summary>
     /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>), checked by
     /// <see cref="ZoneValidation"/>. Zone and spawn keys get registry numbers like other content.
     /// </summary>
@@ -105,7 +118,9 @@ public sealed class ContentBuilder
         }
 
         var assets = types.OfType<ReadContent<Asset>>().SingleOrDefault()?.Entries.ToDictionary(a => a.Id) ?? new Dictionary<string, Asset>();
-        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), assets, errors);
+        var groups = _groupsFolder is null ? new List<Group>() : ReadGroups(ContentPath(_groupsFolder), assets, errors);
+        var groupsByKey = groups.ToDictionary(g => g.Id);
+        var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), assets, groupsByKey, errors);
         if (errors.Count == 0)
         {
             foreach (var type in types)
@@ -114,6 +129,13 @@ public sealed class ContentBuilder
             }
 
             AssignZoneNumbers(zones, registry);
+            var groupNumbers = registry.Assign("group", groups.Select(g => g.Id));
+            foreach (var group in groups)
+            {
+                group.Number = groupNumbers[group.Id];
+            }
+
+            groups.Sort((a, b) => a.Number.CompareTo(b.Number));
 
             if (saveRegistry && registry.Changed)
             {
@@ -121,10 +143,19 @@ public sealed class ContentBuilder
             }
         }
 
-        return new ContentBuildResult(errors, types, strings, zones);
+        return new ContentBuildResult(errors, types, strings, zones, groups);
     }
 
-    private List<Zone> ReadZones(string folder, Dictionary<string, Asset> assets, List<ContentError> errors)
+    private List<Group> ReadGroups(string folder, Dictionary<string, Asset> assets, List<ContentError> errors)
+    {
+        var groupErrors = new List<ZoneFileError>();
+        var groups = GroupFile.ReadFolder(folder, groupErrors);
+        groupErrors.AddRange(ZoneValidation.CheckGroups(groups, key => assets.TryGetValue(key, out var asset) ? asset : null));
+        errors.AddRange(groupErrors.Select(e => new ContentError(DisplayPath(Path.Combine(folder, e.File)), 1, 1, e.Message)));
+        return groupErrors.Count == 0 ? groups.Select(g => g.Group).ToList() : new List<Group>();
+    }
+
+    private List<Zone> ReadZones(string folder, Dictionary<string, Asset> assets, Dictionary<string, Group> groups, List<ContentError> errors)
     {
         var zones = new List<Zone>();
         if (!Directory.Exists(folder))
@@ -141,7 +172,7 @@ public sealed class ContentBuilder
             if (zoneErrors.Count == 0)
             {
                 zoneErrors.AddRange(ZoneValidation.Check(zone));
-                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => assets.TryGetValue(key, out var asset) ? asset : null));
+                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => assets.TryGetValue(key, out var asset) ? asset : null, key => groups.TryGetValue(key, out var group) ? group : null));
             }
 
             var zoneFile = DisplayPath(Path.Combine(zoneFolder, ZoneFolder.ZoneFile));
@@ -163,6 +194,8 @@ public sealed class ContentBuilder
             errors.AddRange(zoneErrors.Select(e => new ContentError(DisplayPath(Path.Combine(zoneFolder, e.File)), 1, 1, e.Message)));
             if (zoneErrors.Count == 0)
             {
+                // Group copies become their parts: the game loads plain placements.
+                Groups.Expand(zone, key => groups.TryGetValue(key, out var group) ? group : null);
                 zoneFolders.TryAdd(zone.Id, zoneFile);
                 zones.Add(zone);
             }

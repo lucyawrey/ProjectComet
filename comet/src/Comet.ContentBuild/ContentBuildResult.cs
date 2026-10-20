@@ -7,9 +7,10 @@ public sealed class ContentBuildResult
 {
     private readonly IReadOnlyList<ContentBuilder.IReadContent> _types;
 
-    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings, IReadOnlyList<Zone> zones)
+    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings, IReadOnlyList<Zone> zones, IReadOnlyList<Group> groups)
     {
         Zones = zones;
+        Groups = groups;
         Errors = errors;
         _types = types;
         Strings = strings;
@@ -25,6 +26,9 @@ public sealed class ContentBuildResult
 
     /// <summary>The zones, in number order, if the game registered a zones folder (<see cref="ContentBuilder.AddZones"/>).</summary>
     public IReadOnlyList<Zone> Zones { get; }
+
+    /// <summary>The groups, in number order, if the game registered a groups folder (<see cref="ContentBuilder.AddGroups"/>); zones hold their copies already expanded.</summary>
+    public IReadOnlyList<Group> Groups { get; }
 
     /// <summary>The entries of one registered type, in number order.</summary>
     public IReadOnlyList<T> Entries<T>()
