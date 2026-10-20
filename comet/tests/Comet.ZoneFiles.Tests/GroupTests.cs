@@ -147,6 +147,15 @@ public class GroupTests
     }
 
     [Fact]
+    public void AGroupInsideItselfStopsThere()
+    {
+        // Three copies of itself would expand to 3^16 parts if only the depth limit stopped it.
+        var loop = new Group { Id = "group.loop", Parts = [new Placement { Group = "group.loop" }, new Placement { Group = "group.loop" }, new Placement { Group = "group.loop" }, Box(Vector3.Zero, Vector3.One)] };
+
+        Assert.Single(Groups.Expand(new Placement { Group = "group.loop" }, key => key == loop.Id ? loop : null));
+    }
+
+    [Fact]
     public void GroupChecksCatchBadPartsAndCycles()
     {
         var a = new Group { Id = "group.a", Parts = [new Placement { Group = "group.b" }, Box(Vector3.Zero, Vector3.One)] };

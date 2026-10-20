@@ -457,9 +457,9 @@ namespace Comet.ZoneFiles
                 error(file, $"{what}: only boxes have a bevel, and it can't be negative.");
             }
 
-            if (primitive.Steps != 0 && (kind != PrimitiveKind.Stairs || primitive.Steps < 0 || primitive.Steps > 256))
+            if (primitive.Steps != 0 && (kind != PrimitiveKind.Stairs || primitive.Steps < 0 || primitive.Steps > Primitive.MaxSteps))
             {
-                error(file, $"{what}: only stairs have steps, from 1 to 256.");
+                error(file, $"{what}: only stairs have steps, from 1 to {Primitive.MaxSteps}.");
             }
 
             if ((primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0) &&

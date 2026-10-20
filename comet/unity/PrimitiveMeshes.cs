@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Comet.Content;
 using Comet.Simulation;
@@ -12,23 +13,98 @@ namespace Comet.Unity
     /// </summary>
     public static class PrimitiveMeshes
     {
-        // Meshes by the mesher's shared triangles, which are the same array for the same primitive, size and budget.
-        private static readonly Dictionary<System.Numerics.Vector3[], Mesh> Meshes = new Dictionary<System.Numerics.Vector3[], Mesh>();
+        // Meshes by name, which spells out the primitive, size and budget each is built for, so a domain reload (which
+        // empties this but keeps the meshes, as they're DontSave) takes them back instead of leaking them.
+        private static Dictionary<string, Entry>? _meshes;
+        private static int _uses;
+        private static int _pruneAbove = PruneAbove;
+
+        // Past this many meshes, the ones nothing shows are destroyed (the zone editor makes one per size tried), except
+        // the most recently asked for, which a caller may still be collecting.
+        private const int PruneAbove = 2048, KeepRecent = 512;
+        private const string NamePrefix = "Primitive ";
+
+        private sealed class Entry
+        {
+            public Mesh Mesh = null!;
+            public int Used;
+        }
 
         /// <summary>A primitive placement's own mesh, flat-shaded, shared by every placement of the same primitive and size.</summary>
         public static Mesh For(Placement placement, PolygonBudget budget)
         {
-            var triangles = PrimitiveMesher.For(placement, budget);
-            if (!Meshes.TryGetValue(triangles, out var mesh) || mesh == null)
+            var meshes = _meshes ??= Adopt();
+            var name = MeshName(placement, budget);
+            if (!meshes.TryGetValue(name, out var entry) || entry.Mesh == null)
             {
-                mesh = new Mesh { name = ZoneName(placement), hideFlags = HideFlags.DontSave };
+                // Built here rather than taken from the mesher's cache, which keeps every size it's asked for.
+                var mesh = new Mesh { name = name, hideFlags = HideFlags.DontSave };
                 var builder = new Builder();
-                builder.Add(triangles, System.Numerics.Matrix4x4.Identity, 0xFFFFFF);
+                builder.Add(PrimitiveMesher.Build(placement.Primitive!, placement.Scale, budget), System.Numerics.Matrix4x4.Identity, 0xFFFFFF);
                 builder.Fill(mesh);
-                Meshes[triangles] = mesh;
+                meshes[name] = entry = new Entry { Mesh = mesh };
             }
 
-            return mesh;
+            entry.Used = ++_uses;
+            if (meshes.Count > _pruneAbove)
+            {
+                Prune(meshes);
+            }
+
+            return entry.Mesh;
+        }
+
+        // The meshes an earlier domain built, by name.
+        private static Dictionary<string, Entry> Adopt()
+        {
+            var meshes = new Dictionary<string, Entry>();
+            foreach (var mesh in Resources.FindObjectsOfTypeAll<Mesh>())
+            {
+                if (mesh.hideFlags == HideFlags.DontSave && mesh.name.StartsWith(NamePrefix, System.StringComparison.Ordinal))
+                {
+                    meshes[mesh.name] = new Entry { Mesh = mesh };
+                }
+            }
+
+            return meshes;
+        }
+
+        // Destroys the meshes no mesh filter or collider uses that weren't asked for lately.
+        private static void Prune(Dictionary<string, Entry> meshes)
+        {
+            var shown = new HashSet<Mesh>();
+            foreach (var filter in Resources.FindObjectsOfTypeAll<MeshFilter>())
+            {
+                shown.Add(filter.sharedMesh);
+            }
+
+            foreach (var collider in Resources.FindObjectsOfTypeAll<MeshCollider>())
+            {
+                shown.Add(collider.sharedMesh);
+            }
+
+            foreach (var (name, entry) in new List<KeyValuePair<string, Entry>>(meshes))
+            {
+                if (entry.Mesh == null || (!shown.Contains(entry.Mesh) && entry.Used <= _uses - KeepRecent))
+                {
+                    meshes.Remove(name);
+                    if (entry.Mesh == null)
+                    {
+                        continue;
+                    }
+
+                    if (Application.isPlaying)
+                    {
+                        UnityEngine.Object.Destroy(entry.Mesh);
+                    }
+                    else
+                    {
+                        UnityEngine.Object.DestroyImmediate(entry.Mesh);
+                    }
+                }
+            }
+
+            _pruneAbove = System.Math.Max(PruneAbove, meshes.Count * 2);
         }
 
         /// <summary>Collects placed primitives into one mesh, each in its own color as vertex colors (for the Comet/Vertex Color Lit shader).</summary>
@@ -77,6 +153,13 @@ namespace Comet.Unity
             }
         }
 
-        private static string ZoneName(Placement placement) => $"{placement.Primitive!.Kind} {placement.Scale.X:0.##}×{placement.Scale.Y:0.##}×{placement.Scale.Z:0.##}";
+        // "Primitive Box 2×1×2", then every value the mesh depends on, exactly.
+        private static string MeshName(Placement placement, PolygonBudget budget)
+        {
+            var p = placement.Primitive!;
+            var size = placement.Scale;
+            return FormattableString.Invariant(
+                $"{NamePrefix}{p.Kind} {size.X:0.##}×{size.Y:0.##}×{size.Z:0.##} ({size.X:R} {size.Y:R} {size.Z:R} {p.Sides} {p.Bevel:R} {p.Steps} {p.OpeningWidth:R} {p.OpeningHeight:R} {p.Thickness:R} {budget.FacetLength:R} {budget.MinSides} {budget.MaxSides})");
+        }
     }
 }

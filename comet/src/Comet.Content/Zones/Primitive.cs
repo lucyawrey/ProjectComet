@@ -106,8 +106,11 @@ namespace Comet.Content
         /// <summary>A box's bevel: how far its edges are cut back, in meters (0 for sharp edges).</summary>
         [Key(2)] public float Bevel { get; set; }
 
-        /// <summary>A stairway's number of steps, or 0 for steps about 0.25 m high.</summary>
+        /// <summary>A stairway's number of steps, or 0 for steps about 0.25 m high (at most <see cref="MaxSteps"/>).</summary>
         [Key(3)] public int Steps { get; set; }
+
+        /// <summary>The most steps a stairway has, set or not.</summary>
+        public const int MaxSteps = 256;
 
         /// <summary>A doorway's opening: its width and its height, in meters.</summary>
         [Key(4)] public float OpeningWidth { get; set; }

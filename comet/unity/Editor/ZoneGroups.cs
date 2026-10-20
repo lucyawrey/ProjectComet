@@ -609,11 +609,15 @@ namespace Comet.Unity.Editor
             return uses;
         }
 
+        // Whether a message names a key as a whole (group.tree, not group.tree_big).
+        private static bool Mentions(string message, string key) =>
+            System.Text.RegularExpressions.Regex.IsMatch(message, $@"(?<![\w.]){System.Text.RegularExpressions.Regex.Escape(key)}(?!\w)");
+
         private static bool Check(Group group, string file, CometSettings settings)
         {
             var groups = Load().Where(g => g.Group.Id != group.Id).Append((group, file)).ToList();
             var errors = ZoneValidation.CheckGroups(groups, key => settings.props != null ? ZoneEditor.PropFor(settings.props, key) : null)
-                .Where(e => e.File == file || e.Message.Contains(group.Id))
+                .Where(e => e.File == file || Mentions(e.Message, group.Id))
                 .ToList();
             if (errors.Count > 0)
             {

@@ -91,9 +91,17 @@ public static class ShapeLandBuild
             {
                 errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: look '{shape.Look}' isn't a group (groups/*.toml)."));
             }
-            else if (!Groups.Expand(new Placement { Group = shape.Look }, key => groups.TryGetValue(key, out var g) ? g : null).Any(p => p.Role == "body"))
+            else
             {
-                errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has no part with role = \"body\" to take the player's color."));
+                var parts = Groups.Expand(new Placement { Group = shape.Look }, key => groups.TryGetValue(key, out var g) ? g : null);
+                if (parts.FirstOrDefault(p => p.Primitive == null) is { } prop)
+                {
+                    errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has {prop.Prop}, but looks are built only from primitives."));
+                }
+                else if (!parts.Any(p => p.Role == "body"))
+                {
+                    errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has no part with role = \"body\" to take the player's color."));
+                }
             }
         }
 
@@ -131,7 +139,7 @@ public static class ShapeLandBuild
             }
         }
 
-        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), colors = nameof(GameSettings.Colors);
+        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), colors = nameof(GameSettings.Colors), primitives = nameof(GameSettings.Primitives);
         var m = settings.Movement;
         InRange(movement, nameof(m.Gravity), m.Gravity, 200);
         InRange(movement, nameof(m.BodyRadius), m.BodyRadius, 5);
@@ -143,6 +151,18 @@ public static class ShapeLandBuild
         InRange(movement, nameof(m.TurnSpeed), m.TurnSpeed, 10000);
         InRange(spawns, nameof(SpawnSettings.ClaimSeconds), settings.Spawns.ClaimSeconds, 60);
         InRange(spawns, nameof(SpawnSettings.MarkerHeight), settings.Spawns.MarkerHeight, 5);
+        var budget = settings.Primitives;
+        InRange(primitives, nameof(budget.FacetLength), budget.FacetLength, 100);
+        if (budget.MinSides < 3)
+        {
+            validation.Error(primitives, nameof(budget.MinSides), $"{budget.MinSides} is too few: a round primitive needs at least 3 sides.");
+        }
+
+        if (budget.MaxSides < budget.MinSides || budget.MaxSides > 256)
+        {
+            validation.Error(primitives, nameof(budget.MaxSides), $"{budget.MaxSides} is out of range (at least min_sides, {budget.MinSides}, and at most 256).");
+        }
+
         IsColor(world, nameof(WorldSettings.GroundColor), settings.World.GroundColor);
         IsColor(world, nameof(WorldSettings.UnderColor), settings.World.UnderColor);
         IsColor(world, nameof(WorldSettings.PlacedColor), settings.World.PlacedColor);

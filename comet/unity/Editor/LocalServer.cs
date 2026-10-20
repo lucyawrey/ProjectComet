@@ -136,9 +136,9 @@ namespace Comet.Unity.Editor
         [MenuItem(Menu + "Start", priority = 40)]
         private static void StartMenu()
         {
-            if (Settings() is { } settings && Free(settings))
+            if (Settings() is { } settings && Answers(settings) is var answers && Free(settings, answers))
             {
-                Start(settings, build: true);
+                Start(settings, build: true, answers);
             }
         }
 
@@ -206,13 +206,15 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            if (!Free(settings))
+            // Asked once: each ask can take up to a second when something holds the port without answering.
+            var answers = Answers(settings);
+            if (!Free(settings, answers))
             {
                 EditorApplication.isPlaying = false;
             }
-            else if (!Answers(settings))
+            else if (!answers)
             {
-                Start(settings, build: true); // an incremental build is quick, and a pull may have changed the server
+                Start(settings, build: true, answers); // an incremental build is quick, and a pull may have changed the server
             }
         }
 
@@ -241,11 +243,11 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Whether the port is free for the editor's server, or has a game server on it already; false (with the
-        // reason in the Console) if another program holds it.
-        private static bool Free(CometSettings settings)
+        // Whether the port is free for the editor's server, or has a game server on it already (answers: one answered
+        // just now); false (with the reason in the Console) if another program holds it.
+        private static bool Free(CometSettings settings, bool answers)
         {
-            if (Answers(settings))
+            if (answers)
             {
                 if (PlayedContent(settings) is { } played && ContentHashNow() is { } ours && played != ours)
                 {
@@ -271,11 +273,12 @@ namespace Comet.Unity.Editor
         /// <summary>
         /// Starts the server with the chosen options, building it (and the bots, if any) first when
         /// <paramref name="build"/> or when it never was, then waits for it to answer in the background and starts the
-        /// bots. False (with the reason in the Console) if it couldn't start.
+        /// bots. False (with the reason in the Console) if it couldn't start. <paramref name="answers"/> passes on
+        /// whether a server answered on the port just now, to save asking again.
         /// </summary>
-        public static bool Start(CometSettings settings, bool build)
+        public static bool Start(CometSettings settings, bool build, bool? answers = null)
         {
-            if (string.IsNullOrEmpty(settings.serverProject) || Running || Answers(settings))
+            if (string.IsNullOrEmpty(settings.serverProject) || Running || (answers ?? Answers(settings)))
             {
                 return false;
             }
@@ -481,6 +484,21 @@ namespace Comet.Unity.Editor
                     if (asking.Status == TaskStatus.RanToCompletion && asking.Result.IsSuccessStatusCode)
                     {
                         EditorApplication.update -= Poll;
+
+                        // A content build finished while it started (which doesn't restart a starting server).
+                        if (ContentHashNow() is { } now && now != state.content)
+                        {
+                            if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                            {
+                                Debug.Log("The content changed while the local game server started; restarting it.");
+                                Stop(quiet: true);
+                                Start(settings, build: false);
+                                return;
+                            }
+
+                            Debug.LogWarning("The content changed while the local game server started, so it plays the older content until play mode next starts.");
+                        }
+
                         state.waiting = false;
                         StartBots(state, settings);
                         Write(state);

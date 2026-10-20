@@ -139,13 +139,30 @@ public class ContentTests
     [InlineData("scale = 5.0", "scale: 5 is out of range")]
     [InlineData("max_speed = nan", "content numbers must be finite")]
     [InlineData("scale = nan", "content numbers must be finite")]
-    public void ShapeRulesAreChecked(string line, string message, string shape = "cube")
+    public void ShapeRulesAreChecked(string line, string message, string shape = "cube") =>
+        RuleIsChecked(Path.Combine("shapes", shape + ".toml"), line, message);
+
+    [Fact]
+    public void LooksAreOnlyPrimitives() =>
+        RuleIsChecked(Path.Combine("shapes", "cube.toml"), "look = \"group.prop_look\"", "looks are built only from primitives",
+            ("groups/prop_look.toml", "id = \"group.prop_look\"\n\n[[part]]\nprop = \"prop.strange_shape\"\nrole = \"body\"\nposition = [0.0, 0.0, 0.0]\n"));
+
+    [Theory]
+    [InlineData("facet_length = 0.0", "facet_length: 0 is out of range")]
+    [InlineData("min_sides = 2", "min_sides: 2 is too few")]
+    [InlineData("max_sides = 4", "max_sides: 4 is out of range")]
+    public void SettingsRulesAreChecked(string line, string message) =>
+        RuleIsChecked(Path.Combine("settings", "game.toml"), line, message);
+
+    // Builds a copy of the content with one line of a file replaced (or added) and perhaps a file added, expecting one
+    // error naming the changed file.
+    private static void RuleIsChecked(string relativeFile, string line, string message, (string Path, string Text)? extraFile = null)
     {
         var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
         try
         {
             CopyDirectory(ContentRoot, root);
-            var file = Path.Combine(root, "shapes", shape + ".toml");
+            var file = Path.Combine(root, relativeFile);
             var key = line[..line.IndexOf(' ')];
             var lines = File.ReadAllLines(file).ToList();
             var at = lines.FindIndex(l => l.StartsWith(key + " "));
@@ -159,12 +176,16 @@ public class ContentTests
             }
 
             File.WriteAllLines(file, lines);
+            if (extraFile is { } extra)
+            {
+                File.WriteAllText(Path.Combine(root, extra.Path), extra.Text);
+            }
 
             var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false, Path.Combine(ContentRoot, ShapeLandBuild.ModelRoot));
 
             Assert.Null(built);
             var error = Assert.Single(errors);
-            Assert.EndsWith(shape + ".toml", error.File);
+            Assert.EndsWith(Path.GetFileName(relativeFile), error.File);
             Assert.Contains(message, error.Message);
         }
         finally

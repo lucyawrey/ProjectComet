@@ -21,6 +21,8 @@ namespace Comet.Simulation
         /// <summary>
         /// The triangles of <paramref name="placement"/>'s primitive, built once for each kind, values and size and
         /// shared: don't change them. In the primitive's own space; place them with <see cref="Placement.Matrix"/>.
+        /// Every size asked for is kept, so this is for content's placements; for sizes that keep changing (the zone
+        /// editor's), use <see cref="Build"/>.
         /// </summary>
         public static Vector3[] For(Placement placement, PolygonBudget budget)
         {
@@ -114,7 +116,7 @@ namespace Comet.Simulation
         // Steps climbing toward +X, as a profile in X and Y (counterclockwise): step k's top is k step heights up.
         private static Vector2[] Stairs(Vector3 size, int steps)
         {
-            var count = steps > 0 ? steps : Math.Max(1, (int)MathF.Round(size.Y / DefaultStepHeight));
+            var count = steps > 0 ? steps : Math.Clamp((int)MathF.Round(size.Y / DefaultStepHeight), 1, Primitive.MaxSteps);
             float run = size.X / count, rise = size.Y / count, left = -size.X / 2;
             var profile = new List<Vector2> { new Vector2(left, 0), new Vector2(size.X / 2, 0), new Vector2(size.X / 2, size.Y) };
             for (var k = count; k >= 1; k--)

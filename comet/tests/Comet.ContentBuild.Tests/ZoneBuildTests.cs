@@ -199,6 +199,12 @@ public class ZoneBuildTests
         using var folder = new ContentFolder();
         folder.Write("groups/loop.toml", "id = \"group.loop\"\n\n[[part]]\ngroup = \"group.loop\"\nposition = [0.0, 0.0, 0.0]\n");
 
+        // A zone's copy of a sound group isn't reported as unknown because another group is broken.
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post.toml"), new Group { Id = "group.post", Parts = [new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Box } }] });
+        var zone = Zone("zone.meadow");
+        zone.Chunks[0].Placements = [new Placement { Group = "group.post", Position = new Vector3(10, 0, 10) }];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
+
         var error = Assert.Single(Build(folder).Errors);
 
         Assert.EndsWith(Path.Combine("groups", "loop.toml"), error.File);

@@ -26,17 +26,17 @@ namespace Comet.Content
     /// <summary>Expands group copies into the placements they stand for.</summary>
     public static class Groups
     {
-        /// <summary>How deeply groups may nest; deeper (or circular) nesting places nothing past it, and validation reports it.</summary>
+        /// <summary>How deeply groups may nest; deeper nesting places nothing past it, and validation reports it.</summary>
         public const int MaxDepth = 16;
 
         /// <summary>
         /// The placements a copy of a group stands for, in its zone's space, with nested groups expanded. An unknown
-        /// group places nothing (validation reports it).
+        /// group, or a group inside itself, places nothing (validation reports both).
         /// </summary>
         public static List<Placement> Expand(Placement copy, Func<string, Group?> find)
         {
             var placements = new List<Placement>();
-            Add(copy, find, placements, 0);
+            Add(copy, find, placements, new HashSet<string>());
             return placements;
         }
 
@@ -117,24 +117,28 @@ namespace Comet.Content
             return colors;
         }
 
-        private static void Add(Placement copy, Func<string, Group?> find, List<Placement> into, int depth)
+        // Expands one copy; outer holds the groups it's inside, so a group inside itself stops there.
+        private static void Add(Placement copy, Func<string, Group?> find, List<Placement> into, HashSet<string> outer)
         {
-            if (depth >= MaxDepth || copy.Group is null || find(copy.Group) is not { } group)
+            if (outer.Count >= MaxDepth || copy.Group is null || outer.Contains(copy.Group) || find(copy.Group) is not { } group)
             {
                 return;
             }
 
+            outer.Add(copy.Group);
             foreach (var placed in Place(copy, group))
             {
                 if (placed.Group != null)
                 {
-                    Add(placed, find, into, depth + 1);
+                    Add(placed, find, into, outer);
                 }
                 else
                 {
                     into.Add(placed);
                 }
             }
+
+            outer.Remove(copy.Group);
         }
     }
 }
