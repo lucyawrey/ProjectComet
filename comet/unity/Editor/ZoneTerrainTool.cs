@@ -71,7 +71,7 @@ namespace Comet.Unity.Editor
 
         public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Terrain Icon").image, "Zone Terrain: paint the opened zone's terrain");
 
-        public override bool IsAvailable() => Editing != null;
+        public override bool IsAvailable() => Editing is { IsGroup: false };
 
         private void OnEnable()
         {

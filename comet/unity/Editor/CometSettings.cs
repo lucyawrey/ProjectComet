@@ -22,6 +22,9 @@ namespace Comet.Unity.Editor
         [Tooltip("The game's zones folder, relative to the Unity project (each zone is a folder in it).")]
         public string zonesFolder = "../content/zones";
 
+        [Tooltip("The game's groups folder, relative to the Unity project (each group is a .toml file in it).")]
+        public string groupsFolder = "../content/groups";
+
         [Tooltip("Where opened zones keep their working scenes, relative to the Unity project: a folder the game's .gitignore ignores, since the zone's files are what's kept.")]
         public string scenesFolder = "Assets/ZoneEditing";
 

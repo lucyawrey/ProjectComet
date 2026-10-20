@@ -4,16 +4,21 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// An asset or a primitive placed in a zone opened in the editor: the object's transform is the placement's. A
-    /// primitive's mesh is built at its size: the scale tool edits <see cref="size"/>, and any other scale is folded
-    /// into it once a resize ends.
+    /// An asset, a primitive or a group copy placed in a zone opened in the editor (or in a group being edited): the
+    /// object's transform is the placement's. A primitive's mesh is built at its size: the scale tool edits
+    /// <see cref="size"/>, and any other scale is folded into it once a resize ends. A group copy's parts are drawn
+    /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
+    [SelectionBase]
     public sealed class ZonePlacement : MonoBehaviour
     {
-        [Tooltip("The asset's key (asset.prop); empty for a primitive.")]
+        [Tooltip("The asset's key (asset.prop); empty for a primitive or a group copy.")]
         public string asset = "";
+
+        [Tooltip("The group this is a copy of (group.tree); empty for an asset or a primitive. Copies look like their group: edit the group to change them all.")]
+        public string group = "";
 
         [Tooltip("Whether this places a primitive, built in code, instead of an asset.")]
         public bool isPrimitive;
@@ -53,6 +58,12 @@ namespace Comet.Unity
 
         /// <summary>How finely round primitives are cut while editing: the game's, set by the editor (Comet › Zones › Polygon Budget).</summary>
         public static PolygonBudget Budget { get; set; } = new PolygonBudget();
+
+        /// <summary>Draws a group copy's parts under it; set by the editor, which reads the groups.</summary>
+        public static System.Action<ZonePlacement>? GroupDrawer { get; set; }
+
+        /// <summary>Whether this is a group copy.</summary>
+        public bool IsGroup => !string.IsNullOrEmpty(group);
 
         /// <summary>The primitive placed, or null for an asset.</summary>
         public Primitive? Primitive => isPrimitive
@@ -135,13 +146,23 @@ namespace Comet.Unity
             ApplyColor();
         }
 
-        /// <summary>Draws the object in its color (property blocks aren't saved with the scene).</summary>
-        public void ApplyColor() => PlacedColors.Apply(gameObject, ownColor ? color : defaultColor);
+        /// <summary>Draws the object in its color (property blocks aren't saved with the scene); a group copy's parts keep their own.</summary>
+        public void ApplyColor()
+        {
+            if (!IsGroup)
+            {
+                PlacedColors.Apply(gameObject, ownColor ? color : defaultColor);
+            }
+        }
 
         private void OnEnable()
         {
             Rebuild();
             ApplyColor();
+            if (IsGroup)
+            {
+                GroupDrawer?.Invoke(this);
+            }
         }
 
         private void OnValidate()

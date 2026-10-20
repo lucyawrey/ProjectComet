@@ -21,6 +21,7 @@ namespace Comet.Unity.Editor
         [SerializeField] private string asset = "";
         [SerializeField] private bool spawn;
         [SerializeField] private string spawnKey = "spawn.";
+        [SerializeField] private string groupKey = "group.";
         [SerializeField] private Color color = Color.clear; // clear until first shown: then the game's placed color
 
         private GUIContent? _icon;
@@ -84,7 +85,11 @@ namespace Comet.Unity.Editor
             return Parts(entry.model, scale);
         }
 
-        private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix)> parts, Material material, Color color, int size)
+        private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix)> parts, Material material, Color color, int size) =>
+            Thumbnail(key, parts.Select(p => (p.Mesh, p.Matrix, color)).ToList(), material, color, size);
+
+        // A picture of meshes each in its own color; cached by key and `color` (the picked one, for what follows it).
+        private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix, Color Color)> parts, Material material, Color color, int size)
         {
             if (_thumbnails.TryGetValue((key, color), out var cached) && cached != null)
             {
@@ -97,7 +102,7 @@ namespace Comet.Unity.Editor
             }
 
             var bounds = new Bounds(parts[0].Matrix.MultiplyPoint3x4(parts[0].Mesh.bounds.center), Vector3.zero);
-            foreach (var (mesh, matrix) in parts)
+            foreach (var (mesh, matrix, _) in parts)
             {
                 var b = mesh.bounds;
                 for (var i = 0; i < 8; i++)
@@ -107,7 +112,6 @@ namespace Comet.Unity.Editor
             }
 
             var block = new MaterialPropertyBlock();
-            block.SetColor("_BaseColor", color);
 
             var preview = new PreviewRenderUtility();
             try
@@ -128,8 +132,9 @@ namespace Comet.Unity.Editor
                 // Drawn twice: the first picture rendered after the editor starts comes out unlit.
                 for (var pass = 0; pass < 2; pass++)
                 {
-                    foreach (var (mesh, matrix) in parts)
+                    foreach (var (mesh, matrix, partColor) in parts)
                     {
+                        block.SetColor("_BaseColor", partColor);
                         for (var sub = 0; sub < mesh.subMeshCount; sub++)
                         {
                             preview.DrawMesh(mesh, matrix, material, sub, block);
@@ -165,6 +170,24 @@ namespace Comet.Unity.Editor
 
             EditorGUIUtility.labelWidth = 40;
             EditorGUILayout.BeginVertical(GUILayout.Width(280));
+            if (editing.IsGroup)
+            {
+                EditorGUILayout.HelpBox($"Editing {editing.groupKey}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.", MessageType.Info);
+                var back = ZoneGroups.ReturnFolder;
+                if (back.Length > 0 && GUILayout.Button($"Back to {System.IO.Path.GetFileName(back)}"))
+                {
+                    EditorApplication.delayCall += () =>
+                    {
+                        if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                        {
+                            ZoneEditor.Open(back, settings);
+                        }
+                    };
+                }
+
+                EditorGUILayout.Space();
+            }
+
             if (color.a == 0)
             {
                 color = settings.placedColor;
@@ -211,10 +234,41 @@ namespace Comet.Unity.Editor
                 return (entry.key, label, preview);
             }).ToList());
 
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Groups", EditorStyles.boldLabel);
+            Grid(ZoneGroups.All.Where(g => g.Id != editing.groupKey).Select(g =>
+            {
+                var label = g.Id.Substring("group.".Length);
+                var picture = settings.placedMaterial != null ? Thumbnail($"{g.Id} {ZoneGroups.Version} {budgetKey}", ZoneGroups.Meshes(g.Id, settings), settings.placedMaterial, Color.clear, size * 2) : null;
+                return (g.Id, label, picture);
+            }).ToList());
+            if (!spawn && asset.StartsWith("group.", StringComparison.Ordinal) && GUILayout.Button($"Edit {asset}"))
+            {
+                var key = asset;
+                EditorApplication.delayCall += () => ZoneGroups.Open(key, settings);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            groupKey = EditorGUILayout.TextField(groupKey);
+            if (GUILayout.Button("Save selection as group", GUILayout.Width(160)))
+            {
+                ZoneGroups.SaveSelection(editing, groupKey, settings);
+            }
+
+            EditorGUILayout.EndHorizontal();
+
             // Previews load in the background; keep repainting until they're in.
             if (AssetPreview.IsLoadingAssetPreviews())
             {
                 SceneView.RepaintAll();
+            }
+
+            if (editing.IsGroup)
+            {
+                EditorGUILayout.HelpBox(!string.IsNullOrEmpty(asset)
+                    ? "Click in the scene to place it. Copies of this group show what's saved." : "Pick a primitive, an asset or a group, then click in the scene to place it.", MessageType.None);
+                EditorGUILayout.EndVertical();
+                return;
             }
 
             EditorGUILayout.Space();
@@ -249,7 +303,7 @@ namespace Comet.Unity.Editor
 
             EditorGUILayout.HelpBox(spawn || !string.IsNullOrEmpty(asset)
                 ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
-                : "Pick a primitive, an asset or a new spawn point, then click in the scene to place it.", MessageType.None);
+                : "Pick a primitive, an asset, a group or a new spawn point, then click in the scene to place it.", MessageType.None);
             EditorGUILayout.EndVertical();
         }
 

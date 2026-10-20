@@ -72,7 +72,28 @@ namespace Comet.Content
             zone.Chunks = chunks.Values.OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z).ToArray();
         }
 
-        // A copy's parts placed by its transform: turned by its rotation, scaled by its (even) scale, then moved to it.
+        /// <summary>
+        /// <paramref name="group"/>'s parts placed by a copy's transform (turned by its rotation, scaled by its even
+        /// scale, then moved to it), one level only: nested groups stay copies.
+        /// </summary>
+        public static List<Placement> Place(Placement copy, Group group)
+        {
+            var rotation = ZoneGrid.Rotation(copy.Rotation);
+            var scale = copy.Scale.X;
+            return group.Parts.Select(part => new Placement
+            {
+                Asset = part.Asset,
+                Primitive = part.Primitive,
+                Group = part.Group,
+                Role = part.Role,
+                Position = copy.Position + Vector3.Transform(part.Position * scale, rotation),
+                Rotation = ZoneGrid.Euler(Quaternion.Concatenate(ZoneGrid.Rotation(part.Rotation), rotation)),
+                Scale = part.Scale * scale,
+                Color = part.Color,
+                Blockout = part.Blockout || copy.Blockout,
+            }).ToList();
+        }
+
         private static void Add(Placement copy, Func<string, Group?> find, List<Placement> into, int depth)
         {
             if (depth >= MaxDepth || copy.Group is null || find(copy.Group) is not { } group)
@@ -80,22 +101,8 @@ namespace Comet.Content
                 return;
             }
 
-            var rotation = ZoneGrid.Rotation(copy.Rotation);
-            var scale = copy.Scale.X;
-            foreach (var part in group.Parts)
+            foreach (var placed in Place(copy, group))
             {
-                var placed = new Placement
-                {
-                    Asset = part.Asset,
-                    Primitive = part.Primitive,
-                    Group = part.Group,
-                    Role = part.Role,
-                    Position = copy.Position + Vector3.Transform(part.Position * scale, rotation),
-                    Rotation = ZoneGrid.Euler(Quaternion.Concatenate(ZoneGrid.Rotation(part.Rotation), rotation)),
-                    Scale = part.Scale * scale,
-                    Color = part.Color,
-                    Blockout = part.Blockout || copy.Blockout,
-                };
                 if (placed.Group != null)
                 {
                     Add(placed, find, into, depth + 1);

@@ -1,0 +1,374 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Comet.Content;
+using Comet.ZoneFiles;
+using MessagePack;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using Group = Comet.Content.Group;
+
+namespace Comet.Unity.Editor
+{
+    /// <summary>
+    /// Groups in the editor: the game's group files (Comet Settings' groups folder), copies drawn with their parts,
+    /// saving a selection as a new group, unpacking a copy into loose placements, and editing a group in a scene of
+    /// its own (its pivot at the origin), whose saving updates every copy in the open scenes.
+    /// </summary>
+    [InitializeOnLoad]
+    public static class ZoneGroups
+    {
+        private const string PartsName = "Parts (preview)";
+        private const string ReturnKey = "Comet.ZoneGroups.ReturnTo";
+
+        // The group files, read on first use and again when the project changes or a group is saved.
+        private static List<(Group Group, string File)>? _groups;
+
+        static ZoneGroups()
+        {
+            // Objects can't be made during a scene's load: draw once it's done.
+            ZonePlacement.GroupDrawer = copy => EditorApplication.delayCall += () => Draw(copy);
+            EditorApplication.projectChanged += () => _groups = null;
+        }
+
+        /// <summary>Goes up each time the groups are read again, so pictures of them can be redrawn.</summary>
+        public static int Version { get; private set; }
+
+        /// <summary>Every group, by key.</summary>
+        public static IReadOnlyList<Group> All => Load().Select(g => g.Group).ToList();
+
+        /// <summary>The group with <paramref name="key"/>, or null.</summary>
+        public static Group? Find(string key) => Load().FirstOrDefault(g => g.Group.Id == key).Group;
+
+        /// <summary>The zone a group's scene returns to, if it was opened from one.</summary>
+        public static string ReturnFolder => SessionState.GetString(ReturnKey, "");
+
+        private static List<(Group Group, string File)> Load()
+        {
+            if (_groups != null)
+            {
+                return _groups;
+            }
+
+            var settings = CometSettings.Find(quiet: true);
+            var errors = new List<ZoneFileError>();
+            Version++;
+            _groups = settings == null ? new List<(Group, string)>() : GroupFile.ReadFolder(ZoneEditor.ProjectPath(settings.groupsFolder), errors);
+            foreach (var error in errors)
+            {
+                Debug.LogError($"Group file {error}");
+            }
+
+            return _groups;
+        }
+
+        /// <summary>Reads the group files again and redraws every copy in the open scenes.</summary>
+        public static void Reload()
+        {
+            _groups = null;
+            foreach (var copy in Object.FindObjectsByType<ZonePlacement>().Where(p => p.IsGroup))
+            {
+                Draw(copy);
+            }
+
+            SceneView.RepaintAll();
+        }
+
+        /// <summary>A new copy of the group <paramref name="key"/> under <paramref name="parent"/>, with its parts drawn.</summary>
+        public static GameObject CreateCopy(string key, Transform parent)
+        {
+            var thing = new GameObject();
+            thing.transform.SetParent(parent, false);
+            thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, key);
+            var placement = thing.AddComponent<ZonePlacement>();
+            placement.group = key;
+            Draw(placement);
+            return thing;
+        }
+
+        /// <summary>The meshes a group draws, in its own space, each with its color (null for a part that has none).</summary>
+        public static List<(Mesh Mesh, Matrix4x4 Matrix, Color Color)> Meshes(string key, CometSettings settings)
+        {
+            var meshes = new List<(Mesh, Matrix4x4, Color)>();
+            foreach (var part in Groups.Expand(new Placement { Group = key }, Find))
+            {
+                var r = part.Rotation;
+                var color = PartColor(part, settings);
+                if (part.Primitive != null)
+                {
+                    meshes.Add((PrimitiveMeshes.For(part, settings.Budget), Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), Vector3.one), color));
+                }
+                else if (settings.assets != null && settings.assets.Model(part.Asset) is { } model)
+                {
+                    var matrix = Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), ToUnity(part.Scale)) * model.transform.worldToLocalMatrix;
+                    foreach (var filter in model.GetComponentsInChildren<MeshFilter>().Where(f => f.sharedMesh != null && !f.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal)))
+                    {
+                        meshes.Add((filter.sharedMesh, matrix * filter.transform.localToWorldMatrix, color));
+                    }
+                }
+            }
+
+            return meshes;
+        }
+
+        // A part's color: its own, else its asset's, else the game's.
+        private static Color PartColor(Placement part, CometSettings settings) =>
+            part.Color is { } own ? PlacedColors.FromRgb(own)
+            : part.Primitive == null && settings.assets != null && settings.assets.TryGet(part.Asset, out var entry) && entry.hasColor ? entry.color
+            : settings.placedColor;
+
+        // Draws a copy's parts under it as uneditable objects the scene doesn't save, built again each time.
+        private static void Draw(ZonePlacement copy)
+        {
+            if (copy == null)
+            {
+                return;
+            }
+
+            var old = copy.transform.Find(PartsName);
+            if (old != null)
+            {
+                Object.DestroyImmediate(old.gameObject);
+            }
+
+            var settings = CometSettings.Find(quiet: true);
+            if (settings == null || !copy.IsGroup)
+            {
+                return;
+            }
+
+            var root = new GameObject(PartsName).transform;
+            root.SetParent(copy.transform, false);
+            var material = settings.placedMaterial != null ? settings.placedMaterial : AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat");
+            var parts = Groups.Expand(new Placement { Group = copy.group }, Find);
+            if (parts.Count == 0)
+            {
+                Debug.LogWarning($"{copy.name}: there's no group '{copy.group}', or it has no parts.", copy);
+            }
+
+            foreach (var part in parts)
+            {
+                GameObject thing;
+                var r = part.Rotation;
+                if (part.Primitive is { } primitive)
+                {
+                    thing = new GameObject(PrimitiveKinds.Name(primitive.Kind));
+                    var mesh = PrimitiveMeshes.For(part, settings.Budget);
+                    thing.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    thing.AddComponent<MeshRenderer>().sharedMaterial = material;
+                    thing.AddComponent<MeshCollider>().sharedMesh = mesh; // for Unity's surface snapping
+                    thing.transform.SetParent(root, false);
+                    thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
+                }
+                else
+                {
+                    var model = settings.assets != null ? settings.assets.Model(part.Asset) : null;
+                    thing = model != null ? Object.Instantiate(model, root) : GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    thing.name = part.Asset;
+                    thing.transform.SetParent(root, false);
+                    thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
+                    thing.transform.localScale = ToUnity(part.Scale);
+                    foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
+                    {
+                        renderer.enabled = !renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal);
+                        renderer.sharedMaterial = material;
+                    }
+                }
+
+                PlacedColors.Apply(thing, PartColor(part, settings));
+            }
+
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                t.gameObject.hideFlags = HideFlags.DontSave | HideFlags.NotEditable;
+            }
+        }
+
+        /// <summary>
+        /// Saves the selected placements of an opened zone (or group) as the new group <paramref name="key"/> and
+        /// puts a copy of it in their place, its pivot at the bottom center of what was selected. Spawn markers stay.
+        /// </summary>
+        public static bool SaveSelection(ZoneEditing editing, string key, CometSettings settings)
+        {
+            var selected = Selection.gameObjects.Select(g => g.GetComponent<ZonePlacement>())
+                .Where(p => p != null && p.GetComponentInParent<ZoneSpawn>() == null && p.GetComponentInParent<ZoneEditing>() == editing)
+                .ToList();
+            if (selected.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Save as group", "Select the placed objects to make into a group first (spawn markers can't be in one).", "OK");
+                return false;
+            }
+
+            if (!ZoneValidation.IsKey(key, "group") || Find(key) != null)
+            {
+                EditorUtility.DisplayDialog("Save as group", Find(key) != null ? $"There's already a group '{key}'." : "Pick a new key: 'group.' then lowercase letters, digits and underscores.", "OK");
+                return false;
+            }
+
+            var renderers = selected.SelectMany(p => p.GetComponentsInChildren<Renderer>()).Where(r => r.enabled).ToList();
+            var bounds = renderers.Count > 0 ? renderers[0].bounds : new Bounds(selected[0].transform.position, Vector3.zero);
+            foreach (var r in renderers.Skip(1))
+            {
+                bounds.Encapsulate(r.bounds);
+            }
+
+            var pivot = new Vector3(Round(bounds.center.x), Round(bounds.min.y), Round(bounds.center.z));
+            var group = new Group
+            {
+                Id = key,
+                Parts = selected.Select(p =>
+                {
+                    var part = ZoneEditor.PlacementOf(p);
+                    part.Position -= ToNumerics(pivot);
+                    part.Name = null;
+                    return part;
+                }).ToArray(),
+            };
+            var file = GroupFile.FileFor(key);
+            if (!Check(group, file, settings))
+            {
+                return false;
+            }
+
+            GroupFile.Write(Path.Combine(ZoneEditor.ProjectPath(settings.groupsFolder), file), group);
+            _groups = null;
+
+            Undo.SetCurrentGroupName($"Save as {key}");
+            var undoGroup = Undo.GetCurrentGroup();
+            var parent = selected[0].transform.parent;
+            foreach (var p in selected)
+            {
+                Undo.DestroyObjectImmediate(p.gameObject);
+            }
+
+            var copy = CreateCopy(key, parent);
+            copy.transform.position = pivot;
+            Undo.RegisterCreatedObjectUndo(copy, $"Save as {key}");
+            Undo.CollapseUndoOperations(undoGroup);
+            Selection.activeGameObject = copy;
+            Debug.Log($"Saved {selected.Count} objects as {key} ({settings.groupsFolder}/{file}).");
+            return true;
+        }
+
+        /// <summary>Replaces a copy with its group's parts as loose placements, one level only (nested groups stay copies).</summary>
+        public static void Unpack(ZonePlacement copy, CometSettings settings)
+        {
+            if (Find(copy.group) is not { } group)
+            {
+                return;
+            }
+
+            Undo.SetCurrentGroupName($"Unpack {copy.group}");
+            var undoGroup = Undo.GetCurrentGroup();
+            var parent = copy.transform.parent;
+            var made = Groups.Place(ZoneEditor.PlacementOf(copy), group).Select(part =>
+            {
+                var thing = ZoneEditor.CreatePlaced(part, parent, settings);
+                Undo.RegisterCreatedObjectUndo(thing, $"Unpack {copy.group}");
+                return thing;
+            }).ToArray();
+            Undo.DestroyObjectImmediate(copy.gameObject);
+            Undo.CollapseUndoOperations(undoGroup);
+            Selection.objects = made.Cast<Object>().ToArray();
+        }
+
+        /// <summary>Opens a group in a scene of its own, its pivot at the origin; saving it updates every copy.</summary>
+        public static bool Open(string key, CometSettings settings)
+        {
+            var entry = Load().FirstOrDefault(g => g.Group.Id == key);
+            if (entry.Group == null || !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return false;
+            }
+
+            // Back to the zone it was opened from, if it was.
+            if (Object.FindAnyObjectByType<ZoneEditing>() is { IsGroup: false } zone)
+            {
+                SessionState.SetString(ReturnKey, zone.folder);
+            }
+
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            ZoneTerrainEditing.Forget();
+            settings = CometSettings.Find(quiet: true) ?? settings;
+            ZonePlacement.Budget = settings.Budget;
+            var root = new GameObject($"Group {key}");
+            var editing = root.AddComponent<ZoneEditing>();
+            editing.groupKey = key;
+            editing.folder = ZoneEditor.RelativeToProject(Path.Combine(ZoneEditor.ProjectPath(settings.groupsFolder), entry.File));
+            editing.ZoneData = MessagePackSerializer.Serialize(new Zone { Id = "zone.group" }, ZoneEditor.Serializer);
+            var placed = ZoneEditor.Child(root.transform, "Placed");
+            foreach (var part in entry.Group.Parts)
+            {
+                ZoneEditor.CreatePlaced(part, placed, settings);
+            }
+
+            Directory.CreateDirectory(ZoneEditor.ProjectPath(settings.scenesFolder));
+            ZoneEditorScenes.Quiet = true;
+            try
+            {
+                EditorSceneManager.SaveScene(scene, $"{settings.scenesFolder}/{key.Replace('.', '_')}.unity");
+            }
+            finally
+            {
+                ZoneEditorScenes.Quiet = false;
+            }
+
+            Selection.activeGameObject = root;
+            return true;
+        }
+
+        /// <summary>Writes a group being edited back to its file and redraws its copies; false (with the reasons shown) if it doesn't check out.</summary>
+        public static bool Save(ZoneEditing editing)
+        {
+            var settings = CometSettings.Find(quiet: true);
+            if (settings == null)
+            {
+                return false;
+            }
+
+            if (editing.GetComponentsInChildren<ZoneSpawn>().Length > 0)
+            {
+                Debug.LogWarning($"{editing.groupKey}: groups have no spawn points; the ones in this scene aren't saved.");
+            }
+
+            var group = new Group
+            {
+                Id = editing.groupKey,
+                Parts = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.GetComponentInParent<ZoneSpawn>() == null).Select(ZoneEditor.PlacementOf).ToArray(),
+            };
+            var path = ZoneEditor.ProjectPath(editing.folder);
+            if (!Check(group, Path.GetRelativePath(ZoneEditor.ProjectPath(settings.groupsFolder), path).Replace('\\', '/'), settings))
+            {
+                return false;
+            }
+
+            GroupFile.Write(path, group);
+            Reload();
+            Debug.Log($"Saved {group.Id} to {editing.folder}.");
+            return true;
+        }
+
+        // Checks a new or changed group against the others: the problems in it, or in a loop it would make.
+        private static bool Check(Group group, string file, CometSettings settings)
+        {
+            var groups = Load().Where(g => g.Group.Id != group.Id).Append((group, file)).ToList();
+            var errors = ZoneValidation.CheckGroups(groups, key => settings.assets != null ? ZoneEditor.AssetFor(settings.assets, key) : null)
+                .Where(e => e.File == file || e.Message.Contains(group.Id))
+                .ToList();
+            if (errors.Count > 0)
+            {
+                ZoneEditor.Report($"Didn't save {group.Id}", errors);
+                return false;
+            }
+
+            return true;
+        }
+
+        private static float Round(float value) => Mathf.Round(value * 1000) / 1000;
+
+        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
+
+        private static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
+    }
+}
