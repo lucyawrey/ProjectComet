@@ -244,9 +244,22 @@ namespace Comet.Unity.Editor
                 var picture = settings.placedMaterial != null ? Thumbnail($"{g.Id} {ZoneGroups.Version} {budgetKey}", ZoneGroups.Meshes(g.Id, settings), settings.placedMaterial, Color.clear, size * 2) : null;
                 return (g.Id, label, picture);
             }).ToList());
-            if (!spawn && asset.StartsWith("group.", StringComparison.Ordinal) && GUILayout.Button($"Edit {asset}"))
+            if (!spawn && asset.StartsWith("group.", StringComparison.Ordinal) && ZoneGroups.Find(asset) != null)
             {
-                ZoneGroups.OpenLater(asset, settings);
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button($"Edit {asset}"))
+                {
+                    ZoneGroups.OpenLater(asset, settings);
+                }
+
+                if (GUILayout.Button("Delete…", GUILayout.Width(70)))
+                {
+                    var key = asset;
+                    EditorApplication.delayCall += () => ZoneGroups.Delete(key, editing, settings); // after this GUI pass
+                    asset = "";
+                }
+
+                EditorGUILayout.EndHorizontal();
             }
 
             EditorGUILayout.BeginHorizontal();

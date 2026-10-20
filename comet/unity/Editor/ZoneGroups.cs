@@ -488,6 +488,119 @@ namespace Comet.Unity.Editor
         };
 
         // Checks a new or changed group against the others: the problems in it, or in a loop it would make.
+        /// <summary>
+        /// Deletes the group <paramref name="key"/>'s file, after asking. Copies in the open zone or group are unpacked
+        /// into loose placements and that scene saved first, if the person agrees; any other use (another zone, another
+        /// group, a game content file naming it) stops the delete and is listed. Its id stays reserved. Not undoable
+        /// (version control keeps the file).
+        /// </summary>
+        public static void Delete(string key, ZoneEditing editing, CometSettings settings)
+        {
+            if (Load().FirstOrDefault(g => g.Group.Id == key) is not { Group: not null } entry)
+            {
+                return;
+            }
+
+            if (InPlace != null)
+            {
+                EditorUtility.DisplayDialog("Delete group", "Finish editing a group in place first (Save group or Cancel).", "OK");
+                return;
+            }
+
+            var here = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.group == key).ToList();
+            var openFile = editing.IsGroup ? Load().FirstOrDefault(g => g.Group.Id == editing.groupKey).File : null;
+            var elsewhere = Uses(key, settings, openZone: editing.IsGroup ? null : ZoneEditor.ProjectPath(editing.folder), openGroupFile: openFile);
+            if (elsewhere.Count > 0)
+            {
+                EditorUtility.DisplayDialog("Delete group", $"{key} is still used, so it wasn't deleted:\n\n{string.Join("\n", elsewhere.Take(12))}"
+                    + (elsewhere.Count > 12 ? $"\n…and {elsewhere.Count - 12} more" : "") + "\n\nRemove or unpack those first.", "OK");
+                return;
+            }
+
+            // The open scene's saved files may use it too (copies removed but not saved yet): saving fixes those.
+            var saved = editing.IsGroup
+                ? Find(editing.groupKey)?.Parts.Any(p => p.Group == key) == true
+                : ZoneFolder.Read(ZoneEditor.ProjectPath(editing.folder), new List<ZoneFileError>())?.Chunks.Any(c => c.Placements.Any(p => p.Group == key)) == true;
+            var what = editing.IsGroup ? $"the group {editing.groupKey}" : "this zone";
+            var message = $"Delete {key}? Its file ({entry.File}) is deleted; this can't be undone here. Its id stays reserved, never reused.";
+            if (here.Count > 0)
+            {
+                message += $"\n\n{here.Count} {(here.Count == 1 ? "copy" : "copies")} in {what} will be unpacked into loose placements, and {what} saved.";
+            }
+            else if (saved)
+            {
+                message += $"\n\n{what} is saved first: its saved files still use {key}.";
+            }
+
+            if (!EditorUtility.DisplayDialog("Delete group", message, "Delete", "Cancel"))
+            {
+                return;
+            }
+
+            if (here.Count > 0 || saved)
+            {
+                foreach (var copy in here)
+                {
+                    Unpack(copy, settings);
+                }
+
+                if (!(editing.IsGroup ? Save(editing) : ZoneEditor.Save(editing)))
+                {
+                    Debug.LogWarning($"{key} wasn't deleted: {what} didn't save.");
+                    return;
+                }
+            }
+
+            File.Delete(Path.Combine(ZoneEditor.ProjectPath(settings.groupsFolder), entry.File));
+            Reload();
+            Debug.Log($"Deleted {key} ({entry.File}).");
+        }
+
+        // Where a group is used, outside the scene that's open: zone files, other groups' parts, and the game's other
+        // content files that name its key (such as a look).
+        private static List<string> Uses(string key, CometSettings settings, string? openZone, string? openGroupFile)
+        {
+            var uses = new List<string>();
+            foreach (var (group, file) in Load().Where(g => g.Group.Id != key && g.File != openGroupFile))
+            {
+                if (group.Parts.Any(p => p.Group == key))
+                {
+                    uses.Add($"the group {group.Id} ({file})");
+                }
+            }
+
+            var zones = ZoneEditor.ProjectPath(settings.zonesFolder);
+            if (Directory.Exists(zones))
+            {
+                foreach (var folder in Directory.GetDirectories(zones).Where(f => openZone == null || Path.GetFullPath(f) != Path.GetFullPath(openZone)))
+                {
+                    var zone = ZoneFolder.Read(folder, new List<ZoneFileError>());
+                    var count = zone?.Chunks.Sum(c => c.Placements.Count(p => p.Group == key)) ?? 0;
+                    if (count > 0)
+                    {
+                        uses.Add($"the zone {Path.GetFileName(folder)} ({count} {(count == 1 ? "copy" : "copies")})");
+                    }
+                }
+            }
+
+            // The game's other content (the folder holding the groups folder), by a search for the quoted key.
+            var groups = ZoneEditor.ProjectPath(settings.groupsFolder) + Path.DirectorySeparatorChar;
+            var content = Path.GetDirectoryName(groups.TrimEnd(Path.DirectorySeparatorChar));
+            if (content != null && Directory.Exists(content))
+            {
+                foreach (var file in Directory.EnumerateFiles(content, "*.toml", SearchOption.AllDirectories)
+                    .Where(f => !f.StartsWith(groups, System.StringComparison.Ordinal) && !f.StartsWith(zones + Path.DirectorySeparatorChar, System.StringComparison.Ordinal)))
+                {
+                    if (File.ReadAllText(file).Contains($"\"{key}\""))
+                    {
+                        uses.Add(Path.GetRelativePath(content, file).Replace('\\', '/'));
+                    }
+                }
+            }
+
+            return uses;
+        }
+
         private static bool Check(Group group, string file, CometSettings settings)
         {
             var groups = Load().Where(g => g.Group.Id != group.Id).Append((group, file)).ToList();
