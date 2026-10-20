@@ -37,3 +37,18 @@ facing = "direction"
 primitive = "cylinder"
 position = [-47.603, 1.202, 2.426]
 scale = [4.0, 0.4, 4.0]
+
+[[teleporter]]
+id = "teleporter.hub.cube"
+volume = "box"
+position = [-0.408, 8.918, 41.307]
+size = [2.0, 2.0, 2.0]
+stand_seconds = 1.0
+facing = "direction"
+target = "teleporter.hub.theatre"
+
+[teleporter.pad]
+primitive = "box"
+position = [-0.408, 8.518, 41.307]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB

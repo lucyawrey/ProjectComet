@@ -58,7 +58,8 @@ namespace ShapeLand.Client.Editor
                 && settings.spawnPadColor == GameView.Color(game.Spawns.UnsetColor) && settings.spawnStandSeconds == game.Spawns.StandSeconds
                 && settings.teleporterPad == game.Teleporters.Pad && settings.teleporterPadSize.y == game.Teleporters.PadHeight
                 && settings.teleporterPadColor == GameView.Color(game.Teleporters.PadColor) && settings.teleporterStandSeconds == game.Teleporters.StandSeconds
-                && settings.triggerStandSeconds == game.Triggers.StandSeconds
+                && settings.triggerStandSeconds == game.Triggers.StandSeconds && settings.spawnVolumeHeight == game.Spawns.VolumeHeight
+                && settings.teleporterVolumeHeight == game.Teleporters.VolumeHeight && settings.triggerVolumeHeight == game.Triggers.VolumeHeight
                 && settings.facetLength == game.Primitives.FacetLength && settings.minSides == game.Primitives.MinSides && settings.maxSides == game.Primitives.MaxSides)
             {
                 return;
@@ -77,6 +78,9 @@ namespace ShapeLand.Client.Editor
             settings.teleporterPadColor = GameView.Color(game.Teleporters.PadColor);
             settings.teleporterStandSeconds = game.Teleporters.StandSeconds;
             settings.triggerStandSeconds = game.Triggers.StandSeconds;
+            settings.spawnVolumeHeight = game.Spawns.VolumeHeight;
+            settings.teleporterVolumeHeight = game.Teleporters.VolumeHeight;
+            settings.triggerVolumeHeight = game.Triggers.VolumeHeight;
             settings.facetLength = game.Primitives.FacetLength;
             settings.minSides = game.Primitives.MinSides;
             settings.maxSides = game.Primitives.MaxSides;

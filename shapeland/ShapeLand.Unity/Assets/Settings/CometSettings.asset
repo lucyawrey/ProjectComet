@@ -30,11 +30,14 @@ MonoBehaviour:
   spawnPadSize: {x: 4, y: 0.4, z: 4}
   spawnPadColor: {r: 0.92941177, g: 0.9098039, b: 0.85490197, a: 1}
   spawnStandSeconds: 2
+  spawnVolumeHeight: 2
   teleporterPad: box
   teleporterPadSize: {x: 2, y: 0.4, z: 2}
   teleporterPadColor: {r: 0.7019608, g: 0.6156863, b: 0.85882354, a: 1}
   teleporterStandSeconds: 1
+  teleporterVolumeHeight: 2
   triggerStandSeconds: 0
+  triggerVolumeHeight: 2
   swatches:
   - {r: 0.9490196, g: 0.9490196, b: 0.9490196, a: 1}
   - {r: 0.61960787, g: 0.61960787, b: 0.61960787, a: 1}

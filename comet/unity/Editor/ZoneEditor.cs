@@ -642,13 +642,14 @@ namespace Comet.Unity.Editor
             var trigger = point.gameObject.AddComponent<T>();
             trigger.id = id;
             Undo.RegisterCreatedObjectUndo(point.gameObject, $"Add {id}");
-            var (padKind, padSize, standSeconds) = trigger switch
+            var (padKind, padSize, standSeconds, height) = trigger switch
             {
-                ZoneSpawn => (settings.spawnPad, settings.spawnPadSize, settings.spawnStandSeconds),
-                ZoneTeleporter => (settings.teleporterPad, settings.teleporterPadSize, settings.teleporterStandSeconds),
-                _ => ("", Vector3.zero, settings.triggerStandSeconds),
+                ZoneSpawn => (settings.spawnPad, settings.spawnPadSize, settings.spawnStandSeconds, settings.spawnVolumeHeight),
+                ZoneTeleporter => (settings.teleporterPad, settings.teleporterPadSize, settings.teleporterStandSeconds, settings.teleporterVolumeHeight),
+                _ => ("", Vector3.zero, settings.triggerStandSeconds, settings.triggerVolumeHeight),
             };
             trigger.standSeconds = standSeconds;
+            trigger.size.y = height;
             if (trigger is ZoneSpawn)
             {
                 trigger.volume = ZoneTrigger.VolumeKind.Cylinder;

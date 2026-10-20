@@ -147,6 +147,9 @@ public static class ShapeLandBuild
         InRange(spawns, nameof(SpawnSettings.PadHeight), settings.Spawns.PadHeight, 5);
         InRange(teleporters, nameof(TeleporterSettings.StandSeconds), settings.Teleporters.StandSeconds, 60);
         InRange(teleporters, nameof(TeleporterSettings.PadHeight), settings.Teleporters.PadHeight, 5);
+        InRange(spawns, nameof(SpawnSettings.VolumeHeight), settings.Spawns.VolumeHeight, 50);
+        InRange(teleporters, nameof(TeleporterSettings.VolumeHeight), settings.Teleporters.VolumeHeight, 50);
+        InRange(triggers, nameof(TriggerSettings.VolumeHeight), settings.Triggers.VolumeHeight, 50);
         if (settings.Triggers.StandSeconds < 0 || settings.Triggers.StandSeconds > 60)
         {
             validation.Error(triggers, nameof(TriggerSettings.StandSeconds), $"{settings.Triggers.StandSeconds} is out of range (0 to 60).");

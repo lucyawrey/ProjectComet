@@ -67,6 +67,9 @@ namespace Comet.Unity.Editor
         [Tooltip("How long a player stands in a new spawn point to claim it, in seconds.")]
         public float spawnStandSeconds = 2;
 
+        [Tooltip("How tall a new spawn point's volume is, in meters, above its pad.")]
+        public float spawnVolumeHeight = 2;
+
         [Tooltip("If set, each new teleporter gets a pad: this primitive (box), flattened and sunk halfway into the ground under it.")]
         public string teleporterPad = "";
 
@@ -79,8 +82,14 @@ namespace Comet.Unity.Editor
         [Tooltip("How long a player stands in a new teleporter before it sends them, in seconds.")]
         public float teleporterStandSeconds = 1;
 
+        [Tooltip("How tall a new teleporter's volume is, in meters, above its pad.")]
+        public float teleporterVolumeHeight = 2;
+
         [Tooltip("How long a player stands in a new trigger before it fires, in seconds (0 at once). New triggers have no pad.")]
         public float triggerStandSeconds;
+
+        [Tooltip("How tall a new trigger's volume is, in meters.")]
+        public float triggerVolumeHeight = 2;
 
         [Tooltip("The colors the place tool offers to place things in, beside its color picker.")]
         public System.Collections.Generic.List<Color> swatches = new System.Collections.Generic.List<Color>

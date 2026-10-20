@@ -108,6 +108,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>A pad's color while it isn't the player's spawn, as 0xRRGGBB: a pale color used nowhere else.</summary>
         [JsonRequired] [Key(3)] public uint UnsetColor { get; set; }
+
+        /// <summary>How tall a new spawn point's volume is, in meters, above its pad.</summary>
+        [JsonRequired] [Key(4)] public float VolumeHeight { get; set; }
     }
 
     /// <summary>Teleporters: the editor's defaults for new ones (each keeps its own after).</summary>
@@ -124,6 +127,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>A new pad's color, as 0xRRGGBB.</summary>
         [JsonRequired] [Key(3)] public uint PadColor { get; set; }
+
+        /// <summary>How tall a new teleporter's volume is, in meters, above its pad.</summary>
+        [JsonRequired] [Key(4)] public float VolumeHeight { get; set; }
     }
 
     /// <summary>Triggers with toggle effects: the editor's defaults for new ones (each keeps its own after; new ones have no pad).</summary>
@@ -132,6 +138,9 @@ namespace ShapeLand.Shared.Content
     {
         /// <summary>How long a player stands in a new trigger before it fires, in seconds (0 fires at once).</summary>
         [JsonRequired] [Key(0)] public float StandSeconds { get; set; }
+
+        /// <summary>How tall a new trigger's volume is, in meters.</summary>
+        [JsonRequired] [Key(1)] public float VolumeHeight { get; set; }
     }
 
     [MessagePackObject]

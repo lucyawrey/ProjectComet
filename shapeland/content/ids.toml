@@ -48,6 +48,8 @@ theatre = 11
 "tests.to_far" = 2
 "tests.west" = 3
 "tests_far.back" = 4
+"hub.cube" = 5
+"hub.theatre" = 6
 
 [trigger]
 "tests.plate" = 1
