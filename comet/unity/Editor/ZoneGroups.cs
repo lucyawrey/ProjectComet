@@ -123,6 +123,9 @@ namespace Comet.Unity.Editor
             : part.Primitive == null && settings.assets != null && settings.assets.TryGet(part.Asset, out var entry) && entry.hasColor ? entry.color
             : settings.placedColor;
 
+        /// <summary>Draws a copy's parts again now (after a change to it, such as its blockout flag).</summary>
+        public static void Redraw(ZonePlacement copy) => Draw(copy);
+
         // Draws a copy's parts under it as uneditable objects the scene doesn't save, built again each time.
         private static void Draw(ZonePlacement copy)
         {

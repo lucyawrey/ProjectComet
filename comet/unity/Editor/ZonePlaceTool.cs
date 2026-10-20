@@ -23,6 +23,7 @@ namespace Comet.Unity.Editor
         [SerializeField] private string spawnKey = "spawn.";
         [SerializeField] private string groupKey = "group.";
         [SerializeField] private Color color = Color.clear; // clear until first shown: then the game's placed color
+        [SerializeField] private bool blockout;
 
         private GUIContent? _icon;
         private Vector3? _hover;
@@ -194,6 +195,7 @@ namespace Comet.Unity.Editor
             }
 
             ColorRow(settings);
+            blockout = EditorGUILayout.ToggleLeft(new GUIContent("Place as blockout", "What's placed is blockout: drawn with the blockout grid and listed by the content build until it's finished or swapped for an asset."), blockout);
             EditorGUILayout.Space();
 
             // As many buttons to a row as the panel's width fits.
@@ -398,7 +400,18 @@ namespace Comet.Unity.Editor
         {
             if (!spawn)
             {
-                Selection.activeGameObject = ZoneEditor.Place(editing, asset, at, settings, color);
+                var placed = ZoneEditor.Place(editing, asset, at, settings, color);
+                if (blockout && placed.GetComponent<ZonePlacement>() is { } placement)
+                {
+                    placement.blockout = true;
+                    placement.ApplyColor();
+                    if (placement.IsGroup)
+                    {
+                        ZoneGroups.Redraw(placement);
+                    }
+                }
+
+                Selection.activeGameObject = placed;
                 return;
             }
 
