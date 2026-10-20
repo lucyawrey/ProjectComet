@@ -26,9 +26,15 @@ MonoBehaviour:
   underColor: {r: 0.47843137, g: 0.36078432, b: 0.24313726, a: 1}
   placedColor: {r: 0.61960787, g: 0.54901963, b: 0.47843137, a: 1}
   bodyHeight: 1
-  spawnMarker: cylinder
-  spawnMarkerHeight: 0.4
-  spawnMarkerColor: {r: 0.92941177, g: 0.9098039, b: 0.85490197, a: 1}
+  spawnPad: cylinder
+  spawnPadSize: {x: 4, y: 0.4, z: 4}
+  spawnPadColor: {r: 0.92941177, g: 0.9098039, b: 0.85490197, a: 1}
+  spawnStandSeconds: 2
+  teleporterPad: box
+  teleporterPadSize: {x: 2, y: 0.4, z: 2}
+  teleporterPadColor: {r: 0.7019608, g: 0.6156863, b: 0.85882354, a: 1}
+  teleporterStandSeconds: 1
+  triggerStandSeconds: 0
   swatches:
   - {r: 0.9490196, g: 0.9490196, b: 0.9490196, a: 1}
   - {r: 0.61960787, g: 0.61960787, b: 0.61960787, a: 1}
