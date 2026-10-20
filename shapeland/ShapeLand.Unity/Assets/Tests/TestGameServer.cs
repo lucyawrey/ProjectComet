@@ -18,6 +18,9 @@ namespace ShapeLand.Client.Tests
         /// <summary>The zone the tests play, laid out for them: change it only along with them.</summary>
         public const string Zone = "zone.tests";
 
+        /// <summary>Where every player starts, in <see cref="Zone"/> (the server's ShapeLand:StartSpawn).</summary>
+        public const string StartSpawn = "spawn.tests.start";
+
         private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
 
         private Process _process;
@@ -57,7 +60,7 @@ namespace ShapeLand.Client.Tests
         private IEnumerator Launch()
         {
             // The server's output isn't read: reading a child's output asynchronously keeps Unity's editor from exiting.
-            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port} --ShapeLand:Zone {Zone}");
+            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port} --ShapeLand:StartSpawn {StartSpawn}");
             var listening = false;
             var deadline = Time.realtimeSinceStartup + 30;
             while (!listening && !_process.HasExited && Time.realtimeSinceStartup < deadline)

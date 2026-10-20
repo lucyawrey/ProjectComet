@@ -24,11 +24,14 @@ namespace Comet.Unity
         [Tooltip("Whether this places a primitive, built in code, instead of a prop.")]
         public bool isPrimitive;
 
-        [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
+        [Tooltip("An optional name for triggers to flip it by (and game code to find it by); several placements may share one to flip together.")]
         public string placementName = "";
 
         [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
         public bool blockout;
+
+        [Tooltip("Starts off: hidden and not solid in the game until a trigger flips it on. Give it a name for triggers to flip it by.")]
+        public bool off;
 
         [Tooltip("A group part's role (body, leaves), for game code to find or color it by, and for copies to recolor it by; empty for most. Only a group's parts have one.")]
         public string role = "";

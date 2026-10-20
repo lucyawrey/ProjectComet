@@ -11,7 +11,8 @@ namespace ShapeLand.Client.Editor
     /// <summary>
     /// Keeps what the editor holds from ShapeLand's content in step with it each time Comet copies the content in
     /// (<see cref="ContentBuild"/>): the prop library (<see cref="PropLibrary"/>) follows the content's prop
-    /// entries, and the Comet settings take the game's terrain colors, body height, spawn markers and polygon budget.
+    /// entries, and the Comet settings take the game's terrain colors, body height, defaults for new spawn points,
+    /// teleporters and triggers, and polygon budget.
     /// </summary>
     [InitializeOnLoad]
     public static class ContentSync
@@ -28,7 +29,7 @@ namespace ShapeLand.Client.Editor
             };
         }
 
-        // The Comet settings that come from the game's content: terrain colors, the body height, spawn markers and the
+        // The Comet settings that come from the game's content: terrain colors, the body height, trigger defaults and the
         // polygon budget.
         private static void RefreshCometSettings(byte[] contentFile)
         {
@@ -53,8 +54,11 @@ namespace ShapeLand.Client.Editor
             var under = GameView.Color(game.World.UnderColor);
             var placed = GameView.Color(game.World.PlacedColor);
             if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
-                && settings.spawnMarker == game.Spawns.Marker && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
-                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor)
+                && settings.spawnPad == game.Spawns.Pad && settings.spawnPadSize.y == game.Spawns.PadHeight
+                && settings.spawnPadColor == GameView.Color(game.Spawns.UnsetColor) && settings.spawnStandSeconds == game.Spawns.StandSeconds
+                && settings.teleporterPad == game.Teleporters.Pad && settings.teleporterPadSize.y == game.Teleporters.PadHeight
+                && settings.teleporterPadColor == GameView.Color(game.Teleporters.PadColor) && settings.teleporterStandSeconds == game.Teleporters.StandSeconds
+                && settings.triggerStandSeconds == game.Triggers.StandSeconds
                 && settings.facetLength == game.Primitives.FacetLength && settings.minSides == game.Primitives.MinSides && settings.maxSides == game.Primitives.MaxSides)
             {
                 return;
@@ -64,9 +68,15 @@ namespace ShapeLand.Client.Editor
             settings.underColor = under;
             settings.placedColor = placed;
             settings.bodyHeight = game.Movement.BodyHeight;
-            settings.spawnMarker = game.Spawns.Marker;
-            settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
-            settings.spawnMarkerColor = GameView.Color(game.Spawns.UnsetColor);
+            settings.spawnPad = game.Spawns.Pad;
+            settings.spawnPadSize.y = game.Spawns.PadHeight;
+            settings.spawnPadColor = GameView.Color(game.Spawns.UnsetColor);
+            settings.spawnStandSeconds = game.Spawns.StandSeconds;
+            settings.teleporterPad = game.Teleporters.Pad;
+            settings.teleporterPadSize.y = game.Teleporters.PadHeight;
+            settings.teleporterPadColor = GameView.Color(game.Teleporters.PadColor);
+            settings.teleporterStandSeconds = game.Teleporters.StandSeconds;
+            settings.triggerStandSeconds = game.Triggers.StandSeconds;
             settings.facetLength = game.Primitives.FacetLength;
             settings.minSides = game.Primitives.MinSides;
             settings.maxSides = game.Primitives.MaxSides;

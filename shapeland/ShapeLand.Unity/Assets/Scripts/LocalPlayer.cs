@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Comet.Client;
 using Comet.Protocol.Messages;
 using Comet.Simulation;
@@ -12,7 +13,8 @@ namespace ShapeLand.Client
     /// The player's own shape: moves it with the shared <see cref="PlayerMotor"/> on a fixed step, reports its
     /// position, and draws it between the last two steps. A snap-back from the server moves the simulation at once
     /// and blends the drawn shape after it; a respawn moves both, behind the screen fade, which starts while
-    /// falling (<see cref="RespawnFade"/>).
+    /// falling (<see cref="RespawnFade"/>); a teleport moves both at once. Placements that turn solid around the
+    /// player are passed through until the player is out of them.
     /// </summary>
     public sealed class LocalPlayer : MonoBehaviour
     {
@@ -46,6 +48,23 @@ namespace ShapeLand.Client
         /// <summary>The motor's state after the latest step.</summary>
         public MotorState Motor => _motor;
 
+        /// <summary>The world the player moves in; set anew when the server puts them in another zone.</summary>
+        public CollisionWorld World
+        {
+            get => _world;
+            set
+            {
+                _world = value;
+                PassThrough.Clear();
+            }
+        }
+
+        /// <summary>The meshes the player passes through: turned on around them, until they're out (as the server keeps them).</summary>
+        public HashSet<int> PassThrough { get; } = new HashSet<int>();
+
+        /// <summary>How many times a teleporter sent the player somewhere.</summary>
+        public int Teleports { get; private set; }
+
         /// <summary>How many times the server has moved the player back (a correction that wasn't a respawn).</summary>
         public int SnapBacks { get; private set; }
 
@@ -78,6 +97,18 @@ namespace ShapeLand.Client
 
         /// <summary>Moves on as <paramref name="shape"/> from now on, with its speed and jump.</summary>
         public void ChangeShape(Shape shape) => _shape = shape;
+
+        /// <summary>Placements named <paramref name="name"/> flipped: any that turned solid around the player are passed through.</summary>
+        public void Flipped(string name)
+        {
+            foreach (var mesh in _world.MeshesNamed(name))
+            {
+                if (_world.IsOn(mesh) && _world.Overlaps(mesh, _motor.Position, _rules.BodyRadius, _rules.BodyHeight))
+                {
+                    PassThrough.Add(mesh);
+                }
+            }
+        }
 
         /// <summary>
         /// Turns stick or key input (x right, y forward) into a direction on the ground (X, Z) relative to a
@@ -116,7 +147,12 @@ namespace ShapeLand.Client
             {
                 var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
-                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules);
+                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules, PassThrough);
+                if (PassThrough.Count > 0)
+                {
+                    PassThrough.RemoveWhere(mesh => !_world.Overlaps(mesh, _motor.Position, _rules.BodyRadius, _rules.BodyHeight));
+                }
+
                 _jumpQueued = false;
                 // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.
                 if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds))
@@ -150,6 +186,11 @@ namespace ShapeLand.Client
                 _blend.Clear();
                 Darkness = 1;
                 Respawns++;
+            }
+            else if (correction.Reason == CorrectionReason.Teleport)
+            {
+                _blend.Clear();
+                Teleports++;
             }
             else
             {

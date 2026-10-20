@@ -56,14 +56,33 @@ namespace Comet.Unity.Editor
         [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
         public float bodyHeight = 1;
 
-        [Tooltip("If set, each new spawn point gets a marker: this prop (prop.rock) or primitive (cylinder), placed flattened under it and named with its key.")]
-        public string spawnMarker = "";
+        [Header("New spawn points, teleporters and triggers")]
+        [Tooltip("If set, each new spawn point gets a pad: this primitive (cylinder), flattened and sunk halfway into the ground under it.")]
+        public string spawnPad = "";
 
-        [Tooltip("How tall a new spawn point's marker is, in meters, sunk halfway into the ground; it can be moved and scaled after.")]
-        public float spawnMarkerHeight = 0.4f;
+        [Tooltip("A new spawn point's pad size, in meters; it can be moved and scaled after (Fit Trigger to Pad fits the volume again).")]
+        public Vector3 spawnPadSize = new Vector3(4, 0.4f, 4);
 
-        [Tooltip("The color spawn markers are drawn in, as the game draws a marker that isn't the player's.")]
-        public Color spawnMarkerColor = Color.white;
+        [Tooltip("The color spawn pads are drawn in, as the game draws a pad that isn't the player's spawn.")]
+        public Color spawnPadColor = Color.white;
+
+        [Tooltip("How long a player stands in a new spawn point to claim it, in seconds.")]
+        public float spawnStandSeconds = 2;
+
+        [Tooltip("If set, each new teleporter gets a pad: this primitive (box), flattened and sunk halfway into the ground under it.")]
+        public string teleporterPad = "";
+
+        [Tooltip("A new teleporter's pad size, in meters.")]
+        public Vector3 teleporterPadSize = new Vector3(2, 0.4f, 2);
+
+        [Tooltip("A new teleporter pad's color.")]
+        public Color teleporterPadColor = Color.white;
+
+        [Tooltip("How long a player stands in a new teleporter before it sends them, in seconds.")]
+        public float teleporterStandSeconds = 1;
+
+        [Tooltip("How long a player stands in a new trigger before it fires, in seconds (0 at once). New triggers have no pad.")]
+        public float triggerStandSeconds;
 
         [Tooltip("The colors the place tool offers to place things in, beside its color picker.")]
         public System.Collections.Generic.List<Color> swatches = new System.Collections.Generic.List<Color>

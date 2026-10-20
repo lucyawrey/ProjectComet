@@ -39,7 +39,7 @@ namespace Comet.Unity.Editor
                 }
             };
 
-            ObjectChangeEvents.changesPublished += FreshSpawnKeys;
+            ObjectChangeEvents.changesPublished += FreshTriggerKeys;
 
             // The asset database isn't ready while scripts load.
             EditorApplication.delayCall += () => SetPlayScene(CometSettings.Find(quiet: true));
@@ -57,8 +57,8 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A new spawn point (duplicated or pasted) whose key another already has gets the first free one: key_2, key_3…
-        private static void FreshSpawnKeys(ref ObjectChangeEventStream stream)
+        // A new spawn point, teleporter or trigger (duplicated or pasted) whose key another already has gets the first free one: key_2, key_3…
+        private static void FreshTriggerKeys(ref ObjectChangeEventStream stream)
         {
             for (var i = 0; i < stream.length; i++)
             {
@@ -73,7 +73,7 @@ namespace Comet.Unity.Editor
                     continue;
                 }
 
-                foreach (var spawn in root.GetComponentsInChildren<ZoneSpawn>())
+                foreach (var spawn in root.GetComponentsInChildren<ZoneTrigger>())
                 {
                     var zone = spawn.GetComponentInParent<ZoneEditing>();
                     if (zone == null)
@@ -81,7 +81,7 @@ namespace Comet.Unity.Editor
                         continue;
                     }
 
-                    var others = zone.GetComponentsInChildren<ZoneSpawn>().Where(s => s != spawn).Select(s => s.key).ToHashSet();
+                    var others = zone.GetComponentsInChildren<ZoneTrigger>().Where(s => s != spawn).Select(s => s.key).ToHashSet();
                     if (!others.Contains(spawn.key))
                     {
                         continue;
@@ -94,10 +94,9 @@ namespace Comet.Unity.Editor
                         n++;
                     }
 
-                    Undo.RecordObject(spawn, "Fresh spawn key");
-                    Undo.RecordObject(spawn.gameObject, "Fresh spawn key");
+                    Undo.RecordObject(spawn, "Fresh key");
+                    Undo.RecordObject(spawn.gameObject, "Fresh key");
                     spawn.key = $"{stem}_{n}";
-                    spawn.isDefault = false; // the original stays the default
                     spawn.gameObject.name = spawn.key;
                     foreach (var marker in spawn.GetComponentsInChildren<ZonePlacement>())
                     {

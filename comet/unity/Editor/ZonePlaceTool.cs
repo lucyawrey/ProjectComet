@@ -11,16 +11,17 @@ namespace Comet.Unity.Editor
 {
     /// <summary>
     /// The Scene view's place tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Place
-    /// Tool): pick a primitive, a prop or a spawn point in its panel, then click in the scene to place it on whatever is under
-    /// the mouse. Placed objects are moved, turned and scaled with Unity's own tools; spawn points are edited in the
-    /// Inspector.
+    /// Tool): pick a primitive, a prop, or a new spawn point, teleporter or trigger in its panel, then click in the
+    /// scene to place it on whatever is under the mouse. Placed objects are moved, turned and scaled with Unity's own
+    /// tools; spawn points, teleporters and triggers are edited in the Inspector.
     /// </summary>
     [EditorTool("Zone Place")]
     public sealed class ZonePlaceTool : EditorTool
     {
         [SerializeField] private string placeable = "";
-        [SerializeField] private bool spawn;
-        [SerializeField] private string spawnKey = "spawn.";
+        // The kind of trigger to add (spawn, teleporter or trigger), or empty to place placeables; and its name.
+        [SerializeField] private string adding = "";
+        [SerializeField] private string addingName = "";
         [SerializeField] private string groupKey = "group.";
         [SerializeField] private Color color = Color.clear; // clear until first shown: then the game's placed color
         [SerializeField] private bool blockout;
@@ -37,7 +38,7 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Place Tool", true)]
         private static bool CanSelect() => Editing != null;
 
-        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Prefab Icon").image, "Zone Place: place primitives, props and spawn points in the opened zone");
+        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Prefab Icon").image, "Zone Place: place primitives, props, spawn points, teleporters and triggers in the opened zone");
 
         public override bool IsAvailable() => Editing != null;
 
@@ -211,11 +212,11 @@ namespace Comet.Unity.Editor
                     foreach (var (key, label, picture) in items.Skip(i).Take(perRow))
                     {
                         var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, key);
-                        var picked = !spawn && placeable == key;
+                        var picked = adding.Length == 0 && placeable == key;
                         if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) && !picked)
                         {
                             placeable = key;
-                            spawn = false;
+                            adding = "";
                         }
                     }
 
@@ -246,7 +247,7 @@ namespace Comet.Unity.Editor
                 var picture = settings.placedMaterial != null ? Thumbnail($"{g.Id} {ZoneGroups.Version} {budgetKey}", ZoneGroups.Meshes(g.Id, settings), settings.placedMaterial, Color.clear, size * 2) : null;
                 return (g.Id, label, picture);
             }).ToList());
-            if (!spawn && placeable.StartsWith("group.", StringComparison.Ordinal) && ZoneGroups.Find(placeable) != null)
+            if (adding.Length == 0 && placeable.StartsWith("group.", StringComparison.Ordinal) && ZoneGroups.Find(placeable) != null)
             {
                 EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button($"Edit {placeable}"))
@@ -288,38 +289,41 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Spawn points", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Spawn points, teleporters and triggers", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
-            // Its picture is the spawn marker, flattened as a new spawn's is, in the markers' color.
-            var marker = settings.placedMaterial != null && !string.IsNullOrEmpty(settings.spawnMarker)
-                ? Thumbnail($"spawn {settings.spawnMarker} {settings.spawnMarkerHeight} {budgetKey}",
-                    Parts(settings.spawnMarker, settings, new Vector3(2 * ZoneSpawn.DefaultRadius, settings.spawnMarkerHeight, 2 * ZoneSpawn.DefaultRadius)),
-                    settings.placedMaterial, settings.spawnMarkerColor, size * 2)
-                : null;
-            var spawnContent = marker != null ? new GUIContent(marker, "New spawn point") : new GUIContent("New spawn point");
-            var spawnPicked = GUILayout.Toggle(spawn, spawnContent, GUI.skin.button, GUILayout.Width(marker != null ? size : 120), GUILayout.Height(marker != null ? size : 20));
-            if (spawnPicked != spawn)
+            // Spawn points' and teleporters' pictures are their new pads, flattened, in their colors.
+            void Adder(string kind, string label, string pad, Vector3 padSize, Color padColor)
             {
-                spawn = spawnPicked;
+                var picture = settings.placedMaterial != null && !string.IsNullOrEmpty(pad)
+                    ? Thumbnail($"{kind} {pad} {padSize} {budgetKey}", Parts(pad, settings, padSize), settings.placedMaterial, padColor, size * 2)
+                    : null;
+                var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label);
+                var picked = adding == kind;
+                if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) != picked)
+                {
+                    adding = picked ? "" : kind;
+                }
             }
 
-            EditorGUILayout.BeginVertical();
-            EditorGUILayout.LabelField("New spawn point's key");
-            spawnKey = EditorGUILayout.TextField(spawnKey);
-            EditorGUILayout.EndVertical();
+            Adder("spawn", "New spawn point", settings.spawnPad, settings.spawnPadSize, settings.spawnPadColor);
+            Adder("teleporter", "New teleporter", settings.teleporterPad, settings.teleporterPadSize, settings.teleporterPadColor);
+            Adder("trigger", "New trigger", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
-            foreach (var point in editing.GetComponentsInChildren<ZoneSpawn>())
+            var zoneName = ZoneName(editing);
+            EditorGUILayout.LabelField(adding.Length > 0 ? $"Its name ({adding}.{zoneName}.…)" : "A new one's name");
+            addingName = EditorGUILayout.TextField(addingName);
+            foreach (var point in editing.GetComponentsInChildren<ZoneTrigger>().OrderBy(t => t.key, StringComparer.Ordinal))
             {
-                if (GUILayout.Button($"{point.key}{(point.isDefault ? " (default)" : "")}", EditorStyles.linkLabel))
+                if (GUILayout.Button(point.key, EditorStyles.linkLabel))
                 {
                     Selection.activeGameObject = point.gameObject;
                     SceneView.lastActiveSceneView?.FrameSelected();
                 }
             }
 
-            EditorGUILayout.HelpBox(spawn || !string.IsNullOrEmpty(placeable)
+            EditorGUILayout.HelpBox(adding.Length > 0 || !string.IsNullOrEmpty(placeable)
                 ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
-                : "Pick a primitive, a prop, a group or a new spawn point, then click in the scene to place it.", MessageType.None);
+                : "Pick a primitive, a prop, a group, or a new spawn point, teleporter or trigger, then click in the scene to place it.", MessageType.None);
             EditorGUILayout.EndVertical();
         }
 
@@ -355,7 +359,7 @@ namespace Comet.Unity.Editor
         {
             var editing = Editing;
             var settings = CometSettings.Find(quiet: true);
-            if (editing == null || settings == null || (!spawn && string.IsNullOrEmpty(placeable)))
+            if (editing == null || settings == null || (adding.Length == 0 && string.IsNullOrEmpty(placeable)))
             {
                 return;
             }
@@ -381,7 +385,7 @@ namespace Comet.Unity.Editor
             if (_hover is { } at)
             {
                 Handles.color = Color.white;
-                Handles.DrawWireDisc(at, Vector3.up, spawn ? 2 : 0.5f);
+                Handles.DrawWireDisc(at, Vector3.up, adding.Length > 0 ? 1 : 0.5f);
             }
 
             switch (e.type)
@@ -398,7 +402,7 @@ namespace Comet.Unity.Editor
 
         private void Place(ZoneEditing editing, Vector3 at, CometSettings settings)
         {
-            if (!spawn)
+            if (adding.Length == 0)
             {
                 var placed = ZoneEditor.Place(editing, placeable, at, settings, color);
                 if (blockout && placed.GetComponent<ZonePlacement>() is { } placement)
@@ -415,14 +419,24 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            if (!Comet.ZoneFiles.ZoneValidation.IsKey(spawnKey, "spawn") || editing.GetComponentsInChildren<ZoneSpawn>().Any(s => s.key == spawnKey))
+            var key = $"{adding}.{ZoneName(editing)}.{addingName}";
+            if (!Comet.ZoneFiles.ZoneValidation.IsZonedKey(key, adding) || editing.GetComponentsInChildren<ZoneTrigger>().Any(t => t.key == key))
             {
-                EditorUtility.DisplayDialog("New spawn point", "Pick a new key: 'spawn.' then lowercase letters, digits and underscores.", "OK");
+                EditorUtility.DisplayDialog($"New {adding}", "Pick a new name: lowercase letters, digits and underscores, starting with a letter.", "OK");
                 return;
             }
 
-            Selection.activeGameObject = ZoneEditor.AddSpawn(editing, spawnKey, at, settings);
+            Selection.activeGameObject = (adding switch
+            {
+                "spawn" => (ZoneTrigger)ZoneEditor.AddTrigger<ZoneSpawn>(editing, key, at, settings),
+                "teleporter" => ZoneEditor.AddTrigger<ZoneTeleporter>(editing, key, at, settings),
+                _ => ZoneEditor.AddTrigger<ZoneToggleTrigger>(editing, key, at, settings),
+            }).gameObject;
         }
+
+        // The opened zone's name (meadow, for zone.meadow), as its keys use it; its root is named after its key.
+        private static string ZoneName(ZoneEditing editing) =>
+            editing.name.StartsWith("Zone zone.", StringComparison.Ordinal) ? editing.name.Substring("Zone zone.".Length) : "";
 
         // Where the mouse points: on top of the terrain, or of a placed object if one is nearer along the ray (on its
         // bounding box's top), else on the ground plane.

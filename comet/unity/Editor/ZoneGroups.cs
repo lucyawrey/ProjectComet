@@ -195,12 +195,12 @@ namespace Comet.Unity.Editor
 
         /// <summary>
         /// Saves the selected placements of an opened zone (or group) as the new group <paramref name="key"/> and
-        /// puts a copy of it in their place, its pivot at the bottom center of what was selected. Spawn markers stay.
+        /// puts a copy of it in their place, its pivot at the bottom center of what was selected. Pads stay.
         /// </summary>
         public static bool SaveSelection(ZoneEditing editing, string key, CometSettings settings)
         {
             var selected = Selection.gameObjects.Select(g => g.GetComponent<ZonePlacement>())
-                .Where(p => p != null && p.IsLoose && p.GetComponentInParent<ZoneSpawn>() == null && p.GetComponentInParent<ZoneEditing>() == editing)
+                .Where(p => p != null && p.IsLoose && p.GetComponentInParent<ZoneTrigger>() == null && p.GetComponentInParent<ZoneEditing>() == editing)
                 .ToList();
             if (selected.Count == 0)
             {
@@ -344,15 +344,15 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            if (editing.GetComponentsInChildren<ZoneSpawn>().Length > 0)
+            if (editing.GetComponentsInChildren<ZoneTrigger>().Length > 0)
             {
-                Debug.LogWarning($"{editing.groupKey}: groups have no spawn points; the ones in this scene aren't saved.");
+                Debug.LogWarning($"{editing.groupKey}: groups have no spawn points, teleporters or triggers; the ones in this scene aren't saved.");
             }
 
             var group = new Group
             {
                 Id = editing.groupKey,
-                Parts = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneSpawn>() == null).Select(p => ZoneEditor.PlacementOf(p)).ToArray(),
+                Parts = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>() == null).Select(p => ZoneEditor.PlacementOf(p)).ToArray(),
             };
             var path = ZoneEditor.ProjectPath(editing.folder);
             if (!Check(group, Path.GetRelativePath(ZoneEditor.ProjectPath(settings.groupsFolder), path).Replace('\\', '/'), settings))

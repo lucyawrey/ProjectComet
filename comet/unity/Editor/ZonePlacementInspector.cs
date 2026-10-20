@@ -32,7 +32,7 @@ namespace Comet.Unity.Editor
             }
             else
             {
-                hidden.AddRange(new[] { nameof(ZonePlacement.prop), nameof(ZonePlacement.isPrimitive), nameof(ZonePlacement.placementName) });
+                hidden.AddRange(new[] { nameof(ZonePlacement.prop), nameof(ZonePlacement.isPrimitive) });
             }
 
             // Only a group's parts have a role: in a group's own scene, or under a copy edited in place.
@@ -65,7 +65,7 @@ namespace Comet.Unity.Editor
             }
 
             serializedObject.ApplyModifiedProperties();
-            if (targets.Length == 1 && placement.IsLoose && placement.GetComponentInParent<ZoneSpawn>() == null)
+            if (targets.Length == 1 && placement.IsLoose && placement.GetComponentInParent<ZoneTrigger>() == null)
             {
                 SwapButtons(placement);
             }

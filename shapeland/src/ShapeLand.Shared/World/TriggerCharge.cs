@@ -82,5 +82,8 @@ namespace ShapeLand.Shared.World
 
         /// <summary>What's being stood in, or null.</summary>
         public object? Inside => _inside;
+
+        /// <summary>Whether it has fired for what's being stood in (or that was arrived on), and waits for a step off.</summary>
+        public bool Fired => _inside != null && _fired;
     }
 }

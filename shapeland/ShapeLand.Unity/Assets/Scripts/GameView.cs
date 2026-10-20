@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using Comet.Client;
 using Comet.Content;
+using Comet.Protocol.Messages;
 using Comet.Simulation;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
@@ -11,7 +13,8 @@ using UnityEngine;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// The game scene's view: draws the zone (its terrain and placed objects) once the content has loaded, the player's own shape
+    /// The game scene's view: draws the zone (its terrain, placed objects and pads) once the content has loaded, and
+    /// again for each zone the player goes to, showing placements as triggers flip them; the player's own shape
     /// (with eyes, to show its facing) once the server spawns it, with the orbit camera following, and the other
     /// players where the interpolation buffer puts them. Others fade out as they fall off the island and back in
     /// after respawning (<see cref="RespawnFade"/>); the player's own fall darkens the screen instead (<see cref="Hud"/>).
@@ -42,12 +45,16 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
-        // Each spawn point's marker (the placement named with its key), by the spawn's content number.
-        private readonly Dictionary<int, Renderer[]> _markers = new Dictionary<int, Renderer[]>();
-        private MaterialPropertyBlock _markerColor;
-        private Spawns _spawnPoints;
+        // The drawn zone's pads, and its named placements by name (with whether each starts off), for flipping.
+        private readonly List<Pad> _pads = new List<Pad>();
+        private readonly Dictionary<string, List<(GameObject Thing, bool StartsOff)>> _named = new Dictionary<string, List<(GameObject, bool)>>();
+        // The player standing in spawn points, teleporters and triggers, timed as the server times them, to draw pads charging.
+        private readonly TriggerCharge _spawnCharge = new TriggerCharge();
+        private readonly TriggerCharge _teleportCharge = new TriggerCharge();
+        private readonly TriggerCharge _triggerCharge = new TriggerCharge();
+        private MaterialPropertyBlock _padColor;
+        private Triggers _triggers;
         private ShapeLandContent _content;
-        private (int Spawn, float Since)? _claiming;
         private JoinClient _join;
         private CollisionWorld _world;
         private Transform _drawnZone;
@@ -80,6 +87,7 @@ namespace ShapeLand.Client
             _join = GetComponent<JoinClient>();
             _join.ContentLoaded += OnContentLoaded;
             _join.ZoneChanged += OnZoneChanged;
+            _join.PlacementsFlipped += OnFlipped;
             _join.OwnSpawned += OnOwnSpawned;
             _join.OtherSpawned += OnOtherSpawned;
             _join.OtherLeft += OnOtherLeft;
@@ -92,7 +100,7 @@ namespace ShapeLand.Client
         // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
         private void Update()
         {
-            ColorMarkers();
+            ColorPads();
             if (_others.Count == 0)
             {
                 return;
@@ -117,22 +125,45 @@ namespace ShapeLand.Client
             DrawZone();
         }
 
-        // A server plays another zone than the one drawn: draw that instead (before this player spawns in it).
+        // Another zone is shown (another shape picked, or the player went there): draw that instead, before the
+        // player arrives in it.
         private void OnZoneChanged(Zone zone)
         {
             Destroy(_drawnZone.gameObject);
-            _markers.Clear();
-            _claiming = null;
+            _pads.Clear();
+            _named.Clear();
+            _spawnCharge.Clear();
+            _teleportCharge.Clear();
+            _triggerCharge.Clear();
             DrawZone();
+            if (Player != null)
+            {
+                Player.World = _world;
+                orbitCamera.World = _world;
+            }
         }
 
-        // Draws the join client's zone: its terrain, placed objects and spawn markers.
+        // Shows or hides the placements with a name as triggers flip them.
+        private void OnFlipped(string name, bool flipped)
+        {
+            if (_named.TryGetValue(name, out var things))
+            {
+                foreach (var (thing, startsOff) in things)
+                {
+                    thing.SetActive(startsOff == flipped);
+                }
+            }
+
+            Player?.Flipped(name);
+        }
+
+        // Draws the join client's zone: its terrain, placed objects and pads.
         private void DrawZone()
         {
             var content = _content;
             var zone = _join.Zone;
             _world = _join.World;
-            _spawnPoints = new Spawns(zone);
+            _triggers = new Triggers(zone);
             _drawnZone = new GameObject(zone.Id).transform;
             _drawnZone.SetParent(transform, false);
             var terrain = new GameObject("Terrain").transform;
@@ -161,10 +192,31 @@ namespace ShapeLand.Client
                     }
 
                     var thing = placement.Primitive != null ? PlacePrimitive(placement, placed) : Place(placement, placed);
-                    if (thing != null && placement.Name != null && _spawnPoints.TryGet(placement.Name, out var spawn))
+                    if (thing != null && placement.Name != null)
                     {
-                        _markers[spawn.Number] = thing.GetComponentsInChildren<Renderer>();
+                        if (!_named.TryGetValue(placement.Name, out var things))
+                        {
+                            _named.Add(placement.Name, things = new List<(GameObject, bool)>());
+                        }
+
+                        things.Add((thing, placement.Off));
+                        thing.SetActive(placement.Off == _join.Flipped.Contains(placement.Name));
                     }
+                }
+
+                foreach (var spawn in chunk.Spawns)
+                {
+                    AddPad(spawn, spawn.Id, spawn.Volume, placed);
+                }
+
+                foreach (var teleporter in chunk.Teleporters)
+                {
+                    AddPad(teleporter, teleporter.Id, teleporter.Volume, placed);
+                }
+
+                foreach (var trigger in chunk.Triggers)
+                {
+                    AddPad(trigger, trigger.Id, trigger.Volume, placed);
                 }
 
                 if (primitives.VertexCount > 0)
@@ -176,7 +228,42 @@ namespace ShapeLand.Client
                 }
             }
 
-            orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, zone, _world)));
+            // Behind the join screen, the camera circles a shape's start here, or another spawn point.
+            var shown = content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
+                ?? _triggers.Spawns.FirstOrDefault();
+            orbitCamera.Showcase(shown != null ? Vectors.ToUnity(ShapeLandWorld.Center(shown, _world)) : Vector3.zero);
+        }
+
+        // A spawn point's, teleporter's or trigger's pad, if it has one: drawn on its own, to be colored.
+        private void AddPad(object owner, string key, TriggerVolume volume, Transform parent)
+        {
+            if (volume.Pad is not { } pad)
+            {
+                return;
+            }
+
+            var thing = PlacePrimitive(pad, parent);
+            thing.name = key;
+            var color = owner is SpawnPoint ? Color(_content.Settings.Spawns.UnsetColor) : Color(pad.Color ?? _content.Settings.World.PlacedColor);
+            _pads.Add(new Pad(owner, thing.GetComponentsInChildren<Renderer>(), color));
+        }
+
+        private sealed class Pad
+        {
+            public Pad(object owner, Renderer[] renderers, Color color)
+            {
+                Owner = owner;
+                Renderers = renderers;
+                Color = color;
+            }
+
+            /// <summary>The spawn point, teleporter or trigger it's under.</summary>
+            public object Owner { get; }
+
+            public Renderer[] Renderers { get; }
+
+            /// <summary>Its color at rest (a spawn's while it isn't the player's).</summary>
+            public Color Color { get; }
         }
 
         // A named or blockout primitive on its own, in the placed objects' material (or blockout's), so game code can
@@ -225,46 +312,71 @@ namespace ShapeLand.Client
 
         private Material MaterialFor(Placement placement) => placement.Blockout && blockoutMaterial != null ? blockoutMaterial : blockMaterial;
 
-        // The player's own spawn's marker takes their body color, the rest a grey used nowhere else. One they stand
-        // in, claiming it, pulses between the two until the server says it's theirs.
-        private void ColorMarkers()
+        // The player's own spawn's pad takes their body color, other spawns' a pale color used nowhere else, and
+        // other pads their own. A pad the player stands in charges toward firing: a spawn's toward their body color
+        // (staying there once claimed, until the server agrees), others brighter.
+        private void ColorPads()
         {
-            if (_content == null || _markers.Count == 0)
+            if (_content == null || _pads.Count == 0)
             {
                 return;
             }
 
-            _markerColor ??= new MaterialPropertyBlock();
-            var settings = _content.Settings.Spawns;
+            _padColor ??= new MaterialPropertyBlock();
+            var now = Time.time;
             var own = Player != null ? _join.SpawnNumber : null;
-            var body = Player != null && _join.Spawn is { } me ? Color(me.Color) : Color(settings.UnsetColor);
-            var standingIn = Player != null ? _spawnPoints.StandingIn(Vectors.ToNumerics(Player.transform.position), ShapeLandRules.SpawnClaimReach) : null;
-            if (standingIn == null || standingIn.Number == own)
+            var body = Player != null && _join.Spawn is { } me ? Color(me.Color) : Color(_content.Settings.Spawns.UnsetColor);
+            if (Player != null)
             {
-                _claiming = null;
-            }
-            else if (_claiming?.Spawn != standingIn.Number)
-            {
-                _claiming = (standingIn.Number, Time.time);
+                var feet = Player.Motor.Position;
+                var spawn = _triggers.SpawnAt(feet);
+                var teleporter = _triggers.TeleporterAt(feet);
+                var trigger = _triggers.All.FirstOrDefault(t => Triggers.Inside(t.Volume, feet));
+                _spawnCharge.Step(spawn, spawn?.Volume, now);
+                _teleportCharge.Step(teleporter, teleporter?.Volume, now);
+                _triggerCharge.Step(trigger, trigger?.Volume, now);
             }
 
-            foreach (var marker in _markers)
+            foreach (var pad in _pads)
             {
-                var color = marker.Key == own ? body : Color(settings.UnsetColor);
-                if (_claiming is { } claiming && claiming.Spawn == marker.Key && Time.time - claiming.Since < settings.ClaimSeconds + 1)
+                Color color;
+                if (pad.Owner is SpawnPoint spawn)
                 {
-                    var pulse = 0.5f - 0.5f * Mathf.Cos((Time.time - claiming.Since) * 2 * Mathf.PI * 1.5f);
-                    color = UnityEngine.Color.Lerp(Color(settings.UnsetColor), body, pulse);
+                    var charge = _spawnCharge.Inside == spawn ? (_spawnCharge.Fired ? 1 : _spawnCharge.Progress(now)) : 0;
+                    color = spawn.Number == own ? body : UnityEngine.Color.Lerp(pad.Color, body, charge);
+                }
+                else
+                {
+                    var charging = pad.Owner is Teleporter ? _teleportCharge : _triggerCharge;
+                    var charge = charging.Inside == pad.Owner ? charging.Progress(now) : 0;
+                    color = UnityEngine.Color.Lerp(pad.Color, UnityEngine.Color.white, 0.6f * charge);
                 }
 
-                _markerColor.SetColor(BaseColor, color);
-                foreach (var renderer in marker.Value)
+                _padColor.SetColor(BaseColor, color);
+                foreach (var renderer in pad.Renderers)
                 {
-                    if (renderer.enabled)
-                    {
-                        renderer.SetPropertyBlock(_markerColor);
-                    }
+                    renderer.SetPropertyBlock(_padColor);
                 }
+            }
+        }
+
+        // Arriving somewhere (a spawn, a teleporter's target) counts as already in what's there: it charges only after a step out and in.
+        private void OnCorrected(PositionCorrection correction)
+        {
+            if (_triggers == null)
+            {
+                return;
+            }
+
+            var feet = new System.Numerics.Vector3(correction.X, correction.Y, correction.Z);
+            if (_triggers.SpawnAt(feet) is { } spawn)
+            {
+                _spawnCharge.Arrived(spawn, spawn.Volume);
+            }
+
+            if (_triggers.TeleporterAt(feet) is { } teleporter)
+            {
+                _teleportCharge.Arrived(teleporter, teleporter.Volume);
             }
         }
 
@@ -281,6 +393,8 @@ namespace ShapeLand.Client
                 Player = new GameObject().AddComponent<LocalPlayer>();
                 Player.Begin(_join.Session, _world, _join.Content.Movement, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
                 orbitCamera.Follow(Player.transform, _controls, _world);
+                _join.Session.Corrected += OnCorrected;
+                OnCorrected(new PositionCorrection { X = spawn.X, Y = spawn.Y, Z = spawn.Z }); // joining on a spawn doesn't claim it
             }
             else
             {
@@ -375,6 +489,7 @@ namespace ShapeLand.Client
         {
             _join.ContentLoaded -= OnContentLoaded;
             _join.ZoneChanged -= OnZoneChanged;
+            _join.PlacementsFlipped -= OnFlipped;
             _join.OwnSpawned -= OnOwnSpawned;
             _join.OtherSpawned -= OnOtherSpawned;
             _join.OtherLeft -= OnOtherLeft;

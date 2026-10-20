@@ -16,8 +16,8 @@ namespace Comet.Unity.Editor
     /// Opens a zone into a working scene named after it and saves it back to its files (Comet › Zones, or saving the
     /// scene: <see cref="ZoneEditorScenes"/>). The scene is never the source of truth: the zone's files are, and the
     /// scene file sits in an ignored folder. Terrain shows as preview meshes; placed props, spawns and volumes are
-    /// objects to move with Unity's own tools, and on saving each belongs to the chunk holding its pivot. A spawn's
-    /// marker is a child of its spawn point, so they move together.
+    /// objects to move with Unity's own tools, and on saving each belongs to the chunk holding its pivot. A spawn
+    /// point's, teleporter's or trigger's pad is a child of it, so they move together, and is saved inside it.
     /// </summary>
     public static class ZoneEditor
     {
@@ -114,6 +114,8 @@ namespace Comet.Unity.Editor
             {
                 chunk.Placements = new Placement[0];
                 chunk.Spawns = new SpawnPoint[0];
+                chunk.Teleporters = new Teleporter[0];
+                chunk.Triggers = new Trigger[0];
                 chunk.Volumes = new CollisionVolume[0];
             }
 
@@ -194,7 +196,8 @@ namespace Comet.Unity.Editor
             }
 
             // A copy being edited in place is saved as the copy; its parts go to its group only when that's saved.
-            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose))
+            // Pads are saved inside their spawn points, teleporters and triggers.
+            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>() == null))
             {
                 var chunk = ChunkAt(ToNumerics(placed.transform.position));
                 chunk.Placements = chunk.Placements.Append(PlacementOf(placed)).ToArray();
@@ -202,16 +205,27 @@ namespace Comet.Unity.Editor
 
             foreach (var spawn in editing.GetComponentsInChildren<ZoneSpawn>())
             {
-                var t = spawn.transform;
-                var chunk = ChunkAt(ToNumerics(t.position));
-                chunk.Spawns = chunk.Spawns.Append(new SpawnPoint
+                var chunk = ChunkAt(ToNumerics(spawn.transform.position));
+                chunk.Spawns = chunk.Spawns.Append(new SpawnPoint { Id = spawn.key, Volume = VolumeOf(spawn), Facing = (SpawnFacing)spawn.facing }).ToArray();
+            }
+
+            foreach (var teleporter in editing.GetComponentsInChildren<ZoneTeleporter>())
+            {
+                var chunk = ChunkAt(ToNumerics(teleporter.transform.position));
+                chunk.Teleporters = chunk.Teleporters.Append(new Teleporter
                 {
-                    Id = spawn.key,
-                    Position = ToNumerics(t.position),
-                    Radius = spawn.radius,
-                    Facing = (SpawnFacing)spawn.facing,
-                    Yaw = Angle(t.rotation.eulerAngles.y),
-                    IsDefault = spawn.isDefault,
+                    Id = teleporter.key, Volume = VolumeOf(teleporter), Facing = (SpawnFacing)teleporter.facing, Target = teleporter.target,
+                }).ToArray();
+            }
+
+            foreach (var trigger in editing.GetComponentsInChildren<ZoneToggleTrigger>())
+            {
+                var chunk = ChunkAt(ToNumerics(trigger.transform.position));
+                chunk.Triggers = chunk.Triggers.Append(new Trigger
+                {
+                    Id = trigger.key,
+                    Volume = VolumeOf(trigger),
+                    Effects = trigger.effects.Select(e => new ToggleEffect { Name = e.toggle, RevertSeconds = e.revertSeconds }).ToArray(),
                 }).ToArray();
             }
 
@@ -233,10 +247,26 @@ namespace Comet.Unity.Editor
 
             // A chunk left with nothing in it is no longer part of the zone.
             zone.Chunks = chunks.Values
-                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Volumes.Length > 0)
+                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Teleporters.Length + c.Triggers.Length + c.Volumes.Length > 0)
                 .OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z)
                 .ToArray();
             return zone;
+        }
+
+        // A trigger's volume as the scene has it: standing on its object, turned by its Y rotation, with its pad.
+        private static TriggerVolume VolumeOf(ZoneTrigger trigger)
+        {
+            var t = trigger.transform;
+            return new TriggerVolume
+            {
+                Kind = (PrimitiveKind)System.Enum.Parse(typeof(PrimitiveKind), trigger.volume.ToString()),
+                Position = ToNumerics(t.position),
+                Yaw = Angle(t.rotation.eulerAngles.y),
+                Size = ToNumerics(trigger.size),
+                StandSeconds = trigger.standSeconds,
+                Rearm = (Rearm)trigger.rearm,
+                Pad = trigger.Pad is { } pad ? PlacementOf(pad) : null,
+            };
         }
 
         /// <summary>
@@ -312,32 +342,31 @@ namespace Comet.Unity.Editor
         {
             RebuildTerrain(root.GetComponent<ZoneEditing>(), zone, settings);
             var placed = Child(root, "Placed");
-            var spawns = Child(root, "Spawns");
             var volumes = Child(root, "Volumes");
-            var spawnsByKey = new Dictionary<string, Transform>();
-            foreach (var spawn in zone.Chunks.SelectMany(c => c.Spawns))
-            {
-                var point = Child(spawns, spawn.Id);
-                point.SetPositionAndRotation(ToUnity(spawn.Position), Quaternion.Euler(0, spawn.Yaw, 0));
-                var component = point.gameObject.AddComponent<ZoneSpawn>();
-                component.key = spawn.Id;
-                component.radius = spawn.Radius;
-                component.facing = (ZoneSpawn.FacingMode)spawn.Facing;
-                component.isDefault = spawn.IsDefault;
-                spawnsByKey[spawn.Id] = point;
-            }
-
             foreach (var chunk in zone.Chunks)
             {
                 foreach (var placement in chunk.Placements)
                 {
-                    // A placement named with a spawn's key is its marker, kept under it.
-                    var isMarker = placement.Name != null && spawnsByKey.ContainsKey(placement.Name);
-                    var thing = CreatePlaced(placement, isMarker ? spawnsByKey[placement.Name!] : placed, settings, isMarker);
-                    if (isMarker)
-                    {
-                        thing.name = $"{placement.Name} marker";
-                    }
+                    CreatePlaced(placement, placed, settings);
+                }
+
+                foreach (var spawn in chunk.Spawns)
+                {
+                    var component = CreateTrigger<ZoneSpawn>(root, spawn.Id, spawn.Volume, settings);
+                    component.facing = (ZoneTrigger.FacingMode)spawn.Facing;
+                }
+
+                foreach (var teleporter in chunk.Teleporters)
+                {
+                    var component = CreateTrigger<ZoneTeleporter>(root, teleporter.Id, teleporter.Volume, settings);
+                    component.facing = (ZoneTrigger.FacingMode)teleporter.Facing;
+                    component.target = teleporter.Target;
+                }
+
+                foreach (var trigger in chunk.Triggers)
+                {
+                    var component = CreateTrigger<ZoneToggleTrigger>(root, trigger.Id, trigger.Volume, settings);
+                    component.effects = trigger.Effects.Select(e => new ZoneToggleTrigger.Effect { toggle = e.Name, revertSeconds = e.RevertSeconds }).ToList();
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -352,11 +381,40 @@ namespace Comet.Unity.Editor
             }
         }
 
+        // The folder objects each kind of trigger goes under.
+        private static string TriggersFolder<T>() where T : ZoneTrigger =>
+            typeof(T) == typeof(ZoneSpawn) ? "Spawns" : typeof(T) == typeof(ZoneTeleporter) ? "Teleporters" : "Triggers";
+
+        // A spawn point's, teleporter's or trigger's object, with its volume and its pad.
+        private static T CreateTrigger<T>(Transform root, string key, TriggerVolume volume, CometSettings settings)
+            where T : ZoneTrigger
+        {
+            var parent = root.Find(TriggersFolder<T>()) ?? Child(root, TriggersFolder<T>());
+            var point = Child(parent, key);
+            point.SetPositionAndRotation(ToUnity(volume.Position), Quaternion.Euler(0, volume.Yaw, 0));
+            var component = point.gameObject.AddComponent<T>();
+            component.key = key;
+            component.volume = (ZoneTrigger.VolumeKind)System.Enum.Parse(typeof(ZoneTrigger.VolumeKind), volume.Kind.ToString());
+            component.size = ToUnity(volume.Size);
+            component.standSeconds = volume.StandSeconds;
+            component.rearm = (ZoneTrigger.RearmMode)volume.Rearm;
+            if (volume.Pad is { } pad)
+            {
+                var thing = CreatePlaced(pad, point, settings, PadColor(component, settings));
+                thing.name = $"{key} pad";
+            }
+
+            return component;
+        }
+
+        // The color a kind's pads are drawn in without their own: spawn pads as the game draws one that isn't the player's.
+        private static Color? PadColor(ZoneTrigger trigger, CometSettings settings) => trigger is ZoneSpawn ? settings.spawnPadColor : (Color?)null;
+
         /// <summary>
         /// The object for a placement (a prop, a primitive or a group copy) under <paramref name="parent"/>, at the
         /// placement's world transform, with its marker component.
         /// </summary>
-        internal static GameObject CreatePlaced(Placement placement, Transform parent, CometSettings settings, bool isMarker = false)
+        internal static GameObject CreatePlaced(Placement placement, Transform parent, CometSettings settings, Color? defaultColor = null)
         {
             var thing = placement.Primitive is { } primitive ? CreatePrimitive(primitive, ToUnity(placement.Scale), settings, parent)
                 : placement.Group is { } group ? ZoneGroups.CreateCopy(group, parent)
@@ -372,10 +430,11 @@ namespace Comet.Unity.Editor
             marker.prop = placement.Prop;
             marker.placementName = placement.Name ?? "";
             marker.blockout = placement.Blockout;
+            marker.off = placement.Off;
             marker.role = placement.Role ?? "";
             marker.roleColors = placement.Colors?.OrderBy(c => c.Key, System.StringComparer.Ordinal)
                 .Select(c => new ZonePlacement.RoleColor { role = c.Key, color = PlacedColors.FromRgb(c.Value) }).ToList() ?? new List<ZonePlacement.RoleColor>();
-            SetColors(marker, settings, placement.Color, isMarker);
+            SetColors(marker, settings, placement.Color, defaultColor);
             return thing;
         }
 
@@ -395,9 +454,8 @@ namespace Comet.Unity.Editor
                 Primitive = placed.IsGroup ? null : placed.Primitive,
                 Group = placed.IsGroup ? placed.group : null,
                 Blockout = placed.blockout,
-                // A spawn's marker is named with its key, which may have changed since.
-                Name = placed.GetComponentInParent<ZoneSpawn>() is { } spawn ? spawn.key
-                    : string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
+                Off = placed.off,
+                Name = string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
                 Position = ToNumerics(position),
                 Rotation = Angles(rotation.eulerAngles),
                 Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),
@@ -420,8 +478,8 @@ namespace Comet.Unity.Editor
             return colors;
         }
 
-        // A placement's colors: its prop's, from the library (a spawn's marker: the settings' marker color), and its own if it has one.
-        internal static void SetColors(ZonePlacement placement, CometSettings settings, uint? own, bool spawnMarker = false)
+        // A placement's colors: its prop's, from the library (or defaultColor, for a pad), and its own if it has one.
+        internal static void SetColors(ZonePlacement placement, CometSettings settings, uint? own, Color? defaultColor = null)
         {
             Color? prop = !placement.isPrimitive && settings.props != null && settings.props.TryGet(placement.prop, out var entry) && entry.hasColor ? entry.color : null;
             placement.ownColor = own != null;
@@ -430,7 +488,7 @@ namespace Comet.Unity.Editor
                 placement.color = PlacedColors.FromRgb(rgb);
             }
 
-            placement.SetDefaultColor(spawnMarker ? settings.spawnMarkerColor : prop ?? settings.placedColor);
+            placement.SetDefaultColor(defaultColor ?? prop ?? settings.placedColor);
         }
 
         /// <summary>The primitive's kind for a placeable name: a prop key (<c>prop.rock</c>) is null.</summary>
@@ -571,50 +629,72 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Adds a spawn point at <paramref name="position"/> in an opened zone (the zone's first is its default), with
-        /// its marker if the settings name one: the marker prop, flattened, sized to the spawn's radius and named with its key.
+        /// Adds a spawn point, teleporter or trigger (<typeparamref name="T"/>) standing at <paramref name="position"/>
+        /// in an opened zone, with the settings' defaults for its kind: a pad (none for triggers), flattened and sunk
+        /// halfway into the ground, with the volume fitted on its top.
         /// </summary>
-        public static GameObject AddSpawn(ZoneEditing editing, string key, Vector3 position, CometSettings settings)
+        public static T AddTrigger<T>(ZoneEditing editing, string key, Vector3 position, CometSettings settings)
+            where T : ZoneTrigger
         {
-            var parent = editing.transform.Find("Spawns") ?? Child(editing.transform, "Spawns");
-            var marker = Child(parent, key);
-            marker.position = position;
-            var spawn = marker.gameObject.AddComponent<ZoneSpawn>();
-            spawn.key = key;
-            spawn.isDefault = editing.GetComponentsInChildren<ZoneSpawn>().Length == 1;
-            Undo.RegisterCreatedObjectUndo(marker.gameObject, $"Add {key}");
-            if (!string.IsNullOrEmpty(settings.spawnMarker))
+            var parent = editing.transform.Find(TriggersFolder<T>()) ?? Child(editing.transform, TriggersFolder<T>());
+            var point = Child(parent, key);
+            point.position = position;
+            var trigger = point.gameObject.AddComponent<T>();
+            trigger.key = key;
+            Undo.RegisterCreatedObjectUndo(point.gameObject, $"Add {key}");
+            var (padKind, padSize, standSeconds) = trigger switch
             {
-                var placed = Place(editing, settings.spawnMarker, position, settings);
-                var placement = placed.GetComponent<ZonePlacement>();
-                var markerSize = new Vector3(2 * spawn.radius, settings.spawnMarkerHeight, 2 * spawn.radius);
-                if (placement.isPrimitive)
-                {
-                    // Standing on its pivot: sunk halfway into the ground, and players arrive on its top.
-                    placement.size = markerSize;
-                    placement.Rebuild();
-                    placed.transform.position = position - Vector3.up * (markerSize.y / 2);
-                    marker.position = position + Vector3.up * (markerSize.y / 2);
-                }
-                else
-                {
-                    var bounds = settings.props != null && settings.props.TryGet(settings.spawnMarker, out var entry) ? entry.bounds : new Bounds(Vector3.zero, Vector3.one);
-                    var size = bounds.size;
-                    placed.transform.localScale = new Vector3(markerSize.x / Mathf.Max(size.x, 0.01f), markerSize.y / Mathf.Max(size.y, 0.01f), markerSize.z / Mathf.Max(size.z, 0.01f));
-
-                    // The marker is sunk halfway into the ground and players arrive on its top.
-                    var scaleY = placed.transform.localScale.y;
-                    placed.transform.position = position - Vector3.up * (bounds.center.y * scaleY);
-                    marker.position = position + Vector3.up * (bounds.extents.y * scaleY);
-                }
-
-                placement.placementName = key;
-                SetColors(placement, settings, null, spawnMarker: true);
-                placed.name = $"{key} marker";
-                Undo.SetTransformParent(placed.transform, marker, $"Add {key}");
+                ZoneSpawn => (settings.spawnPad, settings.spawnPadSize, settings.spawnStandSeconds),
+                ZoneTeleporter => (settings.teleporterPad, settings.teleporterPadSize, settings.teleporterStandSeconds),
+                _ => ("", Vector3.zero, settings.triggerStandSeconds),
+            };
+            trigger.standSeconds = standSeconds;
+            if (trigger is ZoneSpawn)
+            {
+                trigger.volume = ZoneTrigger.VolumeKind.Cylinder;
             }
 
-            return marker.gameObject;
+            if (PrimitiveNamed(padKind) is { } kind)
+            {
+                var (primitive, _) = Starting(kind);
+                var pad = CreatePlaced(new Placement
+                {
+                    Primitive = primitive,
+                    Position = ToNumerics(position - Vector3.up * (padSize.y / 2)),
+                    Scale = ToNumerics(padSize),
+                    Color = trigger is ZoneTeleporter ? PlacedColors.ToRgb(settings.teleporterPadColor) : (uint?)null,
+                }, point, settings, PadColor(trigger, settings));
+                pad.name = $"{key} pad";
+                Undo.RegisterCreatedObjectUndo(pad, $"Add {key}");
+                FitToPad(trigger);
+            }
+
+            return trigger;
+        }
+
+        /// <summary>
+        /// Fits a trigger's volume to its pad: standing on the pad's top, as wide and deep as the pad and turned with
+        /// it, its height kept; round pads get a cylinder, the rest a box. The pad stays where it is.
+        /// </summary>
+        public static void FitToPad(ZoneTrigger trigger)
+        {
+            if (trigger.Pad is not { } pad)
+            {
+                return;
+            }
+
+            var padTransform = pad.transform;
+            var (position, rotation) = (padTransform.position, padTransform.rotation);
+            var size = pad.isPrimitive ? Vector3.Scale(pad.size, padTransform.lossyScale) : padTransform.lossyScale;
+            Undo.RecordObject(trigger, "Fit Trigger to Pad");
+            Undo.RecordObject(trigger.transform, "Fit Trigger to Pad");
+            Undo.RecordObject(padTransform, "Fit Trigger to Pad");
+            trigger.transform.SetPositionAndRotation(position + Vector3.up * size.y, Quaternion.Euler(0, rotation.eulerAngles.y, 0));
+            padTransform.SetPositionAndRotation(position, rotation);
+            trigger.size = new Vector3(size.x, trigger.size.y, size.z);
+            trigger.volume = pad.isPrimitive && pad.kind is PrimitiveKind.Cylinder or PrimitiveKind.Cone or PrimitiveKind.Sphere
+                ? ZoneTrigger.VolumeKind.Cylinder
+                : ZoneTrigger.VolumeKind.Box;
         }
 
         internal static void Report(string title, List<ZoneFileError> errors)
