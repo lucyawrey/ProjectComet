@@ -20,7 +20,7 @@ namespace Comet.Unity.Editor
     /// starts it unless a game server already answers <c>/health</c> on the port: one started elsewhere (a script) is
     /// used as it is and never restarted or stopped from here. The editor's own server keeps running between plays,
     /// restarts when the content changes, and stops when the editor quits. Each person's <see cref="Options"/> can also
-    /// serve the last web build, open it to the local network, and start bots (Comet › Server › Local Server…). It logs
+    /// serve the last web build, open it to the local network, and start bots (Comet › Server › Options…). It logs
     /// to <see cref="LogFile"/>. Which server it is (pids, start times, content) is kept in <c>Library/</c>, so the
     /// editor finds it again after a script reload, or after a restart if it crashed.
     /// </summary>
@@ -31,10 +31,12 @@ namespace Comet.Unity.Editor
         public const string LogFile = "Logs/game-server.log";
 
         private const string Menu = "Comet/Server/";
-        private const string StartWithPlayKey = "Comet.LocalServer.StartWithPlayMode";
-        private const string WebKey = "Comet.LocalServer.Web";
-        private const string LanKey = "Comet.LocalServer.Lan";
-        private const string BotsKey = "Comet.LocalServer.Bots";
+        // Editor preferences are shared by every project, so each key names this one by its folder.
+        private static readonly string Prefix = $"Comet.LocalServer.{ContentHash.Of(System.Text.Encoding.UTF8.GetBytes(ContentBuild.ProjectRoot))}.";
+        private static readonly string StartWithPlayKey = Prefix + "StartWithPlayMode";
+        private static readonly string WebKey = Prefix + "Web";
+        private static readonly string LanKey = Prefix + "Lan";
+        private static readonly string BotsKey = Prefix + "Bots";
         private const string StateFile = "Library/CometLocalServer.json";
         private const double StartTimeout = 60;
 
@@ -287,11 +289,11 @@ namespace Comet.Unity.Editor
 
             var options = Chosen;
             var last = Read();
-            var program = last?.program;
-            if (build || string.IsNullOrEmpty(program) || !File.Exists(program))
+            var program = last?.program ?? "";
+            if (build || program.Length == 0 || !File.Exists(program))
             {
-                program = Build(settings.serverProject, "game server");
-                if (program == null)
+                program = Build(settings.serverProject, "game server") ?? "";
+                if (program.Length == 0)
                 {
                     return false;
                 }
@@ -318,7 +320,7 @@ namespace Comet.Unity.Editor
                 }
                 else
                 {
-                    Debug.LogWarning("There's no web build to serve yet: make one in Comet › Server › Local Server…. Starting the server without it.");
+                    Debug.LogWarning("There's no web build to serve yet: make one in Comet › Server › Options…; starting the server without it.");
                     options.Web = false;
                 }
             }

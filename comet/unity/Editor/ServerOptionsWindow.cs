@@ -8,11 +8,11 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Comet › Server › Local Server…: the editor's local game server (<see cref="LocalServer"/>) and each person's
+    /// Comet › Server › Options…: the editor's local game server (<see cref="LocalServer"/>) and each person's
     /// options for it: serving the last web build, opening it to the local network, and bots, so people can playtest
     /// levels together without a terminal. Makes the web build too, when the editor is on the Web platform.
     /// </summary>
-    internal sealed class LocalServerWindow : EditorWindow
+    internal sealed class ServerOptionsWindow : EditorWindow
     {
         private const double StatusEvery = 1; // seconds between checks of who's on the port (an HTTP request)
         private const double WebBuildEvery = 10; // seconds between looks for files newer than the web build
@@ -23,8 +23,8 @@ namespace Comet.Unity.Editor
         private DateTime? _webBuiltAt;
         private string? _newerSource;
 
-        [MenuItem("Comet/Server/Local Server…", priority = 20)]
-        private static void Open() => GetWindow<LocalServerWindow>("Local Server");
+        [MenuItem("Comet/Server/Options…", priority = 20)]
+        private static void Open() => GetWindow<ServerOptionsWindow>("Server Options");
 
         private void OnEnable()
         {
