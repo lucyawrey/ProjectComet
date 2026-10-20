@@ -116,7 +116,7 @@ namespace Comet.Unity.Editor
                 else if (Copy())
                 {
                     AssetDatabase.Refresh();
-                    Debug.Log("Built the content and copied it in. A running game server needs a restart to use it.");
+                    Debug.Log("Built the content and copied it in.");
                 }
 
                 if (buildAgain)
@@ -152,24 +152,28 @@ namespace Comet.Unity.Editor
         }
 
         // The editor may not have the shell's PATH (opened from Unity Hub, say), so look where installers put dotnet too.
-        private static string Dotnet()
+        internal static string Dotnet()
         {
+            var windows = Application.platform == RuntimePlatform.WindowsEditor;
+            var name = windows ? "dotnet.exe" : "dotnet";
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var known = new[]
-            {
-                Path.Combine(home, ".dotnet", "dotnet"),
-                "/usr/local/share/dotnet/dotnet",
-                "/opt/homebrew/bin/dotnet",
-                "/usr/share/dotnet/dotnet",
-                "/usr/bin/dotnet",
-            };
+            var known = windows
+                ? new[] { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet", name), Path.Combine(home, ".dotnet", name) }
+                : new[]
+                {
+                    Path.Combine(home, ".dotnet", name),
+                    "/usr/local/share/dotnet/dotnet",
+                    "/opt/homebrew/bin/dotnet",
+                    "/usr/share/dotnet/dotnet",
+                    "/usr/bin/dotnet",
+                };
             var onPath = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
-                .Select(dir => Path.Combine(dir, "dotnet"));
+                .Where(dir => dir.Length > 0).Select(dir => Path.Combine(dir, name));
             return onPath.Concat(known).FirstOrDefault(File.Exists) ?? "dotnet";
         }
 
-        private static string ProjectRoot => Path.GetDirectoryName(Application.dataPath)!;
+        internal static string ProjectRoot => Path.GetDirectoryName(Application.dataPath)!;
 
-        private static string ProjectPath(string relative) => Path.GetFullPath(Path.Combine(ProjectRoot, relative));
+        internal static string ProjectPath(string relative) => Path.GetFullPath(Path.Combine(ProjectRoot, relative));
     }
 }

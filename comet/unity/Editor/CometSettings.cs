@@ -71,6 +71,16 @@ namespace Comet.Unity.Editor
             new Color32(0x1e, 0x88, 0xe5, 0xff), new Color32(0x8e, 0x24, 0xaa, 0xff), new Color32(0xec, 0x40, 0x7a, 0xff),
         };
 
+        [Header("Local game server (Comet › Server)")]
+        [Tooltip("The game server project, relative to the Unity project: built and run on this computer for play mode. Empty: no local server.")]
+        public string serverProject = "";
+
+        [Tooltip("The port the local game server listens on; the game's client joins localhost at this port.")]
+        [Min(1)] public int serverPort = 5080;
+
+        [Tooltip("More command-line arguments for the local game server, such as --ShapeLand:Zone=zone.tests.")]
+        public string serverArguments = "";
+
         [Header("Polygon budget (Comet › Zones › Polygon Budget)")]
         [Tooltip("About how long each side of a round primitive is, in meters.")]
         [Min(0.01f)] public float facetLength = 0.5f;

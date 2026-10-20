@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Net.WebSockets;
+using Comet.Content;
 using Comet.Protocol;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
@@ -405,7 +406,8 @@ public sealed class EndToEndTests : IAsyncLifetime
         using var http = new HttpClient();
         var response = await http.GetAsync(new Uri(_server.Urls.First() + "/info"), TestContext.Current.CancellationToken);
 
-        Assert.Equal($"{{\"zone\":\"{TestsZone}\"}}", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        var hash = ContentHash.Of(File.ReadAllBytes(_contentFile));
+        Assert.Equal($"{{\"zone\":\"{TestsZone}\",\"contentHash\":\"{hash}\"}}", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal("*", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
     }
 

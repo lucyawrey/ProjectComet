@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Comet.Unity.Editor::Comet.Unity.Editor.CometSettings
   contentBuildProject: ../src/ShapeLand.ContentBuild
   contentFile: ../../artifacts/content/shapeland/content.bin
+  serverProject: ../src/ShapeLand.GameServer
+  serverPort: 5080
+  serverArguments: 
   zonesFolder: ../content/zones
   groupsFolder: ../content/groups
   scenesFolder: Assets/ZoneEditing
