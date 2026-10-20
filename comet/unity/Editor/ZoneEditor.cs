@@ -407,7 +407,7 @@ namespace Comet.Unity.Editor
                 thing.transform.SetParent(parent, false);
             }
 
-            // Numbered like Unity's own copies (asset.cube, asset.cube (1), ...); saving ignores names.
+            // Numbered like Unity's own copies (asset.prop, asset.prop (1), ...); saving ignores names.
             thing.name = "";
             thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, asset);
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>())

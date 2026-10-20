@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// The model for each asset key (<c>asset.cube</c>), so the client and the zone editor can place what zones list. A
+    /// The model for each asset key (<c>asset.prop</c>), so the client and the zone editor can place what zones list. A
     /// game fills it in from its content's asset entries (in ShapeLand, the editor's ContentSync), never by hand.
     /// </summary>
     [CreateAssetMenu(menuName = "Comet/Asset Library")]

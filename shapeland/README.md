@@ -5,7 +5,7 @@ Comet's demo and reference game. Requirements, setup and the scripts are in the 
 | Folder | What it holds |
 | --- | --- |
 | `art/` | Source files for the art (such as `.blend`), plain in git (no Git LFS yet). Exports go into `ShapeLand.Unity/Assets/Models/` as `.glb`. |
-| `content/` | Game data: the shapes, the placeable assets, the game-wide settings (`settings/game.toml`), the interface text and the zone, made by hand in the zone editor. Compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
+| `content/` | Game data: the shapes, the placeable assets (`.glb` props; the levels are built from Comet's primitives), the game-wide settings (`settings/game.toml`), the interface text and the zone, made by hand in the zone editor. Compiled to `content.bin` by `src/ShapeLand.ContentBuild`. |
 | `src/` | The game server, the bots, the content build and `ShapeLand.Shared` (rules, world and messages used by server, bots and client). |
 | `ShapeLand.Unity/` | The Unity client. |
 | `tests/` | Tests for the .NET projects. |
@@ -57,7 +57,7 @@ ShapeLand's zone is `content/zones/hub` (`world.default_zone` in `game.toml` nam
 - **Edit it:** in the Unity editor, Comet › Zones › Open… and pick the zone, then use the Terrain and Place tools. Ctrl+S saves the zone's files and rebuilds the content; commit the changed files under `content/zones/`.
 - **Spawn points:** add them with the Place tool's spawn point option. Each shape's `spawn` (in `content/shapes/<shape>.toml`) must name one in the default zone, and one in each zone is its default (where every shape starts in the other zones); the content build reports any that don't match. Markers are drawn in `unset_color` (`[spawns]` in `game.toml`) until a player claims one.
 - **A new asset:** model it in Blender, export it as a `.glb` into `ShapeLand.Unity/Assets/Models/`, and add `content/assets/<name>.toml` with its `id` (`asset.<name>`), its `model` path (relative to `Assets/`) and optionally `color` (0xRRGGBB) and `uniform_scale`. Objects named with a `-col` suffix are its collision mesh, hidden in the game; without them its whole mesh collides. Rebuild the content (Comet › Content › Build) and it appears in the Place panel.
-- **Default colors** for the whole game are in `[world]` in `game.toml`: `ground_color` and `under_color` for terrain, `placed_color` for objects whose asset has no color.
+- **Default colors** for the whole game are in `[world]` in `game.toml`: `ground_color` and `under_color` for terrain, `placed_color` for placements without their own color. The zone editor's place tool gives each new placement the color picked in its panel.
 
 ## Tuning movement
 

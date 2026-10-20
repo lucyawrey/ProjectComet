@@ -69,16 +69,14 @@ public class ContentTests
     }
 
     [Fact]
-    public void PrimitivesCollideAsModeled()
+    public void LevelsAreBuiltFromPrimitives()
     {
         var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
 
-        Assert.Equal(["asset.cone", "asset.cube", "asset.cylinder", "asset.ramp", "asset.sphere"], built!.Assets.All.Select(a => a.Id).Order());
-        var cube = built.Assets["asset.cube"];
-        Assert.Equal(12 * 3, cube.Collision.Length);
-        Assert.Equal((new System.Numerics.Vector3(-1, 0, -1), new System.Numerics.Vector3(1, 2, 1)), (cube.BoundsMin, cube.BoundsMax));
-        Assert.All(built.Assets.All, a => Assert.Equal(0, a.BoundsMin.Y, 0.001f));
+        var placements = built!.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Placements).ToList();
+        Assert.NotEmpty(placements);
+        Assert.All(placements, p => Assert.NotNull(p.Primitive));
     }
 
     [Fact]
@@ -126,7 +124,7 @@ public class ContentTests
         Assert.Equal(4, blocks.Count);
         Assert.All(blocks, b =>
         {
-            Assert.Equal("asset.cube", b.Asset);
+            Assert.Equal(PrimitiveKind.Box, b.Primitive!.Kind);
             Assert.True(island.TryGetHeightAt(b.Position.X, b.Position.Z, out var ground));
             Assert.Equal(ground - 0.5f, b.Position.Y, 2);
         });

@@ -52,9 +52,9 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        if (result.Entries<Asset>().All(a => a.Id != settings[0].Spawns.MarkerAsset))
+        if (PrimitiveKinds.Named(settings[0].Spawns.Marker) == null)
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"spawns.marker_asset: there's no asset '{settings[0].Spawns.MarkerAsset}'."));
+            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"spawns.marker: '{settings[0].Spawns.Marker}' isn't a primitive kind."));
             return (null, errors);
         }
 

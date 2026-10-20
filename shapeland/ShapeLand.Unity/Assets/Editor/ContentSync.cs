@@ -53,7 +53,7 @@ namespace ShapeLand.Client.Editor
             var under = GameView.Color(game.World.UnderColor);
             var placed = GameView.Color(game.World.PlacedColor);
             if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
-                && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
+                && settings.spawnMarkerAsset == game.Spawns.Marker && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
                 && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor)
                 && settings.facetLength == game.Primitives.FacetLength && settings.minSides == game.Primitives.MinSides && settings.maxSides == game.Primitives.MaxSides)
             {
@@ -64,7 +64,7 @@ namespace ShapeLand.Client.Editor
             settings.underColor = under;
             settings.placedColor = placed;
             settings.bodyHeight = game.Movement.BodyHeight;
-            settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
+            settings.spawnMarkerAsset = game.Spawns.Marker;
             settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
             settings.spawnMarkerColor = GameView.Color(game.Spawns.UnsetColor);
             settings.facetLength = game.Primitives.FacetLength;

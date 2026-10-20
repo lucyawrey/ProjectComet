@@ -3,62 +3,72 @@ piece = "island"
 origin = [0, 0]
 
 [[placement]]
-asset = "asset.cube"
+primitive = "box"
 position = [5.73, 5.35, 17.269]
+scale = [2.0, 2.0, 2.0]
+color = 0x8A8F99
 
 [[placement]]
-asset = "asset.cube"
+primitive = "box"
 position = [0.15, 4.12, 42.56]
 rotation = [0.0, 1.99, 0.0]
-scale = [9.849, 2.299, 6.571]
+scale = [19.698, 4.598, 13.142]
+color = 0x8A8F99
 
 [[placement]]
-asset = "asset.cone"
+primitive = "cone"
 position = [17.02, 6.709, 12.62]
-scale = [2.0, 2.0, 2.0]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
 
 [[placement]]
-asset = "asset.cone"
+primitive = "cone"
 position = [18.54, 6.29, 8.06]
-scale = [2.0, 2.0, 2.0]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
 
 [[placement]]
-asset = "asset.cone"
+primitive = "cone"
 position = [20.47, 6.0, 3.34]
-scale = [2.0, 2.0, 2.0]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
 
 [[placement]]
-asset = "asset.cone"
+primitive = "cone"
 position = [16.15, 6.0, 3.34]
-scale = [2.0, 2.0, 2.0]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
 
 [[placement]]
-asset = "asset.cone"
+primitive = "cone"
 position = [13.75, 6.28, 8.92]
-scale = [2.0, 2.0, 2.0]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
 
 [[placement]]
-asset = "asset.ramp"
+primitive = "wedge"
 position = [0.51, 3.92, 27.54]
 rotation = [0.0, -88.0, 0.0]
-scale = [8.396, 2.407, 6.584]
+scale = [16.792, 4.814, 13.168]
+color = 0xA0703C
 
 [[placement]]
-asset = "asset.sphere"
+primitive = "sphere"
 position = [23.91, 5.53, 19.421]
-scale = [10.162, 1.0, 1.0]
+scale = [20.324, 2.0, 2.0]
+color = 0x4A4D52
 
 [[placement]]
-asset = "asset.cylinder"
+primitive = "cylinder"
 name = "spawn.pyramid"
 position = [8.98, 6.28, 3.83]
-scale = [2.0, 0.2, 2.0]
+scale = [4.0, 0.4, 4.0]
 
 [[placement]]
-asset = "asset.cylinder"
+primitive = "cylinder"
 name = "spawn.cube"
 position = [5.0, 8.547, 43.71]
-scale = [2.0, 0.2, 2.0]
+scale = [4.0, 0.4, 4.0]
 
 [[spawn]]
 id = "spawn.pyramid"

@@ -66,20 +66,19 @@ public static class TestTerrain
         var island = new ZoneTerrain(zone)["island"];
         foreach (var (x, z, size) in new[] { (6f, 2f, new Vector3(2, 0.3f, 2)), (10f, -4f, new Vector3(3, 1f, 3)), (13f, -7f, new Vector3(2, 2f, 2)), (-8f, 8f, new Vector3(6, 0.8f, 2)) })
         {
-            // Sunk 0.5 m so no gap shows on slopes; the cube model is 2 m with its base at its origin.
+            // Sunk 0.5 m so no gap shows on slopes; a box stands on its pivot, its scale its size in meters.
             const float sink = 0.5f;
             island.TryGetHeightAt(x, z, out var ground);
             var chunk = zone.Chunks.Single(c => c.Coord.Equals(ChunkCoord.Containing(new Vector3(x, 0, z))));
             chunk.Placements = [.. chunk.Placements, new Placement
             {
-                Asset = "asset.cube",
+                Primitive = new Primitive { Kind = PrimitiveKind.Box },
                 Position = new Vector3(x, MathF.Round(ground - sink, 3), z),
-                Scale = new Vector3(size.X, size.Y + sink, size.Z) / 2,
+                Scale = new Vector3(size.X, size.Y + sink, size.Z),
             }];
         }
 
-        // Spawn points, each with its marker: a flat cylinder (2 m across, 2 m tall as modeled, its pivot at its base)
-        // named with its key, sunk halfway into the ground, with the spawn point on its top.
+        // Spawn points, each with its marker: a flat cylinder primitive (its pivot at its base) named with its key, sunk halfway into the ground, with the spawn point on its top.
         foreach (var (id, x, z, isDefault) in new[] { ("spawn.test_center", 0f, 0f, true), ("spawn.test_east", 18f, 8f, false) })
         {
             const float radius = 2, markerHeight = 0.4f;
@@ -89,10 +88,10 @@ public static class TestTerrain
             chunk.Spawns = [.. chunk.Spawns, new SpawnPoint { Id = id, Position = new Vector3(x, ground + markerHeight / 2, z), Radius = radius, Facing = SpawnFacing.Random, IsDefault = isDefault }];
             chunk.Placements = [.. chunk.Placements, new Placement
             {
-                Asset = "asset.cylinder",
+                Primitive = new Primitive { Kind = PrimitiveKind.Cylinder },
                 Name = id,
                 Position = new Vector3(x, ground - markerHeight / 2, z),
-                Scale = new Vector3(radius, markerHeight / 2, radius),
+                Scale = new Vector3(2 * radius, markerHeight, 2 * radius),
             }];
         }
 

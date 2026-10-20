@@ -96,8 +96,8 @@ namespace ShapeLand.Shared.Content
         /// <summary>How long a player stands inside another spawn point's radius to make it theirs, in seconds.</summary>
         [JsonRequired] [Key(0)] public float ClaimSeconds { get; set; }
 
-        /// <summary>The asset drawn as a spawn point's marker, flattened (the editor places it with each new spawn).</summary>
-        [JsonRequired] [Key(1)] public string MarkerAsset { get; set; } = "";
+        /// <summary>The primitive kind drawn as a spawn point's marker, flattened (the editor places it with each new spawn).</summary>
+        [JsonRequired] [Key(1)] public string Marker { get; set; } = "";
 
         /// <summary>How tall a new marker is, in meters, sunk halfway into the ground; it can be moved in the editor after.</summary>
         [JsonRequired] [Key(2)] public float MarkerHeight { get; set; }
