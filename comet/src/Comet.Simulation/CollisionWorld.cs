@@ -16,14 +16,15 @@ namespace Comet.Simulation
     /// </summary>
     public sealed class CollisionWorld
     {
-        /// <summary>Mesh triangles at most this steep (their normal at least this upright) can be stood on: 60°.</summary>
-        public const float WalkableNormalY = 0.5f;
-
         // Triangles go into square cells of the ground plane, so a query looks only at those near it.
         private const float CellSize = 4f;
         private const float Epsilon = 0.001f;
+        // How far past touching a push-out goes, so the body ends clear rather than exactly against the surface.
+        private const float PushMargin = 0.002f;
 
         private readonly List<CollisionMesh> _meshes;
+        // Triangles at most the steepest walkable slope (their normal at least this upright) can be stood on.
+        private readonly float _walkableNormalY;
         // Which meshes are terrain: not closed, so never "inside", and not obstacles for the camera.
         private readonly bool[] _terrain;
         private readonly Vector3[] _corners;
@@ -44,9 +45,10 @@ namespace Comet.Simulation
         [ThreadStatic] private static Dictionary<int, int>? _crossings;
 
         /// <summary>A world of <paramref name="terrain"/> (if any) and <paramref name="meshes"/>, where falling below <paramref name="killHeight"/> meters is out of the world.</summary>
-        public CollisionWorld(ZoneTerrain? terrain, IEnumerable<CollisionMesh> meshes, float killHeight)
+        public CollisionWorld(ZoneTerrain? terrain, IEnumerable<CollisionMesh> meshes, float killHeight, float maxSlope = 60)
         {
             Terrain = terrain;
+            _walkableNormalY = MathF.Cos(maxSlope * MathF.PI / 180);
             _meshes = new List<CollisionMesh>(meshes);
             if (terrain != null)
             {
@@ -128,6 +130,7 @@ namespace Comet.Simulation
             Terrain = shared.Terrain;
             KillHeight = shared.KillHeight;
             _meshes = shared._meshes;
+            _walkableNormalY = shared._walkableNormalY;
             _terrain = shared._terrain;
             _corners = shared._corners;
             _normals = shared._normals;
@@ -208,7 +211,7 @@ namespace Comet.Simulation
 
                     foreach (var t in list)
                     {
-                        if (!FirstLook(t, x, z, fromX, fromZ) || _normals[t].Y < WalkableNormalY || Skip(t, off, passThrough))
+                        if (!FirstLook(t, x, z, fromX, fromZ) || _normals[t].Y < _walkableNormalY || Skip(t, off, passThrough))
                         {
                             continue;
                         }
@@ -257,6 +260,89 @@ namespace Comet.Simulation
         {
             var middle = feet + new Vector3(0, bodyHeight / 2, 0);
             return TouchesMesh(feet, radius, bodyHeight, passThrough) || IsInsideMesh(middle, passThrough) || IsInsideTerrain(middle, 0);
+        }
+
+        /// <summary>
+        /// Moves a body that touches something sideways out of it, the deepest overlap first, a few times over: for
+        /// bodies that end up against a steep surface (landing beside a cone or a terrain slope), which no sideways
+        /// move would otherwise get out of. Only sideways, and at most a body's width in all; false, with
+        /// <paramref name="feet"/> unchanged, if the body isn't clear after that.
+        /// </summary>
+        public bool TryPushOut(ref Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
+        {
+            var moved = feet;
+            for (var i = 0; i < 4 && IsBlocked(moved, radius, bodyHeight, passThrough); i++)
+            {
+                var push = DeepestPush(moved, radius, bodyHeight, passThrough);
+                if (push == Vector2.Zero)
+                {
+                    return false;
+                }
+
+                moved += new Vector3(push.X, 0, push.Y);
+            }
+
+            if (IsBlocked(moved, radius, bodyHeight, passThrough) || Flat(moved - feet).Length() > 2 * radius)
+            {
+                return false;
+            }
+
+            feet = moved;
+            return true;
+        }
+
+        // The longest of the sideways moves that would each take the body just clear of one triangle it touches.
+        private Vector2 DeepestPush(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough)
+        {
+            var off = _off;
+            var r = radius - Epsilon;
+            float bottom = feet.Y + Epsilon, top = feet.Y + bodyHeight - Epsilon;
+            var polygon = _polygon ??= new List<Vector3>(8);
+            var scratch = _scratch ??= new List<Vector3>(8);
+            var center = Flat(feet);
+            var deepest = Vector2.Zero;
+            int fromX = Cell(feet.X - r), fromZ = Cell(feet.Z - r);
+            for (var z = fromZ; z <= Cell(feet.Z + r); z++)
+            {
+                for (var x = fromX; x <= Cell(feet.X + r); x++)
+                {
+                    if (!_cells.TryGetValue((x, z), out var list))
+                    {
+                        continue;
+                    }
+
+                    foreach (var t in list)
+                    {
+                        if (!FirstLook(t, x, z, fromX, fromZ) || Skip(t, off, passThrough) || !TriangleTouchesCylinder(t, feet, r, bottom, top, polygon, scratch))
+                        {
+                            continue;
+                        }
+
+                        // Away from the triangle's surface, seen from above; level ones (floors, ceilings) can't be
+                        // left sideways. Far enough that every point of the cut triangle is a radius behind the body.
+                        var away = Flat(_normals[t]);
+                        if (away.LengthSquared() < 0.01f)
+                        {
+                            continue;
+                        }
+
+                        away = Vector2.Normalize(away);
+                        var reach = float.NegativeInfinity;
+                        foreach (var p in polygon)
+                        {
+                            reach = MathF.Max(reach, Vector2.Dot(Flat(p) - center, away));
+                        }
+
+                        var push = away * (reach + radius + PushMargin);
+                        if (push.LengthSquared() > deepest.LengthSquared())
+                        {
+                            deepest = push;
+                        }
+                    }
+                }
+            }
+
+            return deepest;
         }
 
         // Whether the body touches a mesh's triangle: any solid one not passed through, or only mesh only (on or off).
@@ -490,21 +576,7 @@ namespace Comet.Simulation
         // the triangle clipped to that height range, then the distance to its outline seen from above.
         private bool TriangleTouchesCylinder(int t, Vector3 feet, float r, float bottom, float top, List<Vector3> polygon, List<Vector3> scratch)
         {
-            var a = _corners[3 * t];
-            var b = _corners[3 * t + 1];
-            var c = _corners[3 * t + 2];
-            if (MathF.Max(a.Y, MathF.Max(b.Y, c.Y)) < bottom || MathF.Min(a.Y, MathF.Min(b.Y, c.Y)) > top)
-            {
-                return false;
-            }
-
-            polygon.Clear();
-            polygon.Add(a);
-            polygon.Add(b);
-            polygon.Add(c);
-            ClipY(polygon, scratch, bottom, keepAbove: true);
-            ClipY(polygon, scratch, top, keepAbove: false);
-            if (polygon.Count == 0)
+            if (!ClipToHeights(t, bottom, top, polygon, scratch))
             {
                 return false;
             }
@@ -524,6 +596,11 @@ namespace Comet.Simulation
 
                 // The center is inside the outline if it's on the same side of every edge; an outline with no area
                 // seen from above (a wall) has no inside.
+                if ((q - p).LengthSquared() < 1e-12f)
+                {
+                    continue; // a corner repeated by the clipping
+                }
+
                 var side = Cross(q - p, center - p);
                 var s = side > 1e-9f ? 1 : side < -1e-9f ? -1 : 0;
                 if (s == 0 || (sign != 0 && s != sign))
@@ -535,6 +612,26 @@ namespace Comet.Simulation
             }
 
             return inside;
+        }
+
+        // Triangle t cut to the heights from bottom to top, into polygon; false if nothing is left.
+        private bool ClipToHeights(int t, float bottom, float top, List<Vector3> polygon, List<Vector3> scratch)
+        {
+            var a = _corners[3 * t];
+            var b = _corners[3 * t + 1];
+            var c = _corners[3 * t + 2];
+            if (MathF.Max(a.Y, MathF.Max(b.Y, c.Y)) < bottom || MathF.Min(a.Y, MathF.Min(b.Y, c.Y)) > top)
+            {
+                return false;
+            }
+
+            polygon.Clear();
+            polygon.Add(a);
+            polygon.Add(b);
+            polygon.Add(c);
+            ClipY(polygon, scratch, bottom, keepAbove: true);
+            ClipY(polygon, scratch, top, keepAbove: false);
+            return polygon.Count > 0;
         }
 
         // Clips a convex polygon to one side of a level plane.

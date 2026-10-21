@@ -100,6 +100,13 @@ namespace Comet.Simulation
                 state.Grounded = false;
             }
 
+            // Landing or stepping down beside a steep surface can leave the body in it, where no sideways move gets
+            // out: push it out sideways.
+            if (world.IsBlocked(position, rules.BodyRadius, rules.BodyHeight, passThrough))
+            {
+                world.TryPushOut(ref position, rules.BodyRadius, rules.BodyHeight, passThrough);
+            }
+
             state.Position = position;
             state.Velocity = new Vector3(current.X, velocityY, current.Y);
         }
