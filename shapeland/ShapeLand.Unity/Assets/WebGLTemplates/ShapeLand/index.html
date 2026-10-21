@@ -157,6 +157,16 @@
             arguments: [],
             // Phones draw at most 1.5 pixels per CSS pixel: sharp enough, and far cheaper than 3.
             devicePixelRatio: phone ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined,
+            // An error the browser hides the details of ("Script error.": from another origin, or the browser's own
+            // scripts such as content blockers, as iPhone Safari reports after Tap to play) isn't the game's: logged,
+            // not shown in Unity's alert. Every other error still is.
+            errorHandler: function (message) {
+              if (String(message).trim().indexOf("Script error") === 0) {
+                console.warn("Ignored a script error the browser hid the details of.");
+                return true;
+              }
+              return false;
+            },
 #if PROGRESSIVE_ASSET_LOADING
             primaryDataUrls: {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
             secondaryDataUrls: {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
