@@ -79,6 +79,9 @@ namespace Comet.Unity.Editor
         [Tooltip("A new teleporter pad's color.")]
         public Color teleporterPadColor = Color.white;
 
+        [Tooltip("The color a new teleporter's pad turns toward while a player stands in it.")]
+        public Color teleporterChargeColor = Color.white;
+
         [Tooltip("How long a player stands in a new teleporter before it sends them, in seconds.")]
         public float teleporterStandSeconds = 1;
 

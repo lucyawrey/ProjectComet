@@ -52,6 +52,10 @@ namespace ShapeLand.Client
         private readonly TriggerCharge _spawnCharge = new TriggerCharge();
         private readonly TriggerCharge _teleportCharge = new TriggerCharge();
         private readonly TriggerCharge _triggerCharge = new TriggerCharge();
+
+        // A spawn point the player just claimed, and when, to flash its pad.
+        private SpawnPoint _claimed;
+        private float _claimedAt;
         private MaterialPropertyBlock _padColor;
         private Triggers _triggers;
         private ShapeLandContent _content;
@@ -140,6 +144,7 @@ namespace ShapeLand.Client
             _spawnCharge.Clear();
             _teleportCharge.Clear();
             _triggerCharge.Clear();
+            _claimed = null;
             DrawZone();
             if (Player != null)
             {
@@ -318,8 +323,9 @@ namespace ShapeLand.Client
         private Material MaterialFor(Placement placement) => placement.Blockout && blockoutMaterial != null ? blockoutMaterial : blockMaterial;
 
         // The player's own spawn's pad takes their body color, other spawns' a pale color used nowhere else, and
-        // other pads their own. A pad the player stands in charges toward firing: a spawn's toward their body color
-        // (staying there once claimed, until the server agrees), others brighter.
+        // other pads their own. A pad the player stands in charges toward firing: a spawn's partway to their body
+        // color, then all the way with a flash once claimed (staying there until the server agrees); a teleporter's
+        // toward its charge color; a trigger's brighter.
         private void ColorPads()
         {
             if (_content == null || _pads.Count == 0)
@@ -337,7 +343,12 @@ namespace ShapeLand.Client
                 var spawn = _triggers.SpawnAt(feet);
                 var teleporter = _triggers.TeleporterAt(feet);
                 var trigger = _triggers.All.FirstOrDefault(t => Triggers.Inside(t.Volume, feet));
-                _spawnCharge.Step(spawn, spawn?.Volume, now);
+                if (_spawnCharge.Step(spawn, spawn?.Volume, now) && spawn.Number != own)
+                {
+                    _claimed = spawn;
+                    _claimedAt = now;
+                }
+
                 _teleportCharge.Step(teleporter, teleporter?.Volume, now);
                 _triggerCharge.Step(trigger, trigger?.Volume, now);
             }
@@ -347,13 +358,23 @@ namespace ShapeLand.Client
                 Color color;
                 if (pad.Owner is SpawnPoint spawn)
                 {
-                    var charge = _spawnCharge.Inside == spawn ? (_spawnCharge.Fired ? 1 : _spawnCharge.Progress(now)) : 0;
+                    var charge = _spawnCharge.Inside == spawn ? (_spawnCharge.Fired ? 1 : SpawnChargeShare * _spawnCharge.Progress(now)) : 0;
                     color = spawn.Number == own ? body : UnityEngine.Color.Lerp(pad.Color, body, charge);
+                    var flash = spawn == _claimed ? 1 - (now - _claimedAt) / ClaimFlashSeconds : 0;
+                    if (flash > 0)
+                    {
+                        color = UnityEngine.Color.Lerp(color, UnityEngine.Color.white, 0.8f * flash);
+                    }
+                }
+                else if (pad.Owner is Teleporter teleporter)
+                {
+                    var charge = _teleportCharge.Inside == teleporter ? _teleportCharge.Progress(now) : 0;
+                    var to = Color(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
+                    color = UnityEngine.Color.Lerp(pad.Color, to, charge);
                 }
                 else
                 {
-                    var charging = pad.Owner is Teleporter ? _teleportCharge : _triggerCharge;
-                    var charge = charging.Inside == pad.Owner ? charging.Progress(now) : 0;
+                    var charge = _triggerCharge.Inside == pad.Owner ? _triggerCharge.Progress(now) : 0;
                     color = UnityEngine.Color.Lerp(pad.Color, UnityEngine.Color.white, 0.6f * charge);
                 }
 
@@ -386,6 +407,11 @@ namespace ShapeLand.Client
         }
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
+
+        // How far a spawn's pad goes toward the player's body color while charging (it goes all the way once
+        // claimed), and how long the claim's flash lasts.
+        private const float SpawnChargeShare = 0.5f;
+        private const float ClaimFlashSeconds = 0.35f;
 
         // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
         // the camera carry on as they were (the server's snap-back has already put the player where it has them).

@@ -172,6 +172,7 @@ public static class ShapeLandBuild
         IsColor(world, nameof(WorldSettings.PlacedColor), settings.World.PlacedColor);
         IsColor(spawns, nameof(SpawnSettings.UnsetColor), settings.Spawns.UnsetColor);
         IsColor(teleporters, nameof(TeleporterSettings.PadColor), settings.Teleporters.PadColor);
+        IsColor(teleporters, nameof(TeleporterSettings.ChargeColor), settings.Teleporters.ChargeColor);
         foreach (var color in settings.Colors.Body)
         {
             IsColor(colors, nameof(ColorSettings.Body), color);

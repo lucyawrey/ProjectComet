@@ -215,6 +215,7 @@ namespace Comet.Unity.Editor
                 chunk.Teleporters = chunk.Teleporters.Append(new Teleporter
                 {
                     Id = teleporter.id, Volume = VolumeOf(teleporter), Facing = (SpawnFacing)teleporter.facing, Target = teleporter.target,
+                    ChargeColor = PlacedColors.ToRgb(teleporter.chargeColor),
                 }).ToArray();
             }
 
@@ -361,6 +362,7 @@ namespace Comet.Unity.Editor
                     var component = CreateTrigger<ZoneTeleporter>(root, teleporter.Id, teleporter.Volume, settings);
                     component.facing = (ZoneTrigger.FacingMode)teleporter.Facing;
                     component.target = teleporter.Target;
+                    component.chargeColor = teleporter.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.teleporterChargeColor;
                 }
 
                 foreach (var trigger in chunk.Triggers)
@@ -653,6 +655,11 @@ namespace Comet.Unity.Editor
             if (trigger is ZoneSpawn)
             {
                 trigger.volume = ZoneTrigger.VolumeKind.Cylinder;
+            }
+
+            if (trigger is ZoneTeleporter teleporter)
+            {
+                teleporter.chargeColor = settings.teleporterChargeColor;
             }
 
             if (PrimitiveNamed(padKind) is { } kind)

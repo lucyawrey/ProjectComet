@@ -286,6 +286,9 @@ namespace Comet.Content
 
         /// <summary>The teleporter it sends players to (<c>teleporter.cave.to_meadow</c>), in any zone.</summary>
         [Key(4)] public string Target { get; set; } = "";
+
+        /// <summary>The color its pad turns toward while a player stands in it, as 0xRRGGBB, or null to leave it to the game.</summary>
+        [Key(5)] public uint? ChargeColor { get; set; }
     }
 
     /// <summary>A trigger with toggle effects, such as a plate that opens a door. Its id names its zone (<c>trigger.meadow.gate_plate</c>).</summary>

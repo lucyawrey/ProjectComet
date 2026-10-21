@@ -130,6 +130,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>How tall a new teleporter's volume is, in meters, above its pad.</summary>
         [JsonRequired] [Key(4)] public float VolumeHeight { get; set; }
+
+        /// <summary>The color a new pad turns toward while a player stands in it, and that of teleporters without their own, as 0xRRGGBB.</summary>
+        [JsonRequired] [Key(5)] public uint ChargeColor { get; set; }
     }
 
     /// <summary>Triggers with toggle effects: the editor's defaults for new ones (each keeps its own after; new ones have no pad).</summary>

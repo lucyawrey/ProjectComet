@@ -231,13 +231,14 @@ namespace Comet.ZoneFiles
             }).ToArray();
             chunk.Teleporters = toml.Tables(table, "teleporter").Select(t =>
             {
-                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "facing", "target" }).ToArray());
+                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "facing", "target", "charge_color" }).ToArray());
                 return new Teleporter
                 {
                     Id = toml.String(t.Table, t.Path, "id"),
                     Volume = ReadVolume(toml, t.Table, t.Path),
                     Facing = toml.Enum<SpawnFacing>(t.Table, t.Path, "facing", SpawnFacing.Direction),
                     Target = toml.String(t.Table, t.Path, "target"),
+                    ChargeColor = t.Table.TryGetValue("charge_color", out var color) ? Color(toml, color, $"{t.Path}.charge_color") : null,
                 };
             }).ToArray();
             chunk.Triggers = toml.Tables(table, "trigger").Select(t =>
@@ -447,7 +448,7 @@ namespace Comet.ZoneFiles
         // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
         internal static string HexColors(string text)
         {
-            text = Regex.Replace(text, @"^((?:ground_|under_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
+            text = Regex.Replace(text, @"^((?:ground_|under_|charge_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
             return Regex.Replace(text, @"^colors = \{.*\}$", line => Regex.Replace(line.Value, @"= (\d+)", m => $"= 0x{long.Parse(m.Groups[1].Value):X6}"), RegexOptions.Multiline);
         }
 
@@ -591,6 +592,11 @@ namespace Comet.ZoneFiles
                 WriteVolume(teleporter, t.Volume);
                 teleporter["facing"] = ZoneToml.SnakeCase(t.Facing.ToString());
                 teleporter["target"] = t.Target;
+                if (t.ChargeColor is { } color)
+                {
+                    teleporter["charge_color"] = (long)color;
+                }
+
                 return WritePad(teleporter, t.Volume);
             });
             AddTables(table, "trigger", chunk.Triggers, t =>

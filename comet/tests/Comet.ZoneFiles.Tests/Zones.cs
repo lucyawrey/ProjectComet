@@ -72,6 +72,7 @@ internal static class Zones
                         Volume = new TriggerVolume { Kind = PrimitiveKind.Box, Position = new Vector3(12, 4, 5), Size = new Vector3(2, 2, 2), StandSeconds = 1 },
                         Facing = SpawnFacing.Random,
                         Target = "teleporter.cave.to_meadow",
+                        ChargeColor = 0xFFCC00,
                     },
                 ],
                 Triggers =

@@ -40,6 +40,7 @@ public class ZoneFolderTests
         Assert.Equal((PrimitiveKind.Cylinder, new Vector3(6, 0.4f, 6)), (spawn.Volume.Pad!.Primitive!.Kind, spawn.Volume.Pad.Scale));
         var teleporter = Assert.Single(zone.Chunks[1].Teleporters);
         Assert.Equal(("teleporter.meadow.to_cave", SpawnFacing.Random, "teleporter.cave.to_meadow", 1f, null), (teleporter.Id, teleporter.Facing, teleporter.Target, teleporter.Volume.StandSeconds, teleporter.Volume.Pad));
+        Assert.Equal(0xFFCC00u, teleporter.ChargeColor);
         var trigger = Assert.Single(zone.Chunks[1].Triggers);
         Assert.Equal(("trigger.meadow.plate", PrimitiveKind.Sphere, Rearm.Repeat), (trigger.Id, trigger.Volume.Kind, trigger.Volume.Rearm));
         Assert.Equal(("gate", 5f), (trigger.Effects[0].Name, trigger.Effects[0].RevertSeconds));
@@ -103,6 +104,7 @@ public class ZoneFolderTests
             stand_seconds = 1.0
             facing = "random"
             target = "teleporter.cave.to_meadow"
+            charge_color = 0xFFCC00
 
             [[trigger]]
             id = "trigger.meadow.plate"

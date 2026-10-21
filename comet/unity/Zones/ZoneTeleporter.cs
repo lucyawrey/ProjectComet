@@ -11,6 +11,9 @@ namespace Comet.Unity
         [Tooltip("The teleporter it sends players to, in any zone (teleporter.cave.to_meadow).")]
         public string target = "teleporter.";
 
+        [Tooltip("The color its pad turns toward while a player stands in it.")]
+        public Color chargeColor = Color.white;
+
         public override string Kind => "teleporter";
 
         protected override Color GizmoColor => new Color(0.75f, 0.55f, 1);
