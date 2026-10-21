@@ -510,7 +510,10 @@ namespace Comet.Unity.Editor
         // Builds a project with dotnet (run off the main thread: no Unity calls), returning the program built or the build's output.
         private static Built Build(string dotnet, string root, string project)
         {
-            var start = new ProcessStartInfo(dotnet, $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath")
+            // Into its own artifacts folder, so it never fights another build of the same project over files (play-mode
+            // tests build the game server too, as do the dev scripts and dotnet test).
+            var artifacts = Path.Combine(root, "artifacts", "editor-server");
+            var start = new ProcessStartInfo(dotnet, $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath --artifacts-path \"{artifacts}\"")
             {
                 WorkingDirectory = root,
                 UseShellExecute = false,
