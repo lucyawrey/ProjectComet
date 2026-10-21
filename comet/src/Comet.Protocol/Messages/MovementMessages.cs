@@ -77,6 +77,33 @@ namespace Comet.Protocol.Messages
         Teleport = 3,
     }
 
+    /// <summary>What a position report's check found.</summary>
+    public enum MovementVerdict : byte
+    {
+        Accepted,
+
+        /// <summary>A number that isn't finite (NaN or infinity): never valid, and every comparison with NaN is false.</summary>
+        NotFinite,
+
+        /// <summary>Sent before the client applied the latest correction; ignored.</summary>
+        Stale,
+
+        /// <summary>Moved further than the speed budget allows.</summary>
+        TooFast,
+
+        /// <summary>Higher than gravity allows: above the arc of a jump from the last ground at this point in it.</summary>
+        TooHigh,
+
+        /// <summary>The body overlaps a solid mesh (a placed object or a wall volume).</summary>
+        InsideSolid,
+
+        /// <summary>Inside a terrain piece: below its surface and above its bottom.</summary>
+        UnderGround,
+
+        /// <summary>Fell below the world's kill height; respawn.</summary>
+        FellOut,
+    }
+
     /// <summary>
     /// Server event: the server overrides the client's own position. The client moves there (blending
     /// a snap-back, fading a respawn) and echoes <see cref="Sequence"/> in its later reports.
@@ -91,5 +118,8 @@ namespace Comet.Protocol.Messages
         [Key(3)] public float Y;
         [Key(4)] public float Z;
         [Key(5)] public float Facing;
+
+        /// <summary>For a snap-back, the rule the rejected report broke; <see cref="MovementVerdict.Accepted"/> when none did.</summary>
+        [Key(6)] public MovementVerdict Verdict;
     }
 }
