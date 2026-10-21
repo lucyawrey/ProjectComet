@@ -110,8 +110,9 @@ id = "trigger.hub.bridge"
 volume = "box"
 position = [-13.05, 6.228, -20.98]
 size = [2.0, 2.0, 2.0]
-stand_seconds = 1.0
+stand_seconds = 2.0
 rearm = "repeat"
+charge_color = 0xFFFFFF
 
 [trigger.pad]
 primitive = "box"

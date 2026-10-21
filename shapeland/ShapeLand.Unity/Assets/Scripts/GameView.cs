@@ -329,9 +329,8 @@ namespace ShapeLand.Client
         private Material MaterialFor(Placement placement) => placement.Blockout && blockoutMaterial != null ? blockoutMaterial : blockMaterial;
 
         // The player's own spawn's pad takes their body color, other spawns' a pale color used nowhere else, and
-        // other pads their own. A pad the player stands in charges toward firing: a spawn's partway to their body
-        // color, then all the way once claimed (staying there until the server agrees); a teleporter's and a trigger's
-        // toward their charge color, a trigger's staying there while the player stays in it. Each blinks once to its
+        // other pads their own. A pad the player stands in charges toward firing: a spawn's toward their body color
+        // (staying there once claimed, until the server agrees); a teleporter's and a trigger's toward their charge color, a trigger's staying there while the player stays in it. Each blinks once to its
         // resting color, which shows on any color: a spawn's and a trigger's as they fire, a teleporter's just before
         // it sends the player (then holding its charge color until the server does).
         private void ColorPads()
@@ -374,7 +373,7 @@ namespace ShapeLand.Client
                 Color color;
                 if (pad.Owner is SpawnPoint spawn)
                 {
-                    var charge = _spawnCharge.Inside == spawn ? (_spawnCharge.Fired ? 1 : SpawnChargeShare * _spawnCharge.Progress(now)) : 0;
+                    var charge = _spawnCharge.Inside == spawn ? (_spawnCharge.Fired ? 1 : _spawnCharge.Progress(now)) : 0;
                     color = spawn.Number == own ? body : UnityEngine.Color.Lerp(pad.Color, body, charge);
                     if (spawn == _claimed && now - _claimedAt < BlinkSeconds)
                     {
@@ -435,9 +434,7 @@ namespace ShapeLand.Client
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
-        // How far a spawn's pad goes toward the player's body color while charging (it goes all the way once
-        // claimed), and how long a pad's blink to its resting color lasts.
-        private const float SpawnChargeShare = 0.5f;
+        // How long a pad's blink to its resting color lasts.
         private const float BlinkSeconds = 0.1f;
 
         // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
