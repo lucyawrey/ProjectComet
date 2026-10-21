@@ -9,6 +9,8 @@ namespace Comet.Unity
     /// object's transform is the placement's. A primitive's mesh is built at its size: the scale tool edits
     /// <see cref="size"/>, and any other scale is folded into it once a resize ends. A group copy's parts are drawn
     /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy.
+    /// Turning the object off (its checkbox) makes a placement that starts off: hidden and not solid in the game
+    /// until a trigger flips it on by its name.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
@@ -29,9 +31,6 @@ namespace Comet.Unity
 
         [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
         public bool blockout;
-
-        [Tooltip("Starts off: hidden and not solid in the game until a trigger flips it on. Give it a name for triggers to flip it by.")]
-        public bool off;
 
         [Tooltip("A group part's role (body, leaves), for game code to find or color it by, and for copies to recolor it by; empty for most. Only a group's parts have one.")]
         public string role = "";
@@ -97,7 +96,7 @@ namespace Comet.Unity
         }
 
         /// <summary>Whether this is placed in the zone itself, not a part of a copy whose group is being edited in place.</summary>
-        public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>() == null;
+        public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>(true) == null;
 
         /// <summary>The primitive placed, or null for a prop.</summary>
         public Primitive? Primitive => isPrimitive

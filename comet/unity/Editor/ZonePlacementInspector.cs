@@ -36,7 +36,7 @@ namespace Comet.Unity.Editor
             }
 
             // Only a group's parts have a role: in a group's own scene, or under a copy edited in place.
-            if (targets.Cast<ZonePlacement>().Any(p => p.IsLoose && p.GetComponentInParent<ZoneEditing>() is not { IsGroup: true }))
+            if (targets.Cast<ZonePlacement>().Any(p => p.IsLoose && p.GetComponentInParent<ZoneEditing>(true) is not { IsGroup: true }))
             {
                 hidden.Add(nameof(ZonePlacement.role));
             }
@@ -65,7 +65,7 @@ namespace Comet.Unity.Editor
             }
 
             serializedObject.ApplyModifiedProperties();
-            if (targets.Length == 1 && placement.IsLoose && placement.GetComponentInParent<ZoneTrigger>() == null)
+            if (targets.Length == 1 && placement.IsLoose && placement.GetComponentInParent<ZoneTrigger>(true) == null)
             {
                 SwapButtons(placement);
             }

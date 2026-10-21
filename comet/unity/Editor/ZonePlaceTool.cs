@@ -319,7 +319,7 @@ namespace Comet.Unity.Editor
                 addingId = EditorGUILayout.TextField(addingId);
             }
 
-            foreach (var point in editing.GetComponentsInChildren<ZoneTrigger>().OrderBy(t => t.id, StringComparer.Ordinal))
+            foreach (var point in editing.GetComponentsInChildren<ZoneTrigger>(true).OrderBy(t => t.id, StringComparer.Ordinal))
             {
                 if (GUILayout.Button(point.id, EditorStyles.linkLabel))
                 {
@@ -428,7 +428,7 @@ namespace Comet.Unity.Editor
 
             var id = addingId;
             var prefix = $"{adding}.{ZoneName(editing)}.";
-            if (!id.StartsWith(prefix, StringComparison.Ordinal) || !Comet.ZoneFiles.ZoneValidation.IsZonedId(id, adding) || editing.GetComponentsInChildren<ZoneTrigger>().Any(t => t.id == id))
+            if (!id.StartsWith(prefix, StringComparison.Ordinal) || !Comet.ZoneFiles.ZoneValidation.IsZonedId(id, adding) || editing.GetComponentsInChildren<ZoneTrigger>(true).Any(t => t.id == id))
             {
                 EditorUtility.DisplayDialog($"New {adding}", $"Pick a new id: '{prefix}' then lowercase letters, digits and underscores, starting with a letter.", "OK");
                 return;
@@ -453,7 +453,7 @@ namespace Comet.Unity.Editor
             var ray = HandleUtility.GUIPointToWorldRay(mouse);
             var best = TerrainHit(editing, ray);
             var picked = HandleUtility.PickGameObject(mouse, false);
-            var placed = picked != null ? picked.GetComponentInParent<ZonePlacement>() : null;
+            var placed = picked != null ? picked.GetComponentInParent<ZonePlacement>(true) : null;
             if (placed != null)
             {
                 var renderers = placed.GetComponentsInChildren<Renderer>().Where(r => r.enabled).ToArray();

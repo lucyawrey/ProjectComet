@@ -200,7 +200,7 @@ namespace Comet.Unity.Editor
         public static bool SaveSelection(ZoneEditing editing, string id, CometSettings settings)
         {
             var selected = Selection.gameObjects.Select(g => g.GetComponent<ZonePlacement>())
-                .Where(p => p != null && p.IsLoose && p.GetComponentInParent<ZoneTrigger>() == null && p.GetComponentInParent<ZoneEditing>() == editing)
+                .Where(p => p != null && p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null && p.GetComponentInParent<ZoneEditing>(true) == editing)
                 .ToList();
             if (selected.Count == 0)
             {
@@ -344,7 +344,7 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            if (editing.GetComponentsInChildren<ZoneTrigger>().Length > 0)
+            if (editing.GetComponentsInChildren<ZoneTrigger>(true).Length > 0)
             {
                 Debug.LogWarning($"{editing.groupId}: groups have no spawn points, teleporters or triggers; the ones in this scene aren't saved.");
             }
@@ -352,7 +352,7 @@ namespace Comet.Unity.Editor
             var group = new Group
             {
                 Id = editing.groupId,
-                Parts = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>() == null).Select(p => ZoneEditor.PlacementOf(p)).ToArray(),
+                Parts = editing.GetComponentsInChildren<ZonePlacement>(true).Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null).Select(p => ZoneEditor.PlacementOf(p)).ToArray(),
             };
             var path = ZoneEditor.ProjectPath(editing.folder);
             if (!Check(group, Path.GetRelativePath(ZoneEditor.ProjectPath(settings.groupsFolder), path).Replace('\\', '/'), settings))
@@ -422,7 +422,7 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            var parts = copy.GetComponentsInChildren<ZonePlacement>().Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>() == copy).ToList();
+            var parts = copy.GetComponentsInChildren<ZonePlacement>(true).Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>(true) == copy).ToList();
             var group = new Group { Id = copy.group, Parts = parts.Select(p => ZoneEditor.PlacementOf(p, copy.transform)).ToArray() };
             if (!Check(group, entry.File, settings))
             {
@@ -448,7 +448,7 @@ namespace Comet.Unity.Editor
         {
             Undo.SetCurrentGroupName(undoName);
             var undoGroup = Undo.GetCurrentGroup();
-            foreach (var part in copy.GetComponentsInChildren<ZonePlacement>().Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>() == copy).ToList())
+            foreach (var part in copy.GetComponentsInChildren<ZonePlacement>(true).Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>(true) == copy).ToList())
             {
                 Undo.DestroyObjectImmediate(part.gameObject);
             }
@@ -515,7 +515,7 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            var here = editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.group == id).ToList();
+            var here = editing.GetComponentsInChildren<ZonePlacement>(true).Where(p => p.IsLoose && p.group == id).ToList();
             var openFile = editing.IsGroup ? Load().FirstOrDefault(g => g.Group.Id == editing.groupId).File : null;
             var elsewhere = Uses(id, settings, openZone: editing.IsGroup ? null : ZoneEditor.ProjectPath(editing.folder), openGroupFile: openFile);
             if (elsewhere.Count > 0)

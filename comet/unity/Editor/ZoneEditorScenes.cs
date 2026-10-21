@@ -73,15 +73,15 @@ namespace Comet.Unity.Editor
                     continue;
                 }
 
-                foreach (var spawn in root.GetComponentsInChildren<ZoneTrigger>())
+                foreach (var spawn in root.GetComponentsInChildren<ZoneTrigger>(true))
                 {
-                    var zone = spawn.GetComponentInParent<ZoneEditing>();
+                    var zone = spawn.GetComponentInParent<ZoneEditing>(true);
                     if (zone == null)
                     {
                         continue;
                     }
 
-                    var others = zone.GetComponentsInChildren<ZoneTrigger>().Where(s => s != spawn).Select(s => s.id).ToHashSet();
+                    var others = zone.GetComponentsInChildren<ZoneTrigger>(true).Where(s => s != spawn).Select(s => s.id).ToHashSet();
                     if (!others.Contains(spawn.id))
                     {
                         continue;
@@ -137,7 +137,7 @@ namespace Comet.Unity.Editor
 
             foreach (var root in scene.GetRootGameObjects())
             {
-                foreach (var editing in root.GetComponentsInChildren<ZoneEditing>())
+                foreach (var editing in root.GetComponentsInChildren<ZoneEditing>(true))
                 {
                     yield return editing;
                 }

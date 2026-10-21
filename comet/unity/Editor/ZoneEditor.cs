@@ -197,19 +197,19 @@ namespace Comet.Unity.Editor
 
             // A copy being edited in place is saved as the copy; its parts go to its group only when that's saved.
             // Pads are saved inside their spawn points, teleporters and triggers.
-            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>() == null))
+            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>(true).Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null))
             {
                 var chunk = ChunkAt(ToNumerics(placed.transform.position));
                 chunk.Placements = chunk.Placements.Append(PlacementOf(placed)).ToArray();
             }
 
-            foreach (var spawn in editing.GetComponentsInChildren<ZoneSpawn>())
+            foreach (var spawn in editing.GetComponentsInChildren<ZoneSpawn>(true))
             {
                 var chunk = ChunkAt(ToNumerics(spawn.transform.position));
                 chunk.Spawns = chunk.Spawns.Append(new SpawnPoint { Id = spawn.id, Volume = VolumeOf(spawn), Facing = (SpawnFacing)spawn.facing }).ToArray();
             }
 
-            foreach (var teleporter in editing.GetComponentsInChildren<ZoneTeleporter>())
+            foreach (var teleporter in editing.GetComponentsInChildren<ZoneTeleporter>(true))
             {
                 var chunk = ChunkAt(ToNumerics(teleporter.transform.position));
                 chunk.Teleporters = chunk.Teleporters.Append(new Teleporter
@@ -219,7 +219,7 @@ namespace Comet.Unity.Editor
                 }).ToArray();
             }
 
-            foreach (var trigger in editing.GetComponentsInChildren<ZoneToggleTrigger>())
+            foreach (var trigger in editing.GetComponentsInChildren<ZoneToggleTrigger>(true))
             {
                 var chunk = ChunkAt(ToNumerics(trigger.transform.position));
                 chunk.Triggers = chunk.Triggers.Append(new Trigger
@@ -231,7 +231,7 @@ namespace Comet.Unity.Editor
                 }).ToArray();
             }
 
-            foreach (var volume in editing.GetComponentsInChildren<ZoneVolume>())
+            foreach (var volume in editing.GetComponentsInChildren<ZoneVolume>(true))
             {
                 var t = volume.transform;
                 var chunk = ChunkAt(ToNumerics(t.position));
@@ -434,11 +434,12 @@ namespace Comet.Unity.Editor
             marker.prop = placement.Prop;
             marker.placementName = placement.Name ?? "";
             marker.blockout = placement.Blockout;
-            marker.off = placement.Off;
             marker.role = placement.Role ?? "";
             marker.roleColors = placement.Colors?.OrderBy(c => c.Key, System.StringComparer.Ordinal)
                 .Select(c => new ZonePlacement.RoleColor { role = c.Key, color = PlacedColors.FromRgb(c.Value) }).ToList() ?? new List<ZonePlacement.RoleColor>();
             SetColors(marker, settings, placement.Color, defaultColor);
+            // An object turned off (unchecked) is a placement that starts off.
+            thing.SetActive(!placement.Off);
             return thing;
         }
 
@@ -458,14 +459,14 @@ namespace Comet.Unity.Editor
                 Primitive = placed.IsGroup ? null : placed.Primitive,
                 Group = placed.IsGroup ? placed.group : null,
                 Blockout = placed.blockout,
-                Off = placed.off,
+                Off = !placed.gameObject.activeSelf,
                 Name = string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
                 Position = ToNumerics(position),
                 Rotation = Angles(rotation.eulerAngles),
                 Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),
                 Color = placed.ownColor && !placed.IsGroup ? PlacedColors.ToRgb(placed.color) : (uint?)null,
                 // Only a group's parts have a role: one unpacked into a zone drops it.
-                Role = !string.IsNullOrEmpty(placed.role) && (relativeTo != null || placed.GetComponentInParent<ZoneEditing>() is { IsGroup: true }) ? placed.role : null,
+                Role = !string.IsNullOrEmpty(placed.role) && (relativeTo != null || placed.GetComponentInParent<ZoneEditing>(true) is { IsGroup: true }) ? placed.role : null,
                 Colors = placed.IsGroup && placed.roleColors.Count > 0 ? RoleColors(placed) : null,
             };
         }
@@ -601,7 +602,7 @@ namespace Comet.Unity.Editor
         public static GameObject Place(ZoneEditing editing, string placeable, Vector3 position, CometSettings settings, Color? color = null)
         {
             // While a group is edited in place, what's placed goes into it.
-            var parent = ZoneGroups.InPlace is { } inPlace && inPlace.GetComponentInParent<ZoneEditing>() == editing ? inPlace.transform
+            var parent = ZoneGroups.InPlace is { } inPlace && inPlace.GetComponentInParent<ZoneEditing>(true) == editing ? inPlace.transform
                 : editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
             GameObject thing;
             ZonePlacement placement;
