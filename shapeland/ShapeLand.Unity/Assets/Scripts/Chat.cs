@@ -65,6 +65,7 @@ namespace ShapeLand.Client
             _input = tree.Q<TextField>("chat-input");
             _hint = tree.Q<Label>("chat-hint");
             _input.RegisterCallback<KeyDownEvent>(OnInputKey, TrickleDown.TrickleDown);
+            tree.Q<Button>("chat-send").clicked += Send;
 
             _hud.Join.ChatReceived += OnChat;
             _hud.Join.ChatRefused += OnRefused;
@@ -149,16 +150,30 @@ namespace ShapeLand.Client
             _hud.UpdateMoving();
         }
 
-        // A mouse click this frame that landed outside the chat box.
+        // A mouse click or a touch this frame that landed outside the chat box.
         private bool ClickedOutsideBox()
         {
-            var mouse = Mouse.current;
-            if (mouse == null || _box.panel == null || !(mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+            if (_box.panel == null)
             {
                 return false;
             }
 
-            var screen = mouse.position.ReadValue();
+            Vector2 screen;
+            var mouse = Mouse.current;
+            var touch = Touchscreen.current?.primaryTouch;
+            if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+            {
+                screen = mouse.position.ReadValue();
+            }
+            else if (touch != null && touch.press.wasPressedThisFrame)
+            {
+                screen = touch.position.ReadValue();
+            }
+            else
+            {
+                return false;
+            }
+
             var point = RuntimePanelUtils.ScreenToPanel(_box.panel, new Vector2(screen.x, Screen.height - screen.y));
             return !_box.worldBound.Contains(point);
         }

@@ -31,6 +31,7 @@
             <ui:VisualElement name="chat-input-row" class="chat-input-row hidden">
                 <ui:TextField name="chat-input" max-length="200" class="input chat-input" />
                 <ui:Label text="#chat.keys" class="chat-keys" picking-mode="Ignore" />
+                <ui:Button name="chat-send" text="#chat.send" class="chat-send" focusable="false" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Button name="look-button" text="#hud.change_look" class="look-button" focusable="false" />
