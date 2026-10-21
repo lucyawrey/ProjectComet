@@ -159,8 +159,7 @@ namespace Comet.Simulation
                 }
 
                 standing = new Vector3(spot.X, ground, spot.Z);
-                return !world.IsBlocked(standing, rules.BodyRadius, rules.BodyHeight, passThrough)
-                    && !world.IsBlockedByTerrain(standing, rules.BodyRadius, rules.BodyHeight, rules.StepHeight);
+                return !world.IsBlocked(standing, rules.BodyRadius, rules.BodyHeight, passThrough);
             }
         }
 

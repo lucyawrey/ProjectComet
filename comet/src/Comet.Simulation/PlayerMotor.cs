@@ -78,7 +78,7 @@ namespace Comet.Simulation
             if (velocityY > 0)
             {
                 var up = new Vector3(position.X, targetY, position.Z);
-                if (world.IsBlocked(up, rules.BodyRadius, rules.BodyHeight, passThrough) || world.IsBlockedByTerrain(up, rules.BodyRadius, rules.BodyHeight, 0))
+                if (world.IsBlocked(up, rules.BodyRadius, rules.BodyHeight, passThrough))
                 {
                     velocityY = 0;
                     targetY = startY;
@@ -120,19 +120,17 @@ namespace Comet.Simulation
                 return position;
             }
 
-            // Terrain may rise by up to twice the distance moved, as for landing below, plus a step.
-            var climb = stepUp + 2 * delta.Length();
             var moved = position + delta;
-            if (!world.IsBlocked(moved, rules.BodyRadius, rules.BodyHeight, passThrough) && !world.IsBlockedByTerrain(moved, rules.BodyRadius, rules.BodyHeight, climb))
+            if (!world.IsBlocked(moved, rules.BodyRadius, rules.BodyHeight, passThrough))
             {
                 return moved;
             }
 
-            // Walk up a low ledge (a step) if the body fits on top of it.
+            // Walk up a low ledge (a step, or a slope's rise) if the body fits on top of it.
             if (stepUp > 0 && world.TryGetGround(moved, rules.BodyRadius, position.Y + stepUp, out var ledge, 0, passThrough) && ledge > position.Y)
             {
                 var stepped = new Vector3(moved.X, ledge, moved.Z);
-                if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight, passThrough) && !world.IsBlockedByTerrain(stepped, rules.BodyRadius, rules.BodyHeight, climb))
+                if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight, passThrough))
                 {
                     return stepped;
                 }
