@@ -2,6 +2,7 @@ using Comet.Content;
 using Comet.Protocol.Messages;
 using Comet.Simulation;
 using Comet.Unity;
+using ShapeLand.Shared.World;
 using UnityEngine;
 
 namespace ShapeLand.Client
@@ -17,12 +18,18 @@ namespace ShapeLand.Client
         private const string ShownKey = "collisionViewShown";
         private const float MarkSeconds = 4;
 
-        private static readonly Color BodyColor = new Color(1, 0.85f, 0.2f, 0.9f);
-        private static readonly Color SnapBackColor = new Color(1, 0.2f, 0.2f, 1);
-        private static readonly Color SpawnColor = new Color(0.3f, 1, 0.4f, 0.8f);
-        private static readonly Color TeleporterColor = new Color(0.3f, 0.85f, 1, 0.8f);
-        private static readonly Color TriggerColor = new Color(1, 0.6f, 0.2f, 0.8f);
-        private static readonly Color WaterColor = new Color(0.3f, 0.5f, 1, 0.8f);
+        // A color for each kind of collider, muted so the view doesn't drown the game.
+        private static readonly Color TerrainColor = new Color(0.8f, 0.72f, 0.45f, 0.45f);
+        private static readonly Color PropColor = new Color(0.75f, 0.75f, 0.75f, 0.45f);
+        private static readonly Color PrimitiveColor = new Color(0.7f, 0.6f, 1, 0.45f);
+        private static readonly Color PadColor = new Color(0.35f, 0.8f, 0.7f, 0.45f);
+        private static readonly Color WallColor = new Color(0.9f, 0.4f, 0.85f, 0.45f);
+        private static readonly Color SpawnColor = new Color(0.4f, 0.85f, 0.4f, 0.5f);
+        private static readonly Color TeleporterColor = new Color(0.4f, 0.7f, 1, 0.5f);
+        private static readonly Color TriggerColor = new Color(1, 0.6f, 0.25f, 0.5f);
+        private static readonly Color WaterColor = new Color(0.3f, 0.4f, 0.95f, 0.5f);
+        private static readonly Color BodyColor = new Color(1, 0.9f, 0.3f, 0.6f);
+        private static readonly Color SnapBackColor = new Color(1, 0.25f, 0.25f, 0.8f);
 
         private Hud _hud;
         private Chat _chat;
@@ -109,7 +116,7 @@ namespace ShapeLand.Client
 
         private void ShowZone(Zone zone, CollisionWorld world, PolygonBudget budget)
         {
-            _view.Show(world);
+            _view.Show(world, ColorOf, TerrainColor);
             foreach (var chunk in zone.Chunks)
             {
                 foreach (var spawn in chunk.Spawns)
@@ -138,6 +145,14 @@ namespace ShapeLand.Client
                 }
             }
         }
+
+        private static Color ColorOf(CollisionMesh mesh) => mesh.Kind switch
+        {
+            ShapeLandWorld.PrimitiveKind => PrimitiveColor,
+            ShapeLandWorld.PadKind => PadColor,
+            ShapeLandWorld.WallKind => WallColor,
+            _ => PropColor,
+        };
 
         private void OnCorrected(PositionCorrection correction)
         {

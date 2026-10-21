@@ -19,6 +19,9 @@ namespace Comet.Simulation
         /// <summary>Whether it starts off: not solid until it's turned on.</summary>
         public bool StartsOff { get; set; }
 
+        /// <summary>What made it (a prop, a primitive, a wall…), named by the game, for debug views; or null.</summary>
+        public string? Kind { get; set; }
+
         /// <summary>A prop's collision triangles (in its own space) placed by <paramref name="transform"/>.</summary>
         public static CollisionMesh Placed(IReadOnlyList<Vector3> triangles, Matrix4x4 transform)
         {

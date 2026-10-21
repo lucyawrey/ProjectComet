@@ -13,17 +13,19 @@ namespace Comet.Unity
     /// </summary>
     public sealed class CollisionView : MonoBehaviour
     {
-        /// <summary>Collision meshes' lines in sight.</summary>
-        public static readonly Color MeshColor = new Color(1, 1, 1, 0.35f);
-
         // Lines behind something, as a share of their opacity in sight.
-        private const float HiddenOpacity = 0.3f;
+        private const float HiddenOpacity = 0.2f;
+
+        // Terrain edges between cells meeting at less than this many degrees aren't drawn, so gentle slopes don't
+        // fill the view with the grid; cliffs, skirts and piece edges still show.
+        private const float TerrainCrease = 20;
         private const int BodySides = 16;
 
         [SerializeField] private Shader shader = null!;
 
         private readonly List<(int Mesh, GameObject Lines)> _meshes = new List<(int, GameObject)>();
-        private readonly List<GameObject> _volumes = new List<GameObject>();
+        // Volumes and terrain: lines that never turn off.
+        private readonly List<GameObject> _fixed = new List<GameObject>();
         private readonly List<(Matrix4x4 Matrix, Color Color, float Until)> _markers = new List<(Matrix4x4, Color, float)>();
         private Material _seen = null!;
         private Material _hidden = null!;
@@ -55,14 +57,28 @@ namespace Comet.Unity
             _root.gameObject.SetActive(false);
         }
 
-        /// <summary>Shows <paramref name="world"/>'s meshes from now on, and none of the volumes added before.</summary>
-        public void Show(CollisionWorld world)
+        /// <summary>
+        /// Shows <paramref name="world"/>'s meshes from now on, each in the color <paramref name="colorOf"/> gives it,
+        /// and its terrain in <paramref name="terrainColor"/>; none of the volumes added before.
+        /// </summary>
+        public void Show(CollisionWorld world, System.Func<CollisionMesh, Color> colorOf, Color terrainColor)
         {
             Clear();
             _world = world;
             for (var i = 0; i < world.Meshes.Count; i++)
             {
-                _meshes.Add((i, AddLines("Mesh " + i, world.Meshes[i].Triangles, MeshColor)));
+                _meshes.Add((i, AddLines("Mesh " + i, world.Meshes[i].Triangles, colorOf(world.Meshes[i]))));
+            }
+
+            // Terrain collides as height maps; these are the meshes drawn from the same maps, so they show its shape.
+            if (world.Terrain != null)
+            {
+                foreach (var chunk in TerrainMesher.Build(world.Terrain, 0, 0))
+                {
+                    var lines = AddLines($"Terrain {chunk.Key}", chunk.Value.Positions, terrainColor, TerrainCrease);
+                    lines.transform.localPosition = new Vector3(chunk.Key.Origin.X, chunk.Key.Origin.Y, chunk.Key.Origin.Z);
+                    _fixed.Add(lines);
+                }
             }
         }
 
@@ -72,11 +88,11 @@ namespace Comet.Unity
             var triangles = PrimitiveMesher.Build(new Primitive { Kind = volume.Kind }, volume.Size, budget);
             var placed = CollisionMesh.Placed(triangles, System.Numerics.Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(new System.Numerics.Vector3(0, volume.Yaw, 0)))
                 * System.Numerics.Matrix4x4.CreateTranslation(volume.Position));
-            _volumes.Add(AddLines("Volume", placed.Triangles, color));
+            _fixed.Add(AddLines("Volume", placed.Triangles, color));
         }
 
         /// <summary>Adds <paramref name="mesh"/>'s outline in <paramref name="color"/>, for volumes that aren't trigger volumes.</summary>
-        public void AddVolume(CollisionMesh mesh, Color color) => _volumes.Add(AddLines("Volume", mesh.Triangles, color));
+        public void AddVolume(CollisionMesh mesh, Color color) => _fixed.Add(AddLines("Volume", mesh.Triangles, color));
 
         /// <summary>Draws a body this frame: an upright cylinder from <paramref name="feet"/>, seen through everything.</summary>
         public void DrawBody(Vector3 feet, float radius, float height, Color color)
@@ -99,13 +115,13 @@ namespace Comet.Unity
                 Destroy(lines);
             }
 
-            foreach (var volume in _volumes)
+            foreach (var volume in _fixed)
             {
                 Destroy(volume);
             }
 
             _meshes.Clear();
-            _volumes.Clear();
+            _fixed.Clear();
             _markers.Clear();
             _world = null;
         }
@@ -145,9 +161,9 @@ namespace Comet.Unity
         private static readonly int Opacity = Shader.PropertyToID("_Opacity");
         private static readonly int Tint = Shader.PropertyToID("_Color");
 
-        private GameObject AddLines(string name, IReadOnlyList<System.Numerics.Vector3> triangles, Color color)
+        private GameObject AddLines(string name, IReadOnlyList<System.Numerics.Vector3> triangles, Color color, float creaseDegrees = 1)
         {
-            var edges = FeatureEdges.Of(triangles);
+            var edges = FeatureEdges.Of(triangles, creaseDegrees);
             var points = new Vector3[edges.Length];
             var indices = new int[edges.Length];
             for (var i = 0; i < edges.Length; i++)
