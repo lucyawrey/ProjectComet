@@ -33,7 +33,7 @@ pad = "box" # the primitive drawn flattened under a new teleporter
 pad_height = 0.4
 pad_color = 0xB39DDB # a new pad's color: a pale violet (a placeholder)
 volume_height = 1.0 # how tall a new teleporter's volume is above its pad
-charge_color = 0xFFFFFF # the color a new pad turns toward while a player stands in it; each teleporter can set its own
+charge_color = 0x7E57C2 # the color a new pad turns toward while a player stands in it, a deeper violet (a placeholder); each teleporter can set its own
 
 [triggers]
 stand_seconds = 0.0 # 0 fires as soon as a player steps in, like a pressure plate; new triggers have no pad
