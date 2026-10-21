@@ -65,6 +65,7 @@ frame_unit = "ms, worst"
 graphics = "Graphics"
 graphics_value = "{api}, {width}×{height}"
 foot = "Holds over 5 s, frames over 1 s · F3 hides"
+foot_touch = "Holds over 5 s, frames over 1 s"
 
 # The web page around the game (Assets/WebGLTemplates/ShapeLand/index.html), filled in when it's built.
 [page]

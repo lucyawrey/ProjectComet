@@ -81,7 +81,8 @@
                 <ui:Label text="#stats.graphics" class="net-key" picking-mode="Ignore" />
                 <ui:Label name="graphics" class="net-unit" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:Label text="#stats.foot" class="net-foot" picking-mode="Ignore" />
+            <ui:Label text="#stats.foot" class="net-foot keys-only" picking-mode="Ignore" />
+            <ui:Label text="#stats.foot_touch" class="net-foot touch-only" picking-mode="Ignore" />
         </ui:VisualElement>
         <ui:VisualElement name="screen-fade" class="screen-fade" picking-mode="Ignore" />
     </ui:VisualElement>
