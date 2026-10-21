@@ -4,33 +4,6 @@ using Comet.Simulation;
 
 namespace Comet.Server.Movement;
 
-/// <summary>What a position report's check found.</summary>
-public enum MovementVerdict
-{
-    Accepted,
-
-    /// <summary>A number that isn't finite (NaN or infinity): never valid, and every comparison with NaN is false.</summary>
-    NotFinite,
-
-    /// <summary>Sent before the client applied the latest correction; ignored.</summary>
-    Stale,
-
-    /// <summary>Moved further than the speed budget allows.</summary>
-    TooFast,
-
-    /// <summary>Higher than gravity allows: above the arc of a jump from the last ground at this point in it.</summary>
-    TooHigh,
-
-    /// <summary>The body overlaps a solid mesh (a placed object or a wall volume).</summary>
-    InsideSolid,
-
-    /// <summary>Inside a terrain piece: below its surface and above its bottom.</summary>
-    UnderGround,
-
-    /// <summary>Fell below the world's kill height; respawn.</summary>
-    FellOut,
-}
-
 /// <summary>What <see cref="MovementValidator.Fall"/> did this tick.</summary>
 public enum FallResult
 {
@@ -405,7 +378,7 @@ public sealed class MovementValidator
     /// Builds the correction for a rejected report or a fall: back to the last accepted position, or for a fall to
     /// the last safe ground. Later reports must echo its sequence.
     /// </summary>
-    public PositionCorrection Correct(CorrectionReason reason, uint tick)
+    public PositionCorrection Correct(CorrectionReason reason, uint tick, MovementVerdict verdict = MovementVerdict.Accepted)
     {
         CorrectionSequence++;
         var target = reason == CorrectionReason.Respawn ? SafePosition : Position;
@@ -422,6 +395,7 @@ public sealed class MovementValidator
         {
             Sequence = CorrectionSequence,
             Reason = reason,
+            Verdict = verdict,
             X = target.X,
             Y = target.Y,
             Z = target.Z,

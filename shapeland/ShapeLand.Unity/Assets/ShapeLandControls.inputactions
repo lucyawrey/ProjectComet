@@ -78,6 +78,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "CollisionView",
+                    "type": "Button",
+                    "id": "b2558324-611c-40cf-b7d9-3e2f9bb5eb37",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "ChangeLook",
                     "type": "Button",
                     "id": "155eb222-00c9-434c-95e4-651226380ee6",
@@ -314,6 +323,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "NetStats",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6982db8f-a885-41ad-a52d-6ffc7ac4be93",
+                    "path": "<Keyboard>/f4",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "CollisionView",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -302,7 +302,7 @@ public sealed class ShapeLandGame : IConnectionHandler
                         player.Name, verdict, report.X, report.Y, report.Z, player.Validator.Violations);
                 }
 
-                player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick));
+                player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick, verdict));
                 break;
         }
     }

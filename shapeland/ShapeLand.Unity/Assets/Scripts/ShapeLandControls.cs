@@ -175,6 +175,16 @@ namespace ShapeLand.Client
                     ""priority"": 0
                 },
                 {
+                    ""name"": ""CollisionView"",
+                    ""type"": ""Button"",
+                    ""id"": ""b2558324-611c-40cf-b7d9-3e2f9bb5eb37"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
+                },
+                {
                     ""name"": ""ChangeLook"",
                     ""type"": ""Button"",
                     ""id"": ""155eb222-00c9-434c-95e4-651226380ee6"",
@@ -418,6 +428,17 @@ namespace ShapeLand.Client
                 },
                 {
                     ""name"": """",
+                    ""id"": ""6982db8f-a885-41ad-a52d-6ffc7ac4be93"",
+                    ""path"": ""<Keyboard>/f4"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CollisionView"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""2fff7e36-5393-4d71-96e9-fa8dba450076"",
                     ""path"": ""<Keyboard>/escape"",
                     ""interactions"": """",
@@ -475,6 +496,7 @@ namespace ShapeLand.Client
             m_Game_SpeedCheat = m_Game.FindAction("SpeedCheat", throwIfNotFound: true);
             m_Game_OpenChat = m_Game.FindAction("OpenChat", throwIfNotFound: true);
             m_Game_NetStats = m_Game.FindAction("NetStats", throwIfNotFound: true);
+            m_Game_CollisionView = m_Game.FindAction("CollisionView", throwIfNotFound: true);
             m_Game_ChangeLook = m_Game.FindAction("ChangeLook", throwIfNotFound: true);
             m_Game_ReturnToSpawn = m_Game.FindAction("ReturnToSpawn", throwIfNotFound: true);
         }
@@ -565,6 +587,7 @@ namespace ShapeLand.Client
         private readonly InputAction m_Game_SpeedCheat;
         private readonly InputAction m_Game_OpenChat;
         private readonly InputAction m_Game_NetStats;
+        private readonly InputAction m_Game_CollisionView;
         private readonly InputAction m_Game_ChangeLook;
         private readonly InputAction m_Game_ReturnToSpawn;
         /// <summary>
@@ -610,6 +633,10 @@ namespace ShapeLand.Client
             /// Provides access to the underlying input action "Game/NetStats".
             /// </summary>
             public InputAction @NetStats => m_Wrapper.m_Game_NetStats;
+            /// <summary>
+            /// Provides access to the underlying input action "Game/CollisionView".
+            /// </summary>
+            public InputAction @CollisionView => m_Wrapper.m_Game_CollisionView;
             /// <summary>
             /// Provides access to the underlying input action "Game/ChangeLook".
             /// </summary>
@@ -668,6 +695,9 @@ namespace ShapeLand.Client
                 @NetStats.started += instance.OnNetStats;
                 @NetStats.performed += instance.OnNetStats;
                 @NetStats.canceled += instance.OnNetStats;
+                @CollisionView.started += instance.OnCollisionView;
+                @CollisionView.performed += instance.OnCollisionView;
+                @CollisionView.canceled += instance.OnCollisionView;
                 @ChangeLook.started += instance.OnChangeLook;
                 @ChangeLook.performed += instance.OnChangeLook;
                 @ChangeLook.canceled += instance.OnChangeLook;
@@ -709,6 +739,9 @@ namespace ShapeLand.Client
                 @NetStats.started -= instance.OnNetStats;
                 @NetStats.performed -= instance.OnNetStats;
                 @NetStats.canceled -= instance.OnNetStats;
+                @CollisionView.started -= instance.OnCollisionView;
+                @CollisionView.performed -= instance.OnCollisionView;
+                @CollisionView.canceled -= instance.OnCollisionView;
                 @ChangeLook.started -= instance.OnChangeLook;
                 @ChangeLook.performed -= instance.OnChangeLook;
                 @ChangeLook.canceled -= instance.OnChangeLook;
@@ -811,6 +844,13 @@ namespace ShapeLand.Client
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnNetStats(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "CollisionView" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnCollisionView(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "ChangeLook" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>

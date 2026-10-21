@@ -257,9 +257,12 @@ namespace ShapeLand.Client
         }
 
         // A line from the game rather than a player, from the strings file.
-        private void AddNote(string key)
+        private void AddNote(string key) => Note(_hud.Join.Content.Strings.Get(key));
+
+        /// <summary>Adds a line from the game rather than a player.</summary>
+        public void Note(string text)
         {
-            var note = new Label(_hud.Join.Content.Strings.Get(key));
+            var note = new Label(text);
             note.AddToClassList("chat-note");
             AddLine(note);
         }
