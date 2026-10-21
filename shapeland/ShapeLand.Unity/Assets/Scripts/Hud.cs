@@ -48,6 +48,7 @@ namespace ShapeLand.Client
             _fade = tree.Q("screen-fade");
             _chat = GetComponent<Chat>();
             tree.Q<Button>("look-button").clicked += OpenLook;
+            _touch = new TouchControls(_root, view.OrbitCamera);
 
             join.ContentLoaded += OnContentLoaded;
             join.OwnSpawned += OnOwnSpawned;
@@ -63,17 +64,11 @@ namespace ShapeLand.Client
             join.ContentLoaded -= OnContentLoaded;
             join.OwnSpawned -= OnOwnSpawned;
             join.ConnectionLost -= OnConnectionLost;
+            _touch?.Dispose();
+            _touch = null;
         }
 
-        private void OnContentLoaded(ShapeLandContent content)
-        {
-            UiText.Fill(_root, content.Strings);
-            if (_touch == null)
-            {
-                _touch = gameObject.AddComponent<TouchControls>();
-                _touch.Begin(view.OrbitCamera, content.Strings.Get("hud.jump"));
-            }
-        }
+        private void OnContentLoaded(ShapeLandContent content) => UiText.Fill(_root, content.Strings);
 
         private void OnOwnSpawned(PlayerSpawn spawn) => _root.RemoveFromClassList("hidden");
 
@@ -86,10 +81,7 @@ namespace ShapeLand.Client
 
         private void Update()
         {
-            if (_touch != null)
-            {
-                _touch.Allowed = Shown && view.Player != null && view.Player.InputEnabled;
-            }
+            _touch?.Update(Shown && view.Player != null && view.Player.InputEnabled);
 
             if (!Shown)
             {

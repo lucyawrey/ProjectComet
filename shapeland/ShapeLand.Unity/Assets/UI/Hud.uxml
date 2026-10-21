@@ -1,6 +1,15 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="ShapeLand.uss" />
     <ui:VisualElement name="hud" class="hud hidden" picking-mode="Ignore">
+        <ui:VisualElement name="touch" class="touch hidden" picking-mode="Ignore">
+            <ui:VisualElement name="touch-stick" class="touch-half touch-left">
+                <ui:VisualElement name="stick-base" class="stick-base hidden" picking-mode="Ignore">
+                    <ui:VisualElement name="stick-knob" class="stick-knob" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="touch-look" class="touch-half touch-right" />
+            <ui:Label name="jump-button" text="#hud.jump" class="touch-button jump-button" />
+        </ui:VisualElement>
         <ui:VisualElement name="tags" class="tags" picking-mode="Ignore" />
         <ui:VisualElement name="chat" class="chat" picking-mode="Ignore">
             <ui:ScrollView name="log" class="chat-log empty" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" />

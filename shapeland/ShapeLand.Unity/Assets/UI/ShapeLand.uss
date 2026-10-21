@@ -198,3 +198,32 @@ Label { padding: 0; margin: 0; }
     border-top-width: 1px; border-top-color: rgba(255, 255, 255, 0.12);
     font-size: 11px; color: rgb(141, 151, 171);
 }
+
+/* ---- Touch controls (phones): a floating stick on the left half, a camera drag on the right, a jump button ---- */
+.touch { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.touch-half { position: absolute; top: 0; bottom: 0; width: 50%; }
+.touch-left { left: 0; }
+.touch-right { right: 0; }
+.stick-base {
+    position: absolute;
+    width: 144px;
+    height: 144px;
+    border-radius: 72px;
+    border-width: 3px;
+    border-color: rgba(238, 241, 246, 0.35);
+    background-color: rgba(18, 22, 30, 0.25);
+    align-items: center;
+    justify-content: center;
+}
+.stick-knob { width: 56px; height: 56px; border-radius: 28px; background-color: rgba(238, 241, 246, 0.6); }
+.touch-button {
+    position: absolute;
+    border-width: 2px;
+    border-color: rgba(238, 241, 246, 0.3);
+    background-color: rgba(18, 22, 30, 0.55);
+    color: rgb(238, 241, 246);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+.touch-button.pressed { background-color: rgba(79, 140, 240, 0.8); }
+.jump-button { right: 28px; bottom: 28px; width: 88px; height: 88px; border-radius: 44px; font-size: 18px; }

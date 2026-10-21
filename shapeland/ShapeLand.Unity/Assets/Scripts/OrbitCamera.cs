@@ -51,7 +51,7 @@ namespace ShapeLand.Client
         /// <summary>What the camera follows, or null while it orbits the island.</summary>
         public Transform Target { get; private set; }
 
-        /// <summary>Turns the camera by <paramref name="degrees"/> (yaw, pitch) on its next update: a touch drag (<see cref="TouchLook"/>).</summary>
+        /// <summary>Turns the camera by <paramref name="degrees"/> (yaw, pitch) on its next update: a touch drag (<see cref="TouchControls"/>).</summary>
         public void Turn(Vector2 degrees) => _touchTurn += degrees;
 
         /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen).</summary>

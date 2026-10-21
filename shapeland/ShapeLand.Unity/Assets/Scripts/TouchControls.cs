@@ -1,82 +1,90 @@
+using System;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.OnScreen;
-using UnityEngine.InputSystem.UI;
-using UnityEngine.UI;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// Touch controls for phones, on a uGUI canvas over the HUD: a floating stick on the left half of the screen
-    /// (<see cref="FloatingStick"/>), a camera drag on the right half (<see cref="TouchLook"/>) and a jump button.
-    /// The stick and button are Input System on-screen controls, a virtual gamepad, so the game's actions read them
-    /// as they read a real one. They show while the player can move and the screen has been touched (from the start
-    /// on a phone page), and hide when a keyboard or a real gamepad is used away from a phone.
+    /// Touch controls for phones, in the HUD (Hud.uxml's <c>touch</c> layer): a stick that appears wherever a thumb
+    /// lands on the left half of the screen, a camera drag on the right half, and a jump button. They drive a
+    /// virtual gamepad of their own, so the game's actions read them as they read a real one. They show while the
+    /// player can move and the screen has been touched (from the start on a phone page), and hide when a keyboard or a
+    /// real gamepad is used away from a phone. Each control follows one touch at a time.
     /// </summary>
-    public sealed class TouchControls : MonoBehaviour
+    public sealed class TouchControls : IDisposable
     {
-        // Canvas units: the canvas is this tall whatever the screen, so sizes are about CSS pixels on a landscape phone.
-        private const float ReferenceHeight = 400;
-        private const float StickRange = 60;
-        private const float BaseSize = 2 * StickRange + 24;
-        private const float KnobSize = 56;
-        private const float JumpSize = 88;
-        private const float Margin = 28;
+        /// <summary>How far the thumb drags for full speed, in panel pixels.</summary>
+        public const float StickRange = 60;
 
-        private GameObject _canvas;
+        /// <summary>How far the camera turns for a drag the screen's full height, in degrees.</summary>
+        public const float DegreesPerScreenHeight = 180;
+
+        private readonly VisualElement _layer;
+        private readonly VisualElement _stickArea;
+        private readonly VisualElement _base;
+        private readonly VisualElement _knob;
+        private readonly VisualElement _look;
+        private readonly VisualElement _jump;
+        private readonly OrbitCamera _camera;
+        private readonly Gamepad _pad;
+        private GamepadState _state;
+        private int? _stickPointer;
+        private int? _lookPointer;
+        private int? _jumpPointer;
+        private Vector2 _origin;
         private bool _touched;
 
-        /// <summary>Whether the player can move now (in the game, not typing or on the look card): set each frame by the HUD.</summary>
-        public bool Allowed { get; set; }
-
-        /// <summary>Builds the controls (hidden until allowed and touched), turning <paramref name="camera"/> with drags.</summary>
-        public void Begin(OrbitCamera camera, string jumpLabel)
+        public TouchControls(VisualElement hud, OrbitCamera camera)
         {
+            _camera = camera;
             _touched = WebPage.IsPhone;
-            if (EventSystem.current == null)
+            _pad = InputSystem.AddDevice<Gamepad>("Touch controls");
+            _layer = hud.Q("touch");
+            _stickArea = hud.Q("touch-stick");
+            _base = hud.Q("stick-base");
+            _knob = hud.Q("stick-knob");
+            _look = hud.Q("touch-look");
+            _jump = hud.Q("jump-button");
+
+            _stickArea.RegisterCallback<PointerDownEvent>(OnStickDown);
+            _stickArea.RegisterCallback<PointerMoveEvent>(OnStickMove);
+            _stickArea.RegisterCallback<PointerUpEvent>(e => EndStick(e.pointerId));
+            _stickArea.RegisterCallback<PointerCancelEvent>(e => EndStick(e.pointerId));
+            _look.RegisterCallback<PointerDownEvent>(e => Begin(_look, ref _lookPointer, e.pointerId));
+            _look.RegisterCallback<PointerMoveEvent>(OnLookMove);
+            _look.RegisterCallback<PointerUpEvent>(e => End(_look, ref _lookPointer, e.pointerId));
+            _look.RegisterCallback<PointerCancelEvent>(e => End(_look, ref _lookPointer, e.pointerId));
+            _jump.RegisterCallback<PointerDownEvent>(e =>
             {
-                var events = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-                events.transform.SetParent(transform, false);
-            }
-
-            _canvas = new GameObject("Touch controls", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-            _canvas.SetActive(false);
-            _canvas.transform.SetParent(transform, false);
-            var canvas = _canvas.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 10;
-            var scaler = _canvas.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(2 * ReferenceHeight, ReferenceHeight);
-            scaler.matchWidthOrHeight = 1;
-
-            var look = Region("Camera drag", new Vector2(0.5f, 0), Vector2.one).AddComponent<TouchLook>();
-            look.Camera = camera;
-
-            var stickRegion = Region("Stick", Vector2.zero, new Vector2(0.5f, 1));
-            var stick = stickRegion.AddComponent<FloatingStick>();
-            stick.Range = StickRange;
-            stick.Base = Circle("Base", stickRegion.transform, BaseSize, new Color(1, 1, 1, 0.18f), ring: true);
-            stick.Knob = Circle("Knob", stickRegion.transform, KnobSize, new Color(1, 1, 1, 0.55f), ring: false);
-            stick.Base.gameObject.SetActive(false);
-            stick.Knob.gameObject.SetActive(false);
-
-            var jump = Circle("Jump", _canvas.transform, JumpSize, new Color(1, 1, 1, 0.3f), ring: false);
-            jump.anchorMin = jump.anchorMax = new Vector2(1, 0);
-            jump.anchoredPosition = new Vector2(-Margin - JumpSize / 2, Margin + JumpSize / 2);
-            jump.GetComponent<Image>().raycastTarget = true;
-            jump.gameObject.AddComponent<OnScreenButton>().controlPath = "<Gamepad>/buttonSouth";
-            Label(jump, jumpLabel);
+                if (Begin(_jump, ref _jumpPointer, e.pointerId))
+                {
+                    SetJump(true);
+                }
+            });
+            _jump.RegisterCallback<PointerUpEvent>(e => EndJump(e.pointerId));
+            _jump.RegisterCallback<PointerCancelEvent>(e => EndJump(e.pointerId));
         }
 
-        private void Update()
+        /// <summary>
+        /// The stick's value for a thumb <paramref name="offset"/> from where it landed (x right, y up): full at
+        /// <paramref name="range"/> and beyond, and nothing inside a small dead zone, from which it rises evenly.
+        /// </summary>
+        public static Vector2 StickValue(Vector2 offset, float range, float deadZone = 0.1f)
         {
-            if (_canvas == null)
-            {
-                return;
-            }
+            var value = Vector2.ClampMagnitude(offset / range, 1);
+            var size = value.magnitude;
+            return size <= deadZone ? Vector2.zero : value * ((size - deadZone) / (1 - deadZone) / size);
+        }
 
+        /// <summary>The camera's turn in degrees (yaw, pitch) for a drag of <paramref name="distance"/> across a screen <paramref name="height"/> tall.</summary>
+        public static Vector2 DragTurn(Vector2 distance, float height, float degreesPerScreenHeight = DegreesPerScreenHeight) =>
+            height > 0 ? distance / height * degreesPerScreenHeight : Vector2.zero;
+
+        /// <summary>Shows or hides the controls for this frame; <paramref name="allowed"/> is whether the player can move now.</summary>
+        public void Update(bool allowed)
+        {
             if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
             {
                 _touched = true;
@@ -86,99 +94,136 @@ namespace ShapeLand.Client
                 _touched = false;
             }
 
-            var show = _touched && Allowed;
-            if (_canvas.activeSelf != show)
+            var show = _touched && allowed;
+            if (show == _layer.ClassListContains("hidden"))
             {
-                _canvas.SetActive(show);
+                _layer.EnableInClassList("hidden", !show);
+                if (!show)
+                {
+                    Release();
+                }
             }
         }
 
+        public void Dispose() => InputSystem.RemoveDevice(_pad);
+
+        private void OnStickDown(PointerDownEvent e)
+        {
+            if (!Begin(_stickArea, ref _stickPointer, e.pointerId))
+            {
+                return;
+            }
+
+            _origin = _stickArea.WorldToLocal(e.position);
+            var size = _base.resolvedStyle.width > 0 ? _base.resolvedStyle.width : 144;
+            _base.style.left = _origin.x - size / 2;
+            _base.style.top = _origin.y - size / 2;
+            _knob.style.translate = new Translate(0, 0);
+            _base.RemoveFromClassList("hidden");
+        }
+
+        private void OnStickMove(PointerMoveEvent e)
+        {
+            if (e.pointerId != _stickPointer)
+            {
+                return;
+            }
+
+            var offset = (Vector2)_stickArea.WorldToLocal(e.position) - _origin;
+            var shown = Vector2.ClampMagnitude(offset, StickRange);
+            _knob.style.translate = new Translate(shown.x, shown.y);
+            // The panel's y runs down; the stick's runs up.
+            _state.leftStick = StickValue(new Vector2(offset.x, -offset.y), StickRange);
+            Send();
+        }
+
+        private void EndStick(int pointer)
+        {
+            if (End(_stickArea, ref _stickPointer, pointer))
+            {
+                _base.AddToClassList("hidden");
+                _state.leftStick = Vector2.zero;
+                Send();
+            }
+        }
+
+        private void OnLookMove(PointerMoveEvent e)
+        {
+            if (e.pointerId == _lookPointer && _camera != null)
+            {
+                // Like the right mouse button's drag: up turns the camera as a mouse moved up does.
+                var delta = (Vector2)e.deltaPosition;
+                _camera.Turn(DragTurn(new Vector2(delta.x, -delta.y), _layer.resolvedStyle.height));
+            }
+        }
+
+        private void EndJump(int pointer)
+        {
+            if (End(_jump, ref _jumpPointer, pointer))
+            {
+                SetJump(false);
+            }
+        }
+
+        private void SetJump(bool down)
+        {
+            _jump.EnableInClassList("pressed", down);
+            _state = _state.WithButton(GamepadButton.South, down);
+            Send();
+        }
+
+        // Lets go of every control: on hiding, so nothing stays held.
+        private void Release()
+        {
+            EndStick(_stickPointer ?? -1);
+            End(_look, ref _lookPointer, _lookPointer ?? -1);
+            EndJump(_jumpPointer ?? -1);
+        }
+
+        private void Send() => InputSystem.QueueStateEvent(_pad, _state);
+
+        // Takes the touch for a control that has none (capturing it, so it keeps the drag past the control's edge).
+        private static bool Begin(VisualElement control, ref int? held, int pointer)
+        {
+            if (held != null)
+            {
+                return false;
+            }
+
+            held = pointer;
+            control.CapturePointer(pointer);
+            return true;
+        }
+
+        private static bool End(VisualElement control, ref int? held, int pointer)
+        {
+            if (held != pointer)
+            {
+                return false;
+            }
+
+            if (control.HasPointerCapture(pointer))
+            {
+                control.ReleasePointer(pointer);
+            }
+
+            held = null;
+            return true;
+        }
+
         // A real gamepad's button or stick, not the virtual one the touch controls drive.
-        private static bool RealGamepadUsed()
+        private bool RealGamepadUsed()
         {
             foreach (var gamepad in Gamepad.all)
             {
-                if (gamepad.native && (gamepad.wasUpdatedThisFrame && (gamepad.buttonSouth.isPressed || gamepad.startButton.isPressed
-                    || gamepad.leftStick.ReadValue().sqrMagnitude > 0.25f || gamepad.rightStick.ReadValue().sqrMagnitude > 0.25f)))
+                if (gamepad != _pad && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame
+                    || gamepad.leftStick.ReadValue().sqrMagnitude > 0.25f || gamepad.rightStick.ReadValue().sqrMagnitude > 0.25f))
                 {
                     return true;
                 }
             }
 
             return false;
-        }
-
-        // A clear, touchable region of the canvas between two anchors.
-        private GameObject Region(string name, Vector2 from, Vector2 to)
-        {
-            var region = new GameObject(name, typeof(RectTransform), typeof(Image));
-            region.transform.SetParent(_canvas.transform, false);
-            var rect = (RectTransform)region.transform;
-            rect.anchorMin = from;
-            rect.anchorMax = to;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
-            region.GetComponent<Image>().color = Color.clear;
-            return region;
-        }
-
-        // A disc or ring of `size` canvas units, centered on its anchors; it doesn't catch touches unless told to.
-        private static RectTransform Circle(string name, Transform parent, float size, Color color, bool ring)
-        {
-            var circle = new GameObject(name, typeof(RectTransform), typeof(Image));
-            circle.transform.SetParent(parent, false);
-            var image = circle.GetComponent<Image>();
-            image.sprite = ring ? Ring : Disc;
-            image.color = color;
-            image.raycastTarget = false;
-            var rect = (RectTransform)circle.transform;
-            rect.sizeDelta = new Vector2(size, size);
-            return rect;
-        }
-
-        private static void Label(RectTransform parent, string text)
-        {
-            var label = new GameObject("Label", typeof(RectTransform), typeof(Text));
-            label.transform.SetParent(parent, false);
-            var rect = (RectTransform)label.transform;
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
-            var content = label.GetComponent<Text>();
-            content.text = text;
-            content.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            content.fontSize = 18;
-            content.fontStyle = FontStyle.Bold;
-            content.alignment = TextAnchor.MiddleCenter;
-            content.color = new Color(1, 1, 1, 0.9f);
-            content.raycastTarget = false;
-        }
-
-        private static Sprite _disc;
-        private static Sprite _ring;
-        private static Sprite Disc => _disc ??= CircleSprite(1);
-        private static Sprite Ring => _ring ??= CircleSprite(0.08f);
-
-        // A white circle drawn into a texture, smoothed at its edges: filled, or a ring `thickness` of its radius wide.
-        private static Sprite CircleSprite(float thickness)
-        {
-            const int size = 128;
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
-            var pixels = new Color32[size * size];
-            var radius = size / 2f;
-            for (var y = 0; y < size; y++)
-            {
-                for (var x = 0; x < size; x++)
-                {
-                    var distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(radius, radius));
-                    var outer = Mathf.Clamp01(radius - distance);
-                    var inner = thickness >= 1 ? 1 : Mathf.Clamp01(distance - radius * (1 - thickness));
-                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * outer * inner));
-                }
-            }
-
-            texture.SetPixels32(pixels);
-            texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
         }
     }
 }
