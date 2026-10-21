@@ -22,12 +22,9 @@ namespace ShapeLand.Client
         private static readonly Color TerrainColor = new Color(0.8f, 0.72f, 0.45f, 0.45f);
         private static readonly Color PropColor = new Color(0.75f, 0.75f, 0.75f, 0.45f);
         private static readonly Color PrimitiveColor = new Color(0.7f, 0.6f, 1, 0.45f);
-        private static readonly Color PadColor = new Color(0.35f, 0.8f, 0.7f, 0.45f);
-        private static readonly Color WallColor = new Color(0.9f, 0.4f, 0.85f, 0.45f);
         private static readonly Color SpawnColor = new Color(0.4f, 0.85f, 0.4f, 0.5f);
         private static readonly Color TeleporterColor = new Color(0.4f, 0.7f, 1, 0.5f);
         private static readonly Color TriggerColor = new Color(1, 0.6f, 0.25f, 0.5f);
-        private static readonly Color WaterColor = new Color(0.3f, 0.4f, 0.95f, 0.5f);
         private static readonly Color BodyColor = new Color(1, 0.9f, 0.3f, 0.6f);
         private static readonly Color SnapBackColor = new Color(1, 0.25f, 0.25f, 0.8f);
 
@@ -133,26 +130,10 @@ namespace ShapeLand.Client
                 {
                     _view.AddVolume(trigger.Volume, budget, TriggerColor);
                 }
-
-                // Walls are solid, so they're among the world's meshes already.
-                foreach (var volume in chunk.Volumes)
-                {
-                    if (volume.Kind == VolumeKind.Water)
-                    {
-                        _view.AddVolume(CollisionMesh.Box(volume.Size, System.Numerics.Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(volume.Rotation))
-                            * System.Numerics.Matrix4x4.CreateTranslation(volume.Position)), WaterColor);
-                    }
-                }
             }
         }
 
-        private static Color ColorOf(CollisionMesh mesh) => mesh.Kind switch
-        {
-            ShapeLandWorld.PrimitiveKind => PrimitiveColor,
-            ShapeLandWorld.PadKind => PadColor,
-            ShapeLandWorld.WallKind => WallColor,
-            _ => PropColor,
-        };
+        private static Color ColorOf(CollisionMesh mesh) => mesh.Kind == ShapeLandWorld.PropKind ? PropColor : PrimitiveColor;
 
         private void OnCorrected(PositionCorrection correction)
         {

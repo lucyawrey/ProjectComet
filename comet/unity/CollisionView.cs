@@ -91,9 +91,6 @@ namespace Comet.Unity
             _fixed.Add(AddLines("Volume", placed.Triangles, color));
         }
 
-        /// <summary>Adds <paramref name="mesh"/>'s outline in <paramref name="color"/>, for volumes that aren't trigger volumes.</summary>
-        public void AddVolume(CollisionMesh mesh, Color color) => _fixed.Add(AddLines("Volume", mesh.Triangles, color));
-
         /// <summary>Draws a body this frame: an upright cylinder from <paramref name="feet"/>, seen through everything.</summary>
         public void DrawBody(Vector3 feet, float radius, float height, Color color)
         {
