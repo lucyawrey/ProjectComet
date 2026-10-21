@@ -55,7 +55,7 @@ body[data-state="checking"] .status [data-state~="checking"], body[data-state="o
    or controls footer, and no page scrolling, zooming or text selection getting in the way of touch play. */
 .tap { cursor: pointer; }
 .home-hint { display: none; }
-.no-fullscreen:not(.standalone) .home-hint { display: block; }
+.no-fullscreen:not(.standalone) .home-hint, .no-fullscreen .rotate .home-hint { display: block; }
 .rotate { display: none; }
 #safe-area { position: fixed; inset: 0; visibility: hidden; pointer-events: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 html.phone, html.phone body { height: 100%; overflow: hidden; overscroll-behavior: none; }
