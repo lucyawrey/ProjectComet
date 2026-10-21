@@ -170,7 +170,7 @@ namespace ShapeLand.Client
                 }
             }
 
-            Player?.Flipped(name);
+            Player?.Flipped(tag);
         }
 
         // Draws the join client's zone: its terrain, placed objects and pads.
