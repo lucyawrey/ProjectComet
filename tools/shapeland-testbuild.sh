@@ -9,6 +9,8 @@
 #   tools/shapeland-testbuild.sh status                what's running, and whether the server answers
 #   tools/shapeland-testbuild.sh log                   the server's boot log (from its console)
 #   tools/shapeland-testbuild.sh page [--no-build]     build the web page and publish it on Vercel
+#   tools/shapeland-testbuild.sh redeploy [options]    page, then up, ending a server that's already up first
+#                                                      (after the new one is built, so it's down only briefly)
 #
 #   --bots N       start N honest bots on the server's instance too, so visitors see someone moving (default 0)
 #   --hours H      the server shuts itself down (and is terminated) after H hours, so a forgotten one stops
@@ -43,11 +45,12 @@ vercel_project=shapeland
 . "$repo/tools/shapeland-net-profiles.sh" # for quietly
 
 command=${1:-}
-[ -n "$command" ] || { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+[ -n "$command" ] || { sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 shift
 hours=24
 bots=0
 build=1
+packaged=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --hours) hours="$2"; shift 2 ;;
@@ -175,7 +178,7 @@ up() {
   sg=$(security_group)
   [ "$sg" != None ] || { echo "Run setup first." >&2; exit 1; }
 
-  package
+  [ "$packaged" -eq 1 ] || package
   name=$(bucket)
   key="package-$(date +%Y%m%d-%H%M%S).tar.gz"
   aws s3 cp --quiet "$work/package.tar.gz" "s3://$name/$key"
@@ -283,7 +286,15 @@ page() {
   echo "Published: https://$page_host"
 }
 
+redeploy() {
+  page
+  package
+  packaged=1
+  [ -z "$(instances)" ] || down
+  up
+}
+
 case "$command" in
-  setup | up | down | status | log | page) "$command" ;;
-  *) echo "Unknown command: $command (setup, up, down, status, log or page)" >&2; exit 2 ;;
+  setup | up | down | status | log | page | redeploy) "$command" ;;
+  *) echo "Unknown command: $command (setup, up, down, status, log, page or redeploy)" >&2; exit 2 ;;
 esac
