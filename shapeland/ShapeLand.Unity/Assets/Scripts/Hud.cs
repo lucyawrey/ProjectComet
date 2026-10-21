@@ -64,7 +64,7 @@ namespace ShapeLand.Client
             _fade = tree.Q("screen-fade");
             _chat = GetComponent<Chat>();
             tree.Q<Button>("look-button").clicked += OpenLook;
-            _touch = new TouchControls(_root, view.OrbitCamera, OpenLook, ReturnToSpawn, _chat.OpenInput);
+            _touch = new TouchControls(_root, view.OrbitCamera, OpenLook, ReturnToSpawn, _chat.OpenInput, GetComponent<NetStats>().Toggle);
 
             join.ContentLoaded += OnContentLoaded;
             join.OwnSpawned += OnOwnSpawned;

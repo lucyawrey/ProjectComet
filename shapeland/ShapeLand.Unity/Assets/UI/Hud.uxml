@@ -19,6 +19,9 @@
                     <ui:Button name="touch-chat-button" class="touch-button small" focusable="false">
                         <ui:VisualElement class="touch-icon icon-chat" picking-mode="Ignore" />
                     </ui:Button>
+                    <ui:Button name="touch-stats-button" class="touch-button small" focusable="false">
+                        <ui:VisualElement class="touch-icon icon-stats" picking-mode="Ignore" />
+                    </ui:Button>
                 </ui:VisualElement>
                 <ui:VisualElement name="jump-button" class="touch-button jump-button">
                     <ui:VisualElement class="touch-icon icon-jump" picking-mode="Ignore" />

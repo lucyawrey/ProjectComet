@@ -9,7 +9,7 @@ namespace ShapeLand.Client
     /// <summary>
     /// Touch controls for phones, in the HUD (Hud.uxml's <c>touch</c> layer): a stick that appears wherever a thumb
     /// lands on the left half of the screen, a camera drag on the right half, a jump button, and Change Look, Return to
-    /// Spawn and chat buttons. The stick and Jump drive a virtual gamepad of their own, so the game's actions read
+    /// Spawn, chat and network stats buttons. The stick and Jump drive a virtual gamepad of their own, so the game's actions read
     /// them as they read a real one. They show while the player can move and the screen has been touched (from the
     /// start on a phone page), and hide when a keyboard or a real gamepad is used away from a phone. Each control
     /// follows one touch at a time; the buttons and Jump keep inside the screen's safe area.
@@ -41,9 +41,9 @@ namespace ShapeLand.Client
 
         /// <summary>
         /// The controls in <paramref name="hud"/>, turning <paramref name="camera"/>; the buttons call
-        /// <paramref name="look"/>, <paramref name="returnToSpawn"/> and <paramref name="chat"/>.
+        /// <paramref name="look"/>, <paramref name="returnToSpawn"/>, <paramref name="chat"/> and <paramref name="stats"/>.
         /// </summary>
-        public TouchControls(VisualElement hud, OrbitCamera camera, Action look, Action returnToSpawn, Action chat)
+        public TouchControls(VisualElement hud, OrbitCamera camera, Action look, Action returnToSpawn, Action chat, Action stats)
         {
             _camera = camera;
             _touched = WebPage.IsPhone;
@@ -59,6 +59,7 @@ namespace ShapeLand.Client
             hud.Q<Button>("touch-look-button").clicked += look;
             hud.Q<Button>("touch-return-button").clicked += returnToSpawn;
             hud.Q<Button>("touch-chat-button").clicked += chat;
+            hud.Q<Button>("touch-stats-button").clicked += stats;
 
             _stickArea.RegisterCallback<PointerDownEvent>(OnStickDown);
             _stickArea.RegisterCallback<PointerMoveEvent>(OnStickMove);
