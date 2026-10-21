@@ -14,7 +14,7 @@
     font-size: 15px;
     color: rgb(238, 241, 246);
 }
-.backdrop.hidden { display: none; }
+.backdrop.hidden, .backdrop.waiting { display: none; }
 
 .card {
     width: 580px;

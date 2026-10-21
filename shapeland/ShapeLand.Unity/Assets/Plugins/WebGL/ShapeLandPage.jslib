@@ -32,6 +32,12 @@ mergeInto(LibraryManager.library, {
     return document.documentElement.classList.contains('phone') ? 1 : 0;
   },
 
+  // 1 once the page is playing, else 0: on a phone it waits behind the "Tap to play" card until the first tap.
+  ShapeLand_Playing__sig: 'i',
+  ShapeLand_Playing: function () {
+    return document.body.dataset.state === 'open' ? 1 : 0;
+  },
+
   // The screen's safe area inset on one side (0 top, 1 right, 2 bottom, 3 left), as a share of the screen's height
   // (top, bottom) or width (left, right): what notches, rounded corners and the home bar cover. Read from the page's
   // #safe-area probe, so it follows turning the phone.

@@ -431,6 +431,8 @@ namespace ShapeLand.Client
         // While rejoining, tries again each second while the card waits for the player.
         private void Update()
         {
+            // Kept out of sight while a phone page shows its "Tap to play" card over the game.
+            _root.EnableInClassList("waiting", !WebPage.Playing);
             if (_rejoinUntil is not float until || !_joinButton.enabledSelf || Time.unscaledTime < _nextRejoin)
             {
                 return;

@@ -36,6 +36,19 @@ namespace ShapeLand.Client
             }
         }
 
+        /// <summary>Whether the page is playing, past its "Tap to play" card on a phone; true where there's no page.</summary>
+        public static bool Playing
+        {
+            get
+            {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                return ShapeLand_Playing() != 0;
+#else
+                return true;
+#endif
+            }
+        }
+
         /// <summary>
         /// The screen's safe area insets (what notches, rounded corners and the home bar cover), for the HUD to keep
         /// clear of: as shares of the screen's height (top, bottom) and width (left, right); zero where there's no page.
@@ -76,6 +89,9 @@ namespace ShapeLand.Client
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         private static extern float ShapeLand_SafeAreaInset(int side);
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern int ShapeLand_Playing();
 #endif
     }
 }
