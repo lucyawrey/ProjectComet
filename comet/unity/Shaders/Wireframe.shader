@@ -30,6 +30,7 @@ Shader "Comet/Wireframe"
             #pragma fragment Fragment
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color;
@@ -59,7 +60,7 @@ Shader "Comet/Wireframe"
                 output.positionCS = TransformWorldToHClip(positionWS);
                 // Vertex colors are sRGB; Unity has already made _Color linear.
                 output.color = input.color;
-                #if !UNITY_COLORSPACE_GAMMA
+                #if !defined(UNITY_COLORSPACE_GAMMA)
                     output.color.rgb = SRGBToLinear(output.color.rgb);
                 #endif
                 output.color *= _Color;
