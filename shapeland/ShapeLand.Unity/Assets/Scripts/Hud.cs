@@ -46,11 +46,16 @@ namespace ShapeLand.Client
         // landscape.
         private static readonly Vector2Int PhoneReferenceResolution = new Vector2Int(800, 500);
 
+        // The panel settings' own design size, put back on disabling: in the editor a change to the asset would outlast
+        // play mode.
+        private Vector2Int? _referenceResolution;
+
         private void OnEnable()
         {
             var document = GetComponent<UIDocument>();
             if (WebPage.IsPhone && document.panelSettings != null)
             {
+                _referenceResolution = document.panelSettings.referenceResolution;
                 document.panelSettings.referenceResolution = PhoneReferenceResolution;
             }
 
@@ -77,6 +82,11 @@ namespace ShapeLand.Client
             join.ConnectionLost -= OnConnectionLost;
             _touch?.Dispose();
             _touch = null;
+            if (_referenceResolution is { } reference && GetComponent<UIDocument>().panelSettings is { } panel)
+            {
+                panel.referenceResolution = reference;
+                _referenceResolution = null;
+            }
         }
 
         private void OnContentLoaded(ShapeLandContent content) => UiText.Fill(_root, content.Strings);

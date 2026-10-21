@@ -1,9 +1,12 @@
+using UnityEngine;
+
 namespace ShapeLand.Client
 {
     /// <summary>
     /// What the web page says about where the game runs, and reloading it to pick up new content
     /// (Plugins/WebGL/ShapeLandPage.jslib). The page remembers, for this tab only, that it reloaded to rejoin, so the
-    /// reloaded game joins again by itself. Elsewhere (the editor, desktop builds) there's no page.
+    /// reloaded game joins again by itself. Desktop builds have no page. In the editor, Unity's Device Simulator set
+    /// to a phone stands in for a phone page, to lay out the phone interface without a web build.
     /// </summary>
     public static class WebPage
     {
@@ -25,6 +28,8 @@ namespace ShapeLand.Client
             {
 #if UNITY_WEBGL && !UNITY_EDITOR
                 return ShapeLand_IsPhone() != 0;
+#elif UNITY_EDITOR
+                return UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld;
 #else
                 return false;
 #endif
@@ -39,6 +44,11 @@ namespace ShapeLand.Client
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return (ShapeLand_SafeAreaInset(0), ShapeLand_SafeAreaInset(1), ShapeLand_SafeAreaInset(2), ShapeLand_SafeAreaInset(3));
+#elif UNITY_EDITOR
+            // The Device Simulator's screen; its safe area is measured from the bottom left.
+            var area = UnityEngine.Device.Screen.safeArea;
+            float width = UnityEngine.Device.Screen.width, height = UnityEngine.Device.Screen.height;
+            return width > 0 && height > 0 ? ((height - area.yMax) / height, (width - area.xMax) / width, area.yMin / height, area.xMin / width) : (0, 0, 0, 0);
 #else
             return (0, 0, 0, 0);
 #endif
