@@ -16,7 +16,9 @@ namespace ShapeLand.Client.Editor
     /// <c>Assets/Settings/Build Profiles/</c> (File › Build Profiles); the player settings they need (the web build's
     /// Brotli with the decompression fallback, ShapeLand's page template, WebGPU then WebGL 2, IL2CPP, plain HTTP to
     /// the game server, a 1280×800 window on desktop) are saved in the project settings. Scripts build a profile with
-    /// <c>tools/unity-batch.sh</c>, into the repository's <c>artifacts/unity/shapeland/</c>.
+    /// <c>tools/unity-batch.sh</c>, into the repository's <c>artifacts/unity/shapeland/</c>. A web build made with
+    /// <c>SHAPELAND_FAST_WEB=1</c> in the environment (<c>tools/shapeland-dev.sh</c>, for local playtests) skips
+    /// compression, which takes a minute or two of each build.
     /// </summary>
     public class Builds : IPreprocessBuildWithReport, IPostprocessBuildWithReport
     {
@@ -39,7 +41,15 @@ namespace ShapeLand.Client.Editor
             }
 
             AssetDatabase.Refresh();
+
+            // Set on every web build, so one that failed fast can't leave the next uncompressed.
+            if (report.summary.platform == BuildTarget.WebGL)
+            {
+                PlayerSettings.WebGL.compressionFormat = FastWeb ? WebGLCompressionFormat.Disabled : WebGLCompressionFormat.Brotli;
+            }
         }
+
+        private static bool FastWeb => Environment.GetEnvironmentVariable("SHAPELAND_FAST_WEB") == "1";
 
         public void OnPostprocessBuild(BuildReport report)
         {
