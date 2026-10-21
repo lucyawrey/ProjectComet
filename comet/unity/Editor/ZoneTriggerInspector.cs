@@ -26,7 +26,7 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            if (GUILayout.Button(new GUIContent("Add Pad", "A flat solid primitive under the volume, as wide and deep as it, for players to stand on.")))
+            if (GUILayout.Button(new GUIContent("Add Pad", "A flat solid primitive under the volume, as wide and deep as it, for players to stand on: square under a box volume, round under a cylinder or sphere.")))
             {
                 AddPad(trigger);
             }
