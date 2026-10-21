@@ -247,6 +247,8 @@ page() {
   local out="$work/$vercel_project" url
   if [ "$build" -eq 1 ]; then
     echo "== Building the web page (Unity, a few minutes)"
+    # Never a fast dev build (tools/shapeland-dev.sh): a marker it left behind would make this one uncompressed.
+    rm -f "$repo/shapeland/ShapeLand.Unity/Library/ShapeLand/fast-web-build"
     "$repo/tools/unity-batch.sh" build Web "$web"
   fi
   [ -f "$web/index.html" ] || { echo "No web build at $web." >&2; exit 1; }

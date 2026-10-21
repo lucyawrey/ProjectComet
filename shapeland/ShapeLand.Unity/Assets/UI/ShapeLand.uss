@@ -141,15 +141,16 @@ Label { padding: 0; margin: 0; }
 .chat-input { flex-grow: 1; }
 .chat-input .unity-base-text-field__input { background-color: rgba(0, 0, 0, 0); border-width: 0; font-size: 14px; }
 .chat-keys { font-size: 12px; color: rgb(141, 151, 171); }
-/* On a phone, Send stands in for the keys note: a phone's keyboard may have no Enter for the game to see. */
+/* With touch controls in use (.touch-input, set by TouchControls), Send stands in for the keys note: an on-screen
+   keyboard may have no Enter for the game to see. */
 .chat-send {
     display: none;
     margin: 4px 0; padding: 4px 12px; font-size: 14px; -unity-font-style: bold;
     background-color: rgb(61, 124, 240); border-width: 0; border-radius: 3px;
     color: rgb(238, 241, 246);
 }
-.hud.phone .chat-keys { display: none; }
-.hud.phone .chat-send { display: flex; }
+.hud.touch-input .chat-keys { display: none; }
+.hud.touch-input .chat-send { display: flex; }
 
 .look-button {
     position: absolute; left: 12px; top: 12px;
@@ -191,10 +192,10 @@ Label { padding: 0; margin: 0; }
     background-color: rgba(18, 22, 30, 0.78); border-radius: 4px;
 }
 .net-stats.hidden { display: none; }
-.hud.phone .net-stats { left: 16px; top: 76px; } /* under the touch buttons */
-/* The footer names F3 except on a phone, where the stats button opens and closes the numbers. */
-.touch-only, .hud.phone .keys-only { display: none; }
-.hud.phone .touch-only { display: flex; }
+.hud.touch-input .net-stats { left: 16px; top: 76px; } /* under the touch buttons */
+/* The footer names F3, except with touch controls in use, where the stats button opens and closes the numbers. */
+.touch-only, .hud.touch-input .keys-only { display: none; }
+.hud.touch-input .touch-only { display: flex; }
 .net-row { flex-direction: row; align-items: center; margin-bottom: 3px; }
 .net-dot { width: 7px; height: 7px; border-radius: 4px; margin-right: 7px; flex-shrink: 0; background-color: rgb(92, 201, 138); }
 .net-dot.warn { background-color: rgb(240, 181, 74); }
@@ -254,5 +255,5 @@ Label { padding: 0; margin: 0; }
 .icon-chat { background-image: url("Icons/chat.png"); }
 .icon-jump { background-image: url("Icons/jump.png"); }
 .icon-stats { background-image: url("Icons/stats.png"); }
-/* On a phone the touch buttons stand in for the Change Look button and the chat hint. */
-.hud.phone .look-button, .hud.phone .chat-hint { display: none; }
+/* With touch controls in use, the touch buttons stand in for the Change Look button and the chat hint. */
+.hud.touch-input .look-button, .hud.touch-input .chat-hint { display: none; }

@@ -27,6 +27,8 @@ namespace ShapeLand.Client
         // The overlay's parts kept inside the screen's safe area, and the insets they have now.
         private VisualElement[] _safe;
         private Vector4 _insets = new Vector4(-1, -1, -1, -1);
+        // The screen and overlay sizes the safe area was last applied for: it's asked for again only when they change.
+        private Vector4 _safeFor;
 
         public JoinClient Join => join;
 
@@ -145,13 +147,15 @@ namespace ShapeLand.Client
         // phone turns.
         private void KeepToSafeArea()
         {
-            var (top, right, bottom, left) = WebPage.SafeArea();
             var size = _root.layout.size;
-            if (float.IsNaN(size.x) || size.x <= 0)
+            var sizes = new Vector4(Screen.width, Screen.height, size.x, size.y);
+            if (float.IsNaN(size.x) || size.x <= 0 || sizes == _safeFor)
             {
                 return;
             }
 
+            _safeFor = sizes;
+            var (top, right, bottom, left) = WebPage.SafeArea();
             var insets = new Vector4(top * size.y, right * size.x, bottom * size.y, left * size.x);
             if (insets == _insets)
             {

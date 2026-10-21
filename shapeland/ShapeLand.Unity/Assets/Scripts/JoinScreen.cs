@@ -432,7 +432,11 @@ namespace ShapeLand.Client
         private void Update()
         {
             // Kept out of sight while a phone page shows its "Tap to play" card over the game.
-            _root.EnableInClassList("waiting", !WebPage.Playing);
+            var waiting = !WebPage.Playing;
+            if (waiting != _root.ClassListContains("waiting"))
+            {
+                _root.EnableInClassList("waiting", waiting);
+            }
             if (_rejoinUntil is not float until || !_joinButton.enabledSelf || Time.unscaledTime < _nextRejoin)
             {
                 return;

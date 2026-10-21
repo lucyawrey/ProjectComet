@@ -21,13 +21,17 @@ namespace ShapeLand.Client
 #endif
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        private static bool? _isPhone;
+#endif
+
         /// <summary>Whether the page laid itself out for a phone: the game fills the screen, played by touch.</summary>
         public static bool IsPhone
         {
             get
             {
 #if UNITY_WEBGL && !UNITY_EDITOR
-                return ShapeLand_IsPhone() != 0;
+                return _isPhone ??= ShapeLand_IsPhone() != 0; // a page doesn't stop being one
 #elif UNITY_EDITOR
                 return UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld;
 #else

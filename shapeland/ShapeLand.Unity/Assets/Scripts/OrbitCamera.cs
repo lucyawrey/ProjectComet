@@ -80,6 +80,7 @@ namespace ShapeLand.Client
         {
             if (Target == null)
             {
+                _touchTurn = Vector2.zero; // a drag without a target turns nothing, rather than all at once later
                 if (_showcaseCenter is Vector3 center)
                 {
                     Yaw = Mathf.Repeat(Yaw + showcase.z * Time.unscaledDeltaTime, 360);

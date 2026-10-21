@@ -28,8 +28,10 @@ namespace ShapeLand.Client
         private readonly VisualElement _knob;
         private readonly VisualElement _look;
         private readonly VisualElement _jump;
+        private readonly VisualElement _hud;
         private readonly OrbitCamera _camera;
-        private readonly Gamepad _pad;
+        // The virtual gamepad the stick and Jump drive, added once touch controls can appear (so a desktop never has one).
+        private Gamepad _pad;
         private GamepadState _state;
         private int? _stickPointer;
         private int? _lookPointer;
@@ -43,10 +45,9 @@ namespace ShapeLand.Client
         /// </summary>
         public TouchControls(VisualElement hud, OrbitCamera camera, Action look, Action returnToSpawn, Action chat, Action stats)
         {
+            _hud = hud;
             _camera = camera;
-            _touched = WebPage.IsPhone;
-            hud.EnableInClassList("phone", WebPage.IsPhone);
-            _pad = InputSystem.AddDevice<Gamepad>("Touch controls");
+            SetTouched(WebPage.IsPhone);
             _layer = hud.Q("touch");
             _stickArea = hud.Q("touch-stick");
             _base = hud.Q("stick-base");
@@ -97,11 +98,12 @@ namespace ShapeLand.Client
         {
             if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
             {
-                _touched = true;
+                SetTouched(true);
             }
-            else if (!WebPage.IsPhone && (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame || RealGamepadUsed()))
+            // Not while typing (an on-screen keyboard's keys) or on the look card.
+            else if (allowed && !WebPage.IsPhone && (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame || RealGamepadUsed()))
             {
-                _touched = false;
+                SetTouched(false);
             }
 
             var show = _touched && allowed;
@@ -115,7 +117,26 @@ namespace ShapeLand.Client
             }
         }
 
-        public void Dispose() => InputSystem.RemoveDevice(_pad);
+        public void Dispose()
+        {
+            if (_pad != null)
+            {
+                InputSystem.RemoveDevice(_pad);
+                _pad = null;
+            }
+        }
+
+        // Touch controls in use or not: the HUD's .touch-input class swaps in their stand-ins (Send, the footer without
+        // F3) and moves things out of their way.
+        private void SetTouched(bool touched)
+        {
+            _touched = touched;
+            _hud.EnableInClassList("touch-input", touched);
+            if (touched && _pad == null)
+            {
+                _pad = InputSystem.AddDevice<Gamepad>("Touch controls");
+            }
+        }
 
         private void OnStickDown(PointerDownEvent e)
         {
@@ -190,7 +211,13 @@ namespace ShapeLand.Client
             EndJump(_jumpPointer ?? -1);
         }
 
-        private void Send() => InputSystem.QueueStateEvent(_pad, _state);
+        private void Send()
+        {
+            if (_pad != null)
+            {
+                InputSystem.QueueStateEvent(_pad, _state);
+            }
+        }
 
         // Takes the touch for a control that has none (capturing it, so it keeps the drag past the control's edge).
         private static bool Begin(VisualElement control, ref int? held, int pointer)

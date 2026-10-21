@@ -39,17 +39,28 @@ mergeInto(LibraryManager.library, {
   },
 
   // The screen's safe area inset on one side (0 top, 1 right, 2 bottom, 3 left), as a share of the screen's height
-  // (top, bottom) or width (left, right): what notches, rounded corners and the home bar cover. Read from the page's
-  // #safe-area probe, so it follows turning the phone.
+  // (top, bottom) or width (left, right): what notches, rounded corners and the home bar cover. Measured from the
+  // page's #safe-area probe once, and again after the page resizes or the phone turns.
   ShapeLand_SafeAreaInset__sig: 'fi',
   ShapeLand_SafeAreaInset: function (side) {
-    var probe = document.getElementById('safe-area');
-    if (!probe || !window.innerWidth || !window.innerHeight) {
-      return 0;
+    if (!Module.shapelandSafeArea) {
+      if (!Module.shapelandSafeAreaWatched) {
+        Module.shapelandSafeAreaWatched = true;
+        var remeasure = function () { Module.shapelandSafeArea = null; };
+        window.addEventListener('resize', remeasure);
+        window.addEventListener('orientationchange', remeasure);
+      }
+      var probe = document.getElementById('safe-area');
+      if (!probe || !window.innerWidth || !window.innerHeight) {
+        return 0;
+      }
+      var style = getComputedStyle(probe);
+      var sizes = [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft];
+      Module.shapelandSafeArea = sizes.map(function (size, i) {
+        return (parseFloat(size) || 0) / (i % 2 === 0 ? window.innerHeight : window.innerWidth);
+      });
     }
-    var style = getComputedStyle(probe);
-    var value = parseFloat([style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft][side]) || 0;
-    return value / (side % 2 === 0 ? window.innerHeight : window.innerWidth);
+    return Module.shapelandSafeArea[side];
   },
 
   // 1 if the page reloaded to rejoin (once: the note is cleared), else 0.
