@@ -23,6 +23,7 @@ namespace ShapeLand.Client
         private VisualElement _root;
         private VisualElement _fade;
         private Chat _chat;
+        private TouchControls _touch;
 
         public JoinClient Join => join;
 
@@ -64,7 +65,15 @@ namespace ShapeLand.Client
             join.ConnectionLost -= OnConnectionLost;
         }
 
-        private void OnContentLoaded(ShapeLandContent content) => UiText.Fill(_root, content.Strings);
+        private void OnContentLoaded(ShapeLandContent content)
+        {
+            UiText.Fill(_root, content.Strings);
+            if (_touch == null)
+            {
+                _touch = gameObject.AddComponent<TouchControls>();
+                _touch.Begin(view.OrbitCamera, content.Strings.Get("hud.jump"));
+            }
+        }
 
         private void OnOwnSpawned(PlayerSpawn spawn) => _root.RemoveFromClassList("hidden");
 
@@ -77,6 +86,11 @@ namespace ShapeLand.Client
 
         private void Update()
         {
+            if (_touch != null)
+            {
+                _touch.Allowed = Shown && view.Player != null && view.Player.InputEnabled;
+            }
+
             if (!Shown)
             {
                 return;

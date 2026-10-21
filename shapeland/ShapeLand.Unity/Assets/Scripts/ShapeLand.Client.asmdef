@@ -8,7 +8,8 @@
         "Comet.Content",
         "ShapeLand.Shared",
         "Comet.Simulation",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
