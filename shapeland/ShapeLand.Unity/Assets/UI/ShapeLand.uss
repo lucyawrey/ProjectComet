@@ -229,7 +229,7 @@ Label { padding: 0; margin: 0; }
 /* Inside the screen's safe area (set from code), clear of notches and the home bar. */
 .touch-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .touch-row { position: absolute; left: 16px; top: 12px; flex-direction: row; }
-/* Sizes in panel pixels, which are about 0.8 CSS pixels on a landscape phone: buttons about 52 and Jump about 100 across. */
+/* Sizes in panel pixels, which on a phone are about CSS pixels (Hud.PhoneReferenceResolution). */
 .touch-button, .touch-button:hover {
     border-width: 2px;
     border-color: rgba(238, 241, 246, 0.3);
@@ -240,10 +240,10 @@ Label { padding: 0; margin: 0; }
     padding: 0;
 }
 .touch-button:active, .touch-button:hover:active, .touch-button.pressed { background-color: rgba(79, 140, 240, 0.8); }
-.touch-button.small { width: 64px; height: 64px; border-radius: 32px; margin-right: 16px; }
-.jump-button { position: absolute; right: 20px; bottom: 20px; width: 122px; height: 122px; border-radius: 61px; }
-.touch-icon { width: 34px; height: 34px; -unity-background-scale-mode: scale-to-fit; }
-.jump-button .touch-icon { width: 56px; height: 56px; }
+.touch-button.small { width: 52px; height: 52px; border-radius: 26px; margin-right: 14px; }
+.jump-button { position: absolute; right: 16px; bottom: 16px; width: 100px; height: 100px; border-radius: 50px; }
+.touch-icon { width: 28px; height: 28px; -unity-background-scale-mode: scale-to-fit; }
+.jump-button .touch-icon { width: 46px; height: 46px; }
 .icon-look { background-image: url("Icons/look.png"); }
 .icon-return { background-image: url("Icons/return.png"); }
 .icon-chat { background-image: url("Icons/chat.png"); }

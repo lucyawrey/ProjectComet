@@ -41,9 +41,20 @@ namespace ShapeLand.Client
         /// <summary>How dark the respawn fade has the screen now: 0 clear, 1 black.</summary>
         public float Darkness { get; private set; }
 
+        // On a phone the interface scales from a smaller design size than the panel settings' (960 x 600), so a panel
+        // pixel is about a CSS pixel there and text stays readable; the join card still fits a small phone held
+        // landscape.
+        private static readonly Vector2Int PhoneReferenceResolution = new Vector2Int(800, 500);
+
         private void OnEnable()
         {
-            var tree = GetComponent<UIDocument>().rootVisualElement;
+            var document = GetComponent<UIDocument>();
+            if (WebPage.IsPhone && document.panelSettings != null)
+            {
+                document.panelSettings.referenceResolution = PhoneReferenceResolution;
+            }
+
+            var tree = document.rootVisualElement;
             _root = tree.Q("hud");
             _fade = tree.Q("screen-fade");
             _chat = GetComponent<Chat>();
