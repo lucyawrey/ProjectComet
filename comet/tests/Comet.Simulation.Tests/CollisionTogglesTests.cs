@@ -60,6 +60,40 @@ public class CollisionTogglesTests
     }
 
     [Fact]
+    public void PassThroughTakesMeshesTurnedOnAroundAPlayerUntilTheyreOut()
+    {
+        var world = TestWorlds.Create(Door(startsOff: true));
+        var passThrough = new PassThrough();
+        var inDoor = new Vector3(8, 1, 8);
+
+        passThrough.Flipped(world, "door", inDoor, Rules.BodyRadius, Rules.BodyHeight);
+        Assert.Empty(passThrough);
+        world.SetFlipped("door", true);
+        passThrough.Flipped(world, "door", new Vector3(14, 1, 8), Rules.BodyRadius, Rules.BodyHeight);
+        Assert.Empty(passThrough);
+        passThrough.Flipped(world, "door", inDoor, Rules.BodyRadius, Rules.BodyHeight);
+        Assert.Equal(world.MeshesTagged("door"), passThrough.Order());
+        passThrough.Prune(world, inDoor, Rules.BodyRadius, Rules.BodyHeight);
+        Assert.Single(passThrough);
+        passThrough.Prune(world, new Vector3(14, 1, 8), Rules.BodyRadius, Rules.BodyHeight);
+        Assert.Empty(passThrough);
+    }
+
+    [Fact]
+    public void AWorldWithItsOwnFlipsFlipsAlone()
+    {
+        var world = TestWorlds.Create(Door());
+        world.SetFlipped("door", true);
+        var own = world.WithOwnFlips();
+        var door = Assert.Single(own.MeshesTagged("door"));
+
+        Assert.True(own.IsOn(door));
+        own.SetFlipped("door", true);
+        world.SetFlipped("door", false);
+        Assert.Equal((false, true), (own.IsOn(door), world.IsOn(door)));
+    }
+
+    [Fact]
     public void TheMotorWalksOutOfAMeshItPassesThrough()
     {
         var world = TestWorlds.Create(Door());

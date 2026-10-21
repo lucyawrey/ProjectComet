@@ -55,7 +55,9 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private readonly FixedStep _fixed = new(StepsPerSecond);
     private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
     private ClientSession _session = null!;
-    private CollisionWorld _world = worlds.For(content.Zones.All[0]);
+    // The bot's own view of its zone's shared world, with the zone's flips as the server last said (WithOwnFlips).
+    private CollisionWorld _world = worlds.For(content.Zones.All[0]).WithOwnFlips();
+    private readonly PassThrough _passThrough = new();
     private MotorState _motor;
     private Shape _shape = null!;
     private Vector2 _target;
@@ -228,7 +230,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
-        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, _world, content.Movement);
+        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, _world, content.Movement, _passThrough);
+        _passThrough.Prune(_world, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
         // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
         if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond))
         {
@@ -277,10 +280,10 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
                 break;
             case ShapeLandMessageIds.ZoneEntered:
-                // Before this bot's arrival correction. Bots in a zone share its world, so a flip is applied once
-                // per bot; setting the same state again changes nothing.
+                // Before this bot's arrival correction. A fresh copy of the zone's world, with the flips the server says.
                 var entered = FrameReader.Decode<ZoneEntered>(payload, options);
-                _world = worlds.For(content.Zones[entered.Zone]);
+                _world = worlds.For(content.Zones[entered.Zone]).WithOwnFlips();
+                _passThrough.Clear();
                 _session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(content, _world);
                 foreach (var tag in entered.Flipped ?? [])
                 {
@@ -291,6 +294,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             case ShapeLandMessageIds.PlacementsFlipped:
                 var flipped = FrameReader.Decode<PlacementsFlipped>(payload, options);
                 _world.SetFlipped(flipped.Tag, flipped.Flipped);
+                _passThrough.Flipped(_world, flipped.Tag, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
                 break;
             case ShapeLandMessageIds.JoinRejected:
                 Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;

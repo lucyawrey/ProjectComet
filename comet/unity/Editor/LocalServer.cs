@@ -39,6 +39,8 @@ namespace Comet.Unity.Editor
         private static readonly string WebKey = Prefix + "Web";
         private static readonly string LanKey = Prefix + "Lan";
         private static readonly string BotsKey = Prefix + "Bots";
+        // The progress item of a build under way, kept in the editor session so a script reload can pick it up.
+        private static readonly string BuildingKey = Prefix + "Building";
         private const string StateFile = "Library/CometLocalServer.json";
         private const double StartTimeout = 60;
 
@@ -55,6 +57,24 @@ namespace Comet.Unity.Editor
             if (Read() is { waiting: true } state && Alive(state.pid, state.startTicks))
             {
                 Wait();
+            }
+
+            // A build the scripts reloaded during (saving a script does) lost what was waiting for it: build again.
+            if (SessionState.GetInt(BuildingKey, 0) is var progress && progress != 0)
+            {
+                SessionState.EraseInt(BuildingKey);
+                if (Progress.Exists(progress))
+                {
+                    Progress.Remove(progress);
+                }
+
+                EditorApplication.delayCall += () =>
+                {
+                    if (Settings() is { } settings)
+                    {
+                        Start(settings, build: true);
+                    }
+                };
             }
         }
 
@@ -320,6 +340,7 @@ namespace Comet.Unity.Editor
                 buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
                 buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null)));
             _building = building;
+            SessionState.SetInt(BuildingKey, progress);
             var stops = _stops;
             void Poll()
             {
@@ -330,6 +351,7 @@ namespace Comet.Unity.Editor
 
                 EditorApplication.update -= Poll;
                 _building = null;
+                SessionState.EraseInt(BuildingKey);
                 Progress.Remove(progress);
                 var (server, botsBuilt) = building.Result;
                 if (server.Error != null)

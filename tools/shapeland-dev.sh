@@ -68,7 +68,7 @@ while [ $# -gt 0 ]; do
     --bots-chat) bots_chat=(--chat); shift ;;
     --no-watch) watch=0; shift ;;
     --spawn) spawn="$2"; shift 2 ;;
-    -h|--help) sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
     *) echo "Unknown option $1 (see --help)" >&2; exit 2 ;;
   esac
 done

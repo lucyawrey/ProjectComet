@@ -60,7 +60,7 @@ namespace ShapeLand.Client
         }
 
         /// <summary>The meshes the player passes through: turned on around them, until they're out (as the server keeps them).</summary>
-        public HashSet<int> PassThrough { get; } = new HashSet<int>();
+        public PassThrough PassThrough { get; } = new PassThrough();
 
         /// <summary>How many times a teleporter sent the player somewhere.</summary>
         public int Teleports { get; private set; }
@@ -99,16 +99,7 @@ namespace ShapeLand.Client
         public void ChangeShape(Shape shape) => _shape = shape;
 
         /// <summary>Placements tagged <paramref name="tag"/> flipped: any that turned solid around the player are passed through.</summary>
-        public void Flipped(string tag)
-        {
-            foreach (var mesh in _world.MeshesTagged(tag))
-            {
-                if (_world.IsOn(mesh) && _world.Overlaps(mesh, _motor.Position, _rules.BodyRadius, _rules.BodyHeight))
-                {
-                    PassThrough.Add(mesh);
-                }
-            }
-        }
+        public void Flipped(string tag) => PassThrough.Flipped(_world, tag, _motor.Position, _rules.BodyRadius, _rules.BodyHeight);
 
         /// <summary>
         /// Turns stick or key input (x right, y forward) into a direction on the ground (X, Z) relative to a
@@ -148,10 +139,7 @@ namespace ShapeLand.Client
                 var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
                 PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules, PassThrough);
-                if (PassThrough.Count > 0)
-                {
-                    PassThrough.RemoveWhere(mesh => !_world.Overlaps(mesh, _motor.Position, _rules.BodyRadius, _rules.BodyHeight));
-                }
+                PassThrough.Prune(_world, _motor.Position, _rules.BodyRadius, _rules.BodyHeight);
 
                 _jumpQueued = false;
                 // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.

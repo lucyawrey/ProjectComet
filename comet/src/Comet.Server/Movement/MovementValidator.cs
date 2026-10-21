@@ -147,7 +147,7 @@ public sealed class MovementValidator
     /// The meshes the player passes through: ones turned on around them, until they're fully out (game code keeps
     /// it). Checks and server falls skip them.
     /// </summary>
-    public HashSet<int> PassThrough { get; } = new();
+    public PassThrough PassThrough { get; } = new();
 
     /// <summary>True while the server is moving the player down a fall, because their client went silent in the air.</summary>
     public bool ServerFalling => _serverFalling;

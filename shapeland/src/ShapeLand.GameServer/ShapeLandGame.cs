@@ -431,14 +431,8 @@ public sealed class ShapeLandGame : IConnectionHandler
     }
 
     // A placement turned on around the player stops passing through once they're fully out of it.
-    private void KeepPassingThrough(Player player)
-    {
-        var through = player.Validator.PassThrough;
-        if (through.Count > 0)
-        {
-            through.RemoveWhere(mesh => !player.Zone.World.Overlaps(mesh, player.Validator.Position, content.Movement.BodyRadius, content.Movement.BodyHeight));
-        }
-    }
+    private void KeepPassingThrough(Player player) =>
+        player.Validator.PassThrough.Prune(player.Zone.World, player.Validator.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
 
     private static bool IsPowerOfTen(int n)
     {

@@ -14,6 +14,8 @@ internal sealed class ZoneState
     private readonly Dictionary<Trigger, TriggerCharge> _charges = [];
     // The tick each flipped tag with a revert time flips back.
     private readonly Dictionary<string, uint> _reverts = [];
+    // Scratch for the tags due to flip back this tick.
+    private readonly List<string> _due = [];
 
     private readonly MovementRules _rules;
 
@@ -38,18 +40,27 @@ internal sealed class ZoneState
     /// <summary>The joined players here.</summary>
     public HashSet<Player> Players { get; } = [];
 
-    /// <summary>The names of placements flipped from how they start.</summary>
+    /// <summary>The tags of placements flipped from how they start.</summary>
     public HashSet<string> Flipped { get; } = [];
 
     /// <summary>
     /// Times each trigger (one state per trigger, shared by everyone in it) and fires its effects, then flips back
-    /// names whose revert time is up. Reports each flip or flip back, for the server to tell the zone's players.
+    /// tags whose revert time is up. Reports each flip or flip back, for the server to tell the zone's players.
     /// </summary>
     public void Tick(uint tick, float seconds, Action<string, bool> flipped)
     {
         foreach (var (trigger, charge) in _charges)
         {
-            var anyoneInside = Players.Any(p => Comet.Simulation.Triggers.Inside(trigger.Volume, p.Validator.Position));
+            var anyoneInside = false;
+            foreach (var player in Players)
+            {
+                if (Comet.Simulation.Triggers.Inside(trigger.Volume, player.Validator.Position))
+                {
+                    anyoneInside = true;
+                    break;
+                }
+            }
+
             if (charge.Step(anyoneInside ? trigger : null, trigger.Volume, seconds))
             {
                 foreach (var effect in trigger.Effects)
@@ -59,20 +70,39 @@ internal sealed class ZoneState
             }
         }
 
-        foreach (var (tag, at) in _reverts.Where(r => r.Value <= tick).ToList())
+        if (_reverts.Count == 0)
+        {
+            return;
+        }
+
+        _due.Clear();
+        foreach (var (tag, at) in _reverts)
+        {
+            if (at <= tick)
+            {
+                _due.Add(tag);
+            }
+        }
+
+        foreach (var tag in _due)
         {
             _reverts.Remove(tag);
             Flip(tag, flipped);
         }
     }
 
-    // Flips the effect's placements, unless a revert is pending: then it only restarts the wait.
+    // Flips the effect's placements, unless a revert is pending: then an effect with a revert time restarts the wait,
+    // and one without leaves it.
     private void Fire(ToggleEffect effect, uint tick, Action<string, bool> flipped)
     {
         var revertAt = tick + (uint)MathF.Round(effect.RevertSeconds * ShapeLandRules.TickRate);
         if (_reverts.ContainsKey(effect.Tag))
         {
-            _reverts[effect.Tag] = revertAt;
+            if (effect.RevertSeconds > 0)
+            {
+                _reverts[effect.Tag] = revertAt;
+            }
+
             return;
         }
 
@@ -89,15 +119,9 @@ internal sealed class ZoneState
         World.SetFlipped(tag, now);
 
         // Anyone inside a placement that just turned solid passes through it until they're out.
-        foreach (var mesh in World.MeshesTagged(tag).Where(World.IsOn))
+        foreach (var player in Players)
         {
-            foreach (var player in Players)
-            {
-                if (World.Overlaps(mesh, player.Validator.Position, _rules.BodyRadius, _rules.BodyHeight))
-                {
-                    player.Validator.PassThrough.Add(mesh);
-                }
-            }
+            player.Validator.PassThrough.Flipped(World, tag, player.Validator.Position, _rules.BodyRadius, _rules.BodyHeight);
         }
 
         flipped(tag, now);

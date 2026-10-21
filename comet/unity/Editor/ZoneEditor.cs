@@ -183,6 +183,12 @@ namespace Comet.Unity.Editor
         {
             var zone = MessagePackSerializer.Deserialize<Zone>(editing.ZoneData, Serializer);
             var chunks = zone.Chunks.ToDictionary(c => c.Coord);
+            var settings = CometSettings.Find(quiet: true);
+
+            // A charge color is saved only when it isn't the game's default for its kind, so a later change to the
+            // default reaches the rest.
+            uint? OwnChargeColor(Color color, Color? fallback) =>
+                fallback is { } usual && PlacedColors.ToRgb(color) == PlacedColors.ToRgb(usual) ? null : PlacedColors.ToRgb(color);
             ZoneChunk ChunkAt(System.Numerics.Vector3 position)
             {
                 var coord = ChunkCoord.Containing(position);
@@ -215,7 +221,7 @@ namespace Comet.Unity.Editor
                 chunk.Teleporters = chunk.Teleporters.Append(new Teleporter
                 {
                     Id = teleporter.id, Volume = VolumeOf(teleporter), Facing = (SpawnFacing)teleporter.facing, Target = teleporter.target,
-                    ChargeColor = PlacedColors.ToRgb(teleporter.chargeColor),
+                    ChargeColor = OwnChargeColor(teleporter.chargeColor, settings?.teleporterChargeColor),
                 }).ToArray();
             }
 
@@ -227,7 +233,7 @@ namespace Comet.Unity.Editor
                     Id = trigger.id,
                     Volume = VolumeOf(trigger),
                     Effects = trigger.effects.Select(e => new ToggleEffect { Tag = e.toggleTag, RevertSeconds = e.revertSeconds }).ToArray(),
-                    ChargeColor = PlacedColors.ToRgb(trigger.chargeColor),
+                    ChargeColor = OwnChargeColor(trigger.chargeColor, settings?.triggerChargeColor),
                 }).ToArray();
             }
 

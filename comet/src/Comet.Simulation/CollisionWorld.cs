@@ -8,9 +8,9 @@ namespace Comet.Simulation
     /// What players stand on and bump into: a zone's terrain pieces (heightmaps, possibly stacked), solid triangle
     /// meshes (placed props and volumes), and a kill height below which a player has fallen out of the world.
     /// Players are an upright box: a square footprint <c>radius</c> from the feet's center, <c>bodyHeight</c> tall.
-    /// Named meshes can be flipped off and on (<see cref="SetFlipped"/>), and queries can pass through a player's own set of
-    /// meshes (those turned on around them, until they're out). The same on client and server; safe to query from
-    /// several threads at once (bots share one), with turning meshes on and off from one thread.
+    /// Tagged meshes can be flipped off and on (<see cref="SetFlipped"/>), and queries can pass through a player's own set of
+    /// meshes (<see cref="PassThrough"/>). The same on client and server; safe to query from several threads at once,
+    /// with turning meshes on and off from one thread (bots each take <see cref="WithOwnFlips"/> of a shared world).
     /// </summary>
     public sealed class CollisionWorld
     {
@@ -96,6 +96,31 @@ namespace Comet.Simulation
                 }
             }
         }
+
+        // A copy sharing everything but which meshes are off, which starts as the meshes do.
+        private CollisionWorld(CollisionWorld shared)
+        {
+            Terrain = shared.Terrain;
+            KillHeight = shared.KillHeight;
+            _meshes = shared._meshes;
+            _corners = shared._corners;
+            _normals = shared._normals;
+            _firstCells = shared._firstCells;
+            _meshOf = shared._meshOf;
+            _cells = shared._cells;
+            _tagged = shared._tagged;
+            _off = new bool[_meshes.Count];
+            for (var m = 0; m < _meshes.Count; m++)
+            {
+                _off[m] = _meshes[m].StartsOff;
+            }
+        }
+
+        /// <summary>
+        /// This world with its own flips, starting as its meshes do: for one player's view of a world many share (a
+        /// bot's), so their flips don't race. Shares the terrain and meshes, so it costs little.
+        /// </summary>
+        public CollisionWorld WithOwnFlips() => new CollisionWorld(this);
 
         /// <summary>The terrain, or null for a world of meshes only.</summary>
         public ZoneTerrain? Terrain { get; }
