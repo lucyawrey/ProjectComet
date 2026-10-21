@@ -19,7 +19,6 @@ namespace Comet.Unity
         // Terrain edges between cells meeting at less than this many degrees aren't drawn, so gentle slopes don't
         // fill the view with the grid; cliffs, skirts and piece edges still show.
         private const float TerrainCrease = 20;
-        private const int BodySides = 16;
 
         [SerializeField] private Shader shader = null!;
 
@@ -51,7 +50,7 @@ namespace Comet.Unity
             _seen = Make(CompareFunction.LessEqual, 1);
             _hidden = Make(CompareFunction.Greater, HiddenOpacity);
             _always = Make(CompareFunction.Always, 1);
-            _body = Cylinder();
+            _body = Box();
             // At the scene's root: the lines are in world space whatever this object's transform.
             _root = new GameObject("Collision view").transform;
             _root.gameObject.SetActive(false);
@@ -91,7 +90,7 @@ namespace Comet.Unity
             _fixed.Add(AddLines("Volume", placed.Triangles, color));
         }
 
-        /// <summary>Draws a body this frame: an upright cylinder from <paramref name="feet"/>, seen through everything.</summary>
+        /// <summary>Draws a body this frame: an upright box on <paramref name="feet"/>, <paramref name="radius"/> out each way, seen through everything.</summary>
         public void DrawBody(Vector3 feet, float radius, float height, Color color)
         {
             if (_shown)
@@ -203,34 +202,20 @@ namespace Comet.Unity
             return material;
         }
 
-        // A cylinder of radius 1 and height 1 standing on the origin: two rings and four uprights.
-        private static Mesh Cylinder()
+        // A player's body as Comet collides it: an upright box, its square footprint 1 from the origin each way, 1
+        // tall, standing on the origin. It doesn't turn with the player.
+        private static Mesh Box()
         {
             var points = new List<Vector3>();
-            var indices = new List<int>();
-            for (var i = 0; i < BodySides; i++)
+            for (var i = 0; i < 8; i++)
             {
-                var angle = i * 2 * Mathf.PI / BodySides;
-                var x = Mathf.Sin(angle);
-                var z = Mathf.Cos(angle);
-                points.Add(new Vector3(x, 0, z));
-                points.Add(new Vector3(x, 1, z));
-            }
-
-            for (var i = 0; i < BodySides; i++)
-            {
-                var next = (i + 1) % BodySides;
-                indices.AddRange(new[] { 2 * i, 2 * next, 2 * i + 1, 2 * next + 1 });
-                if (i % (BodySides / 4) == 0)
-                {
-                    indices.AddRange(new[] { 2 * i, 2 * i + 1 });
-                }
+                points.Add(new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? 0 : 1, (i & 4) == 0 ? -1 : 1));
             }
 
             var mesh = new Mesh { name = "Body" };
             mesh.SetVertices(points);
             mesh.SetColors(Fill(points.Count, Color.white));
-            mesh.SetIndices(indices, MeshTopology.Lines, 0);
+            mesh.SetIndices(new[] { 0, 1, 1, 5, 5, 4, 4, 0, 2, 3, 3, 7, 7, 6, 6, 2, 0, 2, 1, 3, 5, 7, 4, 6 }, MeshTopology.Lines, 0);
             return mesh;
         }
 
