@@ -48,7 +48,6 @@ hint = "Enter to chat"
 
 [hud]
 change_look = "Change Look"
-jump = "Jump"
 
 [stats]
 ping = "Ping"

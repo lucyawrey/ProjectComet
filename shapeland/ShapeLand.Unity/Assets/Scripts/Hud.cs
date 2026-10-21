@@ -48,7 +48,7 @@ namespace ShapeLand.Client
             _fade = tree.Q("screen-fade");
             _chat = GetComponent<Chat>();
             tree.Q<Button>("look-button").clicked += OpenLook;
-            _touch = new TouchControls(_root, view.OrbitCamera);
+            _touch = new TouchControls(_root, view.OrbitCamera, OpenLook, ReturnToSpawn, _chat.OpenInput);
 
             join.ContentLoaded += OnContentLoaded;
             join.OwnSpawned += OnOwnSpawned;
@@ -101,15 +101,23 @@ namespace ShapeLand.Client
                 }
             }
 
-            // Back to the spawn point, unless typing or on the look card. Becomes an action once Comet has them.
-            if (view.Controls.Game.ReturnToSpawn.WasPressedThisFrame() && !_chat.Open && !card.Changing)
+            if (view.Controls.Game.ReturnToSpawn.WasPressedThisFrame())
             {
-                Join.ReturnToSpawn();
+                ReturnToSpawn();
             }
 
             UpdateMoving();
             Darkness = view.Player != null ? view.Player.Darkness : 0;
             _fade.style.opacity = Darkness;
+        }
+
+        /// <summary>Back to the spawn point, unless typing or on the look card. Becomes an action once Comet has them.</summary>
+        public void ReturnToSpawn()
+        {
+            if (!_chat.Open && !card.Changing)
+            {
+                Join.ReturnToSpawn();
+            }
         }
 
         /// <summary>Brings up the card to change name, shape and colors, closing the chat input first.</summary>

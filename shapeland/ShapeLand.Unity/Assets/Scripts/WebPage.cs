@@ -32,8 +32,8 @@ namespace ShapeLand.Client
         }
 
         /// <summary>
-        /// The screen's safe area insets in CSS pixels (what notches and rounded corners cover), for the HUD to keep
-        /// clear of; zero where there's no page.
+        /// The screen's safe area insets (what notches, rounded corners and the home bar cover), for the HUD to keep
+        /// clear of: as shares of the screen's height (top, bottom) and width (left, right); zero where there's no page.
         /// </summary>
         public static (float Top, float Right, float Bottom, float Left) SafeArea()
         {
