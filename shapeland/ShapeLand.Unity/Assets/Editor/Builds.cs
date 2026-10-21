@@ -66,6 +66,7 @@ namespace ShapeLand.Client.Editor
             {
                 PlayerSettings.WebGL.compressionFormat = compression;
                 _restoreCompression = null;
+                AssetDatabase.SaveAssets(); // the build saved the project settings uncompressed; save them back
             }
         }
 
