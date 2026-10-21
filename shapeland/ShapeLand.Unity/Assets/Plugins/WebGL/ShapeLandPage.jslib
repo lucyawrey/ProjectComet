@@ -26,6 +26,25 @@ mergeInto(LibraryManager.library, {
     location.reload();
   },
 
+  // 1 if the page laid itself out for a phone (the "phone" class its head sets), else 0.
+  ShapeLand_IsPhone__sig: 'i',
+  ShapeLand_IsPhone: function () {
+    return document.documentElement.classList.contains('phone') ? 1 : 0;
+  },
+
+  // The screen's safe area inset on one side (0 top, 1 right, 2 bottom, 3 left), in CSS pixels: what notches and
+  // rounded corners cover. Read from the page's #safe-area probe, so it follows turning the phone.
+  ShapeLand_SafeAreaInset__sig: 'fi',
+  ShapeLand_SafeAreaInset: function (side) {
+    var probe = document.getElementById('safe-area');
+    if (!probe) {
+      return 0;
+    }
+    var style = getComputedStyle(probe);
+    var value = [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft][side];
+    return parseFloat(value) || 0;
+  },
+
   // 1 if the page reloaded to rejoin (once: the note is cleared), else 0.
   ShapeLand_TakeRejoin__sig: 'i',
   ShapeLand_TakeRejoin: function () {

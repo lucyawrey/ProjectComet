@@ -100,6 +100,7 @@ public static class ShapeLandServer
         types.Mappings[".data"] = "application/octet-stream";
         types.Mappings[".bin"] = "application/octet-stream";
         types.Mappings[".unityweb"] = "application/octet-stream";
+        types.Mappings[".webmanifest"] = "application/manifest+json";
         app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
         app.UseStaticFiles(new StaticFileOptions
         {
