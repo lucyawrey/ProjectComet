@@ -11,7 +11,7 @@ public class ZoneValidationTests
     public void AcceptsTheSampleZone() => Assert.Empty(Errors(Zones.Sample()));
 
     [Fact]
-    public void ChecksKeysAndNames()
+    public void ChecksIdsAndNames()
     {
         var zone = Zones.Sample();
         zone.Id = "meadow";
@@ -20,10 +20,10 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "zone.toml: id: 'meadow' isn't a valid zone key: use 'zone.' then lowercase letters, digits and underscores.",
+                "zone.toml: id: 'meadow' isn't a valid zone id: use 'zone.' then lowercase letters, digits and underscores.",
                 "zone.toml: piece: 'main' is used twice.",
                 "zone.toml: piece: 'Sky Island' isn't a valid name: use lowercase letters, digits and underscores, starting with a letter.",
-                "chunks/-1_0.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop key.",
+                "chunks/-1_0.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop id.",
             ],
             Errors(zone));
     }
@@ -144,35 +144,76 @@ public class ZoneValidationTests
     }
 
     [Fact]
-    public void PlacementNamesAreUniqueAndValid()
+    public void PlacementNamesMayBeSharedButMustBeValid()
     {
         var zone = Zones.Sample();
         zone.Chunks[0].Placements =
         [
-            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
-            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
-            new Placement { Prop = "prop.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
+            new Placement { Prop = "prop.cube", Tag = "gate", Position = new Vector3(-10, 0, 1) },
+            new Placement { Prop = "prop.cube", Tag = "gate", Position = new Vector3(-12, 0, 1) },
+            new Placement { Prop = "prop.cube", Tag = "Gate!", Position = new Vector3(-14, 0, 1) },
         ];
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of prop.cube: the name 'gate' is already used in chunks/-1_0.toml.",
-                "chunks/-1_0.toml: placement of prop.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
+                "chunks/-1_0.toml: placement of prop.cube: 'Gate!' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.",
             ],
             Errors(zone));
     }
 
     [Fact]
-    public void AZoneWithSpawnsHasOneDefault()
+    public void TriggerIdsNameTheirZoneAndAreUnique()
     {
         var zone = Zones.Sample();
-        zone.Chunks[0].Spawns = [new SpawnPoint { Id = "spawn.meadow_gate", Position = new Vector3(-5, 4, 5) }];
-        zone.Chunks[1].Spawns[0].IsDefault = false;
+        zone.Chunks[0].Spawns = [new SpawnPoint { Id = "spawn.meadow.gate", Volume = new TriggerVolume { Position = new Vector3(-5, 4, 5) } }];
+        zone.Chunks[1].Teleporters[0].Id = "teleporter.hills.to_cave";
+        zone.Chunks[1].Triggers[0].Id = "trigger.plate";
 
         Assert.Equal(
             [
-                "chunks/0_0.toml: spawn: 'spawn.meadow_gate' is already used in chunks/-1_0.toml.",
-                "zone.toml: No default spawn: mark one of the zone's spawns with default = true.",
+                "chunks/0_0.toml: spawn: 'spawn.meadow.gate' is already used in chunks/-1_0.toml.",
+                "chunks/0_0.toml: teleporter: 'teleporter.hills.to_cave' isn't a valid teleporter id here: use 'teleporter.meadow.' then lowercase letters, digits and underscores.",
+                "chunks/0_0.toml: trigger: 'trigger.plate' isn't a valid trigger id here: use 'trigger.meadow.' then lowercase letters, digits and underscores.",
+            ],
+            Errors(zone).OrderBy(e => e, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void VolumesArePlainShapesAndPadsArePlainPrimitives()
+    {
+        var zone = Zones.Sample();
+        var volume = zone.Chunks[1].Spawns[0].Volume;
+        volume.Kind = PrimitiveKind.Arch;
+        volume.Size = new Vector3(2, 0, 2);
+        volume.StandSeconds = -1;
+        volume.Pad!.Tag = "pad";
+        zone.Chunks[1].Teleporters[0].Volume.Pad = new Placement { Prop = "prop.cube", Position = new Vector3(12, 4, 5) };
+
+        Assert.Equal(
+            [
+                "chunks/0_0.toml: spawn.meadow.gate: a volume is a box, a cylinder or a sphere, not a arch.",
+                "chunks/0_0.toml: spawn.meadow.gate: size must be above 0 on every axis.",
+                "chunks/0_0.toml: spawn.meadow.gate: stand_seconds can't be negative.",
+                "chunks/0_0.toml: spawn.meadow.gate: a pad can't be tagged or start off; pads aren't toggled.",
+                "chunks/0_0.toml: teleporter.meadow.to_cave: a pad is a primitive.",
+            ],
+            Errors(zone));
+    }
+
+    [Fact]
+    public void TeleportersTargetAnotherTeleporterAndEffectsNameAPlacement()
+    {
+        var zone = Zones.Sample();
+        zone.Chunks[1].Teleporters[0].Target = "teleporter.meadow.to_cave";
+        zone.Chunks[1].Triggers[0].Effects = [new ToggleEffect { Tag = "bridge", RevertSeconds = -2 }];
+        zone.Chunks[1].Triggers[0].Volume.StandSeconds = 0;
+
+        Assert.Equal(
+            [
+                "chunks/0_0.toml: teleporter.meadow.to_cave: a teleporter can't target itself.",
+                "chunks/0_0.toml: trigger.meadow.plate: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.",
+                "chunks/0_0.toml: trigger.meadow.plate: no placement in the zone is tagged 'bridge'.",
+                "chunks/0_0.toml: trigger.meadow.plate: revert_seconds can't be negative.",
             ],
             Errors(zone));
     }
@@ -189,7 +230,7 @@ public class ZoneValidationTests
         Assert.Equal(
             [
                 "zone.toml: border: chunk 5_5 isn't one of the zone's chunks.",
-                "zone.toml: border: 'zone.meadow' isn't another zone's key.",
+                "zone.toml: border: 'zone.meadow' isn't another zone's id.",
                 "zone.toml: entrance cave: size must be above 0 on every axis.",
                 "zone.toml: transition_room hall: there's no entrance 'door'.",
             ],

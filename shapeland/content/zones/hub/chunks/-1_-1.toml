@@ -28,6 +28,8 @@ color = 0x2F5D3A
 
 [[placement]]
 primitive = "box"
+off = true
+tag = "bridge"
 position = [-14.87, 4.15, -35.77]
 rotation = [0.0, 23.66, 0.0]
 scale = [4.676, 2.0, 23.576]
@@ -35,31 +37,37 @@ color = 0x5A73A6
 
 [[placement]]
 primitive = "box"
-position = [-29.346, 3.68, -56.03]
+position = [-28.92, 2.72, -56.03]
 scale = [2.0, 2.0, 2.0]
 color = 0x8A8F99
 
 [[placement]]
 primitive = "box"
-position = [-33.38, 4.42, -56.383]
+position = [-32.39, 3.609, -56.03]
 scale = [2.0, 2.0, 2.0]
 color = 0x8A8F99
 
 [[placement]]
 primitive = "box"
-position = [-38.16, 5.17, -56.383]
+position = [-35.7, 4.42, -56.383]
 scale = [2.0, 2.0, 2.0]
 color = 0x8A8F99
 
 [[placement]]
 primitive = "box"
-position = [-42.2, 6.11, -56.383]
+position = [-39.21, 5.17, -56.383]
 scale = [2.0, 2.0, 2.0]
 color = 0x8A8F99
 
 [[placement]]
 primitive = "box"
-position = [-45.66, 7.08, -56.383]
+position = [-43.25, 6.11, -56.383]
+scale = [2.0, 2.0, 2.0]
+color = 0x8A8F99
+
+[[placement]]
+primitive = "box"
+position = [-46.71, 7.08, -56.383]
 scale = [2.0, 2.0, 2.0]
 color = 0x8A8F99
 
@@ -83,28 +91,40 @@ color = 0xC9B27C
 
 [[placement]]
 primitive = "box"
-position = [-22.97, 1.28, -15.39]
+position = [-23.15, 1.28, -15.48]
 color = 0x8A8F99
 
 [[placement]]
 primitive = "box"
-position = [-24.25, 2.33, -13.9]
+position = [-24.4, 2.33, -13.9]
 color = 0x8A8F99
 
-[[placement]]
-primitive = "box"
-position = [-25.13, 2.75, -12.32]
-color = 0x8A8F99
+[[spawn]]
+id = "spawn.hub.blue"
+volume = "cylinder"
+position = [-21.55, 4.4, -55.24]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
 
-[[placement]]
+[spawn.pad]
 primitive = "cylinder"
-name = "spawn.blue"
 position = [-21.55, 4.0, -55.24]
 scale = [4.0, 0.4, 4.0]
 
-[[spawn]]
-id = "spawn.blue"
-position = [-21.55, 4.4, -55.24]
-radius = 2.0
-facing = "direction"
-yaw = 0.0
+[[trigger]]
+id = "trigger.hub.bridge"
+volume = "box"
+position = [-13.05, 6.228, -20.98]
+size = [2.0, 2.0, 2.0]
+stand_seconds = 1.2
+rearm = "repeat"
+
+[trigger.pad]
+primitive = "box"
+position = [-13.05, 5.293, -20.98]
+scale = [2.0, 0.935, 2.0]
+color = 0x5A73A6
+
+[[trigger.effect]]
+toggle_tag = "bridge"

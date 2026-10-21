@@ -22,7 +22,9 @@ namespace Comet.Unity.Editor
     /// restarts when the content changes, and stops when the editor quits. Each person's <see cref="Options"/> can also
     /// serve the last web build, open it to the local network, and start bots (Comet › Server › Options…). It logs
     /// to <see cref="LogFile"/>. Which server it is (pids, start times, content) is kept in <c>Library/</c>, so the
-    /// editor finds it again after a script reload, or after a restart if it crashed.
+    /// editor finds it again after a script reload, or after a restart if it crashed. Builds run in the background
+    /// (Unity's progress bar, bottom right), so the editor and play mode carry on; play mode can't connect until the
+    /// server answers.
     /// </summary>
     [InitializeOnLoad]
     public static class LocalServer
@@ -37,6 +39,8 @@ namespace Comet.Unity.Editor
         private static readonly string WebKey = Prefix + "Web";
         private static readonly string LanKey = Prefix + "Lan";
         private static readonly string BotsKey = Prefix + "Bots";
+        // The progress item of a build under way, kept in the editor session so a script reload can pick it up.
+        private static readonly string BuildingKey = Prefix + "Building";
         private const string StateFile = "Library/CometLocalServer.json";
         private const double StartTimeout = 60;
 
@@ -53,6 +57,24 @@ namespace Comet.Unity.Editor
             if (Read() is { waiting: true } state && Alive(state.pid, state.startTicks))
             {
                 Wait();
+            }
+
+            // A build the scripts reloaded during (saving a script does) lost what was waiting for it: build again.
+            if (SessionState.GetInt(BuildingKey, 0) is var progress && progress != 0)
+            {
+                SessionState.EraseInt(BuildingKey);
+                if (Progress.Exists(progress))
+                {
+                    Progress.Remove(progress);
+                }
+
+                EditorApplication.delayCall += () =>
+                {
+                    if (Settings() is { } settings)
+                    {
+                        Start(settings, build: true);
+                    }
+                };
             }
         }
 
@@ -94,8 +116,16 @@ namespace Comet.Unity.Editor
         /// <summary>Whether the editor's own server is running.</summary>
         public static bool Running => Read() is { } state && Alive(state.pid, state.startTicks);
 
-        /// <summary>Whether it's still starting (built and launched, not yet answering).</summary>
-        public static bool Starting => Read() is { waiting: true } state && Alive(state.pid, state.startTicks);
+        /// <summary>Whether it's still starting: building, or launched and not yet answering.</summary>
+        public static bool Starting => _building != null || (Read() is { waiting: true } state && Alive(state.pid, state.startTicks));
+
+        /// <summary>Whether a start is building the server (or bots) in the background.</summary>
+        public static bool Building => _building != null;
+
+        // The server (and bots) being built in the background for a start, or null; and a count of stops, so a stop
+        // during the build cancels its launch.
+        private static Task<(Built Server, Built Bots)>? _building;
+        private static int _stops;
 
         /// <summary>The options the running server started with, or null if the editor's server isn't running.</summary>
         public static Options? RunningWith =>
@@ -143,7 +173,7 @@ namespace Comet.Unity.Editor
         }
 
         [MenuItem(Menu + "Start", validate = true)]
-        private static bool CanStart() => !Running && Settings() != null;
+        private static bool CanStart() => !Running && _building == null && Settings() != null;
 
         [MenuItem(Menu + "Stop", priority = 41)]
         private static void StopMenu() => Stop(quiet: false);
@@ -155,7 +185,7 @@ namespace Comet.Unity.Editor
         private static void RestartMenu() => Restart();
 
         [MenuItem(Menu + "Restart", validate = true)]
-        private static bool CanRestart() => Running;
+        private static bool CanRestart() => Running && _building == null;
 
         [MenuItem(Menu + "Show Log", priority = 43)]
         public static void ShowLog() => EditorUtility.OpenWithDefaultApp(ContentBuild.ProjectPath(LogFile));
@@ -278,13 +308,12 @@ namespace Comet.Unity.Editor
         /// </summary>
         public static bool Start(CometSettings settings, bool build, bool? answers = null)
         {
-            if (string.IsNullOrEmpty(settings.serverProject) || Running || (answers ?? Answers(settings)))
+            if (string.IsNullOrEmpty(settings.serverProject) || Running || _building != null || (answers ?? Answers(settings)))
             {
                 return false;
             }
 
-            var content = ContentHashNow();
-            if (content == null)
+            if (ContentHashNow() == null)
             {
                 Debug.LogError("There's no built content for the local game server yet: build it first (Comet › Content › Build).");
                 return false;
@@ -293,24 +322,75 @@ namespace Comet.Unity.Editor
             var options = Chosen;
             var last = Read();
             var program = last?.program ?? "";
-            if (build || program.Length == 0 || !File.Exists(program))
+            var bots = last?.botsProgram ?? "";
+            var buildServer = build || program.Length == 0 || !File.Exists(program);
+            var buildBots = options.Bots > 0 && !string.IsNullOrEmpty(settings.botsProject) && (build || bots.Length == 0 || !File.Exists(bots));
+            if (!buildServer && !buildBots)
             {
-                program = Build(settings.serverProject, "game server") ?? "";
-                if (program.Length == 0)
-                {
-                    return false;
-                }
+                return Launch(settings, options, program, bots);
             }
 
-            var bots = "";
-            if (options.Bots > 0)
+            // Built off the main thread, so the editor (and play mode) carry on meanwhile.
+            var dotnet = ContentBuild.Dotnet();
+            var root = ContentBuild.ProjectRoot;
+            var serverProject = ContentBuild.ProjectPath(settings.serverProject);
+            var botsProject = buildBots ? ContentBuild.ProjectPath(settings.botsProject) : "";
+            var progress = Progress.Start("Local game server", buildBots ? "Building the game server and bots" : "Building the game server");
+            var building = Task.Run(() => (
+                buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
+                buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null)));
+            _building = building;
+            SessionState.SetInt(BuildingKey, progress);
+            var stops = _stops;
+            void Poll()
             {
-                bots = last?.botsProgram ?? "";
-                if ((build || bots.Length == 0 || !File.Exists(bots)) && (string.IsNullOrEmpty(settings.botsProject) || (bots = Build(settings.botsProject, "bots") ?? "").Length == 0))
+                if (!building.IsCompleted)
                 {
-                    Debug.LogWarning(string.IsNullOrEmpty(settings.botsProject) ? "The Comet settings name no bots project, so no bots start." : "Starting the server without bots.");
-                    options.Bots = 0;
+                    return;
                 }
+
+                EditorApplication.update -= Poll;
+                _building = null;
+                SessionState.EraseInt(BuildingKey);
+                Progress.Remove(progress);
+                var (server, botsBuilt) = building.Result;
+                if (server.Error != null)
+                {
+                    Debug.LogError($"Couldn't build the game server ({serverProject}):\n{server.Error}");
+                    return;
+                }
+
+                if (botsBuilt.Error != null)
+                {
+                    Debug.LogWarning($"Couldn't build the bots ({botsProject}), so the server starts without them:\n{botsBuilt.Error}");
+                }
+
+                if (stops != _stops || Running || Answers(settings))
+                {
+                    return; // stopped, or started elsewhere, meanwhile
+                }
+
+                Launch(settings, options, server.Program!, botsBuilt.Error == null ? botsBuilt.Program ?? "" : "");
+            }
+
+            EditorApplication.update += Poll;
+            return true;
+        }
+
+        // Starts the built server with options, then waits for it to answer in the background; false (with the reason
+        // in the Console) if it couldn't start.
+        private static bool Launch(CometSettings settings, Options options, string program, string bots)
+        {
+            var content = ContentHashNow();
+            if (content == null)
+            {
+                return false;
+            }
+
+            if (options.Bots > 0 && (bots.Length == 0 || !File.Exists(bots)))
+            {
+                Debug.LogWarning(string.IsNullOrEmpty(settings.botsProject) ? "The Comet settings name no bots project, so no bots start." : "Starting the server without bots.");
+                options.Bots = 0;
             }
 
             var arguments = $"\"{program}\" --urls http://{(options.Lan ? "0.0.0.0" : "localhost")}:{settings.serverPort} \"--Comet:LogFile={ContentBuild.ProjectPath(LogFile)}\"";
@@ -373,6 +453,7 @@ namespace Comet.Unity.Editor
         /// <summary>Stops the editor's own server and its bots, if it's running; never a server started elsewhere.</summary>
         public static void Stop(bool quiet)
         {
+            _stops++;
             if (Read() is not { } state)
             {
                 return;
@@ -412,19 +493,31 @@ namespace Comet.Unity.Editor
             File.Copy(source, target, overwrite: true);
         }
 
-        // Builds a project, returning the program built, or null (with the build's output in the Console).
-        private static string? Build(string relativeProject, string what)
+        // A build's program, or why there's none.
+        private readonly struct Built
         {
-            var project = ContentBuild.ProjectPath(relativeProject);
-            var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath")
+            public Built(string? program, string? error)
             {
-                WorkingDirectory = ContentBuild.ProjectRoot,
+                Program = program;
+                Error = error;
+            }
+
+            public string? Program { get; }
+
+            public string? Error { get; }
+        }
+
+        // Builds a project with dotnet (run off the main thread: no Unity calls), returning the program built or the build's output.
+        private static Built Build(string dotnet, string root, string project)
+        {
+            var start = new ProcessStartInfo(dotnet, $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath")
+            {
+                WorkingDirectory = root,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
-            EditorUtility.DisplayProgressBar("Local game server", $"Building the {what}…", 0.5f);
             try
             {
                 using var process = Process.Start(start)!;
@@ -432,22 +525,13 @@ namespace Comet.Unity.Editor
                 var output = process.StandardOutput.ReadToEnd();
                 process.WaitForExit();
                 var program = output.Split('\n').Select(line => line.Trim()).LastOrDefault(line => line.Length > 0);
-                if (process.ExitCode != 0 || program == null || !File.Exists(program))
-                {
-                    Debug.LogError($"Couldn't build the {what} ({project}):\n{output}{error.Result}");
-                    return null;
-                }
-
-                return program;
+                return process.ExitCode != 0 || program == null || !File.Exists(program)
+                    ? new Built(null, output + error.Result)
+                    : new Built(program, null);
             }
             catch (Exception e)
             {
-                Debug.LogError($"Couldn't run dotnet to build the {what}: {e.Message}. Is the .NET SDK installed?");
-                return null;
-            }
-            finally
-            {
-                EditorUtility.ClearProgressBar();
+                return new Built(null, $"Couldn't run dotnet: {e.Message}. Is the .NET SDK installed?");
             }
         }
 

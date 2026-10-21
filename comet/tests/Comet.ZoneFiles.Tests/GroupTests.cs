@@ -159,7 +159,7 @@ public class GroupTests
     public void GroupChecksCatchBadPartsAndCycles()
     {
         var a = new Group { Id = "group.a", Parts = [new Placement { Group = "group.b" }, Box(Vector3.Zero, Vector3.One)] };
-        a.Parts[1].Name = "door";
+        a.Parts[1].Tag = "door";
         var b = new Group { Id = "group.b", Parts = [new Placement { Group = "group.a", Scale = new Vector3(1, 2, 1) }, new Placement { Prop = "prop.missing" }] };
         var empty = new Group { Id = "group.empty" };
         var bad = new Group { Id = "group.bad", Parts = [new Placement { Group = "group.nowhere" }, Box(Vector3.Zero, Vector3.One)] };
@@ -167,13 +167,23 @@ public class GroupTests
 
         var errors = ZoneValidation.CheckGroups([(a, "a.toml"), (b, "b.toml"), (empty, "empty.toml"), (bad, "bad.toml")], _ => null).Select(e => e.ToString()).ToList();
 
-        Assert.Contains(errors, e => e.Contains("a.toml") && e.Contains("a group's parts have no name"));
+        Assert.Contains(errors, e => e.Contains("a.toml") && e.Contains("a group's parts have no tag"));
         Assert.Contains(errors, e => e.Contains("b.toml") && e.Contains("a group scales evenly"));
         Assert.Contains(errors, e => e.Contains("b.toml") && e.Contains("there's no prop 'prop.missing'"));
         Assert.Contains(errors, e => e.Contains("empty.toml") && e.Contains("at least one part"));
         Assert.Contains(errors, e => e.Contains("bad.toml") && e.Contains("there's no group 'group.nowhere'"));
         Assert.Contains(errors, e => e.Contains("bad.toml") && e.Contains("isn't a valid role"));
         Assert.Single(errors, e => e.Contains("contains itself"));
+    }
+
+    [Fact]
+    public void ANamedCopyNamesItsPartsAndStartsThemOff()
+    {
+        var tree = Tree();
+        var parts = Groups.Expand(new Placement { Group = tree.Id, Tag = "gate", Off = true }, key => key == tree.Id ? tree : null);
+
+        Assert.All(parts, p => Assert.Equal(("gate", true), (p.Tag, p.Off)));
+        Assert.All(Groups.Expand(new Placement { Group = tree.Id }, key => key == tree.Id ? tree : null), p => Assert.Equal((null, false), (p.Tag, p.Off)));
     }
 
     [Fact]
@@ -184,7 +194,7 @@ public class GroupTests
         var at = zone.Chunks[0].Placements[0].Position;
         zone.Chunks[0].Placements =
         [
-            new Placement { Group = "group.tree", Position = at, Scale = new Vector3(1, 2, 1), Color = 0xFF0000, Name = "tree" },
+            new Placement { Group = "group.tree", Position = at, Scale = new Vector3(1, 2, 1), Color = 0xFF0000, Tag = "tree" },
             new Placement { Group = "group.nowhere", Position = at },
             Box(at, Vector3.One),
         ];
@@ -194,7 +204,7 @@ public class GroupTests
 
         Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("scales evenly"));
         Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("no color of their own"));
-        Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("copies have no name"));
+        Assert.DoesNotContain(errors, e => e.Contains("group.tree") && e.Contains("tag"));
         Assert.Contains(errors, e => e.Contains("there's no group 'group.nowhere'"));
         Assert.Contains(errors, e => e.Contains("only a group's parts have a role"));
     }

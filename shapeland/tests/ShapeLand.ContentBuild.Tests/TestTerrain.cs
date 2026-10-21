@@ -15,7 +15,7 @@ public static class TestTerrain
     public const float Offset = -64f; // heights from -64 m to 192 m
     public const float Radius = 28f; // the disc's edge, in meters from the chunk's center
 
-    /// <summary>The test zone's key.</summary>
+    /// <summary>The test zone's id.</summary>
     public const string ZoneId = "zone.test";
 
     /// <summary>The island: one piece, cut into the four chunks around the origin, with blocks and two spawn points, the default at the center.</summary>
@@ -78,20 +78,25 @@ public static class TestTerrain
             }];
         }
 
-        // Spawn points, each with its marker: a flat cylinder primitive (its pivot at its base) named with its key, sunk halfway into the ground, with the spawn point on its top.
-        foreach (var (id, x, z, isDefault) in new[] { ("spawn.test_center", 0f, 0f, true), ("spawn.test_east", 18f, 8f, false) })
+        // Spawn points, each with its pad: a flat cylinder primitive (its pivot at its base) sunk halfway into the ground, with the spawn's volume on its top.
+        foreach (var (name, x, z) in new[] { ("center", 0f, 0f), ("east", 18f, 8f) })
         {
-            const float radius = 2, markerHeight = 0.4f;
+            const float radius = 2, padHeight = 0.4f;
             island.TryGetHeightAt(x, z, out var ground);
             ground = MathF.Round(ground, 3);
             var chunk = zone.Chunks.Single(c => c.Coord.Equals(ChunkCoord.Containing(new Vector3(x, 0, z))));
-            chunk.Spawns = [.. chunk.Spawns, new SpawnPoint { Id = id, Position = new Vector3(x, ground + markerHeight / 2, z), Radius = radius, Facing = SpawnFacing.Random, IsDefault = isDefault }];
-            chunk.Placements = [.. chunk.Placements, new Placement
+            chunk.Spawns = [.. chunk.Spawns, new SpawnPoint
             {
-                Primitive = new Primitive { Kind = PrimitiveKind.Cylinder },
-                Name = id,
-                Position = new Vector3(x, ground - markerHeight / 2, z),
-                Scale = new Vector3(2 * radius, markerHeight, 2 * radius),
+                Id = $"spawn.{zone.Id[5..]}.{name}",
+                Volume = new TriggerVolume
+                {
+                    Kind = PrimitiveKind.Cylinder,
+                    Position = new Vector3(x, ground + padHeight / 2, z),
+                    Size = new Vector3(2 * radius, 2, 2 * radius),
+                    StandSeconds = 2,
+                    Pad = new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Cylinder }, Position = new Vector3(x, ground - padHeight / 2, z), Scale = new Vector3(2 * radius, padHeight, 2 * radius) },
+                },
+                Facing = SpawnFacing.Random,
             }];
         }
 

@@ -1,7 +1,6 @@
 using Comet.Content;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Comet.Unity.Editor
 {
@@ -31,7 +30,7 @@ namespace Comet.Unity.Editor
         [Tooltip("The scene play mode always starts in, whatever scene is open: the game's own, which loads its zones from content.")]
         public SceneAsset? playScene;
 
-        [Tooltip("The models for prop keys.")]
+        [Tooltip("The models for prop ids.")]
         public PropLibrary? props;
 
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
@@ -47,7 +46,6 @@ namespace Comet.Unity.Editor
         public Color groundColor = new Color32(0x73, 0x9e, 0x4d, 0xff);
 
         [Tooltip("The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own.")]
-        [FormerlySerializedAs("skirtColor")]
         public Color underColor = new Color32(0x7a, 0x5c, 0x3e, 0xff);
 
         [Tooltip("The color of placed objects whose prop has none, unless they have their own.")]
@@ -56,14 +54,48 @@ namespace Comet.Unity.Editor
         [Tooltip("The game's body height, in meters: the terrain tools warn where two pieces' ground is closer than this.")]
         public float bodyHeight = 1;
 
-        [Tooltip("If set, each new spawn point gets a marker: this prop (prop.rock) or primitive (cylinder), placed flattened under it and named with its key.")]
-        public string spawnMarker = "";
+        [Header("New spawn points, teleporters and triggers")]
+        [Tooltip("If set, each new spawn point gets a pad: this primitive (cylinder), flattened and sunk halfway into the ground under it.")]
+        public string spawnPad = "";
 
-        [Tooltip("How tall a new spawn point's marker is, in meters, sunk halfway into the ground; it can be moved and scaled after.")]
-        public float spawnMarkerHeight = 0.4f;
+        [Tooltip("A new spawn point's pad size, in meters; it can be moved and scaled after (Fit Trigger to Pad fits the volume again).")]
+        public Vector3 spawnPadSize = new Vector3(4, 0.4f, 4);
 
-        [Tooltip("The color spawn markers are drawn in, as the game draws a marker that isn't the player's.")]
-        public Color spawnMarkerColor = Color.white;
+        [Tooltip("The color spawn pads are drawn in, as the game draws a pad that isn't the player's spawn.")]
+        public Color spawnPadColor = Color.white;
+
+        [Tooltip("How long a player stands in a new spawn point to claim it, in seconds.")]
+        public float spawnStandSeconds = 2;
+
+        [Tooltip("How tall a new spawn point's volume is, in meters, above its pad.")]
+        public float spawnVolumeHeight = 2;
+
+        [Tooltip("If set, each new teleporter gets a pad: this primitive (box), flattened and sunk halfway into the ground under it.")]
+        public string teleporterPad = "";
+
+        [Tooltip("A new teleporter's pad size, in meters.")]
+        public Vector3 teleporterPadSize = new Vector3(2, 0.4f, 2);
+
+        [Tooltip("A new teleporter pad's color.")]
+        public Color teleporterPadColor = Color.white;
+
+        [Tooltip("The color a new teleporter's pad turns toward while a player stands in it.")]
+        public Color teleporterChargeColor = Color.white;
+
+        [Tooltip("How long a player stands in a new teleporter before it sends them, in seconds.")]
+        public float teleporterStandSeconds = 1;
+
+        [Tooltip("How tall a new teleporter's volume is, in meters, above its pad.")]
+        public float teleporterVolumeHeight = 2;
+
+        [Tooltip("How long a player stands in a new trigger before it fires, in seconds (0 at once). New triggers have no pad.")]
+        public float triggerStandSeconds;
+
+        [Tooltip("The color a new trigger's pad turns toward while a player stands in it.")]
+        public Color triggerChargeColor = Color.white;
+
+        [Tooltip("How tall a new trigger's volume is, in meters.")]
+        public float triggerVolumeHeight = 2;
 
         [Tooltip("The colors the place tool offers to place things in, beside its color picker.")]
         public System.Collections.Generic.List<Color> swatches = new System.Collections.Generic.List<Color>

@@ -5,4 +5,4 @@ hover = 0.0 # how far the look floats above the feet, in meters
 max_speed = 7.5
 jump_velocity = 8.0
 scale = 1.0
-spawn = "spawn.diamond" # where players of this shape start
+spawn = "spawn.hub.diamond" # where players of this shape start

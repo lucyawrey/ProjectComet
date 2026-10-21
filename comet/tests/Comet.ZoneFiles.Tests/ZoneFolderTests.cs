@@ -35,7 +35,15 @@ public class ZoneFolderTests
         Assert.Equal(0x66aa33u, tile.Colors![3, 5]);
         Assert.Null(tile.Underside);
         var spawn = Assert.Single(zone.Chunks[1].Spawns);
-        Assert.Equal(("spawn.meadow_gate", 3f, SpawnFacing.Direction, 90f, true), (spawn.Id, spawn.Radius, spawn.Facing, spawn.Yaw, spawn.IsDefault));
+        Assert.Equal(("spawn.meadow.gate", SpawnFacing.Direction), (spawn.Id, spawn.Facing));
+        Assert.Equal((PrimitiveKind.Cylinder, new Vector3(5, 4, 5), 90f, new Vector3(6, 2, 6), 2f, Rearm.StepOff), (spawn.Volume.Kind, spawn.Volume.Position, spawn.Volume.Yaw, spawn.Volume.Size, spawn.Volume.StandSeconds, spawn.Volume.Rearm));
+        Assert.Equal((PrimitiveKind.Cylinder, new Vector3(6, 0.4f, 6)), (spawn.Volume.Pad!.Primitive!.Kind, spawn.Volume.Pad.Scale));
+        var teleporter = Assert.Single(zone.Chunks[1].Teleporters);
+        Assert.Equal(("teleporter.meadow.to_cave", SpawnFacing.Random, "teleporter.cave.to_meadow", 1f, null), (teleporter.Id, teleporter.Facing, teleporter.Target, teleporter.Volume.StandSeconds, teleporter.Volume.Pad));
+        Assert.Equal(0xFFCC00u, teleporter.ChargeColor);
+        var trigger = Assert.Single(zone.Chunks[1].Triggers);
+        Assert.Equal(("trigger.meadow.plate", PrimitiveKind.Sphere, Rearm.Repeat, 0x33AAFFu), (trigger.Id, trigger.Volume.Kind, trigger.Volume.Rearm, trigger.ChargeColor));
+        Assert.Equal(("gate", 5f), (trigger.Effects[0].Tag, trigger.Effects[0].RevertSeconds));
         Assert.Equal((VolumeKind.Wall, new Vector3(1, 4, 6)), (zone.Chunks[1].Volumes[0].Kind, zone.Chunks[1].Volumes[0].Size));
     }
 
@@ -53,6 +61,7 @@ public class ZoneFolderTests
 
             [[placement]]
             prop = "prop.cube"
+            tag = "gate"
             position = [-10.5, 4.0, 3.25]
             rotation = [0.0, 45.0, 0.0]
             scale = [2.0, 1.0, 2.0]
@@ -62,6 +71,69 @@ public class ZoneFolderTests
         Assert.True(File.Exists(folder.PathOf("chunks/-1_0/main.height")));
         Assert.True(File.Exists(folder.PathOf("chunks/0_0/main.color")));
         Assert.False(File.Exists(folder.PathOf("chunks/0_0/main.under.height")));
+    }
+
+    [Fact]
+    public void WritesReadableTriggers()
+    {
+        using var folder = new TempFolder();
+        ZoneFolder.Write(folder.Root, Zones.Sample());
+
+        var text = File.ReadAllText(folder.PathOf("chunks/0_0.toml")).ReplaceLineEndings("\n");
+        Assert.Contains(
+            """
+            [[spawn]]
+            id = "spawn.meadow.gate"
+            volume = "cylinder"
+            position = [5.0, 4.0, 5.0]
+            yaw = 90.0
+            size = [6.0, 2.0, 6.0]
+            stand_seconds = 2.0
+            facing = "direction"
+
+            [spawn.pad]
+            primitive = "cylinder"
+            position = [5.0, 3.8, 5.0]
+            scale = [6.0, 0.4, 6.0]
+
+            [[teleporter]]
+            id = "teleporter.meadow.to_cave"
+            volume = "box"
+            position = [12.0, 4.0, 5.0]
+            size = [2.0, 2.0, 2.0]
+            stand_seconds = 1.0
+            facing = "random"
+            target = "teleporter.cave.to_meadow"
+            charge_color = 0xFFCC00
+
+            [[trigger]]
+            id = "trigger.meadow.plate"
+            volume = "sphere"
+            position = [14.0, 4.0, 9.0]
+            size = [2.0, 2.0, 2.0]
+            stand_seconds = 1.0
+            rearm = "repeat"
+            charge_color = 0x33AAFF
+
+            [[trigger.effect]]
+            toggle_tag = "gate"
+            revert_seconds = 5.0
+            """,
+            text);
+    }
+
+    [Fact]
+    public void PlacementsCanStartOff()
+    {
+        using var folder = new TempFolder();
+        var zone = Zones.Sample();
+        zone.Chunks[0].Placements[0].Off = true;
+
+        var read = RoundTrip(zone, folder, out var errors);
+
+        Assert.Empty(errors);
+        Assert.True(read.Chunks[0].Placements[0].Off);
+        Assert.Contains("off = true", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
     }
 
     [Fact]
@@ -151,17 +223,17 @@ public class ZoneFolderTests
     }
 
     [Fact]
-    public void PlacementsKeepTheirNames()
+    public void PlacementsKeepTheirTags()
     {
         using var folder = new TempFolder();
         var zone = Zones.Sample();
-        zone.Chunks[0].Placements[0].Name = "spawn.meadow_gate";
+        zone.Chunks[0].Placements[0].Tag = "east.gate";
 
         var placement = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
 
         Assert.Empty(errors);
-        Assert.Equal("spawn.meadow_gate", placement.Name);
-        Assert.Contains("name = \"spawn.meadow_gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
+        Assert.Equal("east.gate", placement.Tag);
+        Assert.Contains("tag = \"east.gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
     }
 
     [Fact]
@@ -191,7 +263,7 @@ public class ZoneFolderTests
         }
 
         var zone = Zones.Sample();
-        zone.Chunks[1].Spawns[0].Radius = 4;
+        zone.Chunks[1].Spawns[0].Volume.Size = new Vector3(4, 2, 4);
         ZoneFolder.Write(folder.Root, zone);
 
         Assert.NotEqual(untouched, File.GetLastWriteTimeUtc(folder.PathOf("chunks/0_0.toml")));
@@ -235,9 +307,11 @@ public class ZoneFolderTests
             positon = [1, 2, 3]
 
             [[spawn]]
-            id = "spawn.gate"
+            id = "spawn.meadow.gate"
+            volume = "cylinder"
             position = [1, 2]
-            radius = "far"
+            size = [2, 2, 2]
+            radius = 3.0
             facing = "sideways"
             """);
         folder.Write("chunks/0_0/old.height", "");
@@ -251,8 +325,8 @@ public class ZoneFolderTests
                 "chunks/zero.toml: Chunk files are named by their grid position, x_z (such as 0_-1.toml).",
                 "chunks/0_0.toml: placement[0].positon: unknown key.",
                 "chunks/0_0.toml: placement[0].position: is missing.",
+                "chunks/0_0.toml: spawn[0].radius: unknown key.",
                 "chunks/0_0.toml: spawn[0].position: should be 3 numbers.",
-                "chunks/0_0.toml: spawn[0].radius: should be a number.",
                 "chunks/0_0.toml: spawn[0].facing: should be one of: direction, toward_point, random.",
                 "chunks/0_0/old.height: No tile in chunks/0_0.toml uses this file.",
             ],

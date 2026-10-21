@@ -53,6 +53,12 @@ namespace ShapeLand.Client
         /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen).</summary>
         public void Showcase(Vector3 center) => _showcaseCenter = center;
 
+        /// <summary>The world the camera keeps out of, when the followed player goes to another zone.</summary>
+        public CollisionWorld World
+        {
+            set => _world = value;
+        }
+
         /// <summary>Stops following and goes back to the showcase orbit (after the connection is lost).</summary>
         public void Release() => Target = null;
 

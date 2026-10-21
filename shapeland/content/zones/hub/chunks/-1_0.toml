@@ -25,15 +25,31 @@ prop = "prop.strange_shape"
 position = [-13.385, 5.87, 14.62]
 color = 0x9E8C7A
 
-[[placement]]
+[[spawn]]
+id = "spawn.hub.diamond"
+volume = "cylinder"
+position = [-47.603, 1.602, 2.426]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
 primitive = "cylinder"
-name = "spawn.diamond"
 position = [-47.603, 1.202, 2.426]
 scale = [4.0, 0.4, 4.0]
 
-[[spawn]]
-id = "spawn.diamond"
-position = [-47.603, 1.602, 2.426]
-radius = 2.0
+[[teleporter]]
+id = "teleporter.hub.cube"
+volume = "box"
+position = [-2.91, 8.931, 43.32]
+size = [2.0, 1.0, 2.0]
+stand_seconds = 1.0
 facing = "direction"
-yaw = 0.0
+target = "teleporter.hub.theatre"
+charge_color = 0xFFFFFF
+
+[teleporter.pad]
+primitive = "box"
+position = [-2.91, 8.531, 43.32]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB

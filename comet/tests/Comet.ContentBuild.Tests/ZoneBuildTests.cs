@@ -7,6 +7,7 @@ namespace Comet.ContentBuild.Tests;
 
 public class ZoneBuildTests
 {
+    // A zone with spawn points named by spawns (spawn.<zone>.<name>).
     private static Zone Zone(string id, params string[] spawns) => new()
     {
         Id = id,
@@ -15,10 +16,17 @@ public class ZoneBuildTests
             new ZoneChunk
             {
                 Coord = new ChunkCoord(0, 0),
-                Spawns = spawns.Select((s, i) => new SpawnPoint { Id = s, Position = new Vector3(i, 0, 1), Radius = 2, IsDefault = i == 0 }).ToArray(),
+                Spawns = spawns.Select((s, i) => new SpawnPoint
+                {
+                    Id = $"spawn.{id[5..]}.{s}",
+                    Volume = new TriggerVolume { Kind = PrimitiveKind.Cylinder, Position = new Vector3(i, 0, 1), Size = new Vector3(4, 2, 4) },
+                }).ToArray(),
             },
         ],
     };
+
+    private static Teleporter Teleporter(string id, string target, float x) =>
+        new() { Id = id, Target = target, Volume = new TriggerVolume { Position = new Vector3(x, 0, 4), Size = new Vector3(2, 2, 2) } };
 
     private static ContentBuildResult Build(ContentFolder folder) =>
         new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddProps(Path.Combine(folder.Root, "models")).AddGroups().AddZones().Build();
@@ -39,42 +47,63 @@ public class ZoneBuildTests
     public void ZonesAndSpawnsGetRegistryNumbers()
     {
         using var folder = new ContentFolder();
-        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), Zone("zone.meadow", "spawn.gate", "spawn.well"));
-        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "cave"), Zone("zone.cave"));
+        var meadow = Zone("zone.meadow", "gate", "well");
+        meadow.Chunks[0].Teleporters = [Teleporter("teleporter.meadow.to_cave", "teleporter.cave.to_meadow", 8)];
+        meadow.Chunks[0].Triggers = [new Trigger { Id = "trigger.meadow.plate", Volume = new TriggerVolume { Position = new Vector3(12, 0, 4), Size = Vector3.One } }];
+        var cave = Zone("zone.cave");
+        cave.Chunks[0].Teleporters = [Teleporter("teleporter.cave.to_meadow", "teleporter.meadow.to_cave", 8)];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), meadow);
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "cave"), cave);
 
         var result = Build(folder);
 
         Assert.Empty(result.Errors);
         Assert.Equal([("zone.cave", 1), ("zone.meadow", 2)], result.Zones.Select(z => (z.Id, z.Number)));
         Assert.Equal([1, 2], result.Zones[1].Chunks[0].Spawns.Select(s => s.Number));
-        Assert.Contains("[spawn]\ngate = 1\nwell = 2\n", File.ReadAllText(folder.Registry).ReplaceLineEndings("\n"));
+        Assert.Equal([1, 2], result.Zones.Select(z => z.Chunks[0].Teleporters[0].Number));
+        Assert.Equal(1, result.Zones[1].Chunks[0].Triggers[0].Number);
+        var registry = File.ReadAllText(folder.Registry).ReplaceLineEndings("\n");
+        Assert.Contains("[spawn]\n\"meadow.gate\" = 1\n\"meadow.well\" = 2\n", registry);
+        Assert.Contains("[teleporter]\n\"cave.to_meadow\" = 1\n\"meadow.to_cave\" = 2\n", registry);
+
+        // The quoted names read back: a second build keeps the numbers.
+        Assert.Empty(Build(folder).Errors);
+        Assert.Equal(registry, File.ReadAllText(folder.Registry).ReplaceLineEndings("\n"));
     }
 
     [Fact]
     public void ZoneErrorsNameTheFile()
     {
         using var folder = new ContentFolder();
-        var zone = Zone("zone.meadow", "spawn.gate");
-        zone.Chunks[0].Spawns[0].Position = new Vector3(-1, 0, 0);
+        var zone = Zone("zone.meadow", "gate");
+        zone.Chunks[0].Spawns[0].Volume.Position = new Vector3(-1, 0, 0);
         ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), zone);
 
         var error = Assert.Single(Build(folder).Errors);
 
         Assert.Equal(Path.Combine(folder.Root, "zones", "meadow", "chunks/0_0.toml"), error.File);
-        Assert.StartsWith("spawn spawn.gate at [-1, 0, 0] is in chunk -1_0", error.Message);
+        Assert.StartsWith("spawn.meadow.gate at [-1, 0, 0] is in chunk -1_0", error.Message);
     }
 
     [Fact]
-    public void ZoneAndSpawnKeysAreUniqueAcrossZones()
+    public void ZoneKeysAreUnique()
     {
         using var folder = new ContentFolder();
-        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "a"), Zone("zone.meadow", "spawn.gate"));
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "a"), Zone("zone.meadow", "gate"));
         ZoneFolder.Write(Path.Combine(folder.Root, "zones", "b"), Zone("zone.meadow"));
-        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "c"), Zone("zone.cave", "spawn.gate"));
 
-        Assert.Equal(
-            ["'zone.meadow' is already used by", "spawn 'spawn.gate' is already used by zone.meadow."],
-            Build(folder).Errors.Select(e => e.Message.StartsWith("'zone", StringComparison.Ordinal) ? e.Message[..32] : e.Message));
+        Assert.StartsWith("'zone.meadow' is already used by", Assert.Single(Build(folder).Errors).Message);
+    }
+
+    [Fact]
+    public void TeleportersTargetATeleporterInAnyZone()
+    {
+        using var folder = new ContentFolder();
+        var meadow = Zone("zone.meadow");
+        meadow.Chunks[0].Teleporters = [Teleporter("teleporter.meadow.to_cave", "teleporter.cave.to_meadow", 8)];
+        ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), meadow);
+
+        Assert.Equal("teleporter.meadow.to_cave: there's no teleporter 'teleporter.cave.to_meadow' to target.", Assert.Single(Build(folder).Errors).Message);
     }
 
     [Fact]

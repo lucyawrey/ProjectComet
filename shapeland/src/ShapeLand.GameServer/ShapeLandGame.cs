@@ -15,25 +15,63 @@ using ShapeLand.Shared.World;
 namespace ShapeLand.GameServer;
 
 /// <summary>
-/// ShapeLand's phase 0 game: players join with a name and shape, slide and jump in one zone, and chat in one shared
-/// channel. Everyone sees everyone (grid interest management comes with the full load test).
+/// ShapeLand's game: players join with a name and shape, slide and jump, and chat in one server-wide channel. The
+/// server plays every zone; each player is in one and sees everyone in it (grid interest management comes with the
+/// full load test). Spawn points are claimed and teleporters used per player; triggers flip placements for the whole
+/// zone.
 /// <para>
 /// Connections decode messages on their own receive flows and queue them; the tick thread handles the queue in
 /// order, so all game state belongs to the tick thread.
 /// </para>
 /// </summary>
-public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, ConnectionRegistry registry, ILogger<ShapeLandGame> logger) : IConnectionHandler
+public sealed class ShapeLandGame : IConnectionHandler
 {
-    private readonly CollisionWorld _world = ShapeLandWorld.Create(content, zone);
-    private readonly Spawns _spawns = new(zone);
+    private readonly ShapeLandContent content;
+    private readonly ConnectionRegistry registry;
+    private readonly ILogger<ShapeLandGame> logger;
+    private readonly Dictionary<int, ZoneState> _zones = [];
+    // Every spawn point and teleporter, with its zone, for going there from any zone.
+    private readonly Dictionary<int, (ZoneState Zone, SpawnPoint Spawn)> _spawns = [];
+    private readonly Dictionary<string, (ZoneState Zone, Teleporter Teleporter)> _teleporters = [];
+    // Where every new player starts instead of their shape's spawn (ShapeLand:StartSpawn), if set.
+    private readonly (ZoneState Zone, SpawnPoint Spawn)? _startSpawn;
     private readonly MovementTolerances _tolerances = new();
     private readonly ConcurrentQueue<Input> _inbox = new();
     private readonly Dictionary<Connection, Player> _players = [];
     private readonly Random _random = new();
 
-    public ShapeLandContent Content => content;
+    /// <summary>The game of <paramref name="content"/>'s zones; an unknown <paramref name="startSpawn"/> (a spawn point's key, or empty for none) stops it, listing the spawn points.</summary>
+    public ShapeLandGame(ShapeLandContent content, string startSpawn, ConnectionRegistry registry, ILogger<ShapeLandGame> logger)
+    {
+        this.content = content;
+        this.registry = registry;
+        this.logger = logger;
+        foreach (var zone in content.Zones.All)
+        {
+            var state = new ZoneState(content, zone);
+            _zones.Add(zone.Number, state);
+            foreach (var spawn in state.Triggers.Spawns)
+            {
+                _spawns.Add(spawn.Number, (state, spawn));
+            }
 
-    public CollisionWorld World => _world;
+            foreach (var teleporter in state.Triggers.Teleporters)
+            {
+                _teleporters.Add(teleporter.Id, (state, teleporter));
+            }
+        }
+
+        if (!string.IsNullOrEmpty(startSpawn))
+        {
+            _startSpawn = _spawns.Values.FirstOrDefault(s => s.Spawn.Id == startSpawn);
+            if (_startSpawn?.Spawn is null)
+            {
+                throw new InvalidOperationException($"ShapeLand:StartSpawn: there's no spawn point '{startSpawn}'; spawn points: {string.Join(", ", _spawns.Values.Select(s => s.Spawn.Id).Order())}.");
+            }
+        }
+    }
+
+    public ShapeLandContent Content => content;
 
     // Receive flows.
 
@@ -90,17 +128,31 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
 
         // The server knows gravity: players silent in the air fall, so going quiet mid-jump can't be used to hover. Connections that never join are
         // dropped, so they can't sit holding a place.
+        var seconds = (float)tick / ShapeLandRules.TickRate;
         foreach (var player in _players.Values)
         {
             if (player.Joined)
             {
                 Fall(player, tick);
-                Claim(player, tick);
+                KeepPassingThrough(player);
+                Claim(player, seconds);
+                Teleport(player, tick, seconds);
             }
             else if (tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate)
             {
                 player.Connection.Disconnect();
             }
+        }
+
+        foreach (var zone in _zones.Values)
+        {
+            zone.Tick(tick, seconds, (tag, flipped) =>
+            {
+                foreach (var player in zone.Players)
+                {
+                    player.Connection.SendEvent(ShapeLandMessageIds.PlacementsFlipped, new PlacementsFlipped { Tag = tag, Flipped = flipped });
+                }
+            });
         }
 
         foreach (var mover in _players.Values)
@@ -112,9 +164,9 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
 
             mover.Moved = false;
             var state = mover.State();
-            foreach (var viewer in _players.Values)
+            foreach (var viewer in mover.Zone.Players)
             {
-                if (viewer.Joined && viewer != mover)
+                if (viewer != mover)
                 {
                     viewer.Connection.EntityStates.Set(mover.EntityId, state);
                 }
@@ -180,27 +232,23 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
             return;
         }
 
-        player.Validator = new MovementValidator(_world, content.Movement, _tolerances, ShapeLandRules.TickRate);
-        // Each shape's spawn is in the default zone (the content build checks it); in another zone, its default spawn.
-        var spawnPoint = _spawns.TryGet(shape.Spawn, out var own) ? own : _spawns.Default!;
+        // The shape's spawn (the content build checks it's in a zone), unless the server starts everyone at one.
+        var (zone, spawnPoint) = _startSpawn ?? _spawns.Values.First(s => s.Spawn.Id == shape.Spawn);
         player.SpawnPoint = spawnPoint;
-        var (feet, facing) = Spawns.Arrive(spawnPoint, _world, content.Movement, _random);
+        player.Zone = zone;
+        player.Validator = new MovementValidator(zone.World, content.Movement, _tolerances, ShapeLandRules.TickRate);
+        var (feet, facing) = Comet.Simulation.Triggers.Arrive(spawnPoint.Volume, spawnPoint.Facing, zone.World, content.Movement, _random);
         player.Validator.Reset(feet, facing, tick);
         player.PlacedByServer(tick); // the others learn of them from the spawn, not a state
 
         var connection = player.Connection;
-        var spawn = player.Spawn();
-        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate, Zone = zone.Number });
-        connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
+        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate, Zone = zone.Zone.Number });
+        connection.SendEvent(ShapeLandMessageIds.ZoneEntered, new ZoneEntered { Zone = zone.Zone.Number, Flipped = zone.Flipped.ToArray() });
+        connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, player.Spawn());
         connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = spawnPoint.Number });
-        foreach (var other in _players.Values)
-        {
-            if (other.Joined && other != player)
-            {
-                connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, other.Spawn());
-                other.Connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
-            }
-        }
+        // Standing on the spawn already: it isn't claimed again until they step out and in.
+        player.SpawnCharge.Arrived(spawnPoint, spawnPoint.Volume);
+        Arrive(player, zone);
 
         logger.LogInformation("{Name} joined as a {Shape} ({Players} online)", name, shape.DisplayName, _players.Values.Count(p => p.Joined));
 
@@ -214,14 +262,11 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
     {
         player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick));
         var spawn = player.Spawn();
-        foreach (var listener in _players.Values)
+        foreach (var listener in player.Zone.Players)
         {
-            if (listener.Joined)
-            {
-                // A state still queued would follow the spawn in the next frame (events go first).
-                listener.Connection.EntityStates.Remove(player.EntityId);
-                listener.Connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
-            }
+            // A state still queued would follow the spawn in the next frame (events go first).
+            listener.Connection.EntityStates.Remove(player.EntityId);
+            listener.Connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
         }
 
         logger.LogInformation("{OldName} is now {Name}, a {Shape}", oldName, player.Name, player.Shape.DisplayName);
@@ -288,13 +333,12 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
         }
     }
 
-    // To the player's spawn point, telling them, and everyone else seeing them reappear there.
+    // To the player's spawn point, telling them, and everyone else seeing them reappear there; it may be in another zone.
     private void ToSpawn(Player player, uint tick)
     {
-        var (feet, facing) = Spawns.Arrive(player.SpawnPoint, _world, content.Movement, _random);
-        player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Teleport(feet, facing, tick));
-        player.Claiming = null;
-        player.MovedByServer(tick);
+        var (zone, _) = _spawns[player.SpawnPoint.Number];
+        MoveTo(player, zone, player.SpawnPoint.Volume, player.SpawnPoint.Facing, CorrectionReason.Respawn, tick);
+        player.SpawnCharge.Arrived(player.SpawnPoint, player.SpawnPoint.Volume);
     }
 
     private void Return(Player player, uint tick)
@@ -305,31 +349,90 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
         }
     }
 
-    // Standing in another spawn point's radius for the claim time makes it the player's. Stepping out, or into
-    // another, starts over.
-    private void Claim(Player player, uint tick)
+    // Standing in another spawn point for its stand time makes it the player's. Stepping out, or into another,
+    // starts over.
+    private void Claim(Player player, float seconds)
     {
-        var standingIn = _spawns.StandingIn(player.Validator.Position, ShapeLandRules.SpawnClaimReach);
-        if (standingIn == null || standingIn == player.SpawnPoint)
+        var standingIn = player.Zone.Triggers.SpawnAt(player.Validator.Position);
+        if (!player.SpawnCharge.Step(standingIn, standingIn?.Volume, seconds) || standingIn == player.SpawnPoint)
         {
-            player.Claiming = null;
             return;
         }
 
-        if (player.Claiming is not { } claiming || claiming.Spawn != standingIn)
+        player.SpawnPoint = standingIn!;
+        player.Connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = standingIn!.Number, Claimed = true });
+        logger.LogInformation("{Name}'s spawn is now {Spawn}", player.Name, standingIn.Id);
+    }
+
+    // Standing in a teleporter for its stand time sends the player to its target, which doesn't send them on until
+    // they step out and in again.
+    private void Teleport(Player player, uint tick, float seconds)
+    {
+        var standingIn = player.Zone.Triggers.TeleporterAt(player.Validator.Position);
+        if (!player.TeleportCharge.Step(standingIn, standingIn?.Volume, seconds) || !_teleporters.TryGetValue(standingIn!.Target, out var target))
         {
-            player.Claiming = (standingIn, tick);
             return;
         }
 
-        if (tick - claiming.Since >= content.Settings.Spawns.ClaimSeconds * ShapeLandRules.TickRate)
+        MoveTo(player, target.Zone, target.Teleporter.Volume, target.Teleporter.Facing, CorrectionReason.Teleport, tick);
+        player.TeleportCharge.Arrived(target.Teleporter, target.Teleporter.Volume);
+        logger.LogInformation("{Name} took {Teleporter} to {Target}", player.Name, standingIn.Id, target.Teleporter.Id);
+    }
+
+    // Moves a player to arrive in a volume, in their zone or another. Into another zone: the player learns the zone,
+    // its old players see them leave, and they and its players see each other arrive.
+    private void MoveTo(Player player, ZoneState zone, TriggerVolume volume, SpawnFacing facing, CorrectionReason reason, uint tick)
+    {
+        var (feet, yaw) = Comet.Simulation.Triggers.Arrive(volume, facing, zone.World, content.Movement, _random);
+        if (zone == player.Zone)
         {
-            player.SpawnPoint = standingIn;
-            player.Claiming = null;
-            player.Connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = standingIn.Number });
-            logger.LogInformation("{Name}'s spawn is now {Spawn}", player.Name, standingIn.Id);
+            player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Teleport(feet, yaw, tick, reason));
+            player.MovedByServer(tick);
+            return;
+        }
+
+        LeaveZone(player);
+        player.Connection.SendEvent(ShapeLandMessageIds.ZoneEntered, new ZoneEntered { Zone = zone.Zone.Number, Flipped = zone.Flipped.ToArray() });
+        player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Teleport(feet, yaw, tick, reason, zone.World));
+        player.SpawnCharge.Clear();
+        player.TeleportCharge.Clear();
+        player.PlacedByServer(tick);
+        Arrive(player, zone);
+        logger.LogInformation("{Name} went to {Zone}", player.Name, zone.Zone.Id);
+    }
+
+    // Puts a placed player in a zone: they and the players already there see each other.
+    private void Arrive(Player player, ZoneState zone)
+    {
+        player.Zone = zone;
+        var spawn = player.Spawn();
+        foreach (var other in zone.Players)
+        {
+            player.Connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, other.Spawn());
+            other.Connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
+        }
+
+        zone.Players.Add(player);
+    }
+
+    // Takes a player out of their zone: everyone else there sees them go, and they stop seeing them.
+    private static void LeaveZone(Player player)
+    {
+        var zone = player.Zone;
+        zone.Players.Remove(player);
+        foreach (var other in zone.Players)
+        {
+            // A state still queued would follow the despawn in the next frame (events go first).
+            other.Connection.EntityStates.Remove(player.EntityId);
+            other.Connection.SendEvent(MessageIds.EntityDespawn, new EntityDespawn { EntityId = player.EntityId });
+            player.Connection.EntityStates.Remove(other.EntityId);
+            player.Connection.SendEvent(MessageIds.EntityDespawn, new EntityDespawn { EntityId = other.EntityId });
         }
     }
+
+    // A placement turned on around the player stops passing through once they're fully out of it.
+    private void KeepPassingThrough(Player player) =>
+        player.Validator.PassThrough.Prune(player.Zone.World, player.Validator.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
 
     private static bool IsPowerOfTen(int n)
     {
@@ -361,7 +464,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
         }
 
         // Not logged: ShapeLand's chat keeps nothing.
-        var message = new ChatMessage { EntityId = player.EntityId, Text = text };
+        var message = new ChatMessage { EntityId = player.EntityId, Text = text, Name = player.Name };
         foreach (var listener in _players.Values)
         {
             if (listener.Joined)
@@ -378,15 +481,7 @@ public sealed class ShapeLandGame(ShapeLandContent content, Zone zone, Connectio
             return;
         }
 
-        foreach (var other in _players.Values)
-        {
-            if (other.Joined)
-            {
-                // A state still queued would follow the despawn in the next frame (events go first).
-                other.Connection.EntityStates.Remove(player.EntityId);
-                other.Connection.SendEvent(MessageIds.EntityDespawn, new EntityDespawn { EntityId = player.EntityId });
-            }
-        }
+        LeaveZone(player);
 
         logger.LogInformation(
             "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server, {Clamped} of {Stamps} stamps clamped",

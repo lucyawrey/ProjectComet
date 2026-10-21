@@ -32,11 +32,11 @@ namespace Comet.Unity.Editor
             }
             else
             {
-                hidden.AddRange(new[] { nameof(ZonePlacement.prop), nameof(ZonePlacement.isPrimitive), nameof(ZonePlacement.placementName) });
+                hidden.AddRange(new[] { nameof(ZonePlacement.prop), nameof(ZonePlacement.isPrimitive) });
             }
 
             // Only a group's parts have a role: in a group's own scene, or under a copy edited in place.
-            if (targets.Cast<ZonePlacement>().Any(p => p.IsLoose && p.GetComponentInParent<ZoneEditing>() is not { IsGroup: true }))
+            if (targets.Cast<ZonePlacement>().Any(p => p.IsLoose && p.GetComponentInParent<ZoneEditing>(true) is not { IsGroup: true }))
             {
                 hidden.Add(nameof(ZonePlacement.role));
             }
@@ -65,7 +65,7 @@ namespace Comet.Unity.Editor
             }
 
             serializedObject.ApplyModifiedProperties();
-            if (targets.Length == 1 && placement.IsLoose && placement.GetComponentInParent<ZoneSpawn>() == null)
+            if (targets.Length == 1 && placement.IsLoose && placement.GetComponentInParent<ZoneTrigger>(true) == null)
             {
                 SwapButtons(placement);
             }
@@ -95,16 +95,16 @@ namespace Comet.Unity.Editor
 
             if (placed.isPrimitive)
             {
-                var keys = settings.props.Entries.Select(e => e.key).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
-                using (new EditorGUI.DisabledScope(keys.Count == 0))
+                var ids = settings.props.Entries.Select(e => e.id).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
+                using (new EditorGUI.DisabledScope(ids.Count == 0))
                 {
-                    var label = new GUIContent("Swap for prop…", keys.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands.");
+                    var label = new GUIContent("Swap for prop…", ids.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands.");
                     if (GUILayout.Button(label))
                     {
                         var menu = new GenericMenu();
-                        foreach (var key in keys)
+                        foreach (var id in ids)
                         {
-                            menu.AddItem(new GUIContent(key), false, () => ZoneSwap.ForProp(placed, key, settings));
+                            menu.AddItem(new GUIContent(id), false, () => ZoneSwap.ForProp(placed, id, settings));
                         }
 
                         menu.ShowAsContext();

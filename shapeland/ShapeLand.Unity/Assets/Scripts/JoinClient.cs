@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using Comet.Client;
 using Comet.Content;
@@ -17,9 +18,10 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// Joins ShapeLand: loads the content, connects to a game server, sends the join request and logs what the
-    /// server says (welcome, spawns, despawns, chat). The join screen calls <see cref="Join"/> and can try again
-    /// after a refusal or a failed connection; the rest of the game scene draws on top of it. Holds the zone being
-    /// played: the default one until a server's Welcome names another.
+    /// server says (welcome, zones, spawns, despawns, flips, chat). The join screen calls <see cref="Join"/> and can try
+    /// again after a refusal or a failed connection; the rest of the game scene draws on top of it. Holds the zone
+    /// being shown: before joining, the picked shape's start zone (<see cref="ShowZone"/>); once joined, the one the
+    /// server has put the player in.
     /// </summary>
     [RequireComponent(typeof(CometConnection))]
     public sealed class JoinClient : MonoBehaviour
@@ -33,7 +35,7 @@ namespace ShapeLand.Client
         private Uri _url;
         private JoinRequest? _pending;
         private bool _awaitingAnswer;
-        private int _previews; // questions to servers' /info so far; only the newest answer counts
+        private readonly HashSet<string> _flipped = new HashSet<string>();
         private double _askedAt;
         private double _connectedAt;
 
@@ -91,19 +93,31 @@ namespace ShapeLand.Client
         public event Action<ChatRejection> ChatRefused;
 
         /// <summary>
-        /// The server plays a zone other than the one drawn (its /info said so before joining, or its Welcome);
-        /// <see cref="Zone"/> and <see cref="World"/> are now its.
+        /// The zone shown changed (another shape picked before joining, or the server put the player in another
+        /// zone); <see cref="Zone"/> and <see cref="World"/> are now its, with nothing flipped yet.
         /// </summary>
         public event Action<Zone> ZoneChanged;
 
-        /// <summary>The zone being played, once the content has loaded: the default one until a server names another (<see cref="Preview"/>, then its Welcome).</summary>
+        /// <summary>
+        /// Triggers flipped the placements with a tag from how they start (true), or back (false); <see cref="World"/>
+        /// already has them so. Also raised for each flipped tag on entering a zone.
+        /// </summary>
+        public event Action<string, bool> PlacementsFlipped;
+
+        /// <summary>The zone shown, once the content has loaded.</summary>
         public Zone Zone { get; private set; }
 
-        /// <summary>The collision world of <see cref="Zone"/>.</summary>
+        /// <summary>The collision world of <see cref="Zone"/>, with the placements triggers have flipped.</summary>
         public CollisionWorld World { get; private set; }
 
-        /// <summary>The player's spawn point changed (on joining, and on claiming another), by content number.</summary>
-        public event Action<int> SpawnSet;
+        /// <summary>The names of <see cref="Zone"/>'s placements flipped from how they start.</summary>
+        public IReadOnlyCollection<string> Flipped => _flipped;
+
+        /// <summary>
+        /// The player's spawn point changed, by content number: on joining (false), and on claiming another by
+        /// standing in it (true).
+        /// </summary>
+        public event Action<int, bool> SpawnSet;
 
         /// <summary>The player's spawn point's content number, once the server has said.</summary>
         public int? SpawnNumber { get; private set; }
@@ -143,7 +157,7 @@ namespace ShapeLand.Client
                 _content = ShapeLandContent.Load(new MemoryStream(request.downloadHandler.data));
             }
 
-            Zone = ShapeLandWorld.DefaultZone(_content);
+            Zone = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]).Zone;
             World = ShapeLandWorld.Create(_content, Zone);
 
             ContentLoaded?.Invoke(_content);
@@ -221,21 +235,7 @@ namespace ShapeLand.Client
             _connectedAt = Time.realtimeSinceStartupAsDouble;
             var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
                 _content.Movement.Gravity, ShapeLandWorld.GroundHeight(_content, World));
-            session.WelcomeArrived += welcome =>
-            {
-                Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
-                if (_content.Zones.TryGet(welcome.Zone, out var zone))
-                {
-                    EnterZone(zone);
-                }
-                else
-                {
-                    Debug.LogWarning($"{LogPrefix}: the server plays zone {welcome.Zone}, which the content doesn't have.");
-                }
-
-                // Other players are dead-reckoned over this zone's ground, whichever zone the session started with.
-                session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(_content, World);
-            };
+            session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
             session.EntityDespawned += id =>
             {
@@ -383,9 +383,32 @@ namespace ShapeLand.Client
                     ChatReceived?.Invoke(chat);
                     break;
                 case ShapeLandMessageIds.SpawnSet:
-                    SpawnNumber = FrameReader.Decode<SpawnSet>(payload, options).Spawn;
-                    Log($"spawn point is now {SpawnNumber}");
-                    SpawnSet?.Invoke(SpawnNumber.Value);
+                    var set = FrameReader.Decode<SpawnSet>(payload, options);
+                    SpawnNumber = set.Spawn;
+                    Log($"spawn point is now {SpawnNumber}{(set.Claimed ? ", claimed" : "")}");
+                    SpawnSet?.Invoke(set.Spawn, set.Claimed);
+                    break;
+                case ShapeLandMessageIds.ZoneEntered:
+                    var entered = FrameReader.Decode<ZoneEntered>(payload, options);
+                    if (!_content.Zones.TryGet(entered.Zone, out var zone))
+                    {
+                        Debug.LogWarning($"{LogPrefix}: the server put the player in zone {entered.Zone}, which the content doesn't have.");
+                        break;
+                    }
+
+                    // Before the player's arrival there: the world is built here, in the same frame, so the
+                    // correction that follows lands in it and the player's movement never runs on the old zone.
+                    EnterZone(zone, rebuild: true);
+                    Session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(_content, World);
+                    foreach (var tag in entered.Flipped ?? Array.Empty<string>())
+                    {
+                        Flip(tag, true);
+                    }
+
+                    break;
+                case ShapeLandMessageIds.PlacementsFlipped:
+                    var flipped = FrameReader.Decode<PlacementsFlipped>(payload, options);
+                    Flip(flipped.Tag, flipped.Flipped);
                     break;
                 case ShapeLandMessageIds.ChatRejected:
                     var refusal = FrameReader.Decode<ChatRejected>(payload, options).Reason;
@@ -395,65 +418,45 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>
-        /// Before joining, asks the server at <paramref name="serverAddress"/> which zone it plays (its /info), to show
-        /// that zone behind the join screen. Unreachable servers and answers that come too late are ignored: the
-        /// Welcome on joining has the final say.
-        /// </summary>
-        public void Preview(string serverAddress)
+        /// <summary>Before joining, shows <paramref name="zone"/> (the picked shape's start zone) behind the join screen.</summary>
+        public void ShowZone(Zone zone)
         {
-            if (_content != null && !Joined && TryServerUrl(serverAddress, out var url))
+            if (_content != null && !Joined)
             {
-                StartCoroutine(AskZone(url, ++_previews));
+                EnterZone(zone, rebuild: false);
             }
         }
 
-        private IEnumerator AskZone(Uri serverUrl, int preview)
+        // Switches to a zone. The server's say rebuilds the world even for the zone shown, so nothing stays flipped
+        // from before; just showing one keeps it if it's already shown.
+        private void EnterZone(Zone zone, bool rebuild)
         {
-            var info = new UriBuilder(serverUrl) { Scheme = serverUrl.Scheme == "wss" ? "https" : "http", Path = "/info", Port = serverUrl.IsDefaultPort ? -1 : serverUrl.Port };
-            using (var request = UnityWebRequest.Get(info.Uri))
-            {
-                request.timeout = 5;
-                yield return request.SendWebRequest();
-                // Only the newest question counts, and only until the server's Welcome.
-                if (preview != _previews || Session?.Welcomed == true)
-                {
-                    yield break;
-                }
-
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    Log($"no zone from {info.Uri}: {request.error}");
-                    yield break;
-                }
-
-                var key = JsonUtility.FromJson<ServerInfo>(request.downloadHandler.text)?.zone;
-                if (key != null && _content.Zones.TryGet(key, out var zone))
-                {
-                    EnterZone(zone);
-                }
-            }
-        }
-
-        // /info's answer.
-        [Serializable]
-        private sealed class ServerInfo
-        {
-            public string zone;
-        }
-
-        // Switches to the zone the server plays, if it isn't the one drawn. A Welcome's arrives before this player's spawn.
-        private void EnterZone(Zone zone)
-        {
-            if (zone.Number == Zone.Number)
+            if (zone.Number == Zone.Number && !rebuild)
             {
                 return;
             }
 
             Zone = zone;
             World = ShapeLandWorld.Create(_content, zone);
-            Log($"playing {zone.Id}");
+            _flipped.Clear();
+            Log($"in {zone.Id}");
             ZoneChanged?.Invoke(zone);
+        }
+
+        private void Flip(string tag, bool flipped)
+        {
+            World.SetFlipped(tag, flipped);
+            if (flipped)
+            {
+                _flipped.Add(tag);
+            }
+            else
+            {
+                _flipped.Remove(tag);
+            }
+
+            Log($"{tag} {(flipped ? "flipped" : "back")}");
+            PlacementsFlipped?.Invoke(tag, flipped);
         }
 
         private void Fail(JoinFailure failure, string error)
