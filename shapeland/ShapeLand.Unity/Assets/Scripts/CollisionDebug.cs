@@ -39,8 +39,10 @@ namespace ShapeLand.Client
             _hud = GetComponent<Hud>();
             _chat = GetComponent<Chat>();
             _view = GetComponent<CollisionView>();
-            _view.Shown = Remember && PlayerPrefs.GetInt(ShownKey, 0) == 1;
         }
+
+        // In Start, after the view's Awake: components on one object wake one at a time, in no set order.
+        private void Start() => _view.Shown = Remember && PlayerPrefs.GetInt(ShownKey, 0) == 1;
 
         /// <summary>Shows or hides the view, and remembers the choice.</summary>
         public void Toggle()
