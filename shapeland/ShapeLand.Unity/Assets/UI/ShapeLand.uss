@@ -191,6 +191,7 @@ Label { padding: 0; margin: 0; }
     background-color: rgba(18, 22, 30, 0.78); border-radius: 4px;
 }
 .net-stats.hidden { display: none; }
+.hud.phone .net-stats { left: 16px; top: 76px; } /* under the touch buttons */
 .net-row { flex-direction: row; align-items: center; margin-bottom: 3px; }
 .net-dot { width: 7px; height: 7px; border-radius: 4px; margin-right: 7px; flex-shrink: 0; background-color: rgb(92, 201, 138); }
 .net-dot.warn { background-color: rgb(240, 181, 74); }
