@@ -12,7 +12,7 @@ namespace ShapeLand.Client
     /// Spawn, chat and network stats buttons. The stick and Jump drive a virtual gamepad of their own, so the game's actions read
     /// them as they read a real one. They show while the player can move and the screen has been touched (from the
     /// start on a phone page), and hide when a keyboard or a real gamepad is used away from a phone. Each control
-    /// follows one touch at a time; the buttons and Jump keep inside the screen's safe area.
+    /// follows one touch at a time; the buttons and Jump keep inside the screen's safe area (<c>touch-safe</c>, set by the HUD).
     /// </summary>
     public sealed class TouchControls : IDisposable
     {
@@ -28,8 +28,6 @@ namespace ShapeLand.Client
         private readonly VisualElement _knob;
         private readonly VisualElement _look;
         private readonly VisualElement _jump;
-        private readonly VisualElement _safe;
-        private Vector4 _insets = new Vector4(-1, -1, -1, -1);
         private readonly OrbitCamera _camera;
         private readonly Gamepad _pad;
         private GamepadState _state;
@@ -55,7 +53,6 @@ namespace ShapeLand.Client
             _knob = hud.Q("stick-knob");
             _look = hud.Q("touch-look");
             _jump = hud.Q("jump-button");
-            _safe = hud.Q("touch-safe");
             hud.Q<Button>("touch-look-button").clicked += look;
             hud.Q<Button>("touch-return-button").clicked += returnToSpawn;
             hud.Q<Button>("touch-chat-button").clicked += chat;
@@ -108,11 +105,6 @@ namespace ShapeLand.Client
             }
 
             var show = _touched && allowed;
-            if (show)
-            {
-                KeepToSafeArea();
-            }
-
             if (show == _layer.ClassListContains("hidden"))
             {
                 _layer.EnableInClassList("hidden", !show);
@@ -124,29 +116,6 @@ namespace ShapeLand.Client
         }
 
         public void Dispose() => InputSystem.RemoveDevice(_pad);
-
-        // Insets the buttons by the screen's safe area, which changes as the phone turns.
-        private void KeepToSafeArea()
-        {
-            var (top, right, bottom, left) = WebPage.SafeArea();
-            var size = _layer.layout.size;
-            if (float.IsNaN(size.x) || size.x <= 0)
-            {
-                return;
-            }
-
-            var insets = new Vector4(top * size.y, right * size.x, bottom * size.y, left * size.x);
-            if (insets == _insets)
-            {
-                return;
-            }
-
-            _insets = insets;
-            _safe.style.top = insets.x;
-            _safe.style.right = insets.y;
-            _safe.style.bottom = insets.z;
-            _safe.style.left = insets.w;
-        }
 
         private void OnStickDown(PointerDownEvent e)
         {

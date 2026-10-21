@@ -29,60 +29,62 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="tags" class="tags" picking-mode="Ignore" />
-        <ui:VisualElement name="chat" class="chat" picking-mode="Ignore">
-            <ui:ScrollView name="log" class="chat-log empty" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" />
-            <ui:VisualElement name="chat-input-row" class="chat-input-row hidden">
-                <ui:TextField name="chat-input" max-length="200" class="input chat-input" />
-                <ui:Label text="#chat.keys" class="chat-keys" picking-mode="Ignore" />
-                <ui:Button name="chat-send" text="#chat.send" class="chat-send" focusable="false" />
+        <ui:VisualElement name="safe" class="safe" picking-mode="Ignore">
+            <ui:VisualElement name="chat" class="chat" picking-mode="Ignore">
+                <ui:ScrollView name="log" class="chat-log empty" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" />
+                <ui:VisualElement name="chat-input-row" class="chat-input-row hidden">
+                    <ui:TextField name="chat-input" max-length="200" class="input chat-input" />
+                    <ui:Label text="#chat.keys" class="chat-keys" picking-mode="Ignore" />
+                    <ui:Button name="chat-send" text="#chat.send" class="chat-send" focusable="false" />
+                </ui:VisualElement>
             </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:Button name="look-button" text="#hud.change_look" class="look-button" focusable="false" />
-        <ui:Label name="chat-hint" text="#chat.hint" class="chat-hint" picking-mode="Ignore" />
-        <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="ping-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.ping" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="ping" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.ping_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="ping-best" class="net-num net-dim" picking-mode="Ignore" />
+            <ui:Button name="look-button" text="#hud.change_look" class="look-button" focusable="false" />
+            <ui:Label name="chat-hint" text="#chat.hint" class="chat-hint" picking-mode="Ignore" />
+            <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="ping-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.ping" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="ping" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.ping_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="ping-best" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="delay-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.delay" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="delay" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.delay_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="delay-target" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="holds-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.holds" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="holds" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.holds_unit" class="net-unit tight" picking-mode="Ignore" />
+                    <ui:Label name="held" class="net-num net-dim" picking-mode="Ignore" />
+                    <ui:Label text="#stats.held_unit" class="net-unit" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="snaps-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.snap_backs" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="snaps" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.respawns_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="respawns" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="frame-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.frame" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="frame" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.frame_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="frame-worst" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement class="net-dot none" picking-mode="Ignore" />
+                    <ui:Label text="#stats.graphics" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="graphics" class="net-unit" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label text="#stats.foot" class="net-foot keys-only" picking-mode="Ignore" />
+                <ui:Label text="#stats.foot_touch" class="net-foot touch-only" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="delay-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.delay" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="delay" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.delay_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="delay-target" class="net-num net-dim" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="holds-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.holds" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="holds" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.holds_unit" class="net-unit tight" picking-mode="Ignore" />
-                <ui:Label name="held" class="net-num net-dim" picking-mode="Ignore" />
-                <ui:Label text="#stats.held_unit" class="net-unit" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="snaps-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.snap_backs" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="snaps" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.respawns_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="respawns" class="net-num net-dim" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="frame-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.frame" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="frame" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.frame_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="frame-worst" class="net-num net-dim" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement class="net-dot none" picking-mode="Ignore" />
-                <ui:Label text="#stats.graphics" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="graphics" class="net-unit" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:Label text="#stats.foot" class="net-foot keys-only" picking-mode="Ignore" />
-            <ui:Label text="#stats.foot_touch" class="net-foot touch-only" picking-mode="Ignore" />
         </ui:VisualElement>
         <ui:VisualElement name="screen-fade" class="screen-fade" picking-mode="Ignore" />
     </ui:VisualElement>

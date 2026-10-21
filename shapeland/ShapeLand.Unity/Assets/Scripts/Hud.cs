@@ -24,6 +24,9 @@ namespace ShapeLand.Client
         private VisualElement _fade;
         private Chat _chat;
         private TouchControls _touch;
+        // The overlay's parts kept inside the screen's safe area, and the insets they have now.
+        private VisualElement[] _safe;
+        private Vector4 _insets = new Vector4(-1, -1, -1, -1);
 
         public JoinClient Join => join;
 
@@ -64,6 +67,7 @@ namespace ShapeLand.Client
             _fade = tree.Q("screen-fade");
             _chat = GetComponent<Chat>();
             tree.Q<Button>("look-button").clicked += OpenLook;
+            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
             _touch = new TouchControls(_root, view.OrbitCamera, OpenLook, ReturnToSpawn, _chat.OpenInput, GetComponent<NetStats>().Toggle);
 
             join.ContentLoaded += OnContentLoaded;
@@ -109,6 +113,11 @@ namespace ShapeLand.Client
                 return;
             }
 
+            if (WebPage.IsPhone)
+            {
+                KeepToSafeArea();
+            }
+
             // Esc closes the chat input first (Chat); only a press clear of that opens or closes the card.
             if (view.Controls.Game.ChangeLook.WasPressedThisFrame())
             {
@@ -130,6 +139,33 @@ namespace ShapeLand.Client
             UpdateMoving();
             Darkness = view.Player != null ? view.Player.Darkness : 0;
             _fade.style.opacity = Darkness;
+        }
+
+        // Insets the safe parts by the screen's safe area (notches, rounded corners, the home bar), which changes as the
+        // phone turns.
+        private void KeepToSafeArea()
+        {
+            var (top, right, bottom, left) = WebPage.SafeArea();
+            var size = _root.layout.size;
+            if (float.IsNaN(size.x) || size.x <= 0)
+            {
+                return;
+            }
+
+            var insets = new Vector4(top * size.y, right * size.x, bottom * size.y, left * size.x);
+            if (insets == _insets)
+            {
+                return;
+            }
+
+            _insets = insets;
+            foreach (var safe in _safe)
+            {
+                safe.style.top = insets.x;
+                safe.style.right = insets.y;
+                safe.style.bottom = insets.z;
+                safe.style.left = insets.w;
+            }
         }
 
         /// <summary>Back to the spawn point, unless typing or on the look card. Becomes an action once Comet has them.</summary>

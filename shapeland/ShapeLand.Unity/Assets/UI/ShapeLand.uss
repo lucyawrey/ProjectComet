@@ -230,8 +230,9 @@ Label { padding: 0; margin: 0; }
     justify-content: center;
 }
 .stick-knob { width: 56px; height: 56px; border-radius: 28px; background-color: rgba(238, 241, 246, 0.6); }
-/* Inside the screen's safe area (set from code), clear of notches and the home bar. */
-.touch-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+/* Inside the screen's safe area (set from code, Hud), clear of notches and the home bar: the touch buttons here, and
+   the chat box, stats and the rest of the overlay in .safe. */
+.touch-safe, .safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .touch-row { position: absolute; left: 16px; top: 12px; flex-direction: row; }
 /* Sizes in panel pixels, which on a phone are about CSS pixels (Hud.PhoneReferenceResolution). */
 .touch-button, .touch-button:hover {
