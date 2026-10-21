@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 
@@ -102,10 +103,36 @@ namespace ShapeLand.Client
             _panel.EnableInClassList("hidden", !Shown);
         }
 
+        // F3's stand-in on a touch screen: a third finger landing while two are down (or three at once).
+        private static bool ThreeFingerTap()
+        {
+            var screen = Touchscreen.current;
+            if (screen == null)
+            {
+                return false;
+            }
+
+            int down = 0, landed = 0;
+            foreach (var touch in screen.touches)
+            {
+                if (touch.press.isPressed)
+                {
+                    down++;
+                }
+
+                if (touch.press.wasPressedThisFrame)
+                {
+                    landed++;
+                }
+            }
+
+            return down == 3 && landed > 0;
+        }
+
         private void Update()
         {
             var view = _hud.View;
-            if (view.Controls.Game.NetStats.WasPressedThisFrame() && !_chat.Open)
+            if ((view.Controls.Game.NetStats.WasPressedThisFrame() || ThreeFingerTap()) && !_chat.Open)
             {
                 Toggle();
             }
