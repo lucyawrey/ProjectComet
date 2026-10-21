@@ -18,5 +18,9 @@ namespace ShapeLand.Shared.Messages
         // Spawn points
         public const ushort SpawnSet = MessageIds.FirstGameMessage + 20;
         public const ushort ReturnToSpawn = MessageIds.FirstGameMessage + 21;
+
+        // Zones
+        public const ushort ZoneEntered = MessageIds.FirstGameMessage + 30;
+        public const ushort PlacementsFlipped = MessageIds.FirstGameMessage + 31;
     }
 }

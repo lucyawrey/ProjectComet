@@ -1,5 +1,5 @@
-# Content ID registry: each key's permanent number, per content type.
-# The content build adds new keys; numbers never change and are never reused. Commit this file.
+# Content ID registry: each id's permanent number, by name, per content type.
+# The content build adds new ids; numbers never change and are never reused. Commit this file.
 
 [group]
 shape_cube = 1
@@ -35,7 +35,30 @@ pyramid = 8
 blue = 9
 tests_start = 10
 theatre = 11
+"hub.blue" = 12
+"hub.cube" = 13
+"hub.diamond" = 14
+"hub.pyramid" = 15
+"hub.theatre" = 16
+"tests.second" = 17
+"tests.start" = 18
+
+[teleporter]
+"tests.east" = 1
+"tests.to_far" = 2
+"tests.west" = 3
+"tests_far.back" = 4
+"hub.cube" = 5
+"hub.theatre" = 6
+"hub.to_test" = 7
+"hub.pancake" = 8
+"hub.pyramid" = 9
+
+[trigger]
+"tests.plate" = 1
+"hub.bridge" = 2
 
 [zone]
 hub = 1
 tests = 2
+tests_far = 3

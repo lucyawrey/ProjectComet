@@ -8,17 +8,46 @@ using ShapeLand.Shared.Content;
 namespace ShapeLand.Shared.World
 {
     /// <summary>
-    /// ShapeLand's world: a zone from content (terrain, placed objects and wall volumes), built the same way on client
-    /// and server. A server plays one zone, the default unless it's told another, and names it in its Welcome.
+    /// ShapeLand's world: each zone from content (terrain, placed objects, trigger pads and wall volumes), built the
+    /// same way on client and server. A server plays every zone; each player is in one at a time.
     /// </summary>
     public static class ShapeLandWorld
     {
-        /// <summary>Where players appear: <paramref name="zone"/>'s default spawn point, on the ground.</summary>
-        public static Vector3 SpawnPoint(ShapeLandContent content, Zone zone, CollisionWorld world)
+        /// <summary>
+        /// Where a player of <paramref name="shape"/> starts: the shape's spawn point, and the zone it's in (the
+        /// content build checks it's in one).
+        /// </summary>
+        public static (Zone Zone, SpawnPoint Spawn) StartOf(ShapeLandContent content, Shape shape) =>
+            FindSpawn(content, shape.Spawn) ?? throw new System.InvalidOperationException($"{shape.Id}'s spawn '{shape.Spawn}' isn't in any zone.");
+
+        /// <summary>The spawn point with id <paramref name="id"/> and its zone, or null if no zone has it.</summary>
+        public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(ShapeLandContent content, string id)
         {
-            var spawn = DefaultSpawn(zone);
-            world.TryGetGround(spawn, content.Movement.BodyRadius, spawn.Y + 1000, out var ground);
-            return new Vector3(spawn.X, ground, spawn.Z);
+            foreach (var zone in content.Zones.All)
+            {
+                foreach (var chunk in zone.Chunks)
+                {
+                    foreach (var spawn in chunk.Spawns)
+                    {
+                        if (spawn.Id == id)
+                        {
+                            return (zone, spawn);
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The ground in the middle of a spawn point's volume (for a camera to look at), or its bottom if there's none.</summary>
+        public static Vector3 Center(SpawnPoint spawn, CollisionWorld world)
+        {
+            var volume = spawn.Volume;
+            var top = volume.Position.Y + volume.Size.Y;
+            return world.TryGetGround(new Vector3(volume.Position.X, top, volume.Position.Z), 0, top, out var ground)
+                ? new Vector3(volume.Position.X, ground, volume.Position.Z)
+                : volume.Position;
         }
 
         /// <summary>
@@ -52,10 +81,15 @@ namespace ShapeLand.Shared.World
             {
                 foreach (var placement in chunk.Placements)
                 {
-                    var triangles = placement.Primitive is null
-                        ? content.Props[placement.Prop].Collision
-                        : PrimitiveMesher.For(placement, content.Settings.Primitives);
-                    meshes.Add(CollisionMesh.Placed(triangles, placement.Matrix()));
+                    var mesh = Placed(content, placement);
+                    mesh.Tag = placement.Tag;
+                    mesh.StartsOff = placement.Off;
+                    meshes.Add(mesh);
+                }
+
+                foreach (var pad in Pads(chunk))
+                {
+                    meshes.Add(Placed(content, pad));
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -70,23 +104,40 @@ namespace ShapeLand.Shared.World
             return new CollisionWorld(new ZoneTerrain(zone), meshes, content.Settings.World.KillHeight);
         }
 
-        /// <summary>The zone a server plays unless it's told another (<c>world.default_zone</c>).</summary>
-        public static Zone DefaultZone(ShapeLandContent content) => content.Zones[content.Settings.World.DefaultZone];
-
-        private static Vector3 DefaultSpawn(Zone zone)
+        /// <summary>The pads of a chunk's spawn points, teleporters and triggers: solid, and never flipped.</summary>
+        public static IEnumerable<Placement> Pads(ZoneChunk chunk)
         {
-            foreach (var chunk in zone.Chunks)
+            foreach (var spawn in chunk.Spawns)
             {
-                foreach (var spawn in chunk.Spawns)
+                if (spawn.Volume.Pad is { } pad)
                 {
-                    if (spawn.IsDefault)
-                    {
-                        return spawn.Position;
-                    }
+                    yield return pad;
                 }
             }
 
-            return Vector3.Zero;
+            foreach (var teleporter in chunk.Teleporters)
+            {
+                if (teleporter.Volume.Pad is { } pad)
+                {
+                    yield return pad;
+                }
+            }
+
+            foreach (var trigger in chunk.Triggers)
+            {
+                if (trigger.Volume.Pad is { } pad)
+                {
+                    yield return pad;
+                }
+            }
+        }
+
+        private static CollisionMesh Placed(ShapeLandContent content, Placement placement)
+        {
+            var triangles = placement.Primitive is null
+                ? content.Props[placement.Prop].Collision
+                : PrimitiveMesher.For(placement, content.Settings.Primitives);
+            return CollisionMesh.Placed(triangles, placement.Matrix());
         }
     }
 }

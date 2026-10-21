@@ -73,7 +73,11 @@ namespace Comet.Unity.Editor
         {
             var running = LocalServer.RunningWith;
             var port = settings.serverPort;
-            if (LocalServer.Starting)
+            if (LocalServer.Building)
+            {
+                EditorGUILayout.HelpBox($"Building, then starting on port {port}…", MessageType.None);
+            }
+            else if (LocalServer.Starting)
             {
                 EditorGUILayout.HelpBox($"Starting on port {port}…", MessageType.None);
             }
@@ -108,7 +112,7 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.BeginHorizontal();
-            using (new EditorGUI.DisabledScope(running != null || _answers))
+            using (new EditorGUI.DisabledScope(running != null || _answers || LocalServer.Building))
             {
                 if (GUILayout.Button("Start"))
                 {

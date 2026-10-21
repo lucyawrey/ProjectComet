@@ -3,15 +3,88 @@ piece = "ground"
 origin = [0, 0]
 
 [[placement]]
+primitive = "box"
+tag = "door"
+position = [18.0, 0.0, 12.0]
+scale = [1.0, 3.0, 4.0]
+
+[[spawn]]
+id = "spawn.tests.start"
+volume = "cylinder"
+position = [6.0, 0.2, 4.0]
+size = [0.2, 2.0, 0.2]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
 primitive = "cylinder"
-name = "spawn.tests_start"
 position = [6.0, -0.2, 4.0]
 scale = [2.0, 0.4, 2.0]
 
 [[spawn]]
-id = "spawn.tests_start"
-position = [6.0, 0.2, 4.0]
-radius = 0.0
+id = "spawn.tests.second"
+volume = "cylinder"
+position = [1.5, 0.2, 10.0]
+size = [2.0, 2.0, 2.0]
+stand_seconds = 2.0
 facing = "direction"
-yaw = 0.0
-default = true
+
+[spawn.pad]
+primitive = "cylinder"
+position = [1.5, -0.2, 10.0]
+scale = [2.0, 0.4, 2.0]
+
+[[teleporter]]
+id = "teleporter.tests.east"
+volume = "box"
+position = [12.0, 0.2, 4.0]
+size = [2.0, 2.0, 2.0]
+stand_seconds = 1.0
+facing = "direction"
+target = "teleporter.tests.west"
+
+[teleporter.pad]
+primitive = "box"
+position = [12.0, -0.2, 4.0]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB
+
+[[teleporter]]
+id = "teleporter.tests.west"
+volume = "box"
+position = [36.0, 0.2, 4.0]
+size = [2.0, 2.0, 2.0]
+stand_seconds = 1.0
+facing = "direction"
+target = "teleporter.tests.east"
+
+[teleporter.pad]
+primitive = "box"
+position = [36.0, -0.2, 4.0]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB
+
+[[teleporter]]
+id = "teleporter.tests.to_far"
+volume = "box"
+position = [12.0, 0.2, 18.0]
+size = [2.0, 2.0, 2.0]
+stand_seconds = 1.0
+facing = "direction"
+target = "teleporter.tests_far.back"
+
+[teleporter.pad]
+primitive = "box"
+position = [12.0, -0.2, 18.0]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB
+
+[[trigger]]
+id = "trigger.tests.plate"
+volume = "box"
+position = [14.0, 0.0, 12.0]
+size = [2.0, 2.0, 2.0]
+
+[[trigger.effect]]
+toggle_tag = "door"
+revert_seconds = 3.0

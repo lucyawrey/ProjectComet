@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// The model for each prop key (<c>prop.rock</c>), so the client and the zone editor can place what zones list. A
+    /// The model for each prop id (<c>prop.rock</c>), so the client and the zone editor can place what zones list. A
     /// game fills it in from its content's prop entries (in ShapeLand, the editor's ContentSync), never by hand.
     /// </summary>
     [CreateAssetMenu(menuName = "Comet/Prop Library")]
@@ -14,7 +14,7 @@ namespace Comet.Unity
         [Serializable]
         public struct Entry
         {
-            public string key;
+            public string id;
             public GameObject model;
 
             [Tooltip("Placements may only scale it the same on every axis.")]
@@ -31,33 +31,33 @@ namespace Comet.Unity
 
         [SerializeField] private List<Entry> entries = new List<Entry>();
 
-        private Dictionary<string, Entry>? _byKey;
+        private Dictionary<string, Entry>? _byId;
 
         public IReadOnlyList<Entry> Entries => entries;
 
-        /// <summary>The model for <paramref name="key"/>, or null if the library has none.</summary>
-        public GameObject? Model(string key) => TryGet(key, out var entry) ? entry.model : null;
+        /// <summary>The model for <paramref name="id"/>, or null if the library has none.</summary>
+        public GameObject? Model(string id) => TryGet(id, out var entry) ? entry.model : null;
 
-        /// <summary>The entry for <paramref name="key"/>, if the library has one.</summary>
-        public bool TryGet(string key, out Entry entry)
+        /// <summary>The entry for <paramref name="id"/>, if the library has one.</summary>
+        public bool TryGet(string id, out Entry entry)
         {
-            if (_byKey == null)
+            if (_byId == null)
             {
-                _byKey = new Dictionary<string, Entry>();
+                _byId = new Dictionary<string, Entry>();
                 foreach (var e in entries)
                 {
-                    _byKey[e.key] = e;
+                    _byId[e.id] = e;
                 }
             }
 
-            return _byKey.TryGetValue(key, out entry);
+            return _byId.TryGetValue(id, out entry);
         }
 
         /// <summary>Replaces the entries (the editor's content sync does this).</summary>
         public void SetEntries(IEnumerable<Entry> newEntries)
         {
             entries = new List<Entry>(newEntries);
-            _byKey = null;
+            _byId = null;
         }
     }
 }

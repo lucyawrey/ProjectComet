@@ -13,10 +13,10 @@ namespace Comet.Unity
         public string folder = "";
 
         [Tooltip("The group being edited (group.tree), or empty for a zone. A group's scene has no terrain, and its pivot is the scene's origin.")]
-        public string groupKey = "";
+        public string groupId = "";
 
         /// <summary>Whether this scene edits a group rather than a zone.</summary>
-        public bool IsGroup => !string.IsNullOrEmpty(groupKey);
+        public bool IsGroup => !string.IsNullOrEmpty(groupId);
 
         // Kept as base64 text, not a byte array: Unity's undo compares arrays element by element when their length
         // changes, which took seconds for each terrain stroke, while a string is one value.

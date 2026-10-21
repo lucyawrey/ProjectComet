@@ -113,10 +113,6 @@ namespace ShapeLand.Client
             _root = tree.Q("join");
             _name = tree.Q<TextField>("name");
             _server = tree.Q<TextField>("server");
-            // Half a second after the address last changed, show the zone that server plays.
-            var preview = _server.schedule.Execute(() => _join.Preview(ServerAddress()));
-            preview.Pause();
-            _server.RegisterValueChangedCallback(_ => preview.ExecuteLater(500));
             _shapes = tree.Q("shapes");
             _colors = tree.Q("colors");
             _eyes = tree.Q("eyes");
@@ -149,6 +145,9 @@ namespace ShapeLand.Client
             _joinButton.SetEnabled(enabled);
             _joinButton.text = Text(key);
         }
+
+        // Before joining, the picked shape's start zone shows behind the card.
+        private void ShowStartZone() => _join.ShowZone(ShapeLandWorld.StartOf(_content, _shape).Zone);
 
         // Shows the card with the current choices.
         private void Show()
@@ -221,8 +220,8 @@ namespace ShapeLand.Client
             SetChanging(false);
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = RememberedServer();
-            _join.Preview(ServerAddress());
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
+            ShowStartZone();
             _color = Remembered(ColorKey, _content.Settings.Colors.Body);
             _eyeColor = Remembered(EyesKey, _content.Settings.Colors.Eyes);
 
@@ -231,6 +230,7 @@ namespace ShapeLand.Client
                 var button = new Button(() =>
                 {
                     _shape = shape;
+                    ShowStartZone();
                     Refresh();
                 }) { userData = shape };
                 button.AddToClassList("shape-button");

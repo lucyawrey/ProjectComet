@@ -297,9 +297,9 @@ namespace Comet.Unity.Editor
             var group = Undo.GetCurrentGroup();
             if (carry)
             {
-                // Found before the terrain moves. A spawn's marker moves with its spawn.
-                var carried = terrain.Editing.GetComponentsInChildren<ZonePlacement>().Where(p => p.IsLoose && p.GetComponentInParent<ZoneSpawn>() == null).Select(p => p.transform)
-                    .Concat(terrain.Editing.GetComponentsInChildren<ZoneSpawn>().Select(s => s.transform))
+                // Found before the terrain moves. A pad moves with its spawn point, teleporter or trigger.
+                var carried = terrain.Editing.GetComponentsInChildren<ZonePlacement>(true).Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null).Select(p => p.transform)
+                    .Concat(terrain.Editing.GetComponentsInChildren<ZoneTrigger>(true).Select(s => s.transform))
                     .Where(t => StandsOn(terrain, t.position))
                     .ToArray();
                 Undo.RecordObjects(carried.Cast<Object>().ToArray(), $"Move piece {piece}");

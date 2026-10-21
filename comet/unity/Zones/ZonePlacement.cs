@@ -9,13 +9,15 @@ namespace Comet.Unity
     /// object's transform is the placement's. A primitive's mesh is built at its size: the scale tool edits
     /// <see cref="size"/>, and any other scale is folded into it once a resize ends. A group copy's parts are drawn
     /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy.
+    /// Turning the object off (its checkbox) makes a placement that starts off: hidden and not solid in the game
+    /// until a trigger flips it on by its tag.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
     [SelectionBase]
     public sealed class ZonePlacement : MonoBehaviour
     {
-        [Tooltip("The prop's key (prop.rock); empty for a primitive or a group copy.")]
+        [Tooltip("The prop's id (prop.rock); empty for a primitive or a group copy.")]
         public string prop = "";
 
         [Tooltip("The group this is a copy of (group.tree); empty for a prop or a primitive. Copies look like their group: edit the group to change them all.")]
@@ -24,8 +26,8 @@ namespace Comet.Unity
         [Tooltip("Whether this places a primitive, built in code, instead of a prop.")]
         public bool isPrimitive;
 
-        [Tooltip("An optional name, unique in the zone, for game code to find it by (a spawn point's marker has the spawn's key).")]
-        public string placementName = "";
+        [Tooltip("An optional tag for triggers to flip it by (and game code to find it by); several placements may share one to flip together.")]
+        public string placementTag = "";
 
         [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
         public bool blockout;
@@ -94,7 +96,7 @@ namespace Comet.Unity
         }
 
         /// <summary>Whether this is placed in the zone itself, not a part of a copy whose group is being edited in place.</summary>
-        public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>() == null;
+        public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>(true) == null;
 
         /// <summary>The primitive placed, or null for a prop.</summary>
         public Primitive? Primitive => isPrimitive

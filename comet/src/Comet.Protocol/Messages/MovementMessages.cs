@@ -72,6 +72,9 @@ namespace Comet.Protocol.Messages
 
         /// <summary>The player fell below the world and is put back on safe ground.</summary>
         Respawn = 2,
+
+        /// <summary>The player was sent somewhere new by the game (a teleporter): moved there at once, with no fade.</summary>
+        Teleport = 3,
     }
 
     /// <summary>

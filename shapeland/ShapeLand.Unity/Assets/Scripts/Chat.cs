@@ -68,6 +68,7 @@ namespace ShapeLand.Client
 
             _hud.Join.ChatReceived += OnChat;
             _hud.Join.ChatRefused += OnRefused;
+            _hud.Join.SpawnSet += OnSpawnSet;
             _hud.Join.ConnectionLost += OnConnectionLost;
         }
 
@@ -75,6 +76,7 @@ namespace ShapeLand.Client
         {
             _hud.Join.ChatReceived -= OnChat;
             _hud.Join.ChatRefused -= OnRefused;
+            _hud.Join.SpawnSet -= OnSpawnSet;
             _hud.Join.ConnectionLost -= OnConnectionLost;
         }
 
@@ -222,7 +224,8 @@ namespace ShapeLand.Client
                 line.Add(new ShapeIcon(_hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]), GameView.Color(speaker.Color)));
             }
 
-            var name = new Label(known ? speaker.Name : strings.Get("chat.someone"));
+            // Chat is server-wide: a speaker in another zone isn't in view, but the line names them.
+            var name = new Label(!string.IsNullOrEmpty(message.Name) ? message.Name : known ? speaker.Name : strings.Get("chat.someone"));
             name.AddToClassList("chat-name");
             var text = new Label(message.Text) { enableRichText = false }; // what players type is shown as typed, never markup
             text.AddToClassList("chat-text");
@@ -231,9 +234,20 @@ namespace ShapeLand.Client
             AddLine(line);
         }
 
-        private void OnRefused(ChatRejection reason)
+        private void OnRefused(ChatRejection reason) => AddNote(reason == ChatRejection.TooFast ? "chat.too_fast" : "chat.invalid");
+
+        private void OnSpawnSet(int spawn, bool claimed)
         {
-            var note = new Label(_hud.Join.Content.Strings.Get(reason == ChatRejection.TooFast ? "chat.too_fast" : "chat.invalid"));
+            if (claimed)
+            {
+                AddNote("chat.spawn_set");
+            }
+        }
+
+        // A line from the game rather than a player, from the strings file.
+        private void AddNote(string key)
+        {
+            var note = new Label(_hud.Join.Content.Strings.Get(key));
             note.AddToClassList("chat-note");
             AddLine(note);
         }

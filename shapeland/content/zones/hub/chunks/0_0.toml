@@ -58,29 +58,44 @@ position = [23.91, 5.53, 19.421]
 scale = [20.324, 2.0, 2.0]
 color = 0x4A4D52
 
-[[placement]]
+[[spawn]]
+id = "spawn.hub.pyramid"
+volume = "cylinder"
+position = [8.98, 6.68, 3.83]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
 primitive = "cylinder"
-name = "spawn.pyramid"
 position = [8.98, 6.28, 3.83]
 scale = [4.0, 0.4, 4.0]
 
-[[placement]]
+[[spawn]]
+id = "spawn.hub.cube"
+volume = "cylinder"
+position = [5.0, 8.947, 43.71]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
 primitive = "cylinder"
-name = "spawn.cube"
 position = [5.0, 8.547, 43.71]
 scale = [4.0, 0.4, 4.0]
 
-[[spawn]]
-id = "spawn.pyramid"
-position = [8.98, 6.68, 3.83]
-radius = 2.0
+[[teleporter]]
+id = "teleporter.hub.pyramid"
+volume = "box"
+position = [8.668, 6.669, 8.769]
+size = [2.0, 1.0, 2.0]
+stand_seconds = 1.0
 facing = "direction"
-yaw = 0.0
-default = true
+target = "teleporter.hub.pancake"
+charge_color = 0xFFFFFF
 
-[[spawn]]
-id = "spawn.cube"
-position = [5.0, 8.947, 43.71]
-radius = 2.0
-facing = "direction"
-yaw = 0.0
+[teleporter.pad]
+primitive = "box"
+position = [8.668, 6.269, 8.769]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB

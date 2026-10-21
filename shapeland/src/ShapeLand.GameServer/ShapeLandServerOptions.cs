@@ -6,8 +6,11 @@ public sealed class ShapeLandServerOptions
     /// <summary>The compiled content file; empty means the content build's output in this repository's artifacts/.</summary>
     public string ContentFile { get; set; } = "";
 
-    /// <summary>The zone to play (<c>zone.*</c>); empty means the content's <c>world.default_zone</c>.</summary>
-    public string Zone { get; set; } = "";
+    /// <summary>
+    /// A spawn point (<c>spawn.*</c>) every new player starts at, in place of their shape's own, for tests and for
+    /// trying a level; empty for none.
+    /// </summary>
+    public string StartSpawn { get; set; } = "";
 
     /// <summary>
     /// A web build to serve from the same port (a development option, so one command runs both and the page

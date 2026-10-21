@@ -14,14 +14,22 @@ namespace ShapeLand.Client.Tests
     public class JoinScreenTests : GameSceneTest
     {
         [UnityTest]
-        public IEnumerator ShowsTheServersZoneBeforeJoining()
+        public IEnumerator ShowsThePickedShapesStartZoneThenTheServersOnceIn()
         {
             yield return StartGame(join: false);
-            yield return TestGameServer.WaitFor(() => View.transform.Find(TestGameServer.Zone) != null, 5);
+            Click(ShapeButton("shape.cube"));
+            var cube = Join.Content.Shapes.All.First(shape => shape.Id == "shape.cube");
+            var start = ShapeLandWorld.StartOf(Join.Content, cube).Zone.Id;
 
-            Assert.That(View.transform.Find(TestGameServer.Zone), Is.Not.Null, "The server's zone wasn't drawn behind the join screen.");
-            Assert.That(View.transform.Find(Join.Content.Settings.World.DefaultZone), Is.Null, "The default zone is still drawn.");
+            Assert.That(View.transform.Find(start), Is.Not.Null, "The shape's start zone wasn't drawn behind the join screen.");
             Assert.That(View.Player, Is.Null, "Joined before pressing Join.");
+
+            // The tests' server starts everyone in its own zone.
+            Field("name").value = "Pebble";
+            Click(Screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => View.Player != null, 10);
+            Assert.That(View.transform.Find(TestGameServer.Zone), Is.Not.Null, "The zone the server put the player in wasn't drawn.");
+            Assert.That(View.transform.Find(start), Is.Null, "The start zone is still drawn.");
         }
 
         [UnityTest]
