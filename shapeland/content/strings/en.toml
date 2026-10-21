@@ -47,6 +47,14 @@ keys = "Enter sends · Esc closes"
 send = "Send"
 hint = "Enter to chat"
 
+[collision]
+snap_back = "Snapped back: {rule}."
+not_finite = "an invalid position"
+too_fast = "moved too fast"
+too_high = "jumped too high"
+inside_solid = "inside a solid object"
+under_ground = "inside the terrain"
+
 [hud]
 change_look = "Change Look"
 
