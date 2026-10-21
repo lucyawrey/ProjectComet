@@ -22,9 +22,9 @@ namespace ShapeLand.Client
         private static readonly Color TerrainColor = new Color(0.8f, 0.72f, 0.45f, 0.45f);
         private static readonly Color PropColor = new Color(0.75f, 0.75f, 0.75f, 0.45f);
         private static readonly Color PrimitiveColor = new Color(0.7f, 0.6f, 1, 0.45f);
-        private static readonly Color SpawnColor = new Color(0.4f, 0.85f, 0.4f, 0.5f);
-        private static readonly Color TeleporterColor = new Color(0.4f, 0.7f, 1, 0.5f);
-        private static readonly Color TriggerColor = new Color(1, 0.6f, 0.25f, 0.5f);
+        private static readonly Color SpawnColor = new Color(0.4f, 0.85f, 0.4f, 0.7f);
+        private static readonly Color TeleporterColor = new Color(0.4f, 0.7f, 1, 0.7f);
+        private static readonly Color TriggerColor = new Color(1, 0.6f, 0.25f, 0.7f);
         private static readonly Color BodyColor = new Color(1, 0.9f, 0.3f, 0.6f);
         private static readonly Color SnapBackColor = new Color(1, 0.25f, 0.25f, 0.8f);
 
