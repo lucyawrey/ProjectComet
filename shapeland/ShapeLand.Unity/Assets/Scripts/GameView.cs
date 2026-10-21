@@ -53,9 +53,12 @@ namespace ShapeLand.Client
         private readonly TriggerCharge _teleportCharge = new TriggerCharge();
         private readonly TriggerCharge _triggerCharge = new TriggerCharge();
 
-        // A spawn point the player just claimed, and when, to flash its pad; and a teleporter about to send them.
+        // A spawn point the player just claimed and a trigger they just fired, and when, to blink their pads; and a
+        // teleporter about to send them.
         private SpawnPoint _claimed;
         private float _claimedAt;
+        private Trigger _fired;
+        private float _firedAt;
         private Teleporter _sending;
         private MaterialPropertyBlock _padColor;
         private Triggers _triggers;
@@ -146,6 +149,7 @@ namespace ShapeLand.Client
             _teleportCharge.Clear();
             _triggerCharge.Clear();
             _claimed = null;
+            _fired = null;
             _sending = null;
             DrawZone();
             if (Player != null)
@@ -326,9 +330,10 @@ namespace ShapeLand.Client
 
         // The player's own spawn's pad takes their body color, other spawns' a pale color used nowhere else, and
         // other pads their own. A pad the player stands in charges toward firing: a spawn's partway to their body
-        // color, then all the way, blinking, once claimed (staying there until the server agrees); a teleporter's
-        // toward its charge color, blinking just before it sends them (and until the server does); a trigger's brighter.
-        // A blink switches between the color charged toward and the pad's resting color, so it shows on any color.
+        // color, then all the way once claimed (staying there until the server agrees); a teleporter's and a trigger's
+        // toward their charge color, a trigger's staying there while the player stays in it. Each blinks once to its
+        // resting color, which shows on any color: a spawn's and a trigger's as they fire, a teleporter's just before
+        // it sends the player (then holding its charge color until the server does).
         private void ColorPads()
         {
             if (_content == null || _pads.Count == 0)
@@ -357,7 +362,11 @@ namespace ShapeLand.Client
                     _sending = teleporter;
                 }
 
-                _triggerCharge.Step(trigger, trigger?.Volume, now);
+                if (_triggerCharge.Step(trigger, trigger?.Volume, now))
+                {
+                    _fired = trigger;
+                    _firedAt = now;
+                }
             }
 
             foreach (var pad in _pads)
@@ -367,7 +376,7 @@ namespace ShapeLand.Client
                 {
                     var charge = _spawnCharge.Inside == spawn ? (_spawnCharge.Fired ? 1 : SpawnChargeShare * _spawnCharge.Progress(now)) : 0;
                     color = spawn.Number == own ? body : UnityEngine.Color.Lerp(pad.Color, body, charge);
-                    if (spawn == _claimed && now - _claimedAt < ClaimBlinkSeconds && BlinkOff(now))
+                    if (spawn == _claimed && now - _claimedAt < BlinkSeconds)
                     {
                         color = pad.Color;
                     }
@@ -379,15 +388,21 @@ namespace ShapeLand.Client
                         : _teleportCharge.Progress(now);
                     var to = Color(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
                     color = UnityEngine.Color.Lerp(pad.Color, to, charge);
-                    if (charge > 0 && (1 - charge) * teleporter.Volume.StandSeconds < SendBlinkSeconds && BlinkOff(now))
+                    var left = (1 - charge) * teleporter.Volume.StandSeconds;
+                    if (charge > 0 && left > BlinkSeconds && left <= 2 * BlinkSeconds)
                     {
                         color = pad.Color;
                     }
                 }
+                else if (pad.Owner is Trigger trigger)
+                {
+                    var charge = _triggerCharge.Inside != trigger ? 0 : _triggerCharge.Fired ? 1 : _triggerCharge.Progress(now);
+                    var to = Color(trigger.ChargeColor ?? _content.Settings.Triggers.ChargeColor);
+                    color = trigger == _fired && now - _firedAt < BlinkSeconds ? pad.Color : UnityEngine.Color.Lerp(pad.Color, to, charge);
+                }
                 else
                 {
-                    var charge = _triggerCharge.Inside == pad.Owner ? _triggerCharge.Progress(now) : 0;
-                    color = UnityEngine.Color.Lerp(pad.Color, UnityEngine.Color.white, 0.6f * charge);
+                    continue;
                 }
 
                 _padColor.SetColor(BaseColor, color);
@@ -421,14 +436,9 @@ namespace ShapeLand.Client
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
         // How far a spawn's pad goes toward the player's body color while charging (it goes all the way once
-        // claimed), how long a claim blinks, how long before a teleporter sends the player it starts blinking, and how
-        // long each half of a blink lasts.
+        // claimed), and how long a pad's blink to its resting color lasts.
         private const float SpawnChargeShare = 0.5f;
-        private const float ClaimBlinkSeconds = 0.4f;
-        private const float SendBlinkSeconds = 0.4f;
-        private const float BlinkHalfSeconds = 0.08f;
-
-        private static bool BlinkOff(float now) => (int)(now / BlinkHalfSeconds) % 2 == 1;
+        private const float BlinkSeconds = 0.1f;
 
         // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
         // the camera carry on as they were (the server's snap-back has already put the player where it has them).

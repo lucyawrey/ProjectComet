@@ -227,6 +227,7 @@ namespace Comet.Unity.Editor
                     Id = trigger.id,
                     Volume = VolumeOf(trigger),
                     Effects = trigger.effects.Select(e => new ToggleEffect { Name = e.toggle, RevertSeconds = e.revertSeconds }).ToArray(),
+                    ChargeColor = PlacedColors.ToRgb(trigger.chargeColor),
                 }).ToArray();
             }
 
@@ -369,6 +370,7 @@ namespace Comet.Unity.Editor
                 {
                     var component = CreateTrigger<ZoneToggleTrigger>(root, trigger.Id, trigger.Volume, settings);
                     component.effects = trigger.Effects.Select(e => new ZoneToggleTrigger.Effect { toggle = e.Name, revertSeconds = e.RevertSeconds }).ToList();
+                    component.chargeColor = trigger.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.triggerChargeColor;
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -660,6 +662,10 @@ namespace Comet.Unity.Editor
             if (trigger is ZoneTeleporter teleporter)
             {
                 teleporter.chargeColor = settings.teleporterChargeColor;
+            }
+            else if (trigger is ZoneToggleTrigger toggle)
+            {
+                toggle.chargeColor = settings.triggerChargeColor;
             }
 
             if (PrimitiveNamed(padKind) is { } kind)

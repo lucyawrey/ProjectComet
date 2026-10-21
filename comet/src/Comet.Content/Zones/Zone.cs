@@ -303,6 +303,9 @@ namespace Comet.Content
         [Key(2)] public TriggerVolume Volume { get; set; } = new TriggerVolume();
 
         [Key(3)] public ToggleEffect[] Effects { get; set; } = new ToggleEffect[0];
+
+        /// <summary>The color its pad turns toward while a player stands in it, as 0xRRGGBB, or null to leave it to the game.</summary>
+        [Key(4)] public uint? ChargeColor { get; set; }
     }
 
     /// <summary>Flips every placement with a name on or off, and optionally back after a time.</summary>

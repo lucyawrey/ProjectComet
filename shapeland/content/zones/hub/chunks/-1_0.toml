@@ -46,6 +46,7 @@ size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
 target = "teleporter.hub.theatre"
+charge_color = 0xFFFFFF
 
 [teleporter.pad]
 primitive = "box"

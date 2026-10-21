@@ -243,11 +243,12 @@ namespace Comet.ZoneFiles
             }).ToArray();
             chunk.Triggers = toml.Tables(table, "trigger").Select(t =>
             {
-                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "effect" }).ToArray());
+                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "charge_color", "effect" }).ToArray());
                 return new Trigger
                 {
                     Id = toml.String(t.Table, t.Path, "id"),
                     Volume = ReadVolume(toml, t.Table, t.Path),
+                    ChargeColor = t.Table.TryGetValue("charge_color", out var color) ? Color(toml, color, $"{t.Path}.charge_color") : null,
                     Effects = toml.Tables(t.Table, "effect").Select(e =>
                     {
                         var path = $"{t.Path}.{e.Path}";
@@ -603,6 +604,11 @@ namespace Comet.ZoneFiles
             {
                 var trigger = new TomlTable { ["id"] = t.Id };
                 WriteVolume(trigger, t.Volume);
+                if (t.ChargeColor is { } color)
+                {
+                    trigger["charge_color"] = (long)color;
+                }
+
                 WritePad(trigger, t.Volume);
                 AddTables(trigger, "effect", t.Effects, e =>
                 {

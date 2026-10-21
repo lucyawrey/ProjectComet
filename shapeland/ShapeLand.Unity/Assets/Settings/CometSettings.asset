@@ -38,6 +38,7 @@ MonoBehaviour:
   teleporterStandSeconds: 1
   teleporterVolumeHeight: 1
   triggerStandSeconds: 0
+  triggerChargeColor: {r: 1, g: 1, b: 1, a: 1}
   triggerVolumeHeight: 2
   swatches:
   - {r: 0.9490196, g: 0.9490196, b: 0.9490196, a: 1}

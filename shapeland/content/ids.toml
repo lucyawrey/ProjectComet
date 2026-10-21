@@ -56,6 +56,7 @@ theatre = 11
 
 [trigger]
 "tests.plate" = 1
+"hub.bridge" = 2
 
 [zone]
 hub = 1

@@ -144,6 +144,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>How tall a new trigger's volume is, in meters.</summary>
         [JsonRequired] [Key(1)] public float VolumeHeight { get; set; }
+
+        /// <summary>The color a new trigger's pad turns toward while a player stands in it, and that of triggers without their own, as 0xRRGGBB.</summary>
+        [JsonRequired] [Key(2)] public uint ChargeColor { get; set; }
     }
 
     [MessagePackObject]

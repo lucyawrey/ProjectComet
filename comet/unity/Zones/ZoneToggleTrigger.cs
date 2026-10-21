@@ -20,6 +20,9 @@ namespace Comet.Unity
         [Tooltip("What firing does: each effect flips its placements on or off.")]
         public List<Effect> effects = new List<Effect>();
 
+        [Tooltip("The color its pad turns toward while a player stands in it.")]
+        public Color chargeColor = Color.white;
+
         public override string Kind => "trigger";
 
         protected override Color GizmoColor => new Color(1, 0.65f, 0.2f);

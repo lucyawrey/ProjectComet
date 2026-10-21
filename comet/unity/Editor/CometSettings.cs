@@ -91,6 +91,9 @@ namespace Comet.Unity.Editor
         [Tooltip("How long a player stands in a new trigger before it fires, in seconds (0 at once). New triggers have no pad.")]
         public float triggerStandSeconds;
 
+        [Tooltip("The color a new trigger's pad turns toward while a player stands in it.")]
+        public Color triggerChargeColor = Color.white;
+
         [Tooltip("How tall a new trigger's volume is, in meters.")]
         public float triggerVolumeHeight = 2;
 

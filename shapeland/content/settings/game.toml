@@ -38,6 +38,7 @@ charge_color = 0x7E57C2 # the color a new pad turns toward while a player stands
 [triggers]
 stand_seconds = 0.0 # 0 fires as soon as a player steps in, like a pressure plate; new triggers have no pad
 volume_height = 2.0 # how tall a new trigger's volume is
+charge_color = 0xFFFFFF # the color a new trigger's pad (added in its Inspector) turns toward while a player stands in it; each trigger can set its own
 
 # How finely round primitives (cylinders, cones, spheres, arches) are cut, so large and small ones look equally
 # faceted. Tune it in the editor with Comet › Zones › Polygon Budget, which previews it and saves it here.
