@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs ShapeLand locally for development: by default the web client served from the game server, for testing
 # in a browser without opening the Unity editor; with --no-web, just the server, for the editor's play mode or
-# a desktop build. Builds the content, makes the Unity web build in batch mode (skipped when nothing it uses
-# changed since the last one), starts the game server, optionally starts bots, and opens the page. Then it watches the content
+# a desktop build. Builds the content, makes the Unity web build in batch mode (uncompressed, for speed, into
+# artifacts/unity/shapeland/web-dev; skipped when nothing it uses changed since the last one), starts the game server, optionally starts bots, and opens the page. Then it watches the content
 # sources and restarts the server when they change. Ctrl+C stops everything.
 #
 #   tools/shapeland-dev.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
@@ -37,7 +37,9 @@ set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 project="$repo/shapeland/ShapeLand.Unity"
-web="$repo/artifacts/unity/shapeland/web"
+# Its own folder: these builds skip compression (the fast-web-build marker, Builds.cs), and tools/shapeland-testbuild.sh publishes
+# artifacts/unity/shapeland/web, so a playtest build never goes out by mistake.
+web="$repo/artifacts/unity/shapeland/web-dev"
 content="$repo/artifacts/content/shapeland/content.bin"
 
 rebuild=0
@@ -108,7 +110,11 @@ if [ "$serve_web" = 0 ]; then
   web=""
 elif [ "$build" = 1 ] && { [ "$rebuild" = 1 ] || stale; }; then
   echo "== Unity web build (a few minutes)"
-  "$repo/tools/unity-batch.sh" -l Logs/web.log build Web "$web"
+  # Asks for a fast build (Builds.FastWebMarker); the build uses the marker up, and it goes after a failed one too.
+  marker="$project/Library/ShapeLand/fast-web-build"
+  mkdir -p "$(dirname "$marker")" && touch "$marker"
+  "$repo/tools/unity-batch.sh" -l Logs/web.log build Web "$web" || { rm -f "$marker"; exit 1; }
+  rm -f "$marker"
   # Marks the build as up to date, but only a build that made its page.
   [ -f "$web/index.html" ] || { echo "The Unity build made no page at $web/index.html (log: $project/Logs/web.log)" >&2; exit 1; }
   touch "$web/index.html"

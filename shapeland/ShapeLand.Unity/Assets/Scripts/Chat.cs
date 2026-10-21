@@ -65,6 +65,8 @@ namespace ShapeLand.Client
             _input = tree.Q<TextField>("chat-input");
             _hint = tree.Q<Label>("chat-hint");
             _input.RegisterCallback<KeyDownEvent>(OnInputKey, TrickleDown.TrickleDown);
+            tree.Q<Button>("chat-send").clicked += Send;
+            SetPicking(_log, false);
 
             _hud.Join.ChatReceived += OnChat;
             _hud.Join.ChatRefused += OnRefused;
@@ -108,7 +110,8 @@ namespace ShapeLand.Client
                 OpenInput();
             }
 
-            if (Open && ClickedOutsideBox())
+            // Not in the moment it opened: a quick tap on the touch chat button lands outside the box in the same frame.
+            if (Open && !JustToggled && ClickedOutsideBox())
             {
                 CloseInput();
             }
@@ -127,6 +130,7 @@ namespace ShapeLand.Client
             _toggledAt = Time.unscaledTime;
             _inputRow.RemoveFromClassList("hidden");
             _log.verticalScrollerVisibility = ScrollerVisibility.Auto;
+            SetPicking(_log, true);
             _input.value = "";
             _input.Focus();
             _hud.UpdateMoving();
@@ -145,20 +149,23 @@ namespace ShapeLand.Client
             _input.Blur();
             _inputRow.AddToClassList("hidden");
             _log.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+            SetPicking(_log, false);
             ScrollToEnd();
             _hud.UpdateMoving();
         }
 
-        // A mouse click this frame that landed outside the chat box.
+        // A click, tap or pen press this frame that landed outside the chat box (a right click too).
         private bool ClickedOutsideBox()
         {
-            var mouse = Mouse.current;
-            if (mouse == null || _box.panel == null || !(mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
+            var pointer = Pointer.current;
+            if (pointer == null || _box.panel == null
+                || !(pointer.press.wasPressedThisFrame || Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame))
             {
                 return false;
             }
 
-            var screen = mouse.position.ReadValue();
+            var screen = pointer.position.ReadValue();
+
             var point = RuntimePanelUtils.ScreenToPanel(_box.panel, new Vector2(screen.x, Screen.height - screen.y));
             return !_box.worldBound.Contains(point);
         }
@@ -166,6 +173,11 @@ namespace ShapeLand.Client
         // Shows the newest line once the log has laid out the lines just added.
         private void ScrollToEnd() =>
             _log.schedule.Execute(() => _log.verticalScroller.value = _log.verticalScroller.highValue);
+
+        // Whether the log takes the pointer: only while the input is open (to scroll it). Closed, it fades but stays laid
+        // out, over the bottom left where a thumb works the touch stick, so it lets touches through.
+        private static void SetPicking(VisualElement element, bool on) =>
+            element.Query<VisualElement>().ForEach(e => e.pickingMode = on ? PickingMode.Position : PickingMode.Ignore);
 
         /// <summary>Typed in chat, sends the player back to their spawn point instead of saying it.</summary>
         public const string ReturnCommand = "/return";
@@ -257,6 +269,7 @@ namespace ShapeLand.Client
             // Follow new lines unless the player has scrolled back to read older ones.
             var scroller = _log.verticalScroller;
             var follow = !Open || scroller.value >= scroller.highValue - 1;
+            SetPicking(line, Open);
             _log.Add(line);
             while (_log.childCount > MaxLines)
             {

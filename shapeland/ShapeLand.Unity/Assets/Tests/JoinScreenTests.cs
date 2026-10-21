@@ -28,6 +28,7 @@ namespace ShapeLand.Client.Tests
             Field("name").value = "Pebble";
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null, 10);
+            yield return null; // destroyed objects go at the end of the frame
             Assert.That(View.transform.Find(TestGameServer.Zone), Is.Not.Null, "The zone the server put the player in wasn't drawn.");
             Assert.That(View.transform.Find(start), Is.Null, "The start zone is still drawn.");
         }

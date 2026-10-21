@@ -16,7 +16,10 @@ namespace ShapeLand.Client.Editor
     /// <c>Assets/Settings/Build Profiles/</c> (File › Build Profiles); the player settings they need (the web build's
     /// Brotli with the decompression fallback, ShapeLand's page template, WebGPU then WebGL 2, IL2CPP, plain HTTP to
     /// the game server, a 1280×800 window on desktop) are saved in the project settings. Scripts build a profile with
-    /// <c>tools/unity-batch.sh</c>, into the repository's <c>artifacts/unity/shapeland/</c>.
+    /// <c>tools/unity-batch.sh</c>, into the repository's <c>artifacts/unity/shapeland/</c>. A web build asked for with
+    /// the marker file <see cref="FastWebMarker"/> (<c>tools/shapeland-dev.sh</c>, for local playtests) skips
+    /// compression, which takes a minute or two of each build; the marker works whether the build runs in batch mode or
+    /// in an open editor.
     /// </summary>
     public class Builds : IPreprocessBuildWithReport, IPostprocessBuildWithReport
     {
@@ -39,12 +42,39 @@ namespace ShapeLand.Client.Editor
             }
 
             AssetDatabase.Refresh();
+
+            // A fast web build: uncompressed for this build only, the project's own setting put back once it ends, whether
+            // it worked or not (delayCall runs after a failed build too), so it never stays in the saved settings.
+            if (report.summary.platform == BuildTarget.WebGL && File.Exists(FastWebMarker))
+            {
+                File.Delete(FastWebMarker);
+                var compression = PlayerSettings.WebGL.compressionFormat;
+                PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
+                _restoreCompression = compression;
+                EditorApplication.delayCall += RestoreCompression;
+            }
+        }
+
+        /// <summary>The marker asking for the next web build to be fast, relative to the project; used up by it.</summary>
+        public const string FastWebMarker = "Library/ShapeLand/fast-web-build";
+
+        private static WebGLCompressionFormat? _restoreCompression;
+
+        private static void RestoreCompression()
+        {
+            if (_restoreCompression is { } compression)
+            {
+                PlayerSettings.WebGL.compressionFormat = compression;
+                _restoreCompression = null;
+                AssetDatabase.SaveAssets(); // the build saved the project settings uncompressed; save them back
+            }
         }
 
         public void OnPostprocessBuild(BuildReport report)
         {
             if (report.summary.platform == BuildTarget.WebGL)
             {
+                RestoreCompression();
                 FillPageText(Path.Combine(report.summary.outputPath, "index.html"));
             }
         }

@@ -41,6 +41,7 @@ namespace ShapeLand.Client
         private float _pitch = 20;
         private float _distance;
         private ShapeLandControls _controls;
+        private Vector2 _touchTurn;
         private CollisionWorld _world;
         private Vector3? _showcaseCenter;
 
@@ -49,6 +50,9 @@ namespace ShapeLand.Client
 
         /// <summary>What the camera follows, or null while it orbits the island.</summary>
         public Transform Target { get; private set; }
+
+        /// <summary>Turns the camera by <paramref name="degrees"/> (yaw, pitch) on its next update: a touch drag (<see cref="TouchControls"/>).</summary>
+        public void Turn(Vector2 degrees) => _touchTurn += degrees;
 
         /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen).</summary>
         public void Showcase(Vector3 center) => _showcaseCenter = center;
@@ -76,6 +80,7 @@ namespace ShapeLand.Client
         {
             if (Target == null)
             {
+                _touchTurn = Vector2.zero; // a drag without a target turns nothing, rather than all at once later
                 if (_showcaseCenter is Vector3 center)
                 {
                     Yaw = Mathf.Repeat(Yaw + showcase.z * Time.unscaledDeltaTime, 360);
@@ -87,7 +92,8 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var turn = _controls.Game.StickLook.ReadValue<Vector2>() * stickDegreesPerSecond * Time.unscaledDeltaTime;
+            var turn = _controls.Game.StickLook.ReadValue<Vector2>() * stickDegreesPerSecond * Time.unscaledDeltaTime + _touchTurn;
+            _touchTurn = Vector2.zero;
             if (_controls.Game.OrbitHeld.IsPressed())
             {
                 turn += _controls.Game.MouseLook.ReadValue<Vector2>() * mouseDegreesPerPixel;

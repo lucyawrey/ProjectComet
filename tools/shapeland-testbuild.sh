@@ -4,12 +4,15 @@
 # terminated after. Run it from your own machine; nothing here needs an agent.
 #
 #   tools/shapeland-testbuild.sh setup                 once per AWS account: the S3 bucket and the firewall rules
-#   tools/shapeland-testbuild.sh up [--hours 24]       build and start the game server, and point its hostname at it
+#   tools/shapeland-testbuild.sh up [--hours 24] [--bots 0]   build and start the game server, and point its hostname at it
 #   tools/shapeland-testbuild.sh down                  terminate the game server and park its hostname
 #   tools/shapeland-testbuild.sh status                what's running, and whether the server answers
 #   tools/shapeland-testbuild.sh log                   the server's boot log (from its console)
 #   tools/shapeland-testbuild.sh page [--no-build]     build the web page and publish it on Vercel
+#   tools/shapeland-testbuild.sh redeploy [options]    page, then up, ending a server that's already up first
+#                                                      (after the new one is built, so it's down only briefly)
 #
+#   --bots N       start N honest bots on the server's instance too, so visitors see someone moving (default 0)
 #   --hours H      the server shuts itself down (and is terminated) after H hours, so a forgotten one stops
 #                  costing money; 0 for never (default 24). `down` ends it sooner.
 #   --no-build     publish the last web build as it is
@@ -42,13 +45,16 @@ vercel_project=shapeland
 . "$repo/tools/shapeland-net-profiles.sh" # for quietly
 
 command=${1:-}
-[ -n "$command" ] || { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+[ -n "$command" ] || { sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 shift
 hours=24
+bots=0
 build=1
+packaged=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --hours) hours="$2"; shift 2 ;;
+    --bots) bots="$2"; shift 2 ;;
     --no-build) build=0; shift ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
@@ -148,13 +154,17 @@ setup() {
   echo "Set up: bucket $name, security group $sg."
 }
 
-# The server package: the game server for Linux on ARM (self-contained), its content and the Caddyfile.
+# The server package: the game server for Linux on ARM (self-contained), its content and the Caddyfile, and the
+# bots when any are asked for.
 package() {
   local out="$work/package"
   rm -rf "$out" && mkdir -p "$out"
   echo "== Building the game server package"
   quietly dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
   quietly dotnet publish "$repo/shapeland/src/ShapeLand.GameServer" -c Release -r linux-arm64 --self-contained -o "$out/server"
+  if [ "$bots" -gt 0 ]; then
+    quietly dotnet publish "$repo/shapeland/src/ShapeLand.Bots" -c Release -r linux-arm64 --self-contained -o "$out/bots"
+  fi
   cp "$content" "$out/content.bin"
   cp "$repo/shapeland/deploy/Caddyfile" "$out/Caddyfile"
   tar -czf "$work/package.tar.gz" -C "$out" .
@@ -168,7 +178,7 @@ up() {
   sg=$(security_group)
   [ "$sg" != None ] || { echo "Run setup first." >&2; exit 1; }
 
-  package
+  [ "$packaged" -eq 1 ] || package
   name=$(bucket)
   key="package-$(date +%Y%m%d-%H%M%S).tar.gz"
   aws s3 cp --quiet "$work/package.tar.gz" "s3://$name/$key"
@@ -180,6 +190,7 @@ up() {
   boot=${boot//\{\{ACME_EMAIL\}\}/"$ACME_EMAIL"}
   boot=${boot//\{\{PACKAGE_URL\}\}/"$url"}
   boot=${boot//\{\{HOURS\}\}/"$hours"}
+  boot=${boot//\{\{BOTS\}\}/"$bots"}
   printf '%s\n' "$boot" > "$work/boot.sh"
 
   echo "== Starting a $instance_type in $region"
@@ -199,7 +210,7 @@ up() {
   echo "== Waiting for the server to answer at https://$server_host (a few minutes: boot, then a certificate)"
   for _ in $(seq 1 60); do
     if answers "$ip"; then
-      echo "Up: $id at $ip. Play at https://$page_host. It shuts down by itself in $hours hours (0: never); down ends it sooner."
+      echo "Up: $id at $ip, with $bots bots. Play at https://$page_host. It shuts down by itself in $hours hours (0: never); down ends it sooner."
       return
     fi
     sleep 10
@@ -247,6 +258,8 @@ page() {
   local out="$work/$vercel_project" url
   if [ "$build" -eq 1 ]; then
     echo "== Building the web page (Unity, a few minutes)"
+    # Never a fast dev build (tools/shapeland-dev.sh): a marker it left behind would make this one uncompressed.
+    rm -f "$repo/shapeland/ShapeLand.Unity/Library/ShapeLand/fast-web-build"
     "$repo/tools/unity-batch.sh" build Web "$web"
   fi
   [ -f "$web/index.html" ] || { echo "No web build at $web." >&2; exit 1; }
@@ -273,7 +286,15 @@ page() {
   echo "Published: https://$page_host"
 }
 
+redeploy() {
+  page
+  package
+  packaged=1
+  [ -z "$(instances)" ] || down
+  up
+}
+
 case "$command" in
-  setup | up | down | status | log | page) "$command" ;;
-  *) echo "Unknown command: $command (setup, up, down, status, log or page)" >&2; exit 2 ;;
+  setup | up | down | status | log | page | redeploy) "$command" ;;
+  *) echo "Unknown command: $command (setup, up, down, status, log, page or redeploy)" >&2; exit 2 ;;
 esac

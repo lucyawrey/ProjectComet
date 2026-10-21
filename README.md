@@ -129,6 +129,7 @@ tools/shapeland-testbuild.sh up --hours 24  # start the game server; it stops it
 tools/shapeland-testbuild.sh status         # what's running, and whether the server answers
 tools/shapeland-testbuild.sh log            # the server's boot log (from its console)
 tools/shapeland-testbuild.sh down           # terminate it when done
+tools/shapeland-testbuild.sh redeploy       # page, then up, replacing a server that's already up
 ```
 
 `up --hours H` sets when the server shuts itself down (default 24; 0 for never). `page --no-build` publishes the last web build as it is.

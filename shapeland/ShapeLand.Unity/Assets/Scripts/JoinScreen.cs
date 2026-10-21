@@ -172,7 +172,17 @@ namespace ShapeLand.Client
             _eyeColor = spawn.EyeColor;
             ShowError(null);
             Show();
-            _name.Focus();
+            FocusName();
+        }
+
+        // Ready to type a name, except on a phone, where focusing the field would bring up its keyboard over the card
+        // before the player has looked at it.
+        private void FocusName()
+        {
+            if (!WebPage.IsPhone)
+            {
+                _name.Focus();
+            }
         }
 
         /// <summary>Closes the card without changing the look.</summary>
@@ -242,7 +252,7 @@ namespace ShapeLand.Client
             AddSwatches(_colors, _content.Settings.Colors.Body, color => _color = color);
             AddSwatches(_eyes, _content.Settings.Colors.Eyes, color => _eyeColor = color);
             Show();
-            _name.Focus();
+            FocusName();
             if (WebPage.TakeRejoin())
             {
                 Submit(); // the page reloaded for new content while rejoining; carry on with the remembered choices
@@ -421,6 +431,12 @@ namespace ShapeLand.Client
         // While rejoining, tries again each second while the card waits for the player.
         private void Update()
         {
+            // Kept out of sight while a phone page shows its "Tap to play" card over the game.
+            var waiting = !WebPage.Playing;
+            if (waiting != _root.ClassListContains("waiting"))
+            {
+                _root.EnableInClassList("waiting", waiting);
+            }
             if (_rejoinUntil is not float until || !_joinButton.enabledSelf || Time.unscaledTime < _nextRejoin)
             {
                 return;

@@ -30,14 +30,24 @@ The Game scene (`Assets/Scenes/Game.unity`) holds:
 | Object | Components | What they do |
 | --- | --- | --- |
 | Game | `CometConnection`, `JoinClient`, `GameView`, `JoinScreen` | Connecting and joining, and the zone the player is in with its flipped placements (`JoinClient`); drawing the zone's terrain, placed objects and pads (charging as the player stands in them), and the players (`GameView`); the join card for name, shape and colors, with the picked shape's start zone behind it (`JoinScreen`, `Assets/UI/JoinScreen.uxml`). |
-| Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, and the network numbers (F3). |
+| Hud | `Hud`, `Chat`, `NameTags`, `NetStats` | The in-game overlay (`Assets/UI/Hud.uxml`): the Change Look button and respawn fade, the chat box, name tags and speech bubbles, the network numbers (F3), and on phones the touch controls (`TouchControls`, below). |
 | Camera | `OrbitCamera` | The third-person camera. |
 
 `GameView` draws primitives without a name as one mesh per chunk (Vertex Color Lit, colors in the vertices), and named and blockout ones on their own (blockout in `Assets/Materials/Blockout.mat`). Other pieces in `Assets/Scripts`: `LocalPlayer` (the player's own movement, on a fixed step, and its reports), `ShapeBody` (a drawn shape, built from its look by `GameView.BuildShape`: its colors and fading), `ShapePreview` (the join card's turning shape, `Assets/Prefabs/ShapePreview.prefab`), `Vectors` (conversions between shared code's vectors and Unity's), `RespawnFade` (how falling fades) and `ShapeLandControls` (generated from the bindings in `Assets/ShapeLandControls.inputactions`; edit them in the Input System's window).
 
 The builds are the build profiles in `Assets/Settings/Build Profiles/` (File › Build Profiles). The editor scripts in `Assets/Editor` add ShapeLand's steps to every build (`Builds`: the content copied in, the page's text filled in) and keep the asset library and Comet settings in step with the content each time Comet copies it in (`ContentSync`). Comet's own Content › Build menu runs the content build, and saving a zone does too.
 
-The play-mode tests (`Assets/Tests`) load the Game scene against a real game server and join through the card: `JoinScreenTests`, `ChatTests` and `PlayTests`. `ClientRulesTests` need no server, and also check that every interface text key the scripts, UXML and web page use exists.
+The play-mode tests (`Assets/Tests`) load the Game scene against a real game server and join through the card: `JoinScreenTests`, `ChatTests` and `PlayTests`. `ClientRulesTests` and `TouchControlsTests` need no server; the first also checks that every interface text key the scripts, UXML and web page use exists.
+
+#### Phones
+
+ShapeLand plays in phone browsers from the same web build and page, in landscape:
+
+- **The page** (`Assets/WebGLTemplates/ShapeLand`) counts a touch screen whose short side is phone-sized as a phone (the `phone` class on its root). There the game fills the screen with no header or footer, a "Tap to play" card goes full screen and locks landscape where the browser allows it (Android), a card asks to turn a phone held upright (on iPhone, to turn off Rotation Lock), and the game draws at most 1.5 pixels per CSS pixel. iPhone Safari can't go full screen, so the card says to Add to Home Screen; `manifest.webmanifest` opens that as a full-screen landscape app (its icon comes later).
+- **What the page tells the game** (`WebPage`, through `Plugins/WebGL/ShapeLandPage.jslib`): whether it's a phone, whether it's past the tap card (the join card waits behind it), and the screen's safe area. In the editor, the Device Simulator set to a phone (Game view › Simulator) counts as a phone, so the phone layout can be checked in play mode without a web build.
+- **The interface on a phone** scales from an 800 × 500 design size instead of the panel settings' 960 × 600 (`Hud`), so a panel pixel is about a CSS pixel; the join card doesn't focus its name field (that would bring up the keyboard).
+- **Touch controls** (`TouchControls`, the `touch` layer in `Hud.uxml`): a stick wherever a thumb lands on the left half, a camera drag on the right half, Jump at the bottom right, and Change Look, Return to Spawn, chat and the network numbers (F3) at the top left, standing in for the Change Look button and the chat hint. The stick and Jump drive a virtual gamepad of their own, so the input actions read them like a real one. They show while the player can move and the screen has been touched (from the start on a phone), keep to the safe area, and hide when a keyboard or a real gamepad is used away from a phone. Chat gets a Send button on phones, and a tap outside closes it.
+- **Icons** are from published packs (Kenney, CC0; Material Symbols, Apache 2.0), credited in `Assets/UI/Icons/README.md` with their licenses beside them.
 
 ### Interface text: `content/strings/en.toml`
 
@@ -101,7 +111,8 @@ How much faster or higher than the rules a report may be before the server snaps
 
 ### Trying a change
 
-- **In a browser:** `tools/shapeland-dev.sh` rebuilds the content and the server on every run, and the web build whenever the client's code changed.
+- **In a browser:** `tools/shapeland-dev.sh` rebuilds the content and the server on every run, and the web build whenever the client's code changed. Its web builds skip compression to build quicker (into `artifacts/unity/shapeland/web-dev`).
+- **On a phone:** `tools/shapeland-dev.sh --lan`, then open the address it prints on a phone on the same network (the computer's firewall must let the port in). For layout alone, the editor's Device Simulator is quicker (Phones, above).
 - **In the editor (fastest):** press Play: the editor builds and starts the game server on `localhost:5080` if none is running ([Comet's local game server](../comet/README.md#the-local-game-server)), and keeps it running between plays. Comet › Server › Options… adds bots, the web build and the local network, so others can join a playtest. `tools/shapeland-dev.sh --no-web` still works instead (with `--net` profiles and cheaters); the editor uses a server it finds running and leaves it alone. Restart play mode after each change, which copies in the new content as it starts: the server and play mode each load the numbers once. If they still differ, the join screen says so.
 - **Content changes** (the numbers under `content/`, zones saved from Comet › Zones) need no rerun: the editor's own server restarts after each content build, and while it runs, `shapeland-dev.sh` watches `content/`, rebuilds the content when something there changes and restarts the server and bots. Clients rejoin by themselves (the join card tries for a minute after the server shuts down), and a browser page reloads first to load the new content; play mode says to restart it. A failed build leaves the old server running. Code changes still need a rerun; `--no-watch` turns the watching off.
 - **Play-mode tests** read the same copy, refreshed when they start; rebuild the content first.
