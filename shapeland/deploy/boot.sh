@@ -8,6 +8,7 @@ HOST='{{HOST}}'
 ACME_EMAIL='{{ACME_EMAIL}}'
 PACKAGE_URL='{{PACKAGE_URL}}'
 HOURS='{{HOURS}}'
+BOTS='{{BOTS}}'
 CADDY_VERSION=2.10.0
 CADDY_SHA512=6d100bfd609e8cfe6a51afe1b86066ac68f53ac56670c74a7d7537d93c643aa7f0e82b9f3083218eee1d369a427bfcdafcb445c7a730f9fc0ddf546401d95484
 
@@ -58,8 +59,31 @@ Restart=on-failure
 WantedBy=multi-user.target
 UNIT
 
+# Honest bots on the same instance, so visitors see someone moving; restarted if they stop (as when the server does).
+if [ "$BOTS" -gt 0 ]; then
+  cat > /etc/systemd/system/shapeland-bots.service <<UNIT
+[Unit]
+Description=ShapeLand bots
+After=shapeland.service
+
+[Service]
+User=shapeland
+WorkingDirectory=/opt/shapeland
+ExecStart=/opt/shapeland/bots/ShapeLand.Bots --url ws://127.0.0.1:5080/ws --count $BOTS --cheaters 0 --content /opt/shapeland/content.bin
+Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+fi
+
 systemctl daemon-reload
 systemctl enable --now shapeland.service
+if [ "$BOTS" -gt 0 ]; then
+  systemctl enable --now shapeland-bots.service
+fi
 
 # Caddy asks for a certificate as it starts, which only works once the hostname points here: wait for the
 # script's DNS update (up to 15 minutes) rather than start into backoff.

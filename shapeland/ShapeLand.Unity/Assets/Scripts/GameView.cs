@@ -80,6 +80,8 @@ namespace ShapeLand.Client
 
         public Camera Camera => orbitCamera.GetComponent<Camera>();
 
+        public OrbitCamera OrbitCamera => orbitCamera;
+
         /// <summary>A player's drawn shape (this one's too), or null.</summary>
         public ShapeBody ShapeOf(uint entityId) =>
             Player != null && entityId == _join.Session?.EntityId ? _playerShape

@@ -46,7 +46,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .fs:disabled { opacity: 0.4; cursor: default; }
 .btn:focus-visible, .fs:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .page-root [data-state] { display: none; }
-body[data-state="checking"] [data-state~="checking"], body[data-state="loading"] [data-state~="loading"], body[data-state="closed"] [data-state~="closed"], body[data-state="failed"] [data-state~="failed"] { display: flex; }
+body[data-state="checking"] [data-state~="checking"], body[data-state="loading"] [data-state~="loading"], body[data-state="tap"] [data-state~="tap"], body[data-state="closed"] [data-state~="closed"], body[data-state="failed"] [data-state~="failed"] { display: flex; }
 body[data-state] .status [data-state] { display: none; }
-body[data-state="checking"] .status [data-state~="checking"], body[data-state="open"] .status [data-state~="open"], body[data-state="loading"] .status [data-state~="loading"], body[data-state="closed"] .status [data-state~="closed"], body[data-state="failed"] .status [data-state~="failed"] { display: inline; }
+body[data-state="checking"] .status [data-state~="checking"], body[data-state="open"] .status [data-state~="open"], body[data-state="loading"] .status [data-state~="loading"], body[data-state="tap"] .status [data-state~="tap"], body[data-state="closed"] .status [data-state~="closed"], body[data-state="failed"] .status [data-state~="failed"] { display: inline; }
 @media (prefers-reduced-motion: no-preference) { .bar span { transition: width 0.3s; } }
+
+/* Phones: the game fills the screen (under any notch; the cards and the game's HUD keep clear of it), with no header
+   or controls footer, and no page scrolling, zooming or text selection getting in the way of touch play. */
+.tap { cursor: pointer; }
+.home-hint { display: none; }
+.no-fullscreen:not(.standalone) .home-hint, .no-fullscreen .rotate .home-hint { display: block; }
+.rotate { display: none; }
+#safe-area { position: fixed; inset: 0; visibility: hidden; pointer-events: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+html.phone, html.phone body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+html.phone body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+html.phone .site { padding: 0; gap: 0; max-width: none; }
+html.phone .top, html.phone .under { display: none; }
+html.phone .frame { position: fixed; inset: 0; aspect-ratio: auto; border: 0; border-radius: 0; }
+html.phone .over, html.phone .rotate { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+@media (orientation: portrait) {
+  html.phone .rotate { display: flex; position: fixed; inset: 0; z-index: 2; align-items: center; justify-content: center; background: var(--page); }
+}

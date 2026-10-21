@@ -132,9 +132,9 @@ namespace ShapeLand.Client.Tests
                     process.Kill();
                 }
             }
-            catch (InvalidOperationException)
+            catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception)
             {
-                // It exited between the check and the kill.
+                // It exited between the check and the kill (Unity's Mono reports that as a Win32Exception).
             }
 
             process.Dispose();
