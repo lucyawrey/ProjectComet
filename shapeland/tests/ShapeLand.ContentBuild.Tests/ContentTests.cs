@@ -112,7 +112,7 @@ public class ContentTests
     {
         var zone = TestTerrain.GenerateZone(1);
         var island = new ZoneTerrain(zone)["island"];
-        var blocks = zone.Chunks.SelectMany(c => c.Placements).Where(p => p.Name == null).ToList();
+        var blocks = zone.Chunks.SelectMany(c => c.Placements).Where(p => p.Tag == null).ToList();
 
         Assert.Equal(4, blocks.Count);
         Assert.All(blocks, b =>

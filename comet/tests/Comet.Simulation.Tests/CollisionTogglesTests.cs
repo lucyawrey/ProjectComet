@@ -7,7 +7,7 @@ public class CollisionTogglesTests
     private static CollisionMesh Door(bool startsOff = false)
     {
         var door = TestWorlds.Block(8, 8, 1, new Vector3(2, 2, 2));
-        door.Name = "door";
+        door.Tag = "door";
         door.StartsOff = startsOff;
         return door;
     }
@@ -35,10 +35,10 @@ public class CollisionTogglesTests
     public void FlippingSwapsMeshesThatStartOnForOnesThatStartOff()
     {
         var open = TestWorlds.Block(12, 8, 1, new Vector3(1, 1, 1));
-        open.Name = "door";
+        open.Tag = "door";
         open.StartsOff = true;
         var world = TestWorlds.Create(Door(), open);
-        var (closed, opened) = (world.MeshesNamed("door")[0], world.MeshesNamed("door")[1]);
+        var (closed, opened) = (world.MeshesTagged("door")[0], world.MeshesTagged("door")[1]);
 
         Assert.Equal((true, false), (world.IsOn(closed), world.IsOn(opened)));
         world.SetFlipped("door", true);
@@ -49,7 +49,7 @@ public class CollisionTogglesTests
     public void APlayerPassesThroughTheirOwnSet()
     {
         var world = TestWorlds.Create(Door());
-        var door = Assert.Single(world.MeshesNamed("door"));
+        var door = Assert.Single(world.MeshesTagged("door"));
         var inDoor = new Vector3(8, 1, 8);
         var passThrough = new HashSet<int> { door };
 
@@ -64,7 +64,7 @@ public class CollisionTogglesTests
     {
         var world = TestWorlds.Create(Door());
         var state = new MotorState { Position = new Vector3(8, 1, 8), Grounded = true };
-        var passThrough = new HashSet<int>(world.MeshesNamed("door"));
+        var passThrough = new HashSet<int>(world.MeshesTagged("door"));
         for (var i = 0; i < 24; i++)
         {
             PlayerMotor.Step(ref state, new Vector2(1, 0), jump: false, 1f / 30, 5, 5, world, Rules, passThrough);

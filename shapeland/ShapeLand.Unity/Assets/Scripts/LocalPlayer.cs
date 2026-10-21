@@ -98,10 +98,10 @@ namespace ShapeLand.Client
         /// <summary>Moves on as <paramref name="shape"/> from now on, with its speed and jump.</summary>
         public void ChangeShape(Shape shape) => _shape = shape;
 
-        /// <summary>Placements named <paramref name="name"/> flipped: any that turned solid around the player are passed through.</summary>
-        public void Flipped(string name)
+        /// <summary>Placements tagged <paramref name="tag"/> flipped: any that turned solid around the player are passed through.</summary>
+        public void Flipped(string tag)
         {
-            foreach (var mesh in _world.MeshesNamed(name))
+            foreach (var mesh in _world.MeshesTagged(tag))
             {
                 if (_world.IsOn(mesh) && _world.Overlaps(mesh, _motor.Position, _rules.BodyRadius, _rules.BodyHeight))
                 {

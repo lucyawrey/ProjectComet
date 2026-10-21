@@ -18,7 +18,7 @@ namespace Comet.ZoneFiles
     public static class ZoneValidation
     {
         private static readonly Regex NamePattern = new Regex("^[a-z][a-z0-9_]*$");
-        private static readonly Regex PlacementName = new Regex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$");
+        private static readonly Regex PlacementTag = new Regex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$");
 
         /// <summary>A name in ids and in the zone: a lowercase letter, then lowercase letters, digits and underscores.</summary>
         public static bool IsName(string name) => NamePattern.IsMatch(name);
@@ -91,18 +91,18 @@ namespace Comet.ZoneFiles
                 }
             }
 
-            // Names may be shared: a toggle effect flips every placement with its name.
-            var placementNames = new HashSet<string>();
+            // Tags may be shared: a toggle effect flips every placement with its tag.
+            var placementTags = new HashSet<string>();
             foreach (var chunk in zone.Chunks)
             {
-                foreach (var placement in chunk.Placements.Where(p => p.Name is not null))
+                foreach (var placement in chunk.Placements.Where(p => p.Tag is not null))
                 {
-                    if (!PlacementName.IsMatch(placement.Name!))
+                    if (!PlacementTag.IsMatch(placement.Tag!))
                     {
-                        Error(ZoneFolder.ChunkFile(chunk.Coord), $"placement of {Placed(placement)}: '{placement.Name}' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.");
+                        Error(ZoneFolder.ChunkFile(chunk.Coord), $"placement of {Placed(placement)}: '{placement.Tag}' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.");
                     }
 
-                    placementNames.Add(placement.Name!);
+                    placementTags.Add(placement.Tag!);
                 }
             }
 
@@ -143,9 +143,9 @@ namespace Comet.ZoneFiles
                     CheckTrigger(trigger.Id, "trigger", trigger.Volume, chunk.Coord, zoneName, idFiles, file, Error);
                     foreach (var effect in trigger.Effects)
                     {
-                        if (!placementNames.Contains(effect.Name))
+                        if (!placementTags.Contains(effect.Tag))
                         {
-                            Error(file, $"{trigger.Id}: no placement in the zone is named '{effect.Name}'.");
+                            Error(file, $"{trigger.Id}: no placement in the zone is tagged '{effect.Tag}'.");
                         }
 
                         if (effect.RevertSeconds < 0)
@@ -385,7 +385,7 @@ namespace Comet.ZoneFiles
         private static bool Even(Vector3 scale) => Math.Abs(scale.X - scale.Y) <= 1e-4f && Math.Abs(scale.X - scale.Z) <= 1e-4f;
 
         // What a placement places and how, wherever it is: a prop id, a primitive's values or a group id; a scale
-        // above 0 (even for a group); a role only on a group's parts, a name and starting off only in a zone, and no
+        // above 0 (even for a group); a role only on a group's parts, a tag and starting off only in a zone, and no
         // color of a group copy's own.
         private static void CheckPlaced(Placement placement, string what, bool inGroup, string file, Action<string, string> error)
         {
@@ -420,9 +420,9 @@ namespace Comet.ZoneFiles
                 error(file, $"{what}: scale must be above 0 on every axis.");
             }
 
-            if (inGroup && placement.Name != null)
+            if (inGroup && placement.Tag != null)
             {
-                error(file, $"{what}: a group's parts have no name; give them a role for game code to find them by, or name the copy.");
+                error(file, $"{what}: a group's parts have no tag; give them a role for game code to find them by, or tag the copy.");
             }
 
             if (inGroup && placement.Off)
@@ -674,9 +674,9 @@ namespace Comet.ZoneFiles
                     CheckPlaced(pad, $"{id}'s pad", inGroup: false, file, error);
                 }
 
-                if (pad.Name is not null || pad.Off)
+                if (pad.Tag is not null || pad.Off)
                 {
-                    error(file, $"{id}: a pad can't be named or start off; pads aren't toggled.");
+                    error(file, $"{id}: a pad can't be tagged or start off; pads aren't toggled.");
                 }
 
                 CheckPivot(chunk, pad.Position, $"{id}'s pad", file, error);

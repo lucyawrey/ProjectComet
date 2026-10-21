@@ -99,8 +99,8 @@ namespace ShapeLand.Client
         public event Action<Zone> ZoneChanged;
 
         /// <summary>
-        /// Triggers flipped the placements with a name from how they start (true), or back (false); <see cref="World"/>
-        /// already has them so. Also raised for each flipped name on entering a zone.
+        /// Triggers flipped the placements with a tag from how they start (true), or back (false); <see cref="World"/>
+        /// already has them so. Also raised for each flipped tag on entering a zone.
         /// </summary>
         public event Action<string, bool> PlacementsFlipped;
 
@@ -400,15 +400,15 @@ namespace ShapeLand.Client
                     // correction that follows lands in it and the player's movement never runs on the old zone.
                     EnterZone(zone, rebuild: true);
                     Session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(_content, World);
-                    foreach (var name in entered.Flipped ?? Array.Empty<string>())
+                    foreach (var tag in entered.Flipped ?? Array.Empty<string>())
                     {
-                        Flip(name, true);
+                        Flip(tag, true);
                     }
 
                     break;
                 case ShapeLandMessageIds.PlacementsFlipped:
                     var flipped = FrameReader.Decode<PlacementsFlipped>(payload, options);
-                    Flip(flipped.Name, flipped.Flipped);
+                    Flip(flipped.Tag, flipped.Flipped);
                     break;
                 case ShapeLandMessageIds.ChatRejected:
                     var refusal = FrameReader.Decode<ChatRejected>(payload, options).Reason;
@@ -443,20 +443,20 @@ namespace ShapeLand.Client
             ZoneChanged?.Invoke(zone);
         }
 
-        private void Flip(string name, bool flipped)
+        private void Flip(string tag, bool flipped)
         {
-            World.SetFlipped(name, flipped);
+            World.SetFlipped(tag, flipped);
             if (flipped)
             {
-                _flipped.Add(name);
+                _flipped.Add(tag);
             }
             else
             {
-                _flipped.Remove(name);
+                _flipped.Remove(tag);
             }
 
-            Log($"{name} {(flipped ? "flipped" : "back")}");
-            PlacementsFlipped?.Invoke(name, flipped);
+            Log($"{tag} {(flipped ? "flipped" : "back")}");
+            PlacementsFlipped?.Invoke(tag, flipped);
         }
 
         private void Fail(JoinFailure failure, string error)

@@ -275,7 +275,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         foreach (var client in new[] { ada, bea })
         {
             var flipped = await client.NextAsync<PlacementsFlipped>(ShapeLandMessageIds.PlacementsFlipped);
-            Assert.Equal(("door", true), (flipped.Name, flipped.Flipped));
+            Assert.Equal(("door", true), (flipped.Tag, flipped.Flipped));
         }
 
         // Someone joining now learns the door is open.
@@ -286,7 +286,7 @@ public sealed class EndToEndTests : IAsyncLifetime
 
         // The plate's effect flips the door back after its revert time (3 s), however long Ada stands on it.
         var back = await bea.NextAsync<PlacementsFlipped>(ShapeLandMessageIds.PlacementsFlipped);
-        Assert.Equal(("door", false), (back.Name, back.Flipped));
+        Assert.Equal(("door", false), (back.Tag, back.Flipped));
     }
 
     [Fact]
@@ -305,7 +305,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         world.SetFlipped("door", false);
 
         // Walking out through it isn't snapped back.
-        await ada.WalkAsync(world, at, new Vector3(21, 0, 12), sequence: 0, passThrough: new HashSet<int>(world.MeshesNamed("door")));
+        await ada.WalkAsync(world, at, new Vector3(21, 0, 12), sequence: 0, passThrough: new HashSet<int>(world.MeshesTagged("door")));
         Assert.Null(await ada.TryNextAsync<PositionCorrection>(MessageIds.PositionCorrection, TimeSpan.FromSeconds(0.5)));
     }
 

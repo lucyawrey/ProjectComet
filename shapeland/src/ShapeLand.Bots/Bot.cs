@@ -282,15 +282,15 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 var entered = FrameReader.Decode<ZoneEntered>(payload, options);
                 _world = worlds.For(content.Zones[entered.Zone]);
                 _session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(content, _world);
-                foreach (var name in entered.Flipped ?? [])
+                foreach (var tag in entered.Flipped ?? [])
                 {
-                    _world.SetFlipped(name, true);
+                    _world.SetFlipped(tag, true);
                 }
 
                 break;
             case ShapeLandMessageIds.PlacementsFlipped:
                 var flipped = FrameReader.Decode<PlacementsFlipped>(payload, options);
-                _world.SetFlipped(flipped.Name, flipped.Flipped);
+                _world.SetFlipped(flipped.Tag, flipped.Flipped);
                 break;
             case ShapeLandMessageIds.JoinRejected:
                 Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;

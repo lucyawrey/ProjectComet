@@ -226,7 +226,7 @@ namespace Comet.Unity.Editor
                 {
                     Id = trigger.id,
                     Volume = VolumeOf(trigger),
-                    Effects = trigger.effects.Select(e => new ToggleEffect { Name = e.toggle, RevertSeconds = e.revertSeconds }).ToArray(),
+                    Effects = trigger.effects.Select(e => new ToggleEffect { Tag = e.toggleTag, RevertSeconds = e.revertSeconds }).ToArray(),
                     ChargeColor = PlacedColors.ToRgb(trigger.chargeColor),
                 }).ToArray();
             }
@@ -369,7 +369,7 @@ namespace Comet.Unity.Editor
                 foreach (var trigger in chunk.Triggers)
                 {
                     var component = CreateTrigger<ZoneToggleTrigger>(root, trigger.Id, trigger.Volume, settings);
-                    component.effects = trigger.Effects.Select(e => new ZoneToggleTrigger.Effect { toggle = e.Name, revertSeconds = e.RevertSeconds }).ToList();
+                    component.effects = trigger.Effects.Select(e => new ZoneToggleTrigger.Effect { toggleTag = e.Tag, revertSeconds = e.RevertSeconds }).ToList();
                     component.chargeColor = trigger.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.triggerChargeColor;
                 }
 
@@ -432,7 +432,7 @@ namespace Comet.Unity.Editor
 
             var marker = thing.GetComponent<ZonePlacement>() ?? thing.AddComponent<ZonePlacement>();
             marker.prop = placement.Prop;
-            marker.placementName = placement.Name ?? "";
+            marker.placementTag = placement.Tag ?? "";
             marker.blockout = placement.Blockout;
             marker.role = placement.Role ?? "";
             marker.roleColors = placement.Colors?.OrderBy(c => c.Key, System.StringComparer.Ordinal)
@@ -460,7 +460,7 @@ namespace Comet.Unity.Editor
                 Group = placed.IsGroup ? placed.group : null,
                 Blockout = placed.blockout,
                 Off = !placed.gameObject.activeSelf,
-                Name = string.IsNullOrEmpty(placed.placementName) ? null : placed.placementName,
+                Tag = string.IsNullOrEmpty(placed.placementTag) ? null : placed.placementTag,
                 Position = ToNumerics(position),
                 Rotation = Angles(rotation.eulerAngles),
                 Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),

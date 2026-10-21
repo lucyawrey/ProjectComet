@@ -45,9 +45,9 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
-        // The drawn zone's pads, and its named placements by name (with whether each starts off), for flipping.
+        // The drawn zone's pads, and its tagged placements by tag (with whether each starts off), for flipping.
         private readonly List<Pad> _pads = new List<Pad>();
-        private readonly Dictionary<string, List<(GameObject Thing, bool StartsOff)>> _named = new Dictionary<string, List<(GameObject, bool)>>();
+        private readonly Dictionary<string, List<(GameObject Thing, bool StartsOff)>> _tagged = new Dictionary<string, List<(GameObject, bool)>>();
         // The player standing in spawn points, teleporters and triggers, timed as the server times them, to draw pads charging.
         private readonly TriggerCharge _spawnCharge = new TriggerCharge();
         private readonly TriggerCharge _teleportCharge = new TriggerCharge();
@@ -144,7 +144,7 @@ namespace ShapeLand.Client
 
             Destroy(_drawnZone.gameObject);
             _pads.Clear();
-            _named.Clear();
+            _tagged.Clear();
             _spawnCharge.Clear();
             _teleportCharge.Clear();
             _triggerCharge.Clear();
@@ -159,10 +159,10 @@ namespace ShapeLand.Client
             }
         }
 
-        // Shows or hides the placements with a name as triggers flip them.
-        private void OnFlipped(string name, bool flipped)
+        // Shows or hides the placements with a tag as triggers flip them.
+        private void OnFlipped(string tag, bool flipped)
         {
-            if (_named.TryGetValue(name, out var things))
+            if (_tagged.TryGetValue(tag, out var things))
             {
                 foreach (var (thing, startsOff) in things)
                 {
@@ -195,28 +195,28 @@ namespace ShapeLand.Client
             placed.SetParent(_drawnZone, false);
             foreach (var chunk in zone.Chunks)
             {
-                // Primitives without a name are drawn as one mesh per chunk; named ones stay apart for game code to find,
+                // Primitives without a tag are drawn as one mesh per chunk; tagged ones stay apart for game code to find,
                 // and blockout ones for their own material.
                 var primitives = new PrimitiveMeshes.Builder();
                 var toChunk = System.Numerics.Matrix4x4.CreateTranslation(-chunk.Coord.Origin);
                 foreach (var placement in chunk.Placements)
                 {
-                    if (placement.Primitive != null && placement.Name == null && !placement.Blockout)
+                    if (placement.Primitive != null && placement.Tag == null && !placement.Blockout)
                     {
                         primitives.Add(PrimitiveMesher.For(placement, content.Settings.Primitives), placement.Matrix() * toChunk, placement.Color ?? content.Settings.World.PlacedColor);
                         continue;
                     }
 
                     var thing = placement.Primitive != null ? PlacePrimitive(placement, placed) : Place(placement, placed);
-                    if (thing != null && placement.Name != null)
+                    if (thing != null && placement.Tag != null)
                     {
-                        if (!_named.TryGetValue(placement.Name, out var things))
+                        if (!_tagged.TryGetValue(placement.Tag, out var things))
                         {
-                            _named.Add(placement.Name, things = new List<(GameObject, bool)>());
+                            _tagged.Add(placement.Tag, things = new List<(GameObject, bool)>());
                         }
 
                         things.Add((thing, placement.Off));
-                        thing.SetActive(placement.Off == _join.Flipped.Contains(placement.Name));
+                        thing.SetActive(placement.Off == _join.Flipped.Contains(placement.Tag));
                     }
                 }
 
@@ -282,11 +282,11 @@ namespace ShapeLand.Client
             public Color Color { get; }
         }
 
-        // A named or blockout primitive on its own, in the placed objects' material (or blockout's), so game code can
+        // A tagged or blockout primitive on its own, in the placed objects' material (or blockout's), so game code can
         // find and color it.
         private GameObject PlacePrimitive(Placement placement, Transform parent)
         {
-            var thing = AddMesh(placement.Name ?? "Blockout", PrimitiveMeshes.For(placement, _content.Settings.Primitives), MaterialFor(placement), parent);
+            var thing = AddMesh(placement.Tag ?? "Blockout", PrimitiveMeshes.For(placement, _content.Settings.Primitives), MaterialFor(placement), parent);
             var rotation = placement.Rotation;
             thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
             PlacedColors.Apply(thing, Color(placement.Color ?? _content.Settings.World.PlacedColor));

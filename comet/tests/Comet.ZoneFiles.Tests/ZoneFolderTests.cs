@@ -43,7 +43,7 @@ public class ZoneFolderTests
         Assert.Equal(0xFFCC00u, teleporter.ChargeColor);
         var trigger = Assert.Single(zone.Chunks[1].Triggers);
         Assert.Equal(("trigger.meadow.plate", PrimitiveKind.Sphere, Rearm.Repeat, 0x33AAFFu), (trigger.Id, trigger.Volume.Kind, trigger.Volume.Rearm, trigger.ChargeColor));
-        Assert.Equal(("gate", 5f), (trigger.Effects[0].Name, trigger.Effects[0].RevertSeconds));
+        Assert.Equal(("gate", 5f), (trigger.Effects[0].Tag, trigger.Effects[0].RevertSeconds));
         Assert.Equal((VolumeKind.Wall, new Vector3(1, 4, 6)), (zone.Chunks[1].Volumes[0].Kind, zone.Chunks[1].Volumes[0].Size));
     }
 
@@ -61,7 +61,7 @@ public class ZoneFolderTests
 
             [[placement]]
             prop = "prop.cube"
-            name = "gate"
+            tag = "gate"
             position = [-10.5, 4.0, 3.25]
             rotation = [0.0, 45.0, 0.0]
             scale = [2.0, 1.0, 2.0]
@@ -116,7 +116,7 @@ public class ZoneFolderTests
             charge_color = 0x33AAFF
 
             [[trigger.effect]]
-            toggle = "gate"
+            toggle_tag = "gate"
             revert_seconds = 5.0
             """,
             text);
@@ -223,17 +223,17 @@ public class ZoneFolderTests
     }
 
     [Fact]
-    public void PlacementsKeepTheirNames()
+    public void PlacementsKeepTheirTags()
     {
         using var folder = new TempFolder();
         var zone = Zones.Sample();
-        zone.Chunks[0].Placements[0].Name = "east.gate";
+        zone.Chunks[0].Placements[0].Tag = "east.gate";
 
         var placement = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
 
         Assert.Empty(errors);
-        Assert.Equal("east.gate", placement.Name);
-        Assert.Contains("name = \"east.gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
+        Assert.Equal("east.gate", placement.Tag);
+        Assert.Contains("tag = \"east.gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
     }
 
     [Fact]

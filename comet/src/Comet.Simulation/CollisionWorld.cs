@@ -30,7 +30,7 @@ namespace Comet.Simulation
         // Which mesh each triangle belongs to.
         private readonly int[] _meshOf;
         private readonly Dictionary<(int X, int Z), List<int>> _cells = new Dictionary<(int X, int Z), List<int>>();
-        private readonly Dictionary<string, List<int>> _named = new Dictionary<string, List<int>>();
+        private readonly Dictionary<string, List<int>> _tagged = new Dictionary<string, List<int>>();
         // Which meshes are off, replaced whole on a change so queries on other threads see one state or the other.
         private volatile bool[] _off;
 
@@ -59,12 +59,12 @@ namespace Comet.Simulation
             for (var m = 0; m < _meshes.Count; m++)
             {
                 _off[m] = _meshes[m].StartsOff;
-                if (_meshes[m].Name is { } name)
+                if (_meshes[m].Tag is { } tag)
                 {
-                    if (!_named.TryGetValue(name, out var list))
+                    if (!_tagged.TryGetValue(tag, out var list))
                     {
                         list = new List<int>();
-                        _named.Add(name, list);
+                        _tagged.Add(tag, list);
                     }
 
                     list.Add(m);
@@ -105,20 +105,20 @@ namespace Comet.Simulation
         /// <summary>Below this height a player has fallen out of the world.</summary>
         public float KillHeight { get; }
 
-        /// <summary>The meshes named <paramref name="name"/>, by index in <see cref="Meshes"/>; none for an unknown name.</summary>
-        public IReadOnlyList<int> MeshesNamed(string name) => _named.TryGetValue(name, out var list) ? list : (IReadOnlyList<int>)Array.Empty<int>();
+        /// <summary>The meshes tagged <paramref name="tag"/>, by index in <see cref="Meshes"/>; none for an unknown tag.</summary>
+        public IReadOnlyList<int> MeshesTagged(string tag) => _tagged.TryGetValue(tag, out var list) ? list : (IReadOnlyList<int>)Array.Empty<int>();
 
         /// <summary>Whether mesh <paramref name="mesh"/> is solid now.</summary>
         public bool IsOn(int mesh) => !_off[mesh];
 
         /// <summary>
-        /// Flips the meshes named <paramref name="name"/> from how they start (<paramref name="flipped"/>), or back:
+        /// Flips the meshes tagged <paramref name="tag"/> from how they start (<paramref name="flipped"/>), or back:
         /// each one that starts on turns off, and each one that starts off turns on.
         /// </summary>
-        public void SetFlipped(string name, bool flipped)
+        public void SetFlipped(string tag, bool flipped)
         {
             var off = (bool[])_off.Clone();
-            foreach (var mesh in MeshesNamed(name))
+            foreach (var mesh in MeshesTagged(tag))
             {
                 off[mesh] = _meshes[mesh].StartsOff != flipped;
             }

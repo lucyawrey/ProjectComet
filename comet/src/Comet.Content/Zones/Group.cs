@@ -94,7 +94,7 @@ namespace Comet.Content
                 Color = part.Role is { } role && copy.Colors?.TryGetValue(role, out var color) == true ? color : part.Color,
                 Colors = part.Group is null ? null : Over(copy.Colors, part.Colors),
                 Blockout = part.Blockout || copy.Blockout,
-                Name = copy.Name,
+                Tag = copy.Tag,
                 Off = part.Off || copy.Off,
             }).ToList();
         }

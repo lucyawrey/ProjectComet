@@ -146,11 +146,11 @@ public sealed class ShapeLandGame : IConnectionHandler
 
         foreach (var zone in _zones.Values)
         {
-            zone.Tick(tick, seconds, (name, flipped) =>
+            zone.Tick(tick, seconds, (tag, flipped) =>
             {
                 foreach (var player in zone.Players)
                 {
-                    player.Connection.SendEvent(ShapeLandMessageIds.PlacementsFlipped, new PlacementsFlipped { Name = name, Flipped = flipped });
+                    player.Connection.SendEvent(ShapeLandMessageIds.PlacementsFlipped, new PlacementsFlipped { Tag = tag, Flipped = flipped });
                 }
             });
         }

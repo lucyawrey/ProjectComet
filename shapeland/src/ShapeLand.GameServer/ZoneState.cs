@@ -12,7 +12,7 @@ namespace ShapeLand.GameServer;
 internal sealed class ZoneState
 {
     private readonly Dictionary<Trigger, TriggerCharge> _charges = [];
-    // The tick each flipped name with a revert time flips back.
+    // The tick each flipped tag with a revert time flips back.
     private readonly Dictionary<string, uint> _reverts = [];
 
     private readonly MovementRules _rules;
@@ -59,10 +59,10 @@ internal sealed class ZoneState
             }
         }
 
-        foreach (var (name, at) in _reverts.Where(r => r.Value <= tick).ToList())
+        foreach (var (tag, at) in _reverts.Where(r => r.Value <= tick).ToList())
         {
-            _reverts.Remove(name);
-            Flip(name, flipped);
+            _reverts.Remove(tag);
+            Flip(tag, flipped);
         }
     }
 
@@ -70,26 +70,26 @@ internal sealed class ZoneState
     private void Fire(ToggleEffect effect, uint tick, Action<string, bool> flipped)
     {
         var revertAt = tick + (uint)MathF.Round(effect.RevertSeconds * ShapeLandRules.TickRate);
-        if (_reverts.ContainsKey(effect.Name))
+        if (_reverts.ContainsKey(effect.Tag))
         {
-            _reverts[effect.Name] = revertAt;
+            _reverts[effect.Tag] = revertAt;
             return;
         }
 
-        Flip(effect.Name, flipped);
+        Flip(effect.Tag, flipped);
         if (effect.RevertSeconds > 0)
         {
-            _reverts[effect.Name] = revertAt;
+            _reverts[effect.Tag] = revertAt;
         }
     }
 
-    private void Flip(string name, Action<string, bool> flipped)
+    private void Flip(string tag, Action<string, bool> flipped)
     {
-        var now = Flipped.Add(name) || !Flipped.Remove(name);
-        World.SetFlipped(name, now);
+        var now = Flipped.Add(tag) || !Flipped.Remove(tag);
+        World.SetFlipped(tag, now);
 
         // Anyone inside a placement that just turned solid passes through it until they're out.
-        foreach (var mesh in World.MeshesNamed(name).Where(World.IsOn))
+        foreach (var mesh in World.MeshesTagged(tag).Where(World.IsOn))
         {
             foreach (var player in Players)
             {
@@ -100,6 +100,6 @@ internal sealed class ZoneState
             }
         }
 
-        flipped(name, now);
+        flipped(tag, now);
     }
 }

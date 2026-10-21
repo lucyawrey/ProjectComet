@@ -82,7 +82,7 @@ namespace ShapeLand.Shared.World
                 foreach (var placement in chunk.Placements)
                 {
                     var mesh = Placed(content, placement);
-                    mesh.Name = placement.Name;
+                    mesh.Tag = placement.Tag;
                     mesh.StartsOff = placement.Off;
                     meshes.Add(mesh);
                 }

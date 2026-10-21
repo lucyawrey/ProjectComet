@@ -162,10 +162,10 @@ namespace Comet.Content
         [Key(3)] public Vector3 Scale { get; set; } = Vector3.One;
 
         /// <summary>
-        /// An optional name for triggers' toggle effects (and game code) to find this placement by; several placements
+        /// An optional tag for triggers' toggle effects (and game code) to find this placement by; several placements
         /// may share one, to toggle together. Null for most.
         /// </summary>
-        [Key(4)] public string? Name { get; set; }
+        [Key(4)] public string? Tag { get; set; }
 
         /// <summary>The placement's own color as 0xRRGGBB, or null for its prop's.</summary>
         [Key(5)] public uint? Color { get; set; }
@@ -308,12 +308,12 @@ namespace Comet.Content
         [Key(4)] public uint? ChargeColor { get; set; }
     }
 
-    /// <summary>Flips every placement with a name on or off, and optionally back after a time.</summary>
+    /// <summary>Flips every placement with a tag on or off, and optionally back after a time.</summary>
     [MessagePackObject]
     public sealed class ToggleEffect
     {
-        /// <summary>The placements' name.</summary>
-        [Key(0)] public string Name { get; set; } = "";
+        /// <summary>The placements' tag.</summary>
+        [Key(0)] public string Tag { get; set; } = "";
 
         /// <summary>Seconds until they flip back, or 0 to stay. Firing again before then restarts the wait instead of flipping.</summary>
         [Key(1)] public float RevertSeconds { get; set; }

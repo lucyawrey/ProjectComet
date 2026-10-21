@@ -229,7 +229,7 @@ namespace Comet.Unity.Editor
                 {
                     var part = ZoneEditor.PlacementOf(p);
                     part.Position -= ToNumerics(pivot);
-                    part.Name = null;
+                    part.Tag = null;
                     return part;
                 }).ToArray(),
             };

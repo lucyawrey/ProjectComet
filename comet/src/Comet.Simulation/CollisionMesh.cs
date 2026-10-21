@@ -13,8 +13,8 @@ namespace Comet.Simulation
 
         public Vector3[] Triangles { get; }
 
-        /// <summary>The name of the placement it belongs to, for flipping it (<see cref="CollisionWorld.SetFlipped"/>), or null.</summary>
-        public string? Name { get; set; }
+        /// <summary>The tag of the placement it belongs to, for flipping it (<see cref="CollisionWorld.SetFlipped"/>), or null.</summary>
+        public string? Tag { get; set; }
 
         /// <summary>Whether it starts off: not solid until it's turned on.</summary>
         public bool StartsOff { get; set; }

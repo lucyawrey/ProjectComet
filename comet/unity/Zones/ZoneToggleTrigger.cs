@@ -10,8 +10,8 @@ namespace Comet.Unity
         [Serializable]
         public sealed class Effect
         {
-            [Tooltip("The name of the placements to flip (several may share it; a named group copy flips whole).")]
-            public string toggle = "";
+            [Tooltip("The tag of the placements to flip (several may share it; a tagged group copy flips whole).")]
+            public string toggleTag = "";
 
             [Tooltip("Seconds until they flip back, or 0 to stay. Firing again before then restarts the wait.")]
             [Min(0)] public float revertSeconds;

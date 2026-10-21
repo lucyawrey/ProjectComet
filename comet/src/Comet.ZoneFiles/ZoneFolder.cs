@@ -252,10 +252,10 @@ namespace Comet.ZoneFiles
                     Effects = toml.Tables(t.Table, "effect").Select(e =>
                     {
                         var path = $"{t.Path}.{e.Path}";
-                        toml.CheckKeys(e.Table, path, "toggle", "revert_seconds");
+                        toml.CheckKeys(e.Table, path, "toggle_tag", "revert_seconds");
                         return new ToggleEffect
                         {
-                            Name = toml.String(e.Table, path, "toggle"),
+                            Tag = toml.String(e.Table, path, "toggle_tag"),
                             RevertSeconds = toml.Float(e.Table, path, "revert_seconds", 0),
                         };
                     }).ToArray(),
@@ -321,7 +321,7 @@ namespace Comet.ZoneFiles
         /// <summary>A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of prop, primitive or group, and its transform.</summary>
         internal static Placement ReadPlacement(ZoneToml toml, TomlTable table, string path)
         {
-            toml.CheckKeys(table, path, "prop", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "off", "name", "role", "position", "rotation", "scale", "color", "colors");
+            toml.CheckKeys(table, path, "prop", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "off", "tag", "role", "position", "rotation", "scale", "color", "colors");
             if (new[] { "prop", "primitive", "group" }.Count(table.ContainsKey) != 1)
             {
                 toml.Error(path, "a placement places one of: a prop, a primitive or a group.");
@@ -336,7 +336,7 @@ namespace Comet.ZoneFiles
                 Group = group,
                 Blockout = toml.Bool(table, path, "blockout", false),
                 Off = toml.Bool(table, path, "off", false),
-                Name = table.ContainsKey("name") ? toml.String(table, path, "name") : null,
+                Tag = table.ContainsKey("tag") ? toml.String(table, path, "tag") : null,
                 Role = table.ContainsKey("role") ? toml.String(table, path, "role") : null,
                 Position = toml.Vector(table, path, "position"),
                 Rotation = toml.Vector(table, path, "rotation", Vector3.Zero),
@@ -394,9 +394,9 @@ namespace Comet.ZoneFiles
                 placement["off"] = true;
             }
 
-            if (p.Name is not null)
+            if (p.Tag is not null)
             {
-                placement["name"] = p.Name;
+                placement["tag"] = p.Tag;
             }
 
             if (p.Role is not null)
@@ -612,7 +612,7 @@ namespace Comet.ZoneFiles
                 WritePad(trigger, t.Volume);
                 AddTables(trigger, "effect", t.Effects, e =>
                 {
-                    var effect = new TomlTable { ["toggle"] = e.Name };
+                    var effect = new TomlTable { ["toggle_tag"] = e.Tag };
                     if (e.RevertSeconds != 0)
                     {
                         effect["revert_seconds"] = ZoneToml.Round(e.RevertSeconds, TimeDecimals);

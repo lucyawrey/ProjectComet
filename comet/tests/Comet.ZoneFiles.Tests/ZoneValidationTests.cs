@@ -149,14 +149,14 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements =
         [
-            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
-            new Placement { Prop = "prop.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
-            new Placement { Prop = "prop.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
+            new Placement { Prop = "prop.cube", Tag = "gate", Position = new Vector3(-10, 0, 1) },
+            new Placement { Prop = "prop.cube", Tag = "gate", Position = new Vector3(-12, 0, 1) },
+            new Placement { Prop = "prop.cube", Tag = "Gate!", Position = new Vector3(-14, 0, 1) },
         ];
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of prop.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
+                "chunks/-1_0.toml: placement of prop.cube: 'Gate!' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.",
             ],
             Errors(zone));
     }
@@ -186,7 +186,7 @@ public class ZoneValidationTests
         volume.Kind = PrimitiveKind.Arch;
         volume.Size = new Vector3(2, 0, 2);
         volume.StandSeconds = -1;
-        volume.Pad!.Name = "pad";
+        volume.Pad!.Tag = "pad";
         zone.Chunks[1].Teleporters[0].Volume.Pad = new Placement { Prop = "prop.cube", Position = new Vector3(12, 4, 5) };
 
         Assert.Equal(
@@ -194,7 +194,7 @@ public class ZoneValidationTests
                 "chunks/0_0.toml: spawn.meadow.gate: a volume is a box, a cylinder or a sphere, not a arch.",
                 "chunks/0_0.toml: spawn.meadow.gate: size must be above 0 on every axis.",
                 "chunks/0_0.toml: spawn.meadow.gate: stand_seconds can't be negative.",
-                "chunks/0_0.toml: spawn.meadow.gate: a pad can't be named or start off; pads aren't toggled.",
+                "chunks/0_0.toml: spawn.meadow.gate: a pad can't be tagged or start off; pads aren't toggled.",
                 "chunks/0_0.toml: teleporter.meadow.to_cave: a pad is a primitive.",
             ],
             Errors(zone));
@@ -205,14 +205,14 @@ public class ZoneValidationTests
     {
         var zone = Zones.Sample();
         zone.Chunks[1].Teleporters[0].Target = "teleporter.meadow.to_cave";
-        zone.Chunks[1].Triggers[0].Effects = [new ToggleEffect { Name = "bridge", RevertSeconds = -2 }];
+        zone.Chunks[1].Triggers[0].Effects = [new ToggleEffect { Tag = "bridge", RevertSeconds = -2 }];
         zone.Chunks[1].Triggers[0].Volume.StandSeconds = 0;
 
         Assert.Equal(
             [
                 "chunks/0_0.toml: teleporter.meadow.to_cave: a teleporter can't target itself.",
                 "chunks/0_0.toml: trigger.meadow.plate: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.",
-                "chunks/0_0.toml: trigger.meadow.plate: no placement in the zone is named 'bridge'.",
+                "chunks/0_0.toml: trigger.meadow.plate: no placement in the zone is tagged 'bridge'.",
                 "chunks/0_0.toml: trigger.meadow.plate: revert_seconds can't be negative.",
             ],
             Errors(zone));

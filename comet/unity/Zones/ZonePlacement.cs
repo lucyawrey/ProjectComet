@@ -10,7 +10,7 @@ namespace Comet.Unity
     /// <see cref="size"/>, and any other scale is folded into it once a resize ends. A group copy's parts are drawn
     /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy.
     /// Turning the object off (its checkbox) makes a placement that starts off: hidden and not solid in the game
-    /// until a trigger flips it on by its name.
+    /// until a trigger flips it on by its tag.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
@@ -26,8 +26,8 @@ namespace Comet.Unity
         [Tooltip("Whether this places a primitive, built in code, instead of a prop.")]
         public bool isPrimitive;
 
-        [Tooltip("An optional name for triggers to flip it by (and game code to find it by); several placements may share one to flip together.")]
-        public string placementName = "";
+        [Tooltip("An optional tag for triggers to flip it by (and game code to find it by); several placements may share one to flip together.")]
+        public string placementTag = "";
 
         [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
         public bool blockout;
