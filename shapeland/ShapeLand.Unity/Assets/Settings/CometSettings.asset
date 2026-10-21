@@ -34,7 +34,7 @@ MonoBehaviour:
   teleporterPad: box
   teleporterPadSize: {x: 2, y: 0.4, z: 2}
   teleporterPadColor: {r: 0.7019608, g: 0.6156863, b: 0.85882354, a: 1}
-  teleporterChargeColor: {r: 0, g: 0, b: 0, a: 1}
+  teleporterChargeColor: {r: 1, g: 1, b: 1, a: 1}
   teleporterStandSeconds: 1
   teleporterVolumeHeight: 1
   triggerStandSeconds: 0
