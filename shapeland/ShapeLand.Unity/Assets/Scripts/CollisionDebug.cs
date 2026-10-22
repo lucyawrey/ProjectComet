@@ -9,8 +9,9 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// F4 shows or hides Comet's <see cref="CollisionView"/> of the zone: what movement collides with, the volumes of
-    /// spawn points, teleporters and triggers, and every player's body. A snap-back for a broken movement rule leaves
-    /// a red body where the player was and says which rule in the chat log. The choice is remembered.
+    /// spawn points, teleporters and triggers (with the way arrivals face), and every player's body. A snap-back for a
+    /// broken movement rule leaves a red body where the player was and says which rule in the chat log. The choice is
+    /// remembered.
     /// </summary>
     [RequireComponent(typeof(Hud), typeof(Chat), typeof(CollisionView))]
     public sealed class CollisionDebug : MonoBehaviour
@@ -120,12 +121,12 @@ namespace ShapeLand.Client
             {
                 foreach (var spawn in chunk.Spawns)
                 {
-                    _view.AddVolume(spawn.Volume, budget, colors.spawn);
+                    _view.AddVolume(spawn.Volume, budget, colors.spawn, spawn.Facing == SpawnFacing.Direction);
                 }
 
                 foreach (var teleporter in chunk.Teleporters)
                 {
-                    _view.AddVolume(teleporter.Volume, budget, colors.teleporter);
+                    _view.AddVolume(teleporter.Volume, budget, colors.teleporter, teleporter.Facing == SpawnFacing.Direction);
                 }
 
                 foreach (var trigger in chunk.Triggers)

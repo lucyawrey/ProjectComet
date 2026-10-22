@@ -74,10 +74,21 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>Adds <paramref name="volume"/>'s shape in <paramref name="color"/>.</summary>
-        public void AddVolume(TriggerVolume volume, PolygonBudget budget, Color color)
+        /// <summary>
+        /// Adds <paramref name="volume"/>'s shape in <paramref name="color"/>, with a line the way it faces when
+        /// <paramref name="facing"/> (arrivals that face its direction).
+        /// </summary>
+        public void AddVolume(TriggerVolume volume, PolygonBudget budget, Color color, bool facing = false)
         {
             var edges = VolumeEdges(volume.Kind, ToUnity(volume.Size), budget);
+            if (facing)
+            {
+                var shape = edges;
+                edges = new Vector3[shape.Length + 2];
+                shape.CopyTo(edges, 0);
+                FacingEdge(ToUnity(volume.Size)).CopyTo(edges, shape.Length);
+            }
+
             var place = Matrix4x4.TRS(ToUnity(volume.Position), Quaternion.Euler(0, volume.Yaw, 0), Vector3.one);
             for (var i = 0; i < edges.Length; i++)
             {
@@ -94,6 +105,16 @@ namespace Comet.Unity
         /// </summary>
         public static Vector3[] VolumeEdges(PrimitiveKind kind, Vector3 size, PolygonBudget budget) =>
             ToUnity(FeatureEdges.Of(PrimitiveMesher.Build(new Primitive { Kind = kind }, new System.Numerics.Vector3(size.x, size.y, size.z), budget)));
+
+        /// <summary>
+        /// The line showing which way a volume of <paramref name="size"/> faces, standing on the origin: from its
+        /// bottom center forward (+Z) to its edge, at least 1 m. The editor's gizmos draw it too.
+        /// </summary>
+        public static Vector3[] FacingEdge(Vector3 size)
+        {
+            var from = Vector3.up * 0.05f;
+            return new[] { from, from + Vector3.forward * Mathf.Max(size.z / 2, 1) };
+        }
 
         /// <summary>Draws a body this frame: an upright cylinder standing on <paramref name="feet"/>, seen through everything.</summary>
         public void DrawBody(Vector3 feet, float radius, float height, Color color)

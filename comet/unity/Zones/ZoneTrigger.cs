@@ -93,14 +93,15 @@ namespace Comet.Unity
             Gizmos.matrix = Matrix4x4.identity;
         }
 
-        /// <summary>Draws which way arrivals face, for the kinds players arrive at.</summary>
+        /// <summary>Draws which way arrivals face, for the kinds players arrive at, as the collision view does.</summary>
         protected void DrawFacing(FacingMode facing)
         {
             if (facing == FacingMode.Direction)
             {
                 Gizmos.color = GizmoColor;
-                var from = transform.position + Vector3.up * 0.05f;
-                Gizmos.DrawLine(from, from + Quaternion.Euler(0, transform.eulerAngles.y, 0) * Vector3.forward * Mathf.Max(size.z / 2, 1));
+                Gizmos.matrix = Matrix4x4.TRS(transform.position, Quaternion.Euler(0, transform.eulerAngles.y, 0), Vector3.one);
+                Gizmos.DrawLineList(CollisionView.FacingEdge(size));
+                Gizmos.matrix = Matrix4x4.identity;
             }
         }
     }
