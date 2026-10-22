@@ -66,11 +66,12 @@ namespace Comet.Simulation
                 velocityY -= rules.Gravity * seconds;
             }
 
-            // Move horizontally, sliding along walls one axis at a time.
+            // Move horizontally, sliding along walls one axis at a time. In the air, a move rides up walkable ground
+            // as steep as terrain climbs, so a jump up a slope doesn't stop against it as it takes off or lands.
             var position = state.Position;
             var stepUp = state.Grounded ? rules.StepHeight : 0;
-            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), stepUp, world, rules, passThrough, ref current.X);
-            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), stepUp, world, rules, passThrough, ref current.Y);
+            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), state.Grounded ? stepUp : 2 * MathF.Abs(current.X * seconds), world, rules, passThrough, ref current.X);
+            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), state.Grounded ? stepUp : 2 * MathF.Abs(current.Y * seconds), world, rules, passThrough, ref current.Y);
 
             // Move vertically, landing on ground or stopping under something solid.
             var startY = position.Y;
@@ -78,7 +79,7 @@ namespace Comet.Simulation
             if (velocityY > 0)
             {
                 var up = new Vector3(position.X, targetY, position.Z);
-                if (world.IsBlocked(up, rules.BodyRadius, rules.BodyHeight, passThrough) || world.IsBlockedByTerrain(up, rules.BodyRadius, rules.BodyHeight, 0))
+                if (world.IsBlocked(up, rules.BodyRadius, rules.BodyHeight, passThrough))
                 {
                     velocityY = 0;
                     targetY = startY;
@@ -98,6 +99,13 @@ namespace Comet.Simulation
             {
                 position.Y = targetY;
                 state.Grounded = false;
+            }
+
+            // Landing or stepping down beside a steep surface can leave the body in it, where no sideways move gets
+            // out: push it out sideways.
+            if (world.IsBlocked(position, rules.BodyRadius, rules.BodyHeight, passThrough))
+            {
+                world.TryPushOut(ref position, rules.BodyRadius, rules.BodyHeight, passThrough);
             }
 
             state.Position = position;
@@ -120,19 +128,17 @@ namespace Comet.Simulation
                 return position;
             }
 
-            // Terrain may rise by up to twice the distance moved, as for landing below, plus a step.
-            var climb = stepUp + 2 * delta.Length();
             var moved = position + delta;
-            if (!world.IsBlocked(moved, rules.BodyRadius, rules.BodyHeight, passThrough) && !world.IsBlockedByTerrain(moved, rules.BodyRadius, rules.BodyHeight, climb))
+            if (!world.IsBlocked(moved, rules.BodyRadius, rules.BodyHeight, passThrough))
             {
                 return moved;
             }
 
-            // Walk up a low ledge (a step) if the body fits on top of it.
+            // Walk up a low ledge (a step, or a slope's rise) if the body fits on top of it.
             if (stepUp > 0 && world.TryGetGround(moved, rules.BodyRadius, position.Y + stepUp, out var ledge, 0, passThrough) && ledge > position.Y)
             {
                 var stepped = new Vector3(moved.X, ledge, moved.Z);
-                if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight, passThrough) && !world.IsBlockedByTerrain(stepped, rules.BodyRadius, rules.BodyHeight, climb))
+                if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight, passThrough))
                 {
                     return stepped;
                 }

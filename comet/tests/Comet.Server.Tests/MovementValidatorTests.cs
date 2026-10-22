@@ -98,7 +98,7 @@ public class MovementValidatorTests
         _validator.Reset(new Vector3(17.5f, 0, 20), 0, 100);
 
         Assert.Equal(MovementVerdict.InsideSolid, Report(19, 0, 20, 130));
-        Assert.Equal(MovementVerdict.UnderGround, Report(17.5f, -1, 20, 131));
+        Assert.Equal(MovementVerdict.InsideSolid, Report(17.5f, -1, 20, 131)); // terrain is solid like meshes
     }
 
     [Fact]

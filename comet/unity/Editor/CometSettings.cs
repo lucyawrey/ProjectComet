@@ -33,6 +33,9 @@ namespace Comet.Unity.Editor
         [Tooltip("The models for prop ids.")]
         public PropLibrary? props;
 
+        [Tooltip("The colors collision is drawn in: the game's collision view and the editor's gizmos.")]
+        public CollisionColors? collisionColors;
+
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
         public Material? terrainMaterial;
 
@@ -157,7 +160,11 @@ namespace Comet.Unity.Editor
         private static CometSettings? _found;
 
         [InitializeOnLoadMethod]
-        private static void ForgetOnProjectChange() => EditorApplication.projectChanged += () => _found = null;
+        private static void ForgetOnProjectChange()
+        {
+            EditorApplication.projectChanged += () => _found = null;
+            CollisionColors.Find = () => Find(quiet: true)?.collisionColors;
+        }
 
         /// <summary>The project's settings, or null (with a dialog unless <paramref name="quiet"/>) if it has none.</summary>
         public static CometSettings? Find(bool quiet)

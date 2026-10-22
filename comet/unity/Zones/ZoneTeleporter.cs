@@ -16,7 +16,7 @@ namespace Comet.Unity
 
         public override string Kind => "teleporter";
 
-        protected override Color GizmoColor => new Color(0.75f, 0.55f, 1);
+        protected override Color GizmoColor => CollisionColors.Editing.teleporter;
 
         protected override void OnDrawGizmos()
         {

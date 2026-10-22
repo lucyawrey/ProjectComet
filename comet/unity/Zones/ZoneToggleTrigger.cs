@@ -25,6 +25,6 @@ namespace Comet.Unity
 
         public override string Kind => "trigger";
 
-        protected override Color GizmoColor => new Color(1, 0.65f, 0.2f);
+        protected override Color GizmoColor => CollisionColors.Editing.trigger;
     }
 }

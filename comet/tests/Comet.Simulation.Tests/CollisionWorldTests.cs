@@ -66,15 +66,14 @@ public class CollisionWorldTests
     }
 
     [Fact]
-    public void TerrainWallsBlockButSlopesDoNot()
+    public void TerrainWallsBlockButStandingOnTopDoesNot()
     {
         // A 3 m-high plateau piece over x, z 6..9, standing on the 1 m ground.
         var world = new CollisionWorld(new ZoneTerrain(TestWorlds.Zone(("plateau", 4, -5, 6, 6, 4))), [], -20);
 
-        Assert.True(world.IsBlockedByTerrain(new Vector3(5.7f, 1, 7), 0.4f, 1, climb: 0.5f)); // footprint over its edge
-        Assert.False(world.IsBlockedByTerrain(new Vector3(5.5f, 1, 7), 0.4f, 1, climb: 0.5f));
-        Assert.False(world.IsBlockedByTerrain(new Vector3(7, 4, 7), 0.4f, 1, climb: 0)); // on top
-        Assert.False(world.IsBlockedByTerrain(new Vector3(15, 1.5f, 3), 0.4f, 1, climb: 0.2f)); // on the rise
+        Assert.True(world.IsBlocked(new Vector3(5.7f, 1, 7), 0.4f, 1)); // the body over its edge
+        Assert.False(world.IsBlocked(new Vector3(5.5f, 1, 7), 0.4f, 1));
+        Assert.False(world.IsBlocked(new Vector3(7, 4, 7), 0.4f, 1)); // on top
     }
 
     [Fact]
@@ -83,8 +82,8 @@ public class CollisionWorldTests
         // An island 4 m up with its bottom at 3 m: walking under it is fine, jumping into it isn't.
         var world = new CollisionWorld(new ZoneTerrain(TestWorlds.Zone(("island", 4, 3, 6, 6, 4))), [], -20);
 
-        Assert.False(world.IsBlockedByTerrain(new Vector3(7, 1, 7), 0.4f, 1, climb: 0.5f));
-        Assert.True(world.IsBlockedByTerrain(new Vector3(7, 2.5f, 7), 0.4f, 1, climb: 0));
+        Assert.False(world.IsBlocked(new Vector3(7, 1, 7), 0.4f, 1));
+        Assert.True(world.IsBlocked(new Vector3(7, 2.5f, 7), 0.4f, 1));
     }
 
     [Fact]

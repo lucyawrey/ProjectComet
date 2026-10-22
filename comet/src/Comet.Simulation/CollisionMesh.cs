@@ -19,6 +19,9 @@ namespace Comet.Simulation
         /// <summary>Whether it starts off: not solid until it's turned on.</summary>
         public bool StartsOff { get; set; }
 
+        /// <summary>The <see cref="Kind"/> of the meshes <see cref="CollisionWorld"/> makes from its terrain.</summary>
+        public const string TerrainKind = "terrain";
+
         /// <summary>What made it (a prop, a primitive, a wall…), named by the game, for debug views; or null.</summary>
         public string? Kind { get; set; }
 

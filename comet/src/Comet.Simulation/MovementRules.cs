@@ -6,7 +6,7 @@ namespace Comet.Simulation
         /// <summary>Downward acceleration, in meters per second squared.</summary>
         public float Gravity { get; set; } = 25f;
 
-        /// <summary>The player's collision body: a square footprint this far from its center, in meters.</summary>
+        /// <summary>The player's collision body: an upright cylinder of this radius, in meters.</summary>
         public float BodyRadius { get; set; } = 0.4f;
 
         /// <summary>The player's collision body height, in meters.</summary>
@@ -14,6 +14,9 @@ namespace Comet.Simulation
 
         /// <summary>The highest ledge a player walks up without jumping, in meters.</summary>
         public float StepHeight { get; set; } = 0.35f;
+
+        /// <summary>The steepest ground a player stands on, in degrees from level; steeper is a wall.</summary>
+        public float MaxSlope { get; set; } = 60f;
 
         /// <summary>How far below the feet the ground can drop while a player stays grounded (walking downhill), in meters.</summary>
         public float GroundSnap { get; set; } = 0.4f;

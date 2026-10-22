@@ -9,8 +9,9 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// F4 shows or hides Comet's <see cref="CollisionView"/> of the zone: what movement collides with, the volumes of
-    /// spawn points, teleporters and triggers, and every player's body. A snap-back for a broken movement rule leaves
-    /// a red body where the player was and says which rule in the chat log. The choice is remembered.
+    /// spawn points, teleporters and triggers (with the way arrivals face), and every player's body. A snap-back for a
+    /// broken movement rule leaves a red body where the player was and says which rule in the chat log. The choice is
+    /// remembered.
     /// </summary>
     [RequireComponent(typeof(Hud), typeof(Chat), typeof(CollisionView))]
     public sealed class CollisionDebug : MonoBehaviour
@@ -18,15 +19,11 @@ namespace ShapeLand.Client
         private const string ShownKey = "collisionViewShown";
         private const float MarkSeconds = 4;
 
-        // A color for each kind of collider, muted so the view doesn't drown the game. Changes in play mode redraw the view.
-        [SerializeField] private Color terrainColor = new Color(0.8f, 0.72f, 0.45f, 0.45f);
+        // Comet's colors (terrain, volumes, bodies), and ShapeLand's for its kinds of mesh, muted alike. Changes in
+        // play mode redraw the view.
+        [SerializeField] private CollisionColors colors = null!;
         [SerializeField] private Color propColor = new Color(0.75f, 0.75f, 0.75f, 0.45f);
         [SerializeField] private Color primitiveColor = new Color(0.7f, 0.6f, 1, 0.45f);
-        [SerializeField] private Color spawnColor = new Color(0.4f, 0.85f, 0.4f, 0.7f);
-        [SerializeField] private Color teleporterColor = new Color(0.4f, 0.7f, 1, 0.7f);
-        [SerializeField] private Color triggerColor = new Color(1, 0.6f, 0.25f, 0.7f);
-        [SerializeField] private Color bodyColor = new Color(1, 0.9f, 0.3f, 0.6f);
-        [SerializeField] private Color snapBackColor = new Color(1, 0.25f, 0.25f, 0.8f);
 
         private Hud _hud;
         private Chat _chat;
@@ -43,13 +40,16 @@ namespace ShapeLand.Client
             _hud = GetComponent<Hud>();
             _chat = GetComponent<Chat>();
             _view = GetComponent<CollisionView>();
+            colors.Changed += Redraw;
         }
 
         // In Start, after the view's Awake: components on one object wake one at a time, in no set order.
         private void Start() => _view.Shown = Remember && PlayerPrefs.GetInt(ShownKey, 0) == 1;
 
         // Draws the zone again with the new colors.
-        private void OnValidate() => _shownWorld = null;
+        private void OnValidate() => Redraw();
+
+        private void Redraw() => _shownWorld = null;
 
         /// <summary>Shows or hides the view, and remembers the choice.</summary>
         public void Toggle()
@@ -105,33 +105,33 @@ namespace ShapeLand.Client
             if (view.Player != null)
             {
                 _lastFeet = view.Player.transform.position;
-                _view.DrawBody(_lastFeet, rules.BodyRadius, rules.BodyHeight, bodyColor);
+                _view.DrawBody(_lastFeet, rules.BodyRadius, rules.BodyHeight, colors.body);
             }
 
             foreach (var other in view.Others.Values)
             {
-                _view.DrawBody(other.transform.position, rules.BodyRadius, rules.BodyHeight, bodyColor);
+                _view.DrawBody(other.transform.position, rules.BodyRadius, rules.BodyHeight, colors.body);
             }
         }
 
         private void ShowZone(Zone zone, CollisionWorld world, PolygonBudget budget)
         {
-            _view.Show(world, ColorOf, terrainColor);
+            _view.Show(world, ColorOf, colors.terrain);
             foreach (var chunk in zone.Chunks)
             {
                 foreach (var spawn in chunk.Spawns)
                 {
-                    _view.AddVolume(spawn.Volume, budget, spawnColor);
+                    _view.AddVolume(spawn.Volume, budget, colors.spawn, spawn.Facing == SpawnFacing.Direction);
                 }
 
                 foreach (var teleporter in chunk.Teleporters)
                 {
-                    _view.AddVolume(teleporter.Volume, budget, teleporterColor);
+                    _view.AddVolume(teleporter.Volume, budget, colors.teleporter, teleporter.Facing == SpawnFacing.Direction);
                 }
 
                 foreach (var trigger in chunk.Triggers)
                 {
-                    _view.AddVolume(trigger.Volume, budget, triggerColor);
+                    _view.AddVolume(trigger.Volume, budget, colors.trigger);
                 }
             }
         }
@@ -146,7 +146,7 @@ namespace ShapeLand.Client
             }
 
             var rules = _hud.Join.Content.Movement;
-            _view.Mark(_lastFeet, rules.BodyRadius, rules.BodyHeight, snapBackColor, MarkSeconds);
+            _view.Mark(_lastFeet, rules.BodyRadius, rules.BodyHeight, colors.snapBack, MarkSeconds);
             if (_view.Shown)
             {
                 var strings = _hud.Join.Content.Strings;
@@ -165,6 +165,7 @@ namespace ShapeLand.Client
 
         private void OnDisable()
         {
+            colors.Changed -= Redraw;
             if (_session != null)
             {
                 _session.Corrected -= OnCorrected;

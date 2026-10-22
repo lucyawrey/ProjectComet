@@ -52,6 +52,7 @@ namespace ShapeLand.Shared.Content
             GroundAcceleration = Movement.GroundAcceleration,
             AirAcceleration = Movement.AirAcceleration,
             TurnSpeed = Movement.TurnSpeed,
+            MaxSlope = Movement.MaxSlope,
         };
     }
 
@@ -61,7 +62,7 @@ namespace ShapeLand.Shared.Content
     {
         [JsonRequired] [Key(0)] public float Gravity { get; set; }
 
-        /// <summary>The collision body every shape shares: a square footprint this far from the center.</summary>
+        /// <summary>The collision body every shape shares: an upright cylinder of this radius.</summary>
         [JsonRequired] [Key(1)] public float BodyRadius { get; set; }
 
         [JsonRequired] [Key(2)] public float BodyHeight { get; set; }
@@ -75,6 +76,9 @@ namespace ShapeLand.Shared.Content
         [JsonRequired] [Key(6)] public float AirAcceleration { get; set; }
 
         [JsonRequired] [Key(7)] public float TurnSpeed { get; set; }
+
+        /// <summary>The steepest ground a player stands on, in degrees; steeper is a wall.</summary>
+        [JsonRequired] [Key(8)] public float MaxSlope { get; set; }
     }
 
     [MessagePackObject]

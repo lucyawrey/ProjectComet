@@ -116,9 +116,8 @@ scale = [4.0, 0.4, 4.0]
 id = "trigger.hub.bridge"
 volume = "box"
 position = [-13.05, 6.228, -20.98]
-size = [2.0, 2.0, 2.0]
-stand_seconds = 1.2
-rearm = "repeat"
+size = [2.0, 1.0, 2.0]
+stand_seconds = 1.0
 
 [trigger.pad]
 primitive = "box"
