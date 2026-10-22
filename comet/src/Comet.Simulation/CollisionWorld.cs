@@ -19,6 +19,9 @@ namespace Comet.Simulation
         // Triangles go into square cells of the ground plane, so a query looks only at those near it.
         private const float CellSize = 4f;
         private const float Epsilon = 0.001f;
+
+        // How far below a clear body IsWedged looks for what holds it up: more than TryRest's millimeter.
+        private const float WedgeDepth = 0.01f;
         // How far past touching a push-out goes, so the body ends clear rather than exactly against the surface.
         private const float PushMargin = 0.002f;
 
@@ -263,6 +266,48 @@ namespace Comet.Simulation
         }
 
         /// <summary>
+        /// Whether a clear body at <paramref name="feet"/> is held up without walkable ground: a little lower it would
+        /// overlap something no sideways push gets it out of, as in a V of steep faces narrower than the body. It
+        /// stands there; a lone steep face still slides it off.
+        /// </summary>
+        public bool IsWedged(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
+        {
+            var lower = feet - new Vector3(0, WedgeDepth, 0);
+            return !IsBlocked(feet, radius, bodyHeight, passThrough) && IsBlocked(lower, radius, bodyHeight, passThrough)
+                && !TryPushOut(ref lower, radius, bodyHeight, passThrough);
+        }
+
+        /// <summary>
+        /// The lowest height between <paramref name="feet"/> (blocked) and <paramref name="clearY"/> (clear) where the
+        /// body fits, to within a millimeter: where a fall into a wedge stops. False if it isn't clear at <paramref name="clearY"/> either.
+        /// </summary>
+        public bool TryRest(ref Vector3 feet, float clearY, float radius, float bodyHeight, ISet<int>? passThrough = null)
+        {
+            var high = new Vector3(feet.X, clearY, feet.Z);
+            if (IsBlocked(high, radius, bodyHeight, passThrough))
+            {
+                return false;
+            }
+
+            var low = feet.Y;
+            while (high.Y - low > 0.001f)
+            {
+                var middle = new Vector3(feet.X, (low + high.Y) / 2, feet.Z);
+                if (IsBlocked(middle, radius, bodyHeight, passThrough))
+                {
+                    low = middle.Y;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+
+            feet = high;
+            return true;
+        }
+
+        /// <summary>
         /// Moves a body that touches something sideways out of it, the deepest overlap first, a few times over: for
         /// bodies that end up against a steep surface (landing beside a cone or a terrain slope), which no sideways
         /// move would otherwise get out of. Only sideways, and at most a body's width in all; false, with
@@ -270,6 +315,11 @@ namespace Comet.Simulation
         /// </summary>
         public bool TryPushOut(ref Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
+            if (!IsBlocked(feet, radius, bodyHeight, passThrough))
+            {
+                return true;
+            }
+
             var moved = feet;
             for (var i = 0; i < 4 && IsBlocked(moved, radius, bodyHeight, passThrough); i++)
             {
@@ -435,7 +485,7 @@ namespace Comet.Simulation
 
         /// <summary>
         /// Whether <paramref name="position"/> is inside a terrain piece: below its ground by more than
-        /// <paramref name="slack"/> and above its bottom. For the server's check of reported positions.
+        /// <paramref name="slack"/> and above its bottom.
         /// </summary>
         public bool IsInsideTerrain(Vector3 position, float slack)
         {

@@ -52,9 +52,6 @@ public sealed class MovementTolerances
 
     /// <summary>Extra height always allowed above a jump, in meters.</summary>
     public float HeightSlack { get; set; } = 0.4f;
-
-    /// <summary>How far below the terrain surface a report may be, in meters.</summary>
-    public float GroundSlack { get; set; } = 0.3f;
 }
 
 /// <summary>
@@ -187,7 +184,6 @@ public sealed class MovementValidator
             distance > _budget ? MovementVerdict.TooFast
             : position.Y > _groundY + AllowedRise(stamp ?? tick, jumpVelocity) ? MovementVerdict.TooHigh
             : _world.IsBlocked(position, _rules.BodyRadius, _rules.BodyHeight, PassThrough) ? MovementVerdict.InsideSolid
-            : _world.IsInsideTerrain(position, _tolerances.GroundSlack) ? MovementVerdict.UnderGround
             : MovementVerdict.Accepted;
 
         if (verdict != MovementVerdict.Accepted)
@@ -238,7 +234,14 @@ public sealed class MovementValidator
     // Notes the ground under an accepted position, if it's standing on some; returns whether it is.
     private bool Land(Vector3 position, uint tick)
     {
-        if (_world.TryGetGround(position, _rules.BodyRadius, position.Y + _tolerances.HeightSlack, out var ground, 0, PassThrough) && position.Y - ground <= _tolerances.HeightSlack)
+        var landed = _world.TryGetGround(position, _rules.BodyRadius, position.Y + _tolerances.HeightSlack, out var ground, 0, PassThrough) && position.Y - ground <= _tolerances.HeightSlack;
+        if (!landed && _world.IsWedged(position, _rules.BodyRadius, _rules.BodyHeight, PassThrough))
+        {
+            landed = true;
+            ground = position.Y;
+        }
+
+        if (landed)
         {
             _groundY = ground;
             _groundTick = Math.Max(_groundTick, tick);
@@ -259,7 +262,7 @@ public sealed class MovementValidator
     /// </summary>
     private float AllowedRise(uint tick, float jumpVelocity)
     {
-        var top = _rules.JumpApex(jumpVelocity) * _tolerances.JumpFactor + _tolerances.HeightSlack;
+        var top = _rules.JumpApex(jumpVelocity) * _tolerances.JumpFactor + _rules.MantleHeight + _tolerances.HeightSlack;
         var falling = AirTime(tick) - jumpVelocity / _rules.Gravity;
         return falling <= 0 ? top : top - 0.5f * _rules.Gravity * falling * falling;
     }

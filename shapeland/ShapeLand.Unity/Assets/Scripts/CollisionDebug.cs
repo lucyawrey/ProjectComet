@@ -159,8 +159,7 @@ namespace ShapeLand.Client
             MovementVerdict.NotFinite => "not_finite",
             MovementVerdict.TooFast => "too_fast",
             MovementVerdict.TooHigh => "too_high",
-            MovementVerdict.InsideSolid => "inside_solid",
-            _ => "under_ground",
+            _ => "inside_solid",
         };
 
         private void OnDisable()

@@ -53,6 +53,7 @@ namespace ShapeLand.Shared.Content
             AirAcceleration = Movement.AirAcceleration,
             TurnSpeed = Movement.TurnSpeed,
             MaxSlope = Movement.MaxSlope,
+            MantleHeight = Movement.MantleHeight,
         };
     }
 
@@ -79,6 +80,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>The steepest ground a player stands on, in degrees; steeper is a wall.</summary>
         [JsonRequired] [Key(8)] public float MaxSlope { get; set; }
+
+        /// <summary>The highest ledge a player in the air is lifted onto when moving into its side.</summary>
+        [JsonRequired] [Key(9)] public float MantleHeight { get; set; }
     }
 
     [MessagePackObject]

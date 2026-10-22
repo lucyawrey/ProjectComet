@@ -102,6 +102,33 @@ public class MovementValidatorTests
     }
 
     [Fact]
+    public void AWedgedPlayerStandsAndCanJumpOut()
+    {
+        // Two steep wedges back to back on flat ground, their slopes forming a V narrower than the body.
+        static CollisionMesh Wedge(float x, float yaw)
+        {
+            var placement = new Placement { Position = new Vector3(x, 0, 4), Scale = new Vector3(1, 4, 2), Rotation = new Vector3(0, yaw, 0), Primitive = new Primitive { Kind = PrimitiveKind.Wedge } };
+            return CollisionMesh.Placed(PrimitiveMesher.For(placement, new PolygonBudget()), placement.Matrix());
+        }
+
+        var world = new CollisionWorld(null, [Wedge(7.5f, 180), Wedge(8.5f, 0)], killHeight: -20);
+        var rules = new MovementRules();
+        var state = new MotorState { Position = new Vector3(8, 5, 4) };
+        for (var i = 0; i < 120; i++)
+        {
+            PlayerMotor.Step(ref state, Vector2.Zero, false, 1 / 60f, MaxSpeed, JumpVelocity, world, rules);
+        }
+
+        var validator = new MovementValidator(world, rules, new MovementTolerances(), TickRate);
+        validator.Reset(state.Position, 0, tick: 100);
+        var wedged = state.Position.Y;
+        // Still there long after a player in the air would have come down: standing, not hovering; then a jump.
+        Assert.Equal(MovementVerdict.Accepted, validator.Check(new PositionReport { X = 8, Y = wedged, Z = 4 }, 160, MaxSpeed, JumpVelocity));
+        Assert.Equal(MovementVerdict.Accepted, validator.Check(new PositionReport { X = 8, Y = wedged, Z = 4 }, 220, MaxSpeed, JumpVelocity));
+        Assert.Equal(MovementVerdict.Accepted, validator.Check(new PositionReport { X = 8, Y = wedged + 0.9f, Z = 4 }, 230, MaxSpeed, JumpVelocity));
+    }
+
+    [Fact]
     public void FallingOutRespawnsOnTheLastSafeGround()
     {
         Assert.Equal(MovementVerdict.Accepted, Report(5, 0, 4, 110));

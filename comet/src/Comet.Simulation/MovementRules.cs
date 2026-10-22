@@ -15,6 +15,9 @@ namespace Comet.Simulation
         /// <summary>The highest ledge a player walks up without jumping, in meters.</summary>
         public float StepHeight { get; set; } = 0.35f;
 
+        /// <summary>The most a player in the air rides up onto a ledge when moving into its side, in meters. Each move climbs at most as much as the steepest terrain over that distance, so a jump up a slope keeps its speed; 0 turns this off.</summary>
+        public float MantleHeight { get; set; } = 0.35f;
+
         /// <summary>The steepest ground a player stands on, in degrees from level; steeper is a wall.</summary>
         public float MaxSlope { get; set; } = 60f;
 
