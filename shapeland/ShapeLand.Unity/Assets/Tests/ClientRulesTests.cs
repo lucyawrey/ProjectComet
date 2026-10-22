@@ -103,6 +103,22 @@ namespace ShapeLand.Client.Tests
         }
 
         [Test]
+        public void SteppingOffBeforeThePadFiresFadesBackIn()
+        {
+            const float kill = -30;
+            var fade = new ShapeFade();
+
+            // Started a fade-out ahead of the pad firing, which the player steps off before.
+            fade.DepartFrom(0);
+            fade.Step(0.1f, 0.1f, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0.1f / ShapeFade.FadeOutSeconds).Within(1e-5f));
+            fade.Cancel();
+            Assert.That(fade.Departing, Is.False);
+            fade.Step(0.1f + ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
+        }
+
+        [Test]
         public void AFadeOutWithNoMoveFadesBackIn()
         {
             const float kill = -30;

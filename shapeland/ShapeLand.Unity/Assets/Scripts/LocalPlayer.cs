@@ -95,8 +95,14 @@ namespace ShapeLand.Client
         /// <summary>Whether the shape is fading out for a move (before a teleport, or held where it stood after one).</summary>
         public bool Departing => _fade.Departing;
 
-        /// <summary>The pad the player stands on finished charging: the shape starts fading out for the teleport.</summary>
-        public void TeleportCharged() => _fade.Depart(Time.unscaledTime);
+        /// <summary>
+        /// The pad the player stands on fires in <paramref name="seconds"/>: the shape fades out to be gone by then,
+        /// started as if it had begun on time.
+        /// </summary>
+        public void TeleportSoon(float seconds) => _fade.DepartFrom(Time.unscaledTime + seconds - ShapeFade.FadeOutSeconds);
+
+        /// <summary>The player stepped off the pad before it fired: the shape fades back in.</summary>
+        public void TeleportCancelled() => _fade.Cancel();
 
         /// <summary>Starts the player as <paramref name="shape"/> at <paramref name="position"/>, facing <paramref name="facing"/> radians, moved by <paramref name="controls"/> relative to the camera.</summary>
         public void Begin(ClientSession session, CollisionWorld world, MovementRules rules, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)

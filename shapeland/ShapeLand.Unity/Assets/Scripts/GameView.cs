@@ -47,6 +47,8 @@ namespace ShapeLand.Client
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, OtherFade> _otherFades = new Dictionary<uint, OtherFade>();
         private bool _zonePending;
+        private Mesh _warmUpMesh;
+        private bool _padFading;
         private readonly List<(ShapeBody Shape, ShapeFade Fade)> _leaving = new List<(ShapeBody, ShapeFade)>();
 
         // How another player's shape fades: where it was last drawn from the buffer, to see it jump, and where it's
@@ -429,7 +431,29 @@ namespace ShapeLand.Client
                 if (_teleportCharge.Step(teleporter, teleporter?.Volume, now))
                 {
                     _sending = teleporter;
-                    Player.TeleportCharged();
+                    _padFading = false;
+                }
+
+                // The shape starts fading out just before the pad fires, to be gone as it does; stepping off first
+                // brings it back.
+                if (teleporter != null && _teleportCharge.Inside == teleporter && !_teleportCharge.Fired)
+                {
+                    var left = (1 - _teleportCharge.Progress(now)) * teleporter.Volume.StandSeconds;
+                    if (!_padFading && left <= ShapeFade.FadeOutSeconds)
+                    {
+                        Player.TeleportSoon(left);
+                        _padFading = true;
+                    }
+                }
+                else if (_padFading)
+                {
+                    Player.TeleportCancelled();
+                    _padFading = false;
+                }
+
+                if (_sending != null && _teleportCharge.Inside != _sending && !Player.Departing)
+                {
+                    _sending = null;
                 }
             }
 
@@ -443,8 +467,10 @@ namespace ShapeLand.Client
                 }
                 else if (pad.Owner is Teleporter teleporter)
                 {
-                    var charge = _teleportCharge.Inside != teleporter ? 0
-                        : teleporter == _sending && _teleportCharge.Fired ? 1
+                    // Lit from firing until the player has faded out of it, and the target from arriving until they step off.
+                    var charge = teleporter == _sending && Player != null && Player.Departing ? 1
+                        : _teleportCharge.Inside != teleporter ? 0
+                        : _teleportCharge.Fired ? 1
                         : _teleportCharge.Progress(now);
                     var to = Color(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
                     color = Charging(pad.Color, to, charge, teleporter.Volume.StandSeconds);
@@ -505,6 +531,7 @@ namespace ShapeLand.Client
         // the camera carry on as they were (the server's snap-back has already put the player where it has them).
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
+            WarmUpFades();
             _spawns[spawn.EntityId] = spawn;
             var shape = _join.Content.Shapes[spawn.Shape];
             if (Player == null)
@@ -523,6 +550,21 @@ namespace ShapeLand.Client
 
             Player.name = $"{spawn.Name} (you)";
             _playerShape = BuildShape(shape, spawn.Color, spawn.EyeColor, Player.transform);
+        }
+
+        // Draws the fade materials once, out of sight, so their shaders are ready (compiled) before a shape first fades,
+        // rather than showing the editor's placeholder or a hitch then.
+        private void WarmUpFades()
+        {
+            _warmUpMesh ??= new Mesh { name = "Fade warm-up", vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f }, triangles = new[] { 0, 1, 2 } };
+            var place = Matrix4x4.Translate(Camera.transform.position + Camera.transform.forward * (Camera.nearClipPlane * 2));
+            foreach (var material in new[] { shapeFadeMaterial, eyesFadeMaterial })
+            {
+                if (material != null)
+                {
+                    Graphics.RenderMesh(new RenderParams(material) { camera = Camera }, _warmUpMesh, 0, place);
+                }
+            }
         }
 
         // A player coming into view fades in; one already in view (a new look) is swapped at once.
@@ -633,6 +675,11 @@ namespace ShapeLand.Client
 
         private void OnDestroy()
         {
+            if (_warmUpMesh != null)
+            {
+                Destroy(_warmUpMesh);
+            }
+
             _join.ContentLoaded -= OnContentLoaded;
             _join.ZoneChanged -= OnZoneChanged;
             _join.PlacementsFlipped -= OnFlipped;

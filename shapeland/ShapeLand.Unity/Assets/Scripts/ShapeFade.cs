@@ -24,7 +24,7 @@ namespace ShapeLand.Client
         public const float FadeInSeconds = 0.4f;
 
         /// <summary>
-        /// How long a fade-out started ahead of a move (the player's own pad finishing its charge) waits for it once
+        /// How long a fade-out started ahead of a move (the player's own pad charging) waits for it once
         /// faded, in seconds, before fading back in where it is: the server didn't send them after all.
         /// </summary>
         public const float WaitSeconds = 1f;
@@ -41,6 +41,18 @@ namespace ShapeLand.Client
 
         /// <summary>Starts fading out, from however faded it is now, for a move expected soon.</summary>
         public void Depart(float now) => _outSince ??= now - Faded * FadeOutSeconds;
+
+        /// <summary>Starts fading out at <paramref name="since"/>, to be gone when a move expected at a known time comes.</summary>
+        public void DepartFrom(float since) => _outSince ??= since;
+
+        /// <summary>Stops a fade-out the move hasn't come for yet: the shape fades back in where it is.</summary>
+        public void Cancel()
+        {
+            if (!_moved)
+            {
+                _outSince = null;
+            }
+        }
 
         /// <summary>The move came: the shape stays where it was drawn until it has faded out (at once if it already has).</summary>
         public void Moved(float now)
