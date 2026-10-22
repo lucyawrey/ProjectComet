@@ -61,9 +61,14 @@ public class CylinderBodyTests
         var world = TestWorlds.Create();
         Assert.True(world.TryGetGround(new Vector3(14.5f, 2, 7), 0.4f, 2, out var ground));
         var state = new MotorState { Position = new Vector3(14.5f, ground, 7), Velocity = new Vector3(5, 0, 0), Grounded = true };
-        PlayerMotor.Step(ref state, new Vector2(1, 0), true, 1 / 60f, 5, 8, world, TestWorlds.Rules);
+        for (var i = 0; i < 6; i++)
+        {
+            PlayerMotor.Step(ref state, new Vector2(1, 0), i == 0, 1 / 60f, 5, 8, world, TestWorlds.Rules);
+        }
+
+        // Against the slope for at most the first step, keeping its speed.
         Assert.Equal(5, state.Velocity.X, 3);
-        Assert.True(state.Position.X > 14.55f);
+        Assert.True(state.Position.X > 14.5f + 5 * 5 / 60f - 0.01f);
     }
 
     private static CollisionMesh Mesh(PrimitiveKind kind, Vector3 at, Vector3 scale, float yaw = 0)
