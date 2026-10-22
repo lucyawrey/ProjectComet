@@ -46,6 +46,7 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, OtherFade> _otherFades = new Dictionary<uint, OtherFade>();
+        private bool _zonePending;
         private readonly List<(ShapeBody Shape, ShapeFade Fade)> _leaving = new List<(ShapeBody, ShapeFade)>();
 
         // How another player's shape fades: where it was last drawn from the buffer, to see it jump, and where it's
@@ -118,6 +119,11 @@ namespace ShapeLand.Client
         // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
         private void Update()
         {
+            if (_zonePending && (Player == null || !Player.Departing))
+            {
+                OnZoneChanged(_join.Zone);
+            }
+
             ColorPads();
             if (Player != null && _playerShape != null)
             {
@@ -188,6 +194,16 @@ namespace ShapeLand.Client
             {
                 return; // the content just loaded: OnContentLoaded draws the zone shown by then
             }
+
+            // The player's shape is still fading out where it stood: the old zone stays drawn around it until it's gone.
+            if (Player != null && Player.Departing)
+            {
+                Player.World = _join.World;
+                _zonePending = true;
+                return;
+            }
+
+            _zonePending = false;
 
             Destroy(_drawnZone.gameObject);
             _pads.Clear();

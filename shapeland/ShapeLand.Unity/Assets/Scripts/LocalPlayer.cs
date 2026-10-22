@@ -65,8 +65,8 @@ namespace ShapeLand.Client
             get => _world;
             set
             {
+                _zoneChanged |= value != _world;
                 _world = value;
-                _zoneChanged = true;
                 PassThrough.Clear();
             }
         }
@@ -91,6 +91,9 @@ namespace ShapeLand.Client
 
         /// <summary>How far the player's shape has faded (<see cref="ShapeFade"/>): 0 fully visible, 1 gone.</summary>
         public float Faded => _fade.Faded;
+
+        /// <summary>Whether the shape is fading out for a move (before a teleport, or held where it stood after one).</summary>
+        public bool Departing => _fade.Departing;
 
         /// <summary>The pad the player stands on finished charging: the shape starts fading out for the teleport.</summary>
         public void TeleportCharged() => _fade.Depart(Time.unscaledTime);
@@ -166,10 +169,10 @@ namespace ShapeLand.Client
 
             _blend.Advance(Time.unscaledDeltaTime);
             Draw(_step.Alpha);
-            var now = Time.unscaledTime;
-            if (_fade.Step(now, Time.unscaledDeltaTime, _fade.Holding ? _held.y : _drawn.Y, _world.KillHeight))
+            var time = Time.unscaledTime;
+            if (_fade.Step(time, Time.unscaledDeltaTime, _fade.Holding ? _held.y : _drawn.Y, _world.KillHeight))
             {
-                Arrived(now);
+                Arrived(time);
             }
         }
 

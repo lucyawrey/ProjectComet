@@ -49,6 +49,9 @@ namespace ShapeLand.Client
             _moved = true;
         }
 
+        /// <summary>Whether the shape is fading out for a move, or held after it.</summary>
+        public bool Departing => _outSince != null;
+
         /// <summary>Whether the shape is held at where it stood before the move, fading out.</summary>
         public bool Holding => _outSince != null && _moved;
 
