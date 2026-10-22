@@ -16,6 +16,9 @@ namespace Comet.Simulation
 
         /// <summary>Facing as a yaw angle in radians (0 faces +Z).</summary>
         public float Facing;
+
+        /// <summary>How far the last step lifted the body onto a ledge (a step or a mantle), so a client can draw it rising smoothly.</summary>
+        public float Climbed;
     }
 
     /// <summary>
@@ -75,8 +78,9 @@ namespace Comet.Simulation
             var skimming = !grounded && world.TryGetGround(position, rules.BodyRadius, position.Y, out var under, 0, passThrough)
                 && position.Y - under <= 2 * current.Length() * seconds;
             float Climb(float axisMove) => grounded ? stepUp : MathF.Max(rules.MantleHeight, skimming ? 2 * MathF.Abs(axisMove) : 0);
-            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), Climb(current.X * seconds), world, rules, passThrough, ref current.X);
-            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), Climb(current.Y * seconds), world, rules, passThrough, ref current.Y);
+            var climbed = 0f;
+            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), Climb(current.X * seconds), world, rules, passThrough, ref current.X, ref climbed);
+            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), Climb(current.Y * seconds), world, rules, passThrough, ref current.Y, ref climbed);
 
             // Move vertically, landing on ground or stopping under something solid.
             var startY = position.Y;
@@ -120,6 +124,7 @@ namespace Comet.Simulation
 
             state.Position = position;
             state.Velocity = new Vector3(current.X, velocityY, current.Y);
+            state.Climbed = climbed;
         }
 
         // Turns a yaw angle the short way round toward another, by at most maxTurn radians; the result is in (-π, π].
@@ -131,7 +136,7 @@ namespace Comet.Simulation
             return turned - 2 * MathF.PI * MathF.Floor((turned + MathF.PI) / (2 * MathF.PI));
         }
 
-        private static Vector3 TryMoveAxis(Vector3 position, Vector3 delta, float stepUp, CollisionWorld world, MovementRules rules, ISet<int>? passThrough, ref float axisVelocity)
+        private static Vector3 TryMoveAxis(Vector3 position, Vector3 delta, float stepUp, CollisionWorld world, MovementRules rules, ISet<int>? passThrough, ref float axisVelocity, ref float climbed)
         {
             if (delta == Vector3.Zero)
             {
@@ -150,6 +155,12 @@ namespace Comet.Simulation
                 var stepped = new Vector3(moved.X, ledge, moved.Z);
                 if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight, passThrough))
                 {
+                    // Rising no more than a slope as steep as terrain climbs isn't a ledge.
+                    if (ledge - position.Y > 2 * delta.Length())
+                    {
+                        climbed += ledge - position.Y;
+                    }
+
                     return stepped;
                 }
             }

@@ -30,6 +30,10 @@ namespace ShapeLand.Client
         private readonly FixedStep _step = new FixedStep(StepsPerSecond);
         private readonly PositionReporter _reporter = new PositionReporter();
         private readonly CorrectionBlend _blend = new CorrectionBlend();
+
+        [Tooltip("How long the drawn shape takes to rise onto a ledge it steps or mantles onto, in seconds; the body is there at once.")]
+        [SerializeField] private float climbSeconds = 0.1f;
+        private float _climbOffset;
         private float _cheatedAt = float.NegativeInfinity;
         private ClientSession _session;
         private CollisionWorld _world;
@@ -139,6 +143,9 @@ namespace ShapeLand.Client
                 var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
                 PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules, PassThrough);
+                // A climb is drawn from where the shape was, rising as the offset eases out, not between steps.
+                _previous.Position.Y += _motor.Climbed;
+                _climbOffset -= _motor.Climbed;
                 PassThrough.Prune(_world, _motor.Position, _rules.BodyRadius, _rules.BodyHeight);
 
                 _jumpQueued = false;
@@ -150,13 +157,15 @@ namespace ShapeLand.Client
             }
 
             _blend.Advance(Time.unscaledDeltaTime);
+            // Mostly caught up (95%) after climbSeconds.
+            _climbOffset = climbSeconds > 0 ? _climbOffset * Mathf.Exp(-3 * Time.unscaledDeltaTime / climbSeconds) : 0;
             Draw(_step.Alpha);
             Darkness = RespawnFade.Step(Darkness, _drawn.Y, _world.KillHeight, Time.unscaledDeltaTime);
         }
 
         private void Draw(float alpha)
         {
-            _drawn = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha) + _blend.Offset;
+            _drawn = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha) + _blend.Offset + new System.Numerics.Vector3(0, _climbOffset, 0);
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
             transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
         }
@@ -168,6 +177,7 @@ namespace ShapeLand.Client
             _motor.Grounded = false;
             _previous = _motor;
             _reporter.Reset();
+            _climbOffset = 0;
             if (correction.Reason == CorrectionReason.Respawn)
             {
                 // Usually dark already from the fall; if not, cut to black rather than show the jump.
