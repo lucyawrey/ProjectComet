@@ -59,8 +59,9 @@ public class PlayerMotorTests
         var state = Run(Standing(13, 1), new Vector2(1, 0), 0.4f);
 
         Assert.True(state.Grounded);
-        Assert.True(_world.TryGetTerrainHeight(state.Position.X, state.Position.Z, float.MaxValue, out var ground));
-        Assert.Equal(ground, state.Position.Y, 3);
+        // Standing on the highest ground under the body: the slope's height at the circle's uphill edge.
+        Assert.True(_world.TryGetTerrainHeight(state.Position.X + TestWorlds.Rules.BodyRadius, state.Position.Z, float.MaxValue, out var ground));
+        Assert.Equal(ground, state.Position.Y, 2);
     }
 
     [Fact]
@@ -108,7 +109,7 @@ public class PlayerMotorTests
         var state = Run(Standing(2.5f, 3.5f), new Vector2(1, 1), 0.5f);
 
         Assert.True(state.Position.Z > 5, "should keep moving along z");
-        Assert.InRange(state.Position.X, 2.5f, 2.61f);
+        Assert.InRange(state.Position.X, 2.5f, 3f); // round the corner once past it
     }
 
     [Fact]

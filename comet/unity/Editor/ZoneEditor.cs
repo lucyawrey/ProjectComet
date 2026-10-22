@@ -267,7 +267,7 @@ namespace Comet.Unity.Editor
             var t = trigger.transform;
             return new TriggerVolume
             {
-                Kind = (PrimitiveKind)System.Enum.Parse(typeof(PrimitiveKind), trigger.volume.ToString()),
+                Kind = trigger.Shape,
                 Position = ToNumerics(t.position),
                 Yaw = Angle(t.rotation.eulerAngles.y),
                 Size = ToNumerics(trigger.size),

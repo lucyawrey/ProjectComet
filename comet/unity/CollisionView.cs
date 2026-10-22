@@ -15,6 +15,7 @@ namespace Comet.Unity
     {
         // Lines behind something, as a share of their opacity in sight.
         private const float HiddenOpacity = 0.2f;
+        private const int BodySides = 16;
 
         // Terrain edges between cells meeting at less than this many degrees aren't drawn, so gentle slopes don't
         // fill the view with the grid; cliffs, skirts and piece edges still show.
@@ -50,7 +51,7 @@ namespace Comet.Unity
             _seen = Make(CompareFunction.LessEqual, 1);
             _hidden = Make(CompareFunction.Greater, HiddenOpacity);
             _always = Make(CompareFunction.Always, 1);
-            _body = Box();
+            _body = Cylinder();
             // At the scene's root: the lines are in world space whatever this object's transform.
             _root = new GameObject("Collision view").transform;
             _root.gameObject.SetActive(false);
@@ -58,7 +59,7 @@ namespace Comet.Unity
 
         /// <summary>
         /// Shows <paramref name="world"/>'s meshes from now on, each in the color <paramref name="colorOf"/> gives it,
-        /// and its terrain in <paramref name="terrainColor"/>; none of the volumes added before.
+        /// and its terrain meshes in <paramref name="terrainColor"/>; none of the volumes added before.
         /// </summary>
         public void Show(CollisionWorld world, System.Func<CollisionMesh, Color> colorOf, Color terrainColor)
         {
@@ -66,31 +67,56 @@ namespace Comet.Unity
             _world = world;
             for (var i = 0; i < world.Meshes.Count; i++)
             {
-                _meshes.Add((i, AddLines("Mesh " + i, world.Meshes[i].Triangles, colorOf(world.Meshes[i]))));
-            }
-
-            // Terrain collides as height maps; these are the meshes drawn from the same maps, so they show its shape.
-            if (world.Terrain != null)
-            {
-                foreach (var chunk in TerrainMesher.Build(world.Terrain, 0, 0))
-                {
-                    var lines = AddLines($"Terrain {chunk.Key}", chunk.Value.Positions, terrainColor, TerrainCrease);
-                    lines.transform.localPosition = new Vector3(chunk.Key.Origin.X, chunk.Key.Origin.Y, chunk.Key.Origin.Z);
-                    _fixed.Add(lines);
-                }
+                var mesh = world.Meshes[i];
+                var terrain = mesh.Kind == CollisionMesh.TerrainKind;
+                var edges = ToUnity(FeatureEdges.Of(mesh.Triangles, terrain ? TerrainCrease : 1));
+                _meshes.Add((i, AddLines("Mesh " + i, edges, terrain ? terrainColor : colorOf(mesh))));
             }
         }
 
-        /// <summary>Adds <paramref name="volume"/>'s shape in <paramref name="color"/>.</summary>
-        public void AddVolume(TriggerVolume volume, PolygonBudget budget, Color color)
+        /// <summary>
+        /// Adds <paramref name="volume"/>'s shape in <paramref name="color"/>, with a line the way it faces when
+        /// <paramref name="facing"/> (arrivals that face its direction).
+        /// </summary>
+        public void AddVolume(TriggerVolume volume, PolygonBudget budget, Color color, bool facing = false)
         {
-            var triangles = PrimitiveMesher.Build(new Primitive { Kind = volume.Kind }, volume.Size, budget);
-            var placed = CollisionMesh.Placed(triangles, System.Numerics.Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(new System.Numerics.Vector3(0, volume.Yaw, 0)))
-                * System.Numerics.Matrix4x4.CreateTranslation(volume.Position));
-            _fixed.Add(AddLines("Volume", placed.Triangles, color));
+            var edges = VolumeEdges(volume.Kind, ToUnity(volume.Size), budget);
+            if (facing)
+            {
+                var shape = edges;
+                edges = new Vector3[shape.Length + 2];
+                shape.CopyTo(edges, 0);
+                FacingEdge(ToUnity(volume.Size)).CopyTo(edges, shape.Length);
+            }
+
+            var place = Matrix4x4.TRS(ToUnity(volume.Position), Quaternion.Euler(0, volume.Yaw, 0), Vector3.one);
+            for (var i = 0; i < edges.Length; i++)
+            {
+                edges[i] = place.MultiplyPoint3x4(edges[i]);
+            }
+
+            _fixed.Add(AddLines("Volume", edges, color));
         }
 
-        /// <summary>Draws a body this frame: an upright box on <paramref name="feet"/>, <paramref name="radius"/> out each way, seen through everything.</summary>
+        /// <summary>
+        /// The lines of a volume of <paramref name="kind"/> and <paramref name="size"/> standing on the origin, as
+        /// pairs of points: the shape players are checked against, cut as finely as <paramref name="budget"/> says.
+        /// The editor's gizmos draw these too.
+        /// </summary>
+        public static Vector3[] VolumeEdges(PrimitiveKind kind, Vector3 size, PolygonBudget budget) =>
+            ToUnity(FeatureEdges.Of(PrimitiveMesher.Build(new Primitive { Kind = kind }, new System.Numerics.Vector3(size.x, size.y, size.z), budget)));
+
+        /// <summary>
+        /// The line showing which way a volume of <paramref name="size"/> faces, standing on the origin: from its
+        /// bottom center forward (+Z) to its edge, at least 1 m. The editor's gizmos draw it too.
+        /// </summary>
+        public static Vector3[] FacingEdge(Vector3 size)
+        {
+            var from = Vector3.up * 0.05f;
+            return new[] { from, from + Vector3.forward * Mathf.Max(size.z / 2, 1) };
+        }
+
+        /// <summary>Draws a body this frame: an upright cylinder standing on <paramref name="feet"/>, seen through everything.</summary>
         public void DrawBody(Vector3 feet, float radius, float height, Color color)
         {
             if (_shown)
@@ -157,14 +183,25 @@ namespace Comet.Unity
         private static readonly int Opacity = Shader.PropertyToID("_Opacity");
         private static readonly int Tint = Shader.PropertyToID("_Color");
 
-        private GameObject AddLines(string name, IReadOnlyList<System.Numerics.Vector3> triangles, Color color, float creaseDegrees = 1)
+        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
+
+        private static Vector3[] ToUnity(System.Numerics.Vector3[] points)
         {
-            var edges = FeatureEdges.Of(triangles, creaseDegrees);
-            var points = new Vector3[edges.Length];
-            var indices = new int[edges.Length];
-            for (var i = 0; i < edges.Length; i++)
+            var converted = new Vector3[points.Length];
+            for (var i = 0; i < points.Length; i++)
             {
-                points[i] = new Vector3(edges[i].X, edges[i].Y, edges[i].Z);
+                converted[i] = ToUnity(points[i]);
+            }
+
+            return converted;
+        }
+
+        // Pairs of points as one line mesh.
+        private GameObject AddLines(string name, Vector3[] points, Color color)
+        {
+            var indices = new int[points.Length];
+            for (var i = 0; i < points.Length; i++)
+            {
                 indices[i] = i;
             }
 
@@ -202,20 +239,34 @@ namespace Comet.Unity
             return material;
         }
 
-        // A player's body as Comet collides it: an upright box, its square footprint 1 from the origin each way, 1
-        // tall, standing on the origin. It doesn't turn with the player.
-        private static Mesh Box()
+        // A cylinder of radius 1 and height 1 standing on the origin: two rings and four uprights.
+        private static Mesh Cylinder()
         {
             var points = new List<Vector3>();
-            for (var i = 0; i < 8; i++)
+            var indices = new List<int>();
+            for (var i = 0; i < BodySides; i++)
             {
-                points.Add(new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? 0 : 1, (i & 4) == 0 ? -1 : 1));
+                var angle = i * 2 * Mathf.PI / BodySides;
+                var x = Mathf.Sin(angle);
+                var z = Mathf.Cos(angle);
+                points.Add(new Vector3(x, 0, z));
+                points.Add(new Vector3(x, 1, z));
+            }
+
+            for (var i = 0; i < BodySides; i++)
+            {
+                var next = (i + 1) % BodySides;
+                indices.AddRange(new[] { 2 * i, 2 * next, 2 * i + 1, 2 * next + 1 });
+                if (i % (BodySides / 4) == 0)
+                {
+                    indices.AddRange(new[] { 2 * i, 2 * i + 1 });
+                }
             }
 
             var mesh = new Mesh { name = "Body" };
             mesh.SetVertices(points);
             mesh.SetColors(Fill(points.Count, Color.white));
-            mesh.SetIndices(new[] { 0, 1, 1, 5, 5, 4, 4, 0, 2, 3, 3, 7, 7, 6, 6, 2, 0, 2, 1, 3, 5, 7, 4, 6 }, MeshTopology.Lines, 0);
+            mesh.SetIndices(indices, MeshTopology.Lines, 0);
             return mesh;
         }
 

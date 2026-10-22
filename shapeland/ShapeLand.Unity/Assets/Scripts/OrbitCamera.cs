@@ -114,7 +114,7 @@ namespace ShapeLand.Client
 
             _distance = wanted < _distance ? wanted : Mathf.MoveTowards(_distance, wanted, zoomOutSpeed * Time.unscaledDeltaTime);
             var position = look + back * _distance;
-            if (_world != null && _world.TryGetGround(Vectors.ToNumerics(position), 0, position.y + 1000, out var ground) && position.y < ground + groundClearance)
+            if (_world != null && _world.TryGetTerrainHeight(position.x, position.z, position.y + 1000, out var ground) && position.y < ground + groundClearance)
             {
                 position.y = ground + groundClearance;
                 rotation = Quaternion.LookRotation(look - position);
