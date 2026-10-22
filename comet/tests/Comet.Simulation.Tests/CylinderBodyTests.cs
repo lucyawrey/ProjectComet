@@ -65,4 +65,47 @@ public class CylinderBodyTests
         Assert.Equal(5, state.Velocity.X, 3);
         Assert.True(state.Position.X > 14.55f);
     }
+
+    private static CollisionMesh Mesh(PrimitiveKind kind, Vector3 at, Vector3 scale, float yaw = 0)
+    {
+        var placement = new Placement { Position = at, Scale = scale, Rotation = new Vector3(0, yaw, 0), Primitive = new Primitive { Kind = kind } };
+        return CollisionMesh.Placed(PrimitiveMesher.For(placement, new PolygonBudget()), placement.Matrix());
+    }
+
+    [Fact]
+    public void AFallIntoASteepVStopsWhereItFits()
+    {
+        // Two steep wedges back to back, their slopes forming a V narrower than the body.
+        var world = TestWorlds.Create(Mesh(PrimitiveKind.Wedge, new Vector3(7.5f, 1, 7), new Vector3(1, 4, 2), 180), Mesh(PrimitiveKind.Wedge, new Vector3(8.5f, 1, 7), new Vector3(1, 4, 2)));
+        var state = new MotorState { Position = new Vector3(8, 6, 7) };
+        for (var i = 0; i < 120; i++)
+        {
+            PlayerMotor.Step(ref state, Vector2.Zero, false, 1 / 60f, 5, 8, world, TestWorlds.Rules);
+        }
+
+        Assert.True(state.Position.Y > 2);
+        Assert.True(state.Grounded);
+        Assert.False(world.IsBlocked(state.Position, 0.4f, 1));
+
+        // Standing there, it can jump out.
+        var wedged = state.Position.Y;
+        PlayerMotor.Step(ref state, Vector2.Zero, true, 1 / 60f, 5, 8, world, TestWorlds.Rules);
+        Assert.True(state.Position.Y > wedged);
+    }
+
+    [Theory]
+    [InlineData(0.3f, true)]
+    [InlineData(0.5f, false)]
+    public void InTheAirMantlesOntoALowLedge(float below, bool mantles)
+    {
+        // A crate with its top at 1.4 m, the floor at 1 m; a fall beside it, moving into its side.
+        var world = TestWorlds.Create(Mesh(PrimitiveKind.Box, new Vector3(6, 1, 7), new Vector3(2, 0.4f, 2)));
+        var state = new MotorState { Position = new Vector3(4.55f, 1.4f - below + 0.05f, 7), Velocity = new Vector3(5, 0, 0) };
+        for (var i = 0; i < 20; i++)
+        {
+            PlayerMotor.Step(ref state, new Vector2(1, 0), false, 1 / 60f, 5, 8, world, TestWorlds.Rules);
+        }
+
+        Assert.Equal(mantles, state.Position.Y > 1.39f);
+    }
 }

@@ -94,11 +94,8 @@ namespace Comet.Protocol.Messages
         /// <summary>Higher than gravity allows: above the arc of a jump from the last ground at this point in it.</summary>
         TooHigh,
 
-        /// <summary>The body overlaps a solid mesh (a placed object or a wall volume).</summary>
+        /// <summary>The body overlaps something solid: terrain or a placed object.</summary>
         InsideSolid,
-
-        /// <summary>Inside a terrain piece: below its surface and above its bottom.</summary>
-        UnderGround,
 
         /// <summary>Fell below the world's kill height; respawn.</summary>
         FellOut,

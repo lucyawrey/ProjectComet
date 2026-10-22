@@ -139,6 +139,7 @@ public static class ShapeLandBuild
         InRange(movement, nameof(m.BodyRadius), m.BodyRadius, 5);
         InRange(movement, nameof(m.BodyHeight), m.BodyHeight, 10);
         InRange(movement, nameof(m.StepHeight), m.StepHeight, m.BodyHeight);
+        InRange(movement, nameof(m.MantleHeight), m.MantleHeight, m.BodyHeight);
         InRange(movement, nameof(m.GroundSnap), m.GroundSnap, 5);
         InRange(movement, nameof(m.GroundAcceleration), m.GroundAcceleration, 1000);
         InRange(movement, nameof(m.AirAcceleration), m.AirAcceleration, 1000);
