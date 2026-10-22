@@ -24,10 +24,11 @@ namespace Comet.ZoneFiles
                 return null;
             }
 
-            toml.CheckKeys(table, "", "id", "part");
+            toml.CheckKeys(table, "", "id", "display_name", "part");
             return new Group
             {
                 Id = toml.String(table, "", "id"),
+                DisplayName = table.ContainsKey("display_name") ? toml.String(table, "", "display_name") : null,
                 Parts = toml.Tables(table, "part").Select(p => ZoneFolder.ReadPlacement(toml, p.Table, p.Path)).ToArray(),
             };
         }
@@ -59,6 +60,11 @@ namespace Comet.ZoneFiles
         public static void Write(string path, Group group)
         {
             var table = new TomlTable { ["id"] = group.Id };
+            if (group.DisplayName != null)
+            {
+                table["display_name"] = group.DisplayName;
+            }
+
             ZoneFolder.AddTables(table, "part", group.Parts, ZoneFolder.PlacementTable);
             var bytes = Encoding.UTF8.GetBytes(ZoneFolder.HexColors(ZoneToml.Write(table)));
             if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes))

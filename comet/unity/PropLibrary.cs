@@ -15,6 +15,10 @@ namespace Comet.Unity
         public struct Entry
         {
             public string id;
+
+            [Tooltip("The name the zone editor shows; empty shows the id without its prefix.")]
+            public string displayName;
+
             public GameObject model;
 
             [Tooltip("Placements may only scale it the same on every axis.")]

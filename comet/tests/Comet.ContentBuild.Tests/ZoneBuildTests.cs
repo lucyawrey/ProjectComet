@@ -191,6 +191,25 @@ public class ZoneBuildTests
     }
 
     [Fact]
+    public void PropsAndGroupsMayHaveDisplayNames()
+    {
+        using var folder = new ContentFolder();
+        WritePlacement(folder, new Placement { Prop = "prop.plate" });
+        folder.Write("props/plate.toml", "id = \"prop.plate\"\nmodel = \"plate.glb\"\ndisplay_name = \"Stone plate\"\n");
+        var box = new Primitive { Kind = PrimitiveKind.Box };
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "post.toml"), new Group { Id = "group.post", DisplayName = "Fence post", Parts = [new Placement { Primitive = box }] });
+        GroupFile.Write(Path.Combine(folder.Root, "groups", "hut.toml"), new Group { Id = "group.hut", Parts = [new Placement { Primitive = box }] });
+
+        var result = Build(folder);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal("Stone plate", Assert.Single(result.Entries<Prop>()).DisplayName);
+        Assert.Equal([("group.hut", null), ("group.post", "Fence post")], result.Groups.Select(g => (g.Id, g.DisplayName)));
+        Assert.Contains("display_name = \"Fence post\"", File.ReadAllText(Path.Combine(folder.Root, "groups", "post.toml")));
+        Assert.DoesNotContain("display_name", File.ReadAllText(Path.Combine(folder.Root, "groups", "hut.toml")));
+    }
+
+    [Fact]
     public void BlockoutPlacementsWarnOrFailARelease()
     {
         using var folder = new ContentFolder();
