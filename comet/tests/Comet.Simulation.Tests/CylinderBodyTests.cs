@@ -53,4 +53,16 @@ public class CylinderBodyTests
         Assert.True(state.Position.X < 5.5f);
         Assert.False(world.IsBlocked(state.Position, 0.4f, 1));
     }
+
+    [Fact]
+    public void JumpingUpASlopeKeepsItsSpeed()
+    {
+        // Running up the rise, standing on its slope.
+        var world = TestWorlds.Create();
+        Assert.True(world.TryGetGround(new Vector3(14.5f, 2, 7), 0.4f, 2, out var ground));
+        var state = new MotorState { Position = new Vector3(14.5f, ground, 7), Velocity = new Vector3(5, 0, 0), Grounded = true };
+        PlayerMotor.Step(ref state, new Vector2(1, 0), true, 1 / 60f, 5, 8, world, TestWorlds.Rules);
+        Assert.Equal(5, state.Velocity.X, 3);
+        Assert.True(state.Position.X > 14.55f);
+    }
 }

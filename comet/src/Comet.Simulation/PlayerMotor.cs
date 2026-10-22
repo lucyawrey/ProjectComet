@@ -66,11 +66,12 @@ namespace Comet.Simulation
                 velocityY -= rules.Gravity * seconds;
             }
 
-            // Move horizontally, sliding along walls one axis at a time.
+            // Move horizontally, sliding along walls one axis at a time. In the air, a move rides up walkable ground
+            // as steep as terrain climbs, so a jump up a slope doesn't stop against it as it takes off or lands.
             var position = state.Position;
             var stepUp = state.Grounded ? rules.StepHeight : 0;
-            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), stepUp, world, rules, passThrough, ref current.X);
-            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), stepUp, world, rules, passThrough, ref current.Y);
+            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), state.Grounded ? stepUp : 2 * MathF.Abs(current.X * seconds), world, rules, passThrough, ref current.X);
+            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), state.Grounded ? stepUp : 2 * MathF.Abs(current.Y * seconds), world, rules, passThrough, ref current.Y);
 
             // Move vertically, landing on ground or stopping under something solid.
             var startY = position.Y;
