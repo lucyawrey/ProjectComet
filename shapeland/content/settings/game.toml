@@ -15,7 +15,7 @@ air_acceleration = 15.0
 turn_speed = 900.0 # how fast a shape turns to face the way it moves, in degrees per second
 
 [world]
-kill_height = -30.0 # falling below this is out of the world: back to the player's spawn
+kill_height = -30.0 # falling below this is out of the world: back to the player's spawn (a zone.toml can set its own)
 ground_color = 0x739E4D # default unpainted terrain color
 under_color = 0x7A5C3E # default unpainted terrain underside color
 placed_color = 0x9E8C7A # default placed object color, for placements without their own
