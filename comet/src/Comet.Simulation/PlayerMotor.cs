@@ -69,15 +69,16 @@ namespace Comet.Simulation
                 velocityY -= rules.Gravity * seconds;
             }
 
-            // Move horizontally, sliding along walls one axis at a time and walking up low ledges. In the air, a move
-            // into a ledge's side mantles onto it; skimming the ground, it also rides up slopes as steep as terrain
-            // climbs, however fast, so a jump up a slope doesn't stop against it as it takes off or lands.
+            // Move horizontally, sliding along walls one axis at a time and walking up low ledges. Falling, a move into
+            // a ledge's side mantles onto it (rising, the jump carries on, so a mantle never adds to it); skimming the
+            // ground, it also rides up slopes as steep as terrain climbs, however fast, so a jump up a slope doesn't
+            // stop against it as it takes off or lands.
             var position = state.Position;
             var grounded = state.Grounded;
             var stepUp = grounded ? rules.StepHeight : 0;
             var skimming = !grounded && world.TryGetGround(position, rules.BodyRadius, position.Y, out var under, 0, passThrough)
                 && position.Y - under <= 2 * current.Length() * seconds;
-            float Climb(float axisMove) => grounded ? stepUp : MathF.Max(rules.MantleHeight, skimming ? 2 * MathF.Abs(axisMove) : 0);
+            float Climb(float axisMove) => grounded ? stepUp : MathF.Max(velocityY <= 0 ? rules.MantleHeight : 0, skimming ? 2 * MathF.Abs(axisMove) : 0);
             var climbed = 0f;
             position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), Climb(current.X * seconds), world, rules, passThrough, ref current.X, ref climbed);
             position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), Climb(current.Y * seconds), world, rules, passThrough, ref current.Y, ref climbed);

@@ -108,4 +108,22 @@ public class CylinderBodyTests
 
         Assert.Equal(mantles, state.Position.Y > 1.39f);
     }
+
+    [Fact]
+    public void RisingIntoALedgeDoesNotMantleAboveIt()
+    {
+        // A jump into the crate's side that peaks short of its top: no lift on the way up, caught on the way down.
+        var world = TestWorlds.Create(Mesh(PrimitiveKind.Box, new Vector3(6, 1, 7), new Vector3(2, 0.4f, 2)));
+        var state = new MotorState { Position = new Vector3(4.55f, 1.15f, 7), Velocity = new Vector3(5, 3, 0) };
+        var highest = 0f;
+        for (var i = 0; i < 40; i++)
+        {
+            PlayerMotor.Step(ref state, new Vector2(1, 0), false, 1 / 60f, 5, 8, world, TestWorlds.Rules);
+            highest = MathF.Max(highest, state.Position.Y);
+        }
+
+        Assert.True(highest < 1.401f);
+        Assert.Equal(1.4f, state.Position.Y, 3);
+        Assert.True(state.Grounded);
+    }
 }
