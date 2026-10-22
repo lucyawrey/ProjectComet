@@ -69,18 +69,31 @@ namespace Comet.Unity
             {
                 var mesh = world.Meshes[i];
                 var terrain = mesh.Kind == CollisionMesh.TerrainKind;
-                _meshes.Add((i, AddLines("Mesh " + i, mesh.Triangles, terrain ? terrainColor : colorOf(mesh), terrain ? TerrainCrease : 1)));
+                var edges = ToUnity(FeatureEdges.Of(mesh.Triangles, terrain ? TerrainCrease : 1));
+                _meshes.Add((i, AddLines("Mesh " + i, edges, terrain ? terrainColor : colorOf(mesh))));
             }
         }
 
         /// <summary>Adds <paramref name="volume"/>'s shape in <paramref name="color"/>.</summary>
         public void AddVolume(TriggerVolume volume, PolygonBudget budget, Color color)
         {
-            var triangles = PrimitiveMesher.Build(new Primitive { Kind = volume.Kind }, volume.Size, budget);
-            var placed = CollisionMesh.Placed(triangles, System.Numerics.Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(new System.Numerics.Vector3(0, volume.Yaw, 0)))
-                * System.Numerics.Matrix4x4.CreateTranslation(volume.Position));
-            _fixed.Add(AddLines("Volume", placed.Triangles, color));
+            var edges = VolumeEdges(volume.Kind, ToUnity(volume.Size), budget);
+            var place = Matrix4x4.TRS(ToUnity(volume.Position), Quaternion.Euler(0, volume.Yaw, 0), Vector3.one);
+            for (var i = 0; i < edges.Length; i++)
+            {
+                edges[i] = place.MultiplyPoint3x4(edges[i]);
+            }
+
+            _fixed.Add(AddLines("Volume", edges, color));
         }
+
+        /// <summary>
+        /// The lines of a volume of <paramref name="kind"/> and <paramref name="size"/> standing on the origin, as
+        /// pairs of points: the shape players are checked against, cut as finely as <paramref name="budget"/> says.
+        /// The editor's gizmos draw these too.
+        /// </summary>
+        public static Vector3[] VolumeEdges(PrimitiveKind kind, Vector3 size, PolygonBudget budget) =>
+            ToUnity(FeatureEdges.Of(PrimitiveMesher.Build(new Primitive { Kind = kind }, new System.Numerics.Vector3(size.x, size.y, size.z), budget)));
 
         /// <summary>Draws a body this frame: an upright cylinder standing on <paramref name="feet"/>, seen through everything.</summary>
         public void DrawBody(Vector3 feet, float radius, float height, Color color)
@@ -149,14 +162,25 @@ namespace Comet.Unity
         private static readonly int Opacity = Shader.PropertyToID("_Opacity");
         private static readonly int Tint = Shader.PropertyToID("_Color");
 
-        private GameObject AddLines(string name, IReadOnlyList<System.Numerics.Vector3> triangles, Color color, float creaseDegrees = 1)
+        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
+
+        private static Vector3[] ToUnity(System.Numerics.Vector3[] points)
         {
-            var edges = FeatureEdges.Of(triangles, creaseDegrees);
-            var points = new Vector3[edges.Length];
-            var indices = new int[edges.Length];
-            for (var i = 0; i < edges.Length; i++)
+            var converted = new Vector3[points.Length];
+            for (var i = 0; i < points.Length; i++)
             {
-                points[i] = new Vector3(edges[i].X, edges[i].Y, edges[i].Z);
+                converted[i] = ToUnity(points[i]);
+            }
+
+            return converted;
+        }
+
+        // Pairs of points as one line mesh.
+        private GameObject AddLines(string name, Vector3[] points, Color color)
+        {
+            var indices = new int[points.Length];
+            for (var i = 0; i < points.Length; i++)
+            {
                 indices[i] = i;
             }
 

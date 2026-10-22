@@ -10,7 +10,7 @@ namespace Comet.Unity
 
         public override string Kind => "spawn";
 
-        protected override Color GizmoColor => new Color(0.3f, 0.8f, 1);
+        protected override Color GizmoColor => CollisionColors.Editing.spawn;
 
         protected override void OnDrawGizmos()
         {

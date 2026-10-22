@@ -1,3 +1,4 @@
+using Comet.Content;
 using UnityEngine;
 
 namespace Comet.Unity
@@ -5,7 +6,7 @@ namespace Comet.Unity
     /// <summary>
     /// What spawn points, teleporters and triggers share in a zone opened in the editor: a id, an invisible volume
     /// standing on the object's position and turned by its Y rotation, a stand time and re-arming, and an optional pad
-    /// (a primitive placement as its child, solid in the game). The volume is drawn as a wireframe.
+    /// (a primitive placement as its child, solid in the game). The volume is drawn as the game's collision view draws it.
     /// </summary>
     [DisallowMultipleComponent]
     [SelectionBase]
@@ -49,8 +50,15 @@ namespace Comet.Unity
         /// <summary>The kind, as ids start: spawn, teleporter or trigger.</summary>
         public abstract string Kind { get; }
 
-        /// <summary>The wireframe's color.</summary>
+        /// <summary>The wireframe's color: its kind's in <see cref="CollisionColors.Editing"/>.</summary>
         protected abstract Color GizmoColor { get; }
+
+        /// <summary>The volume's shape as zone files have it.</summary>
+        public PrimitiveKind Shape => (PrimitiveKind)System.Enum.Parse(typeof(PrimitiveKind), volume.ToString());
+
+        // The wireframe, kept until the shape, size or polygon budget changes.
+        private Vector3[]? _edges;
+        private (VolumeKind, Vector3, float, int, int) _edgesFor;
 
         /// <summary>The pad: a placement that's a direct child, or null.</summary>
         public ZonePlacement? Pad
@@ -71,38 +79,17 @@ namespace Comet.Unity
 
         protected virtual void OnDrawGizmos()
         {
-            Gizmos.color = GizmoColor;
-            var turn = Quaternion.Euler(0, transform.eulerAngles.y, 0);
-            Gizmos.matrix = Matrix4x4.TRS(transform.position + Vector3.up * (size.y / 2), turn, Vector3.one);
-            switch (volume)
+            var budget = ZonePlacement.Budget;
+            var key = (volume, size, budget.FacetLength, budget.MinSides, budget.MaxSides);
+            if (_edges == null || key != _edgesFor)
             {
-                case VolumeKind.Box:
-                    Gizmos.DrawWireCube(Vector3.zero, size);
-                    break;
-                case VolumeKind.Sphere:
-                    Gizmos.matrix *= Matrix4x4.Scale(size / 2);
-                    Gizmos.DrawWireSphere(Vector3.zero, 1);
-                    break;
-                default:
-                    const int segments = 32;
-                    var half = size / 2;
-                    for (var i = 0; i < segments; i++)
-                    {
-                        var a = 2 * Mathf.PI * i / segments;
-                        var b = 2 * Mathf.PI * (i + 1) / segments;
-                        var from = new Vector3(Mathf.Sin(a) * half.x, 0, Mathf.Cos(a) * half.z);
-                        var to = new Vector3(Mathf.Sin(b) * half.x, 0, Mathf.Cos(b) * half.z);
-                        Gizmos.DrawLine(from - Vector3.up * half.y, to - Vector3.up * half.y);
-                        Gizmos.DrawLine(from + Vector3.up * half.y, to + Vector3.up * half.y);
-                        if (i % 8 == 0)
-                        {
-                            Gizmos.DrawLine(from - Vector3.up * half.y, from + Vector3.up * half.y);
-                        }
-                    }
-
-                    break;
+                _edges = CollisionView.VolumeEdges(Shape, size, budget);
+                _edgesFor = key;
             }
 
+            Gizmos.color = GizmoColor;
+            Gizmos.matrix = Matrix4x4.TRS(transform.position, Quaternion.Euler(0, transform.eulerAngles.y, 0), Vector3.one);
+            Gizmos.DrawLineList(_edges);
             Gizmos.matrix = Matrix4x4.identity;
         }
 
