@@ -94,7 +94,7 @@ Every movement number has one home. Clients, bots and the server read the same v
 | `ground_acceleration`, `air_acceleration` | How quickly speed changes toward what the stick asks for, on the ground and in the air, in m/s². Low feels slippery, high feels instant. |
 | `turn_speed` | How fast a shape turns to face where it's going, in degrees per second. Only the facing turns; movement changes direction at once. |
 | `step_height` | The highest ledge walked up without jumping, in meters. |
-| `mantle_height` | The highest ledge a player in the air is lifted onto when moving into its side, in meters. |
+| `mantle_height` | The most a player in the air rides up onto a ledge when moving into its side, in meters. Each move climbs at most as much as the steepest terrain over that distance, so a jump up a slope keeps its speed; 0 turns this off. |
 | `max_slope` | The steepest ground a player stands on, in degrees; steeper terrain and meshes are walls. |
 | `ground_snap` | How far the ground may drop under the feet while staying grounded (walking downhill rather than falling), in meters. |
 | `body_radius`, `body_height` | The collision body every shape shares: an upright cylinder of radius `body_radius` with a flat base, `body_height` tall, in meters. |

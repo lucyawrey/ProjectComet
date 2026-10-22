@@ -125,8 +125,7 @@ public class PlayerMotorTests
     [Fact]
     public void FallsThroughHoles()
     {
-        // Walking: at full speed the body crosses the 2 m hole before it has fallen a mantle's height, and climbs out.
-        var state = Run(Standing(10, 12), new Vector2(1, 0), 3, maxSpeed: 2);
+        var state = Run(Standing(10, 12), new Vector2(1, 0), 2);
 
         Assert.False(state.Grounded);
         Assert.True(state.Position.Y < -10);

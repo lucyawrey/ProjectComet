@@ -66,19 +66,13 @@ namespace Comet.Simulation
                 velocityY -= rules.Gravity * seconds;
             }
 
-            // Move horizontally, sliding along walls one axis at a time. On the ground, a move walks up low ledges; in
-            // the air, it mantles onto them (ending the jump) unless the rest of the jump clears them anyway, and
-            // keeps its speed against a wall, to carry on once past.
+            // Move horizontally, sliding along walls one axis at a time. On the ground, a move walks up low ledges. In
+            // the air, it rides up onto them by as much as terrain climbs over that move, up to the mantle height: a
+            // jump up a slope keeps its speed, and one that comes up just short of a ledge carries on over it.
             var position = state.Position;
-            var stepUp = state.Grounded ? rules.StepHeight : rules.MantleHeight;
-            var rise = state.Grounded ? -1 : velocityY > 0 ? velocityY * velocityY / (2 * rules.Gravity) : 0;
-            var mantled = false;
-            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), stepUp, rise, world, rules, passThrough, ref current.X, ref mantled);
-            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), stepUp, rise, world, rules, passThrough, ref current.Y, ref mantled);
-            if (mantled)
-            {
-                velocityY = MathF.Min(velocityY, 0);
-            }
+            var stepUp = state.Grounded ? rules.StepHeight : 0;
+            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), state.Grounded ? stepUp : MathF.Min(2 * MathF.Abs(current.X * seconds), rules.MantleHeight), world, rules, passThrough, ref current.X);
+            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), state.Grounded ? stepUp : MathF.Min(2 * MathF.Abs(current.Y * seconds), rules.MantleHeight), world, rules, passThrough, ref current.Y);
 
             // Move vertically, landing on ground or stopping under something solid.
             var startY = position.Y;
@@ -133,9 +127,7 @@ namespace Comet.Simulation
             return turned - 2 * MathF.PI * MathF.Floor((turned + MathF.PI) / (2 * MathF.PI));
         }
 
-        // rise: in the air, the rest of the jump's rise, which a ledge must be higher than to be mantled onto; -1 on the ground.
-        private static Vector3 TryMoveAxis(Vector3 position, Vector3 delta, float stepUp, float rise, CollisionWorld world, MovementRules rules,
-            ISet<int>? passThrough, ref float axisVelocity, ref bool mantled)
+        private static Vector3 TryMoveAxis(Vector3 position, Vector3 delta, float stepUp, CollisionWorld world, MovementRules rules, ISet<int>? passThrough, ref float axisVelocity)
         {
             if (delta == Vector3.Zero)
             {
@@ -148,22 +140,17 @@ namespace Comet.Simulation
                 return moved;
             }
 
-            // Up onto the ledge, if the body fits on top of it.
-            if (world.TryGetGround(moved, rules.BodyRadius, position.Y + stepUp, out var ledge, 0, passThrough) && ledge - position.Y > MathF.Max(rise, 0))
+            // Walk or ride up onto a low ledge, if the body fits on top of it.
+            if (stepUp > 0 && world.TryGetGround(moved, rules.BodyRadius, position.Y + stepUp, out var ledge, 0, passThrough) && ledge > position.Y)
             {
                 var stepped = new Vector3(moved.X, ledge, moved.Z);
                 if (!world.IsBlocked(stepped, rules.BodyRadius, rules.BodyHeight, passThrough))
                 {
-                    mantled |= rise >= 0;
                     return stepped;
                 }
             }
 
-            if (rise < 0)
-            {
-                axisVelocity = 0;
-            }
-
+            axisVelocity = 0;
             return position;
         }
     }
