@@ -49,6 +49,9 @@ namespace ShapeLand.Client
         private Vector3? _showcaseCenter;
         private Vector3 _shownCenter;
         private Vector3 _glideVelocity;
+        private Vector3 _followGlideFrom;
+        private float _followGlideStart;
+        private float _followGlideSeconds;
 
         /// <summary>The camera's heading in degrees, clockwise from +Z seen from above: movement is relative to it.</summary>
         public float Yaw { get; private set; }
@@ -72,6 +75,17 @@ namespace ShapeLand.Client
             }
 
             _showcaseCenter = center;
+        }
+
+        /// <summary>
+        /// Glides what the camera looks at from <paramref name="from"/> to the target over <paramref name="seconds"/>,
+        /// easing in and out, rather than cutting there (after a near respawn).
+        /// </summary>
+        public void Glide(Vector3 from, float seconds)
+        {
+            _followGlideFrom = from;
+            _followGlideStart = Time.unscaledTime;
+            _followGlideSeconds = seconds;
         }
 
         /// <summary>The world the camera keeps out of, when the followed player goes to another zone.</summary>
@@ -121,7 +135,14 @@ namespace ShapeLand.Client
             _pitch = Mathf.Clamp(_pitch - turn.y, pitchLimits.x, pitchLimits.y);
 
             var rotation = Quaternion.Euler(_pitch, Yaw, 0);
-            var look = Target.position + Vector3.up * lookHeight;
+            var followed = Target.position;
+            var glided = _followGlideSeconds > 0 ? (Time.unscaledTime - _followGlideStart) / _followGlideSeconds : 1;
+            if (glided < 1)
+            {
+                followed = Vector3.Lerp(_followGlideFrom, followed, Mathf.SmoothStep(0, 1, glided));
+            }
+
+            var look = followed + Vector3.up * lookHeight;
             // Pull in at once when a block is in the way, so it never shows from inside; ease back out.
             var back = rotation * Vector3.back;
             var wanted = distance;

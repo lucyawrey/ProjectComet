@@ -12,12 +12,19 @@ namespace ShapeLand.Client
     /// <summary>
     /// The player's own shape: moves it with the shared <see cref="PlayerMotor"/> on a fixed step, reports its
     /// position, and draws it between the last two steps. A snap-back from the server moves the simulation at once
-    /// and blends the drawn shape after it; a respawn moves both, behind the screen fade, which starts while
-    /// falling (<see cref="RespawnFade"/>); a teleport moves both at once. Placements that turn solid around the
-    /// player are passed through until the player is out of them.
+    /// and blends the drawn shape after it; a teleport or a respawn moves the simulation at once, while the drawn
+    /// shape fades out where it stood before it's drawn there (<see cref="ShapeFade"/>), the camera cutting or, for a
+    /// near respawn, gliding after it. Placements that turn solid around the player are passed through until the
+    /// player is out of them.
     /// </summary>
     public sealed class LocalPlayer : MonoBehaviour
     {
+        [Tooltip("After a respawn, how long the camera glides to the spawn before the shape fades in, in seconds.")]
+        [SerializeField] private float respawnGlideSeconds = 0.5f;
+
+        [Tooltip("The farthest a respawn glides the camera, in meters across the ground; farther, or into another zone, it cuts.")]
+        [SerializeField] private float respawnGlideDistance = 30f;
+
         /// <summary>
         /// Motor steps per second. Faster than the server's tick so input waits less (about 8 ms on average
         /// for a step, and as long again drawing between steps); reports are paced separately.
@@ -41,6 +48,10 @@ namespace ShapeLand.Client
         private MotorState _previous;
         private bool _jumpQueued;
         private System.Numerics.Vector3 _drawn;
+        private readonly ShapeFade _fade = new ShapeFade();
+        private Vector3 _held;
+        private CorrectionReason _moveReason;
+        private bool _zoneChanged;
 
         /// <summary>Whether the controls move the shape; off while typing in chat.</summary>
         public bool InputEnabled { get; set; } = true;
@@ -55,6 +66,7 @@ namespace ShapeLand.Client
             set
             {
                 _world = value;
+                _zoneChanged = true;
                 PassThrough.Clear();
             }
         }
@@ -77,8 +89,11 @@ namespace ShapeLand.Client
         /// <summary>How far the drawn shape still trails the simulation after a snap-back, in meters.</summary>
         public float BlendDistance => _blend.Offset.Length();
 
-        /// <summary>How dark the screen should be for the respawn fade: 0 clear, 1 black.</summary>
-        public float Darkness { get; private set; }
+        /// <summary>How far the player's shape has faded (<see cref="ShapeFade"/>): 0 fully visible, 1 gone.</summary>
+        public float Faded => _fade.Faded;
+
+        /// <summary>The pad the player stands on finished charging: the shape starts fading out for the teleport.</summary>
+        public void TeleportCharged() => _fade.Depart(Time.unscaledTime);
 
         /// <summary>Starts the player as <paramref name="shape"/> at <paramref name="position"/>, facing <paramref name="facing"/> radians, moved by <paramref name="controls"/> relative to the camera.</summary>
         public void Begin(ClientSession session, CollisionWorld world, MovementRules rules, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)
@@ -120,8 +135,8 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var move = InputEnabled ? CameraRelative(_controls.Game.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
-            _jumpQueued |= InputEnabled && _controls.Game.Jump.WasPressedThisFrame();
+            var move = InputEnabled && !_fade.Holding ? CameraRelative(_controls.Game.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
+            _jumpQueued |= InputEnabled && !_fade.Holding && _controls.Game.Jump.WasPressedThisFrame();
 
             var now = CometConnection.Now;
             var maxSpeed = _shape.MaxSpeed;
@@ -151,34 +166,65 @@ namespace ShapeLand.Client
 
             _blend.Advance(Time.unscaledDeltaTime);
             Draw(_step.Alpha);
-            Darkness = RespawnFade.Step(Darkness, _drawn.Y, _world.KillHeight, Time.unscaledDeltaTime);
+            var now = Time.unscaledTime;
+            if (_fade.Step(now, Time.unscaledDeltaTime, _fade.Holding ? _held.y : _drawn.Y, _world.KillHeight))
+            {
+                Arrived(now);
+            }
+        }
+
+        // Faded out where it stood, the shape is drawn at its new place: the camera cuts there, or glides there for a
+        // near respawn in the same zone, and the shape fades in after.
+        private void Arrived(float now)
+        {
+            Draw(_step.Alpha);
+            // Measured across the ground: a fall ends far below wherever it started.
+            var across = Vector2.Distance(new Vector2(_held.x, _held.z), new Vector2(transform.position.x, transform.position.z));
+            if (_moveReason == CorrectionReason.Respawn && !_zoneChanged && across <= respawnGlideDistance)
+            {
+                _camera.Glide(_held, respawnGlideSeconds);
+                _fade.HideFor(now, respawnGlideSeconds);
+            }
+
+            _zoneChanged = false;
         }
 
         private void Draw(float alpha)
         {
             _drawn = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha) + _blend.Offset;
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
-            transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+            if (!_fade.Holding)
+            {
+                transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+            }
         }
 
         private void OnCorrected(PositionCorrection correction)
         {
+            if (correction.Reason is CorrectionReason.Respawn or CorrectionReason.Teleport && !_fade.Holding)
+            {
+                _held = transform.position;
+            }
+
             _motor.Position = new System.Numerics.Vector3(correction.X, correction.Y, correction.Z);
             _motor.Velocity = System.Numerics.Vector3.Zero;
             _motor.Grounded = false;
             _previous = _motor;
             _reporter.Reset();
-            if (correction.Reason == CorrectionReason.Respawn)
+            if (correction.Reason is CorrectionReason.Respawn or CorrectionReason.Teleport)
             {
-                // Usually dark already from the fall; if not, cut to black rather than show the jump.
+                // Usually faded already (from the fall, or the pad's charge); if not, it fades out now, held where it stood.
                 _blend.Clear();
-                Darkness = 1;
-                Respawns++;
-            }
-            else if (correction.Reason == CorrectionReason.Teleport)
-            {
-                _blend.Clear();
-                Teleports++;
+                _moveReason = correction.Reason;
+                _fade.Moved(Time.unscaledTime);
+                if (correction.Reason == CorrectionReason.Respawn)
+                {
+                    Respawns++;
+                }
+                else
+                {
+                    Teleports++;
+                }
             }
             else
             {

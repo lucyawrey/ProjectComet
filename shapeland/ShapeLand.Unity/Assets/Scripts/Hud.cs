@@ -21,7 +21,6 @@ namespace ShapeLand.Client
         [SerializeField] private JoinScreen card;
 
         private VisualElement _root;
-        private VisualElement _fade;
         private Chat _chat;
         private TouchControls _touch;
         // The overlay's parts kept inside the screen's safe area, and the insets they have now.
@@ -43,9 +42,6 @@ namespace ShapeLand.Client
         /// <summary>True while the join card is up over the game.</summary>
         public bool CardShowing => card.Showing;
 
-        /// <summary>How dark the respawn fade has the screen now: 0 clear, 1 black.</summary>
-        public float Darkness { get; private set; }
-
         // On a phone the interface scales from a smaller design size than the panel settings' (960 x 600), so a panel
         // pixel is about a CSS pixel there and text stays readable; the join card still fits a small phone held
         // landscape.
@@ -66,7 +62,6 @@ namespace ShapeLand.Client
 
             var tree = document.rootVisualElement;
             _root = tree.Q("hud");
-            _fade = tree.Q("screen-fade");
             _chat = GetComponent<Chat>();
             tree.Q<Button>("look-button").clicked += OpenLook;
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
@@ -102,8 +97,6 @@ namespace ShapeLand.Client
         private void OnConnectionLost(CloseReason reason)
         {
             _root.AddToClassList("hidden");
-            Darkness = 0;
-            _fade.style.opacity = 0;
         }
 
         private void Update()
@@ -139,8 +132,6 @@ namespace ShapeLand.Client
             }
 
             UpdateMoving();
-            Darkness = view.Player != null ? view.Player.Darkness : 0;
-            _fade.style.opacity = Darkness;
         }
 
         // Insets the safe parts by the screen's safe area (notches, rounded corners, the home bar), which changes as the

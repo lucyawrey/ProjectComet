@@ -118,7 +118,6 @@ Label { padding: 0; margin: 0; }
 }
 .hud.hidden { display: none; }
 /* The respawn fade: black over everything in the HUD, its opacity set by Hud. */
-.screen-fade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: black; opacity: 0; }
 .tags { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 
 /* The chat box and its hint fade in code (Chat), not with USS transitions. */
