@@ -38,12 +38,17 @@ namespace ShapeLand.Client
         [Tooltip("Before joining: distance, pitch and turning speed (degrees per second) of the slow orbit around the island.")]
         [SerializeField] private Vector3 showcase = new Vector3(30, 25, 6);
 
+        [Tooltip("Before joining: about how long the orbit takes to glide to another shape's spawn in the same zone, in seconds.")]
+        [SerializeField] private float showcaseGlideSeconds = 0.4f;
+
         private float _pitch = 20;
         private float _distance;
         private ShapeLandControls _controls;
         private Vector2 _touchTurn;
         private CollisionWorld _world;
         private Vector3? _showcaseCenter;
+        private Vector3 _shownCenter;
+        private Vector3 _glideVelocity;
 
         /// <summary>The camera's heading in degrees, clockwise from +Z seen from above: movement is relative to it.</summary>
         public float Yaw { get; private set; }
@@ -54,8 +59,20 @@ namespace ShapeLand.Client
         /// <summary>Turns the camera by <paramref name="degrees"/> (yaw, pitch) on its next update: a touch drag (<see cref="TouchControls"/>).</summary>
         public void Turn(Vector2 degrees) => _touchTurn += degrees;
 
-        /// <summary>Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen).</summary>
-        public void Showcase(Vector3 center) => _showcaseCenter = center;
+        /// <summary>
+        /// Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen), gliding
+        /// there from the last center if <paramref name="glide"/>.
+        /// </summary>
+        public void Showcase(Vector3 center, bool glide = false)
+        {
+            if (!glide || _showcaseCenter == null)
+            {
+                _shownCenter = center;
+                _glideVelocity = Vector3.zero;
+            }
+
+            _showcaseCenter = center;
+        }
 
         /// <summary>The world the camera keeps out of, when the followed player goes to another zone.</summary>
         public CollisionWorld World
@@ -85,7 +102,8 @@ namespace ShapeLand.Client
                 {
                     Yaw = Mathf.Repeat(Yaw + showcase.z * Time.unscaledDeltaTime, 360);
                     var orbit = Quaternion.Euler(showcase.y, Yaw, 0);
-                    var middle = center + Vector3.up * 2;
+                    _shownCenter = Vector3.SmoothDamp(_shownCenter, center, ref _glideVelocity, showcaseGlideSeconds, Mathf.Infinity, Time.unscaledDeltaTime);
+                    var middle = _shownCenter + Vector3.up * 2;
                     transform.SetPositionAndRotation(middle - orbit * Vector3.forward * showcase.x, orbit);
                 }
 

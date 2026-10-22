@@ -58,6 +58,7 @@ namespace ShapeLand.Client
         private MaterialPropertyBlock _padColor;
         private Triggers _triggers;
         private ShapeLandContent _content;
+        private Shape _showcased;
         private JoinClient _join;
         private CollisionWorld _world;
         private Transform _drawnZone;
@@ -239,10 +240,25 @@ namespace ShapeLand.Client
                 }
             }
 
-            // Behind the join screen, the camera circles a shape's start here, or another spawn point.
-            var shown = content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
+            // Behind the join screen, the camera circles the picked shape's start here, else another shape's or another
+            // spawn point.
+            var shown = (_showcased != null && _triggers.TryGetSpawn(_showcased.Spawn, out var picked) ? picked : null)
+                ?? content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
                 ?? _triggers.Spawns.FirstOrDefault();
             orbitCamera.Showcase(shown != null ? Vectors.ToUnity(ShapeLandWorld.Center(shown, _world)) : Vector3.zero);
+        }
+
+        /// <summary>
+        /// Behind the join screen, circles <paramref name="shape"/>'s start: at once if it's in the zone drawn (gliding
+        /// there if <paramref name="glide"/>), else once its zone is drawn.
+        /// </summary>
+        public void Showcase(Shape shape, bool glide)
+        {
+            _showcased = shape;
+            if (_triggers != null && _triggers.TryGetSpawn(shape.Spawn, out var start))
+            {
+                orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.Center(start, _world)), glide);
+            }
         }
 
         // A spawn point's, teleporter's or trigger's pad, if it has one: drawn on its own, to be colored.
