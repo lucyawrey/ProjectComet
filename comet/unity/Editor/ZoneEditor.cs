@@ -41,11 +41,56 @@ namespace Comet.Unity.Editor
             Open(picked, settings);
         }
 
+        // The zones opened lately on this computer, newest first: their folders relative to the project, per project.
+        private const int RecentCount = 8;
+        private static string RecentKey => "Comet.Zones.Recent." + ProjectRoot;
+
+        private static List<string> Recent() =>
+            EditorPrefs.GetString(RecentKey, "").Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(f => Directory.Exists(ProjectPath(f))).ToList();
+
+        private static void Remember(string folder)
+        {
+            var recent = Recent();
+            recent.Remove(folder);
+            recent.Insert(0, folder);
+            EditorPrefs.SetString(RecentKey, string.Join("\n", recent.Take(RecentCount)));
+        }
+
+        // A menu can't list items that change, so this one pops up the list where the pointer is.
+        [MenuItem("Comet/Zones/Open Recent…", priority = 2)]
+        public static void OpenRecentMenu()
+        {
+            var settings = CometSettings.Find(quiet: false);
+            if (settings == null)
+            {
+                return;
+            }
+
+            var menu = new GenericMenu();
+            foreach (var folder in Recent())
+            {
+                menu.AddItem(new GUIContent(Path.GetFileName(folder), folder), false, () =>
+                {
+                    if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                    {
+                        Open(ProjectPath(folder), settings);
+                    }
+                });
+            }
+
+            if (menu.GetItemCount() == 0)
+            {
+                menu.AddDisabledItem(new GUIContent("No zones opened yet"));
+            }
+
+            menu.ShowAsContext();
+        }
+
         /// <summary>Raised after a zone's files are saved, so a game can rebuild its content from them.</summary>
         public static event Action<ZoneEditing>? Saved;
 
         // Saving the scene saves its zones too (ZoneEditorScenes).
-        [MenuItem("Comet/Zones/Save", priority = 2)]
+        [MenuItem("Comet/Zones/Save", priority = 3)]
         public static void SaveMenu()
         {
             foreach (var scene in UnityEngine.Object.FindObjectsByType<ZoneEditing>().Select(z => z.gameObject.scene).Distinct())
@@ -58,7 +103,7 @@ namespace Comet.Unity.Editor
         private static bool CanSave() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
 
         /// <summary>Drops the opened zone's (or group's) unsaved changes, reading it again from its files.</summary>
-        [MenuItem("Comet/Zones/Discard Changes", priority = 3)]
+        [MenuItem("Comet/Zones/Discard Changes", priority = 4)]
         public static void DiscardMenu()
         {
             var editing = UnityEngine.Object.FindAnyObjectByType<ZoneEditing>();
@@ -134,6 +179,7 @@ namespace Comet.Unity.Editor
             }
 
             Selection.activeGameObject = root;
+            Remember(editing.folder);
             return true;
         }
 
