@@ -170,9 +170,24 @@ namespace ShapeLand.Client
             return !_box.worldBound.Contains(point);
         }
 
-        // Shows the newest line once the log has laid out the lines just added.
-        private void ScrollToEnd() =>
-            _log.schedule.Execute(() => _log.verticalScroller.value = _log.verticalScroller.highValue);
+        // Shows the newest line once the log has laid out. The scheduler can run before that layout, so for a moment it
+        // also follows the log and its lines changing size: new lines, and closing the input (which hides the input row
+        // and the scroll bar, rewrapping lines).
+        private void ScrollToEnd()
+        {
+            _log.RegisterCallback<GeometryChangedEvent>(OnLogResized);
+            _log.contentContainer.RegisterCallback<GeometryChangedEvent>(OnLogResized);
+            _log.schedule.Execute(() =>
+            {
+                _log.UnregisterCallback<GeometryChangedEvent>(OnLogResized);
+                _log.contentContainer.UnregisterCallback<GeometryChangedEvent>(OnLogResized);
+                ShowNewest();
+            }).StartingIn(100);
+        }
+
+        private void OnLogResized(GeometryChangedEvent _) => ShowNewest();
+
+        private void ShowNewest() => _log.verticalScroller.value = _log.verticalScroller.highValue;
 
         // Whether the log takes the pointer: only while the input is open (to scroll it). Closed, it fades but stays laid
         // out, over the bottom left where a thumb works the touch stick, so it lets touches through.

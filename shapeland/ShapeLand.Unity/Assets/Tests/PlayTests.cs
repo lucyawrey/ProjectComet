@@ -9,8 +9,8 @@ using UnityEngine.UIElements;
 namespace ShapeLand.Client.Tests
 {
     // Playing in the Game scene: the player walks and jumps with no snap-backs and the camera follows; the speed
-    // cheat is snapped back with a blend; walking off the edge darkens the screen before the respawn and lightens
-    // it after; real bots are drawn moving and removed when they leave; F3 shows the network numbers.
+    // cheat is snapped back with a blend; walking off the edge fades the shape out before the respawn and back in
+    // after; real bots are drawn moving and removed when they leave; F3 shows the network numbers.
     public class PlayTests : GameSceneTest
     {
         [UnityTest]
@@ -68,27 +68,27 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
-        public IEnumerator FallingOffDarkensBeforeTheRespawnAndLightensAfter()
+        public IEnumerator FallingOffFadesTheShapeBeforeTheRespawnAndBackAfter()
         {
             yield return StartGame();
             var player = View.Player;
 
-            // Walk straight on until off the edge, noting how dark the screen was just before the respawn arrived.
+            // Walk straight on until off the edge, noting how faded the shape was just before the respawn arrived.
             Press(Key.W);
-            var darknessBefore = 0f;
+            var fadedBefore = 0f;
             var deadline = Time.realtimeSinceStartup + 20;
             while (player.Respawns == 0 && Time.realtimeSinceStartup < deadline)
             {
-                darknessBefore = Hud.Darkness;
+                fadedBefore = player.Faded;
                 yield return null;
             }
 
             Press();
             Assert.That(player.Respawns, Is.EqualTo(1), "Never fell off.");
-            Assert.That(darknessBefore, Is.GreaterThan(0.99f), "The screen wasn't dark before the respawn arrived.");
+            Assert.That(fadedBefore, Is.GreaterThan(0.99f), "The shape wasn't faded before the respawn arrived.");
 
-            yield return Wait(RespawnFade.FadeInSeconds + 0.3f);
-            Assert.That(Hud.Darkness, Is.EqualTo(0), "The screen didn't lighten again.");
+            yield return Wait(1 + ShapeFade.FadeInSeconds + 0.3f); // a near respawn's camera glide first
+            Assert.That(player.Faded, Is.EqualTo(0), "The shape didn't fade back in.");
             Assert.That(player.Motor.Position.Y, Is.GreaterThan(-1), "Not back on the ground.");
             Assert.That(player.SnapBacks, Is.EqualTo(0), "The server snapped the player back.");
         }

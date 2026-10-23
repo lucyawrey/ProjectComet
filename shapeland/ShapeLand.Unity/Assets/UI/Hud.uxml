@@ -86,6 +86,5 @@
                 <ui:Label text="#stats.foot_touch" class="net-foot touch-only" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="screen-fade" class="screen-fade" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>

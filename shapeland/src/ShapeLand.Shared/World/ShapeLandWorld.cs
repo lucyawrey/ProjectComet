@@ -109,7 +109,7 @@ namespace ShapeLand.Shared.World
                 }
             }
 
-            return new CollisionWorld(new ZoneTerrain(zone), meshes, content.Settings.World.KillHeight, content.Movement.MaxSlope);
+            return new CollisionWorld(new ZoneTerrain(zone), meshes, zone.KillHeight ?? content.Settings.World.KillHeight, content.Movement.MaxSlope);
         }
 
         /// <summary>The pads of a chunk's spawn points, teleporters and triggers: solid, and never flipped.</summary>

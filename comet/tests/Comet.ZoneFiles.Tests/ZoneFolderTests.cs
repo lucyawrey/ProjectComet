@@ -48,6 +48,20 @@ public class ZoneFolderTests
     }
 
     [Fact]
+    public void AZoneMaySetItsOwnKillHeight()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        Assert.Null(RoundTrip(sample, folder, out _).KillHeight);
+
+        sample.KillHeight = 150;
+        var zone = RoundTrip(sample, folder, out var errors);
+        Assert.Empty(errors);
+        Assert.Equal(150f, zone.KillHeight);
+        Assert.Contains("kill_height = 150.0", File.ReadAllText(folder.PathOf("zone.toml")));
+    }
+
+    [Fact]
     public void WritesReadableChunkFiles()
     {
         using var folder = new TempFolder();

@@ -352,6 +352,7 @@ namespace Comet.Unity.Editor
             var group = new Group
             {
                 Id = editing.groupId,
+                DisplayName = Find(editing.groupId)?.DisplayName, // kept from its file: the scene doesn't hold it
                 Parts = editing.GetComponentsInChildren<ZonePlacement>(true).Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null).Select(p => ZoneEditor.PlacementOf(p)).ToArray(),
             };
             var path = ZoneEditor.ProjectPath(editing.folder);
@@ -423,7 +424,7 @@ namespace Comet.Unity.Editor
             }
 
             var parts = copy.GetComponentsInChildren<ZonePlacement>(true).Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>(true) == copy).ToList();
-            var group = new Group { Id = copy.group, Parts = parts.Select(p => ZoneEditor.PlacementOf(p, copy.transform)).ToArray() };
+            var group = new Group { Id = copy.group, DisplayName = entry.Group.DisplayName, Parts = parts.Select(p => ZoneEditor.PlacementOf(p, copy.transform)).ToArray() };
             if (!Check(group, entry.File, settings))
             {
                 return false;

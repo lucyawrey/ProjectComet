@@ -36,6 +36,12 @@ namespace Comet.Content
 
         /// <summary>The chunks the zone owns, each with its terrain tiles, placements, spawns and volumes.</summary>
         [Key(7)] public ZoneChunk[] Chunks { get; set; } = new ZoneChunk[0];
+
+        /// <summary>
+        /// This zone's own height below which a fall is out of the world, in meters, for a zone high in the sky or deep
+        /// below; null uses the game's.
+        /// </summary>
+        [Key(8)] public float? KillHeight { get; set; }
     }
 
     /// <summary>A chunk's position on the grid (<see cref="ZoneGrid"/>).</summary>

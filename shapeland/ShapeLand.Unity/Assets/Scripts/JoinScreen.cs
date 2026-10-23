@@ -146,8 +146,13 @@ namespace ShapeLand.Client
             _joinButton.text = Text(key);
         }
 
-        // Before joining, the picked shape's start zone shows behind the card.
-        private void ShowStartZone() => _join.ShowZone(ShapeLandWorld.StartOf(_content, _shape).Zone);
+        // Before joining, the picked shape's start zone shows behind the card, the camera circling its start (gliding
+        // there from another shape's start in the same zone).
+        private void ShowStartZone(bool glide = true)
+        {
+            _view.Showcase(_shape, glide);
+            _join.ShowZone(ShapeLandWorld.StartOf(_content, _shape).Zone);
+        }
 
         // Shows the card with the current choices.
         private void Show()
@@ -231,7 +236,7 @@ namespace ShapeLand.Client
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = RememberedServer();
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
-            ShowStartZone();
+            ShowStartZone(glide: false);
             _color = Remembered(ColorKey, _content.Settings.Colors.Body);
             _eyeColor = Remembered(EyesKey, _content.Settings.Colors.Eyes);
 

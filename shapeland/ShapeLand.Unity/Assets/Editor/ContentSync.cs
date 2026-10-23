@@ -127,6 +127,7 @@ namespace ShapeLand.Client.Editor
                 return new PropLibrary.Entry
                 {
                     id = prop.Id,
+                    displayName = prop.DisplayName ?? "",
                     model = model,
                     uniformScale = prop.UniformScale,
                     bounds = new Bounds((min + max) / 2, max - min),

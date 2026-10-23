@@ -16,8 +16,9 @@ namespace ShapeLand.Client
     /// The game scene's view: draws the zone (its terrain, placed objects and pads) once the content has loaded, and
     /// again for each zone the player goes to, showing placements as triggers flip them; the player's own shape
     /// (with eyes, to show its facing) once the server spawns it, with the orbit camera following, and the other
-    /// players where the interpolation buffer puts them. Others fade out as they fall off the island and back in
-    /// after respawning (<see cref="RespawnFade"/>); the player's own fall darkens the screen instead (<see cref="Hud"/>).
+    /// players where the interpolation buffer puts them. Shapes fade out as they fall off the island, before a
+    /// teleport and as others leave, and back in where they arrive (<see cref="ShapeFade"/>): another's jump in
+    /// place holds them where they stood while they fade out.
     /// </summary>
     [RequireComponent(typeof(JoinClient))]
     public sealed class GameView : MonoBehaviour
@@ -44,6 +45,21 @@ namespace ShapeLand.Client
         [SerializeField] private OrbitCamera orbitCamera;
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
+        private readonly Dictionary<uint, OtherFade> _otherFades = new Dictionary<uint, OtherFade>();
+        private bool _zonePending;
+        private PositionCorrection? _pendingArrival; // where the player arrived in a zone not drawn yet
+        private Mesh _warmUpMesh;
+        private bool _padFading;
+        private readonly List<(ShapeBody Shape, ShapeFade Fade)> _leaving = new List<(ShapeBody, ShapeFade)>();
+
+        // How another player's shape fades: where it was last drawn from the buffer, to see it jump, and where it's
+        // held while fading out after one.
+        private sealed class OtherFade
+        {
+            public readonly ShapeFade Fade = new ShapeFade();
+            public Vector3 Last;
+            public Vector3 Held;
+        }
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
         // The drawn zone's pads, and its tagged placements by tag (with whether each starts off), for flipping.
         private readonly List<Pad> _pads = new List<Pad>();
@@ -58,6 +74,7 @@ namespace ShapeLand.Client
         private MaterialPropertyBlock _padColor;
         private Triggers _triggers;
         private ShapeLandContent _content;
+        private Shape _showcased;
         private JoinClient _join;
         private CollisionWorld _world;
         private Transform _drawnZone;
@@ -105,7 +122,31 @@ namespace ShapeLand.Client
         // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
         private void Update()
         {
+            if (_zonePending && (Player == null || !Player.Departing))
+            {
+                OnZoneChanged(_join.Zone);
+            }
+
             ColorPads();
+            if (Player != null && _playerShape != null)
+            {
+                _playerShape.Faded = Player.Faded;
+            }
+
+            var now = Time.unscaledTime;
+            var seconds = Time.unscaledDeltaTime;
+            for (var i = _leaving.Count - 1; i >= 0; i--)
+            {
+                var (shape, fade) = _leaving[i];
+                fade.Step(now, seconds, shape.transform.position.y, _world.KillHeight);
+                shape.Faded = fade.Faded;
+                if (fade.Faded >= 1)
+                {
+                    Destroy(shape.gameObject);
+                    _leaving.RemoveAt(i);
+                }
+            }
+
             if (_others.Count == 0)
             {
                 return;
@@ -118,8 +159,26 @@ namespace ShapeLand.Client
                 if (session.Entities.TrySample(other.Key, renderTick, out var pose))
                 {
                     var shape = other.Value;
-                    shape.transform.SetPositionAndRotation(Vectors.ToUnity(pose.Position), Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
-                    shape.Faded = RespawnFade.Step(shape.Faded, pose.Position.Y, _world.KillHeight, Time.unscaledDeltaTime);
+                    var track = _otherFades[other.Key];
+                    var position = Vectors.ToUnity(pose.Position);
+                    if (Vector3.Distance(position, track.Last) > session.Entities.TeleportSpeed * seconds + 1)
+                    {
+                        if (!track.Fade.Holding)
+                        {
+                            track.Held = shape.transform.position;
+                        }
+
+                        track.Fade.Moved(now);
+                    }
+
+                    track.Last = position;
+                    track.Fade.Step(now, seconds, track.Fade.Holding ? track.Held.y : position.y, _world.KillHeight);
+                    if (!track.Fade.Holding)
+                    {
+                        shape.transform.SetPositionAndRotation(position, Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
+                    }
+
+                    shape.Faded = track.Fade.Faded;
                 }
             }
         }
@@ -139,6 +198,16 @@ namespace ShapeLand.Client
                 return; // the content just loaded: OnContentLoaded draws the zone shown by then
             }
 
+            // The player's shape is still fading out where it stood: the old zone stays drawn around it until it's gone.
+            if (Player != null && Player.Departing)
+            {
+                Player.World = _join.World;
+                _zonePending = true;
+                return;
+            }
+
+            _zonePending = false;
+
             Destroy(_drawnZone.gameObject);
             _pads.Clear();
             _tagged.Clear();
@@ -146,18 +215,26 @@ namespace ShapeLand.Client
             _teleportCharge.Clear();
             _triggerCharge.Clear();
             _sending = null;
+            ClearLeaving(); // others from the old zone would fade out in the new one
             DrawZone();
             if (Player != null)
             {
                 Player.World = _world;
                 orbitCamera.World = _world;
             }
+
+            if (_pendingArrival is { } arrival)
+            {
+                _pendingArrival = null;
+                OnCorrected(arrival);
+            }
         }
 
         // Shows or hides the placements with a tag as triggers flip them.
         private void OnFlipped(string tag, bool flipped)
         {
-            if (_tagged.TryGetValue(tag, out var things))
+            // While the old zone stays drawn, flips are the new zone's: DrawZone shows them.
+            if (!_zonePending && _tagged.TryGetValue(tag, out var things))
             {
                 foreach (var (thing, startsOff) in things)
                 {
@@ -239,10 +316,25 @@ namespace ShapeLand.Client
                 }
             }
 
-            // Behind the join screen, the camera circles a shape's start here, or another spawn point.
-            var shown = content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
+            // Behind the join screen, the camera circles the picked shape's start here, else another shape's or another
+            // spawn point.
+            var shown = (_showcased != null && _triggers.TryGetSpawn(_showcased.Spawn, out var picked) ? picked : null)
+                ?? content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
                 ?? _triggers.Spawns.FirstOrDefault();
             orbitCamera.Showcase(shown != null ? Vectors.ToUnity(ShapeLandWorld.Center(shown, _world)) : Vector3.zero);
+        }
+
+        /// <summary>
+        /// Behind the join screen, circles <paramref name="shape"/>'s start: at once if it's in the zone drawn (gliding
+        /// there if <paramref name="glide"/>), else once its zone is drawn.
+        /// </summary>
+        public void Showcase(Shape shape, bool glide)
+        {
+            _showcased = shape;
+            if (_triggers != null && _triggers.TryGetSpawn(shape.Spawn, out var start))
+            {
+                orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.Center(start, _world)), glide);
+            }
         }
 
         // A spawn point's, teleporter's or trigger's pad, if it has one: drawn on its own, to be colored.
@@ -348,6 +440,29 @@ namespace ShapeLand.Client
                 if (_teleportCharge.Step(teleporter, teleporter?.Volume, now))
                 {
                     _sending = teleporter;
+                    _padFading = false;
+                }
+
+                // The shape starts fading out just before the pad fires, to be gone as it does; stepping off first
+                // brings it back.
+                if (teleporter != null && _teleportCharge.Inside == teleporter && !_teleportCharge.Fired)
+                {
+                    var left = (1 - _teleportCharge.Progress(now)) * teleporter.Volume.StandSeconds;
+                    if (!_padFading && left <= ShapeFade.FadeOutSeconds)
+                    {
+                        Player.TeleportSoon(left);
+                        _padFading = true;
+                    }
+                }
+                else if (_padFading)
+                {
+                    Player.TeleportCancelled();
+                    _padFading = false;
+                }
+
+                if (_sending != null && _teleportCharge.Inside != _sending && !Player.Departing)
+                {
+                    _sending = null;
                 }
             }
 
@@ -361,8 +476,10 @@ namespace ShapeLand.Client
                 }
                 else if (pad.Owner is Teleporter teleporter)
                 {
-                    var charge = _teleportCharge.Inside != teleporter ? 0
-                        : teleporter == _sending && _teleportCharge.Fired ? 1
+                    // Lit from firing until the player has faded out of it, and the target from arriving until they step off.
+                    var charge = teleporter == _sending && Player != null && Player.Departing ? 1
+                        : _teleportCharge.Inside != teleporter ? 0
+                        : _teleportCharge.Fired ? 1
                         : _teleportCharge.Progress(now);
                     var to = Color(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
                     color = Charging(pad.Color, to, charge, teleporter.Volume.StandSeconds);
@@ -389,6 +506,12 @@ namespace ShapeLand.Client
         // Arriving somewhere (a spawn, a teleporter's target) counts as already in what's there: it charges only after a step out and in.
         private void OnCorrected(PositionCorrection correction)
         {
+            if (_zonePending)
+            {
+                _pendingArrival = correction; // in the zone not drawn yet: its triggers, once it is
+                return;
+            }
+
             if (_triggers == null)
             {
                 return;
@@ -423,6 +546,7 @@ namespace ShapeLand.Client
         // the camera carry on as they were (the server's snap-back has already put the player where it has them).
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
+            WarmUpFades();
             _spawns[spawn.EntityId] = spawn;
             var shape = _join.Content.Shapes[spawn.Shape];
             if (Player == null)
@@ -443,23 +567,57 @@ namespace ShapeLand.Client
             _playerShape = BuildShape(shape, spawn.Color, spawn.EyeColor, Player.transform);
         }
 
+        // Draws the fade materials once, out of sight, so their shaders are ready (compiled) before a shape first fades,
+        // rather than hitching then. (A freshly opened editor still shows its cyan placeholder on the first fade.)
+        private void WarmUpFades()
+        {
+            _warmUpMesh ??= new Mesh { name = "Fade warm-up", vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f }, triangles = new[] { 0, 1, 2 } };
+            var place = Matrix4x4.Translate(Camera.transform.position + Camera.transform.forward * (Camera.nearClipPlane * 2));
+            foreach (var material in new[] { shapeFadeMaterial, eyesFadeMaterial })
+            {
+                if (material != null)
+                {
+                    Graphics.RenderMesh(new RenderParams(material) { camera = Camera }, _warmUpMesh, 0, place);
+                }
+            }
+        }
+
+        // A player coming into view fades in; one already in view (a new look) is swapped at once.
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
-            OnOtherLeft(spawn.EntityId);
+            var track = _otherFades.TryGetValue(spawn.EntityId, out var known) ? known : new OtherFade();
+            if (known == null)
+            {
+                track.Fade.StartHidden();
+            }
+
+            if (_others.Remove(spawn.EntityId, out var old))
+            {
+                Destroy(old.gameObject);
+            }
+
             _spawns[spawn.EntityId] = spawn;
             var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, transform);
             other.name = $"{spawn.Name} ({spawn.EntityId})";
-            other.transform.SetPositionAndRotation(new Vector3(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
+            var position = new Vector3(spawn.X, spawn.Y, spawn.Z);
+            other.transform.SetPositionAndRotation(position, Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
+            other.Faded = track.Fade.Faded;
+            track.Last = position;
             _others[spawn.EntityId] = other;
+            _otherFades[spawn.EntityId] = track;
         }
 
         // Everyone leaves the world, this player too, and the camera goes back to orbiting the island.
         private void OnConnectionLost(CloseReason reason)
         {
-            foreach (var id in new List<uint>(_others.Keys))
+            foreach (var other in _others.Values)
             {
-                OnOtherLeft(id);
+                Destroy(other.gameObject);
             }
+
+            ClearLeaving();
+            _others.Clear();
+            _otherFades.Clear();
 
             if (Player != null)
             {
@@ -472,12 +630,25 @@ namespace ShapeLand.Client
             _spawns.Clear(); // this player's own entry too, or a rejoin would tag someone with the old name
         }
 
+        private void ClearLeaving()
+        {
+            foreach (var (shape, _) in _leaving)
+            {
+                Destroy(shape.gameObject);
+            }
+
+            _leaving.Clear();
+        }
+
+        // A player leaving view fades out where they were last drawn.
         private void OnOtherLeft(uint entityId)
         {
             if (_others.Remove(entityId, out var other))
             {
                 _spawns.Remove(entityId);
-                Destroy(other.gameObject);
+                var fade = _otherFades.Remove(entityId, out var track) ? track.Fade : new ShapeFade();
+                fade.Depart(Time.unscaledTime);
+                _leaving.Add((other, fade));
             }
         }
 
@@ -524,6 +695,11 @@ namespace ShapeLand.Client
 
         private void OnDestroy()
         {
+            if (_warmUpMesh != null)
+            {
+                Destroy(_warmUpMesh);
+            }
+
             _join.ContentLoaded -= OnContentLoaded;
             _join.ZoneChanged -= OnZoneChanged;
             _join.PlacementsFlipped -= OnFlipped;

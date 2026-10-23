@@ -121,12 +121,17 @@ namespace Comet.ZoneFiles
 
         private static void ReadZone(Zone zone, TomlTable table, ZoneToml toml)
         {
-            toml.CheckKeys(table, "", "id", "world_anchor", "piece", "border", "entrance", "transition_room");
+            toml.CheckKeys(table, "", "id", "world_anchor", "kill_height", "piece", "border", "entrance", "transition_room");
             zone.Id = toml.String(table, "", "id");
             if (table.ContainsKey("world_anchor"))
             {
                 var (x, z) = toml.Pair(table, "", "world_anchor");
                 zone.WorldAnchor = new ChunkCoord(x, z);
+            }
+
+            if (table.ContainsKey("kill_height"))
+            {
+                zone.KillHeight = toml.Float(table, "", "kill_height");
             }
 
             zone.Pieces = toml.Tables(table, "piece").Select(t =>
@@ -459,6 +464,11 @@ namespace Comet.ZoneFiles
             if (zone.WorldAnchor is { } anchor)
             {
                 table["world_anchor"] = new TomlArray { (long)anchor.X, (long)anchor.Z };
+            }
+
+            if (zone.KillHeight is { } killHeight)
+            {
+                table["kill_height"] = ZoneToml.Round(killHeight, LengthDecimals);
             }
 
             AddTables(table, "piece", zone.Pieces, p =>

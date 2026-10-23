@@ -46,5 +46,8 @@ namespace Comet.Content
 
         /// <summary>The color placements of it are drawn in as 0xRRGGBB, unless they have their own; null for the game's placed-object color.</summary>
         [Key(7)] public uint? Color { get; set; }
+
+        /// <summary>The name the zone editor shows for it; null shows its id without the <c>prop.</c> prefix.</summary>
+        [Key(8)] public string? DisplayName { get; set; }
     }
 }
