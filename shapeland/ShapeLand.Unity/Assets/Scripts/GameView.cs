@@ -553,9 +553,17 @@ namespace ShapeLand.Client
         }
 
         // Draws the fade materials once, out of sight, so their shaders are ready (compiled) before a shape first fades,
-        // rather than showing the editor's placeholder or a hitch then.
+        // rather than showing a hitch then. The editor compiles shaders in the background, drawing a cyan placeholder
+        // meanwhile, so there this frame's drawing waits for them instead.
         private void WarmUpFades()
         {
+#if UNITY_EDITOR
+            if (UnityEditor.ShaderUtil.allowAsyncCompilation)
+            {
+                UnityEditor.ShaderUtil.allowAsyncCompilation = false;
+                StartCoroutine(AllowAsyncCompilationAfterDrawing());
+            }
+#endif
             _warmUpMesh ??= new Mesh { name = "Fade warm-up", vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f }, triangles = new[] { 0, 1, 2 } };
             var place = Matrix4x4.Translate(Camera.transform.position + Camera.transform.forward * (Camera.nearClipPlane * 2));
             foreach (var material in new[] { shapeFadeMaterial, eyesFadeMaterial })
@@ -567,6 +575,14 @@ namespace ShapeLand.Client
             }
         }
 
+#if UNITY_EDITOR
+        private static System.Collections.IEnumerator AllowAsyncCompilationAfterDrawing()
+        {
+            yield return new WaitForEndOfFrame();
+            UnityEditor.ShaderUtil.allowAsyncCompilation = true;
+        }
+
+#endif
         // A player coming into view fades in; one already in view (a new look) is swapped at once.
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
