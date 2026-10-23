@@ -553,7 +553,7 @@ namespace ShapeLand.Client
         }
 
         // Draws the fade materials once, out of sight, so their shaders are ready (compiled) before a shape first fades,
-        // rather than showing the editor's placeholder or a hitch then.
+        // rather than hitching then. (A freshly opened editor still shows its cyan placeholder on the first fade.)
         private void WarmUpFades()
         {
             _warmUpMesh ??= new Mesh { name = "Fade warm-up", vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f }, triangles = new[] { 0, 1, 2 } };
