@@ -32,8 +32,14 @@ namespace ShapeLand.Client
         [Tooltip("The least distance kept from blocks, in meters: more than the near clip plane reaches, so their sides aren't cut open.")]
         [SerializeField] private float blockClearance = 0.2f;
 
-        [Tooltip("How fast the camera moves back out after a block stops being in the way, in meters per second.")]
-        [SerializeField] private float zoomOutSpeed = 6f;
+        [Tooltip("About how long the camera takes to pull in when a block comes in the way, in seconds.")]
+        [SerializeField] private float pullInSeconds = 0.06f;
+
+        [Tooltip("How long a block must stay out of the way before the camera moves back out, in seconds.")]
+        [SerializeField] private float zoomOutDelay = 0.4f;
+
+        [Tooltip("About how long the camera takes to move back out, in seconds.")]
+        [SerializeField] private float zoomOutSeconds = 0.5f;
 
         [Tooltip("Before joining: distance, pitch and turning speed (degrees per second) of the slow orbit around the island.")]
         [SerializeField] private Vector3 showcase = new Vector3(30, 25, 6);
@@ -43,6 +49,8 @@ namespace ShapeLand.Client
 
         private float _pitch = 20;
         private float _distance;
+        private float _zoomVelocity;
+        private float _blockedAt = float.NegativeInfinity;
         private ShapeLandControls _controls;
         private Vector2 _touchTurn;
         private CollisionWorld _world;
@@ -105,6 +113,7 @@ namespace ShapeLand.Client
             _world = world;
             Yaw = target.eulerAngles.y;
             _distance = distance;
+            _zoomVelocity = 0;
         }
 
         private void LateUpdate()
@@ -143,7 +152,8 @@ namespace ShapeLand.Client
             }
 
             var look = followed + Vector3.up * lookHeight;
-            // Pull in at once when a block is in the way, so it never shows from inside; ease back out.
+            // Pull in quickly when a block is in the way, and move back out only once it has stayed clear a moment, so
+            // sweeping past a corner doesn't pump the zoom in and out.
             var back = rotation * Vector3.back;
             var wanted = distance;
             if (_world != null && _world.Raycast(Vectors.ToNumerics(look), Vectors.ToNumerics(back), distance, blockClearance, out var hit))
@@ -151,7 +161,19 @@ namespace ShapeLand.Client
                 wanted = hit;
             }
 
-            _distance = wanted < _distance ? wanted : Mathf.MoveTowards(_distance, wanted, zoomOutSpeed * Time.unscaledDeltaTime);
+            if (wanted < _distance)
+            {
+                _blockedAt = Time.unscaledTime;
+                _distance = Mathf.SmoothDamp(_distance, wanted, ref _zoomVelocity, pullInSeconds, Mathf.Infinity, Time.unscaledDeltaTime);
+            }
+            else if (Time.unscaledTime - _blockedAt >= zoomOutDelay)
+            {
+                _distance = Mathf.SmoothDamp(_distance, wanted, ref _zoomVelocity, zoomOutSeconds, Mathf.Infinity, Time.unscaledDeltaTime);
+            }
+            else
+            {
+                _zoomVelocity = 0;
+            }
             var position = look + back * _distance;
             if (_world != null && _world.TryGetTerrainHeight(position.x, position.z, position.y + 1000, out var ground) && position.y < ground + groundClearance)
             {

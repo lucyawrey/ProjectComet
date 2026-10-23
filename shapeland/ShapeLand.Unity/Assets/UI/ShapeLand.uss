@@ -124,6 +124,20 @@ Label { padding: 0; margin: 0; }
 .chat { position: absolute; left: 16px; bottom: 16px; width: 380px; }
 .chat-log { max-height: 190px; padding: 8px 10px; background-color: rgba(18, 22, 30, 0.7); border-radius: 6px; }
 .chat-log.empty { display: none; }
+/* The log's scroll bar: a thin rounded track and thumb like the stat bars, with no arrow buttons. */
+.chat-log .unity-scroller--vertical { width: 6px; margin-left: 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.chat-log .unity-scroller__low-button, .chat-log .unity-scroller__high-button { display: none; }
+.chat-log .unity-scroller__slider { margin: 0; padding: 0; flex-grow: 1; }
+.chat-log .unity-base-slider__tracker {
+    left: 0; right: 0; top: 0; bottom: 0; width: auto; margin: 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.12);
+}
+.chat-log .unity-base-slider__dragger {
+    left: 0; width: 6px; margin: 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.35);
+}
+.chat-log .unity-base-slider__dragger:hover { background-color: rgb(106, 161, 255); }
+.chat-log .unity-base-slider__dragger-border { display: none; }
 .chat-line { flex-direction: row; align-items: flex-start; margin-bottom: 3px; }
 .chat-line .shape-icon { width: 14px; height: 14px; margin-right: 5px; margin-top: 3px; flex-shrink: 0; }
 .chat-name { font-size: 14px; margin-right: 6px; flex-shrink: 0; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
