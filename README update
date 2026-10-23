@@ -142,6 +142,6 @@ The server costs about 20 cents a day while it's up. When it's down, the page sa
 
 ## AI usage
 
-This project uses AI tools to assist with development. This means primarily code and tooling. Code is reviewed by maintainers and individual maintainers are responsible for any agent generated code.
+This project uses AI assisted programming in it's development. Code is reviewed by people and and they are responsible for any agent generated code.
 
-Non-code creative work is made by people. This means game design docs, models, textures, audio, and in game text.
+Non-code creative work is made by people. This means game design docs, art, audio, level design, and in game text.
