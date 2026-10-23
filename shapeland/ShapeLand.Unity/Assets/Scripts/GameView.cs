@@ -47,6 +47,7 @@ namespace ShapeLand.Client
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, OtherFade> _otherFades = new Dictionary<uint, OtherFade>();
         private bool _zonePending;
+        private PositionCorrection? _pendingArrival; // where the player arrived in a zone not drawn yet
         private Mesh _warmUpMesh;
         private bool _padFading;
         private readonly List<(ShapeBody Shape, ShapeFade Fade)> _leaving = new List<(ShapeBody, ShapeFade)>();
@@ -214,18 +215,26 @@ namespace ShapeLand.Client
             _teleportCharge.Clear();
             _triggerCharge.Clear();
             _sending = null;
+            ClearLeaving(); // others from the old zone would fade out in the new one
             DrawZone();
             if (Player != null)
             {
                 Player.World = _world;
                 orbitCamera.World = _world;
             }
+
+            if (_pendingArrival is { } arrival)
+            {
+                _pendingArrival = null;
+                OnCorrected(arrival);
+            }
         }
 
         // Shows or hides the placements with a tag as triggers flip them.
         private void OnFlipped(string tag, bool flipped)
         {
-            if (_tagged.TryGetValue(tag, out var things))
+            // While the old zone stays drawn, flips are the new zone's: DrawZone shows them.
+            if (!_zonePending && _tagged.TryGetValue(tag, out var things))
             {
                 foreach (var (thing, startsOff) in things)
                 {
@@ -497,6 +506,12 @@ namespace ShapeLand.Client
         // Arriving somewhere (a spawn, a teleporter's target) counts as already in what's there: it charges only after a step out and in.
         private void OnCorrected(PositionCorrection correction)
         {
+            if (_zonePending)
+            {
+                _pendingArrival = correction; // in the zone not drawn yet: its triggers, once it is
+                return;
+            }
+
             if (_triggers == null)
             {
                 return;
@@ -600,14 +615,9 @@ namespace ShapeLand.Client
                 Destroy(other.gameObject);
             }
 
-            foreach (var (shape, _) in _leaving)
-            {
-                Destroy(shape.gameObject);
-            }
-
+            ClearLeaving();
             _others.Clear();
             _otherFades.Clear();
-            _leaving.Clear();
 
             if (Player != null)
             {
@@ -618,6 +628,16 @@ namespace ShapeLand.Client
             }
 
             _spawns.Clear(); // this player's own entry too, or a rejoin would tag someone with the old name
+        }
+
+        private void ClearLeaving()
+        {
+            foreach (var (shape, _) in _leaving)
+            {
+                Destroy(shape.gameObject);
+            }
+
+            _leaving.Clear();
         }
 
         // A player leaving view fades out where they were last drawn.
