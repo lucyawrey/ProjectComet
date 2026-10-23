@@ -61,19 +61,74 @@ namespace ShapeLand.Client.Tests
         public void FallingFadesBeforeTheKillHeightAndEasesBack()
         {
             const float kill = -30;
-            Assert.That(RespawnFade.FromFalling(kill + RespawnFade.FadeDistance, kill), Is.EqualTo(0));
-            Assert.That(RespawnFade.FromFalling(kill + RespawnFade.FadeDistance / 2, kill), Is.EqualTo(0.5f).Within(1e-5f));
-            Assert.That(RespawnFade.FromFalling(kill - 5, kill), Is.EqualTo(1));
+            Assert.That(ShapeFade.FromFalling(kill + ShapeFade.FadeDistance, kill), Is.EqualTo(0));
+            Assert.That(ShapeFade.FromFalling(kill + ShapeFade.FadeDistance / 2, kill), Is.EqualTo(0.5f).Within(1e-5f));
+            Assert.That(ShapeFade.FromFalling(kill - 5, kill), Is.EqualTo(1));
 
-            // Back on the ground after a respawn, it eases out over the fade-in time.
-            var faded = 1f;
-            faded = RespawnFade.Step(faded, 3, kill, RespawnFade.FadeInSeconds / 2);
-            Assert.That(faded, Is.EqualTo(0.5f).Within(1e-5f));
-            faded = RespawnFade.Step(faded, 3, kill, RespawnFade.FadeInSeconds);
-            Assert.That(faded, Is.EqualTo(0));
+            // Falling fades at once, with no easing; a respawn there moves it on at once, and it eases back in.
+            var fade = new ShapeFade();
+            fade.Step(0, 0.01f, kill, kill);
+            Assert.That(fade.Faded, Is.EqualTo(1));
+            fade.Moved(0);
+            Assert.That(fade.Step(0, 0.01f, 3, kill), Is.True, "Already faded: drawn at the spawn at once.");
+            Assert.That(fade.Holding, Is.False);
+            fade.Step(ShapeFade.FadeInSeconds / 2, ShapeFade.FadeInSeconds / 2, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0.5f).Within(1e-5f));
+            fade.Step(ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
+        }
 
-            // Falling darkens at once, with no easing.
-            Assert.That(RespawnFade.Step(0, kill, kill, 0.01f), Is.EqualTo(1));
+        [Test]
+        public void ATeleportHoldsTheShapeUntilFadedOut()
+        {
+            const float kill = -30;
+            var fade = new ShapeFade();
+
+            // The pad finishes charging; the move comes partway through the fade-out, which it waits for.
+            fade.Depart(0);
+            fade.Step(0.1f, 0.1f, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0.1f / ShapeFade.FadeOutSeconds).Within(1e-5f));
+            fade.Moved(0.1f);
+            Assert.That(fade.Step(0.2f, 0.1f, 3, kill), Is.False);
+            Assert.That(fade.Holding, Is.True);
+            Assert.That(fade.Step(ShapeFade.FadeOutSeconds, 0.05f, 3, kill), Is.True, "Faded out: drawn at the target.");
+            Assert.That(fade.Holding, Is.False);
+
+            // Hidden while the camera glides, then fading in.
+            fade.HideFor(ShapeFade.FadeOutSeconds, 0.5f);
+            fade.Step(ShapeFade.FadeOutSeconds + 0.4f, 0.4f, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(1));
+            fade.Step(ShapeFade.FadeOutSeconds + 0.5f + ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SteppingOffBeforeThePadFiresFadesBackIn()
+        {
+            const float kill = -30;
+            var fade = new ShapeFade();
+
+            // Started a fade-out ahead of the pad firing, which the player steps off before.
+            fade.DepartFrom(0);
+            fade.Step(0.1f, 0.1f, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0.1f / ShapeFade.FadeOutSeconds).Within(1e-5f));
+            fade.Cancel();
+            Assert.That(fade.Departing, Is.False);
+            fade.Step(0.1f + ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void AFadeOutWithNoMoveFadesBackIn()
+        {
+            const float kill = -30;
+            var fade = new ShapeFade();
+            fade.Depart(0);
+            fade.Step(ShapeFade.FadeOutSeconds, ShapeFade.FadeOutSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(1));
+            Assert.That(fade.Step(ShapeFade.FadeOutSeconds + ShapeFade.WaitSeconds, ShapeFade.WaitSeconds, 3, kill), Is.False);
+            fade.Step(ShapeFade.FadeOutSeconds + ShapeFade.WaitSeconds + ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
         }
 
         [Test]

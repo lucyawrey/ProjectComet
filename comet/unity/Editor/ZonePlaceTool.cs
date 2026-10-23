@@ -232,7 +232,8 @@ namespace Comet.Unity.Editor
             EditorGUILayout.LabelField("Props", EditorStyles.boldLabel);
             Grid(settings.props.Entries.Select(entry =>
             {
-                var label = entry.id.StartsWith("prop.") ? entry.id.Substring("prop.".Length) : entry.id;
+                var label = !string.IsNullOrEmpty(entry.displayName) ? entry.displayName
+                    : entry.id.StartsWith("prop.") ? entry.id.Substring("prop.".Length) : entry.id;
                 var preview = entry.model == null ? null
                     : settings.placedMaterial != null ? Thumbnail(entry.id, Parts(entry.model, Vector3.one), settings.placedMaterial, color, size * 2)
                     : AssetPreview.GetAssetPreview(entry.model);
@@ -243,7 +244,7 @@ namespace Comet.Unity.Editor
             EditorGUILayout.LabelField("Groups", EditorStyles.boldLabel);
             Grid(ZoneGroups.All.Where(g => g.Id != editing.groupId).Select(g =>
             {
-                var label = g.Id.Substring("group.".Length);
+                var label = g.DisplayName ?? g.Id.Substring("group.".Length);
                 var picture = settings.placedMaterial != null ? Thumbnail($"{g.Id} {ZoneGroups.Version} {budgetKey}", ZoneGroups.Meshes(g.Id, settings), settings.placedMaterial, Color.clear, size * 2) : null;
                 return (g.Id, label, picture);
             }).ToList());

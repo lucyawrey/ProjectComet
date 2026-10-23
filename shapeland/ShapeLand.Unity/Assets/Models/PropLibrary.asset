@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Comet.Unity::Comet.Unity.PropLibrary
   entries:
   - id: prop.strange_shape
+    displayName: 
     model: {fileID: 7449782648777001352, guid: 5d9555a5d70e138d6910c70a826f0a46, type: 3}
     uniformScale: 0
     bounds:
