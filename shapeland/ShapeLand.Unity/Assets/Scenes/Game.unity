@@ -509,9 +509,7 @@ MonoBehaviour:
   pitchLimits: {x: -10, y: 70}
   groundClearance: 0.3
   blockClearance: 0.2
-  pullInSeconds: 0.06
-  zoomOutDelay: 0.4
-  zoomOutSeconds: 0.5
+  zoomOutSpeed: 6
   showcase: {x: 30, y: 25, z: 6}
 --- !u!20 &1791137202
 Camera:
