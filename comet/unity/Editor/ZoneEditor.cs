@@ -45,7 +45,7 @@ namespace Comet.Unity.Editor
         private const int RecentCount = 8;
         private static string RecentKey => "Comet.Zones.Recent." + ProjectRoot;
 
-        private static List<string> Recent() =>
+        internal static List<string> Recent() =>
             EditorPrefs.GetString(RecentKey, "").Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(f => Directory.Exists(ProjectPath(f))).ToList();
 
         private static void Remember(string folder)
@@ -56,34 +56,18 @@ namespace Comet.Unity.Editor
             EditorPrefs.SetString(RecentKey, string.Join("\n", recent.Take(RecentCount)));
         }
 
-        // A menu can't list items that change, so this one pops up the list where the pointer is.
+        // A menu can't list items that change, and a pop-up menu can't open from one, so this opens a small window.
         [MenuItem("Comet/Zones/Open Recent…", priority = 2)]
-        public static void OpenRecentMenu()
+        public static void OpenRecentMenu() => RecentZonesWindow.Show();
+
+        /// <summary>Opens a zone from <see cref="Recent"/>, after offering to save the current scene.</summary>
+        internal static void OpenRecent(string folder)
         {
             var settings = CometSettings.Find(quiet: false);
-            if (settings == null)
+            if (settings != null && EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
-                return;
+                Open(ProjectPath(folder), settings);
             }
-
-            var menu = new GenericMenu();
-            foreach (var folder in Recent())
-            {
-                menu.AddItem(new GUIContent(Path.GetFileName(folder), folder), false, () =>
-                {
-                    if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                    {
-                        Open(ProjectPath(folder), settings);
-                    }
-                });
-            }
-
-            if (menu.GetItemCount() == 0)
-            {
-                menu.AddDisabledItem(new GUIContent("No zones opened yet"));
-            }
-
-            menu.ShowAsContext();
         }
 
         /// <summary>Raised after a zone's files are saved, so a game can rebuild its content from them.</summary>
