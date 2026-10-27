@@ -56,6 +56,25 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheLookCardPutsChatAwayUntilItCloses()
+        {
+            yield return StartGame();
+            Chat.OpenInput();
+            Chat.Typed = "half a thought";
+            Hud.OpenLook();
+            Assert.That(Chat.Open, Is.False, "Chat stayed open under the look card.");
+            yield return null;
+            Assert.That(Chat.Box.ClassListContains("hidden"), Is.True, "The chat box shows over the look card.");
+
+            Screen.Cancel();
+            yield return null;
+            yield return null;
+            Assert.That(Chat.Open, Is.True, "Chat didn't come back after the look card closed.");
+            Assert.That(Chat.Typed, Is.EqualTo("half a thought"), "What was typed was lost.");
+            Assert.That(Chat.Box.ClassListContains("hidden"), Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator OthersChatInTheLogAndInBubbles()
         {
             yield return StartGame();

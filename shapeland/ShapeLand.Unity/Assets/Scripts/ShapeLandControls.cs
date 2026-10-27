@@ -429,6 +429,17 @@ namespace ShapeLand.Client
                 },
                 {
                     ""name"": """",
+                    ""id"": ""f775683a-e8ee-4795-8581-6ff1d63c4b98"",
+                    ""path"": ""<Keyboard>/c"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChangeLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""cc024698-19dd-4359-b542-c84a9f6353a2"",
                     ""path"": ""<Gamepad>/start"",
                     ""interactions"": """",
