@@ -15,6 +15,8 @@
     color: rgb(238, 241, 246);
 }
 .backdrop.hidden, .backdrop.waiting { display: none; }
+/* Changing the look in game: the card sits over the game without dimming it, and the HUD around it stays usable. */
+.backdrop.changing { background-color: rgba(0, 0, 0, 0); }
 
 .card {
     width: 580px;

@@ -8,6 +8,7 @@ using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
@@ -52,6 +53,7 @@ namespace ShapeLand.Client
         // After the server shuts down (a restart sends that), the card tries joining again once a second for this long.
         private const float RejoinSeconds = 60;
         private float? _rejoinUntil;
+        private bool _focusNamePending;
         private float _nextRejoin;
         private ShapeLandContent _content;
         private Shape _shape;
@@ -69,6 +71,10 @@ namespace ShapeLand.Client
 
         /// <summary>True while the card is up to change the look of a player already in the game.</summary>
         public bool Changing { get; private set; }
+
+        /// <summary>True while a text field on the card has the keyboard.</summary>
+        public bool Typing => _root?.focusController?.focusedElement is VisualElement focused
+            && (focused is TextField || focused.GetFirstAncestorOfType<TextField>() != null);
 
         /// <summary>The message on the card, or null when there is none.</summary>
         public string Error => _error != null && _error.ClassListContains("shown") ? _error.text : null;
@@ -131,6 +137,8 @@ namespace ShapeLand.Client
         private void SetChanging(bool changing)
         {
             Changing = changing;
+            _root.EnableInClassList("changing", changing);
+            _root.pickingMode = changing ? PickingMode.Ignore : PickingMode.Position;
 #if UNITY_WEBGL && !UNITY_EDITOR
             _serverField.AddToClassList("hidden");
 #else
@@ -181,14 +189,8 @@ namespace ShapeLand.Client
         }
 
         // Ready to type a name, except on a phone, where focusing the field would bring up its keyboard over the card
-        // before the player has looked at it.
-        private void FocusName()
-        {
-            if (!WebPage.IsPhone)
-            {
-                _name.Focus();
-            }
-        }
+        // before the player has looked at it. Focused once no key is down, or the key that opened the card (C) types.
+        private void FocusName() => _focusNamePending = !WebPage.IsPhone;
 
         /// <summary>Closes the card without changing the look.</summary>
         public void Cancel()
@@ -436,6 +438,15 @@ namespace ShapeLand.Client
         // While rejoining, tries again each second while the card waits for the player.
         private void Update()
         {
+            if (_focusNamePending && (Keyboard.current == null || !Keyboard.current.anyKey.isPressed))
+            {
+                _focusNamePending = false;
+                if (Showing)
+                {
+                    _name.Focus();
+                }
+            }
+
             // Kept out of sight while a phone page shows its "Tap to play" card over the game.
             var waiting = !WebPage.Playing;
             if (waiting != _root.ClassListContains("waiting"))

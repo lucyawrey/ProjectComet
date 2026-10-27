@@ -48,6 +48,9 @@ namespace ShapeLand.Client
         /// <summary>How visible the chat box is now, from 0 (faded out) to 1.</summary>
         public float Opacity { get; private set; }
 
+        /// <summary>The chat box, log and input together.</summary>
+        public VisualElement Box => _box;
+
         /// <summary>The text typed into the input.</summary>
         public string Typed
         {
