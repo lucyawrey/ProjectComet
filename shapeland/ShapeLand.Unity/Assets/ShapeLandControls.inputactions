@@ -51,15 +51,6 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "SpeedCheat",
-                    "type": "Button",
-                    "id": "2bbcaa63-b46a-4cf2-9a61-8f0eb483d825",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "OpenChat",
                     "type": "Button",
                     "id": "f4b7b0d8-5aad-4e5a-8bc2-39036e4c2072",
@@ -279,17 +270,6 @@
                     "processors": "",
                     "groups": "",
                     "action": "StickLook",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "8509000a-b716-4039-af40-4136d89953ac",
-                    "path": "<Keyboard>/c",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "SpeedCheat",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
