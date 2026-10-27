@@ -36,6 +36,7 @@ namespace ShapeLand.Client
         private Hud _hud;
         private Chat _chat;
         private VisualElement _panel;
+        private VisualElement _button;
         private VisualElement _pingDot;
         private VisualElement _holdsDot;
         private VisualElement _snapsDot;
@@ -71,6 +72,7 @@ namespace ShapeLand.Client
             _chat = GetComponent<Chat>();
             var tree = GetComponent<UIDocument>().rootVisualElement;
             _panel = tree.Q("net-stats");
+            _button = tree.Q("stats-button");
             _pingDot = tree.Q("ping-dot");
             _holdsDot = tree.Q("holds-dot");
             _snapsDot = tree.Q("snaps-dot");
@@ -88,6 +90,7 @@ namespace ShapeLand.Client
             _graphics = tree.Q<Label>("graphics");
             Shown = Remember && PlayerPrefs.GetInt(ShownKey, 0) == 1;
             _panel.EnableInClassList("hidden", !Shown);
+            _button.EnableInClassList("on", Shown);
         }
 
         /// <summary>Shows or hides the numbers, and remembers the choice.</summary>
@@ -100,6 +103,7 @@ namespace ShapeLand.Client
             }
 
             _panel.EnableInClassList("hidden", !Shown);
+            _button.EnableInClassList("on", Shown);
         }
 
         private void Update()
