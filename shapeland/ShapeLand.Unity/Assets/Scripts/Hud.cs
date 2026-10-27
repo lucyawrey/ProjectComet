@@ -9,7 +9,8 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the Change
-    /// Look button (or Esc) that brings up the join card, and the respawn fade over the whole screen. The chat
+    /// Look, Return to Spawn, chat and network stats buttons (Change Look, or Esc, brings up the join card), and the
+    /// respawn fade over the whole screen. The chat
     /// (<see cref="Chat"/>), name tags (<see cref="NameTags"/>) and network numbers (<see cref="NetStats"/>) are
     /// components beside it on the same object.
     /// </summary>
@@ -23,6 +24,7 @@ namespace ShapeLand.Client
         private VisualElement _root;
         private Chat _chat;
         private TouchControls _touch;
+        private VisualElement _buttons;
         // The overlay's parts kept inside the screen's safe area, and the insets they have now.
         private VisualElement[] _safe;
         private Vector4 _insets = new Vector4(-1, -1, -1, -1);
@@ -63,9 +65,13 @@ namespace ShapeLand.Client
             var tree = document.rootVisualElement;
             _root = tree.Q("hud");
             _chat = GetComponent<Chat>();
+            _buttons = tree.Q("hud-buttons");
             tree.Q<Button>("look-button").clicked += OpenLook;
+            tree.Q<Button>("return-button").clicked += ReturnToSpawn;
+            tree.Q<Button>("chat-button").clicked += _chat.Toggle;
+            tree.Q<Button>("stats-button").clicked += GetComponent<NetStats>().Toggle;
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
-            _touch = new TouchControls(_root, view.OrbitCamera, OpenLook, ReturnToSpawn, _chat.OpenInput, GetComponent<NetStats>().Toggle);
+            _touch = new TouchControls(_root, view.OrbitCamera);
 
             join.ContentLoaded += OnContentLoaded;
             join.OwnSpawned += OnOwnSpawned;
@@ -112,6 +118,8 @@ namespace ShapeLand.Client
             {
                 KeepToSafeArea();
             }
+
+            _buttons.EnableInClassList("hidden", CardShowing);
 
             // Esc closes the chat input first (Chat); only a press clear of that opens or closes the card.
             if (view.Controls.Game.ChangeLook.WasPressedThisFrame())

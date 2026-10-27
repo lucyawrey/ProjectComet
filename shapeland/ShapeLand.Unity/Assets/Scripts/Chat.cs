@@ -9,9 +9,10 @@ using UnityEngine.UIElements;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// The chat box in the HUD's lower corner: the log, which fades after a while without messages, and an input
-    /// that Enter opens (the shape stops moving while it's open) and a click outside the box closes. The log scrolls
-    /// back through older lines. Speech bubbles are <see cref="NameTags"/>' part.
+    /// The chat box in the HUD's lower corner: the log and an input. Enter or the chat button opens chat (the shape
+    /// stops moving while it's open), and it stays open after sending until Esc, the chat button, Enter on an empty
+    /// line or a click outside the box closes it. Closed, the log shows for a while after each message, then fades.
+    /// The log scrolls back through older lines. Speech bubbles are <see cref="NameTags"/>' part.
     /// </summary>
     [RequireComponent(typeof(Hud))]
     public sealed class Chat : MonoBehaviour
@@ -25,16 +26,15 @@ namespace ShapeLand.Client
         // Enter or Esc that opened or closed the chat may reach another handler too; ignore it for this long.
         private const float KeyDebounce = 0.2f;
 
-        // How long the log and the hint take to fade in or out, in seconds, and the hint's opacity when shown.
+        /// <summary>How long the log takes to fade in or out, in seconds.</summary>
         private const float FadeSeconds = 0.4f;
-        private const float HintOpacity = 0.85f;
 
         private Hud _hud;
         private VisualElement _box;
         private ScrollView _log;
         private VisualElement _inputRow;
         private TextField _input;
-        private Label _hint;
+        private VisualElement _button;
         private float _lastLine = float.NegativeInfinity;
         private float _toggledAt = float.NegativeInfinity;
         private bool _openOnRelease;
@@ -63,7 +63,7 @@ namespace ShapeLand.Client
             _log = tree.Q<ScrollView>("log");
             _inputRow = tree.Q("chat-input-row");
             _input = tree.Q<TextField>("chat-input");
-            _hint = tree.Q<Label>("chat-hint");
+            _button = tree.Q("chat-button");
             _input.RegisterCallback<KeyDownEvent>(OnInputKey, TrickleDown.TrickleDown);
             tree.Q<Button>("chat-send").clicked += Send;
             SetPicking(_log, false);
@@ -110,8 +110,8 @@ namespace ShapeLand.Client
                 OpenInput();
             }
 
-            // Not in the moment it opened: a quick tap on the touch chat button lands outside the box in the same frame.
-            if (Open && !JustToggled && ClickedOutsideBox())
+            // Not in the moment it opened: a quick tap on the chat button lands outside the box in the same frame.
+            if (Open && !JustToggled && ClickedOutside())
             {
                 CloseInput();
             }
@@ -119,7 +119,20 @@ namespace ShapeLand.Client
             var logShown = Open || Time.unscaledTime - _lastLine < LogSeconds;
             Opacity = Open ? 1 : Mathf.MoveTowards(Opacity, logShown ? 1 : 0, Time.unscaledDeltaTime / FadeSeconds);
             _box.style.opacity = Opacity;
-            _hint.style.opacity = (1 - Opacity) * HintOpacity;
+            _button.EnableInClassList("on", Open);
+        }
+
+        /// <summary>Opens chat if it's closed, else closes it (the chat button).</summary>
+        public void Toggle()
+        {
+            if (Open)
+            {
+                CloseInput();
+            }
+            else
+            {
+                OpenInput();
+            }
         }
 
         /// <summary>Opens the input and stops the shape moving until it closes.</summary>
@@ -154,8 +167,8 @@ namespace ShapeLand.Client
             _hud.UpdateMoving();
         }
 
-        // A click, tap or pen press this frame that landed outside the chat box (a right click too).
-        private bool ClickedOutsideBox()
+        // A click, tap or pen press this frame that landed outside the chat box and the chat button (a right click too).
+        private bool ClickedOutside()
         {
             var pointer = Pointer.current;
             if (pointer == null || _box.panel == null
@@ -167,7 +180,7 @@ namespace ShapeLand.Client
             var screen = pointer.position.ReadValue();
 
             var point = RuntimePanelUtils.ScreenToPanel(_box.panel, new Vector2(screen.x, Screen.height - screen.y));
-            return !_box.worldBound.Contains(point);
+            return !_box.worldBound.Contains(point) && !_button.worldBound.Contains(point);
         }
 
         // Shows the newest line once the log has laid out. The scheduler can run before that layout, so for a moment it
@@ -197,9 +210,15 @@ namespace ShapeLand.Client
         /// <summary>Typed in chat, sends the player back to their spawn point instead of saying it.</summary>
         public const string ReturnCommand = "/return";
 
-        /// <summary>Sends what's typed (if anything) and closes the input.</summary>
+        /// <summary>Sends what's typed and clears the input for the next line; with nothing typed, closes chat.</summary>
         public void Send()
         {
+            if (string.IsNullOrWhiteSpace(_input.value))
+            {
+                CloseInput();
+                return;
+            }
+
             if (ShapeLandRules.TryNormalizeChat(_input.value, out var text))
             {
                 // A command rather than chat. Becomes an action once Comet has them.
@@ -213,7 +232,8 @@ namespace ShapeLand.Client
                 }
             }
 
-            CloseInput();
+            _input.value = "";
+            _input.Focus();
         }
 
         private void OnInputKey(KeyDownEvent e)
