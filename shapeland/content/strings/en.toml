@@ -56,7 +56,7 @@ inside_solid = "inside a solid object"
 [hud]
 change_look = "Change Look"
 change_look_key = "C"
-return_to_spawn = "Return to Spawn"
+return_to_spawn = "Respawn"
 return_to_spawn_key = "R"
 chat = "Chat"
 chat_key = "Enter"
