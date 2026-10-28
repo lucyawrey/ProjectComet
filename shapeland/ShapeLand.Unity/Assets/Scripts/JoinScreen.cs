@@ -185,11 +185,11 @@ namespace ShapeLand.Client
             _eyeColor = spawn.EyeColor;
             ShowError(null);
             Show();
-            FocusName();
         }
 
-        // Ready to type a name, except on a phone, where focusing the field would bring up its keyboard over the card
-        // before the player has looked at it. Focused once no key is down, or the key that opened the card (C) types.
+        // Ready to type a name when joining, except on a phone, where focusing the field would bring up its keyboard
+        // over the card before the player has looked at it. Focused once no key is down, or the key that brought the
+        // card up would type.
         private void FocusName() => _focusNamePending = !WebPage.IsPhone;
 
         /// <summary>Closes the card without changing the look.</summary>
