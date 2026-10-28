@@ -9,20 +9,6 @@
             </ui:VisualElement>
             <ui:VisualElement name="touch-look" class="touch-half touch-right" />
             <ui:VisualElement name="touch-safe" class="touch-safe" picking-mode="Ignore">
-                <ui:VisualElement class="touch-row" picking-mode="Ignore">
-                    <ui:Button name="touch-look-button" class="touch-button small" focusable="false">
-                        <ui:VisualElement class="touch-icon icon-look" picking-mode="Ignore" />
-                    </ui:Button>
-                    <ui:Button name="touch-return-button" class="touch-button small" focusable="false">
-                        <ui:VisualElement class="touch-icon icon-return" picking-mode="Ignore" />
-                    </ui:Button>
-                    <ui:Button name="touch-chat-button" class="touch-button small" focusable="false">
-                        <ui:VisualElement class="touch-icon icon-chat" picking-mode="Ignore" />
-                    </ui:Button>
-                    <ui:Button name="touch-stats-button" class="touch-button small" focusable="false">
-                        <ui:VisualElement class="touch-icon icon-stats" picking-mode="Ignore" />
-                    </ui:Button>
-                </ui:VisualElement>
                 <ui:VisualElement name="jump-button" class="touch-button jump-button">
                     <ui:VisualElement class="touch-icon icon-jump" picking-mode="Ignore" />
                 </ui:VisualElement>
@@ -38,8 +24,36 @@
                     <ui:Button name="chat-send" text="#chat.send" class="chat-send" focusable="false" />
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:Button name="look-button" text="#hud.change_look" class="look-button" focusable="false" />
-            <ui:Label name="chat-hint" text="#chat.hint" class="chat-hint" picking-mode="Ignore" />
+            <ui:VisualElement name="hud-buttons" class="hud-row" picking-mode="Ignore">
+                <ui:Button name="look-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-look" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.change_look" picking-mode="Ignore" />
+                        <ui:Label text="#hud.change_look_key" class="hud-tip-key" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="return-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-return" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.return_to_spawn" picking-mode="Ignore" />
+                        <ui:Label text="#hud.return_to_spawn_key" class="hud-tip-key" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="chat-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-chat" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.chat" picking-mode="Ignore" />
+                        <ui:Label text="#hud.chat_key" class="hud-tip-key" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="stats-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-stats" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.stats" picking-mode="Ignore" />
+                        <ui:Label text="#hud.stats_key" class="hud-tip-key" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+            </ui:VisualElement>
             <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
                 <ui:VisualElement class="net-row" picking-mode="Ignore">
                     <ui:VisualElement name="ping-dot" class="net-dot" picking-mode="Ignore" />

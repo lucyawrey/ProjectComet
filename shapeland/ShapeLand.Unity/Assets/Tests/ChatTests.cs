@@ -7,7 +7,7 @@ using UnityEngine.TestTools;
 
 namespace ShapeLand.Client.Tests
 {
-    // Chat in the Game scene: lines go round to the log and a bubble, Enter opens the input and stops the shape,
+    // Chat in the Game scene: lines go round to the log and a bubble, chat stays open after sending, Enter opens the input and stops the shape,
     // others' lines arrive, and sending too fast is explained.
     public class ChatTests : GameSceneTest
     {
@@ -20,7 +20,10 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.InputEnabled, Is.False, "The shape can still move while typing.");
             Chat.Typed = "  hello island  ";
             Chat.Send();
-            Assert.That(Chat.Open, Is.False);
+            Assert.That(Chat.Open, Is.True, "Chat closed after sending.");
+            Assert.That(Chat.Typed, Is.Empty, "The sent line is still in the input.");
+            Chat.Send();
+            Assert.That(Chat.Open, Is.False, "Sending an empty line didn't close chat.");
             Assert.That(player.InputEnabled, Is.True);
 
             yield return TestGameServer.WaitFor(() => Chat.LogLines().Count > 0, 10);
@@ -53,6 +56,25 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
+        public IEnumerator TheLookCardPutsChatAwayUntilItCloses()
+        {
+            yield return StartGame();
+            Chat.OpenInput();
+            Chat.Typed = "half a thought";
+            Hud.OpenLook();
+            Assert.That(Chat.Open, Is.False, "Chat stayed open under the look card.");
+            yield return null;
+            Assert.That(Chat.Box.ClassListContains("hidden"), Is.True, "The chat box shows over the look card.");
+
+            Screen.Cancel();
+            yield return null;
+            yield return null;
+            Assert.That(Chat.Open, Is.True, "Chat didn't come back after the look card closed.");
+            Assert.That(Chat.Typed, Is.EqualTo("half a thought"), "What was typed was lost.");
+            Assert.That(Chat.Box.ClassListContains("hidden"), Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator OthersChatInTheLogAndInBubbles()
         {
             yield return StartGame();
@@ -68,9 +90,9 @@ namespace ShapeLand.Client.Tests
         public IEnumerator ChattingTooFastIsExplained()
         {
             yield return StartGame();
+            Chat.OpenInput();
             for (var i = 0; i < 5; i++)
             {
-                Chat.OpenInput();
                 Chat.Typed = $"line {i}";
                 Chat.Send();
             }

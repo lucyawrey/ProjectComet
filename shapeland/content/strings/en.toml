@@ -45,7 +45,6 @@ invalid = "Messages can't be empty or longer than 200 characters."
 spawn_set = "Your spawn point is set."
 keys = "Enter sends · Esc closes"
 send = "Send"
-hint = "Enter to chat"
 
 [collision]
 snap_back = "Snapped back: {rule}."
@@ -56,6 +55,13 @@ inside_solid = "inside a solid object"
 
 [hud]
 change_look = "Change Look"
+change_look_key = "C"
+return_to_spawn = "Return to Spawn"
+return_to_spawn_key = "R"
+chat = "Chat"
+chat_key = "Enter"
+stats = "Stats"
+stats_key = "F3"
 
 [stats]
 ping = "Ping"

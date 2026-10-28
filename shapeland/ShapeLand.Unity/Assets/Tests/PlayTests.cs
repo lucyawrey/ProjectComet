@@ -49,16 +49,18 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
-        public IEnumerator SpeedCheatIsSnappedBackWithABlend()
+        public IEnumerator MovingTooFastIsSnappedBackWithABlend()
         {
             yield return StartGame();
             var player = View.Player;
 
-            Press(Key.W, Key.C);
+            player.TestSpeedScale = 2.5f;
+            Press(Key.W);
             yield return TestGameServer.WaitFor(() => player.SnapBacks > 0, 5);
-            Assert.That(player.SnapBacks, Is.GreaterThan(0), "The speed cheat was never snapped back.");
+            Assert.That(player.SnapBacks, Is.GreaterThan(0), "Moving too fast was never snapped back.");
             var trailing = player.BlendDistance;
             Press();
+            player.TestSpeedScale = 1;
 
             // The drawn shape trails the corrected position, then catches up within the blend.
             Assert.That(trailing, Is.GreaterThan(0.05f), "The snap-back wasn't blended.");

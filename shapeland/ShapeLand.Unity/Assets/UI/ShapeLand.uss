@@ -15,6 +15,8 @@
     color: rgb(238, 241, 246);
 }
 .backdrop.hidden, .backdrop.waiting { display: none; }
+/* Changing the look in game: the card sits over the game without dimming it, and the HUD around it stays usable. */
+.backdrop.changing { background-color: rgba(0, 0, 0, 0); }
 
 .card {
     width: 580px;
@@ -119,7 +121,7 @@ Label { padding: 0; margin: 0; }
 .hud.hidden { display: none; }
 .tags { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 
-/* The chat box and its hint fade in code (Chat), not with USS transitions. */
+/* The chat box fades in code (Chat), not with USS transitions. */
 .chat { position: absolute; left: 16px; bottom: 16px; width: 380px; }
 .chat-log { max-height: 190px; padding: 8px 10px; background-color: rgba(18, 22, 30, 0.7); border-radius: 6px; }
 .chat-log.empty { display: none; }
@@ -164,19 +166,32 @@ Label { padding: 0; margin: 0; }
 .hud.touch-input .chat-keys { display: none; }
 .hud.touch-input .chat-send { display: flex; }
 
-.look-button {
-    position: absolute; left: 12px; top: 12px;
-    padding: 4px 9px; margin: 0; font-size: 13px;
-    background-color: rgba(18, 22, 30, 0.6); border-width: 0; border-radius: 3px;
-    color: rgb(238, 241, 246);
+/* Change Look, Return to Spawn, chat and network stats as round buttons at the top left, larger with touch controls
+   in use. With a mouse, hovering one shows its name and key. Icons from UI/Icons (see its README). */
+.hud-row { position: absolute; left: 16px; top: 12px; flex-direction: row; }
+.hud-button, .hud-button:hover {
+    width: 44px; height: 44px; border-radius: 22px; margin: 0 12px 0 0; padding: 0;
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.3);
+    background-color: rgba(18, 22, 30, 0.55);
+    align-items: center; justify-content: center;
 }
-.look-button:hover { background-color: rgba(18, 22, 30, 0.85); }
-
-.chat-hint {
-    position: absolute; left: 16px; bottom: 16px;
-    padding: 4px 9px; font-size: 13px;
-    background-color: rgba(18, 22, 30, 0.6); border-radius: 3px;
-    opacity: 0;
+.hud-button:hover { background-color: rgba(18, 22, 30, 0.8); border-color: rgba(238, 241, 246, 0.5); }
+.hud-button:active, .hud-button:hover:active, .hud-button.on { background-color: rgba(79, 140, 240, 0.8); border-color: rgba(238, 241, 246, 0.5); }
+.hud.touch-input .hud-button { width: 52px; height: 52px; border-radius: 26px; margin-right: 14px; }
+.hud-icon { width: 24px; height: 24px; -unity-background-scale-mode: scale-to-fit; }
+.hud.touch-input .hud-icon { width: 28px; height: 28px; }
+.hud-tip {
+    display: none; position: absolute; left: -2px; top: 48px;
+    flex-direction: row; align-items: center;
+    padding: 4px 8px; font-size: 13px; white-space: nowrap;
+    background-color: rgba(18, 22, 30, 0.88); border-radius: 3px;
+}
+.hud-button:hover .hud-tip { display: flex; }
+.hud.touch-input .hud-tip { display: none; }
+.hud-tip-key {
+    margin-left: 8px; padding: 0 4px; font-size: 12px;
+    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 3px;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
 }
 
 .name-tag {
@@ -199,12 +214,12 @@ Label { padding: 0; margin: 0; }
 
 /* Network stats (NetStats, F3): rows with a state dot. Numbers in the mono face so they don't jitter. */
 .net-stats {
-    position: absolute; left: 12px; top: 44px; width: 270px; /* under the Change Look button */
+    position: absolute; left: 16px; top: 68px; width: 270px; /* under the HUD buttons */
     padding: 8px 10px 6px 10px; font-size: 13px;
     background-color: rgba(18, 22, 30, 0.78); border-radius: 4px;
 }
 .net-stats.hidden { display: none; }
-.hud.touch-input .net-stats { left: 16px; top: 76px; } /* under the touch buttons */
+.hud.touch-input .net-stats { top: 76px; } /* under the larger buttons */
 /* The footer names F3, except with touch controls in use, where the stats button opens and closes the numbers. */
 .touch-only, .hud.touch-input .keys-only { display: none; }
 .hud.touch-input .touch-only { display: flex; }
@@ -225,8 +240,7 @@ Label { padding: 0; margin: 0; }
     font-size: 11px; color: rgb(141, 151, 171);
 }
 
-/* ---- Touch controls (phones): a floating stick on the left half, a camera drag on the right, a jump button, and
-   Change Look, Return to Spawn, chat and network stats buttons at the top left. Icons from UI/Icons (see its README). ---- */
+/* ---- Touch controls (phones): a floating stick on the left half, a camera drag on the right, and a jump button. ---- */
 .touch { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .touch-half { position: absolute; top: 0; bottom: 0; width: 50%; }
 .touch-left { left: 0; }
@@ -243,10 +257,9 @@ Label { padding: 0; margin: 0; }
     justify-content: center;
 }
 .stick-knob { width: 56px; height: 56px; border-radius: 28px; background-color: rgba(238, 241, 246, 0.6); }
-/* Inside the screen's safe area (set from code, Hud), clear of notches and the home bar: the touch buttons here, and
-   the chat box, stats and the rest of the overlay in .safe. */
+/* Inside the screen's safe area (set from code, Hud), clear of notches and the home bar: Jump here, and the HUD
+   buttons, chat box, stats and the rest of the overlay in .safe. */
 .touch-safe, .safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
-.touch-row { position: absolute; left: 16px; top: 12px; flex-direction: row; }
 /* Sizes in panel pixels, which on a phone are about CSS pixels (Hud.PhoneReferenceResolution). */
 .touch-button, .touch-button:hover {
     border-width: 2px;
@@ -258,14 +271,10 @@ Label { padding: 0; margin: 0; }
     padding: 0;
 }
 .touch-button:active, .touch-button:hover:active, .touch-button.pressed { background-color: rgba(79, 140, 240, 0.8); }
-.touch-button.small { width: 52px; height: 52px; border-radius: 26px; margin-right: 14px; }
 .jump-button { position: absolute; right: 16px; bottom: 16px; width: 100px; height: 100px; border-radius: 50px; }
-.touch-icon { width: 28px; height: 28px; -unity-background-scale-mode: scale-to-fit; }
-.jump-button .touch-icon { width: 46px; height: 46px; }
+.touch-icon { width: 46px; height: 46px; -unity-background-scale-mode: scale-to-fit; }
 .icon-look { background-image: url("Icons/look.png"); }
 .icon-return { background-image: url("Icons/return.png"); }
 .icon-chat { background-image: url("Icons/chat.png"); }
 .icon-jump { background-image: url("Icons/jump.png"); }
 .icon-stats { background-image: url("Icons/stats.png"); }
-/* With touch controls in use, the touch buttons stand in for the Change Look button and the chat hint. */
-.hud.touch-input .look-button, .hud.touch-input .chat-hint { display: none; }
