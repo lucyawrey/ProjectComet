@@ -11,8 +11,8 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the Change
-    /// Look, Return to Spawn, chat and network stats buttons (Change Look, or Esc, brings up the join card), and the
-    /// respawn fade over the whole screen. The chat
+    /// Look, Return to Spawn, chat and network stats buttons (Change Look, or C, brings up the join card; Esc closes
+    /// it), and the respawn fade over the whole screen. The chat
     /// (<see cref="Chat"/>), name tags (<see cref="NameTags"/>) and network numbers (<see cref="NetStats"/>) are
     /// components beside it on the same object.
     /// </summary>
@@ -133,8 +133,8 @@ namespace ShapeLand.Client
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
             ReopenChat();
 
-            // Esc closes the chat input first (Chat); only a press clear of that opens or closes the card. C typed in
-            // the card's name field is just a letter.
+            // Esc closes the chat input first (Chat); a press clear of that closes the card but never opens it. C typed
+            // in the card's name field is just a letter.
             var changeLook = view.Controls.Game.ChangeLook;
             if (changeLook.WasPressedThisFrame())
             {
@@ -145,7 +145,8 @@ namespace ShapeLand.Client
                         card.Cancel();
                     }
                 }
-                else if (!_chat.Open && !_chat.JustToggled)
+                else if (!_chat.Open && !_chat.JustToggled &&
+                         changeLook.activeControl is not KeyControl { keyCode: Key.Escape })
                 {
                     OpenLook();
                 }
