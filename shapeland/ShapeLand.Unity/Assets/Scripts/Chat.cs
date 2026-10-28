@@ -18,7 +18,7 @@ namespace ShapeLand.Client
     public sealed class Chat : MonoBehaviour
     {
         /// <summary>Seconds without a message before the log fades out.</summary>
-        private const float LogSeconds = 10;
+        private const float LogSeconds = 60;
 
         /// <summary>How many lines the log keeps to scroll back through.</summary>
         private const int MaxLines = 100;
