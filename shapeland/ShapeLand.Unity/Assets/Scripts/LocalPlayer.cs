@@ -31,13 +31,12 @@ namespace ShapeLand.Client
         /// </summary>
         public const int StepsPerSecond = 60;
 
-        /// <summary>How much faster than the shape allows the speed cheat moves (development builds and the editor only), like the cheating bots.</summary>
-        public const float SpeedCheat = 2.5f;
+        /// <summary>A multiple of the shape's top speed, for tests that need the server to snap the player back.</summary>
+        public float TestSpeedScale { get; set; } = 1;
 
         private readonly FixedStep _step = new FixedStep(StepsPerSecond);
         private readonly PositionReporter _reporter = new PositionReporter();
         private readonly CorrectionBlend _blend = new CorrectionBlend();
-        private float _cheatedAt = float.NegativeInfinity;
         private ClientSession _session;
         private CollisionWorld _world;
         private MovementRules _rules;
@@ -79,9 +78,6 @@ namespace ShapeLand.Client
 
         /// <summary>How many times the server has moved the player back (a correction that wasn't a respawn).</summary>
         public int SnapBacks { get; private set; }
-
-        /// <summary>Of <see cref="SnapBacks"/>, those that came within a second of using the speed cheat.</summary>
-        public int CheatSnapBacks { get; private set; }
 
         /// <summary>How many times the player fell out of the world and was respawned.</summary>
         public int Respawns { get; private set; }
@@ -148,12 +144,7 @@ namespace ShapeLand.Client
             _jumpQueued |= InputEnabled && !_fade.Holding && _controls.Game.Jump.WasPressedThisFrame();
 
             var now = CometConnection.Now;
-            var maxSpeed = _shape.MaxSpeed;
-            if (Debug.isDebugBuild && InputEnabled && _controls.Game.SpeedCheat.IsPressed())
-            {
-                maxSpeed *= SpeedCheat;
-                _cheatedAt = Time.unscaledTime;
-            }
+            var maxSpeed = _shape.MaxSpeed * TestSpeedScale;
 
             // The steps run on the server's clock, so every other one falls on a server tick; only those are
             // reported, stamped with their tick, so others draw exactly the spacing the player moved at.
@@ -239,10 +230,6 @@ namespace ShapeLand.Client
             {
                 _blend.Begin(_drawn, _motor.Position);
                 SnapBacks++;
-                if (Time.unscaledTime - _cheatedAt < 1)
-                {
-                    CheatSnapBacks++;
-                }
             }
 
             Draw(1);

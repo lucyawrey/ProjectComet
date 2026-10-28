@@ -3,13 +3,16 @@ using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
     /// <summary>
     /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the Change
-    /// Look button (or Esc) that brings up the join card, and the respawn fade over the whole screen. The chat
+    /// Look, Return to Spawn, chat and network stats buttons (Change Look, or Esc, brings up the join card), and the
+    /// respawn fade over the whole screen. The chat
     /// (<see cref="Chat"/>), name tags (<see cref="NameTags"/>) and network numbers (<see cref="NetStats"/>) are
     /// components beside it on the same object.
     /// </summary>
@@ -23,6 +26,11 @@ namespace ShapeLand.Client
         private VisualElement _root;
         private Chat _chat;
         private TouchControls _touch;
+        private NetStats _stats;
+        private VisualElement _lookButton;
+        // Chat that was open when the look card came up, and what was typed in it: it reopens once the card closes.
+        private bool _reopenChat;
+        private string _chatDraft;
         // The overlay's parts kept inside the screen's safe area, and the insets they have now.
         private VisualElement[] _safe;
         private Vector4 _insets = new Vector4(-1, -1, -1, -1);
@@ -63,9 +71,15 @@ namespace ShapeLand.Client
             var tree = document.rootVisualElement;
             _root = tree.Q("hud");
             _chat = GetComponent<Chat>();
-            tree.Q<Button>("look-button").clicked += OpenLook;
+            _stats = GetComponent<NetStats>();
+            _lookButton = tree.Q("look-button");
+            ((Button)_lookButton).clicked += ToggleLook;
+            // The other buttons close the look card first.
+            tree.Q<Button>("return-button").clicked += () => { CloseLook(); ReturnToSpawn(); };
+            tree.Q<Button>("chat-button").clicked += () => { CloseLook(); _chat.Toggle(); };
+            tree.Q<Button>("stats-button").clicked += () => { CloseLook(); _stats.Toggle(); };
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
-            _touch = new TouchControls(_root, view.OrbitCamera, OpenLook, ReturnToSpawn, _chat.OpenInput, GetComponent<NetStats>().Toggle);
+            _touch = new TouchControls(_root, view.OrbitCamera);
 
             join.ContentLoaded += OnContentLoaded;
             join.OwnSpawned += OnOwnSpawned;
@@ -113,12 +127,23 @@ namespace ShapeLand.Client
                 KeepToSafeArea();
             }
 
-            // Esc closes the chat input first (Chat); only a press clear of that opens or closes the card.
-            if (view.Controls.Game.ChangeLook.WasPressedThisFrame())
+            // The look card hides chat and the network numbers while it's up.
+            _lookButton.EnableInClassList("on", card.Changing);
+            _chat.Box.EnableInClassList("hidden", card.Changing);
+            _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
+            ReopenChat();
+
+            // Esc closes the chat input first (Chat); only a press clear of that opens or closes the card. C typed in
+            // the card's name field is just a letter.
+            var changeLook = view.Controls.Game.ChangeLook;
+            if (changeLook.WasPressedThisFrame())
             {
                 if (card.Changing)
                 {
-                    card.Cancel();
+                    if (!(card.Typing && changeLook.activeControl is KeyControl { keyCode: Key.C }))
+                    {
+                        card.Cancel();
+                    }
                 }
                 else if (!_chat.Open && !_chat.JustToggled)
                 {
@@ -172,12 +197,54 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Brings up the card to change name, shape and colors, closing the chat input first.</summary>
+        /// <summary>Brings up the card to change name, shape and colors, putting an open chat away until it closes.</summary>
         public void OpenLook()
         {
-            _chat.CloseInput();
+            if (_chat.Open)
+            {
+                _reopenChat = true;
+                _chatDraft = _chat.Typed;
+                _chat.CloseInput();
+            }
+
             card.OpenChange();
             UpdateMoving();
+        }
+
+        // The look button: brings the card up, or closes it.
+        private void ToggleLook()
+        {
+            if (card.Changing)
+            {
+                CloseLook();
+            }
+            else
+            {
+                OpenLook();
+            }
+        }
+
+        // Closes the look card without changing anything, leaving chat closed.
+        private void CloseLook()
+        {
+            if (card.Changing)
+            {
+                _reopenChat = false;
+                card.Cancel();
+                UpdateMoving();
+            }
+        }
+
+        // Chat put away by the look card opens again once the card is gone, after the key that closed it is let go
+        // (focusing the input while it's down would type it).
+        private void ReopenChat()
+        {
+            if (_reopenChat && !CardShowing && (Keyboard.current == null || !Keyboard.current.anyKey.isPressed))
+            {
+                _reopenChat = false;
+                _chat.OpenInput();
+                _chat.Typed = _chatDraft;
+            }
         }
 
         /// <summary>Stops the shape while the player types or chooses a look.</summary>

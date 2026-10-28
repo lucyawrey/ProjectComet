@@ -9,8 +9,8 @@ namespace ShapeLand.Client
     /// Network numbers in the HUD's top left corner, for tuning under simulated conditions, in every build: the
     /// round trip (latest, and the lowest of the last ten, which the clock trusts), the interpolation delay and
     /// its target, how many of the others' moves ran out of states (dead-reckoned until the late state came, then
-    /// blended back to it) and how long each hold was, and the player's own snap-backs (red only for one not caused
-    /// by the speed cheat) and respawns; then the frame time (average and worst over the last second) and the
+    /// blended back to it) and how long each hold was, and the player's own snap-backs (red for any) and
+    /// respawns; then the frame time (average and worst over the last second) and the
     /// graphics API and render size, for comparing builds and browsers. Each row has a dot that turns amber or red past a line.
     /// F3 shows or hides it; the choice is remembered.
     /// </summary>
@@ -36,6 +36,7 @@ namespace ShapeLand.Client
         private Hud _hud;
         private Chat _chat;
         private VisualElement _panel;
+        private VisualElement _button;
         private VisualElement _pingDot;
         private VisualElement _holdsDot;
         private VisualElement _snapsDot;
@@ -71,6 +72,7 @@ namespace ShapeLand.Client
             _chat = GetComponent<Chat>();
             var tree = GetComponent<UIDocument>().rootVisualElement;
             _panel = tree.Q("net-stats");
+            _button = tree.Q("stats-button");
             _pingDot = tree.Q("ping-dot");
             _holdsDot = tree.Q("holds-dot");
             _snapsDot = tree.Q("snaps-dot");
@@ -88,6 +90,7 @@ namespace ShapeLand.Client
             _graphics = tree.Q<Label>("graphics");
             Shown = Remember && PlayerPrefs.GetInt(ShownKey, 0) == 1;
             _panel.EnableInClassList("hidden", !Shown);
+            _button.EnableInClassList("on", Shown);
         }
 
         /// <summary>Shows or hides the numbers, and remembers the choice.</summary>
@@ -100,6 +103,7 @@ namespace ShapeLand.Client
             }
 
             _panel.EnableInClassList("hidden", !Shown);
+            _button.EnableInClassList("on", Shown);
         }
 
         private void Update()
@@ -155,8 +159,8 @@ namespace ShapeLand.Client
 
             SetState(_pingDot, clock.LastRoundTrip * 1000 > PingWarnMs ? "warn" : null);
             SetState(_holdsDot, holdsPercent > HoldsBadPercent ? "bad" : holdsPercent > HoldsWarnPercent ? "warn" : null);
-            // Snap-backs from the speed cheat are expected; an honest one means a margin is too tight.
-            SetState(_snapsDot, player.SnapBacks > player.CheatSnapBacks ? "bad" : null);
+            // An honest player is never snapped back: one means a margin is too tight.
+            SetState(_snapsDot, player.SnapBacks > 0 ? "bad" : null);
         }
 
         // Averages and the worst frame over each second, shown when the second ends.

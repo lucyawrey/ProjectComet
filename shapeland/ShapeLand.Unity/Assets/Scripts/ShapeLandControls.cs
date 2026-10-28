@@ -145,16 +145,6 @@ namespace ShapeLand.Client
                     ""priority"": 0
                 },
                 {
-                    ""name"": ""SpeedCheat"",
-                    ""type"": ""Button"",
-                    ""id"": ""2bbcaa63-b46a-4cf2-9a61-8f0eb483d825"",
-                    ""expectedControlType"": ""Button"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false,
-                    ""priority"": 0
-                },
-                {
                     ""name"": ""OpenChat"",
                     ""type"": ""Button"",
                     ""id"": ""f4b7b0d8-5aad-4e5a-8bc2-39036e4c2072"",
@@ -384,17 +374,6 @@ namespace ShapeLand.Client
                 },
                 {
                     ""name"": """",
-                    ""id"": ""8509000a-b716-4039-af40-4136d89953ac"",
-                    ""path"": ""<Keyboard>/c"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""SpeedCheat"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
                     ""id"": ""20dc5610-fc38-4986-8690-5870a9baa9d3"",
                     ""path"": ""<Keyboard>/enter"",
                     ""interactions"": """",
@@ -450,6 +429,17 @@ namespace ShapeLand.Client
                 },
                 {
                     ""name"": """",
+                    ""id"": ""f775683a-e8ee-4795-8581-6ff1d63c4b98"",
+                    ""path"": ""<Keyboard>/c"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChangeLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""cc024698-19dd-4359-b542-c84a9f6353a2"",
                     ""path"": ""<Gamepad>/start"",
                     ""interactions"": """",
@@ -493,7 +483,6 @@ namespace ShapeLand.Client
             m_Game_OrbitHeld = m_Game.FindAction("OrbitHeld", throwIfNotFound: true);
             m_Game_MouseLook = m_Game.FindAction("MouseLook", throwIfNotFound: true);
             m_Game_StickLook = m_Game.FindAction("StickLook", throwIfNotFound: true);
-            m_Game_SpeedCheat = m_Game.FindAction("SpeedCheat", throwIfNotFound: true);
             m_Game_OpenChat = m_Game.FindAction("OpenChat", throwIfNotFound: true);
             m_Game_NetStats = m_Game.FindAction("NetStats", throwIfNotFound: true);
             m_Game_CollisionView = m_Game.FindAction("CollisionView", throwIfNotFound: true);
@@ -584,7 +573,6 @@ namespace ShapeLand.Client
         private readonly InputAction m_Game_OrbitHeld;
         private readonly InputAction m_Game_MouseLook;
         private readonly InputAction m_Game_StickLook;
-        private readonly InputAction m_Game_SpeedCheat;
         private readonly InputAction m_Game_OpenChat;
         private readonly InputAction m_Game_NetStats;
         private readonly InputAction m_Game_CollisionView;
@@ -621,10 +609,6 @@ namespace ShapeLand.Client
             /// Provides access to the underlying input action "Game/StickLook".
             /// </summary>
             public InputAction @StickLook => m_Wrapper.m_Game_StickLook;
-            /// <summary>
-            /// Provides access to the underlying input action "Game/SpeedCheat".
-            /// </summary>
-            public InputAction @SpeedCheat => m_Wrapper.m_Game_SpeedCheat;
             /// <summary>
             /// Provides access to the underlying input action "Game/OpenChat".
             /// </summary>
@@ -686,9 +670,6 @@ namespace ShapeLand.Client
                 @StickLook.started += instance.OnStickLook;
                 @StickLook.performed += instance.OnStickLook;
                 @StickLook.canceled += instance.OnStickLook;
-                @SpeedCheat.started += instance.OnSpeedCheat;
-                @SpeedCheat.performed += instance.OnSpeedCheat;
-                @SpeedCheat.canceled += instance.OnSpeedCheat;
                 @OpenChat.started += instance.OnOpenChat;
                 @OpenChat.performed += instance.OnOpenChat;
                 @OpenChat.canceled += instance.OnOpenChat;
@@ -730,9 +711,6 @@ namespace ShapeLand.Client
                 @StickLook.started -= instance.OnStickLook;
                 @StickLook.performed -= instance.OnStickLook;
                 @StickLook.canceled -= instance.OnStickLook;
-                @SpeedCheat.started -= instance.OnSpeedCheat;
-                @SpeedCheat.performed -= instance.OnSpeedCheat;
-                @SpeedCheat.canceled -= instance.OnSpeedCheat;
                 @OpenChat.started -= instance.OnOpenChat;
                 @OpenChat.performed -= instance.OnOpenChat;
                 @OpenChat.canceled -= instance.OnOpenChat;
@@ -823,13 +801,6 @@ namespace ShapeLand.Client
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnStickLook(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "SpeedCheat" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnSpeedCheat(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "OpenChat" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
