@@ -1,6 +1,10 @@
 # Project Comet
 
-<!-- Project description: to be written by Lucy -->
+Project Comet is the working name for a three-part MMO research and development project. The three components are:
+
+- **Comet**: The framework itself, libraries for creating a .NET game server and a Unity client for small-scale MMOs.
+- **ShapeLand**: A minimalist prototype game built on top of Comet.
+- **Crystal**: Only in the planning/documentation stage, the real game that would be built on top of Comet.
 
 ## Working on the docs
 
