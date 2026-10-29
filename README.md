@@ -30,12 +30,15 @@ The vault's shared config and community plugins are in the repo, so they're read
 - `tools/`: scripts for building, running and testing (below), and the stack benchmark.
 - `docs/`: project notes and the proposal.
 
-## First setup
+## First time setup
+
+```sh
+dotnet build ProjectComet.slnx
+dotnet test --solution ProjectComet.slnx
+```
 
 ```sh
 tools/unity-restore.sh
-dotnet build ProjectComet.slnx
-dotnet test --solution ProjectComet.slnx
 ```
 
 Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes, before opening the project in the editor. The scripts that run Unity (`unity-batch.sh`, and `shapeland-dev.sh` through it) run it themselves when it's needed.
