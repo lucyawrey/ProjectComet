@@ -29,6 +29,7 @@ namespace ShapeLand.Client
         private Chat _chat;
         private TouchControls _touch;
         private NetStats _stats;
+        private CollisionDebug _collisions;
         private GameMenu _menu;
         private VisualElement _lookButton;
         private VisualElement _menuButton;
@@ -42,6 +43,12 @@ namespace ShapeLand.Client
         private Vector4 _safeFor;
 
         public JoinClient Join => join;
+
+        /// <summary>The network numbers (F3), beside the overlay.</summary>
+        public NetStats Stats => _stats;
+
+        /// <summary>The collision view (F4), beside the overlay.</summary>
+        public CollisionDebug Collisions => _collisions;
 
         public GameView View => view;
 
@@ -79,6 +86,7 @@ namespace ShapeLand.Client
             _root = tree.Q("hud");
             _chat = GetComponent<Chat>();
             _stats = GetComponent<NetStats>();
+            _collisions = GetComponent<CollisionDebug>();
             _lookButton = tree.Q("look-button");
             ((Button)_lookButton).clicked += ToggleLook;
             _menuButton = tree.Q("menu-button");

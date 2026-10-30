@@ -89,6 +89,10 @@
                             <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_f3" class="key" /></ui:VisualElement>
                         </ui:VisualElement>
                         <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.hitboxes" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_f4" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
                             <ui:Label text="#menu.menu" class="menu-row-name" />
                             <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_esc" class="key" /></ui:VisualElement>
                         </ui:VisualElement>
@@ -187,6 +191,25 @@
                                     <ui:VisualElement name="speed-knob" class="slider-knob" picking-mode="Ignore" />
                                 </ui:VisualElement>
                                 <ui:Label name="speed-value" class="slider-value" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:Label text="#menu.debug" class="menu-section" />
+                        <ui:VisualElement name="setting-stats" class="menu-row setting">
+                            <ui:VisualElement class="setting-text" picking-mode="Ignore">
+                                <ui:Label text="#menu.stats" class="menu-row-name" />
+                                <ui:Label text="#menu.stats_note" class="setting-note" />
+                            </ui:VisualElement>
+                            <ui:VisualElement name="stats-switch" class="switch" picking-mode="Ignore">
+                                <ui:VisualElement class="switch-knob" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="setting-hitboxes" class="menu-row setting">
+                            <ui:VisualElement class="setting-text" picking-mode="Ignore">
+                                <ui:Label text="#menu.hitboxes" class="menu-row-name" />
+                                <ui:Label text="#menu.hitboxes_note" class="setting-note" />
+                            </ui:VisualElement>
+                            <ui:VisualElement name="hitboxes-switch" class="switch" picking-mode="Ignore">
+                                <ui:VisualElement class="switch-knob" picking-mode="Ignore" />
                             </ui:VisualElement>
                         </ui:VisualElement>
                     </ui:VisualElement>

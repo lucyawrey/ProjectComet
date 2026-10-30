@@ -39,7 +39,6 @@ namespace ShapeLand.Client
         private readonly VisualElement _devices;
         private readonly ScrollView _scroll;
         private readonly VisualElement _settings;
-        private readonly VisualElement _wallsSwitch;
         private readonly VisualElement _speedTrack;
         private readonly VisualElement _speedFill;
         private readonly VisualElement _speedKnob;
@@ -50,6 +49,8 @@ namespace ShapeLand.Client
         private readonly VisualElement[] _entries;
         private readonly VisualElement[] _confirmEntries;
         private readonly VisualElement[] _settingRows;
+        // The Settings rows that are switches, by row: what they show and how they flip.
+        private readonly (int Row, VisualElement Switch, Func<bool> On, Action Flip)[] _switches;
         private readonly (InputKind Kind, VisualElement Tab, VisualElement Rows)[] _tabs;
         private readonly Action[] _entryActions;
 
@@ -74,7 +75,6 @@ namespace ShapeLand.Client
             _devices = root.Q("menu-devices");
             _scroll = root.Q<ScrollView>("menu-scroll");
             _settings = root.Q("settings");
-            _wallsSwitch = root.Q("walls-switch");
             _speedTrack = root.Q("speed-track");
             _speedFill = root.Q("speed-fill");
             _speedKnob = root.Q("speed-knob");
@@ -94,7 +94,13 @@ namespace ShapeLand.Client
                 () => ShowPage(Page.Leave),
             };
             _confirmEntries = new[] { root.Q("menu-stay"), root.Q("menu-leave-confirm") };
-            _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed") };
+            _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed"), root.Q("setting-stats"), root.Q("setting-hitboxes") };
+            _switches = new (int, VisualElement, Func<bool>, Action)[]
+            {
+                (0, root.Q("walls-switch"), () => _hud.View.ShowThroughWalls, () => _hud.View.ShowThroughWalls = !_hud.View.ShowThroughWalls),
+                (2, root.Q("stats-switch"), () => _hud.Stats.Shown, () => _hud.Stats.Toggle()),
+                (3, root.Q("hitboxes-switch"), () => _hud.Collisions.Shown, () => _hud.Collisions.Toggle()),
+            };
             _tabs = new[]
             {
                 (InputKind.KeyboardMouse, root.Q("dev-keys"), root.Q("controls-keys")),
@@ -122,7 +128,10 @@ namespace ShapeLand.Client
                 _settingRows[i].RegisterCallback<PointerEnterEvent>(_ => Select(index));
             }
 
-            _settingRows[0].RegisterCallback<ClickEvent>(_ => ToggleWalls());
+            foreach (var (row, _, _, _) in _switches)
+            {
+                _settingRows[row].RegisterCallback<ClickEvent>(_ => Flip(row));
+            }
             foreach (var (kind, tab, _) in _tabs)
             {
                 ((Button)tab).clicked += () => ShowTab(kind);
@@ -300,9 +309,9 @@ namespace ShapeLand.Client
             {
                 SetSpeed(GameSettings.CameraSpeed(_input) + by * SpeedStep);
             }
-            else if (_page == Page.Settings && _selected == 0)
+            else if (_page == Page.Settings)
             {
-                ToggleWalls();
+                Flip(_selected);
             }
         }
 
@@ -316,8 +325,8 @@ namespace ShapeLand.Client
                 case Page.Leave:
                     ChooseConfirm(_selected);
                     break;
-                case Page.Settings when _selected == 0:
-                    ToggleWalls();
+                case Page.Settings:
+                    Flip(_selected);
                     break;
             }
         }
@@ -407,19 +416,36 @@ namespace ShapeLand.Client
                     group[i].EnableInClassList("selected", group == rows && i == index);
                 }
             }
+
+            if (_page == Page.Settings && index < rows.Length)
+            {
+                _scroll.ScrollTo(rows[index]); // Settings scrolls on a short screen
+            }
         }
 
-        private void ToggleWalls()
+        // Flips the switch on Settings row <paramref name="row"/>, if it is one.
+        private void Flip(int row)
         {
-            _hud.View.ShowThroughWalls = !_hud.View.ShowThroughWalls;
+            foreach (var (switchRow, _, _, flip) in _switches)
+            {
+                if (switchRow == row)
+                {
+                    flip();
+                }
+            }
+
             ShowSettings();
         }
 
-        // The settings as they are now: show through walls can also change with V, and the speed shown is the one for
-        // the input in use.
+        // The settings as they are now: the switches can also change with their keys (V, F3, F4), and the speed shown is
+        // the one for the input in use.
         private void ShowSettings()
         {
-            _wallsSwitch.EnableInClassList("off", !_hud.View.ShowThroughWalls);
+            foreach (var (_, element, on, _) in _switches)
+            {
+                element.EnableInClassList("off", !on());
+            }
+
             var speed = GameSettings.CameraSpeed(_input);
             if (Mathf.Approximately(speed, _shownSpeed))
             {
