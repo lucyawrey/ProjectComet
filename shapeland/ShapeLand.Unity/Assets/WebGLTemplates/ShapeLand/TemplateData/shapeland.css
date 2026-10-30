@@ -32,14 +32,7 @@ body[data-state="closed"] .dot { background: var(--closed); }
 .bar span { display: block; height: 100%; width: 0; background: var(--accent); }
 .small { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .btn { align-self: flex-start; font: inherit; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 4px; padding: 7px 14px; cursor: pointer; }
-.under { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
-.keys { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; font-size: 13px; color: var(--muted); min-width: 0; }
-.keys span { display: inline-flex; align-items: center; gap: 4px; }
-.keys b { color: var(--ink); font-weight: 700; }
-.keys i { font-style: normal; color: var(--muted); opacity: 0.6; }
-.keys small { font-size: 11px; font-weight: 700; color: var(--ink); margin-left: -3px; }
-kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--ink); }
-.pad { width: 20px; height: 20px; color: var(--ink); flex: none; }
+.under { display: flex; align-items: center; justify-content: flex-end; }
 .fs { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
 .fs:hover { border-color: var(--accent); }
 .fs svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
@@ -52,7 +45,7 @@ body[data-state="checking"] .status [data-state~="checking"], body[data-state="o
 @media (prefers-reduced-motion: no-preference) { .bar span { transition: width 0.3s; } }
 
 /* Phones: the game fills the screen (under any notch; the cards and the game's HUD keep clear of it), with no header
-   or controls footer, and no page scrolling, zooming or text selection getting in the way of touch play. */
+   or footer, and no page scrolling, zooming or text selection getting in the way of touch play. */
 .tap { cursor: pointer; }
 .home-hint { display: none; }
 .no-fullscreen:not(.standalone) .home-hint, .no-fullscreen .rotate .home-hint { display: block; }

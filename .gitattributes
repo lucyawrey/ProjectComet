@@ -1,0 +1,4 @@
+# Files Unity or a tool writes, collapsed in GitHub's diffs.
+*.meta linguist-generated
+shapeland/ShapeLand.Unity/Assets/Scripts/ShapeLandControls.cs linguist-generated
+shapeland/ShapeLand.Unity/Packages/packages-lock.json linguist-generated

@@ -128,7 +128,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         await bea.ConnectAsync(_url);
         var shapes = _content.Shapes.All;
         JoinRequest Look(string name, int index) =>
-            new() { Name = name, Shape = shapes[index].Number, Color = _content.Settings.Colors.Body[index], EyeColor = _content.Settings.Colors.Eyes[index], ContentFingerprint = _content.Fingerprint };
+            new() { Name = name, Shape = shapes[index].Number, Color = _content.Settings.Colors.Players[index], EyeColor = _content.Settings.Colors.Players[index], ContentFingerprint = _content.Fingerprint };
 
         // A client with other content is turned away before anything else is checked.
         await ada.SendAsync(ShapeLandMessageIds.JoinRequest, Look("Ada", 0) with { ContentFingerprint = _content.Fingerprint + 1 });
@@ -352,7 +352,7 @@ public sealed class EndToEndTests : IAsyncLifetime
 
     private JoinRequest AdaJoins(Shape shape) => new()
     {
-        Name = "Ada", Shape = shape.Number, Color = _content.Settings.Colors.Body[0], EyeColor = _content.Settings.Colors.Eyes[0], ContentFingerprint = _content.Fingerprint,
+        Name = "Ada", Shape = shape.Number, Color = _content.Settings.Colors.Players[0], EyeColor = _content.Settings.Colors.Players[0], ContentFingerprint = _content.Fingerprint,
     };
 
     /// <summary>A bare WebSocket client, for tests that send and read single messages.</summary>

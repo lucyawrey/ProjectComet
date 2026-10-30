@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Comet.Client;
@@ -42,9 +43,26 @@ namespace ShapeLand.Client
         private Label _error;
         private Button _joinButton;
         private Button _cancelButton;
+        private Button _backButton;
+        // Where Back goes, when the card was opened from the Esc menu.
+        private Action _back;
         private VisualElement _serverField;
         private ShapePreview _preview;
         private float? _lostAt;
+        // Keys and gamepad: the rows they move through (name, shape, color, eyes, then the bottom line of server field
+        // and buttons), the selected one, the selected item on the bottom line, and the held direction's repeat.
+        private VisualElement[] _rows;
+        private VisualElement _buttonsRow;
+        private int _row;
+        private int _buttonIndex;
+        // Up from the name row reaches Back, when the card has it (opened from the Esc menu).
+        private bool _onBack;
+        private Vector2 _held;
+        private float _repeatAt;
+        private int _shownOnFrame;
+        private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
+        // What each shape and color button does, for left and right to pick with.
+        private readonly Dictionary<VisualElement, Action> _choose = new();
 
         // How long after a lost connection a taken name is probably the player's own old session: the server notices a
         // dead connection within about 30 s (keep-alive).
@@ -128,7 +146,27 @@ namespace ShapeLand.Client
             _joinButton.clicked += Submit;
             _cancelButton = tree.Q<Button>("cancel-button");
             _cancelButton.clicked += Cancel;
+            _backButton = tree.Q<Button>("look-back");
+            _backButton.clicked += Back;
             _serverField = tree.Q("server-field");
+            _buttonsRow = _joinButton.parent;
+            // The server field shares the bottom line with the buttons, and is one of its items.
+            _rows = _root.Query(className: "nav-row").Where(row => row != _serverField).ToList().Append(_buttonsRow).ToArray();
+            for (var i = 0; i < _rows.Length - 1; i++)
+            {
+                var row = i;
+                _rows[i].RegisterCallback<PointerDownEvent>(_ => SelectRow(row), TrickleDown.TrickleDown);
+            }
+
+            foreach (var item in new[] { _serverField, _cancelButton, _joinButton })
+            {
+                item.RegisterCallback<PointerDownEvent>(_ => SelectItem(item), TrickleDown.TrickleDown);
+            }
+
+            _root.EnableInClassList("phone", WebPage.IsPhone);
+            GameMenu.TakeOverNavigation(_root);
+            _root.RegisterCallback<PointerDownEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
+            _root.RegisterCallback<PointerMoveEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             SetChanging(false);
         }
@@ -144,7 +182,14 @@ namespace ShapeLand.Client
 #else
             _serverField.EnableInClassList("hidden", changing);
 #endif
-            _cancelButton.EnableInClassList("hidden", !changing);
+            if (!changing)
+            {
+                _back = null;
+            }
+
+            // Opened from the Esc menu, Back stands in for Cancel.
+            _cancelButton.EnableInClassList("hidden", !changing || _back != null);
+            _backButton.EnableInClassList("hidden", _back == null);
             SetButton(true, changing ? "join.apply" : "join.join");
         }
 
@@ -162,22 +207,40 @@ namespace ShapeLand.Client
             _join.ShowZone(ShapeLandWorld.StartOf(_content, _shape).Zone);
         }
 
-        // Shows the card with the current choices.
+        // Shows the card with the current choices, the name row selected.
         private void Show()
         {
             OpenPreview();
             Refresh();
             _root.RemoveFromClassList("hidden");
+            _shownOnFrame = Time.frameCount; // the press that brought the card up (from the Esc menu) isn't the card's
+            SelectRow(0);
         }
 
-        /// <summary>Brings the card up over the game, filled in with the player's current look, to change it.</summary>
-        public void OpenChange()
+        /// <summary>True while keys or a gamepad move the card's selection, which shows only then.</summary>
+        public bool Navigating
+        {
+            get => _root.ClassListContains("navigating");
+            private set => _root.EnableInClassList("navigating", value);
+        }
+
+        /// <summary>True while the card is up to change the look and was opened from the Esc menu.</summary>
+        public bool FromMenu => Changing && _back != null;
+
+        /// <summary>
+        /// Brings the card up over the game, filled in with the player's current look, to change it. Given
+        /// <paramref name="back"/> (opened from the Esc menu), the card has Back, which closes it and calls that.
+        /// </summary>
+        public void OpenChange(Action back = null, bool navigating = false)
         {
             if (Showing || !_join.Joined || _join.Spawn is not PlayerSpawn spawn)
             {
                 return;
             }
 
+            Navigating = navigating;
+
+            _back = back;
             SetChanging(true);
             _name.value = spawn.Name;
             _shape = _content.Shapes[spawn.Shape];
@@ -191,6 +254,14 @@ namespace ShapeLand.Client
         // over the card before the player has looked at it. Focused once no key is down, or the key that brought the
         // card up would type.
         private void FocusName() => _focusNamePending = !WebPage.IsPhone;
+
+        /// <summary>Closes the card without changing the look and goes back to the Esc menu, if it came from there.</summary>
+        public void Back()
+        {
+            var back = FromMenu ? _back : null;
+            Cancel();
+            back?.Invoke();
+        }
 
         /// <summary>Closes the card without changing the look.</summary>
         public void Cancel()
@@ -239,25 +310,28 @@ namespace ShapeLand.Client
             _server.value = RememberedServer();
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
             ShowStartZone(glide: false);
-            _color = Remembered(ColorKey, _content.Settings.Colors.Body);
-            _eyeColor = Remembered(EyesKey, _content.Settings.Colors.Eyes);
+            _color = Remembered(ColorKey, _content.Settings.Colors.Players);
+            _eyeColor = Remembered(EyesKey, _content.Settings.Colors.Players);
 
             foreach (var shape in content.Shapes.All)
             {
-                var button = new Button(() =>
+                void Choose()
                 {
                     _shape = shape;
                     ShowStartZone();
                     Refresh();
-                }) { userData = shape };
+                }
+
+                var button = new Button(Choose) { userData = shape };
+                _choose[button] = Choose;
                 button.AddToClassList("shape-button");
                 button.Add(new ShapeIcon(content.BodyKind(shape), GameView.Color(_color)));
                 button.Add(new Label(shape.DisplayName));
                 _shapes.Add(button);
             }
 
-            AddSwatches(_colors, _content.Settings.Colors.Body, color => _color = color);
-            AddSwatches(_eyes, _content.Settings.Colors.Eyes, color => _eyeColor = color);
+            AddSwatches(_colors, _content.Settings.Colors.Players, color => _color = color);
+            AddSwatches(_eyes, _content.Settings.Colors.Players, color => _eyeColor = color);
             Show();
             FocusName();
             if (WebPage.TakeRejoin())
@@ -273,17 +347,23 @@ namespace ShapeLand.Client
             return set.Contains(saved) ? saved : set[0];
         }
 
-        private void AddSwatches(VisualElement row, uint[] colors, System.Action<uint> pick)
+        private void AddSwatches(VisualElement row, uint[] colors, Action<uint> pick)
         {
             foreach (var color in colors)
             {
-                var swatch = new Button(() =>
+                void Choose()
                 {
                     pick(color);
                     Refresh();
-                }) { userData = color, tooltip = $"#{color:X6}" };
+                }
+
+                var swatch = new Button(Choose) { userData = color, tooltip = $"#{color:X6}" };
+                _choose[swatch] = Choose;
                 swatch.AddToClassList("swatch");
-                swatch.style.backgroundColor = GameView.Color(color);
+                var fill = new VisualElement { pickingMode = PickingMode.Ignore };
+                fill.AddToClassList("swatch-fill");
+                fill.style.backgroundColor = GameView.Color(color);
+                swatch.Add(fill);
                 row.Add(swatch);
             }
         }
@@ -339,9 +419,10 @@ namespace ShapeLand.Client
             return stat;
         }
 
+        // Enter in a field joins (applies); elsewhere on the card Enter is the Submit action's (Navigate).
         private void OnKeyDown(KeyDownEvent e)
         {
-            if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
+            if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && Typing)
             {
                 Submit();
                 e.StopPropagation();
@@ -418,12 +499,18 @@ namespace ShapeLand.Client
             Retry(message);
         }
 
-        // The card comes back with the reason, and the choices made before.
+        // The card comes back with the reason (none after leaving), and the choices made before.
         private void OnConnectionLost(CloseReason reason)
         {
             _lostAt = Time.unscaledTime;
             SetChanging(false);
             Show();
+            if (reason == CloseReason.None)
+            {
+                Retry(null);
+                return;
+            }
+
             if (reason == CloseReason.ServerShutDown)
             {
                 _rejoinUntil = Time.unscaledTime + RejoinSeconds;
@@ -438,6 +525,18 @@ namespace ShapeLand.Client
         // While rejoining, tries again each second while the card waits for the player.
         private void Update()
         {
+            if (Showing && WebPage.Playing && _content != null && Time.frameCount != _shownOnFrame)
+            {
+                Navigate(_view.Controls.Menu);
+                // A gamepad's Start joins, or applies the change, from anywhere on the card (Esc is the Hud's).
+                var start = _view.Controls.Game.Menu;
+                if (start.WasPressedThisFrame() && start.activeControl?.device is Gamepad)
+                {
+                    Navigating = true;
+                    Submit();
+                }
+            }
+
             if (_focusNamePending && (Keyboard.current == null || !Keyboard.current.anyKey.isPressed))
             {
                 _focusNamePending = false;
@@ -467,6 +566,233 @@ namespace ShapeLand.Client
 
             _nextRejoin = Time.unscaledTime + 1;
             Submit();
+        }
+
+        // Keys and gamepad on the card, with the Esc menu's Menu actions: up and down move between rows, left and right
+        // pick within one (or between the buttons), Submit types into a field, presses a button or joins (applies) from
+        // the other rows, and Back stops typing, else goes back or cancels. Typing needs a keyboard; while a field has
+        // it, only the gamepad moves on (and the keys type).
+        private void Navigate(ShapeLandControls.MenuActions actions)
+        {
+            var typing = Typing;
+            var fromPad = actions.Navigate.activeControl?.device is Gamepad;
+            var step = Step(typing && !fromPad ? Vector2.zero : actions.Navigate.ReadValue<Vector2>());
+            if (!Navigating && step != Vector2Int.zero)
+            {
+                Navigating = true; // the first press only shows where the selection is
+                return;
+            }
+
+            if (actions.Back.WasPressedThisFrame() || actions.Submit.WasPressedThisFrame() && !typing)
+            {
+                Navigating = true;
+            }
+
+            if (step != Vector2Int.zero && typing)
+            {
+                _root.focusController?.focusedElement?.Blur();
+            }
+
+            if (step.y != 0)
+            {
+                MoveRow(step.y);
+            }
+            else if (step.x != 0)
+            {
+                Pick(step.x);
+            }
+
+            if (actions.Back.WasPressedThisFrame())
+            {
+                if (typing)
+                {
+                    _root.focusController?.focusedElement?.Blur();
+                }
+                else if (FromMenu)
+                {
+                    Back();
+                }
+                else
+                {
+                    Cancel();
+                }
+            }
+            // Space and Enter while typing are the field's (Enter joins through OnKeyDown); a gamepad's A ends typing.
+            else if (actions.Submit.WasPressedThisFrame() && (!typing || actions.Submit.activeControl?.device is Gamepad))
+            {
+                SubmitRow(typing);
+            }
+        }
+
+        // A held direction steps once, then repeats after a pause; down and right are positive.
+        private Vector2Int Step(Vector2 value)
+        {
+            var held = new Vector2(Mathf.Abs(value.x) > 0.5f ? Mathf.Sign(value.x) : 0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
+            if (held.y != 0)
+            {
+                held.x = 0;
+            }
+
+            var now = Time.unscaledTime;
+            if (held != _held)
+            {
+                _held = held;
+                _repeatAt = now + RepeatDelay;
+                return Vector2Int.RoundToInt(held);
+            }
+
+            if (held != Vector2.zero && now >= _repeatAt)
+            {
+                _repeatAt = now + RepeatInterval;
+                return Vector2Int.RoundToInt(held);
+            }
+
+            return Vector2Int.zero;
+        }
+
+        private void MoveRow(int by)
+        {
+            if (_onBack)
+            {
+                if (by > 0)
+                {
+                    SelectRow(0);
+                }
+
+                return;
+            }
+
+            if (by < 0 && _row == 0 && FromMenu)
+            {
+                SelectBack();
+                return;
+            }
+
+            var row = _row;
+            do
+            {
+                row += by;
+            } while (row >= 0 && row < _rows.Length && !Usable(_rows[row]));
+
+            if (row >= 0 && row < _rows.Length)
+            {
+                SelectRow(row);
+            }
+        }
+
+        private static bool Usable(VisualElement row) => !row.ClassListContains("hidden");
+
+        private void SelectBack()
+        {
+            SelectRow(0);
+            _onBack = true;
+            _rows[0].RemoveFromClassList("selected");
+            _backButton.AddToClassList("selected");
+        }
+
+        private void SelectRow(int row)
+        {
+            _onBack = false;
+            _backButton.RemoveFromClassList("selected");
+            _row = row;
+            for (var i = 0; i < _rows.Length; i++)
+            {
+                _rows[i].EnableInClassList("selected", i == row && _rows[i] != _buttonsRow);
+            }
+
+            _buttonIndex = Items().Count - 1; // Join or Apply
+            MarkItem();
+        }
+
+        // The bottom line's visible items, left to right: the server field (desktop builds), Cancel and Join or Apply.
+        private List<VisualElement> Items() => new[] { _serverField, _cancelButton, _joinButton }.Where(Usable).ToList();
+
+        private void SelectItem(VisualElement item)
+        {
+            _row = _rows.Length - 1;
+            foreach (var row in _rows)
+            {
+                row.RemoveFromClassList("selected");
+            }
+
+            _buttonIndex = Mathf.Max(0, Items().IndexOf(item));
+            MarkItem();
+        }
+
+        private void MarkItem()
+        {
+            var items = Items();
+            foreach (var item in new[] { _serverField, _cancelButton, _joinButton })
+            {
+                item.EnableInClassList("selected", _rows[_row] == _buttonsRow && items.IndexOf(item) == _buttonIndex);
+            }
+        }
+
+        // Left or right on the selected row: the next shape or color (picked at once), or the next button.
+        private void Pick(int by)
+        {
+            var row = _rows[_row];
+            if (_onBack)
+            {
+                return;
+            }
+
+            if (row == _buttonsRow)
+            {
+                _buttonIndex = Mathf.Clamp(_buttonIndex + by, 0, Items().Count - 1);
+                MarkItem();
+                return;
+            }
+
+            var choices = row.Q(className: "row");
+            if (choices == null || choices.childCount == 0)
+            {
+                return;
+            }
+
+            var current = choices.Children().ToList().FindIndex(choice => choice.ClassListContains("on"));
+            var next = Mathf.Clamp(current + by, 0, choices.childCount - 1);
+            if (next != current && _choose.TryGetValue(choices[next], out var choose))
+            {
+                choose();
+            }
+        }
+
+        private void SubmitRow(bool typing)
+        {
+            var row = _rows[_row];
+            if (typing)
+            {
+                _root.focusController?.focusedElement?.Blur();
+            }
+            else if (_onBack)
+            {
+                Back();
+            }
+            else if (row == _buttonsRow)
+            {
+                var item = Items()[_buttonIndex];
+                if (item == _serverField)
+                {
+                    _server.Focus();
+                }
+                else if (item == _cancelButton)
+                {
+                    Cancel();
+                }
+                else
+                {
+                    Submit();
+                }
+            }
+            else if (row.Q<TextField>() is { } field)
+            {
+                field.Focus();
+            }
+            else
+            {
+                Submit();
+            }
         }
 
         private void OnFailed(JoinFailure failure)

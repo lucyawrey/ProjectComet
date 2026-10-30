@@ -51,6 +51,9 @@ namespace ShapeLand.Client
 
         private void Redraw() => _shownWorld = null;
 
+        /// <summary>True while the view is showing.</summary>
+        public bool Shown => _view != null && _view.Shown;
+
         /// <summary>Shows or hides the view, and remembers the choice.</summary>
         public void Toggle()
         {

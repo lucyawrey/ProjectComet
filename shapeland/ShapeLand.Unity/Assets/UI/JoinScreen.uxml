@@ -2,27 +2,33 @@
     <Style src="ShapeLand.uss" />
     <ui:VisualElement name="join" class="backdrop hidden">
         <ui:VisualElement class="card">
-            <ui:Label text="#join.title" class="title" />
+            <ui:Label text="#join.title" class="title join-title" />
+            <ui:VisualElement class="look-head">
+                <ui:Button name="look-back" class="menu-back" focusable="false">
+                    <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
+                    <ui:Label text="#menu.back" picking-mode="Ignore" />
+                </ui:Button>
+                <ui:Label text="#menu.change_look" class="menu-page-name" />
+            </ui:VisualElement>
             <ui:VisualElement class="body">
                 <ui:VisualElement class="fields">
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement name="name-row" class="field nav-row">
                         <ui:VisualElement class="label-row">
                             <ui:Label text="#join.name_label" class="label" />
-                            <ui:Label text="#join.name_hint" class="hint" />
                         </ui:VisualElement>
                         <ui:TextField name="name" max-length="16" class="input" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.shape_label" class="label" />
                         <ui:VisualElement name="shapes" class="row" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.color_label" class="label" />
-                        <ui:VisualElement name="colors" class="row" />
+                        <ui:VisualElement name="colors" class="row swatches" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.eyes_label" class="label" />
-                        <ui:VisualElement name="eyes" class="row" />
+                        <ui:VisualElement name="eyes" class="row swatches" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="preview-column">
@@ -32,7 +38,7 @@
             </ui:VisualElement>
             <ui:Label name="error" class="error" />
             <ui:VisualElement class="actions">
-                <ui:VisualElement name="server-field" class="field server">
+                <ui:VisualElement name="server-field" class="field server nav-row">
                     <ui:VisualElement class="label-row">
                         <ui:Label text="#join.server_label" class="label" />
                     </ui:VisualElement>
