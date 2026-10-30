@@ -15,23 +15,30 @@
     color: rgb(238, 241, 246);
 }
 .backdrop.hidden, .backdrop.waiting { display: none; }
-/* Changing the look in game: the game dims as behind the Esc menu, the card takes the menu window's look with its
-   page header (Back only when opened from the menu), and the HUD around it stays usable. */
+/* Changing the look in game: the game dims and the HUD fades as behind the Esc menu, the card has a page header
+   (Back only when opened from the menu) in place of the title, and the HUD around it stays usable. */
 .backdrop.changing { background-color: rgba(8, 12, 22, 0.55); }
-.backdrop.changing .card {
-    background-color: rgba(16, 20, 28, 0.96);
-    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
-}
 .look-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
 .backdrop.changing .look-head { display: flex; }
 .backdrop.changing .join-title { display: none; }
 
+/* The card has the Esc menu window's size, place and look (.menu-window), growing only for an error; on a phone its
+   height is its content's, to fit. */
 .card {
-    width: 580px;
-    padding: 18px 22px;
-    background-color: rgba(18, 22, 30, 0.9);
-    border-width: 1px; border-color: rgba(255, 255, 255, 0.1); border-radius: 6px;
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    width: 600px; min-height: 440px;
+    padding: 18px 24px 16px 24px;
+    background-color: rgba(16, 20, 28, 0.96);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
 }
+.backdrop.phone .card { min-height: 0; }
+.card > .body { flex-grow: 1; }
+/* Rows a gamepad or the arrow keys move through (JoinScreen), the selected one tinted like a Settings row. */
+.card .nav-row { margin: -4px -8px 6px -8px; padding: 4px 8px; border-radius: 4px; }
+.card .nav-row.server { margin-bottom: -4px; }
+.nav-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.join-button, .cancel-button { border-width: 2px; border-color: rgba(0, 0, 0, 0); }
+.join-button.selected, .cancel-button.selected { border-color: rgb(255, 255, 255); }
 
 Label { padding: 0; margin: 0; }
 .title { font-size: 28px; margin-bottom: 8px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
@@ -104,7 +111,7 @@ Label { padding: 0; margin: 0; }
 .join-button {
     height: 40px; padding: 0 26px; margin: 0;
     background-color: rgb(61, 124, 240);
-    border-width: 0; border-radius: 4px;
+    border-radius: 4px;
     color: rgb(255, 255, 255); font-size: 16px;
     -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
 }
@@ -112,7 +119,7 @@ Label { padding: 0; margin: 0; }
 .cancel-button {
     height: 40px; padding: 0 20px; margin: 0 10px 0 0;
     background-color: rgba(255, 255, 255, 0.08);
-    border-width: 0; border-radius: 4px;
+    border-radius: 4px;
     color: rgb(238, 241, 246); font-size: 16px;
 }
 .cancel-button:hover { background-color: rgba(255, 255, 255, 0.16); }
@@ -318,7 +325,9 @@ Label { padding: 0; margin: 0; }
 .icon-pad-east { background-image: url("Icons/pad_east.png"); }
 
 /* While the menu is open the game dims and the HUD fades behind it. */
-.hud.menu-open .hud-row, .hud.menu-open .tags, .hud.menu-open .chat, .hud.menu-open .net-stats { opacity: 0.35; }
+/* The same for the look card changing the look (.look-open, set by Hud), whose dim is the card's own. */
+.hud.menu-open .hud-row, .hud.menu-open .tags, .hud.menu-open .chat, .hud.menu-open .net-stats,
+.hud.look-open .hud-row, .hud.look-open .tags { opacity: 0.35; }
 .menu-host, .menu, .menu-dim, .menu-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .menu-dim { background-color: rgba(8, 12, 22, 0.55); }
 
@@ -338,7 +347,7 @@ Label { padding: 0; margin: 0; }
 .menu-entry.leave:hover { border-color: rgba(255, 160, 157, 0.6); }
 .menu-entry.selected, .menu-entry.selected:hover {
     background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6);
-    color: rgb(255, 255, 255); -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
+    color: rgb(255, 255, 255); /* not bold: the entries would change width as the selection moves */
 }
 .menu-entry.leave.selected, .menu-entry.leave.selected:hover { background-color: rgb(190, 58, 54); }
 /* Pressed: the button answers at once, before what it does. */

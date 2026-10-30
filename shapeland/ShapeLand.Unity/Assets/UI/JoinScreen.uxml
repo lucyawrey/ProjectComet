@@ -12,22 +12,22 @@
             </ui:VisualElement>
             <ui:VisualElement class="body">
                 <ui:VisualElement class="fields">
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement name="name-row" class="field nav-row">
                         <ui:VisualElement class="label-row">
                             <ui:Label text="#join.name_label" class="label" />
                             <ui:Label text="#join.name_hint" class="hint" />
                         </ui:VisualElement>
                         <ui:TextField name="name" max-length="16" class="input" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.shape_label" class="label" />
                         <ui:VisualElement name="shapes" class="row" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.color_label" class="label" />
                         <ui:VisualElement name="colors" class="row" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.eyes_label" class="label" />
                         <ui:VisualElement name="eyes" class="row" />
                     </ui:VisualElement>
@@ -39,7 +39,7 @@
             </ui:VisualElement>
             <ui:Label name="error" class="error" />
             <ui:VisualElement class="actions">
-                <ui:VisualElement name="server-field" class="field server">
+                <ui:VisualElement name="server-field" class="field server nav-row">
                     <ui:VisualElement class="label-row">
                         <ui:Label text="#join.server_label" class="label" />
                     </ui:VisualElement>

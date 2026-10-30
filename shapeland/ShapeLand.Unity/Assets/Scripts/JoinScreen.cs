@@ -49,6 +49,18 @@ namespace ShapeLand.Client
         private VisualElement _serverField;
         private ShapePreview _preview;
         private float? _lostAt;
+        // Keys and gamepad: the rows they move through (name, shape, color, eyes, server, buttons), the selected one,
+        // the selected button on the buttons row, and the held direction's repeat.
+        private VisualElement[] _rows;
+        private VisualElement _buttonsRow;
+        private int _row;
+        private int _buttonIndex;
+        private Vector2 _held;
+        private float _repeatAt;
+        private int _shownOnFrame;
+        private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
+        // What each shape and color button does, for left and right to pick with.
+        private readonly Dictionary<VisualElement, Action> _choose = new();
 
         // How long after a lost connection a taken name is probably the player's own old session: the server notices a
         // dead connection within about 30 s (keep-alive).
@@ -135,6 +147,15 @@ namespace ShapeLand.Client
             _backButton = tree.Q<Button>("look-back");
             _backButton.clicked += Back;
             _serverField = tree.Q("server-field");
+            _buttonsRow = _joinButton.parent;
+            _rows = _root.Query(className: "nav-row").ToList().Append(_buttonsRow).ToArray();
+            for (var i = 0; i < _rows.Length; i++)
+            {
+                var row = i;
+                _rows[i].RegisterCallback<PointerDownEvent>(_ => SelectRow(row), TrickleDown.TrickleDown);
+            }
+
+            _root.EnableInClassList("phone", WebPage.IsPhone);
             _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             SetChanging(false);
         }
@@ -175,12 +196,14 @@ namespace ShapeLand.Client
             _join.ShowZone(ShapeLandWorld.StartOf(_content, _shape).Zone);
         }
 
-        // Shows the card with the current choices.
+        // Shows the card with the current choices, the name row selected.
         private void Show()
         {
             OpenPreview();
             Refresh();
             _root.RemoveFromClassList("hidden");
+            _shownOnFrame = Time.frameCount; // the press that brought the card up (from the Esc menu) isn't the card's
+            SelectRow(0);
         }
 
         /// <summary>True while the card is up to change the look and was opened from the Esc menu.</summary>
@@ -272,12 +295,15 @@ namespace ShapeLand.Client
 
             foreach (var shape in content.Shapes.All)
             {
-                var button = new Button(() =>
+                void Choose()
                 {
                     _shape = shape;
                     ShowStartZone();
                     Refresh();
-                }) { userData = shape };
+                }
+
+                var button = new Button(Choose) { userData = shape };
+                _choose[button] = Choose;
                 button.AddToClassList("shape-button");
                 button.Add(new ShapeIcon(content.BodyKind(shape), GameView.Color(_color)));
                 button.Add(new Label(shape.DisplayName));
@@ -301,15 +327,18 @@ namespace ShapeLand.Client
             return set.Contains(saved) ? saved : set[0];
         }
 
-        private void AddSwatches(VisualElement row, uint[] colors, System.Action<uint> pick)
+        private void AddSwatches(VisualElement row, uint[] colors, Action<uint> pick)
         {
             foreach (var color in colors)
             {
-                var swatch = new Button(() =>
+                void Choose()
                 {
                     pick(color);
                     Refresh();
-                }) { userData = color, tooltip = $"#{color:X6}" };
+                }
+
+                var swatch = new Button(Choose) { userData = color, tooltip = $"#{color:X6}" };
+                _choose[swatch] = Choose;
                 swatch.AddToClassList("swatch");
                 swatch.style.backgroundColor = GameView.Color(color);
                 row.Add(swatch);
@@ -367,9 +396,10 @@ namespace ShapeLand.Client
             return stat;
         }
 
+        // Enter in a field joins (applies); elsewhere on the card Enter is the Submit action's (Navigate).
         private void OnKeyDown(KeyDownEvent e)
         {
-            if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
+            if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && Typing)
             {
                 Submit();
                 e.StopPropagation();
@@ -472,6 +502,11 @@ namespace ShapeLand.Client
         // While rejoining, tries again each second while the card waits for the player.
         private void Update()
         {
+            if (Showing && WebPage.Playing && _content != null && Time.frameCount != _shownOnFrame)
+            {
+                Navigate(_view.Controls.Menu);
+            }
+
             if (_focusNamePending && (Keyboard.current == null || !Keyboard.current.anyKey.isPressed))
             {
                 _focusNamePending = false;
@@ -501,6 +536,177 @@ namespace ShapeLand.Client
 
             _nextRejoin = Time.unscaledTime + 1;
             Submit();
+        }
+
+        // Keys and gamepad on the card, with the Esc menu's Menu actions: up and down move between rows, left and right
+        // pick within one (or between the buttons), Submit types into a field, presses a button or joins (applies) from
+        // the other rows, and Back stops typing, else goes back or cancels. Typing needs a keyboard; while a field has
+        // it, only the gamepad moves on (and the keys type).
+        private void Navigate(ShapeLandControls.MenuActions actions)
+        {
+            var typing = Typing;
+            var fromPad = actions.Navigate.activeControl?.device is Gamepad;
+            var step = Step(typing && !fromPad ? Vector2.zero : actions.Navigate.ReadValue<Vector2>());
+            if (step != Vector2Int.zero && typing)
+            {
+                _root.focusController?.focusedElement?.Blur();
+            }
+
+            if (step.y != 0)
+            {
+                MoveRow(step.y);
+            }
+            else if (step.x != 0)
+            {
+                Pick(step.x);
+            }
+
+            if (actions.Back.WasPressedThisFrame())
+            {
+                if (typing)
+                {
+                    _root.focusController?.focusedElement?.Blur();
+                }
+                else if (FromMenu)
+                {
+                    Back();
+                }
+                else
+                {
+                    Cancel();
+                }
+            }
+            // Space and Enter while typing are the field's (Enter joins through OnKeyDown); a gamepad's A ends typing.
+            else if (actions.Submit.WasPressedThisFrame() && (!typing || actions.Submit.activeControl?.device is Gamepad))
+            {
+                SubmitRow(typing);
+            }
+        }
+
+        // A held direction steps once, then repeats after a pause; down and right are positive.
+        private Vector2Int Step(Vector2 value)
+        {
+            var held = new Vector2(Mathf.Abs(value.x) > 0.5f ? Mathf.Sign(value.x) : 0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
+            if (held.y != 0)
+            {
+                held.x = 0;
+            }
+
+            var now = Time.unscaledTime;
+            if (held != _held)
+            {
+                _held = held;
+                _repeatAt = now + RepeatDelay;
+                return Vector2Int.RoundToInt(held);
+            }
+
+            if (held != Vector2.zero && now >= _repeatAt)
+            {
+                _repeatAt = now + RepeatInterval;
+                return Vector2Int.RoundToInt(held);
+            }
+
+            return Vector2Int.zero;
+        }
+
+        private void MoveRow(int by)
+        {
+            var row = _row;
+            do
+            {
+                row += by;
+            } while (row >= 0 && row < _rows.Length && !Usable(_rows[row]));
+
+            if (row >= 0 && row < _rows.Length)
+            {
+                SelectRow(row);
+            }
+        }
+
+        private static bool Usable(VisualElement row) => !row.ClassListContains("hidden");
+
+        private void SelectRow(int row)
+        {
+            _row = row;
+            for (var i = 0; i < _rows.Length; i++)
+            {
+                _rows[i].EnableInClassList("selected", i == row && _rows[i] != _buttonsRow);
+            }
+
+            var buttons = Buttons();
+            _buttonIndex = Mathf.Clamp(_buttonIndex, 0, Mathf.Max(0, buttons.Count - 1));
+            if (_rows[row] == _buttonsRow)
+            {
+                _buttonIndex = buttons.Count - 1; // Join or Apply
+            }
+
+            MarkButton();
+        }
+
+        // The buttons row's visible buttons, left to right.
+        private List<Button> Buttons() => new[] { _cancelButton, _joinButton }.Where(Usable).ToList();
+
+        private void MarkButton()
+        {
+            var buttons = Buttons();
+            foreach (var button in new[] { _cancelButton, _joinButton })
+            {
+                button.EnableInClassList("selected", _rows[_row] == _buttonsRow && buttons.IndexOf(button) == _buttonIndex);
+            }
+        }
+
+        // Left or right on the selected row: the next shape or color (picked at once), or the next button.
+        private void Pick(int by)
+        {
+            var row = _rows[_row];
+            if (row == _buttonsRow)
+            {
+                _buttonIndex = Mathf.Clamp(_buttonIndex + by, 0, Buttons().Count - 1);
+                MarkButton();
+                return;
+            }
+
+            var choices = row.Q(className: "row");
+            if (choices == null || choices.childCount == 0)
+            {
+                return;
+            }
+
+            var current = choices.Children().ToList().FindIndex(choice => choice.ClassListContains("on"));
+            var next = Mathf.Clamp(current + by, 0, choices.childCount - 1);
+            if (next != current && _choose.TryGetValue(choices[next], out var choose))
+            {
+                choose();
+            }
+        }
+
+        private void SubmitRow(bool typing)
+        {
+            var row = _rows[_row];
+            if (typing)
+            {
+                _root.focusController?.focusedElement?.Blur();
+            }
+            else if (row.Q<TextField>() is { } field)
+            {
+                field.Focus();
+            }
+            else if (row == _buttonsRow)
+            {
+                var buttons = Buttons();
+                if (buttons[_buttonIndex] == _cancelButton)
+                {
+                    Cancel();
+                }
+                else
+                {
+                    Submit();
+                }
+            }
+            else
+            {
+                Submit();
+            }
         }
 
         private void OnFailed(JoinFailure failure)

@@ -150,6 +150,7 @@ namespace ShapeLand.Client
             // The look card hides chat and the network numbers while it's up.
             _lookButton.EnableInClassList("on", card.Changing);
             _menuButton.EnableInClassList("on", _menu.Open);
+            _root.EnableInClassList("look-open", card.Changing);
             _menuButton.EnableInClassList("first-time", !_menu.EverOpened && !_menu.Open && !CardShowing);
             _chat.Box.EnableInClassList("hidden", card.Changing);
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);

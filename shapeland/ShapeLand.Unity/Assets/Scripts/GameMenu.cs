@@ -59,6 +59,7 @@ namespace ShapeLand.Client
         private InputKind _tab;
         private InputKind _input = (InputKind)(-1); // none yet, so the first update marks the tab in use
         private int _closedOnFrame = -1;
+        private int _shownOnFrame = -1;
         private Vector2 _held;
         private float _repeatAt;
         private int? _dragPointer;
@@ -162,6 +163,7 @@ namespace ShapeLand.Client
         public void Show(int selected = 0)
         {
             Open = true;
+            _shownOnFrame = Time.frameCount; // the press that brought it up (Back on the look card) isn't the menu's
             _menu.RemoveFromClassList("hidden");
             _hud.Root.AddToClassList("menu-open");
             if (!EverOpened)
@@ -211,7 +213,7 @@ namespace ShapeLand.Client
         /// </summary>
         public void Update(ShapeLandControls.MenuActions actions, InputKind input)
         {
-            if (!Open)
+            if (!Open || Time.frameCount == _shownOnFrame)
             {
                 return;
             }
