@@ -10,8 +10,8 @@ namespace ShapeLand.Client
     /// Touch controls for phones, in the HUD (Hud.uxml's <c>touch</c> layer): a stick that appears wherever a thumb
     /// lands on the left half of the screen, a camera drag on the right half, and a jump button. The stick and Jump
     /// drive a virtual gamepad of their own, so the game's actions read them as they read a real one. They show while
-    /// the player can move and the screen has been touched (from the start on a phone page), and hide when a keyboard,
-    /// mouse or real gamepad is used away from a phone; which of these was used last is <see cref="Input"/>. Each control
+    /// the player can move and the screen has been touched (from the start on a phone page), and hide when a keyboard or
+    /// real gamepad is used away from a phone; which of these was used last is <see cref="Input"/>. Each control
     /// follows one touch at a time; Jump keeps inside the screen's safe area (<c>touch-safe</c>, set by the HUD). The HUD's
     /// buttons are the HUD's own (<see cref="Hud"/>), shown larger while touch controls are in use.
     /// </summary>
@@ -103,8 +103,8 @@ namespace ShapeLand.Client
             // Touch gives way only where it can't be an on-screen keyboard's keys: not while typing or on the look card.
             else if (!WebPage.IsPhone && (!_touched || allowed || inMenu))
             {
-                if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame ||
-                    Mouse.current != null && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame))
+                // The mouse alone changes nothing: it goes with keys or a gamepad.
+                if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
                 {
                     SetInput(InputKind.KeyboardMouse);
                 }
