@@ -201,17 +201,9 @@ Label { padding: 0; margin: 0; }
     border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 3px;
     -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
 }
-/* A tip's key slot holds the keyboard's key and the gamepad's (a rounded pill like the menu's), and is as wide as
-   the wider one, so the tip keeps its size as the input changes; the other one is collapsed to no height. A button
-   with no gamepad binding leaves the slot empty on a pad. With touch the slot goes. */
-.hud-tip-keys { margin-left: 8px; align-items: center; }
-.hud-tip-keys .hud-tip-key { margin-left: 0; }
+/* A tip's key is the keyboard's (.keys-part) or the gamepad's (.pad-part, a rounded pill like the menu's); buttons
+   with no gamepad binding show none on a pad. */
 .hud-tip-pad { border-radius: 8px; padding: 0 6px; }
-.hud-tip-keys .tip-pad, .hud.pad-input .hud-tip-keys .tip-keys {
-    visibility: hidden; height: 0; padding-top: 0; padding-bottom: 0; border-top-width: 0; border-bottom-width: 0;
-}
-.hud.pad-input .hud-tip-keys .tip-pad { visibility: visible; height: auto; border-top-width: 1px; border-bottom-width: 1px; }
-.hud.touch-input .hud-tip-keys { display: none; }
 
 .name-tag {
     position: absolute; translate: -50% -100%;
