@@ -98,23 +98,6 @@ public class CollisionWorldTests
     }
 
     [Fact]
-    public void RaysStopWhereTheyFirstTouchAMesh()
-    {
-        // The box spans x 3 to 5 at height 2; a ray along +X from x 0 meets it at 3, or 2.5 for a 0.5 m sphere.
-        Assert.True(_world.Raycast(new Vector3(0, 2, 4), Vector3.UnitX, 10, 0, out var distance));
-        Assert.Equal(3f, distance, 4);
-        Assert.True(_world.Raycast(new Vector3(0, 2, 4), Vector3.UnitX * 7, 10, 0.5f, out distance));
-        Assert.Equal(2.5f, distance, 4);
-
-        Assert.False(_world.Raycast(new Vector3(0, 2, 4), Vector3.UnitX, 2, 0, out distance)); // too short
-        Assert.Equal(2f, distance);
-        Assert.False(_world.Raycast(new Vector3(0, 2, 4), -Vector3.UnitX, 10, 0, out _)); // pointing away
-        Assert.False(_world.Raycast(new Vector3(0, 4, 4), Vector3.UnitX, 10, 0, out _)); // passing over
-        Assert.True(_world.Raycast(new Vector3(4, 2, 4), Vector3.UnitX, 10, 0, out distance)); // starting inside: the far face
-        Assert.Equal(1f, distance, 4);
-    }
-
-    [Fact]
     public void QueriesFindTrianglesSpanningManyCells()
     {
         // A 40 m slab, listed in many cells, is found once and gives the right answers anywhere along it.

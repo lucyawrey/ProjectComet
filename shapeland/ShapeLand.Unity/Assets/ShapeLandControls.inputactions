@@ -78,6 +78,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "ShowThroughWalls",
+                    "type": "Button",
+                    "id": "d6d17eb6-8fc7-4434-a6c1-4edf8b67e826",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "ChangeLook",
                     "type": "Button",
                     "id": "155eb222-00c9-434c-95e4-651226380ee6",
@@ -314,6 +323,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "CollisionView",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6ebe29dc-4067-46f3-bc0e-bc6ae61be2f5",
+                    "path": "<Keyboard>/v",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ShowThroughWalls",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

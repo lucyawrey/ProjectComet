@@ -175,6 +175,16 @@ namespace ShapeLand.Client
                     ""priority"": 0
                 },
                 {
+                    ""name"": ""ShowThroughWalls"",
+                    ""type"": ""Button"",
+                    ""id"": ""d6d17eb6-8fc7-4434-a6c1-4edf8b67e826"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
+                },
+                {
                     ""name"": ""ChangeLook"",
                     ""type"": ""Button"",
                     ""id"": ""155eb222-00c9-434c-95e4-651226380ee6"",
@@ -418,6 +428,17 @@ namespace ShapeLand.Client
                 },
                 {
                     ""name"": """",
+                    ""id"": ""6ebe29dc-4067-46f3-bc0e-bc6ae61be2f5"",
+                    ""path"": ""<Keyboard>/v"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ShowThroughWalls"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""2fff7e36-5393-4d71-96e9-fa8dba450076"",
                     ""path"": ""<Keyboard>/escape"",
                     ""interactions"": """",
@@ -486,6 +507,7 @@ namespace ShapeLand.Client
             m_Game_OpenChat = m_Game.FindAction("OpenChat", throwIfNotFound: true);
             m_Game_NetStats = m_Game.FindAction("NetStats", throwIfNotFound: true);
             m_Game_CollisionView = m_Game.FindAction("CollisionView", throwIfNotFound: true);
+            m_Game_ShowThroughWalls = m_Game.FindAction("ShowThroughWalls", throwIfNotFound: true);
             m_Game_ChangeLook = m_Game.FindAction("ChangeLook", throwIfNotFound: true);
             m_Game_ReturnToSpawn = m_Game.FindAction("ReturnToSpawn", throwIfNotFound: true);
         }
@@ -576,6 +598,7 @@ namespace ShapeLand.Client
         private readonly InputAction m_Game_OpenChat;
         private readonly InputAction m_Game_NetStats;
         private readonly InputAction m_Game_CollisionView;
+        private readonly InputAction m_Game_ShowThroughWalls;
         private readonly InputAction m_Game_ChangeLook;
         private readonly InputAction m_Game_ReturnToSpawn;
         /// <summary>
@@ -621,6 +644,10 @@ namespace ShapeLand.Client
             /// Provides access to the underlying input action "Game/CollisionView".
             /// </summary>
             public InputAction @CollisionView => m_Wrapper.m_Game_CollisionView;
+            /// <summary>
+            /// Provides access to the underlying input action "Game/ShowThroughWalls".
+            /// </summary>
+            public InputAction @ShowThroughWalls => m_Wrapper.m_Game_ShowThroughWalls;
             /// <summary>
             /// Provides access to the underlying input action "Game/ChangeLook".
             /// </summary>
@@ -679,6 +706,9 @@ namespace ShapeLand.Client
                 @CollisionView.started += instance.OnCollisionView;
                 @CollisionView.performed += instance.OnCollisionView;
                 @CollisionView.canceled += instance.OnCollisionView;
+                @ShowThroughWalls.started += instance.OnShowThroughWalls;
+                @ShowThroughWalls.performed += instance.OnShowThroughWalls;
+                @ShowThroughWalls.canceled += instance.OnShowThroughWalls;
                 @ChangeLook.started += instance.OnChangeLook;
                 @ChangeLook.performed += instance.OnChangeLook;
                 @ChangeLook.canceled += instance.OnChangeLook;
@@ -720,6 +750,9 @@ namespace ShapeLand.Client
                 @CollisionView.started -= instance.OnCollisionView;
                 @CollisionView.performed -= instance.OnCollisionView;
                 @CollisionView.canceled -= instance.OnCollisionView;
+                @ShowThroughWalls.started -= instance.OnShowThroughWalls;
+                @ShowThroughWalls.performed -= instance.OnShowThroughWalls;
+                @ShowThroughWalls.canceled -= instance.OnShowThroughWalls;
                 @ChangeLook.started -= instance.OnChangeLook;
                 @ChangeLook.performed -= instance.OnChangeLook;
                 @ChangeLook.canceled -= instance.OnChangeLook;
@@ -822,6 +855,13 @@ namespace ShapeLand.Client
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnCollisionView(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "ShowThroughWalls" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnShowThroughWalls(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "ChangeLook" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>

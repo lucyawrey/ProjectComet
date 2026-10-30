@@ -505,48 +505,6 @@ namespace Comet.Simulation
             return false;
         }
 
-        /// <summary>
-        /// How far along a ray a sphere of <paramref name="radius"/> gets before touching a mesh, up to
-        /// <paramref name="maxDistance"/> (approximately: where the ray hits, less the radius). Terrain and meshes that
-        /// are off are ignored. For keeping a camera out of objects.
-        /// </summary>
-        public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, float radius, out float distance)
-        {
-            direction = Vector3.Normalize(direction);
-            distance = maxDistance;
-            var hit = false;
-            var off = _off;
-            var end = origin + direction * (maxDistance + radius);
-            var min = Vector3.Min(origin, end) - new Vector3(radius);
-            var max = Vector3.Max(origin, end) + new Vector3(radius);
-            int fromX = Cell(min.X), fromZ = Cell(min.Z);
-            for (var z = fromZ; z <= Cell(max.Z); z++)
-            {
-                for (var x = fromX; x <= Cell(max.X); x++)
-                {
-                    if (!_cells.TryGetValue((x, z), out var list))
-                    {
-                        continue;
-                    }
-
-                    foreach (var t in list)
-                    {
-                        if (FirstLook(t, x, z, fromX, fromZ) && !_terrain[_meshOf[t]] && !Skip(t, off, null) && RayHitsTriangle(origin, direction, _corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2], out var along))
-                        {
-                            var reach = MathF.Max(0, along - radius);
-                            if (reach < distance)
-                            {
-                                distance = reach;
-                                hit = true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return hit;
-        }
-
         // Whether a query skips triangle t: its mesh is off, or the player passes through it.
         private bool Skip(int t, bool[] off, ISet<int>? passThrough) => off[_meshOf[t]] || (passThrough != null && passThrough.Count > 0 && passThrough.Contains(_meshOf[t]));
 
@@ -732,37 +690,5 @@ namespace Comet.Simulation
 
         // The height at (x, z) of the plane through a with this normal (not vertical).
         private static float HeightOn(Vector3 normal, Vector3 a, float x, float z) => a.Y - (normal.X * (x - a.X) + normal.Z * (z - a.Z)) / normal.Y;
-
-        // Möller–Trumbore, both faces: where along the ray it crosses the triangle, if ahead of the origin.
-        private static bool RayHitsTriangle(Vector3 origin, Vector3 direction, Vector3 a, Vector3 b, Vector3 c, out float along)
-        {
-            along = 0;
-            var ab = b - a;
-            var ac = c - a;
-            var p = Vector3.Cross(direction, ac);
-            var determinant = Vector3.Dot(ab, p);
-            if (MathF.Abs(determinant) < 1e-8f)
-            {
-                return false;
-            }
-
-            var inverse = 1 / determinant;
-            var toOrigin = origin - a;
-            var u = Vector3.Dot(toOrigin, p) * inverse;
-            if (u < 0 || u > 1)
-            {
-                return false;
-            }
-
-            var q = Vector3.Cross(toOrigin, ab);
-            var v = Vector3.Dot(direction, q) * inverse;
-            if (v < 0 || u + v > 1)
-            {
-                return false;
-            }
-
-            along = Vector3.Dot(ac, q) * inverse;
-            return along >= 0;
-        }
     }
 }

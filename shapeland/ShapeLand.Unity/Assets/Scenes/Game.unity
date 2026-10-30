@@ -298,6 +298,8 @@ MonoBehaviour:
   eyesMaterial: {fileID: 2100000, guid: 2363a39ddd6cb0ff68d7c40daa468bf7, type: 2}
   shapeFadeMaterial: {fileID: 2100000, guid: 61dd4b4118ed94a48a34b63a8dc64b5b, type: 2}
   eyesFadeMaterial: {fileID: 2100000, guid: 71fb7ea9edb6b490c85ea0df884edb30, type: 2}
+  shapeMaskMaterial: {fileID: 2100000, guid: 9b726625d76643b88b959b6ff771ce55, type: 2}
+  shapeSilhouetteMaterial: {fileID: 2100000, guid: 9e3845ba4a38408fa6d9f709a54c6ab5, type: 2}
   orbitCamera: {fileID: 1791137201}
 --- !u!114 &1117559768
 MonoBehaviour:
@@ -508,8 +510,6 @@ MonoBehaviour:
   stickDegreesPerSecond: {x: 180, y: 120}
   pitchLimits: {x: -10, y: 70}
   groundClearance: 0.3
-  blockClearance: 0.2
-  zoomOutSpeed: 6
   showcase: {x: 30, y: 25, z: 6}
 --- !u!20 &1791137202
 Camera:
