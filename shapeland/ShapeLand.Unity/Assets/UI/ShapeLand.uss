@@ -36,9 +36,10 @@
 /* Rows a gamepad or the arrow keys move through (JoinScreen), the selected one tinted like a Settings row. */
 .card .nav-row { margin: -4px -8px 6px -8px; padding: 4px 8px; border-radius: 4px; }
 .card .nav-row.server { margin-bottom: -4px; }
-.nav-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+/* The selection shows only while keys or a gamepad move it (.navigating, set by JoinScreen and GameMenu). */
+.backdrop.navigating .nav-row.selected { background-color: rgba(106, 161, 255, 0.2); }
 .join-button, .cancel-button { border-width: 2px; border-color: rgba(0, 0, 0, 0); }
-.join-button.selected, .cancel-button.selected { border-color: rgb(255, 255, 255); }
+.backdrop.navigating .join-button.selected, .backdrop.navigating .cancel-button.selected { border-color: rgb(255, 255, 255); }
 
 Label { padding: 0; margin: 0; }
 .title { font-size: 28px; margin-bottom: 8px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
@@ -344,11 +345,11 @@ Label { padding: 0; margin: 0; }
 .menu-entry:hover { border-color: rgba(238, 241, 246, 0.4); }
 .menu-entry.leave { color: rgb(255, 160, 157); }
 .menu-entry.leave:hover { border-color: rgba(255, 160, 157, 0.6); }
-.menu-entry.selected, .menu-entry.selected:hover {
+.menu.navigating .menu-entry.selected, .menu.navigating .menu-entry.selected:hover {
     background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6);
     color: rgb(255, 255, 255); /* not bold: the entries would change width as the selection moves */
 }
-.menu-entry.leave.selected, .menu-entry.leave.selected:hover { background-color: rgb(190, 58, 54); }
+.menu.navigating .menu-entry.leave.selected, .menu.navigating .menu-entry.leave.selected:hover { background-color: rgb(190, 58, 54); }
 /* Pressed: the button answers at once, before what it does. */
 .menu-entry:active, .menu-entry:hover:active, .menu-back:active, .menu-back:hover:active, .menu-dev:active, .menu-dev:hover:active { background-color: rgba(79, 140, 240, 0.8); }
 .menu-gap { height: 14px; }
@@ -420,7 +421,7 @@ Label { padding: 0; margin: 0; }
     border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07);
 }
 .hud.phone .menu-row { height: 36px; }
-.menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.menu.navigating .menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
 .menu-row-name { font-size: 15px; }
 .menu-bind { flex-direction: row; align-items: center; }
 .menu-bind-note { font-size: 13px; color: rgb(141, 151, 171); margin: 0 6px; }

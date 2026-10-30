@@ -29,7 +29,17 @@ namespace ShapeLand.Client
         private const int ChangeLookEntry = 3;
 
         /// <summary>Opens the menu with Change Look selected: where Back on the look card returns to.</summary>
-        public void ShowAtChangeLook() => Show(ChangeLookEntry);
+        public void ShowAtChangeLook(bool navigating) => Show(ChangeLookEntry, navigating);
+
+        /// <summary>
+        /// True while keys or a gamepad move the selection, which shows only then; the mouse or a touch hides it again
+        /// (it has its own hover look).
+        /// </summary>
+        public bool Navigating
+        {
+            get => _menu.ClassListContains("navigating");
+            private set => _menu.EnableInClassList("navigating", value);
+        }
 
         private readonly Hud _hud;
         private readonly VisualElement _menu;
@@ -140,6 +150,8 @@ namespace ShapeLand.Client
 
             root.Q<Button>("menu-back").clicked += Back;
             root.Q("menu-dim").RegisterCallback<PointerDownEvent>(_ => Close());
+            _menu.RegisterCallback<PointerDownEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
+            _menu.RegisterCallback<PointerMoveEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _speedTrack.RegisterCallback<PointerDownEvent>(OnSpeedDown);
             _speedTrack.RegisterCallback<PointerMoveEvent>(OnSpeedMove);
             _speedTrack.RegisterCallback<PointerUpEvent>(e => EndSpeedDrag(e.pointerId));
@@ -159,10 +171,14 @@ namespace ShapeLand.Client
         /// <summary>Whether the player has ever opened the menu (remembered); until then the HUD keeps the menu button's tip up.</summary>
         public bool EverOpened { get; private set; }
 
-        /// <summary>Opens the menu at its list, with Resume (or the entry <paramref name="selected"/>) selected.</summary>
-        public void Show(int selected = 0)
+        /// <summary>
+        /// Opens the menu at its list, with Resume (or the entry <paramref name="selected"/>) selected; the selection
+        /// shows when it was opened with keys or a gamepad (<paramref name="navigating"/>).
+        /// </summary>
+        public void Show(int selected = 0, bool navigating = true)
         {
             Open = true;
+            Navigating = navigating;
             _shownOnFrame = Time.frameCount; // the press that brought it up (Back on the look card) isn't the menu's
             _menu.RemoveFromClassList("hidden");
             _hud.Root.AddToClassList("menu-open");
@@ -233,6 +249,19 @@ namespace ShapeLand.Client
             }
 
             var step = NavigationStep(actions.Navigate.ReadValue<Vector2>());
+            var pressed = actions.Submit.WasPressedThisFrame() || actions.Back.WasPressedThisFrame()
+                || actions.NextTab.WasPressedThisFrame() || actions.PreviousTab.WasPressedThisFrame();
+            if (!Navigating && step != Vector2Int.zero)
+            {
+                Navigating = true; // the first press only shows where the selection is
+                return;
+            }
+
+            if (pressed)
+            {
+                Navigating = true;
+            }
+
             if (step.y != 0)
             {
                 Move(step.y);

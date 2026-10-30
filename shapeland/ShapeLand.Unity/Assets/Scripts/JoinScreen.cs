@@ -156,6 +156,8 @@ namespace ShapeLand.Client
             }
 
             _root.EnableInClassList("phone", WebPage.IsPhone);
+            _root.RegisterCallback<PointerDownEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
+            _root.RegisterCallback<PointerMoveEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             SetChanging(false);
         }
@@ -206,6 +208,13 @@ namespace ShapeLand.Client
             SelectRow(0);
         }
 
+        /// <summary>True while keys or a gamepad move the card's selection, which shows only then.</summary>
+        public bool Navigating
+        {
+            get => _root.ClassListContains("navigating");
+            private set => _root.EnableInClassList("navigating", value);
+        }
+
         /// <summary>True while the card is up to change the look and was opened from the Esc menu.</summary>
         public bool FromMenu => Changing && _back != null;
 
@@ -213,12 +222,14 @@ namespace ShapeLand.Client
         /// Brings the card up over the game, filled in with the player's current look, to change it. Given
         /// <paramref name="back"/> (opened from the Esc menu), the card has Back, which closes it and calls that.
         /// </summary>
-        public void OpenChange(Action back = null)
+        public void OpenChange(Action back = null, bool navigating = false)
         {
             if (Showing || !_join.Joined || _join.Spawn is not PlayerSpawn spawn)
             {
                 return;
             }
+
+            Navigating = navigating;
 
             _back = back;
             SetChanging(true);
@@ -547,6 +558,17 @@ namespace ShapeLand.Client
             var typing = Typing;
             var fromPad = actions.Navigate.activeControl?.device is Gamepad;
             var step = Step(typing && !fromPad ? Vector2.zero : actions.Navigate.ReadValue<Vector2>());
+            if (!Navigating && step != Vector2Int.zero)
+            {
+                Navigating = true; // the first press only shows where the selection is
+                return;
+            }
+
+            if (actions.Back.WasPressedThisFrame() || actions.Submit.WasPressedThisFrame() && !typing)
+            {
+                Navigating = true;
+            }
+
             if (step != Vector2Int.zero && typing)
             {
                 _root.focusController?.focusedElement?.Blur();

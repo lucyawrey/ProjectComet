@@ -271,7 +271,7 @@ namespace ShapeLand.Client
                 _chat.CloseInput();
             }
 
-            card.OpenChange(fromMenu ? _menu.ShowAtChangeLook : null);
+            card.OpenChange(fromMenu ? () => _menu.ShowAtChangeLook(card.Navigating) : null, fromMenu && _menu.Navigating);
             UpdateMoving();
         }
 
@@ -285,7 +285,7 @@ namespace ShapeLand.Client
             }
 
             CloseLook();
-            _menu.Show();
+            _menu.Show(navigating: false);
             UpdateMoving();
         }
 
