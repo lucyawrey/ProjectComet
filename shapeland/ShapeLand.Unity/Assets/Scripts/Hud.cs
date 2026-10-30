@@ -12,7 +12,7 @@ namespace ShapeLand.Client
     /// <summary>
     /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the menu, Change
     /// Look, Return to Spawn, chat and network stats buttons (Change Look, or C, brings up the join card), the Esc menu
-    /// (<see cref="GameMenu"/>) and its first-time hint, and the respawn fade over the whole screen. Esc or gamepad Start
+    /// (<see cref="GameMenu"/>, its button's tip showing until it's first opened), and the respawn fade over the whole screen. Esc or gamepad Start
     /// closes the chat input first, then the look card, else opens the menu (in it, Esc goes back a step and Start
     /// closes it). The chat
     /// (<see cref="Chat"/>), name tags (<see cref="NameTags"/>) and network numbers (<see cref="NetStats"/>) are
@@ -32,7 +32,6 @@ namespace ShapeLand.Client
         private GameMenu _menu;
         private VisualElement _lookButton;
         private VisualElement _menuButton;
-        private VisualElement _hint;
         // Chat that was open when the look card came up, and what was typed in it: it reopens once the card closes.
         private bool _reopenChat;
         private string _chatDraft;
@@ -84,7 +83,6 @@ namespace ShapeLand.Client
             ((Button)_lookButton).clicked += ToggleLook;
             _menuButton = tree.Q("menu-button");
             ((Button)_menuButton).clicked += ToggleMenu;
-            _hint = tree.Q("menu-hint");
             _root.EnableInClassList("phone", WebPage.IsPhone);
             // The other buttons close the look card first.
             tree.Q<Button>("return-button").clicked += () => { CloseLook(); ReturnToSpawn(); };
@@ -144,7 +142,7 @@ namespace ShapeLand.Client
             // The look card hides chat and the network numbers while it's up.
             _lookButton.EnableInClassList("on", card.Changing);
             _menuButton.EnableInClassList("on", _menu.Open);
-            _hint.EnableInClassList("hidden", _menu.EverOpened || _menu.Open || CardShowing);
+            _menuButton.EnableInClassList("first-time", !_menu.EverOpened && !_menu.Open && !CardShowing);
             _chat.Box.EnableInClassList("hidden", card.Changing);
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
             ReopenChat();

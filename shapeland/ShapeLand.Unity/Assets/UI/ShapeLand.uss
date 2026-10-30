@@ -446,13 +446,9 @@ Label { padding: 0; margin: 0; }
 .hud.pad-input .menu .prompt.tabs-prompt.keys-part, .hud.touch-input .menu .prompt.tabs-prompt.keys-part { display: none; }
 .hud.pad-input .menu.on-controls .prompt.tabs-prompt.pad-part { display: flex; }
 
-/* The first-time hint, after the end of the HUD row and pointing back at it. */
-.menu-hint { flex-direction: row; align-items: center; height: 44px; }
-.hud.touch-input .menu-hint { height: 52px; }
-.menu-hint-arrow { width: 10px; height: 10px; margin-right: -6px; rotate: 45deg; background-color: rgb(106, 161, 255); }
-.menu-hint-box {
-    flex-direction: row; align-items: center; padding: 6px 12px; font-size: 14px;
-    background-color: rgba(18, 22, 30, 0.92); border-width: 1px; border-color: rgb(106, 161, 255); border-radius: 4px;
+/* First time in the game: the menu button's tip stays up, outlined, until the menu is first opened (Hud). With a
+   gamepad or touch the key is left off, since Esc isn't theirs. */
+.hud-button.first-time .hud-tip, .hud.touch-input .hud-button.first-time .hud-tip {
+    display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
 }
-.menu-hint-icon { width: 20px; height: 20px; -unity-background-scale-mode: scale-to-fit; }
-.menu-hint-text { margin-left: 8px; }
+.hud.pad-input .hud-button.first-time .hud-tip-key, .hud.touch-input .hud-button.first-time .hud-tip-key { display: none; }

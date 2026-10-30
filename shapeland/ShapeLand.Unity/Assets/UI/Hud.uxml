@@ -61,15 +61,6 @@
                         <ui:Label text="#hud.stats_key" class="hud-tip-key" picking-mode="Ignore" />
                     </ui:VisualElement>
                 </ui:Button>
-                <ui:VisualElement name="menu-hint" class="menu-hint hidden" picking-mode="Ignore">
-                    <ui:VisualElement class="menu-hint-arrow" picking-mode="Ignore" />
-                    <ui:VisualElement class="menu-hint-box" picking-mode="Ignore">
-                        <ui:Label text="#menu.key_esc" class="key keys-part" picking-mode="Ignore" />
-                        <ui:Label text="#menu.pad_start" class="pad-word pad-part" picking-mode="Ignore" />
-                        <ui:VisualElement class="menu-hint-icon icon-menu touch-part" picking-mode="Ignore" />
-                        <ui:Label text="#menu.hint" class="menu-hint-text" picking-mode="Ignore" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
                 <ui:VisualElement class="net-row" picking-mode="Ignore">

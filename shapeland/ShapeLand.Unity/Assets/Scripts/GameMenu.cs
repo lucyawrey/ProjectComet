@@ -142,7 +142,7 @@ namespace ShapeLand.Client
         /// </summary>
         public bool Blocking => Open || Time.frameCount == _closedOnFrame;
 
-        /// <summary>Whether the player has ever opened the menu (remembered); until then the HUD shows a hint.</summary>
+        /// <summary>Whether the player has ever opened the menu (remembered); until then the HUD keeps the menu button's tip up.</summary>
         public bool EverOpened { get; private set; }
 
         /// <summary>Opens the menu at its list, with Resume selected.</summary>
