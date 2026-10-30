@@ -118,11 +118,11 @@ namespace ShapeLand.Client
             }
 
             var stick = _controls.Game.StickLook.ReadValue<Vector2>() * stickDegreesPerSecond * Time.unscaledDeltaTime;
-            var turn = stick * GameSettings.CameraSpeed(CameraInput.Stick) + _touchTurn;
+            var turn = stick * GameSettings.CameraSpeed(InputKind.Gamepad) + _touchTurn;
             _touchTurn = Vector2.zero;
             if (_controls.Game.OrbitHeld.IsPressed())
             {
-                turn += _controls.Game.MouseLook.ReadValue<Vector2>() * mouseDegreesPerPixel * GameSettings.CameraSpeed(CameraInput.Mouse);
+                turn += _controls.Game.MouseLook.ReadValue<Vector2>() * mouseDegreesPerPixel * GameSettings.CameraSpeed(InputKind.KeyboardMouse);
             }
 
             Yaw = Mathf.Repeat(Yaw + turn.x, 360);

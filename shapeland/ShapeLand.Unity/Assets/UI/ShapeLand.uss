@@ -278,3 +278,181 @@ Label { padding: 0; margin: 0; }
 .icon-chat { background-image: url("Icons/chat.png"); }
 .icon-jump { background-image: url("Icons/jump.png"); }
 .icon-stats { background-image: url("Icons/stats.png"); }
+.icon-menu { background-image: url("Icons/menu.png"); }
+
+/* ---- The Esc menu (Menu.uxml, GameMenu), ported from the approved mockup. ---- */
+
+/* Parts for one kind of input: keys and mouse unless the HUD has .pad-input or .touch-input (TouchControls). */
+.pad-part, .touch-part { display: none; }
+.hud.pad-input .keys-part, .hud.touch-input .keys-part { display: none; }
+.hud.pad-input .pad-part, .hud.touch-input .touch-part { display: flex; }
+
+.key {
+    min-width: 24px; padding: 1px 6px; margin: 0 2px;
+    border-width: 1px; border-bottom-width: 2px; border-color: rgba(238, 241, 246, 0.4); border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.07);
+    font-size: 12px; -unity-text-align: middle-center;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+.pad-word {
+    padding: 1px 7px; border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 9px;
+    font-size: 12px; -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+.glyph { width: 26px; height: 26px; -unity-background-scale-mode: scale-to-fit; }
+.glyph-label { margin-left: 2px; font-size: 11px; color: rgb(169, 178, 196); -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+.icon-mouse-right { background-image: url("Icons/mouse_right.png"); }
+.icon-stick { background-image: url("Icons/stick.png"); }
+.icon-pad-south { background-image: url("Icons/pad_south.png"); }
+.icon-pad-east { background-image: url("Icons/pad_east.png"); }
+
+/* While the menu is open the game dims and the HUD fades behind it. */
+.hud.menu-open .hud-row, .hud.menu-open .tags, .hud.menu-open .chat, .hud.menu-open .net-stats { opacity: 0.35; }
+.menu-host, .menu, .menu-dim, .menu-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.menu-dim { background-color: rgba(8, 12, 22, 0.55); }
+
+/* The list: a centered column of separate buttons, the selected one filled blue. */
+.menu-list, .menu-confirm {
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    align-items: stretch;
+}
+.menu-entry, .menu-entry:hover {
+    width: 280px; height: 46px; padding: 0; margin: 0 0 6px 0;
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.12); border-radius: 6px;
+    background-color: rgba(16, 20, 28, 0.82);
+    color: rgb(238, 241, 246); font-size: 19px; -unity-text-align: middle-center;
+}
+.menu-entry:hover { border-color: rgba(238, 241, 246, 0.4); }
+.menu-entry.leave { color: rgb(255, 160, 157); }
+.menu-entry.leave:hover { border-color: rgba(255, 160, 157, 0.6); }
+.menu-entry.selected, .menu-entry.selected:hover {
+    background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6);
+    color: rgb(255, 255, 255); -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
+}
+.menu-entry.leave.selected, .menu-entry.leave.selected:hover { background-color: rgb(190, 58, 54); }
+/* Pressed: the button answers at once, before what it does. */
+.menu-entry:active, .menu-entry:hover:active, .menu-back:active, .menu-back:hover:active, .menu-dev:active, .menu-dev:hover:active { background-color: rgba(79, 140, 240, 0.8); }
+.menu-gap { height: 14px; }
+.hud.phone .menu-entry { height: 38px; font-size: 17px; margin-bottom: 4px; }
+.hud.phone .menu-gap { height: 8px; }
+
+.menu-confirm { align-items: center; }
+.menu-confirm-title { font-size: 22px; margin-bottom: 4px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.menu-confirm-note { font-size: 14px; color: rgb(169, 178, 196); margin-bottom: 16px; }
+
+/* Controls and Settings: one fixed-size window for both pages and every device tab; long pages scroll inside. */
+.menu-window {
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    width: 600px; height: 440px; max-height: 76%;
+    padding: 18px 24px 16px 24px;
+    background-color: rgba(16, 20, 28, 0.96);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
+}
+.menu-page-head { flex-direction: row; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+.menu-back, .menu-back:hover {
+    flex-direction: row; align-items: center;
+    height: 28px; padding: 0 10px 0 8px; margin: 0 12px 0 0;
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.16); border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(238, 241, 246); font-size: 13px;
+}
+.menu-back:hover { background-color: rgba(255, 255, 255, 0.06); }
+.menu-back-arrow {
+    width: 7px; height: 7px; margin-right: 6px; rotate: 45deg;
+    border-left-width: 2px; border-bottom-width: 2px; border-color: rgb(238, 241, 246);
+}
+.menu-page-name { font-size: 20px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+
+.menu-devices {
+    flex-direction: row; align-items: flex-end; height: 36px; flex-shrink: 0; margin-bottom: 4px;
+    border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.1);
+}
+.menu-dev, .menu-dev:hover {
+    flex-direction: row; align-items: center;
+    height: 30px; padding: 0 12px; margin: 0 4px 0 0;
+    border-width: 0; border-bottom-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(169, 178, 196); font-size: 14px;
+}
+.menu-dev.on { color: rgb(238, 241, 246); border-bottom-color: rgb(106, 161, 255); }
+.menu-in-use { display: none; margin-left: 6px; font-size: 11px; color: rgb(106, 161, 255); }
+.menu-dev.current .menu-in-use { display: flex; }
+.menu-shoulder {
+    padding: 0 5px; margin: 0 6px 7px 6px; font-size: 11px; color: rgb(169, 178, 196);
+    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 4px;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+
+.menu-scroll { flex-grow: 1; }
+.menu-scroll .unity-scroller--vertical { width: 6px; margin-left: 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.menu-scroll .unity-scroller__low-button, .menu-scroll .unity-scroller__high-button { display: none; }
+.menu-scroll .unity-scroller__slider { width: 6px; min-width: 6px; margin: 0; padding: 0; flex-grow: 1; }
+.menu-scroll .unity-base-slider__tracker {
+    left: 0; right: 0; top: 0; bottom: 0; width: auto; margin: 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.12);
+}
+.menu-scroll .unity-base-slider__dragger { left: 0; width: 6px; margin: 0; border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.35); }
+.menu-scroll .unity-base-slider__dragger-border { display: none; }
+
+/* One row style for both pages. */
+.menu-row {
+    flex-direction: row; align-items: center; justify-content: space-between;
+    height: 42px; padding: 0 12px; flex-shrink: 0;
+    border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07);
+}
+.hud.phone .menu-row { height: 36px; }
+.menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.menu-row-name { font-size: 15px; }
+.menu-bind { flex-direction: row; align-items: center; }
+.menu-bind-note { font-size: 13px; color: rgb(141, 151, 171); margin: 0 6px; }
+.mini-button {
+    width: 24px; height: 24px; border-radius: 12px; align-items: center; justify-content: center;
+    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); background-color: rgba(18, 22, 30, 0.55);
+}
+.mini-icon { width: 15px; height: 15px; -unity-background-scale-mode: scale-to-fit; }
+
+.setting-text { flex-direction: row; align-items: flex-end; }
+.setting-note { margin-left: 10px; font-size: 12px; color: rgb(141, 151, 171); }
+.switch { width: 44px; height: 24px; border-radius: 12px; flex-shrink: 0; background-color: rgb(61, 124, 240); }
+.switch.off { background-color: rgba(255, 255, 255, 0.18); }
+.switch-knob {
+    position: absolute; top: 3px; left: 23px; width: 18px; height: 18px; border-radius: 9px;
+    background-color: rgb(255, 255, 255);
+    transition-property: left; transition-duration: 0.15s;
+}
+.switch.off .switch-knob { left: 3px; }
+.slider { flex-direction: row; align-items: center; }
+/* The track is taller than it looks, so it's easy to grab. */
+.slider-track { width: 150px; height: 24px; justify-content: center; }
+.slider-rail { position: absolute; left: 0; right: 0; top: 9px; height: 6px; border-radius: 3px; background-color: rgba(255, 255, 255, 0.14); }
+.slider-fill { position: absolute; left: 0; top: 9px; height: 6px; border-radius: 3px; background-color: rgb(106, 161, 255); }
+.slider-knob { position: absolute; top: 3px; width: 18px; height: 18px; margin-left: -9px; border-radius: 9px; background-color: rgb(255, 255, 255); }
+.slider-value {
+    width: 46px; margin-left: 10px; font-size: 13px; color: rgb(169, 178, 196); -unity-text-align: middle-right;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+
+/* Button prompts along the bottom of the screen, for the input in use. */
+.menu-prompts {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 40px; padding: 0 22px;
+    flex-direction: row; justify-content: flex-end; align-items: center;
+    background-color: rgba(8, 12, 22, 0.7); font-size: 14px;
+}
+.prompt { flex-direction: row; align-items: center; margin-left: 20px; }
+.prompt .key, .prompt .glyph, .prompt .menu-shoulder { margin: 0 6px 0 0; }
+.prompt .glyph { width: 22px; height: 22px; }
+/* The device prompt only on the Controls page (.on-controls, set by GameMenu), still for the input in use. */
+.hud .menu .prompt.tabs-prompt { display: none; }
+.hud .menu.on-controls .prompt.tabs-prompt.keys-part { display: flex; }
+.hud.pad-input .menu .prompt.tabs-prompt.keys-part, .hud.touch-input .menu .prompt.tabs-prompt.keys-part { display: none; }
+.hud.pad-input .menu.on-controls .prompt.tabs-prompt.pad-part { display: flex; }
+
+/* The first-time hint, after the end of the HUD row and pointing back at it. */
+.menu-hint { flex-direction: row; align-items: center; height: 44px; }
+.hud.touch-input .menu-hint { height: 52px; }
+.menu-hint-arrow { width: 10px; height: 10px; margin-right: -6px; rotate: 45deg; background-color: rgb(106, 161, 255); }
+.menu-hint-box {
+    flex-direction: row; align-items: center; padding: 6px 12px; font-size: 14px;
+    background-color: rgba(18, 22, 30, 0.92); border-width: 1px; border-color: rgb(106, 161, 255); border-radius: 4px;
+}
+.menu-hint-icon { width: 20px; height: 20px; -unity-background-scale-mode: scale-to-fit; }
+.menu-hint-text { margin-left: 8px; }

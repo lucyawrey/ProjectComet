@@ -9,8 +9,9 @@ namespace ShapeLand.Client
     /// <summary>
     /// Touch controls for phones, in the HUD (Hud.uxml's <c>touch</c> layer): a stick that appears wherever a thumb
     /// lands on the left half of the screen, a camera drag on the right half, and a jump button. The stick and Jump
-    /// drive a virtual gamepad of their own, so the game's actions read them as they read a real one. They show while the player can move and the screen has been touched (from the
-    /// start on a phone page), and hide when a keyboard or a real gamepad is used away from a phone. Each control
+    /// drive a virtual gamepad of their own, so the game's actions read them as they read a real one. They show while
+    /// the player can move and the screen has been touched (from the start on a phone page), and hide when a keyboard,
+    /// mouse or real gamepad is used away from a phone; which of these was used last is <see cref="Input"/>. Each control
     /// follows one touch at a time; Jump keeps inside the screen's safe area (<c>touch-safe</c>, set by the HUD). The HUD's
     /// buttons are the HUD's own (<see cref="Hud"/>), shown larger while touch controls are in use.
     /// </summary>
@@ -39,12 +40,15 @@ namespace ShapeLand.Client
         private Vector2 _origin;
         private bool _touched;
 
+        /// <summary>The kind of input used last; the HUD carries it as <c>touch-input</c> or <c>pad-input</c> (neither for keys and mouse).</summary>
+        public InputKind Input { get; private set; }
+
         /// <summary>The controls in <paramref name="hud"/>, turning <paramref name="camera"/>.</summary>
         public TouchControls(VisualElement hud, OrbitCamera camera)
         {
             _hud = hud;
             _camera = camera;
-            SetTouched(WebPage.IsPhone);
+            SetInput(WebPage.IsPhone ? InputKind.Touch : InputKind.KeyboardMouse);
             _layer = hud.Q("touch");
             _stickArea = hud.Q("touch-stick");
             _base = hud.Q("stick-base");
@@ -86,17 +90,28 @@ namespace ShapeLand.Client
         public static Vector2 DragTurn(Vector2 distance, float height, float degreesPerScreenHeight = DegreesPerScreenHeight) =>
             height > 0 ? distance / height * degreesPerScreenHeight : Vector2.zero;
 
-        /// <summary>Shows or hides the controls for this frame; <paramref name="allowed"/> is whether the player can move now.</summary>
-        public void Update(bool allowed)
+        /// <summary>
+        /// Shows or hides the controls for this frame; <paramref name="allowed"/> is whether the player can move now,
+        /// <paramref name="inMenu"/> whether the Esc menu is open.
+        /// </summary>
+        public void Update(bool allowed, bool inMenu)
         {
             if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
             {
-                SetTouched(true);
+                SetInput(InputKind.Touch);
             }
-            // Not while typing (an on-screen keyboard's keys) or on the look card.
-            else if (allowed && !WebPage.IsPhone && (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame || RealGamepadUsed()))
+            // Touch gives way only where it can't be an on-screen keyboard's keys: not while typing or on the look card.
+            else if (!WebPage.IsPhone && (!_touched || allowed || inMenu))
             {
-                SetTouched(false);
+                if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame ||
+                    Mouse.current != null && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame))
+                {
+                    SetInput(InputKind.KeyboardMouse);
+                }
+                else if (RealGamepadUsed())
+                {
+                    SetInput(InputKind.Gamepad);
+                }
             }
 
             var show = _touched && allowed;
@@ -120,12 +135,14 @@ namespace ShapeLand.Client
         }
 
         // Touch controls in use or not: the HUD's .touch-input class swaps in their stand-ins (Send, the footer without
-        // F3) and moves things out of their way.
-        private void SetTouched(bool touched)
+        // F3) and moves things out of their way; .pad-input swaps in the gamepad's prompts.
+        private void SetInput(InputKind input)
         {
-            _touched = touched;
-            _hud.EnableInClassList("touch-input", touched);
-            if (touched && _pad == null)
+            Input = input;
+            _touched = input == InputKind.Touch;
+            _hud.EnableInClassList("touch-input", _touched);
+            _hud.EnableInClassList("pad-input", input == InputKind.Gamepad);
+            if (_touched && _pad == null)
             {
                 _pad = InputSystem.AddDevice<Gamepad>("Touch controls");
             }
@@ -178,7 +195,7 @@ namespace ShapeLand.Client
                 // Like the right mouse button's drag: up turns the camera as a mouse moved up does.
                 var delta = (Vector2)e.deltaPosition;
                 _camera.Turn(DragTurn(new Vector2(delta.x, -delta.y), _layer.resolvedStyle.height,
-                    DegreesPerScreenHeight * GameSettings.CameraSpeed(CameraInput.Touch)));
+                    DegreesPerScreenHeight * GameSettings.CameraSpeed(InputKind.Touch)));
             }
         }
 
@@ -247,7 +264,10 @@ namespace ShapeLand.Client
         {
             foreach (var gamepad in Gamepad.all)
             {
-                if (gamepad != _pad && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame
+                if (gamepad != _pad && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.buttonEast.wasPressedThisFrame
+                    || gamepad.startButton.wasPressedThisFrame || gamepad.selectButton.wasPressedThisFrame
+                    || gamepad.leftShoulder.wasPressedThisFrame || gamepad.rightShoulder.wasPressedThisFrame
+                    || gamepad.dpad.ReadValue().sqrMagnitude > 0.25f
                     || gamepad.leftStick.ReadValue().sqrMagnitude > 0.25f || gamepad.rightStick.ReadValue().sqrMagnitude > 0.25f))
                 {
                     return true;

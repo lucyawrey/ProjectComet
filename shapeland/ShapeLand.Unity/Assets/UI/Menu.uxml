@@ -1,0 +1,227 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- The Esc menu (GameMenu), inside the HUD. The device-specific parts carry .keys-part, .pad-part or .touch-part;
+         the HUD's .pad-input and .touch-input classes pick which show. -->
+    <ui:VisualElement name="menu" class="menu hidden">
+        <ui:VisualElement name="menu-dim" class="menu-dim" />
+        <ui:VisualElement name="menu-safe" class="menu-safe" picking-mode="Ignore">
+            <ui:VisualElement name="menu-list" class="menu-list">
+                <ui:Button name="menu-resume" text="#menu.resume" class="menu-entry" focusable="false" />
+                <ui:Button name="menu-controls" text="#menu.controls" class="menu-entry" focusable="false" />
+                <ui:Button name="menu-settings" text="#menu.settings" class="menu-entry" focusable="false" />
+                <ui:Button name="menu-look" text="#menu.change_look" class="menu-entry" focusable="false" />
+                <ui:Button name="menu-respawn" text="#menu.respawn" class="menu-entry" focusable="false" />
+                <ui:VisualElement class="menu-gap" picking-mode="Ignore" />
+                <ui:Button name="menu-leave" text="#menu.leave" class="menu-entry leave" focusable="false" />
+            </ui:VisualElement>
+            <ui:VisualElement name="menu-confirm" class="menu-confirm hidden">
+                <ui:Label text="#menu.leave_title" class="menu-confirm-title" picking-mode="Ignore" />
+                <ui:Label text="#menu.leave_note" class="menu-confirm-note" picking-mode="Ignore" />
+                <ui:Button name="menu-stay" text="#menu.stay" class="menu-entry" focusable="false" />
+                <ui:Button name="menu-leave-confirm" text="#menu.leave" class="menu-entry leave" focusable="false" />
+            </ui:VisualElement>
+            <ui:VisualElement name="menu-window" class="menu-window hidden">
+                <ui:VisualElement class="menu-page-head">
+                    <ui:Button name="menu-back" class="menu-back" focusable="false">
+                        <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
+                        <ui:Label text="#menu.back" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Label name="menu-page-controls" text="#menu.controls" class="menu-page-name" picking-mode="Ignore" />
+                    <ui:Label name="menu-page-settings" text="#menu.settings" class="menu-page-name" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="menu-devices" class="menu-devices">
+                    <ui:Label text="#menu.pad_lb" class="menu-shoulder pad-part" picking-mode="Ignore" />
+                    <ui:Button name="dev-keys" class="menu-dev" focusable="false">
+                        <ui:Label text="#menu.keyboard_mouse" picking-mode="Ignore" />
+                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Button name="dev-pad" class="menu-dev" focusable="false">
+                        <ui:Label text="#menu.gamepad" picking-mode="Ignore" />
+                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Button name="dev-touch" class="menu-dev" focusable="false">
+                        <ui:Label text="#menu.touch" picking-mode="Ignore" />
+                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Label text="#menu.pad_rb" class="menu-shoulder pad-part" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:ScrollView name="menu-scroll" class="menu-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden">
+                    <ui:VisualElement name="controls-keys" class="menu-rows">
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.move" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind">
+                                <ui:Label text="#menu.key_w" class="key" />
+                                <ui:Label text="#menu.key_a" class="key" />
+                                <ui:Label text="#menu.key_s" class="key" />
+                                <ui:Label text="#menu.key_d" class="key" />
+                                <ui:Label text="#menu.or" class="menu-bind-note" />
+                                <ui:Label text="#menu.key_arrows" class="key" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.jump" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_space" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.camera" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind">
+                                <ui:VisualElement class="glyph icon-mouse-right" />
+                                <ui:Label text="#menu.hold_and_move" class="menu-bind-note" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.chat" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_enter" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.change_look" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_c" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.respawn" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_r" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.show_through_walls" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_v" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.stats" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_f3" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.menu" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.key_esc" class="key" /></ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="controls-pad" class="menu-rows">
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.move" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind">
+                                <ui:VisualElement class="glyph icon-stick" />
+                                <ui:Label text="#menu.pad_l" class="glyph-label" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.jump" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="glyph icon-pad-south" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.camera" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind">
+                                <ui:VisualElement class="glyph icon-stick" />
+                                <ui:Label text="#menu.pad_r" class="glyph-label" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.respawn" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.pad_select" class="pad-word" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.menu" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.pad_start" class="pad-word" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.change_look" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.in_menu" class="menu-bind-note" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.chat" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.needs_keyboard" class="menu-bind-note" /></ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="controls-touch" class="menu-rows">
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.move" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.drag_left" class="menu-bind-note" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.camera" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:Label text="#menu.drag_right" class="menu-bind-note" /></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.jump" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-jump" /></ui:VisualElement></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.change_look" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-look" /></ui:VisualElement></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.respawn" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-return" /></ui:VisualElement></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.chat" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-chat" /></ui:VisualElement></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.stats" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-stats" /></ui:VisualElement></ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="menu-row">
+                            <ui:Label text="#menu.menu" class="menu-row-name" />
+                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-menu" /></ui:VisualElement></ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="settings" class="menu-rows">
+                        <ui:VisualElement name="setting-walls" class="menu-row setting">
+                            <ui:VisualElement class="setting-text" picking-mode="Ignore">
+                                <ui:Label text="#menu.show_through_walls" class="menu-row-name" />
+                                <ui:Label text="#menu.show_through_walls_note" class="setting-note" />
+                            </ui:VisualElement>
+                            <ui:VisualElement name="walls-switch" class="switch" picking-mode="Ignore">
+                                <ui:VisualElement class="switch-knob" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="setting-speed" class="menu-row setting">
+                            <ui:VisualElement class="setting-text" picking-mode="Ignore">
+                                <ui:Label text="#menu.camera_speed" class="menu-row-name" />
+                                <ui:Label text="#menu.speed_mouse" class="setting-note keys-part" />
+                                <ui:Label text="#menu.speed_stick" class="setting-note pad-part" />
+                                <ui:Label text="#menu.speed_touch" class="setting-note touch-part" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="slider">
+                                <ui:VisualElement name="speed-track" class="slider-track">
+                                    <ui:VisualElement class="slider-rail" picking-mode="Ignore" />
+                                    <ui:VisualElement name="speed-fill" class="slider-fill" picking-mode="Ignore" />
+                                    <ui:VisualElement name="speed-knob" class="slider-knob" picking-mode="Ignore" />
+                                </ui:VisualElement>
+                                <ui:Label name="speed-value" class="slider-value" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:ScrollView>
+            </ui:VisualElement>
+            <ui:VisualElement name="menu-prompts" class="menu-prompts" picking-mode="Ignore">
+                <ui:VisualElement class="prompt keys-part tabs-prompt">
+                    <ui:Label text="#menu.key_tab" class="key" />
+                    <ui:Label text="#menu.device" />
+                </ui:VisualElement>
+                <ui:VisualElement class="prompt keys-part">
+                    <ui:Label text="#menu.key_enter" class="key" />
+                    <ui:Label text="#menu.select" />
+                </ui:VisualElement>
+                <ui:VisualElement class="prompt keys-part">
+                    <ui:Label text="#menu.key_esc" class="key" />
+                    <ui:Label text="#menu.back" />
+                </ui:VisualElement>
+                <ui:VisualElement class="prompt pad-part tabs-prompt">
+                    <ui:Label text="#menu.pad_lb" class="menu-shoulder" />
+                    <ui:Label text="#menu.pad_rb" class="menu-shoulder" />
+                    <ui:Label text="#menu.device" />
+                </ui:VisualElement>
+                <ui:VisualElement class="prompt pad-part">
+                    <ui:VisualElement class="glyph icon-pad-south" />
+                    <ui:Label text="#menu.select" />
+                </ui:VisualElement>
+                <ui:VisualElement class="prompt pad-part">
+                    <ui:VisualElement class="glyph icon-pad-east" />
+                    <ui:Label text="#menu.back" />
+                </ui:VisualElement>
+                <ui:VisualElement class="prompt touch-part">
+                    <ui:Label text="#menu.tap_to_choose" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

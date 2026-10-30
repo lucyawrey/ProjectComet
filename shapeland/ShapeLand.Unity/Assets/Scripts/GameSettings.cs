@@ -2,11 +2,14 @@ using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>The ways of turning the camera, each with its own speed setting.</summary>
-    public enum CameraInput
+    /// <summary>
+    /// The kind of input the player is using: the Esc menu shows its controls and prompts, and each turns the camera
+    /// at its own speed (the mouse, the right stick or a drag).
+    /// </summary>
+    public enum InputKind
     {
-        Mouse,
-        Stick,
+        KeyboardMouse,
+        Gamepad,
         Touch,
     }
 
@@ -20,6 +23,7 @@ namespace ShapeLand.Client
         public const float MinCameraSpeed = 0.25f, MaxCameraSpeed = 3f;
 
         private const string ShowThroughWallsKey = "showThroughWalls";
+        private const string MenuOpenedKey = "menuOpened";
 
         /// <summary>Whether the player's own shape shows where something hides it; on unless turned off.</summary>
         public static bool ShowThroughWalls
@@ -28,15 +32,22 @@ namespace ShapeLand.Client
             set => Save(() => PlayerPrefs.SetInt(ShowThroughWallsKey, value ? 1 : 0));
         }
 
+        /// <summary>Whether the player has ever opened the Esc menu; until then a hint points to it.</summary>
+        public static bool MenuOpened
+        {
+            get => PlayerPrefs.GetInt(MenuOpenedKey, 0) == 1;
+            set => Save(() => PlayerPrefs.SetInt(MenuOpenedKey, value ? 1 : 0));
+        }
+
         /// <summary>How fast <paramref name="input"/> turns the camera, as a multiple of its usual speed (1).</summary>
-        public static float CameraSpeed(CameraInput input) =>
+        public static float CameraSpeed(InputKind input) =>
             Mathf.Clamp(PlayerPrefs.GetFloat(CameraSpeedKey(input), 1), MinCameraSpeed, MaxCameraSpeed);
 
         /// <summary>Sets how fast <paramref name="input"/> turns the camera, clamped to the allowed range.</summary>
-        public static void SetCameraSpeed(CameraInput input, float speed) =>
+        public static void SetCameraSpeed(InputKind input, float speed) =>
             Save(() => PlayerPrefs.SetFloat(CameraSpeedKey(input), Mathf.Clamp(speed, MinCameraSpeed, MaxCameraSpeed)));
 
-        private static string CameraSpeedKey(CameraInput input) => "cameraSpeed" + input;
+        private static string CameraSpeedKey(InputKind input) => "cameraSpeed" + input;
 
         private static void Save(System.Action set)
         {

@@ -10,9 +10,11 @@ using UnityEngine.UIElements;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the Change
-    /// Look, Return to Spawn, chat and network stats buttons (Change Look, or C, brings up the join card; Esc closes
-    /// it), and the respawn fade over the whole screen. The chat
+    /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the menu, Change
+    /// Look, Return to Spawn, chat and network stats buttons (Change Look, or C, brings up the join card), the Esc menu
+    /// (<see cref="GameMenu"/>) and its first-time hint, and the respawn fade over the whole screen. Esc or gamepad Start
+    /// closes the chat input first, then the look card, else opens the menu (in it, Esc goes back a step and Start
+    /// closes it). The chat
     /// (<see cref="Chat"/>), name tags (<see cref="NameTags"/>) and network numbers (<see cref="NetStats"/>) are
     /// components beside it on the same object.
     /// </summary>
@@ -27,7 +29,10 @@ namespace ShapeLand.Client
         private Chat _chat;
         private TouchControls _touch;
         private NetStats _stats;
+        private GameMenu _menu;
         private VisualElement _lookButton;
+        private VisualElement _menuButton;
+        private VisualElement _hint;
         // Chat that was open when the look card came up, and what was typed in it: it reopens once the card closes.
         private bool _reopenChat;
         private string _chatDraft;
@@ -49,6 +54,9 @@ namespace ShapeLand.Client
 
         /// <summary>True while the join card is up over the game.</summary>
         public bool CardShowing => card.Showing;
+
+        /// <summary>True while the Esc menu is up, and on the frame it closed (<see cref="GameMenu.Blocking"/>).</summary>
+        public bool MenuBlocking => _menu != null && _menu.Blocking;
 
         // On a phone the interface scales from a smaller design size than the panel settings' (960 x 600), so a panel
         // pixel is about a CSS pixel there and text stays readable; the join card still fits a small phone held
@@ -74,12 +82,17 @@ namespace ShapeLand.Client
             _stats = GetComponent<NetStats>();
             _lookButton = tree.Q("look-button");
             ((Button)_lookButton).clicked += ToggleLook;
+            _menuButton = tree.Q("menu-button");
+            ((Button)_menuButton).clicked += ToggleMenu;
+            _hint = tree.Q("menu-hint");
+            _root.EnableInClassList("phone", WebPage.IsPhone);
             // The other buttons close the look card first.
             tree.Q<Button>("return-button").clicked += () => { CloseLook(); ReturnToSpawn(); };
             tree.Q<Button>("chat-button").clicked += () => { CloseLook(); _chat.Toggle(); };
             tree.Q<Button>("stats-button").clicked += () => { CloseLook(); _stats.Toggle(); };
-            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
+            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe") };
             _touch = new TouchControls(_root, view.OrbitCamera);
+            _menu = new GameMenu(this, tree);
 
             join.ContentLoaded += OnContentLoaded;
             join.OwnSpawned += OnOwnSpawned;
@@ -110,12 +123,13 @@ namespace ShapeLand.Client
 
         private void OnConnectionLost(CloseReason reason)
         {
+            _menu.Close();
             _root.AddToClassList("hidden");
         }
 
         private void Update()
         {
-            _touch?.Update(Shown && view.Player != null && view.Player.InputEnabled);
+            _touch?.Update(Shown && view.Player != null && view.Player.InputEnabled, _menu.Open);
 
             if (!Shown)
             {
@@ -129,37 +143,66 @@ namespace ShapeLand.Client
 
             // The look card hides chat and the network numbers while it's up.
             _lookButton.EnableInClassList("on", card.Changing);
+            _menuButton.EnableInClassList("on", _menu.Open);
+            _hint.EnableInClassList("hidden", _menu.EverOpened || _menu.Open || CardShowing);
             _chat.Box.EnableInClassList("hidden", card.Changing);
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
             ReopenChat();
 
-            // Esc closes the chat input first (Chat); a press clear of that closes the card but never opens it. C typed
-            // in the card's name field is just a letter.
-            var changeLook = view.Controls.Game.ChangeLook;
-            if (changeLook.WasPressedThisFrame())
+            // Esc closes the chat input itself (Chat), so a press just after that is left alone.
+            var menu = view.Controls.Game.Menu;
+            if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
             {
                 if (card.Changing)
                 {
-                    if (!(card.Typing && changeLook.activeControl is KeyControl { keyCode: Key.C }))
+                    CloseLook();
+                }
+                else if (!_menu.Open)
+                {
+                    _menu.Show();
+                }
+                else if (menu.activeControl is KeyControl)
+                {
+                    _menu.Back();
+                }
+                else
+                {
+                    _menu.Close();
+                }
+            }
+            else
+            {
+                _menu.Update(view.Controls.Menu, _touch.Input);
+            }
+
+            if (!_menu.Blocking)
+            {
+                // C typed in the card's name field is just a letter.
+                var changeLook = view.Controls.Game.ChangeLook;
+                if (changeLook.WasPressedThisFrame())
+                {
+                    if (card.Changing)
                     {
-                        card.Cancel();
+                        if (!card.Typing)
+                        {
+                            card.Cancel();
+                        }
+                    }
+                    else if (!_chat.Open && !_chat.JustToggled)
+                    {
+                        OpenLook();
                     }
                 }
-                else if (!_chat.Open && !_chat.JustToggled &&
-                         changeLook.activeControl is not KeyControl { keyCode: Key.Escape })
+
+                if (view.Controls.Game.ReturnToSpawn.WasPressedThisFrame())
                 {
-                    OpenLook();
+                    ReturnToSpawn();
                 }
-            }
 
-            if (view.Controls.Game.ReturnToSpawn.WasPressedThisFrame())
-            {
-                ReturnToSpawn();
-            }
-
-            if (view.Controls.Game.ShowThroughWalls.WasPressedThisFrame() && !_chat.Open && !card.Typing)
-            {
-                view.ShowThroughWalls = !view.ShowThroughWalls;
+                if (view.Controls.Game.ShowThroughWalls.WasPressedThisFrame() && !_chat.Open && !card.Typing)
+                {
+                    view.ShowThroughWalls = !view.ShowThroughWalls;
+                }
             }
 
             UpdateMoving();
@@ -217,6 +260,20 @@ namespace ShapeLand.Client
             UpdateMoving();
         }
 
+        // The menu button: opens the menu, closing the look card first, or closes it.
+        private void ToggleMenu()
+        {
+            if (_menu.Open)
+            {
+                _menu.Close();
+                return;
+            }
+
+            CloseLook();
+            _menu.Show();
+            UpdateMoving();
+        }
+
         // The look button: brings the card up, or closes it.
         private void ToggleLook()
         {
@@ -253,12 +310,12 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Stops the shape while the player types or chooses a look.</summary>
+        /// <summary>Stops the shape while the player types, chooses a look or is in the menu.</summary>
         public void UpdateMoving()
         {
             if (view.Player != null)
             {
-                view.Player.InputEnabled = !_chat.Open && !CardShowing;
+                view.Player.InputEnabled = !_chat.Open && !CardShowing && !MenuBlocking;
             }
         }
     }

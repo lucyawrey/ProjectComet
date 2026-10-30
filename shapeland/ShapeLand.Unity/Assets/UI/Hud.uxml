@@ -1,4 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Template name="Menu" src="Menu.uxml" />
     <Style src="ShapeLand.uss" />
     <ui:VisualElement name="hud" class="hud hidden" picking-mode="Ignore">
         <ui:VisualElement name="touch" class="touch hidden" picking-mode="Ignore">
@@ -25,6 +26,13 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="hud-buttons" class="hud-row" picking-mode="Ignore">
+                <ui:Button name="menu-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-menu" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.menu" picking-mode="Ignore" />
+                        <ui:Label text="#hud.menu_key" class="hud-tip-key" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
                 <ui:Button name="look-button" class="hud-button" focusable="false">
                     <ui:VisualElement class="hud-icon icon-look" picking-mode="Ignore" />
                     <ui:VisualElement class="hud-tip" picking-mode="Ignore">
@@ -53,6 +61,15 @@
                         <ui:Label text="#hud.stats_key" class="hud-tip-key" picking-mode="Ignore" />
                     </ui:VisualElement>
                 </ui:Button>
+                <ui:VisualElement name="menu-hint" class="menu-hint hidden" picking-mode="Ignore">
+                    <ui:VisualElement class="menu-hint-arrow" picking-mode="Ignore" />
+                    <ui:VisualElement class="menu-hint-box" picking-mode="Ignore">
+                        <ui:Label text="#menu.key_esc" class="key keys-part" picking-mode="Ignore" />
+                        <ui:Label text="#menu.pad_start" class="pad-word pad-part" picking-mode="Ignore" />
+                        <ui:VisualElement class="menu-hint-icon icon-menu touch-part" picking-mode="Ignore" />
+                        <ui:Label text="#menu.hint" class="menu-hint-text" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
                 <ui:VisualElement class="net-row" picking-mode="Ignore">
@@ -100,5 +117,6 @@
                 <ui:Label text="#stats.foot_touch" class="net-foot touch-only" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
+        <ui:Instance template="Menu" name="menu-host" class="menu-host" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>
