@@ -5,8 +5,8 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// A third-person camera orbiting the player: the mouse turns it while the right button is held, the right
-    /// stick turns it always. It stays above the ground, and moves in front of a block that would come between it
-    /// and the player, easing back out once the view is clear. Its numbers are placeholders, adjusted by playing;
+    /// stick turns it always. It stays above the ground but keeps its distance through blocks and props, which are
+    /// culled from inside; the player's own shape shows through what hides it (<see cref="ShapeBody.ShowThroughWalls"/>). Its numbers are placeholders, adjusted by playing;
     /// the values that count are the ones on the camera in the Game scene.
     /// </summary>
     public sealed class OrbitCamera : MonoBehaviour
@@ -29,12 +29,6 @@ namespace ShapeLand.Client
         [Tooltip("The least height kept above the ground, in meters.")]
         [SerializeField] private float groundClearance = 0.3f;
 
-        [Tooltip("The least distance kept from blocks, in meters: more than the near clip plane reaches, so their sides aren't cut open.")]
-        [SerializeField] private float blockClearance = 0.2f;
-
-        [Tooltip("How fast the camera moves back out after a block stops being in the way, in meters per second.")]
-        [SerializeField] private float zoomOutSpeed = 6f;
-
         [Tooltip("Before joining: distance, pitch and turning speed (degrees per second) of the slow orbit around the island.")]
         [SerializeField] private Vector3 showcase = new Vector3(30, 25, 6);
 
@@ -42,7 +36,6 @@ namespace ShapeLand.Client
         [SerializeField] private float showcaseGlideSeconds = 0.4f;
 
         private float _pitch = 20;
-        private float _distance;
         private ShapeLandControls _controls;
         private Vector2 _touchTurn;
         private CollisionWorld _world;
@@ -104,7 +97,6 @@ namespace ShapeLand.Client
             _controls = controls;
             _world = world;
             Yaw = target.eulerAngles.y;
-            _distance = distance;
         }
 
         private void LateUpdate()
@@ -143,16 +135,7 @@ namespace ShapeLand.Client
             }
 
             var look = followed + Vector3.up * lookHeight;
-            // Pull in at once when a block is in the way, so it never shows from inside; ease back out.
-            var back = rotation * Vector3.back;
-            var wanted = distance;
-            if (_world != null && _world.Raycast(Vectors.ToNumerics(look), Vectors.ToNumerics(back), distance, blockClearance, out var hit))
-            {
-                wanted = hit;
-            }
-
-            _distance = wanted < _distance ? wanted : Mathf.MoveTowards(_distance, wanted, zoomOutSpeed * Time.unscaledDeltaTime);
-            var position = look + back * _distance;
+            var position = look + rotation * Vector3.back * distance;
             if (_world != null && _world.TryGetTerrainHeight(position.x, position.z, position.y + 1000, out var ground) && position.y < ground + groundClearance)
             {
                 position.y = ground + groundClearance;

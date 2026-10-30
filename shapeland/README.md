@@ -106,7 +106,7 @@ Each shape's `look` (in `content/shapes/<shape>.toml`) is a group of primitives 
 
 ### The camera: the Camera object in the Game scene
 
-`OrbitCamera` holds its distance, look height, turning speeds, pitch limits and how far it keeps from the ground and blocks. Change them in the inspector: the values saved in `Assets/Scenes/Game.unity` win over the defaults in `OrbitCamera.cs`.
+`OrbitCamera` holds its distance, look height, turning speeds, pitch limits and how far it keeps from the ground. Change them in the inspector: the values saved in `Assets/Scenes/Game.unity` win over the defaults in `OrbitCamera.cs`.
 
 ### Server leniency: `MovementTolerances` in `comet/src/Comet.Server/Movement/MovementValidator.cs`
 

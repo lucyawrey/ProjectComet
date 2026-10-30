@@ -42,6 +42,10 @@ namespace ShapeLand.Client
         [SerializeField] private Material shapeFadeMaterial;
         [Tooltip("The transparent material eyes fade with.")]
         [SerializeField] private Material eyesFadeMaterial;
+        [Tooltip("Marks where the player's own shape is in sight, before its silhouette draws (Comet's Silhouette shader).")]
+        [SerializeField] private Material shapeMaskMaterial;
+        [Tooltip("The player's own shape where blocks, props or terrain hide it; its color is set from the body's, its alpha is the opacity.")]
+        [SerializeField] private Material shapeSilhouetteMaterial;
         [SerializeField] private OrbitCamera orbitCamera;
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
@@ -565,15 +569,16 @@ namespace ShapeLand.Client
 
             Player.name = $"{spawn.Name} (you)";
             _playerShape = BuildShape(shape, spawn.Color, spawn.EyeColor, Player.transform);
+            _playerShape.ShowThroughWalls(shapeMaskMaterial, shapeSilhouetteMaterial);
         }
 
-        // Draws the fade materials once, out of sight, so their shaders are ready (compiled) before a shape first fades,
-        // rather than hitching then. (A freshly opened editor still shows its cyan placeholder on the first fade.)
+        // Draws the fade and silhouette materials once, out of sight, so their shaders are ready (compiled) before a
+        // shape first fades or hides behind something, rather than hitching then. (A freshly opened editor still shows its cyan placeholder on the first fade.)
         private void WarmUpFades()
         {
             _warmUpMesh ??= new Mesh { name = "Fade warm-up", vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f }, triangles = new[] { 0, 1, 2 } };
             var place = Matrix4x4.Translate(Camera.transform.position + Camera.transform.forward * (Camera.nearClipPlane * 2));
-            foreach (var material in new[] { shapeFadeMaterial, eyesFadeMaterial })
+            foreach (var material in new[] { shapeFadeMaterial, eyesFadeMaterial, shapeMaskMaterial, shapeSilhouetteMaterial })
             {
                 if (material != null)
                 {
