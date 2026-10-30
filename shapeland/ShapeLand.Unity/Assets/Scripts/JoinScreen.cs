@@ -49,8 +49,8 @@ namespace ShapeLand.Client
         private VisualElement _serverField;
         private ShapePreview _preview;
         private float? _lostAt;
-        // Keys and gamepad: the rows they move through (name, shape, color, eyes, server, buttons), the selected one,
-        // the selected button on the buttons row, and the held direction's repeat.
+        // Keys and gamepad: the rows they move through (name, shape, color, eyes, then the bottom line of server field
+        // and buttons), the selected one, the selected item on the bottom line, and the held direction's repeat.
         private VisualElement[] _rows;
         private VisualElement _buttonsRow;
         private int _row;
@@ -148,11 +148,17 @@ namespace ShapeLand.Client
             _backButton.clicked += Back;
             _serverField = tree.Q("server-field");
             _buttonsRow = _joinButton.parent;
-            _rows = _root.Query(className: "nav-row").ToList().Append(_buttonsRow).ToArray();
-            for (var i = 0; i < _rows.Length; i++)
+            // The server field shares the bottom line with the buttons, and is one of its items.
+            _rows = _root.Query(className: "nav-row").Where(row => row != _serverField).ToList().Append(_buttonsRow).ToArray();
+            for (var i = 0; i < _rows.Length - 1; i++)
             {
                 var row = i;
                 _rows[i].RegisterCallback<PointerDownEvent>(_ => SelectRow(row), TrickleDown.TrickleDown);
+            }
+
+            foreach (var item in new[] { _serverField, _cancelButton, _joinButton })
+            {
+                item.RegisterCallback<PointerDownEvent>(_ => SelectItem(item), TrickleDown.TrickleDown);
             }
 
             _root.EnableInClassList("phone", WebPage.IsPhone);
@@ -663,25 +669,31 @@ namespace ShapeLand.Client
                 _rows[i].EnableInClassList("selected", i == row && _rows[i] != _buttonsRow);
             }
 
-            var buttons = Buttons();
-            _buttonIndex = Mathf.Clamp(_buttonIndex, 0, Mathf.Max(0, buttons.Count - 1));
-            if (_rows[row] == _buttonsRow)
-            {
-                _buttonIndex = buttons.Count - 1; // Join or Apply
-            }
-
-            MarkButton();
+            _buttonIndex = Items().Count - 1; // Join or Apply
+            MarkItem();
         }
 
-        // The buttons row's visible buttons, left to right.
-        private List<Button> Buttons() => new[] { _cancelButton, _joinButton }.Where(Usable).ToList();
+        // The bottom line's visible items, left to right: the server field (desktop builds), Cancel and Join or Apply.
+        private List<VisualElement> Items() => new[] { _serverField, _cancelButton, _joinButton }.Where(Usable).ToList();
 
-        private void MarkButton()
+        private void SelectItem(VisualElement item)
         {
-            var buttons = Buttons();
-            foreach (var button in new[] { _cancelButton, _joinButton })
+            _row = _rows.Length - 1;
+            foreach (var row in _rows)
             {
-                button.EnableInClassList("selected", _rows[_row] == _buttonsRow && buttons.IndexOf(button) == _buttonIndex);
+                row.RemoveFromClassList("selected");
+            }
+
+            _buttonIndex = Mathf.Max(0, Items().IndexOf(item));
+            MarkItem();
+        }
+
+        private void MarkItem()
+        {
+            var items = Items();
+            foreach (var item in new[] { _serverField, _cancelButton, _joinButton })
+            {
+                item.EnableInClassList("selected", _rows[_row] == _buttonsRow && items.IndexOf(item) == _buttonIndex);
             }
         }
 
@@ -691,8 +703,8 @@ namespace ShapeLand.Client
             var row = _rows[_row];
             if (row == _buttonsRow)
             {
-                _buttonIndex = Mathf.Clamp(_buttonIndex + by, 0, Buttons().Count - 1);
-                MarkButton();
+                _buttonIndex = Mathf.Clamp(_buttonIndex + by, 0, Items().Count - 1);
+                MarkItem();
                 return;
             }
 
@@ -717,14 +729,14 @@ namespace ShapeLand.Client
             {
                 _root.focusController?.focusedElement?.Blur();
             }
-            else if (row.Q<TextField>() is { } field)
-            {
-                field.Focus();
-            }
             else if (row == _buttonsRow)
             {
-                var buttons = Buttons();
-                if (buttons[_buttonIndex] == _cancelButton)
+                var item = Items()[_buttonIndex];
+                if (item == _serverField)
+                {
+                    _server.Focus();
+                }
+                else if (item == _cancelButton)
                 {
                     Cancel();
                 }
@@ -732,6 +744,10 @@ namespace ShapeLand.Client
                 {
                     Submit();
                 }
+            }
+            else if (row.Q<TextField>() is { } field)
+            {
+                field.Focus();
             }
             else
             {
