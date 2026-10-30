@@ -8,7 +8,8 @@ namespace ShapeLand.Client
     /// A player's drawn shape, at the player's feet, built from its look (a group, <see cref="GameView.BuildShape"/>):
     /// parts with the role <c>body</c> in the player's color, <c>eyes</c> in their eye color, others in their own, and
     /// how far the shape has faded. While it fades it swaps to transparent copies of its materials (made the first
-    /// time), which cast no shadow; fully visible, it's drawn opaque as usual. The materials it makes are freed with it.
+    /// time), which cast no shadow; fully visible, it's drawn opaque as usual. Shown through walls, it's also drawn in
+    /// its body color wherever something hides it. The materials it makes are freed with it.
     /// </summary>
     public sealed class ShapeBody : MonoBehaviour
     {
@@ -21,11 +22,17 @@ namespace ShapeLand.Client
             public Material FadeTemplate;
             public Material Opaque;
             public Material Fade;
+            public readonly Material[] Alone = new Material[1];
+            public readonly Material[] WithSilhouette = new Material[3];
         }
 
         private readonly List<Part> _parts = new List<Part>();
         private Transform _look;
         private float _faded;
+        private Color _bodyColor;
+        private Material _mask;
+        private Material _silhouetteTemplate;
+        private Material _silhouette;
 
         /// <summary>The body's renderers (role <c>body</c>).</summary>
         public IReadOnlyList<MeshRenderer> Body => _parts.Where(p => p.Role == "body").Select(p => p.Renderer).ToList();
@@ -79,23 +86,49 @@ namespace ShapeLand.Client
             part.layer = gameObject.layer;
             part.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = part.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = material;
-            _parts.Add(new Part { Renderer = renderer, Role = role, Own = own, Template = material, FadeTemplate = fadeMaterial });
+            var added = new Part { Renderer = renderer, Role = role, Own = own, Template = material, FadeTemplate = fadeMaterial };
+            _parts.Add(added);
+            Draw(added, material);
         }
 
         /// <summary>Colors the body and eyes, each as 0xRRGGBB; other parts keep their own color.</summary>
         public void SetColors(uint bodyColor, uint eyeColor)
         {
             FreeMaterials();
+            _bodyColor = GameView.Color(bodyColor);
             foreach (var part in _parts)
             {
                 var color = part.Role == "body" ? GameView.Color(bodyColor) : part.Role == "eyes" ? GameView.Color(eyeColor) : part.Own;
                 part.Opaque = new Material(part.Template) { color = color };
-                part.Renderer.sharedMaterial = part.Opaque;
+                Draw(part, part.Opaque);
                 part.Renderer.enabled = true;
             }
 
             _faded = 0;
+            ColorSilhouette();
+        }
+
+        /// <summary>
+        /// Draws the shape wherever blocks, props or terrain hide it, flat in its body color at
+        /// <paramref name="silhouette"/>'s opacity, after <paramref name="mask"/> marks where it's in sight (the
+        /// two materials of Comet's Silhouette shader); with null materials it stops.
+        /// </summary>
+        public void ShowThroughWalls(Material mask, Material silhouette)
+        {
+            if (_silhouette != null)
+            {
+                Destroy(_silhouette);
+            }
+
+            _mask = mask;
+            _silhouetteTemplate = silhouette;
+            _silhouette = mask != null && silhouette != null ? new Material(silhouette) : null;
+            foreach (var part in _parts)
+            {
+                Draw(part, part.Renderer.sharedMaterial);
+            }
+
+            ColorSilhouette();
         }
 
         /// <summary>Turns off shadows and moves the shape's parts to <paramref name="layer"/>, as the join card's preview does.</summary>
@@ -121,7 +154,7 @@ namespace ShapeLand.Client
                 part.Renderer.enabled = faded < 1;
                 if (faded <= 0)
                 {
-                    part.Renderer.sharedMaterial = part.Opaque;
+                    Draw(part, part.Opaque);
                     continue;
                 }
 
@@ -133,7 +166,34 @@ namespace ShapeLand.Client
                 var color = part.Fade.color;
                 color.a = 1 - faded;
                 part.Fade.color = color;
-                part.Renderer.sharedMaterial = part.Fade;
+                Draw(part, part.Fade);
+            }
+
+            ColorSilhouette();
+        }
+
+        // The silhouette's materials draw the part's one submesh again, after its own. The arrays are reused, since
+        // fading redraws every frame.
+        private void Draw(Part part, Material material)
+        {
+            if (_silhouette == null)
+            {
+                part.Alone[0] = material;
+                part.Renderer.sharedMaterials = part.Alone;
+                return;
+            }
+
+            part.WithSilhouette[0] = material;
+            part.WithSilhouette[1] = _mask;
+            part.WithSilhouette[2] = _silhouette;
+            part.Renderer.sharedMaterials = part.WithSilhouette;
+        }
+
+        private void ColorSilhouette()
+        {
+            if (_silhouette != null)
+            {
+                _silhouette.color = new Color(_bodyColor.r, _bodyColor.g, _bodyColor.b, _silhouetteTemplate.color.a * (1 - _faded));
             }
         }
 
@@ -155,6 +215,13 @@ namespace ShapeLand.Client
             }
         }
 
-        private void OnDestroy() => FreeMaterials();
+        private void OnDestroy()
+        {
+            FreeMaterials();
+            if (_silhouette != null)
+            {
+                Destroy(_silhouette);
+            }
+        }
     }
 }
