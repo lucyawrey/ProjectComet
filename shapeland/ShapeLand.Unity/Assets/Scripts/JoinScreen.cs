@@ -310,8 +310,8 @@ namespace ShapeLand.Client
             _server.value = RememberedServer();
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
             ShowStartZone(glide: false);
-            _color = Remembered(ColorKey, _content.Settings.Colors.Body);
-            _eyeColor = Remembered(EyesKey, _content.Settings.Colors.Eyes);
+            _color = Remembered(ColorKey, _content.Settings.Colors.Players);
+            _eyeColor = Remembered(EyesKey, _content.Settings.Colors.Players);
 
             foreach (var shape in content.Shapes.All)
             {
@@ -330,8 +330,8 @@ namespace ShapeLand.Client
                 _shapes.Add(button);
             }
 
-            AddSwatches(_colors, _content.Settings.Colors.Body, color => _color = color);
-            AddSwatches(_eyes, _content.Settings.Colors.Eyes, color => _eyeColor = color);
+            AddSwatches(_colors, _content.Settings.Colors.Players, color => _color = color);
+            AddSwatches(_eyes, _content.Settings.Colors.Players, color => _eyeColor = color);
             Show();
             FocusName();
             if (WebPage.TakeRejoin())

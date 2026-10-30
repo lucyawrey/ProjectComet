@@ -49,9 +49,9 @@ facet_length = 0.5 # about how long each side is, in meters
 min_sides = 6 # the fewest sides, however small
 max_sides = 48 # the most sides, however large
 
-# The colors players pick from. Placeholders: the final sets are the project lead's.
+# The colors players pick from, for both body and eyes. Placeholders: the final set is the project lead's.
 [colors]
-body = [
+players = [
   0xE53935, # red
   0x1E88E5, # blue
   0xFDD835, # yellow
@@ -60,8 +60,6 @@ body = [
   0x8E24AA, # purple
   0x00ACC1, # cyan
   0xEC407A, # pink
-]
-eyes = [
   0x16161C, # ink
   0xFFFFFF, # white
   0x5D4037, # brown

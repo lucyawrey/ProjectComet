@@ -41,8 +41,8 @@ namespace ShapeLand.Client.Tests
 
             Field("name").value = "Pebble";
             Click(ShapeButton("shape.cube"));
-            Click(Swatch("colors", Join.Content.Settings.Colors.Body[1]));
-            Click(Swatch("eyes", Join.Content.Settings.Colors.Eyes[3]));
+            Click(Swatch("colors", Join.Content.Settings.Colors.Players[1]));
+            Click(Swatch("eyes", Join.Content.Settings.Colors.Players[3]));
             // From content, so tuning the cube doesn't break the test.
             var cube = Join.Content.Shapes.All.First(shape => shape.Id == "shape.cube");
             var (_, jump) = JoinScreen.Stats(cube, Join.Content.Movement);
@@ -61,8 +61,8 @@ namespace ShapeLand.Client.Tests
             var spawn = Join.Spawn.Value;
             Assert.That(spawn.Name, Is.EqualTo("Pebble"));
             Assert.That(Join.Content.Shapes[spawn.Shape].Id, Is.EqualTo("shape.cube"));
-            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Body[1]));
-            Assert.That(spawn.EyeColor, Is.EqualTo(Join.Content.Settings.Colors.Eyes[3]));
+            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Players[1]));
+            Assert.That(spawn.EyeColor, Is.EqualTo(Join.Content.Settings.Colors.Players[3]));
 
             // The overlay fills the screen next to the join screen (a nested UIDocument once gave it no height).
             yield return null;
@@ -167,7 +167,7 @@ namespace ShapeLand.Client.Tests
             Hud.OpenLook();
             Field("name").value = "Pebbles";
             Click(ShapeButton("shape.diamond"));
-            Click(Swatch("colors", Join.Content.Settings.Colors.Body[2]));
+            Click(Swatch("colors", Join.Content.Settings.Colors.Players[2]));
             var at = player.transform.position;
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => !Screen.Showing || Screen.Error != null, 10);
@@ -177,7 +177,7 @@ namespace ShapeLand.Client.Tests
             var spawn = View.Spawns[id];
             Assert.That(spawn.Name, Is.EqualTo("Pebbles"));
             Assert.That(Join.Content.Shapes[spawn.Shape].Id, Is.EqualTo("shape.diamond"));
-            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Body[2]));
+            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Players[2]));
             Assert.That(Vector3.Distance(player.transform.position, at), Is.LessThan(0.5f), "The player moved.");
             Assert.That(player.name, Is.EqualTo("Pebbles (you)"));
         }

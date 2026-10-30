@@ -81,8 +81,8 @@ namespace ShapeLand.Client.Tests
         {
             Name = "Unity test",
             Shape = join.Content.Shapes.All[0].Number,
-            Color = join.Content.Settings.Colors.Body[0],
-            EyeColor = join.Content.Settings.Colors.Eyes[0],
+            Color = join.Content.Settings.Colors.Players[0],
+            EyeColor = join.Content.Settings.Colors.Players[0],
         });
 
         private static IEnumerator WaitForJoin(JoinClient join)
