@@ -15,8 +15,16 @@
     color: rgb(238, 241, 246);
 }
 .backdrop.hidden, .backdrop.waiting { display: none; }
-/* Changing the look in game: the card sits over the game without dimming it, and the HUD around it stays usable. */
-.backdrop.changing { background-color: rgba(0, 0, 0, 0); }
+/* Changing the look in game: the game dims as behind the Esc menu, the card takes the menu window's look with its
+   page header (Back only when opened from the menu), and the HUD around it stays usable. */
+.backdrop.changing { background-color: rgba(8, 12, 22, 0.55); }
+.backdrop.changing .card {
+    background-color: rgba(16, 20, 28, 0.96);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
+}
+.look-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
+.backdrop.changing .look-head { display: flex; }
+.backdrop.changing .join-title { display: none; }
 
 .card {
     width: 580px;
@@ -193,6 +201,9 @@ Label { padding: 0; margin: 0; }
     border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 3px;
     -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
 }
+/* A tip's key is the keyboard's (.keys-part) or the gamepad's (.pad-part, a rounded pill like the menu's); buttons
+   with no gamepad binding show none on a pad. */
+.hud-tip-pad { border-radius: 8px; padding: 0 6px; }
 
 .name-tag {
     position: absolute; translate: -50% -100%;
@@ -446,9 +457,8 @@ Label { padding: 0; margin: 0; }
 .hud.pad-input .menu .prompt.tabs-prompt.keys-part, .hud.touch-input .menu .prompt.tabs-prompt.keys-part { display: none; }
 .hud.pad-input .menu.on-controls .prompt.tabs-prompt.pad-part { display: flex; }
 
-/* First time in the game: the menu button's tip stays up, outlined, until the menu is first opened (Hud). With a
-   gamepad or touch the key is left off, since Esc isn't theirs. */
+/* First time in the game: the menu button's tip stays up, outlined, until the menu is first opened (Hud). It names
+   the key for the input in use (Start on a gamepad, none for touch). */
 .hud-button.first-time .hud-tip, .hud.touch-input .hud-button.first-time .hud-tip {
     display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
 }
-.hud.pad-input .hud-button.first-time .hud-tip-key, .hud.touch-input .hud-button.first-time .hud-tip-key { display: none; }

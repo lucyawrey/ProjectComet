@@ -151,7 +151,12 @@ namespace ShapeLand.Client
             var menu = view.Controls.Game.Menu;
             if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
             {
-                if (card.Changing)
+                if (card.FromMenu)
+                {
+                    _reopenChat = false;
+                    card.Back();
+                }
+                else if (card.Changing)
                 {
                     CloseLook();
                 }
@@ -244,8 +249,11 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Brings up the card to change name, shape and colors, putting an open chat away until it closes.</summary>
-        public void OpenLook()
+        /// <summary>
+        /// Brings up the card to change name, shape and colors, putting an open chat away until it closes. From the Esc
+        /// menu (<paramref name="fromMenu"/>), the card's Back returns to the menu.
+        /// </summary>
+        public void OpenLook(bool fromMenu = false)
         {
             if (_chat.Open)
             {
@@ -254,7 +262,7 @@ namespace ShapeLand.Client
                 _chat.CloseInput();
             }
 
-            card.OpenChange();
+            card.OpenChange(fromMenu ? _menu.ShowAtChangeLook : null);
             UpdateMoving();
         }
 

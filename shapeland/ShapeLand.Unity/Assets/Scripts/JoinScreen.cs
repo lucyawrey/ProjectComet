@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Comet.Client;
@@ -42,6 +43,9 @@ namespace ShapeLand.Client
         private Label _error;
         private Button _joinButton;
         private Button _cancelButton;
+        private Button _backButton;
+        // Where Back goes, when the card was opened from the Esc menu.
+        private Action _back;
         private VisualElement _serverField;
         private ShapePreview _preview;
         private float? _lostAt;
@@ -128,6 +132,8 @@ namespace ShapeLand.Client
             _joinButton.clicked += Submit;
             _cancelButton = tree.Q<Button>("cancel-button");
             _cancelButton.clicked += Cancel;
+            _backButton = tree.Q<Button>("look-back");
+            _backButton.clicked += Back;
             _serverField = tree.Q("server-field");
             _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             SetChanging(false);
@@ -144,7 +150,14 @@ namespace ShapeLand.Client
 #else
             _serverField.EnableInClassList("hidden", changing);
 #endif
-            _cancelButton.EnableInClassList("hidden", !changing);
+            if (!changing)
+            {
+                _back = null;
+            }
+
+            // Opened from the Esc menu, Back stands in for Cancel.
+            _cancelButton.EnableInClassList("hidden", !changing || _back != null);
+            _backButton.EnableInClassList("hidden", _back == null);
             SetButton(true, changing ? "join.apply" : "join.join");
         }
 
@@ -170,14 +183,21 @@ namespace ShapeLand.Client
             _root.RemoveFromClassList("hidden");
         }
 
-        /// <summary>Brings the card up over the game, filled in with the player's current look, to change it.</summary>
-        public void OpenChange()
+        /// <summary>True while the card is up to change the look and was opened from the Esc menu.</summary>
+        public bool FromMenu => Changing && _back != null;
+
+        /// <summary>
+        /// Brings the card up over the game, filled in with the player's current look, to change it. Given
+        /// <paramref name="back"/> (opened from the Esc menu), the card has Back, which closes it and calls that.
+        /// </summary>
+        public void OpenChange(Action back = null)
         {
             if (Showing || !_join.Joined || _join.Spawn is not PlayerSpawn spawn)
             {
                 return;
             }
 
+            _back = back;
             SetChanging(true);
             _name.value = spawn.Name;
             _shape = _content.Shapes[spawn.Shape];
@@ -191,6 +211,14 @@ namespace ShapeLand.Client
         // over the card before the player has looked at it. Focused once no key is down, or the key that brought the
         // card up would type.
         private void FocusName() => _focusNamePending = !WebPage.IsPhone;
+
+        /// <summary>Closes the card without changing the look and goes back to the Esc menu, if it came from there.</summary>
+        public void Back()
+        {
+            var back = FromMenu ? _back : null;
+            Cancel();
+            back?.Invoke();
+        }
 
         /// <summary>Closes the card without changing the look.</summary>
         public void Cancel()

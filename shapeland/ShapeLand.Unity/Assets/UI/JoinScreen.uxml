@@ -2,7 +2,14 @@
     <Style src="ShapeLand.uss" />
     <ui:VisualElement name="join" class="backdrop hidden">
         <ui:VisualElement class="card">
-            <ui:Label text="#join.title" class="title" />
+            <ui:Label text="#join.title" class="title join-title" />
+            <ui:VisualElement class="look-head">
+                <ui:Button name="look-back" class="menu-back" focusable="false">
+                    <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
+                    <ui:Label text="#menu.back" picking-mode="Ignore" />
+                </ui:Button>
+                <ui:Label text="#menu.change_look" class="menu-page-name" />
+            </ui:VisualElement>
             <ui:VisualElement class="body">
                 <ui:VisualElement class="fields">
                     <ui:VisualElement class="field">

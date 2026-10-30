@@ -26,6 +26,10 @@ namespace ShapeLand.Client
         private const float SpeedStep = 0.05f;
         private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
         private const float RowHeight = 42;
+        private const int ChangeLookEntry = 3;
+
+        /// <summary>Opens the menu with Change Look selected: where Back on the look card returns to.</summary>
+        public void ShowAtChangeLook() => Show(ChangeLookEntry);
 
         private readonly Hud _hud;
         private readonly VisualElement _menu;
@@ -85,7 +89,7 @@ namespace ShapeLand.Client
                 Close,
                 () => ShowPage(Page.Controls),
                 () => ShowPage(Page.Settings),
-                () => { Close(); _hud.OpenLook(); },
+                () => { Close(); _hud.OpenLook(fromMenu: true); },
                 () => { Close(); _hud.ReturnToSpawn(); },
                 () => ShowPage(Page.Leave),
             };
@@ -145,8 +149,8 @@ namespace ShapeLand.Client
         /// <summary>Whether the player has ever opened the menu (remembered); until then the HUD keeps the menu button's tip up.</summary>
         public bool EverOpened { get; private set; }
 
-        /// <summary>Opens the menu at its list, with Resume selected.</summary>
-        public void Show()
+        /// <summary>Opens the menu at its list, with Resume (or the entry <paramref name="selected"/>) selected.</summary>
+        public void Show(int selected = 0)
         {
             Open = true;
             _menu.RemoveFromClassList("hidden");
@@ -157,7 +161,7 @@ namespace ShapeLand.Client
                 GameSettings.MenuOpened = true;
             }
 
-            ShowPage(Page.List);
+            ShowPage(Page.List, selected);
         }
 
         /// <summary>Closes the menu, whatever page it's on.</summary>
