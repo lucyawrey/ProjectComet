@@ -15,7 +15,6 @@
                     <ui:VisualElement name="name-row" class="field nav-row">
                         <ui:VisualElement class="label-row">
                             <ui:Label text="#join.name_label" class="label" />
-                            <ui:Label text="#join.name_hint" class="hint" />
                         </ui:VisualElement>
                         <ui:TextField name="name" max-length="16" class="input" />
                     </ui:VisualElement>

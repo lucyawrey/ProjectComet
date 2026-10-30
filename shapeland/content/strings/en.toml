@@ -4,7 +4,6 @@
 [join]
 title = "ShapeLand"
 name_label = "NAME"
-name_hint = "A name must be 1-16 characters and can only include a-z, 0-9, -, _ and spaces."
 shape_label = "SHAPE"
 color_label = "COLOR"
 eyes_label = "EYES"
