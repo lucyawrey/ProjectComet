@@ -55,6 +55,8 @@ namespace ShapeLand.Client
         private VisualElement _buttonsRow;
         private int _row;
         private int _buttonIndex;
+        // Up from the name row reaches Back, when the card has it (opened from the Esc menu).
+        private bool _onBack;
         private Vector2 _held;
         private float _repeatAt;
         private int _shownOnFrame;
@@ -647,6 +649,22 @@ namespace ShapeLand.Client
 
         private void MoveRow(int by)
         {
+            if (_onBack)
+            {
+                if (by > 0)
+                {
+                    SelectRow(0);
+                }
+
+                return;
+            }
+
+            if (by < 0 && _row == 0 && FromMenu)
+            {
+                SelectBack();
+                return;
+            }
+
             var row = _row;
             do
             {
@@ -661,8 +679,18 @@ namespace ShapeLand.Client
 
         private static bool Usable(VisualElement row) => !row.ClassListContains("hidden");
 
+        private void SelectBack()
+        {
+            SelectRow(0);
+            _onBack = true;
+            _rows[0].RemoveFromClassList("selected");
+            _backButton.AddToClassList("selected");
+        }
+
         private void SelectRow(int row)
         {
+            _onBack = false;
+            _backButton.RemoveFromClassList("selected");
             _row = row;
             for (var i = 0; i < _rows.Length; i++)
             {
@@ -701,6 +729,11 @@ namespace ShapeLand.Client
         private void Pick(int by)
         {
             var row = _rows[_row];
+            if (_onBack)
+            {
+                return;
+            }
+
             if (row == _buttonsRow)
             {
                 _buttonIndex = Mathf.Clamp(_buttonIndex + by, 0, Items().Count - 1);
@@ -728,6 +761,10 @@ namespace ShapeLand.Client
             if (typing)
             {
                 _root.focusController?.focusedElement?.Blur();
+            }
+            else if (_onBack)
+            {
+                Back();
             }
             else if (row == _buttonsRow)
             {

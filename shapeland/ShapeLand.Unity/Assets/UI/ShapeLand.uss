@@ -377,6 +377,8 @@ Label { padding: 0; margin: 0; }
     color: rgb(238, 241, 246); font-size: 13px;
 }
 .menu-back:hover { background-color: rgba(255, 255, 255, 0.06); }
+/* Back selected with keys or a gamepad (the menu's pages and the look card), outlined like the card's buttons. */
+.navigating .menu-back.selected { border-color: rgb(255, 255, 255); background-color: rgba(106, 161, 255, 0.2); }
 .menu-back-arrow {
     width: 7px; height: 7px; margin-right: 6px; rotate: 45deg;
     border-left-width: 2px; border-bottom-width: 2px; border-color: rgb(238, 241, 246);

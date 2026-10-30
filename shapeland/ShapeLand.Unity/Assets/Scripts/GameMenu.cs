@@ -64,6 +64,7 @@ namespace ShapeLand.Client
         private readonly VisualElement _list;
         private readonly VisualElement _confirm;
         private readonly VisualElement _window;
+        private readonly VisualElement _backButton;
         private readonly VisualElement _devices;
         private readonly ScrollView _scroll;
         private readonly VisualElement _settings;
@@ -166,7 +167,8 @@ namespace ShapeLand.Client
                 ((Button)tab).clicked += () => ShowTab(kind);
             }
 
-            root.Q<Button>("menu-back").clicked += Back;
+            _backButton = root.Q("menu-back");
+            ((Button)_backButton).clicked += Back;
             root.Q("menu-dim").RegisterCallback<PointerDownEvent>(_ => Close());
             _menu.RegisterCallback<PointerDownEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _menu.RegisterCallback<PointerMoveEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
@@ -338,12 +340,28 @@ namespace ShapeLand.Client
         {
             switch (_page)
             {
+                // Up from the top of a page reaches its Back button (selection -1); Controls scrolls until then.
                 case Page.Controls:
-                    _scroll.scrollOffset += new Vector2(0, by * RowHeight);
+                    if (_selected < 0)
+                    {
+                        if (by > 0)
+                        {
+                            Select(0);
+                        }
+                    }
+                    else if (by < 0 && _scroll.scrollOffset.y <= 0)
+                    {
+                        Select(-1);
+                    }
+                    else
+                    {
+                        _scroll.scrollOffset += new Vector2(0, by * RowHeight);
+                    }
+
                     break;
                 default:
                     var count = Rows().Length;
-                    Select(Mathf.Clamp(_selected + by, 0, count - 1));
+                    Select(Mathf.Clamp(_selected + by, _page == Page.Settings ? -1 : 0, count - 1));
                     break;
             }
         }
@@ -366,6 +384,12 @@ namespace ShapeLand.Client
 
         private void Submit()
         {
+            if (_selected < 0)
+            {
+                Back();
+                return;
+            }
+
             switch (_page)
             {
                 case Page.List:
@@ -466,7 +490,8 @@ namespace ShapeLand.Client
                 }
             }
 
-            if (_page == Page.Settings && index < rows.Length)
+            _backButton.EnableInClassList("selected", index < 0);
+            if (_page == Page.Settings && index >= 0 && index < rows.Length)
             {
                 _scroll.ScrollTo(rows[index]); // Settings scrolls on a short screen
             }
