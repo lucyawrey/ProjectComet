@@ -26,8 +26,6 @@ namespace ShapeLand.Client
         /// <summary>A layer the main camera doesn't draw, for the join screen's shape preview.</summary>
         public const int PreviewLayer = 31;
 
-        private const string ShowThroughWallsKey = "showThroughWalls";
-
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
         [SerializeField] private Material terrainMaterial;
         [Tooltip("The material placed objects are drawn with (their models' own are ignored).")]
@@ -108,11 +106,10 @@ namespace ShapeLand.Client
         /// <summary>Whether the player's own shape shows where something hides it (V); on unless turned off, and remembered.</summary>
         public bool ShowThroughWalls
         {
-            get => PlayerPrefs.GetInt(ShowThroughWallsKey, 1) == 1;
+            get => PlayerSettings.ShowThroughWalls;
             set
             {
-                PlayerPrefs.SetInt(ShowThroughWallsKey, value ? 1 : 0);
-                PlayerPrefs.Save(); // on the web, only a save keeps it past closing the tab
+                PlayerSettings.ShowThroughWalls = value;
                 ApplyShowThroughWalls();
             }
         }

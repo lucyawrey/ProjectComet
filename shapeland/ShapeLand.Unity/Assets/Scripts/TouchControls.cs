@@ -177,7 +177,8 @@ namespace ShapeLand.Client
             {
                 // Like the right mouse button's drag: up turns the camera as a mouse moved up does.
                 var delta = (Vector2)e.deltaPosition;
-                _camera.Turn(DragTurn(new Vector2(delta.x, -delta.y), _layer.resolvedStyle.height));
+                _camera.Turn(DragTurn(new Vector2(delta.x, -delta.y), _layer.resolvedStyle.height,
+                    DegreesPerScreenHeight * PlayerSettings.CameraSpeed(CameraInput.Touch)));
             }
         }
 

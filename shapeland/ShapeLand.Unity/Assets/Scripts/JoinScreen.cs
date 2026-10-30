@@ -418,12 +418,18 @@ namespace ShapeLand.Client
             Retry(message);
         }
 
-        // The card comes back with the reason, and the choices made before.
+        // The card comes back with the reason (none after leaving), and the choices made before.
         private void OnConnectionLost(CloseReason reason)
         {
             _lostAt = Time.unscaledTime;
             SetChanging(false);
             Show();
+            if (reason == CloseReason.None)
+            {
+                Retry(null);
+                return;
+            }
+
             if (reason == CloseReason.ServerShutDown)
             {
                 _rejoinUntil = Time.unscaledTime + RejoinSeconds;
