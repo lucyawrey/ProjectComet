@@ -24,11 +24,11 @@
                     </ui:VisualElement>
                     <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.color_label" class="label" />
-                        <ui:VisualElement name="colors" class="row" />
+                        <ui:VisualElement name="colors" class="row swatches" />
                     </ui:VisualElement>
                     <ui:VisualElement class="field nav-row">
                         <ui:Label text="#join.eyes_label" class="label" />
-                        <ui:VisualElement name="eyes" class="row" />
+                        <ui:VisualElement name="eyes" class="row swatches" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="preview-column">

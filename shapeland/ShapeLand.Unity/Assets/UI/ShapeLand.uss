@@ -80,11 +80,16 @@ Label { padding: 0; margin: 0; }
 .shape-button.on { border-color: rgb(106, 161, 255); background-color: rgba(106, 161, 255, 0.18); }
 .shape-icon { width: 26px; height: 26px; margin-right: 4px; }
 
+/* A swatch's color is its fill; the chosen one has a white ring with a gap, so it shows on white too. */
 .swatch {
-    width: 26px; height: 26px; padding: 0; margin: 0 6px 4px 0;
-    border-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 3px;
+    width: 26px; height: 26px; padding: 0; margin: 0 6px 6px 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(0, 0, 0, 0);
 }
-.swatch.on { border-color: rgb(255, 255, 255); }
+.swatch-fill { flex-grow: 1; border-radius: 3px; }
+.swatch.on { border-width: 2px; border-color: rgb(255, 255, 255); border-radius: 5px; padding: 2px; }
+.swatch.on > .swatch-fill { border-radius: 1px; }
+/* Ten swatches a line: each is 26px wide plus a 6px margin. */
+.swatches { max-width: 320px; }
 
 .preview-column { width: 150px; margin-left: 18px; align-items: center; justify-content: center; }
 .preview { width: 128px; height: 128px; margin-bottom: 10px; }

@@ -74,6 +74,7 @@ ShapeLand's main zone is `content/zones/hub`, built by hand with Comet's zone ed
 - **Default colors** for the whole game are in `[world]` in `game.toml`: `ground_color` and `under_color` for terrain, `placed_color` for placements without their own color. The zone editor's place tool gives each new placement the color picked in its panel.
 - **Kill height:** falling below `kill_height` (`[world]` in `game.toml`) sends a player back to their spawn. A zone high in the sky or deep below sets its own with `kill_height` in its `zone.toml`.
 - **The polygon budget** for round primitives is `[primitives]` in `game.toml` (`facet_length`, `min_sides`, `max_sides`), also tuned from Comet › Zones › Polygon Budget.
+- **The player colors** are `[colors] players` in `game.toml`, one `0xRRGGBB, # name` a line, also picked from Comet › ShapeLand › Player Colors, which shows them ten a line as on the look card and rebuilds the content on save. The game's own editor tools sit under Comet › ShapeLand.
 - **Before a release:** `dotnet run --project src/ShapeLand.ContentBuild -- build --release` fails on any blockout placement left in a zone (a plain build lists them as warnings).
 
 ## Tuning movement

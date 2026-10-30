@@ -360,7 +360,10 @@ namespace ShapeLand.Client
                 var swatch = new Button(Choose) { userData = color, tooltip = $"#{color:X6}" };
                 _choose[swatch] = Choose;
                 swatch.AddToClassList("swatch");
-                swatch.style.backgroundColor = GameView.Color(color);
+                var fill = new VisualElement { pickingMode = PickingMode.Ignore };
+                fill.AddToClassList("swatch-fill");
+                fill.style.backgroundColor = GameView.Color(color);
+                swatch.Add(fill);
                 row.Add(swatch);
             }
         }
