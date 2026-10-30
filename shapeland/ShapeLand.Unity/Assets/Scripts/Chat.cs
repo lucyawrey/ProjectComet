@@ -103,7 +103,7 @@ namespace ShapeLand.Client
             // The input opens when Enter is released: focusing it while Enter is still down lets the rest of that
             // key press reach it, which in web builds leaves it ignoring typed characters.
             var openChat = _hud.View.Controls.Game.OpenChat;
-            if (!Open && !_hud.CardShowing && openChat.WasPressedThisFrame() && !JustToggled)
+            if (!Open && !_hud.CardShowing && !_hud.MenuBlocking && openChat.WasPressedThisFrame() && !JustToggled)
             {
                 _openOnRelease = true;
             }

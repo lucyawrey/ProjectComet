@@ -213,7 +213,7 @@ public sealed class ShapeLandGame : IConnectionHandler
             return;
         }
 
-        if (Array.IndexOf(content.Settings.Colors.Body, request.Color) < 0 || Array.IndexOf(content.Settings.Colors.Eyes, request.EyeColor) < 0)
+        if (Array.IndexOf(content.Settings.Colors.Players, request.Color) < 0 || Array.IndexOf(content.Settings.Colors.Players, request.EyeColor) < 0)
         {
             Reject(JoinRejection.UnavailableColor);
             return;

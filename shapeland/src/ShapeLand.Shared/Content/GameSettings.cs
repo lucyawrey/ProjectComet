@@ -7,7 +7,7 @@ namespace ShapeLand.Shared.Content
 {
     /// <summary>
     /// ShapeLand's game-wide tunable values (<c>content/settings/game.toml</c>, the one entry of its type): movement
-    /// physics, the world's look and limits, spawn points, teleporters and triggers, and the color sets players pick from.
+    /// physics, the world's look and limits, spawn points, teleporters and triggers, and the colors players pick from.
     /// </summary>
     [MessagePackObject]
     public sealed class GameSettings : IContentEntry
@@ -160,10 +160,7 @@ namespace ShapeLand.Shared.Content
     [MessagePackObject]
     public sealed class ColorSettings
     {
-        /// <summary>The body colors every player can pick, as 0xRRGGBB; more come from items later.</summary>
-        [JsonRequired] [Key(0)] public uint[] Body { get; set; } = new uint[0];
-
-        /// <summary>The eye colors every player can pick, as 0xRRGGBB.</summary>
-        [JsonRequired] [Key(1)] public uint[] Eyes { get; set; } = new uint[0];
+        /// <summary>The colors every player can pick for their body and eyes, as 0xRRGGBB; more come from items later.</summary>
+        [JsonRequired] [Key(0)] public uint[] Players { get; set; } = new uint[0];
     }
 }

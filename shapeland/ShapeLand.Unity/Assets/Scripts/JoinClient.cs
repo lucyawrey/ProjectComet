@@ -79,7 +79,8 @@ namespace ShapeLand.Client
 
         /// <summary>
         /// The connection was lost while joined (the server closed it, stopped answering, or the game fell too far
-        /// behind), with the reason. The player is gone from the world; the next <see cref="Join"/> starts over.
+        /// behind), with the reason, or the player left (<see cref="Leave"/>, reason <see cref="CloseReason.None"/>).
+        /// The player is gone from the world; the next <see cref="Join"/> starts over.
         /// </summary>
         public event Action<CloseReason> ConnectionLost;
 
@@ -212,6 +213,27 @@ namespace ShapeLand.Client
         }
 
         /// <summary>Says <paramref name="text"/> in chat, once joined; the line arrives back through <see cref="ChatReceived"/>.</summary>
+        /// <summary>Leaves the game (the Esc menu's Leave game): closes the connection and goes back to the join screen.</summary>
+        public void Leave()
+        {
+            if (Joined)
+            {
+                Log("left the game");
+                EndSession(CloseReason.None);
+            }
+        }
+
+        // Out of the world, by the connection closing or by leaving; the next Join connects afresh.
+        private void EndSession(CloseReason reason)
+        {
+            Joined = false;
+            Spawn = null;
+            _pending = null;
+            _awaitingAnswer = false;
+            _connection.Disconnect();
+            ConnectionLost?.Invoke(reason);
+        }
+
         /// <summary>Asks the server to send the player back to their spawn point.</summary>
         public void ReturnToSpawn()
         {
@@ -300,14 +322,8 @@ namespace ShapeLand.Client
 
             if (session.Closed && Joined)
             {
-                var reason = session.CloseReason;
-                Joined = false;
-                Spawn = null;
-                _pending = null;
-                _awaitingAnswer = false;
-                _connection.Disconnect(); // the next Join connects afresh
-                Log($"connection lost: {reason} ({session.Error})");
-                ConnectionLost?.Invoke(reason);
+                Log($"connection lost: {session.CloseReason} ({session.Error})");
+                EndSession(session.CloseReason);
                 return;
             }
 

@@ -84,6 +84,7 @@ namespace ShapeLand.Client.Tests
 
             yield return TestGameServer.WaitFor(() => Screen.Showing, 15);
             Assert.That(Screen.Showing, Is.True, "The join screen never came up.");
+            yield return LaidOut("join-button");
             Field("server").value = Server.Address;
             if (!join)
             {
@@ -99,13 +100,28 @@ namespace ShapeLand.Client.Tests
 
         protected TextField Field(string name) => Screen.Root.Q<TextField>(name);
 
-        // Presses a button the way a keyboard or gamepad submit does.
+        // Waits until the card's button is laid out, so Click hits it.
+        protected IEnumerator LaidOut(string button)
+        {
+            var element = Screen.Root.Q<Button>(button);
+            yield return TestGameServer.WaitFor(() => element.worldBound.width > 0, 5);
+        }
+
+        // Presses a button with a mouse click at its center. (A navigation submit wouldn't reach it: the menu and the look
+        // card take over UI Toolkit's navigation, GameMenu.TakeOverNavigation.)
         protected static void Click(VisualElement button)
         {
-            using (var submit = NavigationSubmitEvent.GetPooled())
+            var center = button.worldBound.center;
+            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 }))
             {
-                submit.target = button;
-                button.SendEvent(submit);
+                down.target = button;
+                button.SendEvent(down);
+            }
+
+            using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 }))
+            {
+                up.target = button;
+                button.SendEvent(up);
             }
         }
 

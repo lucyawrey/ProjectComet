@@ -15,15 +15,31 @@
     color: rgb(238, 241, 246);
 }
 .backdrop.hidden, .backdrop.waiting { display: none; }
-/* Changing the look in game: the card sits over the game without dimming it, and the HUD around it stays usable. */
-.backdrop.changing { background-color: rgba(0, 0, 0, 0); }
+/* Changing the look in game: the game dims and the HUD fades as behind the Esc menu, the card has a page header
+   (Back only when opened from the menu) in place of the title, and the HUD around it stays usable. */
+.backdrop.changing { background-color: rgba(8, 12, 22, 0.55); }
+.look-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
+.backdrop.changing .look-head { display: flex; }
+.backdrop.changing .join-title { display: none; }
 
+/* The card has the Esc menu window's size, place and look (.menu-window), growing only for an error; on a phone its
+   height is its content's, to fit. */
 .card {
-    width: 580px;
-    padding: 18px 22px;
-    background-color: rgba(18, 22, 30, 0.9);
-    border-width: 1px; border-color: rgba(255, 255, 255, 0.1); border-radius: 6px;
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    width: 600px; min-height: 440px;
+    padding: 18px 24px 16px 24px;
+    background-color: rgba(16, 20, 28, 0.96);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
 }
+.backdrop.phone .card { min-height: 0; }
+.card > .body { flex-grow: 1; }
+/* Rows a gamepad or the arrow keys move through (JoinScreen), the selected one tinted like a Settings row. */
+.card .nav-row { margin: -4px -8px 6px -8px; padding: 4px 8px; border-radius: 4px; }
+.card .nav-row.server { margin-bottom: -4px; }
+/* The selection shows only while keys or a gamepad move it (.navigating, set by JoinScreen and GameMenu). */
+.backdrop.navigating .nav-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.join-button, .cancel-button { border-width: 2px; border-color: rgba(0, 0, 0, 0); }
+.backdrop.navigating .join-button.selected, .backdrop.navigating .cancel-button.selected { border-color: rgb(255, 255, 255); }
 
 Label { padding: 0; margin: 0; }
 .title { font-size: 28px; margin-bottom: 8px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
@@ -33,7 +49,6 @@ Label { padding: 0; margin: 0; }
 .label-row { flex-direction: row; align-items: flex-end; margin-bottom: 5px; }
 .label { font-size: 12px; letter-spacing: 1px; color: rgb(169, 178, 196); }
 .field > .label { margin-bottom: 5px; }
-.hint { font-size: 12px; margin-left: 6px; color: rgb(141, 151, 171); }
 
 .input { margin: 0; }
 /* Centered by padding, not a fixed height: Unity draws an empty field's caret at the top of the text box. */
@@ -65,11 +80,16 @@ Label { padding: 0; margin: 0; }
 .shape-button.on { border-color: rgb(106, 161, 255); background-color: rgba(106, 161, 255, 0.18); }
 .shape-icon { width: 26px; height: 26px; margin-right: 4px; }
 
+/* A swatch's color is its fill; the chosen one has a white ring with a gap, so it shows on white too. */
 .swatch {
-    width: 26px; height: 26px; padding: 0; margin: 0 6px 4px 0;
-    border-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 3px;
+    width: 26px; height: 26px; padding: 0; margin: 0 6px 6px 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(0, 0, 0, 0);
 }
-.swatch.on { border-color: rgb(255, 255, 255); }
+.swatch-fill { flex-grow: 1; border-radius: 3px; }
+.swatch.on { border-width: 2px; border-color: rgb(255, 255, 255); border-radius: 5px; padding: 2px; }
+.swatch.on > .swatch-fill { border-radius: 1px; }
+/* Ten swatches a line: each is 26px wide plus a 6px margin. */
+.swatches { max-width: 320px; }
 
 .preview-column { width: 150px; margin-left: 18px; align-items: center; justify-content: center; }
 .preview { width: 128px; height: 128px; margin-bottom: 10px; }
@@ -96,7 +116,7 @@ Label { padding: 0; margin: 0; }
 .join-button {
     height: 40px; padding: 0 26px; margin: 0;
     background-color: rgb(61, 124, 240);
-    border-width: 0; border-radius: 4px;
+    border-radius: 4px;
     color: rgb(255, 255, 255); font-size: 16px;
     -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
 }
@@ -104,7 +124,7 @@ Label { padding: 0; margin: 0; }
 .cancel-button {
     height: 40px; padding: 0 20px; margin: 0 10px 0 0;
     background-color: rgba(255, 255, 255, 0.08);
-    border-width: 0; border-radius: 4px;
+    border-radius: 4px;
     color: rgb(238, 241, 246); font-size: 16px;
 }
 .cancel-button:hover { background-color: rgba(255, 255, 255, 0.16); }
@@ -183,7 +203,8 @@ Label { padding: 0; margin: 0; }
 .hud-tip {
     display: none; position: absolute; left: -2px; top: 48px;
     flex-direction: row; align-items: center;
-    padding: 4px 8px; font-size: 13px; white-space: nowrap;
+    /* A fixed height, as tall as with its key cap, so a tip without one (a gamepad's) doesn't come out shorter. */
+    height: 25px; padding: 0 8px; font-size: 13px; white-space: nowrap;
     background-color: rgba(18, 22, 30, 0.88); border-radius: 3px;
 }
 .hud-button:hover .hud-tip { display: flex; }
@@ -193,6 +214,9 @@ Label { padding: 0; margin: 0; }
     border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 3px;
     -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
 }
+/* A tip's key is the keyboard's (.keys-part) or the gamepad's (.pad-part, a rounded pill like the menu's); buttons
+   with no gamepad binding show none on a pad. */
+.hud-tip-pad { border-radius: 8px; padding: 0 6px; }
 
 .name-tag {
     position: absolute; translate: -50% -100%;
@@ -277,4 +301,182 @@ Label { padding: 0; margin: 0; }
 .icon-return { background-image: url("Icons/return.png"); }
 .icon-chat { background-image: url("Icons/chat.png"); }
 .icon-jump { background-image: url("Icons/jump.png"); }
-.icon-stats { background-image: url("Icons/stats.png"); }
+.icon-menu { background-image: url("Icons/menu.png"); }
+
+/* ---- The Esc menu (Menu.uxml, GameMenu), ported from the approved mockup. ---- */
+
+/* Parts for one kind of input: keys and mouse unless the HUD has .pad-input or .touch-input (TouchControls). */
+.pad-part, .touch-part { display: none; }
+.hud.pad-input .keys-part, .hud.touch-input .keys-part { display: none; }
+.hud.pad-input .pad-part, .hud.touch-input .touch-part { display: flex; }
+
+.key {
+    min-width: 24px; padding: 1px 6px; margin: 0 2px;
+    border-width: 1px; border-bottom-width: 2px; border-color: rgba(238, 241, 246, 0.4); border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.07);
+    font-size: 12px; -unity-text-align: middle-center;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+.pad-word {
+    padding: 1px 7px; border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 9px;
+    font-size: 12px; -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+.glyph { width: 26px; height: 26px; -unity-background-scale-mode: scale-to-fit; }
+.glyph-label { margin-left: 2px; font-size: 11px; color: rgb(169, 178, 196); -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+.icon-mouse-right { background-image: url("Icons/mouse_right.png"); }
+.icon-stick { background-image: url("Icons/stick.png"); }
+.icon-pad-south { background-image: url("Icons/pad_south.png"); }
+.icon-pad-east { background-image: url("Icons/pad_east.png"); }
+
+/* While the menu is open the game dims and the HUD fades behind it. */
+/* The same for the look card changing the look (.look-open, set by Hud), whose dim is the card's own. */
+.hud.menu-open .hud-row, .hud.menu-open .tags, .hud.menu-open .chat, .hud.menu-open .net-stats,
+.hud.look-open .hud-row, .hud.look-open .tags { opacity: 0.35; }
+.menu-host, .menu, .menu-dim, .menu-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.menu-dim { background-color: rgba(8, 12, 22, 0.55); }
+
+/* The list: a centered column of separate buttons, the selected one filled blue. */
+.menu-list, .menu-confirm {
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    align-items: stretch;
+}
+.menu-entry, .menu-entry:hover {
+    width: 280px; height: 46px; padding: 0; margin: 0 0 6px 0;
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.12); border-radius: 6px;
+    background-color: rgba(16, 20, 28, 0.82);
+    color: rgb(238, 241, 246); font-size: 19px; -unity-text-align: middle-center;
+}
+.menu-entry:hover { border-color: rgba(238, 241, 246, 0.4); }
+.menu-entry.leave { color: rgb(255, 160, 157); }
+.menu-entry.leave:hover { border-color: rgba(255, 160, 157, 0.6); }
+.menu.navigating .menu-entry.selected, .menu.navigating .menu-entry.selected:hover {
+    background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6);
+    color: rgb(255, 255, 255); /* not bold: the entries would change width as the selection moves */
+}
+.menu.navigating .menu-entry.leave.selected, .menu.navigating .menu-entry.leave.selected:hover { background-color: rgb(190, 58, 54); }
+/* Pressed: the button answers at once, before what it does. */
+.menu-entry:active, .menu-entry:hover:active, .menu-back:active, .menu-back:hover:active, .menu-dev:active, .menu-dev:hover:active { background-color: rgba(79, 140, 240, 0.8); }
+.menu-gap { height: 14px; }
+.hud.phone .menu-entry { height: 38px; font-size: 17px; margin-bottom: 4px; }
+.hud.phone .menu-gap { height: 8px; }
+
+.menu-confirm { align-items: center; }
+.menu-confirm-title { font-size: 22px; margin-bottom: 4px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.menu-confirm-note { font-size: 14px; color: rgb(169, 178, 196); margin-bottom: 16px; }
+
+/* Controls and Settings: one fixed-size window for both pages and every device tab; long pages scroll inside. */
+.menu-window {
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    width: 600px; height: 440px; max-height: 76%;
+    padding: 18px 24px 16px 24px;
+    background-color: rgba(16, 20, 28, 0.96);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
+}
+.menu-page-head { flex-direction: row; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+.menu-back, .menu-back:hover {
+    flex-direction: row; align-items: center;
+    height: 28px; padding: 0 10px 0 8px; margin: 0 12px 0 0;
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.16); border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(238, 241, 246); font-size: 13px;
+}
+.menu-back:hover { background-color: rgba(255, 255, 255, 0.06); }
+/* Back selected with keys or a gamepad (the menu's pages and the look card), outlined like the card's buttons. */
+.navigating .menu-back.selected { border-color: rgb(255, 255, 255); background-color: rgba(106, 161, 255, 0.2); }
+.menu-back-arrow {
+    width: 7px; height: 7px; margin-right: 6px; rotate: 45deg;
+    border-left-width: 2px; border-bottom-width: 2px; border-color: rgb(238, 241, 246);
+}
+.menu-page-name { font-size: 20px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+
+.menu-devices {
+    flex-direction: row; align-items: flex-end; height: 36px; flex-shrink: 0; margin-bottom: 4px;
+    border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.1);
+}
+.menu-dev, .menu-dev:hover {
+    flex-direction: row; align-items: center;
+    height: 30px; padding: 0 12px; margin: 0 4px 0 0;
+    border-width: 0; border-bottom-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(169, 178, 196); font-size: 14px;
+}
+.menu-dev.on { color: rgb(238, 241, 246); border-bottom-color: rgb(106, 161, 255); }
+.menu-in-use { display: none; margin-left: 6px; font-size: 11px; color: rgb(106, 161, 255); }
+.menu-dev.current .menu-in-use { display: flex; }
+.menu-shoulder {
+    padding: 0 5px; margin: 0 6px 7px 6px; font-size: 11px; color: rgb(169, 178, 196);
+    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 4px;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+
+.menu-scroll { flex-grow: 1; }
+.menu-scroll .unity-scroller--vertical { width: 6px; margin-left: 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.menu-scroll .unity-scroller__low-button, .menu-scroll .unity-scroller__high-button { display: none; }
+.menu-scroll .unity-scroller__slider { width: 6px; min-width: 6px; margin: 0; padding: 0; flex-grow: 1; }
+.menu-scroll .unity-base-slider__tracker {
+    left: 0; right: 0; top: 0; bottom: 0; width: auto; margin: 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.12);
+}
+.menu-scroll .unity-base-slider__dragger { left: 0; width: 6px; margin: 0; border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.35); }
+.menu-scroll .unity-base-slider__dragger-border { display: none; }
+
+/* One row style for both pages. */
+.menu-row {
+    flex-direction: row; align-items: center; justify-content: space-between;
+    height: 42px; padding: 0 12px; flex-shrink: 0;
+    border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07);
+}
+.hud.phone .menu-row { height: 36px; }
+.menu.navigating .menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.menu-row-name { font-size: 15px; }
+.menu-bind { flex-direction: row; align-items: center; }
+.menu-bind-note { font-size: 13px; color: rgb(141, 151, 171); margin: 0 6px; }
+.mini-button {
+    width: 24px; height: 24px; border-radius: 12px; align-items: center; justify-content: center;
+    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); background-color: rgba(18, 22, 30, 0.55);
+}
+.mini-icon { width: 15px; height: 15px; -unity-background-scale-mode: scale-to-fit; }
+
+.setting-text { flex-direction: row; align-items: flex-end; }
+/* A section heading inside a page, in the join card's label style. */
+.menu-section { margin: 14px 0 2px 12px; font-size: 12px; letter-spacing: 1px; color: rgb(169, 178, 196); }
+.setting-note { margin-left: 10px; font-size: 12px; color: rgb(141, 151, 171); }
+.switch { width: 44px; height: 24px; border-radius: 12px; flex-shrink: 0; background-color: rgb(61, 124, 240); }
+.switch.off { background-color: rgba(255, 255, 255, 0.18); }
+.switch-knob {
+    position: absolute; top: 3px; left: 23px; width: 18px; height: 18px; border-radius: 9px;
+    background-color: rgb(255, 255, 255);
+    transition-property: left; transition-duration: 0.15s;
+}
+.switch.off .switch-knob { left: 3px; }
+.slider { flex-direction: row; align-items: center; }
+/* The track is taller than it looks, so it's easy to grab. */
+.slider-track { width: 150px; height: 24px; justify-content: center; }
+.slider-rail { position: absolute; left: 0; right: 0; top: 9px; height: 6px; border-radius: 3px; background-color: rgba(255, 255, 255, 0.14); }
+.slider-fill { position: absolute; left: 0; top: 9px; height: 6px; border-radius: 3px; background-color: rgb(106, 161, 255); }
+.slider-knob { position: absolute; top: 3px; width: 18px; height: 18px; margin-left: -9px; border-radius: 9px; background-color: rgb(255, 255, 255); }
+.slider-value {
+    width: 46px; margin-left: 10px; font-size: 13px; color: rgb(169, 178, 196); -unity-text-align: middle-right;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+
+/* Button prompts along the bottom of the screen, for the input in use. */
+.menu-prompts {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 40px; padding: 0 22px;
+    flex-direction: row; justify-content: flex-end; align-items: center;
+    background-color: rgba(8, 12, 22, 0.7); font-size: 14px;
+}
+.prompt { flex-direction: row; align-items: center; margin-left: 20px; }
+.prompt .key, .prompt .glyph, .prompt .menu-shoulder { margin: 0 6px 0 0; }
+.prompt .glyph { width: 22px; height: 22px; }
+/* The device prompt only on the Controls page (.on-controls, set by GameMenu), still for the input in use. */
+.hud .menu .prompt.tabs-prompt { display: none; }
+.hud .menu.on-controls .prompt.tabs-prompt.keys-part { display: flex; }
+.hud.pad-input .menu .prompt.tabs-prompt.keys-part, .hud.touch-input .menu .prompt.tabs-prompt.keys-part { display: none; }
+.hud.pad-input .menu.on-controls .prompt.tabs-prompt.pad-part { display: flex; }
+
+/* First time in the game: the menu button's tip stays up, outlined, until the menu is first opened (Hud). It names
+   the key for the input in use (Start on a gamepad, none for touch). */
+.hud-button.first-time .hud-tip, .hud.touch-input .hud-button.first-time .hud-tip {
+    display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
+}

@@ -175,24 +175,14 @@ public static class ShapeLandBuild
         IsColor(teleporters, nameof(TeleporterSettings.PadColor), settings.Teleporters.PadColor);
         IsColor(teleporters, nameof(TeleporterSettings.ChargeColor), settings.Teleporters.ChargeColor);
         IsColor(triggers, nameof(TriggerSettings.ChargeColor), settings.Triggers.ChargeColor);
-        foreach (var color in settings.Colors.Body)
+        foreach (var color in settings.Colors.Players)
         {
-            IsColor(colors, nameof(ColorSettings.Body), color);
+            IsColor(colors, nameof(ColorSettings.Players), color);
         }
 
-        foreach (var color in settings.Colors.Eyes)
+        if (settings.Colors.Players.Length == 0)
         {
-            IsColor(colors, nameof(ColorSettings.Eyes), color);
-        }
-
-        if (settings.Colors.Body.Length == 0)
-        {
-            validation.Error(colors, nameof(ColorSettings.Body), "players need at least one body color.");
-        }
-
-        if (settings.Colors.Eyes.Length == 0)
-        {
-            validation.Error(colors, nameof(ColorSettings.Eyes), "players need at least one eye color.");
+            validation.Error(colors, nameof(ColorSettings.Players), "players need at least one color.");
         }
     }
 
