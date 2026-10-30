@@ -112,6 +112,7 @@ namespace ShapeLand.Client
             set
             {
                 PlayerPrefs.SetInt(ShowThroughWallsKey, value ? 1 : 0);
+                PlayerPrefs.Save(); // on the web, only a save keeps it past closing the tab
                 ApplyShowThroughWalls();
             }
         }
@@ -595,7 +596,8 @@ namespace ShapeLand.Client
         }
 
         // Draws the fade and silhouette materials once, out of sight, so their shaders are ready (compiled) before a
-        // shape first fades or hides behind something, rather than hitching then. (A freshly opened editor still shows its cyan placeholder on the first fade.)
+        // shape first fades or hides behind something, rather than hitching then. (A freshly opened editor still
+        // shows its cyan placeholder on the first fade.)
         private void WarmUpFades()
         {
             _warmUpMesh ??= new Mesh { name = "Fade warm-up", vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f }, triangles = new[] { 0, 1, 2 } };

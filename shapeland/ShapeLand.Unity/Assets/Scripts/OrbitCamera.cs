@@ -6,8 +6,9 @@ namespace ShapeLand.Client
     /// <summary>
     /// A third-person camera orbiting the player: the mouse turns it while the right button is held, the right
     /// stick turns it always. It stays above the ground but keeps its distance through blocks and props, which are
-    /// culled from inside; the player's own shape shows through what hides it (<see cref="ShapeBody.ShowThroughWalls"/>). Its numbers are placeholders, adjusted by playing;
-    /// the values that count are the ones on the camera in the Game scene.
+    /// culled from inside; the player's own shape shows through what hides it (<see cref="ShapeBody.ShowThroughWalls"/>).
+    /// Its numbers are placeholders, adjusted by playing; the values that count are the ones on the camera in the
+    /// Game scene.
     /// </summary>
     public sealed class OrbitCamera : MonoBehaviour
     {

@@ -22,6 +22,8 @@ namespace ShapeLand.Client
             public Material FadeTemplate;
             public Material Opaque;
             public Material Fade;
+            public readonly Material[] Alone = new Material[1];
+            public readonly Material[] WithSilhouette = new Material[3];
         }
 
         private readonly List<Part> _parts = new List<Part>();
@@ -170,9 +172,22 @@ namespace ShapeLand.Client
             ColorSilhouette();
         }
 
-        // The silhouette's materials draw the part's one submesh again, after its own.
-        private void Draw(Part part, Material material) =>
-            part.Renderer.sharedMaterials = _silhouette != null ? new[] { material, _mask, _silhouette } : new[] { material };
+        // The silhouette's materials draw the part's one submesh again, after its own. The arrays are reused, since
+        // fading redraws every frame.
+        private void Draw(Part part, Material material)
+        {
+            if (_silhouette == null)
+            {
+                part.Alone[0] = material;
+                part.Renderer.sharedMaterials = part.Alone;
+                return;
+            }
+
+            part.WithSilhouette[0] = material;
+            part.WithSilhouette[1] = _mask;
+            part.WithSilhouette[2] = _silhouette;
+            part.Renderer.sharedMaterials = part.WithSilhouette;
+        }
 
         private void ColorSilhouette()
         {

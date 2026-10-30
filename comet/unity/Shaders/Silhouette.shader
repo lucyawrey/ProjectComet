@@ -29,12 +29,12 @@ Shader "Comet/Silhouette"
             ColorMask [_ColorMask]
             Cull Back
 
-            // The top bit only, clear of anything else using the stencil.
+            // One bit of the four URP leaves for user effects.
             Stencil
             {
-                Ref 128
-                ReadMask 128
-                WriteMask 128
+                Ref 8
+                ReadMask 8
+                WriteMask 8
                 Comp [_StencilComp]
                 Pass Replace
             }
