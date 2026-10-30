@@ -161,7 +161,11 @@ namespace ShapeLand.Client
             var menu = view.Controls.Game.Menu;
             if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
             {
-                if (card.FromMenu)
+                if (card.Changing && menu.activeControl is not KeyControl)
+                {
+                    // Start on the look card applies the change (JoinScreen).
+                }
+                else if (card.FromMenu)
                 {
                     _reopenChat = false;
                     card.Back();

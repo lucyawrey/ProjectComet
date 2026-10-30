@@ -517,6 +517,13 @@ namespace ShapeLand.Client
             if (Showing && WebPage.Playing && _content != null && Time.frameCount != _shownOnFrame)
             {
                 Navigate(_view.Controls.Menu);
+                // A gamepad's Start joins, or applies the change, from anywhere on the card (Esc is the Hud's).
+                var start = _view.Controls.Game.Menu;
+                if (start.WasPressedThisFrame() && start.activeControl?.device is Gamepad)
+                {
+                    Navigating = true;
+                    Submit();
+                }
             }
 
             if (_focusNamePending && (Keyboard.current == null || !Keyboard.current.anyKey.isPressed))
