@@ -14,7 +14,7 @@ namespace ShapeLand.Client
     /// The player's settings, remembered between visits (PlayerPrefs), each saved as it changes: on the web only a
     /// save keeps it past closing the tab. The Esc menu's Settings page changes them.
     /// </summary>
-    public static class PlayerSettings
+    public static class GameSettings
     {
         /// <summary>The lowest and highest camera speed, as a multiple of the camera's own turning speeds.</summary>
         public const float MinCameraSpeed = 0.25f, MaxCameraSpeed = 3f;

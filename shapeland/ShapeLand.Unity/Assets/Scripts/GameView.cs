@@ -106,10 +106,10 @@ namespace ShapeLand.Client
         /// <summary>Whether the player's own shape shows where something hides it (V); on unless turned off, and remembered.</summary>
         public bool ShowThroughWalls
         {
-            get => PlayerSettings.ShowThroughWalls;
+            get => GameSettings.ShowThroughWalls;
             set
             {
-                PlayerSettings.ShowThroughWalls = value;
+                GameSettings.ShowThroughWalls = value;
                 ApplyShowThroughWalls();
             }
         }
