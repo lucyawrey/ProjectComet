@@ -156,6 +156,7 @@ namespace ShapeLand.Client.Tests
             var id = Join.Session.EntityId;
 
             Hud.OpenLook();
+            yield return LaidOut("cancel-button");
             Assert.That(Screen.Changing, Is.True);
             Assert.That(Field("name").value, Is.EqualTo("Pebble"), "The card isn't filled in with the current look.");
             Assert.That(player.InputEnabled, Is.False, "The shape can still move while choosing a look.");
@@ -165,6 +166,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.InputEnabled, Is.True);
 
             Hud.OpenLook();
+            yield return LaidOut("cancel-button");
             Field("name").value = "Pebbles";
             Click(ShapeButton("shape.diamond"));
             Click(Swatch("colors", Join.Content.Settings.Colors.Players[2]));
