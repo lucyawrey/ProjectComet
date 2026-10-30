@@ -48,7 +48,6 @@ Label { padding: 0; margin: 0; }
 .label-row { flex-direction: row; align-items: flex-end; margin-bottom: 5px; }
 .label { font-size: 12px; letter-spacing: 1px; color: rgb(169, 178, 196); }
 .field > .label { margin-bottom: 5px; }
-.hint { font-size: 12px; margin-left: 6px; color: rgb(141, 151, 171); }
 
 .input { margin: 0; }
 /* Centered by padding, not a fixed height: Unity draws an empty field's caret at the top of the text box. */
