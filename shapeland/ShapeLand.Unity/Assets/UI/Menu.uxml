@@ -159,10 +159,6 @@
                             <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-chat" /></ui:VisualElement></ui:VisualElement>
                         </ui:VisualElement>
                         <ui:VisualElement class="menu-row">
-                            <ui:Label text="#menu.stats" class="menu-row-name" />
-                            <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-stats" /></ui:VisualElement></ui:VisualElement>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="menu-row">
                             <ui:Label text="#menu.menu" class="menu-row-name" />
                             <ui:VisualElement class="menu-bind"><ui:VisualElement class="mini-button"><ui:VisualElement class="mini-icon icon-menu" /></ui:VisualElement></ui:VisualElement>
                         </ui:VisualElement>

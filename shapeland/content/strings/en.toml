@@ -59,8 +59,6 @@ return_to_spawn = "Respawn"
 return_to_spawn_key = "R"
 chat = "Chat"
 chat_key = "Enter"
-stats = "Stats"
-stats_key = "F3"
 menu = "Menu"
 menu_key = "Esc"
 

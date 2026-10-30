@@ -11,7 +11,7 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the menu, Change
-    /// Look, Return to Spawn, chat and network stats buttons (Change Look, or C, brings up the join card), the Esc menu
+    /// Look, Return to Spawn and chat buttons (Change Look, or C, brings up the join card), the Esc menu
     /// (<see cref="GameMenu"/>, its button's tip showing until it's first opened), and the respawn fade over the whole screen. Esc or gamepad Start
     /// closes the chat input first, then the look card, else opens the menu (in it, Esc goes back a step and Start
     /// closes it). The chat
@@ -95,7 +95,6 @@ namespace ShapeLand.Client
             // The other buttons close the look card first.
             tree.Q<Button>("return-button").clicked += () => { CloseLook(); ReturnToSpawn(); };
             tree.Q<Button>("chat-button").clicked += () => { CloseLook(); _chat.Toggle(); };
-            tree.Q<Button>("stats-button").clicked += () => { CloseLook(); _stats.Toggle(); };
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe") };
             _touch = new TouchControls(_root, view.OrbitCamera);
             _menu = new GameMenu(this, tree);

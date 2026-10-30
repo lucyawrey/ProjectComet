@@ -301,7 +301,6 @@ Label { padding: 0; margin: 0; }
 .icon-return { background-image: url("Icons/return.png"); }
 .icon-chat { background-image: url("Icons/chat.png"); }
 .icon-jump { background-image: url("Icons/jump.png"); }
-.icon-stats { background-image: url("Icons/stats.png"); }
 .icon-menu { background-image: url("Icons/menu.png"); }
 
 /* ---- The Esc menu (Menu.uxml, GameMenu), ported from the approved mockup. ---- */

@@ -7,7 +7,6 @@ Icons for ShapeLand's HUD buttons, touch controls and Esc menu, taken from publi
 | `jump.png` | [Kenney, Game Icons](https://kenney.nl/assets/game-icons) (`Vector/vector_whiteIcons.svg`) | `arrowUp` | CC0 (`Kenney Game Icons License.txt`) |
 | `look.png` | Kenney, Game Icons | `singleplayer` | CC0 |
 | `return.png` | Kenney, Game Icons | `home` | CC0 |
-| `stats.png` | Kenney, Game Icons | `signal3` | CC0 |
 | `menu.png` | Google, Material Symbols (`rounded/menu.svg`) | `menu` | Apache 2.0 |
 | `chat.png` | [Google, Material Symbols](https://github.com/google/material-design-icons) (`@material-symbols/svg-400` 0.48.1, `rounded/chat-fill.svg`) | `chat`, filled | Apache 2.0 (`Material Symbols LICENSE.txt`) |
 
@@ -20,4 +19,4 @@ The Esc menu's gamepad and mouse glyphs come from [Kenney, Input Prompts 1.5A](h
 | `stick.png` | `generic_stick` |
 | `mouse_right.png` | `mouse_right` |
 
-Drawn with `rsvg-convert`. Kenney's icons are cells of the pack's vector sheet, a grid of 50-unit cells: `arrowUp` row 0 column 2, `home` row 3 column 3, `singleplayer` row 1 column 12, `signal3` row 4 column 10 (counting from 0, matched against the pack's PNGs).
+Drawn with `rsvg-convert`. Kenney's icons are cells of the pack's vector sheet, a grid of 50-unit cells: `arrowUp` row 0 column 2, `home` row 3 column 3, `singleplayer` row 1 column 12 (counting from 0, matched against the pack's PNGs).

@@ -56,13 +56,6 @@
                         <ui:Label text="#hud.chat_key" class="hud-tip-key keys-part" picking-mode="Ignore" />
                     </ui:VisualElement>
                 </ui:Button>
-                <ui:Button name="stats-button" class="hud-button" focusable="false">
-                    <ui:VisualElement class="hud-icon icon-stats" picking-mode="Ignore" />
-                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
-                        <ui:Label text="#hud.stats" picking-mode="Ignore" />
-                        <ui:Label text="#hud.stats_key" class="hud-tip-key keys-part" picking-mode="Ignore" />
-                    </ui:VisualElement>
-                </ui:Button>
             </ui:VisualElement>
             <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
                 <ui:VisualElement class="net-row" picking-mode="Ignore">
