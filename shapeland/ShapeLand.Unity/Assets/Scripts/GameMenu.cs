@@ -28,6 +28,24 @@ namespace ShapeLand.Client
         private const float RowHeight = 42;
         private const int ChangeLookEntry = 3;
 
+        /// <summary>
+        /// Turns off UI Toolkit's own keys-and-gamepad navigation under <paramref name="root"/>: the menu and the look
+        /// card move their selection themselves, with the Menu actions. Left on, it moves the keyboard focus among the
+        /// buttons as well, and its submit takes the focus off a text field the gamepad just put it in.
+        /// </summary>
+        public static void TakeOverNavigation(VisualElement root)
+        {
+            void Ignore(EventBase e)
+            {
+                e.StopPropagation();
+                root.focusController?.IgnoreEvent(e);
+            }
+
+            root.RegisterCallback<NavigationMoveEvent>(Ignore, TrickleDown.TrickleDown);
+            root.RegisterCallback<NavigationSubmitEvent>(Ignore, TrickleDown.TrickleDown);
+            root.RegisterCallback<NavigationCancelEvent>(Ignore, TrickleDown.TrickleDown);
+        }
+
         /// <summary>Opens the menu with Change Look selected: where Back on the look card returns to.</summary>
         public void ShowAtChangeLook(bool navigating) => Show(ChangeLookEntry, navigating);
 

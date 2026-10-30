@@ -156,6 +156,7 @@ namespace ShapeLand.Client
             }
 
             _root.EnableInClassList("phone", WebPage.IsPhone);
+            GameMenu.TakeOverNavigation(_root);
             _root.RegisterCallback<PointerDownEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _root.RegisterCallback<PointerMoveEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);

@@ -99,6 +99,7 @@ namespace ShapeLand.Client
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe") };
             _touch = new TouchControls(_root, view.OrbitCamera);
             _menu = new GameMenu(this, tree);
+            GameMenu.TakeOverNavigation(_root);
 
             join.ContentLoaded += OnContentLoaded;
             join.OwnSpawned += OnOwnSpawned;
