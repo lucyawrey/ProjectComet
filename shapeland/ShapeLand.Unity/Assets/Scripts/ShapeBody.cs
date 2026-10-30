@@ -109,13 +109,18 @@ namespace ShapeLand.Client
         /// <summary>
         /// Draws the shape wherever blocks, props or terrain hide it, flat in its body color at
         /// <paramref name="silhouette"/>'s opacity, after <paramref name="mask"/> marks where it's in sight (the
-        /// two materials of Comet's Silhouette shader).
+        /// two materials of Comet's Silhouette shader); with null materials it stops.
         /// </summary>
         public void ShowThroughWalls(Material mask, Material silhouette)
         {
+            if (_silhouette != null)
+            {
+                Destroy(_silhouette);
+            }
+
             _mask = mask;
             _silhouetteTemplate = silhouette;
-            _silhouette = new Material(silhouette);
+            _silhouette = mask != null && silhouette != null ? new Material(silhouette) : null;
             foreach (var part in _parts)
             {
                 Draw(part, part.Renderer.sharedMaterial);

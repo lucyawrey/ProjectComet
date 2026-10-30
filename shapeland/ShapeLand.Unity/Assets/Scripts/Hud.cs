@@ -157,6 +157,11 @@ namespace ShapeLand.Client
                 ReturnToSpawn();
             }
 
+            if (view.Controls.Game.ShowThroughWalls.WasPressedThisFrame() && !_chat.Open && !card.Typing)
+            {
+                view.ShowThroughWalls = !view.ShowThroughWalls;
+            }
+
             UpdateMoving();
         }
 

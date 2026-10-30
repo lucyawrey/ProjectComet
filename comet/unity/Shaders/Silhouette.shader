@@ -7,7 +7,7 @@ Shader "Comet/Silhouette"
 {
     Properties
     {
-        [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 0.5)
+        [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 0.3)
         [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest("Depth test", Float) = 5
         [Enum(UnityEngine.Rendering.CompareFunction)] _StencilComp("Stencil test", Float) = 6
         _ColorMask("Color mask", Float) = 15
