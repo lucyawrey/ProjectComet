@@ -145,6 +145,7 @@ namespace ShapeLand.Client
             Open = true;
             _toggledAt = Time.unscaledTime;
             _inputRow.RemoveFromClassList("hidden");
+            _box.EnableInClassList("typing-top", WebPage.IsPhone); // above a phone's on-screen keyboard
             _log.verticalScrollerVisibility = ScrollerVisibility.Auto;
             SetPicking(_log, true);
             _input.value = "";
@@ -164,6 +165,7 @@ namespace ShapeLand.Client
             _toggledAt = Time.unscaledTime;
             _input.Blur();
             _inputRow.AddToClassList("hidden");
+            _box.RemoveFromClassList("typing-top");
             _log.verticalScrollerVisibility = ScrollerVisibility.Hidden;
             SetPicking(_log, false);
             ScrollToEnd();
