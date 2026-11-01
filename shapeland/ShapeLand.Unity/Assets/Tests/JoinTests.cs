@@ -68,7 +68,7 @@ namespace ShapeLand.Client.Tests
 
         private JoinClient StartClient()
         {
-            JoinClient.TokenKey = "tests.account.token";
+            JoinClient.TokenKey = "tests-login-token";
             PlayerPrefs.DeleteKey(JoinClient.TokenKey);
             _client = new GameObject("Join client");
             _client.SetActive(false);

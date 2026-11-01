@@ -129,7 +129,7 @@ namespace ShapeLand.Client.Tests
                 Assert.That(build.ExitCode, Is.EqualTo(0), "The bots didn't build.");
             }
 
-            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --login http://{Address} \"--tokens {Path.Combine(_keys, "bots")}\" --count {count} --seconds {seconds} --chat");
+            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --login http://{Address} --tokens \"{Path.Combine(_keys, "bots")}\" --count {count} --seconds {seconds} --chat");
         }
 
         /// <summary>Kills the game server, as if it crashed; its connections close.</summary>

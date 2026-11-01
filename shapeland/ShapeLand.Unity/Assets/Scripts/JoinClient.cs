@@ -35,7 +35,7 @@ namespace ShapeLand.Client
         [SerializeField] private string address = "localhost:5090";
 
         /// <summary>The PlayerPrefs key of the session token. Tests use their own, so they never touch a player's.</summary>
-        public static string TokenKey = "account.token";
+        public static string TokenKey = "login-token";
 
         private CometConnection _connection;
         private ShapeLandContent _content;

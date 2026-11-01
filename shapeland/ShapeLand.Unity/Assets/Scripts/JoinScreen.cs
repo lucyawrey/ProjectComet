@@ -61,6 +61,8 @@ namespace ShapeLand.Client
         private Button _signInLink;
         private Label _signedInText;
         private bool _withCode;
+        // A rename on the look card: the card stays up until a spawn shows the new name (the look's own spawn may come first).
+        private string _awaitName;
         private bool _busy;
         private ShapePreview _preview;
         // Keys and gamepad: the rows they move through (name, shape, color, eyes, then the bottom line of server field
@@ -383,6 +385,7 @@ namespace ShapeLand.Client
 
         private void Close()
         {
+            _awaitName = null;
             _root.AddToClassList("hidden");
             _root.focusController?.focusedElement?.Blur(); // or Enter and the controller's submit button still reach the hidden card
             if (_preview != null)
@@ -473,9 +476,9 @@ namespace ShapeLand.Client
                 Close();
             }
 
-            SetSignedIn(true, message);
+            SetSignedIn(true);
             Show();
-            ShowError(null);
+            ShowError(message);
         }
 
         // The token was refused (expired, revoked, a deleted guest) or the player signed out: the new player's card.
@@ -671,9 +674,11 @@ namespace ShapeLand.Client
             SetButton(false, "join.applying");
             if (nameChanged)
             {
+                _awaitName = name;
                 var error = await _join.RenameAsync(name);
                 if (error != null)
                 {
+                    _awaitName = null;
                     Retry(LoginMessage(_content.Strings, error, name));
                     return;
                 }
@@ -1087,6 +1092,12 @@ namespace ShapeLand.Client
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
             _rejoinUntil = null;
+            if (_awaitName != null && Changing && spawn.Name != _awaitName)
+            {
+                return; // the look's spawn; the rename's comes next
+            }
+
+            _awaitName = null;
             Close();
         }
 

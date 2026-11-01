@@ -67,7 +67,7 @@ namespace ShapeLand.Client.Tests
             yield return Server.Start();
 
             // A session of the tests' own, empty at the start: every test begins as a new player.
-            JoinClient.TokenKey = "tests.account.token";
+            JoinClient.TokenKey = "tests-login-token";
             PlayerPrefs.DeleteKey(JoinClient.TokenKey);
 
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/Scenes/Game.unity", new LoadSceneParameters(LoadSceneMode.Single));

@@ -14,8 +14,8 @@ namespace ShapeLand.Client
         /// <summary>How long the reminder stays up.</summary>
         public const float ShowSeconds = 15;
 
-        private const string FirstDayKey = "account.guest_first_day";
-        private const string ShownKey = "account.guest_reminded";
+        private const string FirstDayKey = "guest-first-day";
+        private const string ShownKey = "guest-reminded";
 
         /// <summary>Whether to show the reminder now (and if so, notes that it was shown).</summary>
         public static bool Due(AccountResponse<CharacterView> account) => Due(account, DateTime.Today);
