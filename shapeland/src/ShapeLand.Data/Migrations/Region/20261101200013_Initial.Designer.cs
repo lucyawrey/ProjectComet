@@ -12,7 +12,7 @@ using ShapeLand.Data;
 namespace ShapeLand.Data.Migrations.Region
 {
     [DbContext(typeof(ShapeLandRegionContext))]
-    [Migration("20261101195407_Initial")]
+    [Migration("20261101200013_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -26,48 +26,6 @@ namespace ShapeLand.Data.Migrations.Region
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Comet.Data.Characters.Character", b =>
-                {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    b.Property<long>("AccountId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("account_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name")
-                        .UseCollation("case_insensitive");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_character");
-
-                    b.HasIndex("AccountId")
-                        .HasDatabaseName("ix_character_account_id");
-
-                    b.HasIndex("Name")
-                        .IsUnique()
-                        .HasDatabaseName("ix_character_name")
-                        .HasFilter("deleted_at IS NULL");
-
-                    b.ToTable("character", "region");
-                });
 
             modelBuilder.Entity("Comet.Data.Characters.CharacterOwner", b =>
                 {
@@ -147,27 +105,57 @@ namespace ShapeLand.Data.Migrations.Region
                         .HasColumnType("bigint")
                         .HasColumnName("id");
 
+                    b.Property<long>("AccountId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("account_id");
+
                     b.Property<int>("Color")
                         .HasColumnType("integer")
                         .HasColumnName("color");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
 
                     b.Property<int>("EyeColor")
                         .HasColumnType("integer")
                         .HasColumnName("eye_color");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name")
+                        .UseCollation("case_insensitive");
+
                     b.Property<int>("Shape")
                         .HasColumnType("integer")
                         .HasColumnName("shape");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id")
                         .HasName("pk_character");
+
+                    b.HasIndex("AccountId")
+                        .HasDatabaseName("ix_character_account_id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_character_name")
+                        .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("character", "region");
                 });
 
             modelBuilder.Entity("Comet.Data.Characters.CharacterOwner", b =>
                 {
-                    b.HasOne("Comet.Data.Characters.Character", null)
+                    b.HasOne("ShapeLand.Data.ShapeLandCharacter", null)
                         .WithOne()
                         .HasForeignKey("Comet.Data.Characters.CharacterOwner", "CharacterId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -177,22 +165,12 @@ namespace ShapeLand.Data.Migrations.Region
 
             modelBuilder.Entity("Comet.Data.Characters.CharacterStatus", b =>
                 {
-                    b.HasOne("Comet.Data.Characters.Character", null)
+                    b.HasOne("ShapeLand.Data.ShapeLandCharacter", null)
                         .WithOne()
                         .HasForeignKey("Comet.Data.Characters.CharacterStatus", "CharacterId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_character_status_character_character_id");
-                });
-
-            modelBuilder.Entity("ShapeLand.Data.ShapeLandCharacter", b =>
-                {
-                    b.HasOne("Comet.Data.Characters.Character", null)
-                        .WithOne()
-                        .HasForeignKey("ShapeLand.Data.ShapeLandCharacter", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_character_character_id");
                 });
 #pragma warning restore 612, 618
         }

@@ -6,15 +6,15 @@ namespace Comet.Data.Accounts;
 /// </summary>
 public class Session : ITimestamped
 {
-    public long Id { get; set; }
-    public long AccountId { get; set; }
+    public required long Id { get; set; }
+    public required long AccountId { get; set; }
 
     /// <summary>SHA-256 of the session token.</summary>
-    public byte[] TokenHash { get; set; } = [];
+    public required byte[] TokenHash { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>Moves forward when the session is used (sliding expiry), at most once an hour.</summary>
-    public DateTime ExpiresAt { get; set; }
+    public required DateTime ExpiresAt { get; set; }
 }

@@ -10,16 +10,8 @@ namespace ShapeLand.Data;
 public class ShapeLandAccountContext(DbContextOptions<ShapeLandAccountContext> options) : CometAccountContext(options);
 
 /// <summary>ShapeLand's region database: Comet's tables, with the look on <c>character</c>.</summary>
-public class ShapeLandRegionContext(DbContextOptions<ShapeLandRegionContext> options) : CometRegionContext(options)
-{
-    public DbSet<ShapeLandCharacter> ShapeLandCharacters => Set<ShapeLandCharacter>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.AddCharacterColumns<ShapeLandCharacter>();
-    }
-}
+public class ShapeLandRegionContext(DbContextOptions<ShapeLandRegionContext> options)
+    : CometRegionContext<ShapeLandCharacter>(options);
 
 // For dotnet ef (migrations), which needs a context without a running server. It never connects.
 internal sealed class AccountContextFactory : IDesignTimeDbContextFactory<ShapeLandAccountContext>

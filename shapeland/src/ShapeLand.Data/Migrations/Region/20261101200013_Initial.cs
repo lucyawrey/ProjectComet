@@ -23,14 +23,14 @@ namespace ShapeLand.Data.Migrations.Region
                 columns: table => new
                 {
                     id = table.Column<long>(type: "bigint", nullable: false),
+                    shape = table.Column<int>(type: "integer", nullable: false),
+                    color = table.Column<int>(type: "integer", nullable: false),
+                    eye_color = table.Column<int>(type: "integer", nullable: false),
                     account_id = table.Column<long>(type: "bigint", nullable: false),
                     name = table.Column<string>(type: "text", nullable: false, collation: "case_insensitive"),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    deleted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    shape = table.Column<int>(type: "integer", nullable: false),
-                    color = table.Column<int>(type: "integer", nullable: false),
-                    eye_color = table.Column<int>(type: "integer", nullable: false)
+                    deleted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {

@@ -20,8 +20,8 @@ public static class CometDatabase
         this DbContextOptionsBuilder options, string connectionString, TimeProvider clock) =>
         options.UseComet(connectionString, CometAccountContext.Schema, clock);
 
-    /// <summary>Options for a game's <see cref="CometRegionContext"/>.</summary>
+    /// <summary>Options for a game's <see cref="CometRegionContext{TCharacter}"/>.</summary>
     public static DbContextOptionsBuilder UseCometRegion(
         this DbContextOptionsBuilder options, string connectionString, TimeProvider clock) =>
-        options.UseComet(connectionString, CometRegionContext.Schema, clock);
+        options.UseComet(connectionString, CometRegion.Schema, clock);
 }

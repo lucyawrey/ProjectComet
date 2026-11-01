@@ -6,12 +6,12 @@ namespace Comet.Data.Characters;
 /// </summary>
 public class CharacterOwner : ITimestamped
 {
-    public long CharacterId { get; set; }
+    public required long CharacterId { get; set; }
 
     /// <summary>The game server's node number (the one its Snowflake IDs use).</summary>
-    public int ServerId { get; set; }
+    public required int ServerId { get; set; }
 
-    public long Version { get; set; }
+    public required long Version { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
