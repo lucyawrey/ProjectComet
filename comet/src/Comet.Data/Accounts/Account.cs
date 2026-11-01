@@ -34,4 +34,11 @@ public class Account : IdentityUser<long>, ITimestamped
 
     /// <summary>Whether the account is deleted and waiting for the purge. Deletion isn't a <see cref="Status"/>, so a ban survives it.</summary>
     public bool IsDeleted => DeletedAt != null;
+
+    /// <summary>A guest: no password set yet (<see cref="ClaimedAt"/> is null).</summary>
+    public bool IsGuest => ClaimedAt == null;
+
+    public bool IsBanned => Status == AccountStatus.Banned;
+
+    public bool HasRecoveryCode => RecoveryCodeHash != null;
 }

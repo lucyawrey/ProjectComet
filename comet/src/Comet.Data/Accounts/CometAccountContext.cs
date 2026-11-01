@@ -41,6 +41,9 @@ public abstract class CometAccountContext(DbContextOptions options) : DbContext(
             account.Ignore(a => a.PhoneNumberConfirmed);
             account.Ignore(a => a.TwoFactorEnabled);
             account.Ignore(a => a.IsDeleted);
+            account.Ignore(a => a.IsGuest);
+            account.Ignore(a => a.IsBanned);
+            account.Ignore(a => a.HasRecoveryCode);
         });
 
         modelBuilder.Entity<Session>(session =>

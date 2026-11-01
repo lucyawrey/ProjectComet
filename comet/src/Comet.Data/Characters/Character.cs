@@ -22,4 +22,6 @@ public class Character : ITimestamped
 
     /// <summary>Set when the character is deleted; the row is purged after the game's hold.</summary>
     public DateTime? DeletedAt { get; set; }
+
+    public bool IsDeleted => DeletedAt != null;
 }
