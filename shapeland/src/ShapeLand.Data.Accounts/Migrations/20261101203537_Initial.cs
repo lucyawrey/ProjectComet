@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace ShapeLand.Data.Migrations.Account
+namespace ShapeLand.Data.Accounts.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration

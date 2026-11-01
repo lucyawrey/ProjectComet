@@ -20,7 +20,7 @@ public class Account : IdentityUser<long>, ITimestamped
     public DateTime? ClaimedAt { get; set; }
 
     /// <summary>The last time the account's session was used, updated at most once an hour.</summary>
-    public DateTime LastActiveAt { get; set; }
+    public required DateTime LastActiveAt { get; set; }
 
     /// <summary>SHA-256 of the account's one recovery code, or null if it has none.</summary>
     public byte[]? RecoveryCodeHash { get; set; }

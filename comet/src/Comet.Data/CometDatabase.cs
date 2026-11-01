@@ -1,4 +1,3 @@
-using Comet.Data.Accounts;
 using Comet.Data.Characters;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +13,6 @@ public static class CometDatabase
             .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", schema))
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(new TimestampInterceptor(clock));
-
-    /// <summary>Options for a game's <see cref="CometAccountContext"/>.</summary>
-    public static DbContextOptionsBuilder UseCometAccount(
-        this DbContextOptionsBuilder options, string connectionString, TimeProvider clock) =>
-        options.UseComet(connectionString, CometAccountContext.Schema, clock);
 
     /// <summary>Options for a game's <see cref="CometRegionContext{TCharacter}"/>.</summary>
     public static DbContextOptionsBuilder UseCometRegion(

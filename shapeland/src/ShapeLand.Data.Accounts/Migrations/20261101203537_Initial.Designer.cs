@@ -5,14 +5,14 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using ShapeLand.Data;
+using ShapeLand.Data.Accounts;
 
 #nullable disable
 
-namespace ShapeLand.Data.Migrations.Account
+namespace ShapeLand.Data.Accounts.Migrations
 {
     [DbContext(typeof(ShapeLandAccountContext))]
-    [Migration("20261101195403_Initial")]
+    [Migration("20261101203537_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

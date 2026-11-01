@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The account database: only the Login server references this, so game servers never take Identity. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Comet.Data\Comet.Data.csproj" />
+  </ItemGroup>
+
+</Project>

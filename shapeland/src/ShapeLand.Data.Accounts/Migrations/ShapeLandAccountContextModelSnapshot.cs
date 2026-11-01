@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using ShapeLand.Data;
+using ShapeLand.Data.Accounts;
 
 #nullable disable
 
-namespace ShapeLand.Data.Migrations.Account
+namespace ShapeLand.Data.Accounts.Migrations
 {
     [DbContext(typeof(ShapeLandAccountContext))]
     partial class ShapeLandAccountContextModelSnapshot : ModelSnapshot
