@@ -237,9 +237,6 @@
                     <ui:VisualElement class="glyph icon-pad-east" />
                     <ui:Label text="#menu.back" />
                 </ui:VisualElement>
-                <ui:VisualElement class="prompt touch-part">
-                    <ui:Label text="#menu.tap_to_choose" />
-                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

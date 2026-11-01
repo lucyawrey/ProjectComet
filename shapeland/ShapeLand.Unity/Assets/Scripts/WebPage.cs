@@ -53,6 +53,19 @@ namespace ShapeLand.Client
             }
         }
 
+        /// <summary>Whether a phone's on-screen keyboard is up; false where there's no page.</summary>
+        public static bool KeyboardUp
+        {
+            get
+            {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                return ShapeLand_KeyboardUp() != 0;
+#else
+                return false;
+#endif
+            }
+        }
+
         /// <summary>
         /// The screen's safe area insets (what notches, rounded corners and the home bar cover), for the HUD to keep
         /// clear of: as shares of the screen's height (top, bottom) and width (left, right); zero where there's no page.
@@ -90,6 +103,9 @@ namespace ShapeLand.Client
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         private static extern int ShapeLand_IsPhone();
+
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern int ShapeLand_KeyboardUp();
 
         [System.Runtime.InteropServices.DllImport("__Internal")]
         private static extern float ShapeLand_SafeAreaInset(int side);

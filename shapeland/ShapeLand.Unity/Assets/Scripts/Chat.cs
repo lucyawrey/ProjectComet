@@ -38,6 +38,7 @@ namespace ShapeLand.Client
         private float _lastLine = float.NegativeInfinity;
         private float _toggledAt = float.NegativeInfinity;
         private bool _openOnRelease;
+        private bool _keyboardWasUp;
 
         /// <summary>True while the input is open.</summary>
         public bool Open { get; private set; }
@@ -119,6 +120,15 @@ namespace ShapeLand.Client
                 CloseInput();
             }
 
+            // On a phone, chat sits above the on-screen keyboard while it's up and goes back down as soon as it's put
+            // away, still open. The keyboard comes up a moment after the input opens, so only once it has been up.
+            if (Open && WebPage.IsPhone)
+            {
+                var keyboardUp = WebPage.KeyboardUp;
+                _keyboardWasUp |= keyboardUp;
+                _box.EnableInClassList("typing-top", keyboardUp || !_keyboardWasUp);
+            }
+
             var logShown = Open || Time.unscaledTime - _lastLine < LogSeconds;
             Opacity = Open ? 1 : Mathf.MoveTowards(Opacity, logShown ? 1 : 0, Time.unscaledDeltaTime / FadeSeconds);
             _box.style.opacity = Opacity;
@@ -142,9 +152,11 @@ namespace ShapeLand.Client
         public void OpenInput()
         {
             _openOnRelease = false;
+            _keyboardWasUp = false;
             Open = true;
             _toggledAt = Time.unscaledTime;
             _inputRow.RemoveFromClassList("hidden");
+            _box.EnableInClassList("typing-top", WebPage.IsPhone); // above a phone's on-screen keyboard
             _log.verticalScrollerVisibility = ScrollerVisibility.Auto;
             SetPicking(_log, true);
             _input.value = "";
@@ -164,6 +176,7 @@ namespace ShapeLand.Client
             _toggledAt = Time.unscaledTime;
             _input.Blur();
             _inputRow.AddToClassList("hidden");
+            _box.RemoveFromClassList("typing-top");
             _log.verticalScrollerVisibility = ScrollerVisibility.Hidden;
             SetPicking(_log, false);
             ScrollToEnd();

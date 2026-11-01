@@ -22,8 +22,10 @@
 .backdrop.changing .look-head { display: flex; }
 .backdrop.changing .join-title { display: none; }
 
-/* The card has the Esc menu window's size, place and look (.menu-window), growing only for an error; on a phone its
-   height is its content's, to fit. */
+/* The card has the Esc menu window's size, place and look (.menu-window), growing only for an error. On a phone it's
+   as tall as its content, centered in the safe area (.card-safe, kept there by Hud) with even margins, and the body
+   scrolls if it still doesn't fit; tighter phone spacing is at the end of this section. */
+.card-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .card {
     position: absolute; left: 50%; top: 50%; translate: -50% -54%;
     width: 600px; min-height: 440px;
@@ -31,8 +33,16 @@
     background-color: rgba(16, 20, 28, 0.96);
     border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
 }
-.backdrop.phone .card { min-height: 0; }
-.card > .body { flex-grow: 1; }
+.backdrop.phone .card-safe { padding: 8px 0 48px 0; justify-content: center; align-items: center; }
+.backdrop.phone.touch-input .card-safe { padding: 8px 0; } /* no prompts bar with touch controls */
+/* The prompts bar along the bottom, as in the Esc menu (.menu-prompts); Back only while changing the look. */
+.backdrop .changing-only { display: none; }
+.backdrop.changing .prompt.changing-only { display: flex; }
+.backdrop.phone .card { position: relative; left: auto; top: auto; translate: 0 0; min-height: 0; max-height: 100%; }
+/* The scroll view's viewport clips, so it reaches out over the rows' negative margins (.nav-row) to keep their tint. */
+.card > * { flex-shrink: 0; }
+.card > .card-scroll { flex-shrink: 1; margin: -4px -8px; }
+.card-scroll .body { padding: 4px 8px; }
 /* Rows a gamepad or the arrow keys move through (JoinScreen), the selected one tinted like a Settings row. */
 .card .nav-row { margin: -4px -8px 6px -8px; padding: 4px 8px; border-radius: 4px; }
 .card .nav-row.server { margin-bottom: -4px; }
@@ -130,6 +140,22 @@ Label { padding: 0; margin: 0; }
 .cancel-button:hover { background-color: rgba(255, 255, 255, 0.16); }
 .cancel-button.hidden { display: none; }
 
+/* Tighter on a phone, so the card usually fits without scrolling. */
+.backdrop.phone .card { padding: 12px 18px 10px 18px; }
+.backdrop.phone .title { font-size: 22px; margin-bottom: 4px; }
+.backdrop.phone .look-head { margin-bottom: 6px; }
+.backdrop.phone .fields > .nav-row { margin-bottom: 2px; }
+.backdrop.phone .label-row, .backdrop.phone .field > .label { margin-bottom: 3px; }
+.backdrop.phone .input .unity-base-text-field__input { padding: 5px 10px; }
+.backdrop.phone .shape-button { height: 30px; }
+.backdrop.phone .shape-icon { width: 22px; height: 22px; }
+.backdrop.phone .swatch { width: 24px; height: 24px; margin: 0 5px 5px 0; }
+.backdrop.phone .swatches { max-width: 290px; }
+.backdrop.phone .preview { width: 104px; height: 104px; margin-bottom: 6px; }
+.backdrop.phone .stat { margin-bottom: 4px; }
+.backdrop.phone .error { padding: 5px 10px; margin-bottom: 6px; }
+.backdrop.phone .join-button, .backdrop.phone .cancel-button { height: 36px; }
+
 /* ---- In game: chat, name tags and speech bubbles ---- */
 
 .hud {
@@ -144,6 +170,10 @@ Label { padding: 0; margin: 0; }
 /* The chat box fades in code (Chat), not with USS transitions. */
 .chat { position: absolute; left: 16px; bottom: 16px; width: 380px; }
 .chat-log { max-height: 190px; padding: 8px 10px; background-color: rgba(18, 22, 30, 0.7); border-radius: 6px; }
+/* Typing on a phone (.typing-top, set by Chat): just below the HUD buttons, above the on-screen keyboard, which covers
+   the lower half of a landscape screen. */
+.chat.typing-top { top: 72px; bottom: auto; }
+.chat.typing-top .chat-log { max-height: 110px; }
 .chat-log.empty { display: none; }
 /* The log's scroll bar: a thin rounded track and thumb like the stat bars, with no arrow buttons. */
 .chat-log .unity-scroller--vertical { width: 6px; margin-left: 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
@@ -174,17 +204,20 @@ Label { padding: 0; margin: 0; }
 .chat-input-row.hidden { display: none; }
 .chat-input { flex-grow: 1; }
 .chat-input .unity-base-text-field__input { background-color: rgba(0, 0, 0, 0); border-width: 0; font-size: 14px; }
-.chat-keys { font-size: 12px; color: rgb(141, 151, 171); }
-/* With touch controls in use (.touch-input, set by TouchControls), Send stands in for the keys note: an on-screen
-   keyboard may have no Enter for the game to see. */
 .chat-send {
-    display: none;
     margin: 4px 0; padding: 4px 12px; font-size: 14px; -unity-font-style: bold;
     background-color: rgb(61, 124, 240); border-width: 0; border-radius: 3px;
     color: rgb(238, 241, 246);
 }
-.hud.touch-input .chat-keys { display: none; }
-.hud.touch-input .chat-send { display: flex; }
+
+/* Bigger chat text on a phone (16px), with a log to match. */
+.hud.phone .chat { width: 420px; }
+.hud.phone .chat-log { max-height: 210px; }
+.hud.phone .chat.typing-top .chat-log { max-height: 110px; }
+.hud.phone .chat-name, .hud.phone .chat-text, .hud.phone .chat-note,
+.hud.phone .chat-input .unity-base-text-field__input, .hud.phone .chat-send { font-size: 16px; }
+.hud.phone .chat-line .shape-icon { width: 16px; height: 16px; margin-top: 4px; }
+.hud.phone .chat-input .unity-text-element { height: 20px; }
 
 /* Change Look, Return to Spawn, chat and network stats as round buttons at the top left, larger with touch controls
    in use. With a mouse, hovering one shows its name and key. Icons from UI/Icons (see its README). */
@@ -209,14 +242,9 @@ Label { padding: 0; margin: 0; }
 }
 .hud-button:hover .hud-tip { display: flex; }
 .hud.touch-input .hud-tip { display: none; }
-.hud-tip-key {
-    margin-left: 8px; padding: 0 4px; font-size: 12px;
-    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 3px;
-    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
-}
-/* A tip's key is the keyboard's (.keys-part) or the gamepad's (.pad-part, a rounded pill like the menu's); buttons
-   with no gamepad binding show none on a pad. */
-.hud-tip-pad { border-radius: 8px; padding: 0 6px; }
+/* A tip's key is the keyboard's (.keys-part, a .key cap) or the gamepad's (.pad-part, a .pad-word pill), as on the
+   menu's Controls page; buttons with no gamepad binding show none on a pad. */
+.hud-tip .hud-tip-key { margin: 0 0 0 8px; }
 
 .name-tag {
     position: absolute; translate: -50% -100%;
@@ -305,10 +333,11 @@ Label { padding: 0; margin: 0; }
 
 /* ---- The Esc menu (Menu.uxml, GameMenu), ported from the approved mockup. ---- */
 
-/* Parts for one kind of input: keys and mouse unless the HUD has .pad-input or .touch-input (TouchControls). */
+/* Parts for one kind of input: keys and mouse unless the HUD or the look card has .pad-input or .touch-input
+   (TouchControls, Hud). */
 .pad-part, .touch-part { display: none; }
-.hud.pad-input .keys-part, .hud.touch-input .keys-part { display: none; }
-.hud.pad-input .pad-part, .hud.touch-input .touch-part { display: flex; }
+.pad-input .keys-part, .touch-input .keys-part { display: none; }
+.pad-input .pad-part, .touch-input .touch-part { display: flex; }
 
 .key {
     min-width: 24px; padding: 1px 6px; margin: 0 2px;
@@ -372,6 +401,16 @@ Label { padding: 0; margin: 0; }
     background-color: rgba(16, 20, 28, 0.96);
     border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
 }
+/* On a phone the menu centers in the space above the prompts bar (40px), with even margins; the window fills it. */
+.hud.phone .menu-list, .hud.phone .menu-confirm { translate: -50% -50%; margin-top: -20px; }
+.hud.phone .menu-window {
+    top: 8px; bottom: 48px; height: auto; max-height: none; translate: -50% 0;
+    padding: 12px 18px 10px 18px;
+}
+/* With touch controls there are no prompts, so the bar is gone and the menu centers on the whole screen. */
+.touch-input .menu-prompts { display: none; }
+.hud.phone.touch-input .menu-list, .hud.phone.touch-input .menu-confirm { margin-top: 0; }
+.hud.phone.touch-input .menu-window { bottom: 8px; }
 .menu-page-head { flex-direction: row; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
 .menu-back, .menu-back:hover {
     flex-direction: row; align-items: center;
@@ -476,7 +515,8 @@ Label { padding: 0; margin: 0; }
 .hud.pad-input .menu.on-controls .prompt.tabs-prompt.pad-part { display: flex; }
 
 /* First time in the game: the menu button's tip stays up, outlined, until the menu is first opened (Hud). It names
-   the key for the input in use (Start on a gamepad, none for touch). */
-.hud-button.first-time .hud-tip, .hud.touch-input .hud-button.first-time .hud-tip {
+   the key for the input in use (Start on a gamepad); not shown with touch controls. */
+.hud-button.first-time .hud-tip {
     display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
 }
+.hud.touch-input .hud-button.first-time .hud-tip { display: none; }

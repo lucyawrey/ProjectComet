@@ -52,6 +52,7 @@ namespace ShapeLand.Client
         // Keys and gamepad: the rows they move through (name, shape, color, eyes, then the bottom line of server field
         // and buttons), the selected one, the selected item on the bottom line, and the held direction's repeat.
         private VisualElement[] _rows;
+        private ScrollView _scroll;
         private VisualElement _buttonsRow;
         private int _row;
         private int _buttonIndex;
@@ -151,6 +152,7 @@ namespace ShapeLand.Client
             _serverField = tree.Q("server-field");
             _buttonsRow = _joinButton.parent;
             // The server field shares the bottom line with the buttons, and is one of its items.
+            _scroll = tree.Q<ScrollView>("card-scroll");
             _rows = _root.Query(className: "nav-row").Where(row => row != _serverField).ToList().Append(_buttonsRow).ToArray();
             for (var i = 0; i < _rows.Length - 1; i++)
             {
@@ -677,6 +679,10 @@ namespace ShapeLand.Client
             if (row >= 0 && row < _rows.Length)
             {
                 SelectRow(row);
+                if (_scroll.contentContainer.Contains(_rows[row]))
+                {
+                    _scroll.ScrollTo(_rows[row]); // when the card is too tall for a phone's screen
+                }
             }
         }
 
