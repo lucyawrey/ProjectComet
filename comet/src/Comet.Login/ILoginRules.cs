@@ -30,4 +30,4 @@ public interface ILoginRules<TCharacter>
 }
 
 /// <summary>A game server: its node number (tickets name it) and the WebSocket address clients connect to.</summary>
-public readonly record struct GameServerAddress(int ServerId, string Address);
+public sealed record GameServerAddress(int ServerId, string Address);

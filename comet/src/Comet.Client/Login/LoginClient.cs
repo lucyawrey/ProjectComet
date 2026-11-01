@@ -66,7 +66,7 @@ namespace Comet.Client.Login
     /// <summary>
     /// The Login server's client: keeps the session token (<see cref="ITokenStore"/>), sends it with signed-in calls,
     /// and forgets it when the server says it's no longer good (<see cref="LoginErrors.SignedOut"/>).
-    /// <typeparamref name="TCharacter"/> is the game's character data.
+    /// <typeparamref name="TCharacter"/> is how the game's Login server describes a character.
     /// </summary>
     public sealed class LoginClient<TCharacter>
     {
@@ -87,8 +87,9 @@ namespace Comet.Client.Login
 
         public bool SignedIn => Token != null;
 
-        public Task<LoginResult<bool>> CreateGuestAsync(string name, TCharacter character) =>
-            StartSessionAsync(LoginPaths.Guest, new GuestRequest<TCharacter> { Name = name, Character = character });
+        /// <summary>Makes a guest account with its first character, from the game's new-character data.</summary>
+        public Task<LoginResult<bool>> CreateGuestAsync<TNewCharacter>(string name, TNewCharacter character) =>
+            StartSessionAsync(LoginPaths.Guest, new GuestRequest<TNewCharacter> { Name = name, Character = character });
 
         public Task<LoginResult<bool>> SignInAsync(string username, string password) =>
             StartSessionAsync(LoginPaths.SignIn, new SignInRequest { Username = username, Password = password });

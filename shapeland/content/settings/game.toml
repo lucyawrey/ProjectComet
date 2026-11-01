@@ -49,21 +49,21 @@ facet_length = 0.5 # about how long each side is, in meters
 min_sides = 6 # the fewest sides, however small
 max_sides = 48 # the most sides, however large
 
-# The colors players pick from, for both body and eyes. Placeholders: the final set is the project lead's.
+# The colors players pick from, for both body and eyes, in the order they're shown: key = 0xRRGGBB. Each key gets a
+# permanent number (ids.toml, type color) that saved characters keep, so rename keys with care. Placeholders: the
+# final set and keys are the project lead's.
 [colors]
-players = [
-  0xFF3935, # red
-  0xFF0068,
-  0xEC407A, # pink
-  0x8E24AA, # purple
-  0x1E88E5, # blue
-  0x1565C0, # deep blue
-  0x00ACC1, # cyan
-  0x43A047, # green
-  0x2E7D32, # deep green
-  0xFB8C00, # orange
-  0xFDD835, # yellow
-  0x5D4037, # brown
-  0x16161C, # ink
-  0xFFFFFF, # white
-]
+red = 0xFF3935
+cff0068 = 0xFF0068
+pink = 0xEC407A
+purple = 0x8E24AA
+blue = 0x1E88E5
+deep_blue = 0x1565C0
+cyan = 0x00ACC1
+green = 0x43A047
+deep_green = 0x2E7D32
+orange = 0xFB8C00
+yellow = 0xFDD835
+brown = 0x5D4037
+ink = 0x16161C
+white = 0xFFFFFF

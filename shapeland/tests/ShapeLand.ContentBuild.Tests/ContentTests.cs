@@ -34,6 +34,24 @@ public class ContentTests
     }
 
     [Fact]
+    public void PlayerColorsKeepTheFilesOrderAndTheirNumbers()
+    {
+        var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
+        Assert.Empty(errors);
+        var file = new MemoryStream();
+        built!.Save(file);
+        file.Position = 0;
+        var loaded = ShapeLandContent.Load(file);
+
+        // Shown in the file's order, looked up by their registry numbers.
+        Assert.Equal(built.Settings.Colors.Keys.Select(key => $"color.{key}"), loaded.Colors.All.Select(c => c.Id));
+        foreach (var color in loaded.Colors.All)
+        {
+            Assert.Equal(built.Settings.Colors[color.Id["color.".Length..]], loaded.Colors[color.Number].Rgb);
+        }
+    }
+
+    [Fact]
     public void TheContentBuildsWithItsZone()
     {
         // The zone is made by hand in the editor, so only that it builds is checked: the build itself reports

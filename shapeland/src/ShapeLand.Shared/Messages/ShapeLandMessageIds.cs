@@ -9,6 +9,10 @@ namespace ShapeLand.Shared.Messages
         public const ushort JoinRequest = MessageIds.FirstGameMessage;
         public const ushort JoinRejected = MessageIds.FirstGameMessage + 1;
         public const ushort PlayerSpawn = MessageIds.FirstGameMessage + 2;
+        public const ushort LookChange = MessageIds.FirstGameMessage + 3;
+        public const ushort LookRejected = MessageIds.FirstGameMessage + 4;
+        public const ushort NameChanged = MessageIds.FirstGameMessage + 5;
+        public const ushort Dropped = MessageIds.FirstGameMessage + 6;
 
         // Chat
         public const ushort ChatSend = MessageIds.FirstGameMessage + 10;

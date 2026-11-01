@@ -12,8 +12,8 @@ public sealed class TickLimiter(int tickRate, int burst, float secondsPerTake)
     /// <summary>Chat: three lines at once, then one every two seconds.</summary>
     public static TickLimiter Chat(int tickRate) => new(tickRate, burst: 3, secondsPerTake: 2);
 
-    /// <summary>Join attempts: far more than a player retrying a taken name needs; each one scans every player.</summary>
-    public static TickLimiter Join(int tickRate) => new(tickRate, burst: 5, secondsPerTake: 1);
+    /// <summary>Look changes and renames: a few at once, then one a second (each is a save and a spawn everyone sees).</summary>
+    public static TickLimiter Look(int tickRate) => new(tickRate, burst: 5, secondsPerTake: 1);
 
     /// <summary>Returns to the spawn point: a couple at once, then one a second (each one is a teleport everyone sees).</summary>
     public static TickLimiter Return(int tickRate) => new(tickRate, burst: 2, secondsPerTake: 1);

@@ -22,6 +22,7 @@ public static class ShapeLandBuild
     public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) => new ContentBuilder(contentRoot)
         .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
         .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
+        .AddKeys<GameSettings>("color", settings => settings.Colors.Keys.Select(key => $"color.{key}"))
         .AddStrings()
         .AddProps(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
         .AddGroups()
@@ -111,8 +112,10 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-
-        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Prop>(), result.Zones, result.Groups), errors);
+        // The player colors in the file's order, which is the order they're shown in.
+        var colorNumbers = result.Numbers("color");
+        var colors = settings[0].Colors.Select(c => new PlayerColor { Id = $"color.{c.Key}", Number = colorNumbers[$"color.{c.Key}"], Rgb = c.Value });
+        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Prop>(), result.Zones, result.Groups, colors), errors);
     }
 
     private static void ValidateSettings(GameSettings settings, ContentValidation validation)
@@ -175,14 +178,18 @@ public static class ShapeLandBuild
         IsColor(teleporters, nameof(TeleporterSettings.PadColor), settings.Teleporters.PadColor);
         IsColor(teleporters, nameof(TeleporterSettings.ChargeColor), settings.Teleporters.ChargeColor);
         IsColor(triggers, nameof(TriggerSettings.ChargeColor), settings.Triggers.ChargeColor);
-        foreach (var color in settings.Colors.Players)
+        foreach (var (key, color) in settings.Colors)
         {
-            IsColor(colors, nameof(ColorSettings.Players), color);
+            IsColor(colors, key, color);
+            if (!System.Text.RegularExpressions.Regex.IsMatch(key, "^[a-z][a-z0-9_]*$"))
+            {
+                validation.Error(colors, key, "isn't a valid key: use a lowercase letter, then lowercase letters, digits and underscores.");
+            }
         }
 
-        if (settings.Colors.Players.Length == 0)
+        if (settings.Colors.Count == 0)
         {
-            validation.Error(colors, nameof(ColorSettings.Players), "players need at least one color.");
+            validation.Error(colors, "", "players need at least one color.");
         }
     }
 

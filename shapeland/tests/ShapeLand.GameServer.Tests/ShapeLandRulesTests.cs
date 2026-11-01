@@ -7,8 +7,9 @@ public class ShapeLandRulesTests
 {
     [Theory]
     [InlineData("  Ada  ", "Ada")]
-    [InlineData("Bot 01", "Bot 01")]
+    [InlineData("Bot01", "Bot01")]
     [InlineData("x_y-z", "x_y-z")]
+    [InlineData("Max_Sixteen_Char", "Max_Sixteen_Char")]
     public void AcceptsAndTrimsNames(string name, string expected)
     {
         Assert.True(ShapeLandRules.TryNormalizeName(name, out var normalized));
@@ -18,7 +19,8 @@ public class ShapeLandRulesTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    [InlineData("two  spaces")]
+    [InlineData("Ab")]
+    [InlineData("has space")]
     [InlineData("seventeen chars!!")]
     [InlineData("ThisNameIsTooLong")]
     [InlineData("emoji 🙂")]

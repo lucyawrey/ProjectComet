@@ -13,8 +13,9 @@ namespace ShapeLand.Shared.Content
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
         /// <summary>Content made in memory (by the content build, or tests); <see cref="Fingerprint"/> is 0 until it's saved.</summary>
-        public ShapeLandContent(IEnumerable<Shape> shapes, GameSettings settings, StringTable strings, IEnumerable<Prop> props, IEnumerable<Zone> zones, IEnumerable<Group>? groups = null)
+        public ShapeLandContent(IEnumerable<Shape> shapes, GameSettings settings, StringTable strings, IEnumerable<Prop> props, IEnumerable<Zone> zones, IEnumerable<Group>? groups = null, IEnumerable<PlayerColor>? colors = null)
         {
+            Colors = new ContentTable<PlayerColor>("color", colors ?? Enumerable.Empty<PlayerColor>());
             Groups = new ContentTable<Group>("group", (groups ?? Enumerable.Empty<Group>()).OrderBy(g => g.Number));
             Settings = settings;
             Movement = settings.Rules();
@@ -26,6 +27,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>The playable shapes, in number order.</summary>
         public ContentTable<Shape> Shapes { get; }
+
+        /// <summary>The colors players pick from for body and eyes, in the order they're shown (not number order).</summary>
+        public ContentTable<PlayerColor> Colors { get; }
 
         /// <summary>The game-wide values (<c>content/settings/game.toml</c>).</summary>
         public GameSettings Settings { get; }
@@ -74,13 +78,13 @@ namespace ShapeLand.Shared.Content
                 throw new ContentException("The content file is corrupt or from an incompatible build.", e);
             }
 
-            return new ShapeLandContent(file.Shapes, file.Settings, file.Strings, file.Props, file.Zones, file.Groups) { Fingerprint = FingerprintOf(data) };
+            return new ShapeLandContent(file.Shapes, file.Settings, file.Strings, file.Props, file.Zones, file.Groups, file.Colors) { Fingerprint = FingerprintOf(data) };
         }
 
         /// <summary>Writes the content file and sets <see cref="Fingerprint"/> to match it.</summary>
         public void Save(Stream stream)
         {
-            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Strings = Strings, Props = Props.All.ToArray(), Zones = Zones.All.ToArray(), Settings = Settings, Groups = Groups.All.ToArray() }, SerializerOptions);
+            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Strings = Strings, Props = Props.All.ToArray(), Zones = Zones.All.ToArray(), Settings = Settings, Groups = Groups.All.ToArray(), Colors = Colors.All.ToArray() }, SerializerOptions);
             Fingerprint = FingerprintOf(data);
             stream.Write(data, 0, data.Length);
         }
@@ -111,6 +115,8 @@ namespace ShapeLand.Shared.Content
             [Key(5)] public GameSettings Settings { get; set; } = new GameSettings();
 
             [Key(6)] public Group[] Groups { get; set; } = new Group[0];
+
+            [Key(7)] public PlayerColor[] Colors { get; set; } = new PlayerColor[0];
         }
     }
 

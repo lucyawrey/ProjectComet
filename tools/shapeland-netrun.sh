@@ -99,13 +99,13 @@ cleanup() {
   # What the server saw, from each player's line on leaving: rule violations, and falls it finished itself.
   awk '/ left \(.*movement violations/ {
       v = $0; sub(/.*; /, "", v); split(v, n, " ")
-      if ($0 ~ /Cheater |cheater /) { cv += n[1] } else if ($0 ~ /Far /) { fv += n[1]; ff += n[4]; far = 1 } else { hv += n[1]; hf += n[4] }; seen = 1 }
+      if ($0 ~ /Cheater|-cheater/) { cv += n[1] } else if ($0 ~ /Far[0-9]/) { fv += n[1]; ff += n[4]; far = 1 } else { hv += n[1]; hf += n[4] }; seen = 1 }
     END { if (seen) printf "  Server         honest bots: %d violations, %d falls finished by the server; cheaters: %d violations\n", hv, hf, cv
       if (far) printf "  Server         far players: %d violations, %d falls finished by the server\n", fv, ff }' \
     "$runs/$name.server.log"
   # How much of the movement tolerances honest players needed (MovementHeadroom), the worst of them: banked
   # movement in seconds for each speed factor, height over an exact jump's apex, and late arc start.
-  awk '/ headroom: / && !/Cheater |cheater / {
+  awk '/ headroom: / && !/Cheater|-cheater/ {
       line = $0; sub(/.*burst seconds /, "", line); split(line, parts, ";")
       n = split(parts[1], bursts, " ")
       for (i = 1; i <= n; i++) { split(bursts[i], kv, "="); if (!(kv[1] in burst) || kv[2] + 0 > burst[kv[1]]) burst[kv[1]] = kv[2] + 0; order[i] = kv[1] }

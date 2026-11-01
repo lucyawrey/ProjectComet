@@ -2,6 +2,7 @@ using Comet.Content;
 using Comet.Protocol.Messages;
 using Comet.Server.Connections;
 using Comet.Server.Movement;
+using ShapeLand.Data;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -18,22 +19,28 @@ internal sealed class Player(Connection connection, int tickRate)
     /// <summary>True once the player has joined and spawned; before that only a join request is accepted.</summary>
     public bool Joined { get; set; }
 
-    public string Name { get; set; } = "";
+    /// <summary>A join request came in (its ticket is being checked, or its character loaded).</summary>
+    public bool Joining { get; set; }
+
+    /// <summary>Dropped by the server (replaced or removed): ignored until the connection closes on <see cref="CloseAtTick"/>.</summary>
+    public bool Dropped { get; set; }
+
+    /// <summary>When a dropped player's connection is closed, a tick after its last frame went out.</summary>
+    public uint CloseAtTick { get; set; }
+
+    /// <summary>The saved character, with its look; the name is the account's.</summary>
+    public ShapeLandCharacter Character { get; set; } = null!;
+
+    public string Name => Character.Name;
 
     public Shape Shape { get; set; } = null!;
-
-    /// <summary>The body's color, as 0xRRGGBB.</summary>
-    public uint Color { get; set; }
-
-    /// <summary>The eyes' color, as 0xRRGGBB.</summary>
-    public uint EyeColor { get; set; }
 
     /// <summary>Checks the player's position reports; made on joining.</summary>
     public MovementValidator Validator { get; set; } = null!;
 
     public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
 
-    public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
+    public TickLimiter LookLimiter { get; } = TickLimiter.Look(tickRate);
 
     public TickLimiter ReturnLimiter { get; } = TickLimiter.Return(tickRate);
 
@@ -96,8 +103,8 @@ internal sealed class Player(Connection connection, int tickRate)
         EntityId = EntityId,
         Name = Name,
         Shape = Shape.Number,
-        Color = Color,
-        EyeColor = EyeColor,
+        Color = Character.Color,
+        EyeColor = Character.EyeColor,
         X = Validator.Position.X,
         Y = Validator.Position.Y,
         Z = Validator.Position.Z,

@@ -31,12 +31,14 @@
     <Project Path="shapeland/src/ShapeLand.Data/ShapeLand.Data.csproj" />
     <Project Path="shapeland/src/ShapeLand.Data.Accounts/ShapeLand.Data.Accounts.csproj" />
     <Project Path="shapeland/src/ShapeLand.GameServer/ShapeLand.GameServer.csproj" />
+    <Project Path="shapeland/src/ShapeLand.LoginServer/ShapeLand.LoginServer.csproj" />
     <Project Path="shapeland/src/ShapeLand.Shared/ShapeLand.Shared.csproj" />
   </Folder>
   <Folder Name="/shapeland/tests/">
     <Project Path="shapeland/tests/ShapeLand.ContentBuild.Tests/ShapeLand.ContentBuild.Tests.csproj" />
     <Project Path="shapeland/tests/ShapeLand.Data.Tests/ShapeLand.Data.Tests.csproj" />
     <Project Path="shapeland/tests/ShapeLand.GameServer.Tests/ShapeLand.GameServer.Tests.csproj" />
+    <Project Path="shapeland/tests/ShapeLand.LoginServer.Tests/ShapeLand.LoginServer.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/" />
   <Folder Name="/tools/StackBench/">

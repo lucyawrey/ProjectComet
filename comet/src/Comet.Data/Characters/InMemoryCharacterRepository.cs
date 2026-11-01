@@ -63,6 +63,15 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
+    /// <summary>Sets the saved position, as an earlier session's save would have.</summary>
+    public void SetPosition(long characterId, CharacterPosition position)
+    {
+        lock (_lock)
+        {
+            WriteStatusLocked(characterId, position);
+        }
+    }
+
     public void Rename(long characterId, string name)
     {
         lock (_lock)
