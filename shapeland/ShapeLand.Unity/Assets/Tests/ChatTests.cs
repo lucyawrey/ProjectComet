@@ -79,11 +79,11 @@ namespace ShapeLand.Client.Tests
         {
             yield return StartGame();
             yield return Server.StartBots(1, 20);
-            yield return TestGameServer.WaitFor(() => Chat.LogLines().Any(line => line.StartsWith("Bot 01 ")), 15);
-            var line = Chat.LogLines().FirstOrDefault(l => l.StartsWith("Bot 01 "));
+            yield return TestGameServer.WaitFor(() => Chat.LogLines().Any(line => line.StartsWith("Bot0001 ")), 15);
+            var line = Chat.LogLines().FirstOrDefault(l => l.StartsWith("Bot0001 "));
             Assert.That(line, Is.Not.Null, "The bot's chat never reached the log.");
-            var bot = View.Spawns.First(p => p.Value.Name == "Bot 01").Key;
-            Assert.That("Bot 01 " + Tags.BubbleOf(bot), Is.EqualTo(line), "The bot's bubble doesn't show its line.");
+            var bot = View.Spawns.First(p => p.Value.Name == "Bot0001").Key;
+            Assert.That("Bot0001 " + Tags.BubbleOf(bot), Is.EqualTo(line), "The bot's bubble doesn't show its line.");
         }
 
         [UnityTest]
