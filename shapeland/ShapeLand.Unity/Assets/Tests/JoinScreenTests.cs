@@ -41,8 +41,8 @@ namespace ShapeLand.Client.Tests
 
             Field("name").value = "Pebble";
             Click(ShapeButton("shape.cube"));
-            Click(Swatch("colors", Join.Content.Settings.Colors.Players[1]));
-            Click(Swatch("eyes", Join.Content.Settings.Colors.Players[3]));
+            Click(Swatch("colors", Join.Content.Colors.All[1].Number));
+            Click(Swatch("eyes", Join.Content.Colors.All[3].Number));
             // From content, so tuning the cube doesn't break the test.
             var cube = Join.Content.Shapes.All.First(shape => shape.Id == "shape.cube");
             var (_, jump) = JoinScreen.Stats(cube, Join.Content.Movement);
@@ -61,8 +61,8 @@ namespace ShapeLand.Client.Tests
             var spawn = Join.Spawn.Value;
             Assert.That(spawn.Name, Is.EqualTo("Pebble"));
             Assert.That(Join.Content.Shapes[spawn.Shape].Id, Is.EqualTo("shape.cube"));
-            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Players[1]));
-            Assert.That(spawn.EyeColor, Is.EqualTo(Join.Content.Settings.Colors.Players[3]));
+            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Colors.All[1].Number));
+            Assert.That(spawn.EyeColor, Is.EqualTo(Join.Content.Colors.All[3].Number));
 
             // The overlay fills the screen next to the join screen (a nested UIDocument once gave it no height).
             yield return null;
@@ -90,8 +90,8 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.Player, Is.Null, "The player's shape is still in the world.");
             Assert.That(Join.Joined, Is.False);
             Assert.That(Hud.Shown, Is.False, "The overlay is still showing.");
-            Assert.That(Field("name").value, Is.EqualTo("Pebble"), "The name wasn't kept.");
-            Assert.That(Screen.Root.Q<Button>("join-button").enabledSelf, Is.True, "Join isn't enabled for another try.");
+            Assert.That(Screen.SignedInCard, Is.True, "A signed-in player should get Play, not the new player's fields.");
+            Assert.That(Screen.Root.Q<Button>("join-button").enabledSelf, Is.True, "Play isn't enabled for another try.");
         }
 
         [UnityTest]
@@ -131,10 +131,10 @@ namespace ShapeLand.Client.Tests
             Click(join);
             Assert.That(Screen.Error, Is.EqualTo(Strings.Get("join.name_rules")), "A bad name wasn't caught before sending.");
 
-            Field("name").value = "bot 01";
+            Field("name").value = "bot0001"; // the bot's name, in other capitals
             Click(join);
             yield return TestGameServer.WaitFor(() => Screen.Error != null, 10); // pressing Join cleared the last one
-            Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.name_taken", ("name", "bot 01"))), "A taken name wasn't reported.");
+            Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.name_taken", ("name", "bot0001"))), "A taken name wasn't reported.");
             Assert.That(join.enabledSelf, Is.True, "Join stayed disabled after a refusal.");
 
             Field("name").value = "Pebble";
@@ -169,7 +169,7 @@ namespace ShapeLand.Client.Tests
             yield return LaidOut("cancel-button");
             Field("name").value = "Pebbles";
             Click(ShapeButton("shape.diamond"));
-            Click(Swatch("colors", Join.Content.Settings.Colors.Players[2]));
+            Click(Swatch("colors", Join.Content.Colors.All[2].Number));
             var at = player.transform.position;
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => !Screen.Showing || Screen.Error != null, 10);
@@ -179,7 +179,7 @@ namespace ShapeLand.Client.Tests
             var spawn = View.Spawns[id];
             Assert.That(spawn.Name, Is.EqualTo("Pebbles"));
             Assert.That(Join.Content.Shapes[spawn.Shape].Id, Is.EqualTo("shape.diamond"));
-            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Settings.Colors.Players[2]));
+            Assert.That(spawn.Color, Is.EqualTo(Join.Content.Colors.All[2].Number));
             Assert.That(Vector3.Distance(player.transform.position, at), Is.LessThan(0.5f), "The player moved.");
             Assert.That(player.name, Is.EqualTo("Pebbles (you)"));
         }
@@ -192,7 +192,7 @@ namespace ShapeLand.Client.Tests
             Field("server").value = "127.0.0.1:9";
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => Screen.Error != null, 15);
-            Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.unreachable", ("address", "127.0.0.1:9"))));
+            Assert.That(Screen.Error, Is.EqualTo(Strings.Get("account.unreachable")));
             Assert.That(Screen.Showing, Is.True);
         }
 

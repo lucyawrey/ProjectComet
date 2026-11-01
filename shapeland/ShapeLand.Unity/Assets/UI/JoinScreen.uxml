@@ -11,6 +11,23 @@
                     </ui:Button>
                     <ui:Label text="#menu.change_look" class="menu-page-name" />
                 </ui:VisualElement>
+                <!-- Temporary account UI (signing in), to be reviewed and redone: plain, in the card's own styles. -->
+                <ui:VisualElement name="sign-in" class="fields sign-in hidden">
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.username_label" class="label" />
+                        <ui:TextField name="sign-in-username" max-length="16" class="input" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="sign-in-password-field" class="field">
+                        <ui:Label text="#account.password_label" class="label" />
+                        <ui:TextField name="sign-in-password" password="true" max-length="128" class="input" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="sign-in-code-field" class="field hidden">
+                        <ui:Label text="#account.code_label" class="label" />
+                        <ui:TextField name="sign-in-code" max-length="40" class="input" />
+                    </ui:VisualElement>
+                    <ui:Button name="sign-in-use-code" text="#account.use_code" class="link-button" />
+                </ui:VisualElement>
+                <ui:Label name="signed-in-text" class="signed-in-text hidden" />
                 <ui:ScrollView name="card-scroll" class="card-scroll menu-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
                     <ui:VisualElement class="body">
                         <ui:VisualElement class="fields">
@@ -47,6 +64,7 @@
                         </ui:VisualElement>
                         <ui:TextField name="server" class="input" />
                     </ui:VisualElement>
+                    <ui:Button name="sign-in-link" text="#account.sign_in_link" class="link-button" />
                     <ui:VisualElement class="spacer" />
                     <ui:Button name="cancel-button" text="#join.cancel" class="cancel-button hidden" />
                     <ui:Button name="join-button" text="#join.join" class="join-button" />

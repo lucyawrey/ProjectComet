@@ -10,6 +10,7 @@
                 <ui:Button name="menu-settings" text="#menu.settings" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-look" text="#menu.change_look" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-respawn" text="#menu.respawn" class="menu-entry" focusable="false" />
+                <ui:Button name="menu-account" text="#account.page" class="menu-entry" focusable="false" />
                 <ui:VisualElement class="menu-gap" picking-mode="Ignore" />
                 <ui:Button name="menu-leave" text="#menu.leave" class="menu-entry leave" focusable="false" />
             </ui:VisualElement>

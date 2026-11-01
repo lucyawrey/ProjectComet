@@ -61,7 +61,12 @@ MonoBehaviour:
   webBuildProfile: {fileID: 11400000, guid: 3bacf60bee45438a593f152d5231d688, type: 2}
   serverWebArgument: --ShapeLand:WebRoot={0}
   botsProject: ../src/ShapeLand.Bots
-  botsArguments: --url {url} --count {count}
+  botsArguments: --login {login} --count {count}
+  loginProject: ../src/ShapeLand.LoginServer
+  loginPort: 5090
+  loginArguments: '"--Login:ConnectionString={database}" --Login:AllowedOrigins:0={page} --Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 --ShapeLand:GameServer:Address={game}'
+  serverAccountArguments: '"--ShapeLand:ConnectionString={database}" --ShapeLand:LoginUrl={login}'
+  databaseScript: ../../tools/comet-postgres.sh
   facetLength: 0.5
   minSides: 6
   maxSides: 48

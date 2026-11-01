@@ -12,8 +12,9 @@ namespace ShapeLand.Client.Editor
 {
     /// <summary>
     /// Picks the colors players choose from (Comet › ShapeLand › Player Colors): a list to edit, add to and reorder, and the
-    /// swatches laid out ten a line as on the look card. Save writes them to <c>[colors] players</c> in the game's
-    /// settings, each with its name as the line's comment, and rebuilds the content.
+    /// swatches laid out ten a line as on the look card. Save writes them to <c>[colors]</c> in the game's settings as
+    /// <c>key = 0xRRGGBB</c> lines in the list's order, and rebuilds the content. Each key gets a permanent number
+    /// (ids.toml) that saved characters keep, so a renamed key is a new color to them.
     /// </summary>
     public sealed class PlayerColorsWindow : EditorWindow
     {
@@ -23,7 +24,8 @@ namespace ShapeLand.Client.Editor
         private const int PerLine = 10; // as on the look card (.swatches in ShapeLand.uss)
         private const float Swatch = 26, Gap = 6;
 
-        private static readonly Regex Entry = new(@"^\s*0x([0-9A-Fa-f]{6})\s*,?\s*(?:#\s*(.*?))?\s*$");
+        private static readonly Regex Entry = new(@"^\s*([a-z][a-z0-9_]*)\s*=\s*0x([0-9A-Fa-f]{6})\s*(?:#.*)?$");
+        private static readonly Regex Key = new("^[a-z][a-z0-9_]*$");
 
         [System.Serializable]
         private sealed class PlayerColor
@@ -81,7 +83,7 @@ namespace ShapeLand.Client.Editor
                 }
             }
 
-            EditorGUILayout.HelpBox($"{colors.Count} colors, for both body and eyes. Save writes them to {SettingsFile}, keeping the rest of the file.", MessageType.None);
+            EditorGUILayout.HelpBox($"{colors.Count} colors, for both body and eyes. Each needs a key (lowercase letters, digits and _): saved characters keep colors by the key's number, so renaming one makes it a new color. Save writes them to {SettingsFile}, keeping the rest of the file.", MessageType.None);
         }
 
         private ReorderableList MakeList()
@@ -152,7 +154,7 @@ namespace ShapeLand.Client.Editor
 
         private static string Hex(Color color) => ColorUtility.ToHtmlStringRGB(color);
 
-        // The players array's lines: from "players = [" to its closing "]", within the [colors] table.
+        // The [colors] table's lines: after its header, up to the next table or the end of the file.
         private static (List<string> Lines, int Open, int Close)? Find()
         {
             if (!File.Exists(FullPath))
@@ -161,10 +163,14 @@ namespace ShapeLand.Client.Editor
             }
 
             var lines = File.ReadAllLines(FullPath).ToList();
-            var table = lines.FindIndex(l => l.Trim() == "[colors]");
-            var open = table < 0 ? -1 : lines.FindIndex(table + 1, l => Regex.IsMatch(l, @"^\s*players\s*=\s*\[\s*(#.*)?$"));
-            var close = open < 0 ? -1 : lines.FindIndex(open + 1, l => l.Trim().StartsWith("]"));
-            return close < 0 ? null : (lines, open, close);
+            var open = lines.FindIndex(l => l.Trim() == "[colors]");
+            if (open < 0)
+            {
+                return null;
+            }
+
+            var close = lines.FindIndex(open + 1, l => l.TrimStart().StartsWith("["));
+            return (lines, open, close < 0 ? lines.Count : close);
         }
 
         private void Load()
@@ -176,7 +182,7 @@ namespace ShapeLand.Client.Editor
             var found = Find();
             if (found == null)
             {
-                Debug.LogWarning($"Player colors: {SettingsFile} has no [colors] players = [ … ] array with one color a line.");
+                Debug.LogWarning($"Player colors: {SettingsFile} has no [colors] table.");
                 return;
             }
 
@@ -186,26 +192,48 @@ namespace ShapeLand.Client.Editor
                 var match = Entry.Match(lines[i]);
                 if (match.Success)
                 {
-                    var rgb = uint.Parse(match.Groups[1].Value, NumberStyles.HexNumber);
-                    colors.Add(new PlayerColor { color = GameView.Color(rgb), name = match.Groups[2].Value });
+                    var rgb = uint.Parse(match.Groups[2].Value, NumberStyles.HexNumber);
+                    colors.Add(new PlayerColor { color = GameView.Color(rgb), name = match.Groups[1].Value });
                 }
             }
         }
 
-        // Rewrites the array's lines, keeping the rest of the file (and its comments) as it is, then rebuilds the content.
+        // Rewrites the table's color lines in the list's order, keeping the rest of the file (and the table's comments)
+        // as it is, then rebuilds the content.
         private void Save()
         {
             var found = Find();
             if (found == null)
             {
-                EditorUtility.DisplayDialog("Player colors", $"{SettingsFile} has no [colors] players = [ … ] array with one color a line.", "OK");
+                EditorUtility.DisplayDialog("Player colors", $"{SettingsFile} has no [colors] table.", "OK");
+                return;
+            }
+
+            var keys = colors.Select(c => c.name.Trim()).ToList();
+            if (keys.FirstOrDefault(k => !Key.IsMatch(k)) is { } bad)
+            {
+                EditorUtility.DisplayDialog("Player colors", $"\"{bad}\" isn't a key: use a lowercase letter, then lowercase letters, digits and _.", "OK");
+                return;
+            }
+
+            if (keys.GroupBy(k => k).FirstOrDefault(g => g.Count() > 1) is { } twice)
+            {
+                EditorUtility.DisplayDialog("Player colors", $"\"{twice.Key}\" is used twice: each color needs its own key.", "OK");
                 return;
             }
 
             var (lines, open, close) = found.Value;
-            var entries = colors.Select(c => string.IsNullOrWhiteSpace(c.name) ? $"  0x{Hex(c.color)}," : $"  0x{Hex(c.color)}, # {c.name.Trim()}");
-            lines.RemoveRange(open + 1, close - open - 1);
-            lines.InsertRange(open + 1, entries);
+            var at = lines.FindIndex(open + 1, close - open - 1, l => Entry.IsMatch(l));
+            at = at < 0 ? close : at;
+            for (var i = close - 1; i > open; i--)
+            {
+                if (Entry.IsMatch(lines[i]))
+                {
+                    lines.RemoveAt(i);
+                }
+            }
+
+            lines.InsertRange(at, colors.Select(c => $"{c.name.Trim()} = 0x{Hex(c.color)}"));
             File.WriteAllText(FullPath, string.Join("\n", lines) + "\n");
             changed = false;
             Debug.Log($"Saved {colors.Count} player colors to {SettingsFile}; rebuilding the content.");

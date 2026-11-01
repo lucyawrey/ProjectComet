@@ -10,9 +10,10 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Tests
 {
-    // The real ShapeLand game server for Play mode tests: builds it and starts it on a free port, playing the tests'
-    // own zone (content/zones/tests), so editing ShapeLand's zones can't break them. Needs the dotnet SDK on the PATH
-    // and the content built.
+    // The real ShapeLand servers for Play mode tests: builds the Login and game servers and starts them on free ports,
+    // on a fresh database in the shared comet-postgres container (tools/comet-postgres.sh), with their own ticket keys,
+    // the game server playing the tests' own zone (content/zones/tests), so editing ShapeLand's zones can't break
+    // them. Needs the dotnet SDK on the PATH, Docker, and the content built.
     public sealed class TestGameServer : IDisposable
     {
         /// <summary>The zone the tests play, laid out for them: change it only along with them.</summary>
@@ -24,8 +25,13 @@ namespace ShapeLand.Client.Tests
         private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
 
         private Process _process;
+        private Process _login;
         private Process _bots;
         private int _port;
+        private int _loginPort;
+        private string _database;
+        private string _connection;
+        private string _keys;
 
         /// <summary>The content play mode and the tests use; fails the test if it hasn't been copied in.</summary>
         public static ShapeLandContent LoadContent()
@@ -36,31 +42,49 @@ namespace ShapeLand.Client.Tests
             return ShapeLandContent.Load(stream);
         }
 
-        /// <summary>The server's address, once <see cref="Start"/> has finished.</summary>
+        /// <summary>The Login server's address (what the card's server field takes), once <see cref="Start"/> has finished.</summary>
         public string Address { get; private set; }
+
+        /// <summary>The game server's address, once <see cref="Start"/> has finished.</summary>
+        public string GameAddress => $"127.0.0.1:{_port}";
 
         public IEnumerator Start()
         {
-            using (var build = Run("build shapeland/src/ShapeLand.GameServer --nologo -v quiet"))
+            foreach (var project in new[] { "ShapeLand.LoginServer", "ShapeLand.GameServer" })
             {
+                using var build = Run($"build shapeland/src/{project} --nologo -v quiet");
                 while (!build.HasExited)
                 {
                     yield return null;
                 }
 
-                Assert.That(build.ExitCode, Is.EqualTo(0), "The game server didn't build.");
+                Assert.That(build.ExitCode, Is.EqualTo(0), $"{project} didn't build.");
             }
 
             _port = FreePort();
+            _loginPort = FreePort();
+            _database = $"shapeland_unity_tests_{_port}";
+            _connection = Database("fresh", _database);
+            _keys = Path.Combine(Path.GetTempPath(), $"shapeland-unity-tests-{_port}");
+
+            // The Login server first: it migrates the database and makes the keys the game server reads.
+            _login = Run($"artifacts/bin/ShapeLand.LoginServer/debug/ShapeLand.LoginServer.dll --urls http://127.0.0.1:{_loginPort} " +
+                $"\"--Login:ConnectionString={_connection}\" \"--Login:SigningKeyFile={Path.Combine(_keys, "login.pem")}\" " +
+                $"\"--Login:PublicKeysFolder={Path.Combine(_keys, "public")}\" --Login:CreateSigningKey=true " +
+                "--Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 " +
+                $"--ShapeLand:GameServer:Address=ws://127.0.0.1:{_port}/ws");
+            yield return WaitFor(() => _login.HasExited || Accepts(_loginPort), 30);
+            Assert.That(!_login.HasExited && Accepts(_loginPort), "The Login server didn't start.");
             yield return Launch();
-            Address = $"127.0.0.1:{_port}";
+            Address = $"127.0.0.1:{_loginPort}";
         }
 
         // Starts the built server on this server's port and waits until it listens.
         private IEnumerator Launch()
         {
             // The server's output isn't read: reading a child's output asynchronously keeps Unity's editor from exiting.
-            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port} --ShapeLand:StartSpawn {StartSpawn}");
+            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port} --ShapeLand:StartSpawn {StartSpawn} " +
+                $"\"--ShapeLand:ConnectionString={_connection}\" \"--ShapeLand:TicketKeysFolder={Path.Combine(_keys, "public")}\"");
             var listening = false;
             var deadline = Time.realtimeSinceStartup + 30;
             while (!listening && !_process.HasExited && Time.realtimeSinceStartup < deadline)
@@ -105,7 +129,7 @@ namespace ShapeLand.Client.Tests
                 Assert.That(build.ExitCode, Is.EqualTo(0), "The bots didn't build.");
             }
 
-            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --url ws://{Address}/ws --count {count} --seconds {seconds} --chat");
+            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --login http://{Address} \"--tokens {Path.Combine(_keys, "bots")}\" --count {count} --seconds {seconds} --chat");
         }
 
         /// <summary>Kills the game server, as if it crashed; its connections close.</summary>
@@ -115,6 +139,33 @@ namespace ShapeLand.Client.Tests
         {
             Stop(ref _bots);
             Stop(ref _process);
+            Stop(ref _login);
+            if (_database != null)
+            {
+                Database("drop", _database);
+                _database = null;
+            }
+
+            if (_keys != null && Directory.Exists(_keys))
+            {
+                Directory.Delete(_keys, recursive: true);
+            }
+        }
+
+        // Runs tools/comet-postgres.sh, returning what it prints (a connection string, for database and fresh).
+        private static string Database(string command, string name)
+        {
+            using var process = Process.Start(new ProcessStartInfo(Path.Combine(RepoRoot, "tools", "comet-postgres.sh"), $"{command} {name}")
+            {
+                WorkingDirectory = RepoRoot,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+            });
+            Assert.That(process, Is.Not.Null, "Couldn't run tools/comet-postgres.sh.");
+            var output = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+            Assert.That(process.ExitCode, Is.EqualTo(0), $"tools/comet-postgres.sh {command} failed (is Docker running?).");
+            return output;
         }
 
         // Kills a process if it's still running (it may exit on its own at any moment) and forgets it.

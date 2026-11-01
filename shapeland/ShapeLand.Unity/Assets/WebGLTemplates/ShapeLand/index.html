@@ -27,8 +27,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400&display=swap">
     <link rel="stylesheet" href="TemplateData/shapeland.css">
-    <!-- Written by the deploy (tools/shapeland-testbuild.sh) when the game server isn't the page's own host; absent
-         when the game server serves the page itself. -->
+    <!-- Names the Login server (window.shapelandLogin): written by the deploy (tools/shapeland-testbuild.sh), or served
+         by the development game server when it serves the page. -->
     <script src="config.js" onerror="void 0"></script>
   </head>
   <body data-state="checking">
@@ -104,8 +104,8 @@
           element.title = TEXT[element.dataset.title];
         });
 
-        // The game server to use (window.shapelandServer, from config.js), or the page's own host.
-        var server = window.shapelandServer || "";
+        // The Login server (window.shapelandLogin, from config.js), which says which game server to play on.
+        var login = (window.shapelandLogin || "").replace(/\/$/, "");
         var body = document.body;
         var root = document.documentElement;
         var phone = root.classList.contains("phone");
@@ -113,13 +113,13 @@
 
         function show(state) { body.dataset.state = state; }
 
-        // Whether the game server is up: its /health answers "ok". Anything else (no answer, a timeout, or another
-        // host answering for its name, like a wildcard DNS record) means it isn't.
+        // Whether the servers are up: the Login server's /api/health answers "ok". Anything else (no answer, a timeout,
+        // or another host answering for its name, like a wildcard DNS record) means they aren't.
         function serverUp() {
-          if (!server) {
-            return Promise.resolve(true); // the game server is serving this page
+          if (!login) {
+            return Promise.resolve(true); // nothing to check; the game says if it can't reach anything
           }
-          var http = server.replace(/^ws(s?):/, "http$1:").replace(/\/ws$/, "/health");
+          var http = login + "/api/health";
           var abort = new AbortController();
           var timer = setTimeout(function () { abort.abort(); }, 5000);
           return fetch(http, { cache: "no-store", signal: abort.signal })

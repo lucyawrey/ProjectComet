@@ -8,9 +8,9 @@ using UnityEngine.TestTools;
 
 namespace ShapeLand.Client.Tests
 {
-    // Joins the real ShapeLand game server from Play mode with the join client alone: builds it, starts it on a free port and
-    // checks the welcome, the player's own spawn and the first pong. Needs the dotnet SDK on the PATH and the
-    // content built and copied (ShapeLand > Copy Content).
+    // Joins the real ShapeLand servers from Play mode with the join client alone: makes a guest account at the Login
+    // server, gets a ticket, and checks the welcome, the player's own spawn and the first pong. Needs the dotnet SDK on
+    // the PATH, Docker, and the content built and copied (ShapeLand > Copy Content).
     public class JoinTests
     {
         private TestGameServer _server;
@@ -39,7 +39,7 @@ namespace ShapeLand.Client.Tests
             Debug.Log($"Joined as entity {join.Session.EntityId}; round trip {join.Session.Clock.RoundTrip * 1000:0.0} ms.");
         }
 
-        // Leave game closes the connection with no error, and the name is free again for the next join.
+        // Leave game closes the connection with no error; the player stays signed in and plays again with a new ticket.
         [UnityTest]
         public IEnumerator LeavesAndJoinsAgain()
         {
@@ -55,7 +55,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(join.Session, Is.Null);
             Assert.That(join.Error, Is.Null);
 
-            Join(join);
+            _ = join.PlayAsync();
             yield return WaitForJoin(join);
         }
 
@@ -68,6 +68,8 @@ namespace ShapeLand.Client.Tests
 
         private JoinClient StartClient()
         {
+            JoinClient.TokenKey = "tests.account.token";
+            PlayerPrefs.DeleteKey(JoinClient.TokenKey);
             _client = new GameObject("Join client");
             _client.SetActive(false);
             _client.AddComponent<CometConnection>();
@@ -77,13 +79,16 @@ namespace ShapeLand.Client.Tests
             return join;
         }
 
-        private void Join(JoinClient join) => join.Join(_server.Address, new JoinRequest
+        private void Join(JoinClient join)
         {
-            Name = "Unity test",
-            Shape = join.Content.Shapes.All[0].Number,
-            Color = join.Content.Settings.Colors.Players[0],
-            EyeColor = join.Content.Settings.Colors.Players[0],
-        });
+            join.UseLoginServer(_server.Address);
+            _ = join.CreateGuestAsync("UnityTest", new NewCharacter
+            {
+                Shape = join.Content.Shapes.All[0].Number,
+                Color = join.Content.Colors.All[0].Number,
+                EyeColor = join.Content.Colors.All[0].Number,
+            });
+        }
 
         private static IEnumerator WaitForJoin(JoinClient join)
         {

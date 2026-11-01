@@ -31,6 +31,9 @@ namespace ShapeLand.Client
         private NetStats _stats;
         private CollisionDebug _collisions;
         private GameMenu _menu;
+        private AccountPage _account;
+        private Label _guestReminder;
+        private float _guestReminderUntil;
         private VisualElement _lookButton;
         private VisualElement _menuButton;
         private bool _menuTipSeen;
@@ -63,7 +66,10 @@ namespace ShapeLand.Client
         public bool CardShowing => card.Showing;
 
         /// <summary>True while the Esc menu is up, and on the frame it closed (<see cref="GameMenu.Blocking"/>).</summary>
-        public bool MenuBlocking => _menu != null && _menu.Blocking;
+        public bool MenuBlocking => _menu != null && (_menu.Blocking || _account.Open);
+
+        /// <summary>Brings up the Esc menu's Account page (from the menu); its Back returns to the menu.</summary>
+        public void OpenAccount() => _account.Show(() => _menu.Show(GameMenu.AccountEntry, navigating: false));
 
         // On a phone the interface scales from a smaller design size than the panel settings' (960 x 600), so a panel
         // pixel is about a CSS pixel there and text stays readable; the join card still fits a small phone held
@@ -104,6 +110,8 @@ namespace ShapeLand.Client
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe"), cardSafe };
             _touch = new TouchControls(_root, view.OrbitCamera);
             _menu = new GameMenu(this, tree);
+            _account = new AccountPage(this, tree);
+            _guestReminder = tree.Q<Label>("guest-reminder");
             GameMenu.TakeOverNavigation(_root);
 
             join.ContentLoaded += OnContentLoaded;
@@ -131,11 +139,23 @@ namespace ShapeLand.Client
 
         private void OnContentLoaded(ShapeLandContent content) => UiText.Fill(_root, content.Strings);
 
-        private void OnOwnSpawned(PlayerSpawn spawn) => _root.RemoveFromClassList("hidden");
+        private void OnOwnSpawned(PlayerSpawn spawn)
+        {
+            _root.RemoveFromClassList("hidden");
+            if (GuestReminder.Due(join.Account))
+            {
+                // Once, on a guest's first visit on a later day: their character lives only in this browser.
+                _guestReminder.text = join.Content.Strings.Get("account.reminder");
+                _guestReminder.RemoveFromClassList("hidden");
+                _guestReminderUntil = Time.unscaledTime + GuestReminder.ShowSeconds;
+            }
+        }
 
         private void OnConnectionLost(CloseReason reason)
         {
             _menu.Close();
+            _account.Close();
+            _guestReminder.AddToClassList("hidden");
             _root.AddToClassList("hidden");
         }
 
@@ -168,9 +188,19 @@ namespace ShapeLand.Client
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
             ReopenChat();
 
+            if (_guestReminderUntil > 0 && Time.unscaledTime > _guestReminderUntil)
+            {
+                _guestReminderUntil = 0;
+                _guestReminder.AddToClassList("hidden");
+            }
+
             // Esc closes the chat input itself (Chat), so a press just after that is left alone.
             var menu = view.Controls.Game.Menu;
-            if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
+            if (menu.WasPressedThisFrame() && _account.Open)
+            {
+                _account.Back();
+            }
+            else if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
             {
                 if (card.Changing && menu.activeControl is not KeyControl)
                 {
@@ -198,7 +228,7 @@ namespace ShapeLand.Client
                     _menu.Close();
                 }
             }
-            else
+            else if (!_account.Open)
             {
                 _menu.Update(view.Controls.Menu, _touch.Input);
             }

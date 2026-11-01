@@ -31,6 +31,10 @@ namespace ShapeLand.Shared.Content
         /// <summary>The colors players pick from for body and eyes, in the order they're shown (not number order).</summary>
         public ContentTable<PlayerColor> Colors { get; }
 
+        /// <summary>A player color's 0xRRGGBB by its number, or the first color's for a number the content doesn't have.</summary>
+        public uint ColorRgb(int number) =>
+            Colors.TryGet(number, out var color) ? color.Rgb : Colors.All.Count > 0 ? Colors.All[0].Rgb : 0xFFFFFF;
+
         /// <summary>The game-wide values (<c>content/settings/game.toml</c>).</summary>
         public GameSettings Settings { get; }
 

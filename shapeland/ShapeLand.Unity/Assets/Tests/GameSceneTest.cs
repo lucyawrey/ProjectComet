@@ -66,6 +66,10 @@ namespace ShapeLand.Client.Tests
             Server = new TestGameServer();
             yield return Server.Start();
 
+            // A session of the tests' own, empty at the start: every test begins as a new player.
+            JoinClient.TokenKey = "tests.account.token";
+            PlayerPrefs.DeleteKey(JoinClient.TokenKey);
+
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/Scenes/Game.unity", new LoadSceneParameters(LoadSceneMode.Single));
             Join = Object.FindAnyObjectByType<JoinClient>();
             View = Object.FindAnyObjectByType<GameView>();
@@ -91,7 +95,7 @@ namespace ShapeLand.Client.Tests
                 yield break;
             }
 
-            Field("name").value = "Unity test";
+            Field("name").value = "UnityTest";
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null || Screen.Error != null, 15);
             Assert.That(Screen.Error, Is.Null);
@@ -128,8 +132,8 @@ namespace ShapeLand.Client.Tests
         protected VisualElement ShapeButton(string id) =>
             Screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Id == id);
 
-        protected VisualElement Swatch(string row, uint color) =>
-            Screen.Root.Q(row).Children().First(b => (uint)b.userData == color);
+        protected VisualElement Swatch(string row, int color) =>
+            Screen.Root.Q(row).Children().First(b => (int)b.userData == color);
 
         protected void Press(params Key[] keys)
         {

@@ -28,6 +28,11 @@ namespace ShapeLand.Client
         private const float RowHeight = 42;
         private const int ChangeLookEntry = 3;
 
+        /// <summary>The Account entry's place in the list, where the Account page's Back returns to.</summary>
+        public const int AccountEntry = 5;
+
+        private const int LeaveEntry = 6;
+
         /// <summary>
         /// Turns off UI Toolkit's own keys-and-gamepad navigation under <paramref name="root"/>: the menu and the look
         /// card move their selection themselves, with the Menu actions. Left on, it moves the keyboard focus among the
@@ -113,7 +118,7 @@ namespace ShapeLand.Client
             _settingsName = root.Q<Label>("menu-page-settings");
             root.Q("menu-host").pickingMode = PickingMode.Ignore;
 
-            _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-leave") };
+            _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-account"), root.Q("menu-leave") };
             _entryActions = new Action[]
             {
                 Close,
@@ -121,6 +126,7 @@ namespace ShapeLand.Client
                 () => ShowPage(Page.Settings),
                 () => { Close(); _hud.OpenLook(fromMenu: true); },
                 () => { Close(); _hud.ReturnToSpawn(); },
+                () => { Close(); _hud.OpenAccount(); },
                 () => ShowPage(Page.Leave),
             };
             _confirmEntries = new[] { root.Q("menu-stay"), root.Q("menu-leave-confirm") };
@@ -227,7 +233,7 @@ namespace ShapeLand.Client
                     Close();
                     break;
                 case Page.Leave:
-                    ShowPage(Page.List, 5);
+                    ShowPage(Page.List, LeaveEntry);
                     break;
                 default:
                     ShowPage(Page.List, _page == Page.Controls ? 1 : 2);

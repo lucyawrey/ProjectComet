@@ -520,3 +520,26 @@ Label { padding: 0; margin: 0; }
     display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
 }
 .hud.touch-input .hud-button.first-time .hud-tip { display: none; }
+
+/* Temporary account UI (sign in, the Account page, the guest reminder): plain, reusing the card's look, to be redone. */
+.link-button {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; padding: 4px 0; margin: 0 12px 0 0;
+    color: rgb(190, 200, 255); font-size: 14px; -unity-text-align: middle-left;
+}
+.link-button:hover { color: rgb(230, 235, 255); }
+.link-button.hidden { display: none; }
+.sign-in { flex-grow: 1; }
+.signed-in-text { white-space: normal; font-size: 16px; padding: 12px 0; }
+.signed-in-text.hidden { display: none; }
+#join.signed-in .card-scroll, #join.signing-in .card-scroll { display: none; }
+.account-window { flex-direction: column; }
+.account-text { white-space: normal; font-size: 15px; margin: 6px 0; }
+.account-code { font-size: 20px; -unity-font-style: bold; margin: 6px 0; }
+.account-code.hidden, .account-button.hidden, .account-text.hidden { display: none; }
+.account-button { align-self: flex-start; margin: 6px 0 10px 0; padding: 6px 14px; }
+.guest-reminder {
+    position: absolute; top: 64px; left: 50%; translate: -50% 0; max-width: 520px;
+    padding: 8px 14px; background-color: rgba(16, 20, 28, 0.9); border-radius: 6px;
+    color: rgb(238, 241, 246); font-size: 15px; white-space: normal;
+}
+.guest-reminder.hidden { display: none; }
