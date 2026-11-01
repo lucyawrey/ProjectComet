@@ -33,6 +33,7 @@ namespace ShapeLand.Client
         private GameMenu _menu;
         private VisualElement _lookButton;
         private VisualElement _menuButton;
+        private bool _menuTipSeen;
         // Chat that was open when the look card came up, and what was typed in it: it reopens once the card closes.
         private bool _reopenChat;
         private string _chatDraft;
@@ -95,7 +96,12 @@ namespace ShapeLand.Client
             // The other buttons close the look card first.
             tree.Q<Button>("return-button").clicked += () => { CloseLook(); ReturnToSpawn(); };
             tree.Q<Button>("chat-button").clicked += () => { CloseLook(); _chat.Toggle(); };
-            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe") };
+            _menuTipSeen = GameSettings.MenuTipSeen;
+            tree.Query(className: "hud-tip").ForEach(tip =>
+                tip.parent.RegisterCallback<PointerEnterEvent>(_ => MarkMenuTipSeen()));
+            // The join card is its own document on the same panel settings, so the same insets fit it.
+            var cardSafe = card.GetComponent<UIDocument>().rootVisualElement.Q("card-safe");
+            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe"), cardSafe };
             _touch = new TouchControls(_root, view.OrbitCamera);
             _menu = new GameMenu(this, tree);
             GameMenu.TakeOverNavigation(_root);
@@ -137,21 +143,21 @@ namespace ShapeLand.Client
         {
             _touch?.Update(Shown && view.Player != null && view.Player.InputEnabled, _menu.Open);
 
+            if (WebPage.IsPhone)
+            {
+                KeepToSafeArea(); // also before the HUD shows, for the join card
+            }
+
             if (!Shown)
             {
                 return;
-            }
-
-            if (WebPage.IsPhone)
-            {
-                KeepToSafeArea();
             }
 
             // The look card hides chat and the network numbers while it's up.
             _lookButton.EnableInClassList("on", card.Changing);
             _menuButton.EnableInClassList("on", _menu.Open);
             _root.EnableInClassList("look-open", card.Changing);
-            _menuButton.EnableInClassList("first-time", !_menu.EverOpened && !_menu.Open && !CardShowing);
+            _menuButton.EnableInClassList("first-time", !_menuTipSeen && !_menu.Open && !CardShowing);
             _chat.Box.EnableInClassList("hidden", card.Changing);
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
             ReopenChat();
@@ -228,7 +234,7 @@ namespace ShapeLand.Client
         // phone turns.
         private void KeepToSafeArea()
         {
-            var size = _root.layout.size;
+            var size = _root.parent.layout.size; // the document's root, laid out while the HUD is hidden
             var sizes = new Vector4(Screen.width, Screen.height, size.x, size.y);
             if (float.IsNaN(size.x) || size.x <= 0 || sizes == _safeFor)
             {
@@ -280,6 +286,16 @@ namespace ShapeLand.Client
         }
 
         // The menu button: opens the menu, closing the look card first, or closes it.
+        /// <summary>Takes down the first-login tip on the menu button for good (the menu opened, or a tip was hovered).</summary>
+        public void MarkMenuTipSeen()
+        {
+            if (!_menuTipSeen)
+            {
+                _menuTipSeen = true;
+                GameSettings.MenuTipSeen = true;
+            }
+        }
+
         private void ToggleMenu()
         {
             if (_menu.Open)
