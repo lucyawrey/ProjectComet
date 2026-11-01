@@ -20,7 +20,8 @@ public interface IBotAccount
 /// kept in a file so later runs reuse it, and made again if the token is refused. If an older account holds the
 /// name, a random 4-character suffix is added.
 /// </summary>
-public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFolder, ShapeLandContent content, int seed) : IBotAccount
+/// <remarks><paramref name="serverOverride"/> replaces the ticket's game server address, where the bots reach it by another name (in Docker).</remarks>
+public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFolder, ShapeLandContent content, int seed, Uri? serverOverride = null) : IBotAccount
 {
     private const int SuffixLength = 4;
     private const int Attempts = 5;
@@ -65,7 +66,7 @@ public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFo
     {
         var account = await login.GetAccountAsync();
         var ticket = account.Succeeded ? await login.GetTicketAsync() : default;
-        return ticket.Succeeded ? new BotTicket(ticket.Value!.Ticket, new Uri(ticket.Value.Server), account.Value!.Username) : null;
+        return ticket.Succeeded ? new BotTicket(ticket.Value!.Ticket, serverOverride ?? new Uri(ticket.Value.Server), account.Value!.Username) : null;
     }
 
     private NewCharacter RandomLook()

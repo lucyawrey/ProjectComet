@@ -85,12 +85,20 @@ results="$runs/$name.json"
 
 echo "== Building"
 quietly dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
+quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.LoginServer"
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots"
 
 # Its own Compose project, so a tools/shapeland-dev.sh run alongside keeps its containers. No web build.
 compose=(docker compose -p shapeland-netrun -f "$repo/shapeland/docker/compose.yaml")
 export SHAPELAND_PUBLISH="127.0.0.1:$port" SHAPELAND_WEBROOT="" SHAPELAND_WEB_DIR="$repo/shapeland/docker"
+# Each run starts from a fresh database and fresh bot accounts (comet-postgres, tools/comet-postgres.sh).
+database="shapeland_netrun_$port"
+connection=$("$repo/tools/comet-postgres.sh" fresh "$database")
+tokens="$repo/artifacts/bot-tokens/net"
+rm -rf "$tokens" && mkdir -p "$tokens"
+export SHAPELAND_DATABASE="${connection/Host=127.0.0.1;Port=55432/Host=comet-postgres;Port=5432}" LOGIN_PUBLISH="127.0.0.1:$((port + 10))" \
+  SHAPELAND_GAME_ADDRESS="ws://127.0.0.1:$port/ws" SHAPELAND_USER="$(id -u):$(id -g)"
 cleanup() {
   trap - EXIT INT TERM
   "${compose[@]}" logs -t --no-log-prefix server > "$runs/$name.server.log" 2>&1 || true
@@ -124,7 +132,7 @@ trap 'cleanup; exit 143' TERM
 
 echo "== Server under $profile"
 quietly "${compose[@]}" build -q server
-"${compose[@]}" up -d --wait server > /dev/null 2>&1 || { echo "The game server didn't start; see docker compose logs." >&2; exit 1; }
+"${compose[@]}" up -d --wait login server > /dev/null 2>&1 || { echo "The servers didn't start; see docker compose logs." >&2; exit 1; }
 
 echo "== $bots bots and $cheaters cheaters for $seconds s (warmup $warmup s)"
 args=(--count "$bots" --cheaters "$cheaters" --cheat-speed "$cheat_speed" --cheat-jump "$cheat_jump"
@@ -134,18 +142,18 @@ if [ "$far" -gt 0 ]; then
   # The far players run alongside, in their own container behind --far-net, and are read afterwards.
   args+=(--meta "far=$far" --meta "farNet=$far_net")
   "${compose[@]}" --profile bots run -d --name shapeland-netrun-far bots dotnet /app/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll \
-    --url ws://server:5080/ws --content /app/content/content.bin --prefix Far --count "$far" --cheaters 0 \
+    --login http://login:5090 --server ws://server:5080/ws --tokens /app/bot-tokens --content /app/content/content.bin --prefix Far --count "$far" --cheaters 0 \
     --seconds "$seconds" --seed "$((seed + 7))" --warmup "$warmup" --results /tmp/results.json > /dev/null
 fi
 if [ "$bots_net" = none ]; then
-  dotnet "$repo/artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll" --url "ws://127.0.0.1:$port/ws" \
+  dotnet "$repo/artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll" --login "http://127.0.0.1:$((port + 10))" --tokens "$tokens" \
     "${args[@]}" --results "$results"
 else
   # In the bots' container, behind their own netem as well; the results file is copied out afterwards.
   container=shapeland-netrun-bots
   docker rm -f "$container" > /dev/null 2>&1 || true
   "${compose[@]}" --profile bots run --name "$container" -T bots dotnet /app/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll \
-    --url ws://server:5080/ws --content /app/content/content.bin "${args[@]}" --results /tmp/results.json
+    --login http://login:5090 --server ws://server:5080/ws --tokens /app/bot-tokens --content /app/content/content.bin "${args[@]}" --results /tmp/results.json
   docker cp "$container:/tmp/results.json" "$results" > /dev/null
   docker rm "$container" > /dev/null
   echo "  Results in $results"

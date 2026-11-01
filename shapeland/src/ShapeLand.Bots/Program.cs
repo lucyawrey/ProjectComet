@@ -4,7 +4,8 @@ using ShapeLand.Shared.Content;
 // ShapeLand bots: honest wanderers plus optional cheaters that slide too fast. Each bot is a guest account on the
 // Login server (named like Bot0001), which says which game server to join; its token is kept in --tokens
 // (default artifacts/bot-tokens), so later runs play the same accounts.
-//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--login http://localhost:5090] [--tokens <folder>] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
+// --server replaces the game server address in the bots' tickets (in Docker, where the server's name differs).
+//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--login http://localhost:5090] [--tokens <folder>] [--server ws://server:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
 //     [--warmup 10] [--results file.json] [--meta key=value ...] [--prefix Bot] [--chat [30]] [--cheat-speed 2.5] [--cheat-jump 1]
 // Cheaters move --cheat-speed times faster than allowed and jump --cheat-jump times faster (small values make subtle
 // cheaters, for tuning the server's tolerances).
@@ -13,6 +14,7 @@ using ShapeLand.Shared.Content;
 // print a summary at the end (NetReport); --results also writes them to a file, with each --meta pair in it.
 var login = new Uri(Arg("--login", "http://localhost:5090"));
 var tokens = Arg("--tokens", "");
+var serverOverride = Arg("--server", "") is { Length: > 0 } server ? new Uri(server) : null;
 var count = int.Parse(Arg("--count", "5"));
 var cheaters = int.Parse(Arg("--cheaters", "0"));
 var cheatSpeed = float.Parse(Arg("--cheat-speed", "2.5"), System.Globalization.CultureInfo.InvariantCulture);
@@ -41,7 +43,7 @@ if (tokens == "")
 
 var worlds = new ZoneWorlds(content);
 Bot NewBot(string name, int botSeed, BotSettings settings) =>
-    new(name, botSeed, settings, content, worlds, new LoginBotAccount(name, login, tokens, content, botSeed));
+    new(name, botSeed, settings, content, worlds, new LoginBotAccount(name, login, tokens, content, botSeed, serverOverride));
 var bots = Enumerable.Range(1, count)
     .Select(i => NewBot($"{prefix}{i:0000}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }))
     .Concat(Enumerable.Range(1, cheaters).Select(i => NewBot($"{(prefix == "Bot" ? "Cheater" : prefix + "-cheater")}{i:00}", seed * 1000 + 500 + i, new BotSettings { SpeedCheat = cheatSpeed, JumpCheat = cheatJump, ChatEverySeconds = chat })))

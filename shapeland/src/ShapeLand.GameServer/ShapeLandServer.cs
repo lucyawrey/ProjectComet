@@ -92,7 +92,19 @@ public static class ShapeLandServer
         // X-Forwarded-For, so the per-address connection cap counts players, not the proxy. Only a loopback proxy
         // is trusted (ASP.NET's default), so no client can set the header for itself.
         app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor });
-        ServeWebBuild(app, app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.WebRoot);
+        var serverOptions = app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
+        if (!string.IsNullOrEmpty(serverOptions.WebRoot))
+        {
+            // The page's settings, as the deploy writes them on the public test build: where the Login server is.
+            var config = $"window.shapelandLogin = {System.Text.Json.JsonSerializer.Serialize(serverOptions.LoginUrl)};\n";
+            app.MapGet("/config.js", (HttpContext context) =>
+            {
+                context.Response.Headers.CacheControl = "no-cache";
+                return Results.Text(config, "text/javascript");
+            });
+        }
+
+        ServeWebBuild(app, serverOptions.WebRoot);
         app.UseWebSockets();
         app.MapCometWebSocket("/ws");
 

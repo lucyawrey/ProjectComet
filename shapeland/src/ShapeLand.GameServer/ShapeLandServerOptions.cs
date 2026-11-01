@@ -18,6 +18,12 @@ public sealed class ShapeLandServerOptions
     /// </summary>
     public string WebRoot { get; set; } = "";
 
+    /// <summary>
+    /// The Login server's address (<c>http://localhost:5090</c>), for the page this server serves (<see cref="WebRoot"/>):
+    /// its <c>config.js</c> names it, as the deploy's does on the public test build.
+    /// </summary>
+    public string LoginUrl { get; set; } = "";
+
     /// <summary>This server's node number: join tickets name it, and its owner rows and Snowflake IDs carry it.</summary>
     public int ServerId { get; set; } = 1;
 
