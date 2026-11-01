@@ -128,7 +128,7 @@ namespace Comet.Unity.Editor
 
         // The server (and bots) being built in the background for a start, or null; and a count of stops, so a stop
         // during the build cancels its launch.
-        private static Task<(Built Server, Built Bots)>? _building;
+        private static Task<(Built Server, Built Bots, Built Login, Built Database)>? _building;
         private static int _stops;
 
         /// <summary>The options the running server started with, or null if the editor's server isn't running.</summary>
