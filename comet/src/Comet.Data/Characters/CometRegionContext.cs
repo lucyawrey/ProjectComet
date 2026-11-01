@@ -25,7 +25,7 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
         modelBuilder.Ignore<Character>();
         modelBuilder.Entity<TCharacter>(character =>
         {
-            character.ToTable("character");
+            character.ToTable(CometRegion.CharacterTable);
             character.Property(c => c.Id).ValueGeneratedNever();
             character.HasIndex(c => c.AccountId);
             character.Property(c => c.Name).UseCollation(CometRegion.CaseInsensitive);
@@ -34,14 +34,14 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
 
         modelBuilder.Entity<CharacterStatus>(status =>
         {
-            status.ToTable("character_status");
+            status.ToTable(CometRegion.CharacterStatusTable);
             status.HasKey(s => s.CharacterId);
             status.HasOne<TCharacter>().WithOne().HasForeignKey<CharacterStatus>(s => s.CharacterId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<CharacterOwner>(owner =>
         {
-            owner.ToTable("character_owner");
+            owner.ToTable(CometRegion.CharacterOwnerTable);
             owner.HasKey(o => o.CharacterId);
             owner.HasOne<TCharacter>().WithOne().HasForeignKey<CharacterOwner>(o => o.CharacterId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -52,6 +52,10 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
 public static class CometRegion
 {
     public const string Schema = "region";
+
+    public const string CharacterTable = "character";
+    public const string CharacterStatusTable = "character_status";
+    public const string CharacterOwnerTable = "character_owner";
 
     /// <summary>A case-insensitive ICU collation, for names unique ignoring case.</summary>
     public const string CaseInsensitive = "case_insensitive";

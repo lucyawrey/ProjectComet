@@ -28,4 +28,7 @@ public class Character : ITimestamped
 
     [NotMapped]
     public bool IsDeleted => DeletedAt != null;
+
+    /// <summary>A shallow copy (the repository's, so a queued save doesn't share the game's object).</summary>
+    internal Character Copy() => (Character)MemberwiseClone();
 }

@@ -15,6 +15,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="SharpGLTF.Core" Version="1.0.7" />
     <PackageVersion Include="System.Text.Json" Version="10.0.12" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <PackageVersion Include="Tomlyn" Version="2.10.1" />
   </ItemGroup>
   <ItemGroup Label="Tests">
