@@ -291,7 +291,6 @@ namespace ShapeLand.Client
             UpdateMoving();
         }
 
-        // The menu button: opens the menu, closing the look card first, or closes it.
         /// <summary>Takes down the first-login tip on the menu button for good (the menu opened, or a tip was hovered).</summary>
         public void MarkMenuTipSeen()
         {
@@ -302,6 +301,7 @@ namespace ShapeLand.Client
             }
         }
 
+        // The menu button: opens the menu, closing the look card first, or closes it.
         private void ToggleMenu()
         {
             if (_menu.Open)
