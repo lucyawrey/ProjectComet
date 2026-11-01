@@ -120,17 +120,13 @@ namespace ShapeLand.Client
                 CloseInput();
             }
 
-            // On a phone, putting the on-screen keyboard away ends typing, so chat goes back down at once. It comes up
-            // a moment after the input opens, so only once it has been up.
+            // On a phone, chat sits above the on-screen keyboard while it's up and goes back down as soon as it's put
+            // away, still open. The keyboard comes up a moment after the input opens, so only once it has been up.
             if (Open && WebPage.IsPhone)
             {
                 var keyboardUp = WebPage.KeyboardUp;
-                if (_keyboardWasUp && !keyboardUp)
-                {
-                    CloseInput();
-                }
-
-                _keyboardWasUp = keyboardUp;
+                _keyboardWasUp |= keyboardUp;
+                _box.EnableInClassList("typing-top", keyboardUp || !_keyboardWasUp);
             }
 
             var logShown = Open || Time.unscaledTime - _lastLine < LogSeconds;
