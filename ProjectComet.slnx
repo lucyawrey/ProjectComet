@@ -3,6 +3,7 @@
   <Folder Name="/comet/src/">
     <Project Path="comet/src/Comet.Client/Comet.Client.csproj" />
     <Project Path="comet/src/Comet.Content/Comet.Content.csproj" />
+    <Project Path="comet/src/Comet.Data/Comet.Data.csproj" />
     <Project Path="comet/src/Comet.ContentBuild/Comet.ContentBuild.csproj" />
     <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
     <Project Path="comet/src/Comet.Server/Comet.Server.csproj" />
@@ -21,6 +22,7 @@
   <Folder Name="/shapeland/src/">
     <Project Path="shapeland/src/ShapeLand.Bots/ShapeLand.Bots.csproj" />
     <Project Path="shapeland/src/ShapeLand.ContentBuild/ShapeLand.ContentBuild.csproj" />
+    <Project Path="shapeland/src/ShapeLand.Data/ShapeLand.Data.csproj" />
     <Project Path="shapeland/src/ShapeLand.GameServer/ShapeLand.GameServer.csproj" />
     <Project Path="shapeland/src/ShapeLand.Shared/ShapeLand.Shared.csproj" />
   </Folder>
