@@ -1,52 +1,74 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="ShapeLand.uss" />
     <ui:VisualElement name="join" class="backdrop hidden">
-        <ui:VisualElement class="card">
-            <ui:Label text="#join.title" class="title join-title" />
-            <ui:VisualElement class="look-head">
-                <ui:Button name="look-back" class="menu-back" focusable="false">
-                    <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
-                    <ui:Label text="#menu.back" picking-mode="Ignore" />
-                </ui:Button>
-                <ui:Label text="#menu.change_look" class="menu-page-name" />
-            </ui:VisualElement>
-            <ui:VisualElement class="body">
-                <ui:VisualElement class="fields">
-                    <ui:VisualElement name="name-row" class="field nav-row">
-                        <ui:VisualElement class="label-row">
-                            <ui:Label text="#join.name_label" class="label" />
+        <ui:VisualElement name="card-safe" class="card-safe" picking-mode="Ignore">
+            <ui:VisualElement class="card">
+                <ui:Label text="#join.title" class="title join-title" />
+                <ui:VisualElement class="look-head">
+                    <ui:Button name="look-back" class="menu-back" focusable="false">
+                        <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
+                        <ui:Label text="#menu.back" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Label text="#menu.change_look" class="menu-page-name" />
+                </ui:VisualElement>
+                <ui:ScrollView name="card-scroll" class="card-scroll menu-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
+                    <ui:VisualElement class="body">
+                        <ui:VisualElement class="fields">
+                            <ui:VisualElement name="name-row" class="field nav-row">
+                                <ui:VisualElement class="label-row">
+                                    <ui:Label text="#join.name_label" class="label" />
+                                </ui:VisualElement>
+                                <ui:TextField name="name" max-length="16" class="input" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="field nav-row">
+                                <ui:Label text="#join.shape_label" class="label" />
+                                <ui:VisualElement name="shapes" class="row" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="field nav-row">
+                                <ui:Label text="#join.color_label" class="label" />
+                                <ui:VisualElement name="colors" class="row swatches" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="field nav-row">
+                                <ui:Label text="#join.eyes_label" class="label" />
+                                <ui:VisualElement name="eyes" class="row swatches" />
+                            </ui:VisualElement>
                         </ui:VisualElement>
-                        <ui:TextField name="name" max-length="16" class="input" />
+                        <ui:VisualElement class="preview-column">
+                            <ui:VisualElement name="preview" class="preview" />
+                            <ui:VisualElement name="stats" class="stats" />
+                        </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:VisualElement class="field nav-row">
-                        <ui:Label text="#join.shape_label" class="label" />
-                        <ui:VisualElement name="shapes" class="row" />
+                </ui:ScrollView>
+                <ui:Label name="error" class="error" />
+                <ui:VisualElement class="actions">
+                    <ui:VisualElement name="server-field" class="field server nav-row">
+                        <ui:VisualElement class="label-row">
+                            <ui:Label text="#join.server_label" class="label" />
+                        </ui:VisualElement>
+                        <ui:TextField name="server" class="input" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field nav-row">
-                        <ui:Label text="#join.color_label" class="label" />
-                        <ui:VisualElement name="colors" class="row swatches" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="field nav-row">
-                        <ui:Label text="#join.eyes_label" class="label" />
-                        <ui:VisualElement name="eyes" class="row swatches" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-                <ui:VisualElement class="preview-column">
-                    <ui:VisualElement name="preview" class="preview" />
-                    <ui:VisualElement name="stats" class="stats" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:Button name="cancel-button" text="#join.cancel" class="cancel-button hidden" />
+                    <ui:Button name="join-button" text="#join.join" class="join-button" />
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:Label name="error" class="error" />
-            <ui:VisualElement class="actions">
-                <ui:VisualElement name="server-field" class="field server nav-row">
-                    <ui:VisualElement class="label-row">
-                        <ui:Label text="#join.server_label" class="label" />
-                    </ui:VisualElement>
-                    <ui:TextField name="server" class="input" />
-                </ui:VisualElement>
-                <ui:VisualElement class="spacer" />
-                <ui:Button name="cancel-button" text="#join.cancel" class="cancel-button hidden" />
-                <ui:Button name="join-button" text="#join.join" class="join-button" />
+        </ui:VisualElement>
+        <ui:VisualElement name="card-prompts" class="menu-prompts" picking-mode="Ignore">
+            <ui:VisualElement class="prompt keys-part">
+                <ui:Label text="#menu.key_enter" class="key" />
+                <ui:Label text="#menu.select" />
+            </ui:VisualElement>
+            <ui:VisualElement class="prompt keys-part changing-only">
+                <ui:Label text="#menu.key_esc" class="key" />
+                <ui:Label text="#menu.back" />
+            </ui:VisualElement>
+            <ui:VisualElement class="prompt pad-part">
+                <ui:VisualElement class="glyph icon-pad-south" />
+                <ui:Label text="#menu.select" />
+            </ui:VisualElement>
+            <ui:VisualElement class="prompt pad-part changing-only">
+                <ui:VisualElement class="glyph icon-pad-east" />
+                <ui:Label text="#menu.back" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

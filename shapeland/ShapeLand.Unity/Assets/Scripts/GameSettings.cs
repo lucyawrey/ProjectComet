@@ -23,7 +23,7 @@ namespace ShapeLand.Client
         public const float MinCameraSpeed = 0.25f, MaxCameraSpeed = 3f;
 
         private const string ShowThroughWallsKey = "showThroughWalls";
-        private const string MenuOpenedKey = "menuOpened";
+        private const string MenuTipSeenKey = "menuTipSeen";
 
         /// <summary>Whether the player's own shape shows where something hides it; on unless turned off.</summary>
         public static bool ShowThroughWalls
@@ -32,11 +32,14 @@ namespace ShapeLand.Client
             set => Save(() => PlayerPrefs.SetInt(ShowThroughWallsKey, value ? 1 : 0));
         }
 
-        /// <summary>Whether the player has ever opened the Esc menu; until then a hint points to it.</summary>
-        public static bool MenuOpened
+        /// <summary>
+        /// Whether the player has opened the Esc menu or hovered a HUD button's tip; until then the menu button's tip
+        /// stays up.
+        /// </summary>
+        public static bool MenuTipSeen
         {
-            get => PlayerPrefs.GetInt(MenuOpenedKey, 0) == 1;
-            set => Save(() => PlayerPrefs.SetInt(MenuOpenedKey, value ? 1 : 0));
+            get => PlayerPrefs.GetInt(MenuTipSeenKey, 0) == 1;
+            set => Save(() => PlayerPrefs.SetInt(MenuTipSeenKey, value ? 1 : 0));
         }
 
         /// <summary>How fast <paramref name="input"/> turns the camera, as a multiple of its usual speed (1).</summary>

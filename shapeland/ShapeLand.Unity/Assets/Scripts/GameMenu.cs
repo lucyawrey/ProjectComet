@@ -176,7 +176,6 @@ namespace ShapeLand.Client
             _speedTrack.RegisterCallback<PointerMoveEvent>(OnSpeedMove);
             _speedTrack.RegisterCallback<PointerUpEvent>(e => EndSpeedDrag(e.pointerId));
             _speedTrack.RegisterCallback<PointerCaptureOutEvent>(_ => _dragPointer = null);
-            EverOpened = GameSettings.MenuOpened;
         }
 
         /// <summary>True while the menu is up.</summary>
@@ -187,9 +186,6 @@ namespace ShapeLand.Client
         /// gamepad's A) doesn't also open chat or jump.
         /// </summary>
         public bool Blocking => Open || Time.frameCount == _closedOnFrame;
-
-        /// <summary>Whether the player has ever opened the menu (remembered); until then the HUD keeps the menu button's tip up.</summary>
-        public bool EverOpened { get; private set; }
 
         /// <summary>
         /// Opens the menu at its list, with Resume (or the entry <paramref name="selected"/>) selected; the selection
@@ -202,11 +198,7 @@ namespace ShapeLand.Client
             _shownOnFrame = Time.frameCount; // the press that brought it up (Back on the look card) isn't the menu's
             _menu.RemoveFromClassList("hidden");
             _hud.Root.AddToClassList("menu-open");
-            if (!EverOpened)
-            {
-                EverOpened = true;
-                GameSettings.MenuOpened = true;
-            }
+            _hud.MarkMenuTipSeen();
 
             ShowPage(Page.List, selected);
         }
