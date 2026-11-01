@@ -142,6 +142,12 @@ namespace ShapeLand.Client
         private void Update()
         {
             _touch?.Update(Shown && view.Player != null && view.Player.InputEnabled, _menu.Open);
+            if (_touch != null && card.Root != null)
+            {
+                // The look card's prompts bar follows the input in use, as the menu's does.
+                card.Root.EnableInClassList("touch-input", _touch.Input == InputKind.Touch);
+                card.Root.EnableInClassList("pad-input", _touch.Input == InputKind.Gamepad);
+            }
 
             if (WebPage.IsPhone)
             {

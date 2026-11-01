@@ -33,7 +33,11 @@
     background-color: rgba(16, 20, 28, 0.96);
     border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
 }
-.backdrop.phone .card-safe { padding: 8px 0; justify-content: center; align-items: center; }
+.backdrop.phone .card-safe { padding: 8px 0 48px 0; justify-content: center; align-items: center; }
+.backdrop.phone.touch-input .card-safe { padding: 8px 0; } /* no prompts bar with touch controls */
+/* The prompts bar along the bottom, as in the Esc menu (.menu-prompts); Back only while changing the look. */
+.backdrop .changing-only { display: none; }
+.backdrop.changing .prompt.changing-only { display: flex; }
 .backdrop.phone .card { position: relative; left: auto; top: auto; translate: 0 0; min-height: 0; max-height: 100%; }
 /* The scroll view's viewport clips, so it reaches out over the rows' negative margins (.nav-row) to keep their tint. */
 .card > * { flex-shrink: 0; }
@@ -329,10 +333,11 @@ Label { padding: 0; margin: 0; }
 
 /* ---- The Esc menu (Menu.uxml, GameMenu), ported from the approved mockup. ---- */
 
-/* Parts for one kind of input: keys and mouse unless the HUD has .pad-input or .touch-input (TouchControls). */
+/* Parts for one kind of input: keys and mouse unless the HUD or the look card has .pad-input or .touch-input
+   (TouchControls, Hud). */
 .pad-part, .touch-part { display: none; }
-.hud.pad-input .keys-part, .hud.touch-input .keys-part { display: none; }
-.hud.pad-input .pad-part, .hud.touch-input .touch-part { display: flex; }
+.pad-input .keys-part, .touch-input .keys-part { display: none; }
+.pad-input .pad-part, .touch-input .touch-part { display: flex; }
 
 .key {
     min-width: 24px; padding: 1px 6px; margin: 0 2px;
@@ -403,7 +408,7 @@ Label { padding: 0; margin: 0; }
     padding: 12px 18px 10px 18px;
 }
 /* With touch controls there are no prompts, so the bar is gone and the menu centers on the whole screen. */
-.hud.touch-input .menu-prompts { display: none; }
+.touch-input .menu-prompts { display: none; }
 .hud.phone.touch-input .menu-list, .hud.phone.touch-input .menu-confirm { margin-top: 0; }
 .hud.phone.touch-input .menu-window { bottom: 8px; }
 .menu-page-head { flex-direction: row; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
