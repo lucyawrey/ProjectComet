@@ -105,8 +105,6 @@ namespace ShapeLand.Data.Migrations.Region
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Hand-added: EF drops the tables but not the collation, so migrating up again would fail.
-            migrationBuilder.Sql("DROP COLLATION IF EXISTS public.case_insensitive;");
 
             migrationBuilder.DropTable(
                 name: "character_owner",
@@ -119,6 +117,9 @@ namespace ShapeLand.Data.Migrations.Region
             migrationBuilder.DropTable(
                 name: "character",
                 schema: "region");
+
+            // Hand-added, after the tables: EF drops the tables but not the collation, so migrating up again would fail.
+            migrationBuilder.Sql("DROP COLLATION IF EXISTS public.case_insensitive;");
         }
     }
 }
