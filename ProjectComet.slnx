@@ -6,6 +6,7 @@
     <Project Path="comet/src/Comet.Data/Comet.Data.csproj" />
     <Project Path="comet/src/Comet.Data.Accounts/Comet.Data.Accounts.csproj" />
     <Project Path="comet/src/Comet.ContentBuild/Comet.ContentBuild.csproj" />
+    <Project Path="comet/src/Comet.Login/Comet.Login.csproj" />
     <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
     <Project Path="comet/src/Comet.Server/Comet.Server.csproj" />
     <Project Path="comet/src/Comet.Simulation/Comet.Simulation.csproj" />
@@ -16,6 +17,7 @@
     <Project Path="comet/tests/Comet.Client.Tests/Comet.Client.Tests.csproj" />
     <Project Path="comet/tests/Comet.ContentBuild.Tests/Comet.ContentBuild.Tests.csproj" />
     <Project Path="comet/tests/Comet.Data.Tests/Comet.Data.Tests.csproj" />
+    <Project Path="comet/tests/Comet.Login.Tests/Comet.Login.Tests.csproj" />
     <Project Path="comet/tests/Comet.Protocol.Tests/Comet.Protocol.Tests.csproj" />
     <Project Path="comet/tests/Comet.Server.Tests/Comet.Server.Tests.csproj" />
     <Project Path="comet/tests/Comet.Simulation.Tests/Comet.Simulation.Tests.csproj" />
