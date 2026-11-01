@@ -12,7 +12,7 @@ using ShapeLand.Data;
 namespace ShapeLand.Data.Migrations.Account
 {
     [DbContext(typeof(ShapeLandAccountContext))]
-    [Migration("20261101194533_Initial")]
+    [Migration("20261101195403_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -48,6 +48,10 @@ namespace ShapeLand.Data.Migrations.Account
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
 
                     b.Property<short>("Kind")
                         .HasColumnType("smallint")

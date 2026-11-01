@@ -30,7 +30,7 @@ public abstract class CometRegionContext(DbContextOptions options) : DbContext(o
             character.Property(c => c.Id).ValueGeneratedNever();
             character.HasIndex(c => c.AccountId);
             character.Property(c => c.Name).UseCollation(CaseInsensitive);
-            character.HasIndex(c => c.Name).IsUnique();
+            character.HasIndex(c => c.Name).IsUnique().HasFilter("deleted_at IS NULL"); // only live characters hold names
         });
 
         modelBuilder.Entity<CharacterStatus>(status =>

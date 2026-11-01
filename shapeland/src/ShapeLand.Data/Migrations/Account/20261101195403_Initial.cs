@@ -28,6 +28,7 @@ namespace ShapeLand.Data.Migrations.Account
                     last_active_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     recovery_code_hash = table.Column<byte[]>(type: "bytea", nullable: true),
                     recovery_code_created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    deleted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     username = table.Column<string>(type: "text", nullable: false),
                     normalized_username = table.Column<string>(type: "text", nullable: false),
                     password_hash = table.Column<string>(type: "text", nullable: true),

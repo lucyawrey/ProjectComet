@@ -23,4 +23,10 @@ public class Account : IdentityUser<long>, ITimestamped
     public byte[]? RecoveryCodeHash { get; set; }
 
     public DateTime? RecoveryCodeCreatedAt { get; set; }
+
+    /// <summary>
+    /// Set when the account is deleted; it's purged after the game's hold. Until then its username stays taken, and
+    /// signing in restores it.
+    /// </summary>
+    public DateTime? DeletedAt { get; set; }
 }

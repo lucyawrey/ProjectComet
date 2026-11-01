@@ -60,7 +60,8 @@ namespace ShapeLand.Data.Migrations.Region
 
                     b.HasIndex("Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_character_name");
+                        .HasDatabaseName("ix_character_name")
+                        .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("character", "region");
                 });

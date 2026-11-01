@@ -12,7 +12,7 @@ using ShapeLand.Data;
 namespace ShapeLand.Data.Migrations.Region
 {
     [DbContext(typeof(ShapeLandRegionContext))]
-    [Migration("20261101194658_Initial")]
+    [Migration("20261101195407_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -63,7 +63,8 @@ namespace ShapeLand.Data.Migrations.Region
 
                     b.HasIndex("Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_character_name");
+                        .HasDatabaseName("ix_character_name")
+                        .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("character", "region");
                 });

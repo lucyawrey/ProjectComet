@@ -98,7 +98,8 @@ namespace ShapeLand.Data.Migrations.Region
                 schema: "region",
                 table: "character",
                 column: "name",
-                unique: true);
+                unique: true,
+                filter: "deleted_at IS NULL");
         }
 
         /// <inheritdoc />
