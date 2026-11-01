@@ -6,7 +6,9 @@ namespace Comet.Tickets;
 
 /// <summary>
 /// Checks join tickets for one game server: the signature (ES256 only, from a known key), the issuer, that it's for
-/// this server, that it hasn't expired, and that it hasn't been used here before. Thread-safe.
+/// this server, that it hasn't expired, and that it hasn't been used here before. Used tickets are remembered in
+/// memory, so a ticket issued before this checker was made (before the server started) is refused as expired: it
+/// may have been used on the server's previous run. Thread-safe.
 /// </summary>
 public sealed class TicketChecker
 {
@@ -18,12 +20,15 @@ public sealed class TicketChecker
     private readonly JsonWebTokenHandler _handler = new();
     private readonly TokenValidationParameters _parameters;
     private readonly ConcurrentDictionary<string, DateTime> _used = new();
+    private readonly DateTime _startedAt;
     private DateTime _nextPrune;
 
     public TicketChecker(IEnumerable<ECDsaSecurityKey> publicKeys, int serverId, TimeProvider clock)
     {
         _serverId = serverId;
         _clock = clock;
+        var now = clock.GetUtcNow().UtcDateTime;
+        _startedAt = now.AddTicks(-(now.Ticks % TimeSpan.TicksPerSecond)); // tickets carry whole seconds
         _parameters = new TokenValidationParameters
         {
             ValidAlgorithms = [SecurityAlgorithms.EcdsaSha256],
@@ -68,7 +73,7 @@ public sealed class TicketChecker
         }
 
         var now = _clock.GetUtcNow().UtcDateTime;
-        if (now > jwt.ValidTo + ClockSkew || now < jwt.ValidFrom - ClockSkew)
+        if (now > jwt.ValidTo + ClockSkew || now < jwt.ValidFrom - ClockSkew || jwt.IssuedAt < _startedAt)
         {
             return (null, TicketRejection.Expired);
         }

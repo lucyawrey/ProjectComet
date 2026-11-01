@@ -56,11 +56,20 @@ public class TicketTests
     }
 
     [Fact]
+    public async Task ATicketIssuedBeforeTheServerStartedIsRefused()
+    {
+        var ticket = Issuer().Issue(1, 2, 7);
+        _clock.Now += TimeSpan.FromSeconds(1); // the game server restarts
+        Assert.Equal(TicketRejection.Expired, (await Checker().CheckAsync(ticket)).Rejection);
+    }
+
+    [Fact]
     public async Task ClocksMayDisagreeALittle()
     {
+        var checker = Checker();
         var token = Issuer().Issue(1, 2, 7);
         _clock.Now += TicketIssuer.Lifetime + TimeSpan.FromSeconds(3);
-        Assert.Null((await Checker().CheckAsync(token)).Rejection);
+        Assert.Null((await checker.CheckAsync(token)).Rejection);
     }
 
     [Fact]

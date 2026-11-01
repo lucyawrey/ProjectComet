@@ -14,8 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Comet.Data\Comet.Data.csproj" />
     <ProjectReference Include="..\Comet.Protocol\Comet.Protocol.csproj" />
     <ProjectReference Include="..\Comet.Simulation\Comet.Simulation.csproj" />
+    <ProjectReference Include="..\Comet.Tickets\Comet.Tickets.csproj" />
   </ItemGroup>
 
 </Project>
