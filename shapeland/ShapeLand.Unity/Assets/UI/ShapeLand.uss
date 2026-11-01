@@ -480,7 +480,8 @@ Label { padding: 0; margin: 0; }
 .hud.pad-input .menu.on-controls .prompt.tabs-prompt.pad-part { display: flex; }
 
 /* First time in the game: the menu button's tip stays up, outlined, until the menu is first opened (Hud). It names
-   the key for the input in use (Start on a gamepad, none for touch). */
-.hud-button.first-time .hud-tip, .hud.touch-input .hud-button.first-time .hud-tip {
+   the key for the input in use (Start on a gamepad); not shown with touch controls. */
+.hud-button.first-time .hud-tip {
     display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
 }
+.hud.touch-input .hud-button.first-time .hud-tip { display: none; }

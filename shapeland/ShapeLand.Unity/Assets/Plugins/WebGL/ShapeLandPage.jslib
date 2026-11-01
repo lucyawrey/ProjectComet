@@ -32,6 +32,15 @@ mergeInto(LibraryManager.library, {
     return document.documentElement.classList.contains('phone') ? 1 : 0;
   },
 
+  // 1 while an on-screen keyboard is up, else 0: it shrinks the visible part of the page (visualViewport) to well
+  // under the screen's height in landscape.
+  ShapeLand_KeyboardUp__sig: 'i',
+  ShapeLand_KeyboardUp: function () {
+    var view = window.visualViewport;
+    var landscapeHeight = Math.min(screen.width, screen.height);
+    return view && landscapeHeight && view.height < landscapeHeight * 0.6 ? 1 : 0;
+  },
+
   // 1 once the page is playing, else 0: on a phone it waits behind the "Tap to play" card until the first tap.
   ShapeLand_Playing__sig: 'i',
   ShapeLand_Playing: function () {

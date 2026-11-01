@@ -38,6 +38,7 @@ namespace ShapeLand.Client
         private float _lastLine = float.NegativeInfinity;
         private float _toggledAt = float.NegativeInfinity;
         private bool _openOnRelease;
+        private bool _keyboardWasUp;
 
         /// <summary>True while the input is open.</summary>
         public bool Open { get; private set; }
@@ -119,6 +120,19 @@ namespace ShapeLand.Client
                 CloseInput();
             }
 
+            // On a phone, putting the on-screen keyboard away ends typing, so chat goes back down at once. It comes up
+            // a moment after the input opens, so only once it has been up.
+            if (Open && WebPage.IsPhone)
+            {
+                var keyboardUp = WebPage.KeyboardUp;
+                if (_keyboardWasUp && !keyboardUp)
+                {
+                    CloseInput();
+                }
+
+                _keyboardWasUp = keyboardUp;
+            }
+
             var logShown = Open || Time.unscaledTime - _lastLine < LogSeconds;
             Opacity = Open ? 1 : Mathf.MoveTowards(Opacity, logShown ? 1 : 0, Time.unscaledDeltaTime / FadeSeconds);
             _box.style.opacity = Opacity;
@@ -142,6 +156,7 @@ namespace ShapeLand.Client
         public void OpenInput()
         {
             _openOnRelease = false;
+            _keyboardWasUp = false;
             Open = true;
             _toggledAt = Time.unscaledTime;
             _inputRow.RemoveFromClassList("hidden");
