@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 namespace Comet.Data.Characters;
 
 /// <summary>
@@ -23,5 +24,8 @@ public class Character : ITimestamped
     /// <summary>Set when the character is deleted; the row is purged after the game's hold.</summary>
     public DateTime? DeletedAt { get; set; }
 
+    // Not stored: computed from the columns above.
+
+    [NotMapped]
     public bool IsDeleted => DeletedAt != null;
 }

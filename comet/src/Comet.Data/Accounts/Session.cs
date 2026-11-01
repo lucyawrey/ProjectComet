@@ -18,5 +18,7 @@ public class Session : ITimestamped
     /// <summary>Moves forward when the session is used (sliding expiry), at most once an hour.</summary>
     public required DateTime ExpiresAt { get; set; }
 
+    // Not stored: computed from the columns above.
+
     public bool IsExpired(DateTime now) => now >= ExpiresAt;
 }

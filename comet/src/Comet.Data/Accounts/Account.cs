@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 
 namespace Comet.Data.Accounts;
@@ -32,13 +33,19 @@ public class Account : IdentityUser<long>, ITimestamped
     /// </summary>
     public DateTime? DeletedAt { get; set; }
 
+    // Not stored: computed from the columns above.
+
     /// <summary>Whether the account is deleted and waiting for the purge. Deletion isn't a <see cref="Status"/>, so a ban survives it.</summary>
+    [NotMapped]
     public bool IsDeleted => DeletedAt != null;
 
     /// <summary>A guest: no password set yet (<see cref="ClaimedAt"/> is null).</summary>
+    [NotMapped]
     public bool IsGuest => ClaimedAt == null;
 
+    [NotMapped]
     public bool IsBanned => Status == AccountStatus.Banned;
 
+    [NotMapped]
     public bool HasRecoveryCode => RecoveryCodeHash != null;
 }

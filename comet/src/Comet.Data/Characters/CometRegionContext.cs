@@ -27,7 +27,6 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
         {
             character.ToTable("character");
             character.Property(c => c.Id).ValueGeneratedNever();
-            character.Ignore(c => c.IsDeleted);
             character.HasIndex(c => c.AccountId);
             character.Property(c => c.Name).UseCollation(CometRegion.CaseInsensitive);
             character.HasIndex(c => c.Name).IsUnique().HasFilter("deleted_at IS NULL"); // only live characters hold names
@@ -44,7 +43,6 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
         {
             owner.ToTable("character_owner");
             owner.HasKey(o => o.CharacterId);
-            owner.Ignore(o => o.IsHeld);
             owner.HasOne<TCharacter>().WithOne().HasForeignKey<CharacterOwner>(o => o.CharacterId).OnDelete(DeleteBehavior.Cascade);
         });
     }

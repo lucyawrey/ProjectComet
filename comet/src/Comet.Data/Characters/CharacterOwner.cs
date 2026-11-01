@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 namespace Comet.Data.Characters;
 
 /// <summary>
@@ -18,6 +19,9 @@ public class CharacterOwner : ITimestamped
     /// <summary>Set when the player leaves; null while a server holds the character.</summary>
     public DateTime? ReleasedAt { get; set; }
 
+    // Not stored: computed from the columns above.
+
     /// <summary>A server holds the character now: claimed and not released since.</summary>
+    [NotMapped]
     public bool IsHeld => ReleasedAt == null;
 }
