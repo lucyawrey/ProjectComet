@@ -31,4 +31,7 @@ public class Account : IdentityUser<long>, ITimestamped
     /// signing in restores it.
     /// </summary>
     public DateTime? DeletedAt { get; set; }
+
+    /// <summary>Whether the account is deleted and waiting for the purge. Deletion isn't a <see cref="Status"/>, so a ban survives it.</summary>
+    public bool IsDeleted => DeletedAt != null;
 }

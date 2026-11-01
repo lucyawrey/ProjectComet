@@ -40,6 +40,7 @@ public abstract class CometAccountContext(DbContextOptions options) : DbContext(
             account.Ignore(a => a.PhoneNumber);
             account.Ignore(a => a.PhoneNumberConfirmed);
             account.Ignore(a => a.TwoFactorEnabled);
+            account.Ignore(a => a.IsDeleted);
         });
 
         modelBuilder.Entity<Session>(session =>
