@@ -7,7 +7,7 @@
 #
 #   tools/shapeland-testbuild.sh setup                 once per AWS account: the S3 bucket, the firewall rules, the
 #                                                      data volume and its daily snapshots
-#   tools/shapeland-testbuild.sh up [--hours 24] [--bots 0]   build and start the servers, and point the hostname at them
+#   tools/shapeland-testbuild.sh up [--hours 0] [--bots 0]   build and start the servers, and point the hostname at them
 #   tools/shapeland-testbuild.sh down                  terminate the servers (keeping the data volume) and park the hostname
 #   tools/shapeland-testbuild.sh status                what's running, and whether the server answers
 #   tools/shapeland-testbuild.sh log                   the server's boot log (from its console)
@@ -17,7 +17,7 @@
 #
 #   --bots N       start N honest bots on the server's instance too, so visitors see someone moving (default 0)
 #   --hours H      the server shuts itself down (and is terminated) after H hours, so a forgotten one stops
-#                  costing money; 0 for never (default 24). `down` ends it sooner.
+#                  costing money; 0 for never (the default). `down` ends it sooner.
 #   --no-build     publish the last web build as it is
 #
 # Needs: the AWS CLI logged in (`aws login`), the Vercel CLI logged in (`vercel login`), Docker isn't needed.
@@ -51,7 +51,7 @@ vercel_project=shapeland
 command=${1:-}
 [ -n "$command" ] || { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 shift
-hours=24
+hours=0
 bots=0
 build=1
 packaged=0
@@ -252,7 +252,7 @@ up() {
   echo "== Waiting for the server to answer at https://$server_host (a few minutes: boot, then a certificate)"
   for _ in $(seq 1 60); do
     if answers "$ip"; then
-      echo "Up: $id at $ip, with $bots bots and the accounts on $volume. Play at https://$page_host. It shuts down by itself in $hours hours (0: never); down ends it sooner."
+      echo "Up: $id at $ip, with $bots bots and the accounts on $volume. Play at https://$page_host. $([ "$hours" -gt 0 ] && echo "It shuts down by itself in $hours hours; down ends it sooner." || echo "It runs until down.")"
       return
     fi
     sleep 10
