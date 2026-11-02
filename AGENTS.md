@@ -18,6 +18,7 @@ Notes for coding agents (and anyone else) working in this repo. Requirements, la
 - Run Unity tests and builds through `tools/run unity-batch` (`build <profile> <output>`, `test`): it uses the open editor when one has the project, else batch mode, where the editor often hangs while quitting. Builds are the build profiles in `Assets/Settings/Build Profiles/`.
 - `tools/run unity-restore` restores Unity's NuGet packages: `unity-batch` runs it when a checkout has never been restored or `shapeland/ShapeLand.Unity/Assets/packages.config` changed; run it yourself before opening such a checkout in the editor.
 - Play mode and Unity's play-mode tests read `shapeland/ShapeLand.Unity/Assets/StreamingAssets/content.bin`, an ignored copy of `artifacts/content/shapeland/content.bin` that the editor refreshes when it loads and as play mode starts. Rebuild the content after changing it, or they use the old content.
+- Play mode joins the editor's server without accounts unless Comet › Server › Use Accounts is on; play-mode tests set it themselves. Tests that need the Login server (and Docker) are in the `Accounts` category: `tools/run unity-batch test PlayMode -- -testCategory "!Accounts"` skips them.
 - `TickLoopTests.RunsAtTheTickRate` and `EndToEndTests.AFloodOfMessagesDropsTheClient` can miss when every test suite runs at once; they pass alone.
 
 ## Docs and git

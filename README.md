@@ -19,7 +19,7 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 - **.NET 10 SDK**: for the servers, libraries, bots and tools.
 - **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/ShapeLand.Unity`).
-- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/run shapeland-netrun`). Those runs need Linux: Docker Desktop's VM on macOS has no `ifb` device, which they use to delay incoming traffic, and on Windows it depends on the WSL kernel. On Linux they need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them):
+- **Docker**: for local play with accounts (PostgreSQL runs in it; the editor plays without them by default), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/run shapeland-netrun`). Those runs need Linux: Docker Desktop's VM on macOS has no `ifb` device, which they use to delay incoming traffic, and on Windows it depends on the WSL kernel. On Linux they need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them):
 
   ```sh
   printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' | sudo tee /etc/modules-load.d/netem.conf
@@ -37,18 +37,33 @@ The tools are C# file apps run by the .NET SDK, so they work on Linux, macOS and
 - `tools/`: tools for building, running and testing (below).
 - `docs/`: project notes and the proposal.
 
-## First time setup
+## Getting started
+
+On Windows, the tools run as `tools\run <tool>` (see [Tools](#tools)).
+
+### Making levels and playing in the editor
+
+Unity and the .NET SDK are all it takes: no Docker, no accounts.
+
+1. Install Unity Hub with Unity 6000.6.4f1 (add Web Build Support for web builds), and the .NET 10 SDK.
+2. Restore the Unity project's NuGet packages, once after cloning and again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes: `tools/run unity-restore`. The editor can't compile the project without them.
+3. In Unity Hub, add the project from disk: `shapeland/ShapeLand.Unity`.
+4. Build the content once (Comet › Content › Build), open `Assets/Scenes/Game.unity` and press Play. The editor builds and starts its own game server ([the local game server](comet/README.md#the-local-game-server)), and the join card asks for a name and a look.
+
+With accounts off (the editor's default), the editor's server keeps the characters in `artifacts/dev-characters.json`: a name comes back with its look, where it stood, after stopping play mode, restarting the server or reopening the editor. Delete the file to start over. Building the level is described in [ShapeLand's README](shapeland/README.md#building-the-level), with props; the zone editor's tools are in [Comet's](comet/README.md#zones-and-the-zone-editor).
+
+### Working on the code
 
 ```sh
 dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
-```sh
-tools/run unity-restore
-```
+The tests that use PostgreSQL need Docker. To play with accounts in the editor, as builds do, turn on Comet › Server › Use Accounts (per computer): the editor's server then runs with the Login server and PostgreSQL in Docker. Play-mode tests run with `tools/run unity-batch test PlayMode`; adding `-- -testCategory "!Accounts"` skips the ones that need Docker. The code guides are in [Comet's README](comet/README.md) and [ShapeLand's](shapeland/README.md).
 
-Run `tools/run unity-restore` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes, before opening the project in the editor. The tools that run Unity (`unity-batch`, and `shapeland-dev` through it) run it themselves when it's needed.
+### Putting the game online
+
+The deployed game needs the AWS CLI and the Vercel CLI, logged in; see [Deploying](#deploying) below.
 
 ## Tools
 
