@@ -23,6 +23,8 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 - **AWS CLI and Vercel CLI**: only for the public test build.
 
+The scripts are bash, and the Unity editor runs one to start the database, so working on the project needs macOS or Linux; Windows isn't supported yet.
+
 ## Layout
 
 - `comet/`: Comet, the shared base: protocol, simulation, client and server libraries, content tools, and the Unity package. Its [README](comet/README.md) explains how they fit together.
@@ -56,7 +58,7 @@ Run them from the repository root. Each script's options are listed below and in
 | `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
 | `tools/unity-batch.sh` | Run a Unity build or tests and return when the work is done: in the open editor when it has the project open, else in batch mode (where the editor often hangs while quitting). |
-| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
+| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First time setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
 | `tools/StackBench/` | The stack benchmark: Comet's message layer under load, with no game logic. See its [README](tools/StackBench/README.md). |
 
 ### Play locally in a browser
