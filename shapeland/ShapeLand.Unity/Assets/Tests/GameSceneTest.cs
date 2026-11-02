@@ -67,11 +67,11 @@ namespace ShapeLand.Client.Tests
 
         // Loads the Game scene against a fresh server (with the Login server too, given accounts) and, unless the
         // test drives the card itself, joins as "UnityTest" with the card's choices.
-        protected IEnumerator StartGame(bool join = true, bool accounts = false)
+        protected IEnumerator StartGame(bool join = true, bool accounts = false, string loginArguments = "")
         {
             TestGameServer.LoadContent();
 
-            Server = new TestGameServer(accounts);
+            Server = new TestGameServer(accounts, loginArguments);
             yield return Server.Start();
 
             // A session of the tests' own, empty at the start: every test begins as a new player.

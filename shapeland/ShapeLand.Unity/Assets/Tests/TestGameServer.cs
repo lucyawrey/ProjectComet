@@ -36,11 +36,19 @@ namespace ShapeLand.Client.Tests
         private string _connection;
         private string _keys;
         private readonly bool _accounts;
+        private readonly string _loginArguments;
         private readonly bool _usedAccounts = Comet.Unity.LocalServerPort.UseAccounts;
         private readonly int _editorPort = UnityEditor.SessionState.GetInt(Comet.Unity.LocalServerPort.Key, 0);
 
-        /// <summary>A server joined by name, or with <paramref name="accounts"/>, through the Login server with tickets.</summary>
-        public TestGameServer(bool accounts = false) => _accounts = accounts;
+        /// <summary>
+        /// A server joined by name, or with <paramref name="accounts"/>, through the Login server with tickets, which
+        /// gets <paramref name="loginArguments"/> on top of its own.
+        /// </summary>
+        public TestGameServer(bool accounts = false, string loginArguments = "")
+        {
+            _accounts = accounts;
+            _loginArguments = loginArguments;
+        }
 
         /// <summary>The content play mode and the tests use; fails the test if it hasn't been copied in.</summary>
         public static ShapeLandContent LoadContent()
@@ -89,7 +97,7 @@ namespace ShapeLand.Client.Tests
                 $"\"--Login:ConnectionString={_connection}\" \"--Login:SigningKeyFile={Path.Combine(_keys, "login.pem")}\" " +
                 $"\"--Login:PublicKeysFolder={Path.Combine(_keys, "public")}\" --Login:CreateSigningKey=true " +
                 "--Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 " +
-                $"--ShapeLand:GameServer:Address=ws://127.0.0.1:{_port}/ws");
+                $"--ShapeLand:GameServer:Address=ws://127.0.0.1:{_port}/ws {_loginArguments}");
             yield return WaitFor(() => _login.HasExited || Accepts(_loginPort), 30);
             Assert.That(!_login.HasExited && Accepts(_loginPort), "The Login server didn't start.");
             yield return Launch();
@@ -145,6 +153,7 @@ namespace ShapeLand.Client.Tests
         /// <summary>Runs the bot program against this server: <paramref name="count"/> honest, chatting bots for <paramref name="seconds"/>.</summary>
         public IEnumerator StartBots(int count, double seconds)
         {
+            Assert.That(_accounts, "Bots sign in through the Login server: start the server with accounts.");
             using (var build = Run("build shapeland/src/ShapeLand.Bots --nologo -v quiet"))
             {
                 while (!build.HasExited)

@@ -90,7 +90,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.Player, Is.Null, "The player's shape is still in the world.");
             Assert.That(Join.Joined, Is.False);
             Assert.That(Hud.Shown, Is.False, "The overlay is still showing.");
-            Assert.That(Screen.SignedInCard, Is.True, "A signed-in player should get Play, not the new player's fields.");
+            Assert.That(Field("name").value, Is.EqualTo("Pebble"), "The card lost the name to play again with."); // accounts off: no signed-in card
             Assert.That(Screen.Root.Q<Button>("join-button").enabledSelf, Is.True, "Play isn't enabled for another try.");
         }
 

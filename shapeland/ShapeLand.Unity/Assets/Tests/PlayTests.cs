@@ -95,10 +95,11 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.SnapBacks, Is.EqualTo(0), "The server snapped the player back.");
         }
 
-        [UnityTest]
+        // Bots sign in through the Login server.
+        [UnityTest, Category("Accounts")]
         public IEnumerator DrawsOtherPlayersMovingAndLeaving()
         {
-            yield return StartGame();
+            yield return StartGame(accounts: true);
             yield return Server.StartBots(2, 8);
 
             yield return TestGameServer.WaitFor(() => View.Others.Count == 2, 15);
@@ -119,10 +120,11 @@ namespace ShapeLand.Client.Tests
             Debug.Log($"Saw 2 bots; the furthest moved {moved:0.0} m in 2 s.");
         }
 
-        [UnityTest]
+        // Bots sign in through the Login server.
+        [UnityTest, Category("Accounts")]
         public IEnumerator F3ShowsNetworkStats()
         {
-            yield return StartGame();
+            yield return StartGame(accounts: true);
             yield return Server.StartBots(2, 20);
             Assert.That(NetStats.Panel.ClassListContains("hidden"), Is.True, "The stats show before F3.");
 
