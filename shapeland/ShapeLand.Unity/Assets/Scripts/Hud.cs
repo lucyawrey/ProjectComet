@@ -70,7 +70,7 @@ namespace ShapeLand.Client
         public bool MenuBlocking => _menu != null && (_menu.Blocking || _account.Open);
 
         /// <summary>Brings up the Esc menu's Account page (from the menu); its Back returns to the menu.</summary>
-        public void OpenAccount() => _account.Show(() => _menu.Show(GameMenu.AccountEntry, navigating: false));
+        public void OpenAccount() => _account.Show(() => _menu.Show(GameMenu.AccountEntry, navigating: _account.Navigating), _menu.Navigating);
 
         // On a phone the interface scales from a smaller design size than the panel settings' (960 x 600), so a panel
         // pixel is about a CSS pixel there and text stays readable; the join card still fits a small phone held
@@ -243,7 +243,11 @@ namespace ShapeLand.Client
                     _menu.Close();
                 }
             }
-            else if (!_account.Open)
+            else if (_account.Open)
+            {
+                _account.Update(view.Controls.Menu);
+            }
+            else
             {
                 _menu.Update(view.Controls.Menu, _touch.Input);
             }

@@ -166,9 +166,10 @@ namespace ShapeLand.Client
                 _settingRows[i].RegisterCallback<PointerEnterEvent>(_ => Select(index));
             }
 
-            foreach (var (row, _, _, _) in _switches)
+            foreach (var (row, element, _, _) in _switches)
             {
                 _settingRows[row].RegisterCallback<ClickEvent>(_ => Flip(row));
+                element.AddToClassList("settling"); // no slide until Settings has been shown once (ShowPage)
             }
             foreach (var (kind, tab, _) in _tabs)
             {
@@ -446,6 +447,14 @@ namespace ShapeLand.Client
             {
                 _shownSpeed = -1;
                 ShowSettings();
+                // The switches start "on" in Menu.uxml: they take their real state without sliding the first time.
+                _settings.schedule.Execute(() =>
+                {
+                    foreach (var (_, element, _, _) in _switches)
+                    {
+                        element.RemoveFromClassList("settling");
+                    }
+                }).ExecuteLater(200);
             }
 
             _scroll.scrollOffset = Vector2.zero;

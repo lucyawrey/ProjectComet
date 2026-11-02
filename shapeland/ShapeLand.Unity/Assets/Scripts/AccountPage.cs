@@ -1,7 +1,9 @@
 using System;
 using Comet.Protocol.Login;
 using ShapeLand.Shared.World;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
@@ -11,7 +13,8 @@ namespace ShapeLand.Client
     /// opening its own step in the same window. Changing the password or making a code needs a recent sign-in; when the
     /// Login server says so, the Confirm it's you step asks for the password, then the change goes on. A new recovery
     /// code is shown once; Copy counts as saving it, and leaving before that asks first. Signing out asks first, and a guest is
-    /// offered Set password. Pointer and touch only for now; Esc or Back goes back a step, then to the menu.
+    /// offered Set password. Keys and a gamepad move a selection through the step's rows, fields and buttons, with Back
+    /// above them (<see cref="Update"/>); Esc or B goes back a step, then to the menu.
     /// </summary>
     public sealed class AccountPage
     {
@@ -56,6 +59,17 @@ namespace ShapeLand.Client
         private readonly ConfirmPanel _confirm;
         private Step _step;
         private Action _back;
+        private readonly Button _backButton;
+        private readonly VisualElement _usernameRow;
+        private readonly VisualElement _passwordRow;
+        private readonly VisualElement _confirmHost;
+        // Keys and gamepad: the selected item in the step (or Back above it), and the held direction's repeat.
+        private int _selected;
+        private bool _onBack;
+        private Vector2 _held;
+        private float _repeatAt;
+        private int _shownOnFrame;
+        private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
         // The step Confirm it's you goes on to once the password checks out.
         private Step _afterConfirm;
         private bool _busy;
@@ -92,18 +106,18 @@ namespace ShapeLand.Client
             _copy = root.Q<Button>("account-copy");
             _message = root.Q<Label>("account-message");
             _submit = root.Q<Button>("account-submit");
-            _confirm = new ConfirmPanel(root.Q("account-safe").parent); // dims the whole screen, insets included
-
-            root.Q<Button>("account-back").clicked += Back;
+            _confirmHost = root.Q("account-safe").parent;
+            _confirm = new ConfirmPanel(_confirmHost); // over the whole screen, insets included
+            _usernameRow = root.Q("account-username-row");
+            _passwordRow = root.Q("account-password-row");
+            _backButton = root.Q<Button>("account-back");
+            _backButton.clicked += Back;
+            _page.RegisterCallback<PointerMoveEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
+            _page.RegisterCallback<PointerDownEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _submit.clicked += Submit;
-            _copy.clicked += () =>
-            {
-                GUIUtility.systemCopyBuffer = _codeText.text;
-                _copy.text = Text("account.copied");
-                _copied = true;
-            };
-            root.Q("account-username-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Rename));
-            root.Q("account-password-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Password));
+            _copy.clicked += CopyCode;
+            _usernameRow.RegisterCallback<ClickEvent>(_ => ShowStep(Step.Rename));
+            _passwordRow.RegisterCallback<ClickEvent>(_ => ShowStep(Step.Password));
             _codeRow.RegisterCallback<ClickEvent>(_ => MakeCode());
             _signOut = root.Q<Button>("account-sign-out");
             _signOut.clicked += AskToSignOut;
@@ -114,6 +128,14 @@ namespace ShapeLand.Client
                     if (e.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
                     {
                         Submit();
+                        e.StopPropagation();
+                    }
+                    else if (e.keyCode == KeyCode.Tab)
+                    {
+                        Navigating = true;
+                        field.Blur();
+                        Move(e.shiftKey ? -1 : 1);
+                        FocusSelectedField();
                         e.StopPropagation();
                     }
                 }, TrickleDown.TrickleDown);
@@ -127,15 +149,20 @@ namespace ShapeLand.Client
         public bool Typing => Open && _page.focusController?.focusedElement is VisualElement focused
             && (focused is TextField || focused.GetFirstAncestorOfType<TextField>() != null);
 
-        /// <summary>Brings the page up; <paramref name="back"/> runs on Back from its rows (the menu comes back).</summary>
-        public void Show(Action back) => Show(back, Step.Rows);
+        /// <summary>
+        /// Brings the page up; <paramref name="back"/> runs on Back from its rows (the menu comes back). With
+        /// <paramref name="navigating"/> (opened with keys or a gamepad), the selection shows at once.
+        /// </summary>
+        public void Show(Action back, bool navigating = false) => Show(back, Step.Rows, navigating);
 
         /// <summary>Brings the page up at its Set password step (the guest reminder's button).</summary>
-        public void ShowSetPassword(Action back) => Show(back, Step.Password);
+        public void ShowSetPassword(Action back) => Show(back, Step.Password, false);
 
-        private async void Show(Action back, Step step)
+        private async void Show(Action back, Step step, bool navigating)
         {
             _back = back;
+            _shownOnFrame = Time.frameCount; // the press that opened the page isn't the page's
+            Navigating = navigating;
             _page.RemoveFromClassList("hidden");
             ShowStep(step);
             await _hud.Join.RefreshAccountAsync();
@@ -213,6 +240,8 @@ namespace ShapeLand.Client
             };
             Message(null);
             _page.focusController?.focusedElement?.Blur();
+            _selected = 0;
+            _onBack = false;
             switch (step)
             {
                 case Step.Rows:
@@ -222,7 +251,7 @@ namespace ShapeLand.Client
                     _renameField.value = _hud.Join.PlayerName;
                     _renameFree.text = strings.Get("account.rename_free");
                     SetSubmit();
-                    _renameField.Focus();
+                    FocusUnlessPad(_renameField);
                     break;
                 case Step.Password:
                     _passwordUsername.text = _hud.Join.PlayerName;
@@ -231,12 +260,12 @@ namespace ShapeLand.Client
                     _passwordSignsOut.text = guest ? "" : strings.Get("account.password_signs_out");
                     _passwordSignsOut.EnableInClassList("hidden", guest);
                     SetSubmit();
-                    _passwordField.Focus();
+                    FocusUnlessPad(_passwordField);
                     break;
                 case Step.Confirm:
                     _confirmField.value = "";
                     SetSubmit();
-                    _confirmField.Focus();
+                    FocusUnlessPad(_confirmField);
                     break;
                 case Step.Code:
                     _codeIntro.text = strings.Get("account.code_intro");
@@ -245,6 +274,247 @@ namespace ShapeLand.Client
                     SetSubmit();
                     break;
             }
+
+            Mark();
+        }
+
+        /// <summary>True while keys or a gamepad move the page's selection, which shows only then.</summary>
+        public bool Navigating
+        {
+            get => _page.ClassListContains("navigating");
+            private set
+            {
+                _page.EnableInClassList("navigating", value);
+                _confirmHost.EnableInClassList("navigating", value); // the sign-out and leave-code questions
+            }
+        }
+
+        // Whether the last move came from a gamepad: a field it lands on waits for A, so a phone's keyboard doesn't
+        // pop up by surprise.
+        private bool _padInput;
+
+        /// <summary>
+        /// Keys and a gamepad on the page, with the Esc menu's Menu actions (Esc itself is the Hud's, through
+        /// <see cref="Back"/>): up and down move through the step, Submit uses what's selected, B goes back. While a
+        /// field has the keyboard, Up, Down and Tab still move on, and landing on a field with the keyboard types into it.
+        /// </summary>
+        public void Update(ShapeLandControls.MenuActions actions)
+        {
+            if (!Open || Time.frameCount == _shownOnFrame)
+            {
+                return;
+            }
+
+            var fromPad = actions.Navigate.activeControl?.device is Gamepad || actions.Submit.activeControl?.device is Gamepad;
+            if (actions.Navigate.WasPerformedThisFrame() || actions.Submit.WasPressedThisFrame() || actions.Back.WasPressedThisFrame())
+            {
+                _padInput = fromPad;
+            }
+
+            if (_confirm.Open)
+            {
+                var question = Step(actions.Navigate.ReadValue<Vector2>());
+                if (question.y != 0)
+                {
+                    Navigating = true;
+                    _confirm.Move(question.y);
+                }
+
+                if (actions.Back.WasPressedThisFrame())
+                {
+                    _confirm.Cancel();
+                }
+                else if (actions.Submit.WasPressedThisFrame())
+                {
+                    Navigating = true;
+                    _confirm.Choose();
+                }
+
+                return;
+            }
+
+            var typing = Typing;
+            var step = Step(typing && !fromPad ? TypingArrows() : actions.Navigate.ReadValue<Vector2>());
+            var submit = actions.Submit.WasPressedThisFrame() && (!typing || fromPad); // Space and Enter in a field are the field's
+            if (!Navigating && step != Vector2Int.zero && !typing)
+            {
+                Navigating = true; // the first press only shows where the selection is
+                Mark();
+                return;
+            }
+
+            if (submit || actions.Back.WasPressedThisFrame())
+            {
+                Navigating = true;
+            }
+
+            if (step.y != 0)
+            {
+                Navigating = true;
+                _page.focusController?.focusedElement?.Blur();
+                Move(step.y);
+                if (!fromPad)
+                {
+                    FocusSelectedField();
+                }
+            }
+
+            if (actions.Back.WasPressedThisFrame())
+            {
+                if (typing)
+                {
+                    _page.focusController?.focusedElement?.Blur();
+                }
+                else
+                {
+                    Back();
+                }
+            }
+            else if (submit)
+            {
+                if (typing)
+                {
+                    _page.focusController?.focusedElement?.Blur();
+                }
+                else
+                {
+                    Activate();
+                }
+            }
+        }
+
+        // The step's items, top to bottom: the rows and Sign Out; a form's fields and its button; the code's Copy and Done.
+        private List<VisualElement> Items() => _step switch
+        {
+            Step.Rows => (_hud.Join.Account?.Guest ?? true)
+                ? new List<VisualElement> { _usernameRow, _passwordRow, _signOut }
+                : new List<VisualElement> { _usernameRow, _passwordRow, _codeRow, _signOut },
+            Step.Rename => new List<VisualElement> { _renameField, _submit },
+            Step.Password => new List<VisualElement> { _passwordField, _passwordAgain, _submit },
+            Step.Confirm => new List<VisualElement> { _confirmField, _submit },
+            _ => new List<VisualElement> { _copy, _submit },
+        };
+
+        // Up from the first item reaches Back; down from Back, the first item again.
+        private void Move(int by)
+        {
+            var count = Items().Count;
+            if (_onBack)
+            {
+                _onBack = by < 0;
+            }
+            else if (_selected + by < 0)
+            {
+                _onBack = true;
+            }
+            else
+            {
+                _selected = Math.Clamp(_selected + by, 0, count - 1);
+            }
+
+            Mark();
+        }
+
+        private void Mark()
+        {
+            var items = Items();
+            foreach (var item in new VisualElement[] { _usernameRow, _passwordRow, _codeRow, _signOut, _renameField, _passwordField, _passwordAgain, _confirmField, _copy, _submit })
+            {
+                item.EnableInClassList("selected", !_onBack && items.IndexOf(item) == _selected);
+            }
+
+            _backButton.EnableInClassList("selected", _onBack);
+        }
+
+        private void Activate()
+        {
+            if (_onBack)
+            {
+                Back();
+                return;
+            }
+
+            var item = Items()[Math.Clamp(_selected, 0, Items().Count - 1)];
+            if (item is TextField field)
+            {
+                field.Focus();
+            }
+            else if (item == _usernameRow)
+            {
+                ShowStep(Step.Rename);
+            }
+            else if (item == _passwordRow)
+            {
+                ShowStep(Step.Password);
+            }
+            else if (item == _codeRow)
+            {
+                MakeCode();
+            }
+            else if (item == _signOut)
+            {
+                AskToSignOut();
+            }
+            else if (item == _copy)
+            {
+                CopyCode();
+            }
+            else
+            {
+                Submit();
+            }
+        }
+
+        private void FocusSelectedField()
+        {
+            if (!_onBack && Items()[_selected] is TextField field)
+            {
+                field.Focus();
+            }
+        }
+
+        private void FocusUnlessPad(TextField field)
+        {
+            if (!(_padInput && Navigating))
+            {
+                field.Focus();
+            }
+        }
+
+        private void CopyCode()
+        {
+            GUIUtility.systemCopyBuffer = _codeText.text;
+            _copy.text = Text("account.copied");
+            _copied = true;
+        }
+
+        // While a field has the keyboard, only Up and Down move on (Left and Right move the caret, letters type).
+        private static Vector2 TypingArrows()
+        {
+            var keyboard = Keyboard.current;
+            return keyboard == null ? Vector2.zero
+                : new Vector2(0, keyboard.upArrowKey.isPressed ? 1 : keyboard.downArrowKey.isPressed ? -1 : 0);
+        }
+
+        // A held direction steps once, then repeats after a pause; down is positive.
+        private Vector2Int Step(Vector2 value)
+        {
+            var held = new Vector2(0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
+            var now = Time.unscaledTime;
+            if (held != _held)
+            {
+                _held = held;
+                _repeatAt = now + RepeatDelay;
+                return Vector2Int.RoundToInt(held);
+            }
+
+            if (held != Vector2.zero && now >= _repeatAt)
+            {
+                _repeatAt = now + RepeatInterval;
+                return Vector2Int.RoundToInt(held);
+            }
+
+            return Vector2Int.zero;
         }
 
         private void Render()

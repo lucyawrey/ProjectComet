@@ -495,6 +495,7 @@ Label { padding: 0; margin: 0; }
     transition-property: left; transition-duration: 0.15s;
 }
 .switch.off .switch-knob { left: 3px; }
+.switch.settling .switch-knob { transition-duration: 0s; }
 .slider { flex-direction: row; align-items: center; }
 /* The track is taller than it looks, so it's easy to grab. */
 .slider-track { width: 150px; height: 24px; justify-content: center; }
@@ -653,6 +654,11 @@ Label { padding: 0; margin: 0; }
     border-right-width: 2px; border-top-width: 2px; border-color: rgb(169, 178, 196);
 }
 .menu-row.account-row:hover { background-color: rgba(255, 255, 255, 0.04); }
+/* The selection with keys or a gamepad (AccountPage), as in the Esc menu's pages. */
+.account-window.navigating .menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.account-window.navigating .join-button.selected, .account-window.navigating .sign-out-button.selected,
+.account-window.navigating .copy-button.selected { border-color: rgb(255, 255, 255); }
+.account-window.navigating .input.selected .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
 .menu-row.disabled .menu-row-name { color: rgb(141, 151, 171); }
 .account-info {
     margin: 10px 0 6px 0; padding: 8px 12px; font-size: 14px; white-space: normal;
