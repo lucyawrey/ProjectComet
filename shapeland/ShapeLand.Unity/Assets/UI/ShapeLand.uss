@@ -8,7 +8,7 @@
 
 .backdrop {
     position: absolute; left: 0; top: 0; right: 0; bottom: 0;
-    background-color: rgba(10, 16, 30, 0.32);
+    background-color: rgba(8, 12, 22, 0.55); /* the one dim behind every menu, card and question (.menu-dim) */
     align-items: center; justify-content: center;
     -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf");
     font-size: 15px;
@@ -17,7 +17,6 @@
 .backdrop.hidden, .backdrop.waiting { display: none; }
 /* Changing the look in game: the game dims and the HUD fades as behind the Esc menu, the card has a page header
    (Back only when opened from the menu) in place of the title, and the HUD around it stays usable. */
-.backdrop.changing { background-color: rgba(8, 12, 22, 0.55); }
 .look-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
 .backdrop.changing .look-head { display: flex; }
 .backdrop.changing .join-title { display: none; }
@@ -358,9 +357,13 @@ Label { padding: 0; margin: 0; }
 .icon-pad-east { background-image: url("Icons/pad_east.png"); }
 
 /* While the menu is open the game dims and the HUD fades behind it. */
-/* The same for the look card changing the look (.look-open, set by Hud), whose dim is the card's own. */
+/* The same for the look card changing the look (.look-open, set by Hud), whose dim is the card's own, and the
+   Account page (.account-open, set by Hud), whose dim is #account-dim. */
 .hud.menu-open .hud-row, .hud.menu-open .tags, .hud.menu-open .chat, .hud.menu-open .net-stats,
+.hud.account-open .hud-row, .hud.account-open .tags, .hud.account-open .chat, .hud.account-open .net-stats,
 .hud.look-open .hud-row, .hud.look-open .tags { opacity: 0.35; }
+#account-dim { display: none; }
+.hud.account-open #account-dim { display: flex; }
 .menu-host, .menu, .menu-dim, .menu-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .menu-dim { background-color: rgba(8, 12, 22, 0.55); }
 
@@ -615,7 +618,8 @@ Label { padding: 0; margin: 0; }
 .join-pop.failed .pop-retry { display: flex; }
 
 /* A confirm over the dimmed game or card, in the Esc menu's Leave game style (ConfirmPanel). */
-.confirm-overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(8, 12, 22, 0.55); }
+/* No dim of its own: the screen it's over already has the one dim. */
+.confirm-overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .confirm-overlay.hidden { display: none; }
 .confirm-overlay .menu-confirm-note { max-width: 440px; white-space: normal; -unity-text-align: upper-center; }
 /* The window a question came from steps aside while it's up, so the question reads against the dimmed game. */

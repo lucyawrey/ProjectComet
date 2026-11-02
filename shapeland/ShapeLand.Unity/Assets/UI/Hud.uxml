@@ -111,6 +111,7 @@
                 <ui:Button name="guest-reminder-dismiss" text="#account.not_now" class="cancel-button" />
             </ui:VisualElement>
         </ui:VisualElement>
+        <ui:VisualElement name="account-dim" class="menu-dim" />
         <ui:VisualElement name="account-safe" class="menu-safe" picking-mode="Ignore">
             <!-- The Account page (AccountPage): rows like Settings, each opening its own step in the same window. -->
             <ui:VisualElement name="account" class="menu-window account-window hidden">

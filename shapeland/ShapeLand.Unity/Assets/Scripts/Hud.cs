@@ -198,6 +198,7 @@ namespace ShapeLand.Client
             _lookButton.EnableInClassList("on", card.Changing);
             _menuButton.EnableInClassList("on", _menu.Open);
             _root.EnableInClassList("look-open", card.Changing);
+            _root.EnableInClassList("account-open", _account.Open);
             _menuButton.EnableInClassList("first-time", !_menuTipSeen && !_menu.Open && !CardShowing);
             _chat.Box.EnableInClassList("hidden", card.Changing);
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
