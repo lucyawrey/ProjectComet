@@ -618,7 +618,8 @@ Label { padding: 0; margin: 0; }
 .confirm-overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(8, 12, 22, 0.55); }
 .confirm-overlay.hidden { display: none; }
 .confirm-overlay .menu-confirm-note { max-width: 440px; white-space: normal; -unity-text-align: upper-center; }
-#join.confirming .card { display: none; }
+/* The window a question came from steps aside while it's up, so the question reads against the dimmed game. */
+#join.confirming .card, .confirming .account-window { display: none; }
 #join.confirming .menu-prompts { display: none; }
 
 /* The Account page: rows like Settings, each opening its own step in the same window. */
