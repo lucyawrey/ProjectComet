@@ -19,7 +19,7 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 - **.NET 10 SDK**: for the servers, libraries, bots and tools.
 - **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/ShapeLand.Unity`).
-- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`). On Linux, those runs need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them; Docker Desktop's VM on macOS and Windows has them):
+- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`). On Linux, those runs need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them). They need Linux: Docker Desktop's VM on macOS has no `ifb` device, which they use to delay incoming traffic, and on Windows it depends on the WSL kernel. The setup on Linux:
 
   ```sh
   printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' | sudo tee /etc/modules-load.d/netem.conf

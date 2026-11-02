@@ -21,11 +21,18 @@ static class NetProfiles
         return new() { [$"{prefix}_DELAY"] = delay, [$"{prefix}_JITTER"] = jitter, [$"{prefix}_LOSS"] = loss };
     }
 
-    // Fails unless the kernel modules netem needs are loaded. Only Linux runs Docker on this machine's own kernel;
-    // Docker Desktop's VM (macOS, Windows) has them.
+    // Fails unless the kernel modules netem needs are loaded. Only Linux runs Docker on this machine's own kernel.
+    // Docker Desktop's VM on macOS has netem but no ifb device, which shaping incoming traffic needs
+    // (tools/docker/netem.sh), so the server's container stops at "Unknown device type"; Windows' depends on its
+    // WSL kernel.
     public static void CheckModules()
     {
-        if (!OperatingSystem.IsLinux()) return;
+        if (!OperatingSystem.IsLinux())
+        {
+            Console.Error.WriteLine("Simulated network runs are tested on Linux; Docker Desktop's VM may have no ifb device, and the " +
+                "server's container then stops at \"Unknown device type\".");
+            return;
+        }
         foreach (var module in new[] { "ifb", "sch_netem", "sch_ingress", "act_mirred", "cls_matchall" })
             if (!Directory.Exists($"/sys/module/{module}"))
                 throw Tool.Fail($"Kernel module {module} isn't loaded; see README.md (Requirements, Docker).");
