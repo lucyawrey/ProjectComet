@@ -254,7 +254,9 @@ namespace ShapeLand.Client
         {
             _root.EnableInClassList("signed-in", signedIn);
             _signedInText.EnableInClassList("hidden", !signedIn);
-            _signedInText.text = signedIn ? message ?? _content.Strings.Format("account.signed_in_as", ("name", _join.PlayerName)) : "";
+            _signedInText.text = !signedIn ? "" : message ?? (_join.Account != null
+                ? _content.Strings.Format("account.signed_in_as", ("name", _join.PlayerName))
+                : Text("account.signed_in"));
             MarkFieldRows();
             if (signedIn)
             {
@@ -447,6 +449,9 @@ namespace ShapeLand.Client
             WebPage.TakeRejoin(); // a returning player resumes below anyway
             if (_join.SignedIn)
             {
+#if !UNITY_WEBGL || UNITY_EDITOR
+                _join.UseLoginServer(_server.value); // the one remembered from the card, as the session's
+#endif
                 Resume(); // a returning player goes straight into the game
                 return;
             }
