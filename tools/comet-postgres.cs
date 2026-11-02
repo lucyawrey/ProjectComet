@@ -43,6 +43,9 @@ switch (command)
         var folder = Regex.Replace(Path.GetFileName(Path.TrimEndingDirectorySeparator(args[1])).ToLowerInvariant(), "[^a-z0-9]", "_");
         Console.WriteLine($"shapeland_{folder}_{args[2]}");
         break;
+    case "-h" or "--help":
+        Tool.Usage();
+        break;
     default:
         Tool.Usage(2);
         break;
