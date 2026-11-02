@@ -154,7 +154,7 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var phone = _host.NewClient();
         Assert.Null(await phone.SignInAsync("Alice", "first password"));
 
-        _host.Clock.Advance(TimeSpan.FromMinutes(11));
+        _host.Clock.Advance(TimeSpan.FromMinutes(16));
         Assert.False((await phone.MeAsync()).RecentSignIn);
         Assert.Equal(LoginErrors.SignInAgain, await phone.ErrorOfAsync(phone.PostAsync(LoginPaths.Password, new { password = "second password" })));
         Assert.Equal(LoginErrors.SignInAgain, await phone.ErrorOfAsync(phone.PostAsync(LoginPaths.RecoveryCode)));

@@ -30,7 +30,7 @@ public sealed class LoginOptions
     public TimeSpan SessionLifetime { get; set; } = TimeSpan.FromDays(30);
 
     /// <summary>How new a session must be to change the password or make a recovery code.</summary>
-    public TimeSpan RecentSignIn { get; set; } = TimeSpan.FromMinutes(10);
+    public TimeSpan RecentSignIn { get; set; } = TimeSpan.FromMinutes(15);
 
     /// <summary>Unclaimed guests idle this long are deleted. Null keeps them.</summary>
     public TimeSpan? GuestIdle { get; set; }
