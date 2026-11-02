@@ -21,7 +21,7 @@ public sealed class NetReport
     /// <summary>Each bot's numbers and samples.</summary>
     public required List<BotResult> Bots { get; init; }
 
-    /// <summary>The run's command-line settings (see <c>tools/shapeland-netrun.sh</c>).</summary>
+    /// <summary>The run's command-line settings (see <c>tools/run shapeland-netrun</c>).</summary>
     public sealed record RunSettings(string Url, int Bots, int Cheaters, double Seconds, int Seed, double WarmupSeconds);
 
     /// <summary>The client's tuning numbers this run used; the server's (validation margins) go by the commit in Meta.</summary>

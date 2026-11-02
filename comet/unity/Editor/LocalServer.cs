@@ -355,14 +355,14 @@ namespace Comet.Unity.Editor
             var serverProject = ContentBuild.ProjectPath(settings.serverProject);
             var botsProject = buildBots ? ContentBuild.ProjectPath(settings.botsProject) : "";
             var loginProject = buildLogin ? ContentBuild.ProjectPath(settings.loginProject) : "";
-            var script = accounts ? ContentBuild.ProjectPath(settings.databaseScript) : "";
+            var databaseTool = accounts ? ContentBuild.ProjectPath(settings.databaseTool) : "";
             var port = settings.serverPort;
             var progress = Progress.Start("Local game server", buildBots ? "Building the servers and bots" : "Building the servers");
             var building = Task.Run(() => (
                 buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
                 buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null),
                 buildLogin ? Build(dotnet, root, loginProject) : new Built(login, null),
-                accounts ? Database(script, root, CheckoutRoot(root), port) : new Built("", null)));
+                accounts ? Database(dotnet, databaseTool, root, CheckoutRoot(root), port) : new Built("", null)));
             _building = building;
             SessionState.SetInt(BuildingKey, progress);
             var stops = _stops;
@@ -392,7 +392,7 @@ namespace Comet.Unity.Editor
 
                 if (database.Error != null)
                 {
-                    Debug.LogError($"Couldn't start the development database ({settings.databaseScript}); is Docker running?\n{database.Error}");
+                    Debug.LogError($"Couldn't start the development database ({settings.databaseTool}); is Docker running?\n{database.Error}");
                     return;
                 }
 
@@ -611,11 +611,12 @@ namespace Comet.Unity.Editor
 
         // Starts the development database (the settings' script, run off the main thread) with a database for this
         // checkout and port, returning its connection string as the "program", or the script's output as the error.
-        private static Built Database(string script, string root, string checkout, int port)
+        // The tool is a C# file app; the -- keeps dotnet from reading its arguments as its own.
+        private static Built Database(string dotnet, string tool, string root, string checkout, int port)
         {
             string Run(string arguments, out int exitCode)
             {
-                var start = new ProcessStartInfo(script, arguments)
+                var start = new ProcessStartInfo(dotnet, $"\"{tool}\" -- {arguments}")
                 {
                     WorkingDirectory = root,
                     UseShellExecute = false,
@@ -644,7 +645,7 @@ namespace Comet.Unity.Editor
             }
             catch (Exception e)
             {
-                return new Built(null, $"Couldn't run {script}: {e.Message}");
+                return new Built(null, $"Couldn't run {tool}: {e.Message}");
             }
         }
 
@@ -784,7 +785,7 @@ namespace Comet.Unity.Editor
         }
 
         // The checkout (the folder holding .git, a folder in the main checkout and a file in a worktree) that holds
-        // the Unity project, which names its database as tools/shapeland-dev.sh does; the Unity project's own folder is
+        // the Unity project, which names its database as tools/run shapeland-dev does; the Unity project's own folder is
         // named the same in every checkout.
         private static string CheckoutRoot(string projectRoot)
         {

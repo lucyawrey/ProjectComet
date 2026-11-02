@@ -1,8 +1,8 @@
 #!/bin/bash
-# First boot of the public test build's server, on Amazon Linux 2023 (ARM): PostgreSQL, the Login server and the game
-# server behind Caddy. tools/shapeland-testbuild.sh fills in the {{…}} values, passes this as the instance's user data
+# First boot of the deployed game's server, on Amazon Linux 2023 (ARM): PostgreSQL, the Login server and the game
+# server behind Caddy. tools/run shapeland-deploy fills in the {{…}} values, passes this as the instance's user data
 # and attaches the kept data volume once the instance runs; the output goes to the console log
-# (tools/shapeland-testbuild.sh log). The instance has no AWS permissions: the package comes through a pre-signed link.
+# (tools/run shapeland-deploy log). The instance has no AWS permissions: the package comes through a pre-signed link.
 set -euxo pipefail
 
 HOST='{{HOST}}'
@@ -39,7 +39,7 @@ for _ in $(seq 1 60); do
   [ -e "$device" ] && break
   sleep 5
 done
-[ -e "$device" ] || { echo "shapeland-testbuild: the data volume never appeared"; exit 1; }
+[ -e "$device" ] || { echo "shapeland-deploy: the data volume never appeared"; exit 1; }
 blkid "$device" || mkfs.ext4 -L shapeland-data "$device"
 mkdir -p /data
 echo "$device /data ext4 defaults,nofail 0 2" >> /etc/fstab
@@ -186,4 +186,4 @@ for _ in $(seq 1 90); do
   sleep 10
 done
 systemctl enable --now caddy.service
-echo "shapeland-testbuild: ready"
+echo "shapeland-deploy: ready"

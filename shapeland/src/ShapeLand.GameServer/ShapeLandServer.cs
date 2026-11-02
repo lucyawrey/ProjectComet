@@ -88,14 +88,14 @@ public static class ShapeLandServer
         builder.Services.AddHostedService<GameStartup>();
 
         var app = builder.Build();
-        // Behind a proxy on this machine (Caddy, in the public test build), the client's address comes from
+        // Behind a proxy on this machine (Caddy, in the deployed game), the client's address comes from
         // X-Forwarded-For, so the per-address connection cap counts players, not the proxy. Only a loopback proxy
         // is trusted (ASP.NET's default), so no client can set the header for itself.
         app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor });
         var serverOptions = app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
         if (!string.IsNullOrEmpty(serverOptions.WebRoot))
         {
-            // The page's Content Security Policy, the same as shapeland/deploy/vercel.json gives the public test build
+            // The page's Content Security Policy, the same as shapeland/deploy/vercel.json gives the deployed game
             // (keep them in step), so a page change that breaks it shows up here first.
             var policy = PagePolicy(serverOptions.LoginUrl);
             app.Use(async (context, next) =>
@@ -104,7 +104,7 @@ public static class ShapeLandServer
                 await next();
             });
 
-            // The page's settings, as the deploy writes them on the public test build: where the Login server is.
+            // The page's settings, as the deploy writes them: where the Login server is.
             var config = $"window.shapelandLogin = {System.Text.Json.JsonSerializer.Serialize(serverOptions.LoginUrl)};\n";
             app.MapGet("/config.js", (HttpContext context) =>
             {

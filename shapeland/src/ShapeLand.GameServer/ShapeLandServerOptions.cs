@@ -20,7 +20,7 @@ public sealed class ShapeLandServerOptions
 
     /// <summary>
     /// The Login server's address (<c>http://localhost:5090</c>), for the page this server serves (<see cref="WebRoot"/>):
-    /// its <c>config.js</c> names it, as the deploy's does on the public test build.
+    /// its <c>config.js</c> names it, as the deploy's does.
     /// </summary>
     public string LoginUrl { get; set; } = "";
 

@@ -11,7 +11,7 @@ using UnityEngine;
 namespace ShapeLand.Client.Tests
 {
     // The real ShapeLand servers for Play mode tests: builds the Login and game servers and starts them on free ports,
-    // on a fresh database in the shared comet-postgres container (tools/comet-postgres.sh), with their own ticket keys,
+    // on a fresh database in the shared comet-postgres container (tools/run comet-postgres), with their own ticket keys,
     // the game server playing the tests' own zone (content/zones/tests), so editing ShapeLand's zones can't break
     // them. Needs the dotnet SDK on the PATH, Docker, and the content built.
     public sealed class TestGameServer : IDisposable
@@ -97,7 +97,7 @@ namespace ShapeLand.Client.Tests
         }
 
         /// <summary>
-        /// Stops the game server the way Ctrl+C or tools/shapeland-dev.sh's restart does: it tells its clients it's
+        /// Stops the game server the way Ctrl+C or tools/run shapeland-dev's restart does: it tells its clients it's
         /// shutting down. <see cref="StartAgain"/> brings it back at the same address.
         /// </summary>
         public IEnumerator ShutDownServer()
@@ -152,19 +152,19 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        // Runs tools/comet-postgres.sh, returning what it prints (a connection string, for database and fresh).
+        // Runs tools/comet-postgres.cs, returning what it prints (a connection string, for database and fresh).
         private static string Database(string command, string name)
         {
-            using var process = Process.Start(new ProcessStartInfo(Path.Combine(RepoRoot, "tools", "comet-postgres.sh"), $"{command} {name}")
+            using var process = Process.Start(new ProcessStartInfo("dotnet", $"\"{Path.Combine(RepoRoot, "tools", "comet-postgres.cs")}\" -- {command} {name}")
             {
                 WorkingDirectory = RepoRoot,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             });
-            Assert.That(process, Is.Not.Null, "Couldn't run tools/comet-postgres.sh.");
+            Assert.That(process, Is.Not.Null, "Couldn't run tools/comet-postgres.cs.");
             var output = process.StandardOutput.ReadToEnd().Trim();
             process.WaitForExit();
-            Assert.That(process.ExitCode, Is.EqualTo(0), $"tools/comet-postgres.sh {command} failed (is Docker running?).");
+            Assert.That(process.ExitCode, Is.EqualTo(0), $"tools/comet-postgres.cs {command} failed (is Docker running?).");
             return output;
         }
 

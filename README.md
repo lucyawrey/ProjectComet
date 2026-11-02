@@ -19,16 +19,16 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 - **.NET 10 SDK**: for the servers, libraries, bots and tools.
 - **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/ShapeLand.Unity`).
-- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`). On Linux, those runs need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them). They need Linux: Docker Desktop's VM on macOS has no `ifb` device, which they use to delay incoming traffic, and on Windows it depends on the WSL kernel. The setup on Linux:
+- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/run shapeland-netrun`). Those runs need Linux: Docker Desktop's VM on macOS has no `ifb` device, which they use to delay incoming traffic, and on Windows it depends on the WSL kernel. On Linux they need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them):
 
   ```sh
   printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' | sudo tee /etc/modules-load.d/netem.conf
   sudo systemctl restart systemd-modules-load
   ```
 
-- **AWS CLI and Vercel CLI**: only for the public test build.
+- **AWS CLI and Vercel CLI**: only for the deployed game.
 
-The scripts are bash, and the Unity editor runs one to start the database, so working on the project needs macOS or Linux; Windows isn't supported yet.
+The tools are C# file apps run by the .NET SDK, so they work on Linux, macOS and Windows. The simulated-network runs need Linux (see Docker above), and Unity on Windows is untested.
 
 ## Layout
 
@@ -45,34 +45,34 @@ dotnet test --solution ProjectComet.slnx
 ```
 
 ```sh
-tools/unity-restore.sh
+tools/run unity-restore
 ```
 
-Run `tools/unity-restore.sh` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes, before opening the project in the editor. The scripts that run Unity (`unity-batch.sh`, and `shapeland-dev.sh` through it) run it themselves when it's needed.
+Run `tools/run unity-restore` again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes, before opening the project in the editor. The tools that run Unity (`unity-batch`, and `shapeland-dev` through it) run it themselves when it's needed.
 
-## Scripts
+## Tools
 
-Run them from the repository root. Each script's options are listed below and in its header comment; `shapeland-dev.sh` and `shapeland-netrun.sh` also print theirs with `--help`.
+Run them from the repository root with the launcher: `tools/run <tool> [arguments]` on Linux and macOS, `tools\run <tool> [arguments]` on Windows (Command Prompt or PowerShell; PowerShell wants `.\tools\run`). Each tool's options are listed below and in its header comment, and `--help` prints them. The launcher passes the arguments through untouched. A tool also runs as `dotnet tools/<tool>.cs -- [arguments]`; without the `--`, dotnet takes some arguments for itself (`--help`, `--no-build`, `-p`, `--`).
 
-| Script | What it's for |
+| Tool | What it's for |
 | --- | --- |
-| `tools/comet-postgres.sh` | The shared development PostgreSQL, `comet-postgres` on `127.0.0.1:55432` (a Docker container that stays running, data in the `comet-postgres-data` volume), with a database per local stack. The other scripts and the Unity editor start it themselves; `tools/comet-postgres.sh` alone lists its commands. |
+| `tools/run comet-postgres` | The shared development PostgreSQL, `comet-postgres` on `127.0.0.1:55432` (a Docker container that stays running, data in the `comet-postgres-data` volume), with a database per local stack. The other tools and the Unity editor start it themselves; `tools/run comet-postgres` alone lists its commands. |
 | `tools/blender-export-glb.py` | Export each top-level object in a `.blend` file as a `.glb`, into the folder named by the file's `export_dir` property. Run it from Blender's Text Editor, or with `blender -b <file> --python tools/blender-export-glb.py`; the script's header has the setup. |
-| `tools/shapeland-dev.sh` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the servers, for the editor's play mode or a desktop build. It starts PostgreSQL (`tools/comet-postgres.sh`, with a database for the checkout and port), the Login server (on the game server's port + 10) and the game server, and restarts both servers when the content changes. The Unity editor can run the server itself for play mode, with optional bots, web build and local network ([Comet › Server](comet/README.md#the-local-game-server)), so most level work needs no terminal. |
-| `tools/shapeland-netrun.sh` | Headless bot runs under a simulated network profile, printing what the bots measured (snap-backs, cheaters caught, ping, interpolation delay). |
-| `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
-| `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
-| `tools/unity-batch.sh` | Run a Unity build or tests and return when the work is done: in the open editor when it has the project open, else in batch mode (where the editor often hangs while quitting). |
-| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First time setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
+| `tools/run shapeland-dev` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the servers, for the editor's play mode or a desktop build. It starts PostgreSQL (`tools/run comet-postgres`, with a database for the checkout and port), the Login server (on the game server's port + 10) and the game server, and restarts both servers when the content changes. The Unity editor can run the server itself for play mode, with optional bots, web build and local network ([Comet › Server](comet/README.md#the-local-game-server)), so most level work needs no terminal. |
+| `tools/run shapeland-netrun` | Headless bot runs under a simulated network profile, printing what the bots measured (snap-backs, cheaters caught, ping, interpolation delay). |
+| `tools/shared/NetProfiles.cs` | The network profiles `shapeland-dev --net` and `shapeland-netrun` use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
+| `tools/run shapeland-deploy` | The deployed game: the page on Vercel and the game server on an on-demand AWS instance. |
+| `tools/run unity-batch` | Run a Unity build or tests and return when the work is done: in the open editor when it has the project open, else in batch mode (where the editor often hangs while quitting). |
+| `tools/run unity-restore` | Restore a Unity project's NuGet packages (see First time setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
 
 ### Play locally in a browser
 
 ```sh
-tools/shapeland-dev.sh                      # build if needed, start the server, open the page
-tools/shapeland-dev.sh --bots 10 --bots-chat
-tools/shapeland-dev.sh --net bad --bots 5   # everyone gets about 200 ms round trip and 2% loss (Docker)
-tools/shapeland-dev.sh --lan                # let other devices on the network join
-tools/shapeland-dev.sh --spawn spawn.tests.start   # start everyone at one spawn point, in any zone
+tools/run shapeland-dev                      # build if needed, start the server, open the page
+tools/run shapeland-dev --bots 10 --bots-chat
+tools/run shapeland-dev --net bad --bots 5   # everyone gets about 200 ms round trip and 2% loss (Docker)
+tools/run shapeland-dev --lan                # let other devices on the network join
+tools/run shapeland-dev --spawn spawn.tests.start   # start everyone at one spawn point, in any zone
 ```
 
 | Option | What it does |
@@ -93,8 +93,8 @@ Close the Unity editor first: the build fails while it has the project open. Ctr
 ### Network runs
 
 ```sh
-tools/shapeland-netrun.sh good
-tools/shapeland-netrun.sh bad --seconds 300 --bots 20 --cheaters 2
+tools/run shapeland-netrun good
+tools/run shapeland-netrun bad --seconds 300 --bots 20 --cheaters 2
 ```
 
 The first argument is the profile on the server's link: `none`, `good`, `bad` or `awful`.
@@ -112,19 +112,19 @@ The first argument is the profile on the server's link: `none`, `good`, `bad` or
 | `--far-net P` | The far players' extra profile (default `bad`). |
 | `--port P` | The server's port on this machine (default 5091). |
 
-Results also go to a file stamped with the profile and commit. The default port (5091) lets a `shapeland-dev.sh` session keep running alongside.
+Results also go to a file stamped with the profile and commit. The default port (5091) lets a `shapeland-dev` session keep running alongside.
 
 ### Unity batch jobs
 
 ```sh
-tools/unity-batch.sh build Web ../../artifacts/unity/shapeland/web
-tools/unity-batch.sh test PlayMode
-tools/unity-batch.sh -- <Unity arguments>
+tools/run unity-batch build Web ../../artifacts/unity/shapeland/web
+tools/run unity-batch test PlayMode
+tools/run unity-batch -- <Unity arguments>
 ```
 
 `build` builds one of the build profiles in `Assets/Settings/Build Profiles/` (`Web`, `Linux`; the same ones as File › Build Profiles in the editor) into the given folder. `test` runs `PlayMode` (the default) or `EditMode` tests and writes the results (`Logs/results.xml`, or `Logs/results.json` from an open editor). Everything after `--` goes to a batch-mode editor as it is.
 
-When a Unity editor has the project open, `build` and `test` run in it, through the [Unity CLI](https://docs.unity.com/en-us/unity-cli) (`unity` and `jq` on the path) and the project's Unity Pipeline package. A build there needs the editor on the profile's platform already, since switching reimports the whole project. Without an open editor they run in batch mode. Options, before the job:
+When a Unity editor has the project open, `build` and `test` run in it, through the [Unity CLI](https://docs.unity.com/en-us/unity-cli) (`unity` on the path) and the project's Unity Pipeline package. A build there needs the editor on the profile's platform already, since switching reimports the whole project. Without an open editor they run in batch mode. Options, before the job:
 
 | Option | What it does |
 | --- | --- |
@@ -134,21 +134,21 @@ When a Unity editor has the project open, `build` and `test` run in it, through 
 
 The exit code is the editor's (tests: 0 passed, 2 failed), 1 if it gave no result, and 124 on the time limit.
 
-### Public test build
+### Deploying
 
 ```sh
-tools/shapeland-testbuild.sh setup          # once per AWS account
-tools/shapeland-testbuild.sh page           # build the web page and publish it on Vercel
-tools/shapeland-testbuild.sh up --hours 24  # start the game server; it stops itself after 24 hours
-tools/shapeland-testbuild.sh status         # what's running, and whether the server answers
-tools/shapeland-testbuild.sh log            # the server's boot log (from its console)
-tools/shapeland-testbuild.sh down           # terminate it when done
-tools/shapeland-testbuild.sh redeploy       # page, then up, replacing a server that's already up
+tools/run shapeland-deploy setup          # once per AWS account
+tools/run shapeland-deploy page           # build the web page and publish it on Vercel
+tools/run shapeland-deploy up --bots 1    # start the game server, with a bot so visitors see someone moving
+tools/run shapeland-deploy status         # what's running, and whether the server answers
+tools/run shapeland-deploy log            # the server's boot log (from its console)
+tools/run shapeland-deploy down           # terminate it when done
+tools/run shapeland-deploy redeploy       # page, then up, replacing a server that's already up
 ```
 
-`up --hours H` sets when the server shuts itself down (default 24; 0 for never). `page --no-build` publishes the last web build as it is.
+`up --hours H` sets when the server shuts itself down (0, the default, for never). `page --no-build` publishes the last web build as it is.
 
-The server costs about 20 cents a day while it's up. When it's down, the page says the game isn't open for testing. Settings that aren't in the repo live in `~/.config/shapeland-testbuild/env`: the first run on a computer creates it and stops until `ACME_EMAIL` (the contact address Caddy gives Let's Encrypt and ZeroSSL for the server's certificate) is filled in.
+The server costs about 20 cents a day while it's up. When it's down, the page says the game isn't open for testing. Settings that aren't in the repo live in `~/.config/shapeland-deploy/env`: the first run on a computer creates it and stops until `ACME_EMAIL` (the contact address Caddy gives Let's Encrypt and ZeroSSL for the server's certificate) is filled in.
 
 ## Known quirks
 
