@@ -313,7 +313,7 @@ namespace ShapeLand.Client
 
             if (_confirm.Open)
             {
-                var question = Step(actions.Navigate.ReadValue<Vector2>());
+                var question = Repeat(actions.Navigate.ReadValue<Vector2>());
                 if (question.y != 0)
                 {
                     Navigating = true;
@@ -334,7 +334,7 @@ namespace ShapeLand.Client
             }
 
             var typing = Typing;
-            var step = Step(typing && !fromPad ? TypingArrows() : actions.Navigate.ReadValue<Vector2>());
+            var step = Repeat(typing && !fromPad ? TypingArrows() : actions.Navigate.ReadValue<Vector2>());
             var submit = actions.Submit.WasPressedThisFrame() && (!typing || fromPad); // Space and Enter in a field are the field's
             if (!Navigating && step != Vector2Int.zero && !typing)
             {
@@ -497,7 +497,7 @@ namespace ShapeLand.Client
         }
 
         // A held direction steps once, then repeats after a pause; down is positive.
-        private Vector2Int Step(Vector2 value)
+        private Vector2Int Repeat(Vector2 value)
         {
             var held = new Vector2(0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
             var now = Time.unscaledTime;
