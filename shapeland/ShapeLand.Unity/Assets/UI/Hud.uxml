@@ -189,6 +189,12 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
+                <ui:VisualElement name="account-new-code" class="account-step">
+                    <ui:VisualElement class="account-form">
+                        <ui:Label text="#account.new_code_note" class="account-text" />
+                        <ui:Label name="account-new-code-replaces" text="#account.new_code_replaces" class="card-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
                 <ui:VisualElement name="account-code" class="account-step">
                     <ui:VisualElement class="account-form">
                         <ui:Label name="account-code-intro" class="account-text" />

@@ -24,6 +24,7 @@ namespace ShapeLand.Client
             Rename,
             Password,
             Confirm,
+            NewCode,
             Code,
         }
 
@@ -50,6 +51,8 @@ namespace ShapeLand.Client
         private readonly VisualElement _confirmStep;
         private readonly TextField _confirmField;
         private readonly VisualElement _codeStep;
+        private readonly VisualElement _newCodeStep;
+        private readonly Label _newCodeReplaces;
         private readonly Label _codeIntro;
         private readonly Label _codeText;
         private readonly Button _copy;
@@ -101,6 +104,8 @@ namespace ShapeLand.Client
             _passwordSignsOut = root.Q<Label>("account-password-signs-out");
             _confirmStep = root.Q("account-confirm");
             _confirmField = root.Q<TextField>("account-confirm-field");
+            _newCodeStep = root.Q("account-new-code");
+            _newCodeReplaces = root.Q<Label>("account-new-code-replaces");
             _codeStep = root.Q("account-code");
             _codeIntro = root.Q<Label>("account-code-intro");
             _codeText = root.Q<Label>("account-code-text");
@@ -119,7 +124,7 @@ namespace ShapeLand.Client
             _copy.clicked += CopyCode;
             _usernameRow.RegisterCallback<ClickEvent>(_ => ShowStep(Step.Rename));
             _passwordRow.RegisterCallback<ClickEvent>(_ => OpenPassword());
-            _codeRow.RegisterCallback<ClickEvent>(_ => MakeCode());
+            _codeRow.RegisterCallback<ClickEvent>(_ => OpenCode());
             _signOut = root.Q<Button>("account-sign-out");
             _signOut.clicked += AskToSignOut;
             foreach (var field in new[] { _renameField, _passwordField, _passwordAgain, _confirmField })
@@ -227,6 +232,7 @@ namespace ShapeLand.Client
             _renameStep.EnableInClassList("shown", step == Step.Rename);
             _passwordStep.EnableInClassList("shown", step == Step.Password);
             _confirmStep.EnableInClassList("shown", step == Step.Confirm);
+            _newCodeStep.EnableInClassList("shown", step == Step.NewCode);
             _codeStep.EnableInClassList("shown", step == Step.Code);
             _submit.EnableInClassList("hidden", step == Step.Rows);
             _signOut.EnableInClassList("hidden", step != Step.Rows); // the rows' bottom corner, as on the signed-in card
@@ -236,7 +242,7 @@ namespace ShapeLand.Client
                 Step.Rename => Text("account.change_username"),
                 Step.Password => Text(guest ? "account.set_password" : "account.change_password"),
                 Step.Confirm => Text("account.confirm_page"),
-                Step.Code => Text("account.recovery_code"),
+                Step.NewCode or Step.Code => Text("account.recovery_code"),
                 _ => Text("account.page"),
             };
             Message(null);
@@ -267,6 +273,10 @@ namespace ShapeLand.Client
                     _confirmField.value = "";
                     SetSubmit();
                     FocusUnlessPad(_confirmField);
+                    break;
+                case Step.NewCode:
+                    _newCodeReplaces.EnableInClassList("hidden", !(_hud.Join.Account?.HasRecoveryCode ?? false));
+                    SetSubmit();
                     break;
                 case Step.Code:
                     _codeIntro.text = strings.Get("account.code_intro");
@@ -393,6 +403,7 @@ namespace ShapeLand.Client
             Step.Rename => new List<VisualElement> { _renameField, _submit },
             Step.Password => new List<VisualElement> { _passwordField, _passwordAgain, _submit },
             Step.Confirm => new List<VisualElement> { _confirmField, _submit },
+            Step.NewCode => new List<VisualElement> { _submit },
             _ => new List<VisualElement> { _copy, _submit },
         };
 
@@ -450,7 +461,7 @@ namespace ShapeLand.Client
             }
             else if (item == _codeRow)
             {
-                MakeCode();
+                OpenCode();
             }
             else if (item == _signOut)
             {
@@ -546,6 +557,9 @@ namespace ShapeLand.Client
                 case Step.Confirm:
                     Confirm();
                     break;
+                case Step.NewCode:
+                    MakeCode();
+                    break;
                 case Step.Code:
                     LeaveCode();
                     break;
@@ -585,27 +599,42 @@ namespace ShapeLand.Client
 
         // Changing a password needs a recent sign-in, so it's asked for before the new password is typed (a guest's
         // first password needs none).
-        private async void OpenPassword()
+        private void OpenPassword()
+        {
+            _resubmitPassword = false;
+            OpenRecent(Step.Password, needsRecent: !(_hud.Join.Account?.Guest ?? true));
+        }
+
+        // Making a recovery code needs a recent sign-in too, asked for before its page; the code comes with its button.
+        private void OpenCode()
+        {
+            if (!(_hud.Join.Account?.Guest ?? true))
+            {
+                OpenRecent(Step.NewCode, needsRecent: true);
+            }
+        }
+
+        // Opens the step, first asking for the password again when it needs a recent sign-in and the session isn't.
+        private async void OpenRecent(Step step, bool needsRecent)
         {
             if (_busy)
             {
                 return;
             }
 
-            _resubmitPassword = false;
-            if (!(_hud.Join.Account?.Guest ?? true))
+            if (needsRecent)
             {
                 Busy(true);
                 await _hud.Join.RefreshAccountAsync(); // whether the sign-in is still recent now, not when the page opened
                 Busy(false);
                 if (!(_hud.Join.Account?.RecentSignIn ?? false))
                 {
-                    AskToConfirm(Step.Password);
+                    AskToConfirm(step);
                     return;
                 }
             }
 
-            ShowStep(Step.Password);
+            ShowStep(step);
         }
 
         private async void SetPassword()
@@ -762,6 +791,7 @@ namespace ShapeLand.Client
                 Step.Rename => "account.save_username",
                 Step.Password => "account.save_password",
                 Step.Confirm => "account.continue",
+                Step.NewCode => "account.create_code",
                 _ => "account.done",
             });
         }
