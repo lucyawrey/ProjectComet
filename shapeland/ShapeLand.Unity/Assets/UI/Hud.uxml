@@ -199,9 +199,10 @@
                         <ui:Label text="#account.code_warning" class="code-warning" />
                     </ui:VisualElement>
                 </ui:VisualElement>
+                <ui:Label name="account-message" class="error" />
                 <ui:VisualElement name="account-actions" class="account-actions">
                     <ui:Button name="account-sign-out" text="#account.sign_out" class="sign-out-button" />
-                    <ui:Label name="account-message" class="account-message" />
+                    <ui:VisualElement class="spacer" />
                     <ui:Button name="account-submit" class="join-button" />
                 </ui:VisualElement>
             </ui:VisualElement>

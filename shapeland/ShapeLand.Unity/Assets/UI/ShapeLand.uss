@@ -659,8 +659,8 @@ Label { padding: 0; margin: 0; }
     background-color: rgba(106, 161, 255, 0.14); border-left-width: 3px; border-color: rgb(106, 161, 255);
 }
 .account-info.hidden { display: none; }
-.account-actions { flex-direction: row; justify-content: flex-end; align-items: center; flex-shrink: 0; }
-.account-message { flex-grow: 1; font-size: 14px; color: rgb(255, 212, 211); white-space: normal; margin-right: 12px; }
+.account-actions { flex-direction: row; align-items: center; flex-shrink: 0; }
+.account-window .error { flex-shrink: 0; margin: 8px 0 10px 0; } /* the join card's error box, above the buttons */
 .recovery-code {
     flex-direction: row; align-items: center; justify-content: space-between; margin: 6px 0 10px 0; padding: 12px 14px;
     background-color: rgba(255, 255, 255, 0.06); border-width: 1px; border-color: rgba(255, 255, 255, 0.3); border-radius: 6px;

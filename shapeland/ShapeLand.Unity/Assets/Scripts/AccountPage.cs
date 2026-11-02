@@ -473,7 +473,12 @@ namespace ShapeLand.Client
             Message(null);
         }
 
-        private void Message(string message) => _message.text = message ?? "";
+        // The page's error, in the join card's error box.
+        private void Message(string message)
+        {
+            _message.text = message ?? "";
+            _message.EnableInClassList("shown", message != null);
+        }
 
         private string Error(string code) => JoinScreen.LoginMessage(_hud.Join.Content.Strings, code);
 
