@@ -150,7 +150,6 @@
                             <ui:VisualElement class="row-chevron" />
                         </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:Button name="account-sign-out" text="#account.sign_out" class="sign-out-button account-sign-out" />
                 </ui:ScrollView>
                 <ui:VisualElement name="account-rename" class="account-step">
                     <ui:VisualElement class="account-form">
@@ -200,6 +199,7 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="account-actions" class="account-actions">
+                    <ui:Button name="account-sign-out" text="#account.sign_out" class="sign-out-button" />
                     <ui:Label name="account-message" class="account-message" />
                     <ui:Button name="account-submit" class="join-button" />
                 </ui:VisualElement>

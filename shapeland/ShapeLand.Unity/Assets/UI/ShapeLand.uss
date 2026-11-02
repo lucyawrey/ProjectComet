@@ -547,15 +547,15 @@ Label { padding: 0; margin: 0; }
 #join.changing .have-account, #join.signing-in .have-account, #join.signed-in .have-account, #join.setting-password .have-account { display: none; }
 /* Pointed to after a new player picks a taken name. */
 .cancel-button.pointed { border-color: rgb(106, 161, 255); }
-/* Sign out: the same button on the signed-in card and the Account page, in Leave game's red. */
+/* Sign out: the same button at the bottom left of the signed-in card and the Account page, a secondary button
+   (Cancel's look) with Leave game's red text. */
 .sign-out-button {
-    height: 40px; padding: 0 20px; margin: 0;
-    background-color: rgba(229, 57, 53, 0.12);
-    border-width: 2px; border-color: rgba(255, 160, 157, 0.35); border-radius: 4px;
+    height: 40px; padding: 0 20px; margin: 0 12px 0 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 4px;
     color: rgb(255, 160, 157); font-size: 16px;
 }
-.sign-out-button:hover { background-color: rgba(229, 57, 53, 0.22); border-color: rgba(255, 160, 157, 0.6); }
-.account-sign-out { align-self: flex-start; margin: 18px 0 0 12px; }
+.sign-out-button:hover { background-color: rgba(255, 255, 255, 0.16); }
 #sign-out-button { display: none; }
 #join.signed-in #sign-out-button { display: flex; }
 /* The server line: desktop builds only, on the new player's and signed-in cards. */

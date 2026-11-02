@@ -52,6 +52,7 @@ namespace ShapeLand.Client
         private readonly Button _copy;
         private readonly Label _message;
         private readonly Button _submit;
+        private readonly Button _signOut;
         private readonly ConfirmPanel _confirm;
         private Step _step;
         private Action _back;
@@ -104,7 +105,8 @@ namespace ShapeLand.Client
             root.Q("account-username-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Rename));
             root.Q("account-password-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Password));
             _codeRow.RegisterCallback<ClickEvent>(_ => MakeCode());
-            root.Q<Button>("account-sign-out").clicked += AskToSignOut;
+            _signOut = root.Q<Button>("account-sign-out");
+            _signOut.clicked += AskToSignOut;
             foreach (var field in new[] { _renameField, _passwordField, _passwordAgain, _confirmField })
             {
                 field.RegisterCallback<KeyDownEvent>(e =>
@@ -200,6 +202,7 @@ namespace ShapeLand.Client
             _confirmStep.EnableInClassList("shown", step == Step.Confirm);
             _codeStep.EnableInClassList("shown", step == Step.Code);
             _submit.EnableInClassList("hidden", step == Step.Rows);
+            _signOut.EnableInClassList("hidden", step != Step.Rows); // the rows' bottom corner, as on the signed-in card
             _backText.text = Text(step == Step.Rows ? "menu.back" : "account.page");
             _pageName.text = step switch
             {
