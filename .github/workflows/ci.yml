@@ -18,6 +18,10 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Some tests read the compiled content (artifacts/content/), as the servers do.
+      - name: Content
+        run: dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build
+
       - name: Tests
         if: runner.os == 'Linux'
         run: dotnet test --solution ProjectComet.slnx
