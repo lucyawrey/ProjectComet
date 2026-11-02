@@ -21,7 +21,7 @@ namespace Comet.Unity
                 {
                     var key = element.text.Substring(1);
                     element.text = strings.Get(key);
-                    if (strings.Entries.TryGetValue(key, out var text) && text.Contains('{'))
+                    if (strings.Raw(key).Contains('{'))
                     {
                         withPlaceholders.Add((element, key));
                     }

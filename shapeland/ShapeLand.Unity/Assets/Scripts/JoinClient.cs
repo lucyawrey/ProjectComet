@@ -402,6 +402,8 @@ namespace ShapeLand.Client
                 }
 
                 _content = ShapeLandContent.Load(new MemoryStream(request.downloadHandler.data));
+                // Browsers get the text written for them (keys ending _web), such as where a guest is kept.
+                _content.Strings.SetVariant(Application.platform == RuntimePlatform.WebGLPlayer ? "web" : null);
             }
 
             Zone = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]).Zone;

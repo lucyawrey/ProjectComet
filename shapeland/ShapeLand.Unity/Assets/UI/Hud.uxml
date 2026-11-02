@@ -129,7 +129,7 @@
                     </ui:VisualElement>
                     <ui:Label name="account-guest-info" class="account-info" />
                     <ui:VisualElement name="account-username-row" class="menu-row account-row">
-                        <ui:Label text="#account.change_username" class="menu-row-name" />
+                        <ui:Label text="#account.row_change_username" class="menu-row-name" />
                         <ui:VisualElement class="account-row-value" picking-mode="Ignore">
                             <ui:VisualElement class="row-chevron" />
                         </ui:VisualElement>
@@ -142,11 +142,11 @@
                     </ui:VisualElement>
                     <ui:VisualElement name="account-code-row" class="menu-row account-row">
                         <ui:VisualElement class="setting-text" picking-mode="Ignore">
-                            <ui:Label text="#account.recovery_code" class="menu-row-name" />
+                            <ui:Label text="#account.row_recovery_code" class="menu-row-name" />
                             <ui:Label name="account-code-note" class="setting-note" />
                         </ui:VisualElement>
                         <ui:VisualElement name="account-code-value" class="account-row-value" picking-mode="Ignore">
-                            <ui:Label text="#account.make_new" class="row-action" />
+                            <ui:Label text="#account.row_make_new" class="row-action" />
                             <ui:VisualElement class="row-chevron" />
                         </ui:VisualElement>
                     </ui:VisualElement>

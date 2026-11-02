@@ -254,10 +254,10 @@ namespace ShapeLand.Client
             _guestTag.EnableInClassList("hidden", !guest);
             _guestInfo.text = Text("account.guest_note");
             _guestInfo.EnableInClassList("hidden", !guest);
-            _passwordName.text = Text(guest ? "account.set_password" : "account.change_password");
+            _passwordName.text = Text(guest ? "account.row_set_password" : "account.row_change_password");
             // A guest has no recovery code until there's a password to recover.
             _codeRow.EnableInClassList("disabled", guest);
-            _codeNote.text = Text(guest ? "account.recovery_code_later" : "account.recovery_code_note");
+            _codeNote.text = Text(guest ? "account.row_recovery_code_later" : "account.row_recovery_code_note");
             _codeValue.EnableInClassList("hidden", guest);
         }
 
