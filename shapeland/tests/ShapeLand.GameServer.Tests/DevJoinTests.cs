@@ -140,19 +140,17 @@ public sealed class DevJoinTests : IAsyncLifetime
             await first.SendAsync(ShapeLandMessageIds.DevJoinRequest, JoinAs("Bea"));
             await second.SendAsync(ShapeLandMessageIds.DevJoinRequest, JoinAs("bea"));
 
-            var joined = await first.TryNextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn, TimeSpan.FromSeconds(5));
-            var refused = await second.TryNextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected, TimeSpan.FromSeconds(5));
-            if (joined == null)
-            {
-                // The second's request reached the tick first: the other way round.
-                joined = await second.TryNextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn, TimeSpan.FromSeconds(5));
-                refused = await first.TryNextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected, TimeSpan.FromSeconds(5));
-            }
-
-            Assert.NotNull(joined);
-            Assert.Equal(JoinRejection.NameOnline, refused?.Reason);
+            // Exactly one is refused (a timed-out read aborts its socket, so each client is read only once), and
+            // the other holds the one character.
+            var refusals = await Task.WhenAll(
+                first.TryNextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected, TimeSpan.FromSeconds(5)),
+                second.TryNextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected, TimeSpan.FromSeconds(5)));
+            Assert.Single(refusals, r => r != null);
+            Assert.Equal(JoinRejection.NameOnline, refusals.Single(r => r != null)!.Value.Reason);
             var database = server.Services.GetRequiredService<DevCharacters>().Database;
-            Assert.False(database.FindOrAdd("BEA", id => new() { Id = id, AccountId = 1, Name = "x", Shape = 0, Color = 0, EyeColor = 0 }).Made);
+            var (id, made) = database.FindOrAdd("BEA", id => new() { Id = id, AccountId = 1, Name = "x", Shape = 0, Color = 0, EyeColor = 0 });
+            Assert.False(made);
+            Assert.True(database.Owner(id) is { Held: true }, "Neither join holds the character.");
         }
         finally
         {
