@@ -5,8 +5,9 @@ namespace ShapeLand.Client
 {
     /// <summary>
     /// A question over the dimmed screen, in the Esc menu's Leave game style: a title, a note and a column of buttons,
-    /// the first filled as the one to pick. Risky ones are red; one after safe ones is set apart below them. A confirm
-    /// leads with the action the player was heading for, unless it loses something for good. Choosing one closes it.
+    /// risky ones red, one after safe ones set apart below them. A confirm leads with the action the player was heading
+    /// for, unless it loses something for good. Choosing one closes it. No choice shows as selected: that fill means
+    /// keys or a gamepad, which these don't take yet.
     /// Built in code so the join card and the Account page share it. Pointer and touch only for now.
     /// </summary>
     public sealed class ConfirmPanel
@@ -61,7 +62,6 @@ namespace ShapeLand.Client
                 }) { text = text, focusable = false };
                 button.AddToClassList("menu-entry");
                 button.EnableInClassList("leave", risky);
-                button.EnableInClassList("selected", first);
                 first = false;
                 _column.Add(button);
             }

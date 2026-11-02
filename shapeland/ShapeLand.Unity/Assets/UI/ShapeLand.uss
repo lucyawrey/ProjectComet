@@ -619,11 +619,6 @@ Label { padding: 0; margin: 0; }
 .confirm-overlay.hidden { display: none; }
 .confirm-overlay .menu-confirm-note { max-width: 440px; white-space: normal; -unity-text-align: upper-center; }
 #join.confirming .card { display: none; }
-/* The first choice is the one to pick, filled blue even with a pointer. */
-.confirm-overlay .menu-entry.selected, .confirm-overlay .menu-entry.selected:hover {
-    background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6); color: rgb(255, 255, 255);
-}
-.confirm-overlay .menu-entry.leave.selected, .confirm-overlay .menu-entry.leave.selected:hover { background-color: rgb(190, 58, 54); }
 #join.confirming .menu-prompts { display: none; }
 
 /* The Account page: rows like Settings, each opening its own step in the same window. */
