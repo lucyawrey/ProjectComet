@@ -94,10 +94,41 @@ namespace ShapeLand.Client.Tests
             Assert.That(Screen.Root.Q<Button>("join-button").enabledSelf, Is.True, "Play isn't enabled for another try.");
         }
 
+        // Without accounts, as the editor's server restarting for new content: back in as the same name.
         [UnityTest]
-        public IEnumerator RejoinsAServerThatRestarted()
+        public IEnumerator RejoinsAServerThatRestarted() => Rejoins(accounts: false);
+
+        [UnityTest, Category("Accounts")]
+        public IEnumerator RejoinsAServerThatRestartedWithAccounts() => Rejoins(accounts: true);
+
+        [UnityTest, Category("Accounts")]
+        public IEnumerator AGuestJoinsThroughTheCard()
+        {
+            yield return StartGame(accounts: true);
+            Assert.That(Join.SignedIn, Is.True, "Joining made no guest account.");
+            Assert.That(Join.Spawn.Value.Name, Is.EqualTo("UnityTest"));
+        }
+
+        // With accounts off (the editor's default), Sign In and the Account entry stay where they are, off, saying why.
+        [UnityTest]
+        public IEnumerator WithoutAccountsSignInAndTheAccountPageAreOff()
         {
             yield return StartGame(join: false);
+            Assert.That(Screen.Root.Q<Button>("sign-in-button").enabledSelf, Is.False, "Sign in is on without accounts.");
+            Assert.That(Screen.Root.Q<Label>(className: "have-account-text").text, Is.EqualTo(Strings.Get("account.off_note")));
+            Assert.That(Screen.Root.Q("server-line").ClassListContains("hidden"), Is.True, "The Login server line shows without accounts.");
+
+            Field("name").value = "Pebble";
+            Click(Screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => View.Player != null || Screen.Error != null, 15);
+            Assert.That(View.Player, Is.Not.Null, "Never spawned.");
+            Assert.That(Hud.Root.Q("menu-account").enabledSelf, Is.False, "The Account entry is on without accounts.");
+            Assert.That(Hud.Root.Q("menu-account-note").ClassListContains("hidden"), Is.False, "The Account entry doesn't say why it's off.");
+        }
+
+        private IEnumerator Rejoins(bool accounts)
+        {
+            yield return StartGame(join: false, accounts: accounts);
             Field("name").value = "Pebble";
             Click(ShapeButton("shape.cube"));
             Click(Screen.Root.Q<Button>("join-button"));
@@ -120,10 +151,10 @@ namespace ShapeLand.Client.Tests
             Assert.That(Join.Content.Shapes[Join.Spawn.Value.Shape].Id, Is.EqualTo("shape.cube"));
         }
 
-        [UnityTest]
+        [UnityTest, Category("Accounts")]
         public IEnumerator ShowsRefusalsAndTriesAgain()
         {
-            yield return StartGame(join: false);
+            yield return StartGame(join: false, accounts: true);
             yield return Server.StartBots(1, 30);
             yield return Wait(3); // time for the bot to join; this client can't see it before joining
 
@@ -185,10 +216,10 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.name, Is.EqualTo("Pebble (you)"));
         }
 
-        [UnityTest]
+        [UnityTest, Category("Accounts")]
         public IEnumerator ReportsAnUnreachableServer()
         {
-            yield return StartGame(join: false);
+            yield return StartGame(join: false, accounts: true);
             Field("name").value = "Pebble";
             Field("server").value = "127.0.0.1:9";
             Click(Screen.Root.Q<Button>("join-button"));

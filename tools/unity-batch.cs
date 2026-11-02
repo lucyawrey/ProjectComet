@@ -9,11 +9,12 @@
 //
 //   tools/run unity-batch build Web ../../artifacts/unity/shapeland/web
 //   tools/run unity-batch test PlayMode
+//   tools/run unity-batch test PlayMode -- -testCategory "!Accounts"   (the tests that need no Docker)
 //
 // build builds a profile in Assets/Settings/Build Profiles/. An open editor must already be on the profile's
 // platform: switching would reimport the whole project. test runs a test platform (default PlayMode) and writes its
 // results (default Logs/results.xml in batch mode, Logs/results.json in an open editor). Everything after -- goes
-// to a batch-mode editor as it is.
+// to a batch-mode editor as it is, after a build's or test's own arguments (so an open editor can't take those).
 //
 // The project defaults to shapeland/ShapeLand.Unity, the log to Logs/batch.log and the time limit to 30 minutes. Relative
 // paths, in the log, the output, the results and Unity arguments, are relative to the project. Exit code: 0 done
@@ -44,6 +45,12 @@ while (options.More && options.Peek is not ("--" or "build" or "test"))
 if (!options.More) throw Tool.Fail("Say what to run: build, test or -- <Unity arguments>", 2);
 var job = options.Take();
 var rest = options.Rest;
+string[] extra = [];
+if (job != "--" && Array.IndexOf(rest, "--") is var split and >= 0)
+{
+    extra = rest[(split + 1)..];
+    rest = rest[..split];
+}
 Environment.CurrentDirectory = project;
 log = Path.GetFullPath(log);
 var deadline = DateTime.UtcNow.AddMinutes(minutes);
@@ -73,6 +80,8 @@ Directory.CreateDirectory(Path.GetDirectoryName(log)!);
 File.WriteAllText(log, "");
 
 var port = job == "--" ? null : EditorPort();
+if (port != null && extra.Length > 0)
+    throw Tool.Fail("Unity arguments after -- need a batch-mode editor; close the editor that has the project open.", 2);
 Environment.Exit(port != null ? InEditor() : InBatchMode());
 
 // The open editor's Pipeline port, if one has this project open and ready. unity status fails when none is open.
@@ -172,6 +181,7 @@ int InBatchMode()
         "test" => ["-runTests", "-testPlatform", mode, "-testResults", results == "" ? "Logs/results.xml" : results],
         _ => rest,
     };
+    unityArgs = [.. unityArgs, .. extra];
     var version = Regex.Match(File.ReadAllText("ProjectSettings/ProjectVersion.txt"), @"^m_EditorVersion: *(\S+)", RegexOptions.Multiline).Groups[1].Value;
     var unity = Tool.IsMac ? $"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity"
         : Tool.IsWindows ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Unity", "Hub", "Editor", version, "Editor", "Unity.exe")
