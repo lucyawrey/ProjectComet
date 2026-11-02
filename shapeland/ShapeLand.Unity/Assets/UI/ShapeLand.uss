@@ -563,9 +563,9 @@ Label { padding: 0; margin: 0; }
 .server-line.hidden { display: none; }
 .server-text { font-size: 13px; color: rgb(141, 151, 171); margin-right: 8px; }
 .server-line .link-button { font-size: 13px; }
-.server-line.open .server-text, .server-line.open .link-button { display: none; }
+.server-line.open .server-text, .server-line.open #server-change { display: none; }
 /* Cancel puts the address back and closes the field; beside it, level with the input. */
-.server-cancel { display: none; align-self: flex-end; height: 37px; margin: 0 0 0 10px; font-size: 14px; }
+.server-cancel { display: none; align-self: flex-end; margin: 0 0 9px 12px; }
 .server-line.open .server-cancel { display: flex; }
 #join.setting-password .server-line { display: none; }
 

@@ -106,7 +106,7 @@
                         </ui:VisualElement>
                         <ui:TextField name="server" class="input" />
                     </ui:VisualElement>
-                    <ui:Button name="server-cancel" text="#join.cancel" class="cancel-button server-cancel" />
+                    <ui:Button name="server-cancel" text="#join.cancel" class="link-button server-cancel" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
