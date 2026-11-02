@@ -33,15 +33,15 @@
                     <ui:Label text="#menu.pad_lb" class="menu-shoulder pad-part" picking-mode="Ignore" />
                     <ui:Button name="dev-keys" class="menu-dev" focusable="false">
                         <ui:Label text="#menu.keyboard_mouse" picking-mode="Ignore" />
-                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                        <ui:Label text="#menu.current_device" class="menu-in-use" picking-mode="Ignore" />
                     </ui:Button>
                     <ui:Button name="dev-pad" class="menu-dev" focusable="false">
                         <ui:Label text="#menu.gamepad" picking-mode="Ignore" />
-                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                        <ui:Label text="#menu.current_device" class="menu-in-use" picking-mode="Ignore" />
                     </ui:Button>
                     <ui:Button name="dev-touch" class="menu-dev" focusable="false">
                         <ui:Label text="#menu.touch" picking-mode="Ignore" />
-                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                        <ui:Label text="#menu.current_device" class="menu-in-use" picking-mode="Ignore" />
                     </ui:Button>
                     <ui:Label text="#menu.pad_rb" class="menu-shoulder pad-part" picking-mode="Ignore" />
                 </ui:VisualElement>
