@@ -86,7 +86,7 @@ namespace ShapeLand.Client.Tests
             yield return LaidOut("sign-in-button");
             Click(Screen.Root.Q<Button>("sign-in-button"));
             yield return null;
-            Field("sign-in-username").value = "unittest"; // in other capitals
+            Field("sign-in-username").value = "unitytest"; // in other capitals
             Field("sign-in-password").value = Password;
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null || Screen.Error != null, 15);
