@@ -63,6 +63,19 @@ public class LoginClientTests
     }
 
     [Fact]
+    public async Task SigningInAgainRevokesTheOldSession()
+    {
+        var tokens = new Tokens { Saved = "cs_old" };
+        var transport = new Transport(new LoginHttpResponse(200, """{"token":"cs_new"}"""), new LoginHttpResponse(204, ""));
+        var client = new LoginClient<Look>(transport, tokens);
+
+        Assert.True((await client.SignInAgainAsync("Alice", "correct horse")).Succeeded);
+
+        Assert.Equal("cs_new", tokens.Saved);
+        Assert.Equal(("POST", LoginPaths.SignOut, (string?)null, (string?)"cs_old"), transport.Sent[1]);
+    }
+
+    [Fact]
     public async Task ARefusedTokenIsForgotten()
     {
         var tokens = new Tokens { Saved = "cs_old" };

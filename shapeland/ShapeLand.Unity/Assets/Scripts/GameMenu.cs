@@ -26,7 +26,7 @@ namespace ShapeLand.Client
         private const float SpeedStep = 0.05f;
         private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
         private const float RowHeight = 42;
-        private const int ChangeLookEntry = 3;
+        private const int ChangeLookEntry = 4;
 
         /// <summary>The Account entry's place in the list, where the Account page's Back returns to.</summary>
         public const int AccountEntry = 3;

@@ -34,8 +34,16 @@ namespace ShapeLand.Client
 
         [SerializeField] private string address = "localhost:5090";
 
-        /// <summary>The PlayerPrefs key of the session token. Tests use their own, so they never touch a player's.</summary>
+        /// <summary>
+        /// The start of the session tokens' PlayerPrefs keys, one per Login server, so a token is only ever sent to the
+        /// server it came from. Tests use their own, so they never touch a player's.
+        /// </summary>
         public static string TokenKey = "login-token";
+
+        /// <summary>Forgets the token kept for a Login server (tests, so each starts as a new player and leaves nothing behind).</summary>
+        public static void ForgetToken(string loginAddress) => PlayerPrefs.DeleteKey(TokenKeyFor(LoginUrl(loginAddress)));
+
+        private static string TokenKeyFor(string loginUrl) => $"{TokenKey} {loginUrl}";
 
         private CometConnection _connection;
         private ShapeLandContent _content;
@@ -124,6 +132,12 @@ namespace ShapeLand.Client
         /// <summary>Raised when the content won't load, or joining fails before the player is in; <see cref="Error"/> has the details.</summary>
         public event Action<JoinFailure> Failed;
 
+        /// <summary>
+        /// Raised when the join's own retry with a fresh ticket couldn't get one, with the Login server's error code
+        /// (a signed-out session raises <see cref="SignedOut"/> instead).
+        /// </summary>
+        public event Action<string> RetryFailed;
+
         /// <summary>Raised for each chat line, the player's own included (the server echoes it, so everyone sees one order).</summary>
         public event Action<ChatMessage> ChatReceived;
 
@@ -183,7 +197,7 @@ namespace ShapeLand.Client
             UseLoginServer(DefaultLoginAddress);
         }
 
-        /// <summary>Uses another Login server (a desktop build's server field), keeping the token.</summary>
+        /// <summary>Uses another Login server (a desktop build's server field), with the token kept for it.</summary>
         public void UseLoginServer(string loginAddress)
         {
             var url = LoginUrl(loginAddress);
@@ -193,7 +207,7 @@ namespace ShapeLand.Client
             }
 
             _loginAddress = url;
-            _login = new LoginClient<CharacterView>(new UnityLoginTransport(url), new PlayerPrefsTokenStore(TokenKey));
+            _login = new LoginClient<CharacterView>(new UnityLoginTransport(url), new PlayerPrefsTokenStore(TokenKeyFor(url)));
         }
 
         /// <summary>The Login server's address in use.</summary>
@@ -345,6 +359,15 @@ namespace ShapeLand.Client
             return null;
         }
 
+        private async void RetryAsync()
+        {
+            var error = await PlayAsync();
+            if (error != null && error != LoginErrors.SignedOut)
+            {
+                RetryFailed?.Invoke(error);
+            }
+        }
+
         /// <summary>Sets the password (a guest's first claims the account; changing it needs a recent sign-in). Returns an error code, or null.</summary>
         public async Task<string> SetPasswordAsync(string password)
         {
@@ -364,7 +387,7 @@ namespace ShapeLand.Client
         /// <summary>Signs in again with the password, for a change that needs a recent sign-in. Returns an error code, or null.</summary>
         public async Task<string> ConfirmPasswordAsync(string password)
         {
-            var signedIn = await _login.SignInAsync(PlayerName, password);
+            var signedIn = await _login.SignInAgainAsync(PlayerName, password);
             await RefreshAccountAsync();
             return signedIn.Error;
         }
@@ -602,7 +625,7 @@ namespace ShapeLand.Client
                     {
                         // Slow to arrive, or the server restarted since: one more try with a fresh ticket.
                         _ticketRetried = true;
-                        _ = PlayAsync();
+                        RetryAsync();
                         break;
                     }
 

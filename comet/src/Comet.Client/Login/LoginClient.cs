@@ -94,6 +94,22 @@ namespace Comet.Client.Login
         public Task<LoginResult<bool>> SignInAsync(string username, string password) =>
             StartSessionAsync(LoginPaths.SignIn, new SignInRequest { Username = username, Password = password });
 
+        /// <summary>
+        /// Signs in again (for a change that needs a recent sign-in), replacing this device's session rather than
+        /// adding one: the old session is revoked, best effort, once the new one is kept.
+        /// </summary>
+        public async Task<LoginResult<bool>> SignInAgainAsync(string username, string password)
+        {
+            var old = Token;
+            var result = await SignInAsync(username, password);
+            if (result.Succeeded && old != null)
+            {
+                await _transport.SendAsync("POST", LoginPaths.SignOut, null, old);
+            }
+
+            return result;
+        }
+
         public Task<LoginResult<bool>> SignInWithCodeAsync(string code) =>
             StartSessionAsync(LoginPaths.SignInWithCode, new RecoveryCodeSignInRequest { Code = code });
 

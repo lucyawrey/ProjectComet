@@ -204,6 +204,7 @@ namespace ShapeLand.Client
             _join.JoinRefused += OnRefused;
             _join.LookRefused += OnLookRefused;
             _join.Failed += OnFailed;
+            _join.RetryFailed += OnRetryFailed;
             _join.ConnectionLost += OnConnectionLost;
             _join.SignedOut += OnSignedOut;
         }
@@ -609,11 +610,11 @@ namespace ShapeLand.Client
             AddSwatches(_colors, color => _color = color);
             AddSwatches(_eyes, color => _eyeColor = color);
             WebPage.TakeRejoin(); // a returning player resumes below anyway
+#if !UNITY_WEBGL || UNITY_EDITOR
+            _join.UseLoginServer(ServerAddress()); // the one remembered in the card, with the token kept for it
+#endif
             if (_join.SignedIn)
             {
-#if !UNITY_WEBGL || UNITY_EDITOR
-                _join.UseLoginServer(_server.value); // the one remembered from the card, as the session's
-#endif
                 if (GameSettings.AutoJoin)
                 {
                     JoinFromPop(); // a returning player goes straight into the game
@@ -1021,6 +1022,10 @@ namespace ShapeLand.Client
                 return;
             }
 
+#if !UNITY_WEBGL || UNITY_EDITOR
+            PlayerPrefs.SetString(ServerKey, ServerAddress()); // the next launch goes back to the server signed in to
+            PlayerPrefs.Save();
+#endif
             _signInCode.value = "";
         }
 
@@ -1470,6 +1475,30 @@ namespace ShapeLand.Client
             }
         }
 
+        // The join's retry with a fresh ticket couldn't get one: said where the join was asked from.
+        private void OnRetryFailed(string error)
+        {
+            if (_rejoinUntil != null)
+            {
+                _popBusy = false; // not back yet: the pop-up tries again
+                return;
+            }
+
+            var message = LoginMessage(_content.Strings, error);
+            if (Connecting)
+            {
+                FailPop(message);
+            }
+            else if (_join.SignedIn)
+            {
+                ShowSignedIn(message);
+            }
+            else
+            {
+                Retry(message);
+            }
+        }
+
         private void OnFailed(JoinFailure failure)
         {
             if (_content == null)
@@ -1541,6 +1570,7 @@ namespace ShapeLand.Client
             _join.JoinRefused -= OnRefused;
             _join.LookRefused -= OnLookRefused;
             _join.Failed -= OnFailed;
+            _join.RetryFailed -= OnRetryFailed;
             _join.ConnectionLost -= OnConnectionLost;
             _join.SignedOut -= OnSignedOut;
             if (_preview != null)

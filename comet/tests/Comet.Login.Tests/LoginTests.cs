@@ -93,6 +93,11 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var guest = await _host.GuestAsync("Alice");
         Assert.Null(await guest.ErrorOfAsync(guest.PostAsync(LoginPaths.SignOut)));
         Assert.Equal(LoginErrors.SignedOut, await guest.ErrorOfAsync(guest.GetAsync(LoginPaths.Me)));
+        await _host.GuestAsync("Alice"); // a guest can't come back, so its name is free at once
+
+        var alicia = await ClaimedAsync("Alicia", "a password");
+        Assert.Null(await alicia.ErrorOfAsync(alicia.PostAsync(LoginPaths.SignOut)));
+        Assert.Null(await _host.NewClient().SignInAsync("Alicia", "a password")); // a claimed account stays
     }
 
     [Fact]

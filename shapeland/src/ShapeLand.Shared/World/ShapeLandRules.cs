@@ -20,6 +20,12 @@ namespace ShapeLand.Shared.World
         /// <summary>Seconds a connection has to join before the server drops it; clients reconnect for a later try.</summary>
         public const int JoinDeadlineSeconds = 10;
 
+        /// <summary>
+        /// Seconds the database has to hand over a joining character before the join fails as busy: well inside the
+        /// join deadline and the client's own wait, so the player hears "busy" rather than nothing.
+        /// </summary>
+        public const int ClaimDeadlineSeconds = 5;
+
         private static readonly Regex NamePattern = new Regex("^[A-Za-z0-9_-]+$");
 
         /// <summary>

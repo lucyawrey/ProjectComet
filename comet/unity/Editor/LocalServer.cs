@@ -17,7 +17,7 @@ namespace Comet.Unity.Editor
     /// <summary>
     /// Runs the game server (the Comet settings' server project) on this computer, so play mode and local playtests
     /// need no terminal. With a Login project in the settings, it also starts the development database (the settings'
-    /// database script, with a database for this project and port) and the Login server beside the game server. With Start with Play Mode on (each person's own choice, on by default), entering play mode
+    /// database script, with a database for this checkout and port) and the Login server beside the game server. With Start with Play Mode on (each person's own choice, on by default), entering play mode
     /// starts it unless a game server already answers <c>/health</c> on the port: one started elsewhere (a script) is
     /// used as it is and never restarted or stopped from here. The editor's own server keeps running between plays,
     /// restarts when the content changes, and stops when the editor quits. Each person's <see cref="Options"/> can also
@@ -295,13 +295,19 @@ namespace Comet.Unity.Editor
                 return true;
             }
 
-            if (!PortInUse(settings.serverPort))
+            if (PortInUse(settings.serverPort))
             {
-                return true;
+                Debug.LogError($"Another program is using port {settings.serverPort}, so the local game server can't start there. Close it, or change the Comet settings' server port.");
+                return false;
             }
 
-            Debug.LogError($"Another program is using port {settings.serverPort}, so the local game server can't start there. Close it, or change the Comet settings' server port.");
-            return false;
+            if (!string.IsNullOrEmpty(settings.loginProject) && PortInUse(settings.loginPort))
+            {
+                Debug.LogError($"Another program is using port {settings.loginPort}, so the local Login server can't start there. Close it (perhaps a Login server from another checkout), or change the Comet settings' Login port.");
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -350,7 +356,7 @@ namespace Comet.Unity.Editor
                 buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
                 buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null),
                 buildLogin ? Build(dotnet, root, loginProject) : new Built(login, null),
-                accounts ? Database(script, root, port) : new Built("", null)));
+                accounts ? Database(script, root, CheckoutRoot(root), port) : new Built("", null)));
             _building = building;
             SessionState.SetInt(BuildingKey, progress);
             var stops = _stops;
@@ -598,8 +604,8 @@ namespace Comet.Unity.Editor
         }
 
         // Starts the development database (the settings' script, run off the main thread) with a database for this
-        // project and port, returning its connection string as the "program", or the script's output as the error.
-        private static Built Database(string script, string root, int port)
+        // checkout and port, returning its connection string as the "program", or the script's output as the error.
+        private static Built Database(string script, string root, string checkout, int port)
         {
             string Run(string arguments, out int exitCode)
             {
@@ -621,7 +627,7 @@ namespace Comet.Unity.Editor
 
             try
             {
-                var name = Run($"name \"{root}\" {port}", out var named);
+                var name = Run($"name \"{checkout}\" {port}", out var named);
                 if (named != 0)
                 {
                     return new Built(null, name);
@@ -769,6 +775,23 @@ namespace Comet.Unity.Editor
             {
                 return null;
             }
+        }
+
+        // The checkout (the folder holding .git, a folder in the main checkout and a file in a worktree) that holds
+        // the Unity project, which names its database as tools/shapeland-dev.sh does; the Unity project's own folder is
+        // named the same in every checkout.
+        private static string CheckoutRoot(string projectRoot)
+        {
+            for (var folder = projectRoot; folder != null; folder = Path.GetDirectoryName(folder))
+            {
+                var git = Path.Combine(folder, ".git");
+                if (Directory.Exists(git) || File.Exists(git))
+                {
+                    return folder;
+                }
+            }
+
+            return projectRoot;
         }
 
         private static bool PortInUse(int port)

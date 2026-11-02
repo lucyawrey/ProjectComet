@@ -24,8 +24,12 @@ namespace ShapeLand.Client.Tests
                 Object.Destroy(_client);
             }
 
-            _server?.Dispose();
-            _server = null;
+            if (_server != null)
+            {
+                JoinClient.ForgetToken(_server.Address);
+                _server.Dispose();
+                _server = null;
+            }
         }
 
         [UnityTest]
@@ -69,7 +73,7 @@ namespace ShapeLand.Client.Tests
         private JoinClient StartClient()
         {
             JoinClient.TokenKey = "tests-login-token";
-            PlayerPrefs.DeleteKey(JoinClient.TokenKey);
+            JoinClient.ForgetToken(_server.Address);
             _client = new GameObject("Join client");
             _client.SetActive(false);
             _client.AddComponent<CometConnection>();

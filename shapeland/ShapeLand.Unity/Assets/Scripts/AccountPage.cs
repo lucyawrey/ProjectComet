@@ -667,6 +667,15 @@ namespace ShapeLand.Client
             {
                 MakeCode();
             }
+            else if (_afterConfirm == Step.Password)
+            {
+                // Back to the change with the new password still typed in, and on with it.
+                var (typed, again) = (_passwordField.value, _passwordAgain.value);
+                ShowStep(Step.Password);
+                _passwordField.value = typed;
+                _passwordAgain.value = again;
+                SetPassword();
+            }
             else
             {
                 ShowStep(_afterConfirm);

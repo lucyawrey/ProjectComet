@@ -59,7 +59,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         this.registry = registry;
         this.logger = logger;
         _repository = repository;
-        _joins = new(tickets, repository, TimeSpan.FromSeconds(ShapeLandRules.JoinDeadlineSeconds), logger);
+        _joins = new(tickets, repository, TimeSpan.FromSeconds(ShapeLandRules.ClaimDeadlineSeconds), logger);
         foreach (var zone in content.Zones.All)
         {
             var state = new ZoneState(content, zone);

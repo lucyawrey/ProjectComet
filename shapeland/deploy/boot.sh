@@ -30,7 +30,7 @@ curl -fsSL -o /tmp/caddy.tar.gz "https://github.com/caddyserver/caddy/releases/d
 echo "$CADDY_SHA512  /tmp/caddy.tar.gz" | sha512sum -c -
 tar -xzf /tmp/caddy.tar.gz -C /usr/local/bin caddy
 
-dnf install -y postgresql16-server
+dnf install -y postgresql18-server
 
 # The kept data volume, which outlives the instance: PostgreSQL's data, its password, the ticket signing key and the
 # bots' tokens. The script attaches it once the instance runs; it's formatted only the first time.

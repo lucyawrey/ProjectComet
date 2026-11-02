@@ -53,8 +53,12 @@ namespace ShapeLand.Client.Tests
 
             InputSystem.settings.editorInputBehaviorInPlayMode = _editorInput;
             InputSystem.settings.backgroundBehavior = _background;
-            Server?.Dispose();
-            Server = null;
+            if (Server != null)
+            {
+                JoinClient.ForgetToken(Server.Address);
+                Server.Dispose();
+                Server = null;
+            }
         }
 
         // Loads the Game scene against a fresh server and, unless the test drives the card itself, joins as "Unity
@@ -68,7 +72,7 @@ namespace ShapeLand.Client.Tests
 
             // A session of the tests' own, empty at the start: every test begins as a new player.
             JoinClient.TokenKey = "tests-login-token";
-            PlayerPrefs.DeleteKey(JoinClient.TokenKey);
+            JoinClient.ForgetToken(Server.Address);
 
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/Scenes/Game.unity", new LoadSceneParameters(LoadSceneMode.Single));
             Join = Object.FindAnyObjectByType<JoinClient>();

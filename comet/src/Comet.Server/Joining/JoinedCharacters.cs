@@ -20,7 +20,7 @@ public enum JoinFailure
     /// <summary>The character is missing or deleted.</summary>
     NoCharacter,
 
-    /// <summary>The database didn't answer within the join deadline.</summary>
+    /// <summary>The database didn't hand over the character within the claim deadline.</summary>
     Busy,
 
     /// <summary>A newer join for the same character came in while this one was still claiming.</summary>
@@ -61,7 +61,7 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
 {
     private readonly TicketChecker _tickets;
     private readonly ICharacterRepository<TCharacter> _repository;
-    private readonly TimeSpan _deadline;
+    private readonly TimeSpan _claimDeadline; // for the database to hand over a character, or the join fails as Busy
     private readonly ILogger _logger;
 
     // Finished background work, for the tick thread.
@@ -75,11 +75,11 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     private readonly Dictionary<long, TConnection> _holders = [];
 
     public JoinedCharacters(
-        TicketChecker tickets, ICharacterRepository<TCharacter> repository, TimeSpan joinDeadline, ILogger logger)
+        TicketChecker tickets, ICharacterRepository<TCharacter> repository, TimeSpan claimDeadline, ILogger logger)
     {
         _tickets = tickets;
         _repository = repository;
-        _deadline = joinDeadline;
+        _claimDeadline = claimDeadline;
         _logger = logger;
         repository.SaveRefused += refused => _done.Enqueue(host => Refuse(host, refused));
     }
@@ -204,7 +204,7 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         _holders[ticket.CharacterId] = connection;
         _ = Task.Run(async () =>
         {
-            using var deadline = new CancellationTokenSource(_deadline);
+            using var deadline = new CancellationTokenSource(_claimDeadline);
             var claim = await _repository.ClaimAsync(ticket.CharacterId, deadline.Token);
             _done.Enqueue(h => Claimed(h, connection, pending, ticket, claim));
         });
