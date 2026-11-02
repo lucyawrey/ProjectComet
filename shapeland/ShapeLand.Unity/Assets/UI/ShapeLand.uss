@@ -48,7 +48,11 @@
 /* The selection shows only while keys or a gamepad move it (.navigating, set by JoinScreen and GameMenu). */
 .backdrop.navigating .nav-row.selected { background-color: rgba(106, 161, 255, 0.2); }
 .join-button, .cancel-button { border-width: 2px; border-color: rgba(0, 0, 0, 0); }
-.backdrop.navigating .join-button.selected, .backdrop.navigating .cancel-button.selected { border-color: rgb(255, 255, 255); }
+.backdrop.navigating .join-button.selected, .backdrop.navigating .cancel-button.selected,
+.backdrop.navigating .sign-out-button.selected { border-color: rgb(255, 255, 255); }
+/* Links and the Sign In and Set Password pages' fields, selected with keys or a gamepad. */
+.backdrop.navigating .link-button.selected { color: rgb(255, 255, 255); background-color: rgba(106, 161, 255, 0.2); border-radius: 4px; padding: 4px 6px; margin-left: -6px; }
+.backdrop.navigating .card-page .field.selected .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
 
 Label { padding: 0; margin: 0; }
 .title { font-size: 28px; margin-bottom: 8px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
@@ -618,6 +622,9 @@ Label { padding: 0; margin: 0; }
 .join-pop.failed .pop-retry { display: flex; }
 
 /* A confirm over the dimmed game or card, in the Esc menu's Leave game style (ConfirmPanel). */
+/* The selection with keys or a gamepad, as in the Esc menu. */
+.navigating .confirm-overlay .menu-entry.selected { background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6); color: rgb(255, 255, 255); }
+.navigating .confirm-overlay .menu-entry.leave.selected { background-color: rgb(190, 58, 54); }
 /* No dim of its own: the screen it's over already has the one dim. */
 .confirm-overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .confirm-overlay.hidden { display: none; }

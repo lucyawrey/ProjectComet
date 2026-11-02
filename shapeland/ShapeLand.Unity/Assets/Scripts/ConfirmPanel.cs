@@ -6,8 +6,8 @@ namespace ShapeLand.Client
     /// <summary>
     /// A question over the dimmed screen, in the Esc menu's Leave game style: a title, a note and a column of buttons,
     /// risky ones red, one after safe ones set apart below them. A confirm leads with the action the player was heading
-    /// for, unless it loses something for good. Choosing one closes it. No choice shows as selected: that fill means
-    /// keys or a gamepad, which these don't take yet.
+    /// for, unless it loses something for good. Choosing one closes it. Keys and a gamepad move a selection through
+    /// the choices (<see cref="Move"/>, <see cref="Choose"/>), shown only while the host has <c>navigating</c>.
     /// Built in code so the join card and the Account page share it. Pointer and touch only for now.
     /// </summary>
     public sealed class ConfirmPanel
@@ -16,6 +16,8 @@ namespace ShapeLand.Client
         private readonly VisualElement _column;
         private readonly VisualElement _host;
         private Action _cancel;
+        private readonly System.Collections.Generic.List<(Button Button, Action Chosen)> _choices = new System.Collections.Generic.List<(Button, Action)>();
+        private int _selected;
 
         /// <summary>Adds the (hidden) panel to <paramref name="host"/>, which gets <c>confirming</c> while it's up.</summary>
         public ConfirmPanel(VisualElement host)
@@ -41,6 +43,7 @@ namespace ShapeLand.Client
         {
             _cancel = cancel;
             _column.Clear();
+            _choices.Clear();
             _column.Add(Label(title, "menu-confirm-title"));
             _column.Add(Label(note, "menu-confirm-note"));
             var first = true;
@@ -62,12 +65,41 @@ namespace ShapeLand.Client
                 }) { text = text, focusable = false };
                 button.AddToClassList("menu-entry");
                 button.EnableInClassList("leave", risky);
+                _choices.Add((button, chosen));
                 first = false;
                 _column.Add(button);
             }
 
+            _selected = 0;
+            Mark();
             _overlay.RemoveFromClassList("hidden");
             _host.AddToClassList("confirming");
+        }
+
+        /// <summary>Moves the selection up or down the choices.</summary>
+        public void Move(int by)
+        {
+            _selected = Math.Clamp(_selected + by, 0, _choices.Count - 1);
+            Mark();
+        }
+
+        /// <summary>Chooses the selected choice.</summary>
+        public void Choose()
+        {
+            if (_choices.Count > 0)
+            {
+                var chosen = _choices[_selected].Chosen;
+                Close();
+                chosen?.Invoke();
+            }
+        }
+
+        private void Mark()
+        {
+            for (var i = 0; i < _choices.Count; i++)
+            {
+                _choices[i].Button.EnableInClassList("selected", i == _selected);
+            }
         }
 
         /// <summary>Closes the panel as if the player chose to stay.</summary>

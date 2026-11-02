@@ -40,11 +40,11 @@
                         <ui:Label text="#account.username_label" class="label" />
                         <ui:Label name="set-password-username" class="input-value" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement name="set-password-row" class="field">
                         <ui:Label text="#account.new_password_label" class="label" />
                         <ui:TextField name="set-password-field" password="true" max-length="128" class="input" />
                     </ui:VisualElement>
-                    <ui:VisualElement class="field">
+                    <ui:VisualElement name="set-password-again-row" class="field">
                         <ui:Label text="#account.confirm_password_label" class="label" />
                         <ui:TextField name="set-password-again" password="true" max-length="128" class="input" />
                     </ui:VisualElement>

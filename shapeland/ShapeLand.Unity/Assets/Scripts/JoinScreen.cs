@@ -52,6 +52,12 @@ namespace ShapeLand.Client
         private Action _back;
         private VisualElement _serverField;
         private VisualElement _serverLine;
+        private Button _serverChange;
+        private Button _serverCancel;
+        private Button _pageBack;
+        private Button _signOutButton;
+        private VisualElement _nameRow;
+        private VisualElement[] _pageRows;
         private Label _serverText;
         // The address when Change was pressed, for Cancel to put back.
         private string _serverBefore;
@@ -222,15 +228,14 @@ namespace ShapeLand.Client
             _serverField = tree.Q("server-field");
             _serverLine = tree.Q("server-line");
             _serverText = tree.Q<Label>("server-text");
-            tree.Q<Button>("server-change").clicked += OpenServerField;
-            tree.Q<Button>("server-cancel").clicked += () =>
-            {
-                _server.value = _serverBefore;
-                CloseServerField();
-            };
+            _serverChange = tree.Q<Button>("server-change");
+            _serverChange.clicked += OpenServerField;
+            _serverCancel = tree.Q<Button>("server-cancel");
+            _serverCancel.clicked += CancelServerField;
             _server.RegisterValueChangedCallback(_ => ShowServer());
             _pageName = tree.Q<Label>("page-name");
-            tree.Q<Button>("page-back").clicked += PageBack;
+            _pageBack = tree.Q<Button>("page-back");
+            _pageBack.clicked += PageBack;
             _signIn = tree.Q("sign-in");
             _signInUsername = tree.Q<TextField>("sign-in-username");
             _signInPassword = tree.Q<TextField>("sign-in-password");
@@ -242,7 +247,8 @@ namespace ShapeLand.Client
             _useCode.clicked += () => SetWithCode(!_withCode);
             _signInButton = tree.Q<Button>("sign-in-button");
             _signInButton.clicked += () => SetSigningIn(true);
-            tree.Q<Button>("sign-out-button").clicked += AskToSignOut;
+            _signOutButton = tree.Q<Button>("sign-out-button");
+            _signOutButton.clicked += AskToSignOut;
             _setPassword = tree.Q<TextField>("set-password-field");
             _setPasswordAgain = tree.Q<TextField>("set-password-again");
             _setPasswordUsername = tree.Q<Label>("set-password-username");
@@ -257,16 +263,22 @@ namespace ShapeLand.Client
             tree.Q<Button>("pop-cancel").clicked += CancelPop;
             tree.Q<Button>("pop-retry").clicked += () => JoinFromPop();
             _buttonsRow = _joinButton.parent;
-            // The server field shares the bottom line with the buttons, and is one of its items.
+            // Rows for keys and a gamepad, top to bottom: the Sign In and Set Password pages' rows, the new player's
+            // rows (name, shape, color, eyes), the buttons, and the server line; only those in sight are reached.
             _scroll = tree.Q<ScrollView>("card-scroll");
-            _rows = _root.Query(className: "nav-row").Where(row => row != _serverField).ToList().Append(_buttonsRow).ToArray();
-            for (var i = 0; i < _rows.Length - 1; i++)
+            _nameRow = tree.Q("name-row");
+            _pageRows = new VisualElement[] { _signInUsernameField, _signInPasswordField, _signInCodeField, _useCode, tree.Q("set-password-row"), tree.Q("set-password-again-row") };
+            _rows = _pageRows.Concat(_scroll.Query(className: "nav-row").ToList()).Append(_buttonsRow).Append(_serverLine).ToArray();
+            for (var i = 0; i < _rows.Length; i++)
             {
                 var row = i;
-                _rows[i].RegisterCallback<PointerDownEvent>(_ => SelectRow(row), TrickleDown.TrickleDown);
+                if (_rows[i] != _buttonsRow && _rows[i] != _serverLine)
+                {
+                    _rows[i].RegisterCallback<PointerDownEvent>(_ => SelectRow(row), TrickleDown.TrickleDown);
+                }
             }
 
-            foreach (var item in new[] { _serverField, _cancelButton, _joinButton })
+            foreach (var item in AllItems())
             {
                 item.RegisterCallback<PointerDownEvent>(_ => SelectItem(item), TrickleDown.TrickleDown);
             }
@@ -301,9 +313,7 @@ namespace ShapeLand.Client
         {
             _withCode = withCode;
             _signIn.EnableInClassList("with-code", withCode);
-            _signInUsernameField.EnableInClassList("hidden", withCode); // a code signs in on its own
-            _signInPasswordField.EnableInClassList("hidden", withCode);
-            _signInCodeField.EnableInClassList("hidden", !withCode);
+            MarkFieldRows();
             _useCode.text = Text(withCode ? "account.use_password" : "account.use_code");
             _pageName.text = Text(withCode ? "account.sign_in_code_page" : "account.sign_in");
         }
@@ -368,13 +378,32 @@ namespace ShapeLand.Client
             MarkFieldRows();
         }
 
-        // Keys and gamepad skip the new player's rows while they're out of sight; Change Shape has no name row.
+        // Keys and gamepad reach only the rows in sight, so each row is hidden or shown here with its page: the new
+        // player's rows (Change Shape has no name row), the Sign In page's (a code signs in on its own, with no username
+        // or password), the Set Password page's, and the server line (desktop builds, not while changing the look or
+        // setting a password). Then the selection moves to the top row in sight.
         private void MarkFieldRows()
         {
-            var away = SigningIn || SignedInCard || SettingPassword;
-            for (var i = 0; i < _rows.Length - 1; i++)
+            var page = SigningIn || SettingPassword;
+            foreach (var row in _scroll.Query(className: "nav-row").ToList())
             {
-                _rows[i].EnableInClassList("hidden", away || (i == 0 && Changing));
+                row.EnableInClassList("hidden", page || SignedInCard || (row == _nameRow && Changing));
+            }
+
+            _signInUsernameField.EnableInClassList("hidden", !SigningIn || _withCode);
+            _signInPasswordField.EnableInClassList("hidden", !SigningIn || _withCode);
+            _signInCodeField.EnableInClassList("hidden", !SigningIn || !_withCode);
+            _useCode.EnableInClassList("hidden", !SigningIn);
+            _pageRows[4].EnableInClassList("hidden", !SettingPassword);
+            _pageRows[5].EnableInClassList("hidden", !SettingPassword);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            _serverLine.AddToClassList("hidden");
+#else
+            _serverLine.EnableInClassList("hidden", Changing || SettingPassword);
+#endif
+            if (_rows != null && !Usable(_rows[_row]))
+            {
+                SelectRow(FirstRow());
             }
         }
 
@@ -389,11 +418,6 @@ namespace ShapeLand.Client
             }
             _root.EnableInClassList("changing", changing);
             _root.pickingMode = changing ? PickingMode.Ignore : PickingMode.Position;
-#if UNITY_WEBGL && !UNITY_EDITOR
-            _serverLine.AddToClassList("hidden");
-#else
-            _serverLine.EnableInClassList("hidden", changing);
-#endif
             if (changing)
             {
                 CloseServerField();
@@ -512,6 +536,12 @@ namespace ShapeLand.Client
             _serverLine.AddToClassList("open");
             _serverField.RemoveFromClassList("hidden");
             _server.Focus();
+        }
+
+        private void CancelServerField()
+        {
+            _server.value = _serverBefore;
+            CloseServerField();
         }
 
         private void CloseServerField()
@@ -818,7 +848,8 @@ namespace ShapeLand.Client
             return stat;
         }
 
-        // Enter in a field joins (applies); elsewhere on the card Enter is the Submit action's (Navigate).
+        // Enter in a field joins (applies); elsewhere on the card Enter is the Submit action's (Navigate). Tab and
+        // Shift+Tab move to the next or last row, from a field too.
         private void OnKeyDown(KeyDownEvent e)
         {
             if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && Typing)
@@ -826,6 +857,31 @@ namespace ShapeLand.Client
                 Submit();
                 e.StopPropagation();
             }
+            else if (e.keyCode == KeyCode.Tab && !_confirm.Open)
+            {
+                Navigating = true;
+                _root.focusController?.focusedElement?.Blur();
+                MoveRow(e.shiftKey ? -1 : 1);
+                FocusRowField();
+                e.StopPropagation();
+            }
+        }
+
+        // With a keyboard, landing on a text field's row goes straight into typing; Up, Down and Tab still leave it.
+        private void FocusRowField()
+        {
+            if (!_onBack && _rows[_row].Q<TextField>() is { } field && Usable(_rows[_row]))
+            {
+                field.Focus();
+            }
+        }
+
+        // While a field has the keyboard, only Up and Down move between rows (Left and Right move the caret, letters type).
+        private static Vector2 TypingArrows()
+        {
+            var keyboard = Keyboard.current;
+            return keyboard == null ? Vector2.zero
+                : new Vector2(0, keyboard.upArrowKey.isPressed ? 1 : keyboard.downArrowKey.isPressed ? -1 : 0);
         }
 
         /// <summary>
@@ -1051,6 +1107,20 @@ namespace ShapeLand.Client
             {
                 _root.EnableInClassList("waiting", waiting);
             }
+            // The pop-up with keys or a gamepad: Back cancels, Submit retries after a failure.
+            if (Connecting && WebPage.Playing && _content != null)
+            {
+                var menu = _view.Controls.Menu;
+                if (menu.Back.WasPressedThisFrame())
+                {
+                    CancelPop();
+                }
+                else if (menu.Submit.WasPressedThisFrame() && _pop.ClassListContains("failed"))
+                {
+                    JoinFromPop();
+                }
+            }
+
             if (Connecting && !_pop.ClassListContains("failed") && Time.unscaledTime >= _popDotAt)
             {
                 _popDotAt = Time.unscaledTime + 0.4f;
@@ -1083,12 +1153,18 @@ namespace ShapeLand.Client
         // it, only the gamepad moves on (and the keys type).
         private void Navigate(ShapeLandControls.MenuActions actions)
         {
+            if (_confirm.Open)
+            {
+                NavigateConfirm(actions);
+                return;
+            }
+
             var typing = Typing;
             var fromPad = actions.Navigate.activeControl?.device is Gamepad;
-            var step = Step(typing && !fromPad ? Vector2.zero : actions.Navigate.ReadValue<Vector2>());
-            if (!Navigating && step != Vector2Int.zero)
+            var step = Step(typing && !fromPad ? TypingArrows() : actions.Navigate.ReadValue<Vector2>());
+            if (!Navigating && step != Vector2Int.zero && !typing)
             {
-                Navigating = true; // the first press only shows where the selection is
+                Navigating = true; // the first press only shows where the selection is (leaving a field moves at once)
                 return;
             }
 
@@ -1105,6 +1181,10 @@ namespace ShapeLand.Client
             if (step.y != 0)
             {
                 MoveRow(step.y);
+                if (!fromPad)
+                {
+                    FocusRowField();
+                }
             }
             else if (step.x != 0)
             {
@@ -1116,6 +1196,10 @@ namespace ShapeLand.Client
                 if (typing)
                 {
                     _root.focusController?.focusedElement?.Blur();
+                }
+                else if (SigningIn || SettingPassword)
+                {
+                    PageBack();
                 }
                 else if (FromMenu)
                 {
@@ -1130,6 +1214,27 @@ namespace ShapeLand.Client
             else if (actions.Submit.WasPressedThisFrame() && (!typing || actions.Submit.activeControl?.device is Gamepad))
             {
                 SubmitRow(typing);
+            }
+        }
+
+        // The sign-out question: up and down choose, Submit picks, Back stays.
+        private void NavigateConfirm(ShapeLandControls.MenuActions actions)
+        {
+            var step = Step(actions.Navigate.ReadValue<Vector2>());
+            if (step.y != 0)
+            {
+                Navigating = true;
+                _confirm.Move(step.y);
+            }
+
+            if (actions.Back.WasPressedThisFrame())
+            {
+                _confirm.Cancel();
+            }
+            else if (actions.Submit.WasPressedThisFrame())
+            {
+                Navigating = true;
+                _confirm.Choose();
             }
         }
 
@@ -1171,7 +1276,7 @@ namespace ShapeLand.Client
                 return;
             }
 
-            if (by < 0 && _row == FirstRow() && FromMenu)
+            if (by < 0 && _row == FirstRow() && CurrentBack != null)
             {
                 SelectBack();
                 return;
@@ -1198,49 +1303,75 @@ namespace ShapeLand.Client
         // The top row in sight: the name, or the shape when changing the look.
         private int FirstRow() => Math.Max(0, Array.FindIndex(_rows, Usable));
 
+        // Back above the top row: the card's own pages', or the look card's when it came from the Esc menu.
+        private Button CurrentBack => SigningIn || SettingPassword ? _pageBack : FromMenu ? _backButton : null;
+
         private void SelectBack()
         {
             SelectRow(FirstRow());
             _onBack = true;
             _rows[_row].RemoveFromClassList("selected");
-            _backButton.AddToClassList("selected");
+            MarkItem();
+            CurrentBack?.AddToClassList("selected");
         }
 
         private void SelectRow(int row)
         {
             _onBack = false;
             _backButton.RemoveFromClassList("selected");
+            _pageBack.RemoveFromClassList("selected");
             _row = row;
             for (var i = 0; i < _rows.Length; i++)
             {
-                _rows[i].EnableInClassList("selected", i == row && _rows[i] != _buttonsRow);
+                _rows[i].EnableInClassList("selected", i == row && Items(_rows[i]).Count == 0);
             }
 
-            _buttonIndex = Items().Count - 1; // Join or Apply
+            // The buttons start on the main one (Play, Apply, Sign In); the server line on its first item.
+            _buttonIndex = _rows[row] == _buttonsRow ? Items(_buttonsRow).IndexOf(_joinButton) : 0;
             MarkItem();
         }
 
-        // The bottom line's visible items, left to right: the server field (desktop builds), Cancel and Join or Apply.
-        private List<VisualElement> Items() => new[] { _serverField, _cancelButton, _joinButton }.Where(Usable).ToList();
+        // A row's items, left to right, for left and right to move between: the buttons in sight (Sign In or Sign Out,
+        // Cancel, then the main one), and the server line's Change, or its field and Cancel once open. None for other rows.
+        private List<VisualElement> Items(VisualElement row)
+        {
+            if (row == _buttonsRow)
+            {
+                var signIn = !Changing && !SigningIn && !SignedInCard && !SettingPassword;
+                return new VisualElement[] { signIn ? _signInButton : null, SignedInCard ? _signOutButton : null, _cancelButton, _joinButton }
+                    .Where(item => item != null && Usable(item)).ToList();
+            }
+
+            if (row == _serverLine)
+            {
+                return _serverLine.ClassListContains("open") ? new List<VisualElement> { _serverField, _serverCancel } : new List<VisualElement> { _serverChange };
+            }
+
+            return new List<VisualElement>();
+        }
+
+        private VisualElement[] AllItems() => new VisualElement[] { _signInButton, _signOutButton, _cancelButton, _joinButton, _serverChange, _serverField, _serverCancel };
 
         private void SelectItem(VisualElement item)
         {
-            _row = _rows.Length - 1;
-            foreach (var row in _rows)
+            var row = item == _serverChange || item == _serverField || item == _serverCancel ? _serverLine : _buttonsRow;
+            _onBack = false;
+            _row = Array.IndexOf(_rows, row);
+            foreach (var other in _rows)
             {
-                row.RemoveFromClassList("selected");
+                other.RemoveFromClassList("selected");
             }
 
-            _buttonIndex = Mathf.Max(0, Items().IndexOf(item));
+            _buttonIndex = Mathf.Max(0, Items(row).IndexOf(item));
             MarkItem();
         }
 
         private void MarkItem()
         {
-            var items = Items();
-            foreach (var item in new[] { _serverField, _cancelButton, _joinButton })
+            var items = _onBack ? new List<VisualElement>() : Items(_rows[_row]);
+            foreach (var item in AllItems())
             {
-                item.EnableInClassList("selected", _rows[_row] == _buttonsRow && items.IndexOf(item) == _buttonIndex);
+                item.EnableInClassList("selected", items.IndexOf(item) == _buttonIndex && items.Contains(item));
             }
         }
 
@@ -1253,9 +1384,10 @@ namespace ShapeLand.Client
                 return;
             }
 
-            if (row == _buttonsRow)
+            var items = Items(row);
+            if (items.Count > 0)
             {
-                _buttonIndex = Mathf.Clamp(_buttonIndex + by, 0, Items().Count - 1);
+                _buttonIndex = Mathf.Clamp(_buttonIndex + by, 0, items.Count - 1);
                 MarkItem();
                 return;
             }
@@ -1283,23 +1415,50 @@ namespace ShapeLand.Client
             }
             else if (_onBack)
             {
-                Back();
+                if (SigningIn || SettingPassword)
+                {
+                    PageBack();
+                }
+                else
+                {
+                    Back();
+                }
             }
-            else if (row == _buttonsRow)
+            else if (Items(row) is { Count: > 0 } items)
             {
-                var item = Items()[_buttonIndex];
+                var item = items[Mathf.Clamp(_buttonIndex, 0, items.Count - 1)];
                 if (item == _serverField)
                 {
                     _server.Focus();
+                }
+                else if (item == _joinButton)
+                {
+                    Submit();
                 }
                 else if (item == _cancelButton)
                 {
                     Cancel();
                 }
-                else
+                else if (item == _signInButton)
                 {
-                    Submit();
+                    SetSigningIn(true);
                 }
+                else if (item == _signOutButton)
+                {
+                    AskToSignOut();
+                }
+                else if (item == _serverChange)
+                {
+                    OpenServerField();
+                }
+                else if (item == _serverCancel)
+                {
+                    CancelServerField();
+                }
+            }
+            else if (row == _useCode)
+            {
+                SetWithCode(!_withCode);
             }
             else if (row.Q<TextField>() is { } field)
             {
