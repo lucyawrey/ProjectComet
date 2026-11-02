@@ -621,7 +621,9 @@ Label { padding: 0; margin: 0; }
 .account-form .field { max-width: 340px; }
 .account-text { font-size: 15px; white-space: normal; margin-bottom: 12px; max-width: 460px; }
 .account-row-value { flex-direction: row; align-items: center; font-size: 14px; color: rgb(169, 178, 196); }
-.account-row-value .guest-tag { margin-left: 10px; align-self: center; }
+.account-who { flex-direction: row; align-items: center; padding: 2px 12px 10px 12px; border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07); }
+.account-name { font-size: 22px; margin-right: 10px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.account-who .guest-tag { align-self: center; }
 .row-action { margin-left: 12px; }
 .row-chevron {
     width: 7px; height: 7px; margin-left: 10px; rotate: 45deg;
@@ -631,7 +633,7 @@ Label { padding: 0; margin: 0; }
 .menu-row.disabled .menu-row-name { color: rgb(141, 151, 171); }
 .menu-row.sign-out .menu-row-name { color: rgb(255, 160, 157); }
 .account-info {
-    margin: 10px 0 2px 0; padding: 8px 12px; font-size: 14px; white-space: normal;
+    margin: 10px 0 6px 0; padding: 8px 12px; font-size: 14px; white-space: normal;
     background-color: rgba(106, 161, 255, 0.14); border-left-width: 3px; border-color: rgb(106, 161, 255);
 }
 .account-info.hidden { display: none; }

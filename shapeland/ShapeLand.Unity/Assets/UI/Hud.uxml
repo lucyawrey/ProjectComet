@@ -121,17 +121,18 @@
                 <ui:Label name="account-page-name" class="menu-page-name" picking-mode="Ignore" />
             </ui:VisualElement>
             <ui:ScrollView name="account-rows" class="menu-scroll account-step" mode="Vertical" horizontal-scroller-visibility="Hidden">
+                <!-- Who the player is, then a row per action. -->
+                <ui:VisualElement class="account-who">
+                    <ui:Label name="account-username" class="account-name" />
+                    <ui:Label name="account-guest-tag" text="#account.guest" class="guest-tag" />
+                </ui:VisualElement>
+                <ui:Label name="account-guest-info" class="account-info" />
                 <ui:VisualElement name="account-username-row" class="menu-row account-row">
-                    <ui:Label text="#account.username" class="menu-row-name" />
+                    <ui:Label text="#account.change_username" class="menu-row-name" />
                     <ui:VisualElement class="account-row-value" picking-mode="Ignore">
-                        <ui:Label name="account-username" />
-                        <ui:Label name="account-guest-tag" text="#account.guest" class="guest-tag" />
-                        <ui:Label text="#account.change" class="row-action" />
                         <ui:VisualElement class="row-chevron" />
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:Label name="account-guest-info" class="account-info" />
-                <ui:Label text="#account.signing_in_section" class="menu-section" />
                 <ui:VisualElement name="account-password-row" class="menu-row account-row">
                     <ui:Label name="account-password-name" class="menu-row-name" />
                     <ui:VisualElement class="account-row-value" picking-mode="Ignore">

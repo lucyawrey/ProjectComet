@@ -200,7 +200,7 @@ namespace ShapeLand.Client
             _backText.text = Text(step == Step.Rows ? "menu.back" : "account.page");
             _pageName.text = step switch
             {
-                Step.Rename => Text("account.username"),
+                Step.Rename => Text("account.change_username"),
                 Step.Password => Text(guest ? "account.set_password" : "account.change_password"),
                 Step.Confirm => Text("account.confirm_page"),
                 Step.Code => Text("account.recovery_code"),
