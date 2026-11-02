@@ -648,7 +648,6 @@ Label { padding: 0; margin: 0; }
 .account-who { flex-direction: row; align-items: center; padding: 2px 12px 10px 12px; border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07); }
 .account-name { font-size: 22px; margin-right: 10px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
 .account-who .guest-tag { align-self: center; }
-.row-action { margin-left: 12px; }
 .row-chevron {
     width: 7px; height: 7px; margin-left: 10px; rotate: 45deg;
     border-right-width: 2px; border-top-width: 2px; border-color: rgb(169, 178, 196);
