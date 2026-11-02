@@ -103,38 +103,105 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Instance template="Menu" name="menu-host" class="menu-host" picking-mode="Ignore" />
-        <!-- Temporary account UI (the Account page and the guest reminder), to be reviewed and redone. -->
-        <ui:Label name="guest-reminder" class="guest-reminder hidden" picking-mode="Ignore" />
+        <!-- The guest reminder: once, under the HUD row. -->
+        <ui:VisualElement name="guest-reminder" class="guest-reminder hidden">
+            <ui:Label name="guest-reminder-text" class="guest-reminder-text" />
+            <ui:VisualElement class="guest-reminder-actions">
+                <ui:Button name="guest-reminder-set" text="#account.set_password" class="join-button" />
+                <ui:Button name="guest-reminder-dismiss" text="#account.not_now" class="cancel-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <!-- The Account page (AccountPage): rows like Settings, each opening its own step in the same window. -->
         <ui:VisualElement name="account" class="menu-window account-window hidden">
             <ui:VisualElement class="menu-page-head">
                 <ui:Button name="account-back" class="menu-back" focusable="false">
                     <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
-                    <ui:Label text="#menu.back" picking-mode="Ignore" />
+                    <ui:Label name="account-back-text" text="#menu.back" picking-mode="Ignore" />
                 </ui:Button>
-                <ui:Label text="#account.page" class="menu-page-name" picking-mode="Ignore" />
+                <ui:Label name="account-page-name" class="menu-page-name" picking-mode="Ignore" />
             </ui:VisualElement>
-            <ui:ScrollView class="menu-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden">
-                <ui:Label name="account-note" class="account-text" />
-                <ui:VisualElement name="account-confirm-row" class="field hidden">
-                    <ui:Label text="#account.current_password_label" class="label" />
-                    <ui:TextField name="account-current" password="true" max-length="128" class="input" />
-                    <ui:Button name="account-confirm" text="#account.confirm" class="account-button" />
+            <ui:ScrollView name="account-rows" class="menu-scroll account-step" mode="Vertical" horizontal-scroller-visibility="Hidden">
+                <ui:VisualElement name="account-username-row" class="menu-row account-row">
+                    <ui:Label text="#account.username" class="menu-row-name" />
+                    <ui:VisualElement class="account-row-value" picking-mode="Ignore">
+                        <ui:Label name="account-username" />
+                        <ui:Label name="account-guest-tag" text="#account.guest" class="guest-tag" />
+                        <ui:VisualElement class="row-chevron" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:VisualElement class="field">
-                    <ui:Label text="#account.new_password_label" class="label" />
-                    <ui:TextField name="account-password" password="true" max-length="128" class="input" />
-                    <ui:Button name="account-set-password" class="account-button" />
+                <ui:Label name="account-guest-info" class="account-info" />
+                <ui:Label text="#account.signing_in_section" class="menu-section" />
+                <ui:VisualElement name="account-password-row" class="menu-row account-row">
+                    <ui:Label name="account-password-name" class="menu-row-name" />
+                    <ui:VisualElement class="account-row-value" picking-mode="Ignore">
+                        <ui:VisualElement class="row-chevron" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:VisualElement name="account-code-row" class="field">
-                    <ui:Label text="#account.code_note" class="account-text" />
-                    <ui:Button name="account-make-code" text="#account.make_code" class="account-button" />
-                    <ui:Label name="account-code" class="account-code hidden" selectable="true" />
-                    <ui:Button name="account-copy" text="#account.copy" class="account-button hidden" />
+                <ui:VisualElement name="account-code-row" class="menu-row account-row">
+                    <ui:VisualElement class="setting-text" picking-mode="Ignore">
+                        <ui:Label text="#account.recovery_code" class="menu-row-name" />
+                        <ui:Label name="account-code-note" class="setting-note" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="account-code-value" class="account-row-value" picking-mode="Ignore">
+                        <ui:Label text="#account.make_new" />
+                        <ui:VisualElement class="row-chevron" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:Label name="account-status" class="account-text" />
-                <ui:Label name="account-sign-out-warning" text="#account.sign_out_guest_warning" class="account-text hidden" />
-                <ui:Button name="account-sign-out" text="#account.sign_out" class="account-button leave" />
+                <ui:VisualElement class="menu-gap" />
+                <ui:VisualElement name="account-sign-out-row" class="menu-row account-row sign-out">
+                    <ui:Label text="#account.sign_out" class="menu-row-name" />
+                    <ui:VisualElement class="account-row-value" picking-mode="Ignore">
+                        <ui:VisualElement class="row-chevron" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:ScrollView>
+            <ui:VisualElement name="account-rename" class="account-step">
+                <ui:VisualElement class="account-form">
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.username_label" class="label" />
+                        <ui:TextField name="account-rename-field" max-length="16" class="input" />
+                        <ui:Label text="#account.rename_note" class="card-note" />
+                        <ui:Label name="account-rename-free" class="card-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="account-password" class="account-step">
+                <ui:VisualElement class="account-form">
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.username_label" class="label" />
+                        <ui:Label name="account-password-username" class="input-value" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.new_password_label" class="label" />
+                        <ui:TextField name="account-password-field" password="true" max-length="128" class="input" />
+                        <ui:Label text="#account.password_rules" class="card-note" />
+                        <ui:Label name="account-password-signs-out" class="card-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="account-confirm" class="account-step">
+                <ui:VisualElement class="account-form">
+                    <ui:Label text="#account.confirm_note" class="account-text" />
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.password_label" class="label" />
+                        <ui:TextField name="account-confirm-field" password="true" max-length="128" class="input" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="account-code" class="account-step">
+                <ui:VisualElement class="account-form">
+                    <ui:Label name="account-code-intro" class="account-text" />
+                    <ui:VisualElement class="recovery-code">
+                        <ui:Label name="account-code-text" class="recovery-code-text" selectable="true" />
+                        <ui:Button name="account-copy" text="#account.copy" class="copy-button" />
+                    </ui:VisualElement>
+                    <ui:Label text="#account.code_warning" class="code-warning" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="account-actions" class="account-actions">
+                <ui:Label name="account-message" class="account-message" />
+                <ui:Button name="account-submit" class="join-button" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

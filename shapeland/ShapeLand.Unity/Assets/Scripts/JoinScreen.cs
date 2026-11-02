@@ -18,14 +18,14 @@ namespace ShapeLand.Client
     /// <summary>
     /// The join screen (UI Toolkit, <c>Assets/UI/JoinScreen.uxml</c>): a card over the orbiting island where a new
     /// player picks a name, shape and colors, sees the shape turning with its speed and jump height, and joins, which
-    /// makes a guest account. A returning player (a kept session token) skips it and goes straight into the game; the
-    /// card's Sign in link signs in to an account made elsewhere, with a password or a recovery code. A signed-in
-    /// player not playing (after leaving, a drop or a lost connection) gets a Play button instead of the fields.
-    /// Refusals and connection failures show on the card, which stays up for another try; it hides once the player
-    /// spawns. When the server shuts down (as a restart does), the card tries joining again for a minute; if the
-    /// server came back with new content, a web page reloads to load it and joins again by itself. Desktop builds
-    /// also have a server field (the Login server); a web page uses the one its config names. The sign-in panel and
-    /// the signed-in state are temporary interface, to be redone.
+    /// makes a guest account. The card's Sign in page signs in to an account made elsewhere, with a password or a
+    /// recovery code. A returning player (a kept session token) goes straight into the game behind a small connecting
+    /// pop-up, unless Join on launch is off. A signed-in player not playing (after leaving, a drop, a cancelled join)
+    /// gets the signed-in card: who they are beside their shape, Play, and Sign out (a guest is warned, and can set a
+    /// password on the card first). Refusals and connection failures show on the card, which stays up for another
+    /// try; it hides once the player spawns. When the server shuts down (as a restart does), the pop-up tries joining
+    /// again for a minute; if the server came back with new content, a web page reloads to load it and joins again by
+    /// itself. Desktop builds also have a server field (the Login server); a web page uses the one its config names.
     /// </summary>
     [RequireComponent(typeof(UIDocument), typeof(JoinClient), typeof(GameView))]
     public sealed class JoinScreen : MonoBehaviour
@@ -51,19 +51,35 @@ namespace ShapeLand.Client
         // Where Back goes, when the card was opened from the Esc menu.
         private Action _back;
         private VisualElement _serverField;
+        private Label _pageName;
         private VisualElement _signIn;
         private TextField _signInUsername;
         private TextField _signInPassword;
         private TextField _signInCode;
+        private VisualElement _signInUsernameField;
         private VisualElement _signInPasswordField;
         private VisualElement _signInCodeField;
         private Button _useCode;
-        private Button _signInLink;
-        private Label _signedInText;
+        private Button _signInButton;
+        private TextField _setPassword;
+        private Label _setPasswordUsername;
+        private Label _whoName;
+        private VisualElement _whoGuest;
+        private VisualElement _whoGuestNote;
+        private ConfirmPanel _confirm;
         private bool _withCode;
-        // A rename on the look card: the card stays up until a spawn shows the new name (the look's own spawn may come first).
-        private string _awaitName;
+        // A new player's name that's taken: the card points them to Sign in, filled in with it.
+        private string _takenName;
         private bool _busy;
+        // The connecting pop-up: each join from it counts, so a cancelled one's answer is ignored; the dots step.
+        private VisualElement _pop;
+        private Label _popMain;
+        private Label _popSub;
+        private VisualElement[] _popDots;
+        private int _popAttempt;
+        private bool _popBusy;
+        private int _popDot;
+        private float _popDotAt;
         private ShapePreview _preview;
         // Keys and gamepad: the rows they move through (name, shape, color, eyes, then the bottom line of server field
         // and buttons), the selected one, the selected item on the bottom line, and the held direction's repeat.
@@ -106,8 +122,17 @@ namespace ShapeLand.Client
         /// <summary>True while the card shows the sign-in panel instead of the new player's fields.</summary>
         public bool SigningIn => _root != null && _root.ClassListContains("signing-in");
 
-        /// <summary>True while the card is up for a signed-in player who isn't playing: a message and Play.</summary>
+        /// <summary>True while the card is up for a signed-in player who isn't playing: who they are, and Play.</summary>
         public bool SignedInCard => _root != null && _root.ClassListContains("signed-in");
+
+        /// <summary>True while the card shows its Set password page (from the signed-in card).</summary>
+        public bool SettingPassword => _root != null && _root.ClassListContains("setting-password");
+
+        /// <summary>True while the connecting pop-up is up (joining on launch or after a restart).</summary>
+        public bool Connecting => _pop != null && !_pop.ClassListContains("hidden");
+
+        /// <summary>The pop-up's message after a join from it failed, or null.</summary>
+        public string ConnectingError => Connecting && _pop.ClassListContains("failed") ? _popMain.text : null;
 
         /// <summary>True while a text field on the card has the keyboard.</summary>
         public bool Typing => _root?.focusController?.focusedElement is VisualElement focused
@@ -190,17 +215,32 @@ namespace ShapeLand.Client
             _backButton = tree.Q<Button>("look-back");
             _backButton.clicked += Back;
             _serverField = tree.Q("server-field");
+            _pageName = tree.Q<Label>("page-name");
+            tree.Q<Button>("page-back").clicked += PageBack;
             _signIn = tree.Q("sign-in");
             _signInUsername = tree.Q<TextField>("sign-in-username");
             _signInPassword = tree.Q<TextField>("sign-in-password");
             _signInCode = tree.Q<TextField>("sign-in-code");
+            _signInUsernameField = tree.Q("sign-in-username-field");
             _signInPasswordField = tree.Q("sign-in-password-field");
             _signInCodeField = tree.Q("sign-in-code-field");
             _useCode = tree.Q<Button>("sign-in-use-code");
             _useCode.clicked += () => SetWithCode(!_withCode);
-            _signInLink = tree.Q<Button>("sign-in-link");
-            _signInLink.clicked += () => SetSigningIn(!SigningIn);
-            _signedInText = tree.Q<Label>("signed-in-text");
+            _signInButton = tree.Q<Button>("sign-in-button");
+            _signInButton.clicked += () => SetSigningIn(true);
+            tree.Q<Button>("sign-out-button").clicked += AskToSignOut;
+            _setPassword = tree.Q<TextField>("set-password-field");
+            _setPasswordUsername = tree.Q<Label>("set-password-username");
+            _whoName = tree.Q<Label>("who-name");
+            _whoGuest = tree.Q("who-guest");
+            _whoGuestNote = tree.Q("who-guest-note");
+            _confirm = new ConfirmPanel(_root);
+            _pop = tree.Q("join-pop");
+            _popMain = tree.Q<Label>("pop-main");
+            _popSub = tree.Q<Label>("pop-sub");
+            _popDots = tree.Q("pop-dots").Children().ToArray();
+            tree.Q<Button>("pop-cancel").clicked += CancelPop;
+            tree.Q<Button>("pop-retry").clicked += () => JoinFromPop();
             _buttonsRow = _joinButton.parent;
             // The server field shares the bottom line with the buttons, and is one of its items.
             _scroll = tree.Q<ScrollView>("card-scroll");
@@ -224,56 +264,101 @@ namespace ShapeLand.Client
             SetChanging(false);
         }
 
-        // The sign-in panel in place of the new player's fields, or back.
+        // The Sign in page in place of the new player's rows, or back; filled in with a taken name it was pointed to from.
         private void SetSigningIn(bool signingIn)
         {
             _root.EnableInClassList("signing-in", signingIn);
-            _signIn.EnableInClassList("hidden", !signingIn);
+            _signInButton.RemoveFromClassList("pointed");
             MarkFieldRows();
-            _signInLink.text = Text(signingIn ? "account.new_player_link" : "account.sign_in_link");
-            SetButton(true, signingIn ? "account.sign_in" : "join.join");
+            SetButton(true, signingIn ? "account.sign_in" : "join.play");
             ShowError(null);
             if (signingIn)
             {
+                _signInUsername.value = _takenName ?? _signInUsername.value;
+                _takenName = null;
                 SetWithCode(false);
+                (_signInUsername.value.Length > 0 ? _signInPassword : _signInUsername).Focus();
             }
         }
 
-        // A recovery code in place of the password, or back.
+        // A recovery code in place of the username and password, or back.
         private void SetWithCode(bool withCode)
         {
             _withCode = withCode;
+            _signIn.EnableInClassList("with-code", withCode);
+            _signInUsernameField.EnableInClassList("hidden", withCode); // a code signs in on its own
             _signInPasswordField.EnableInClassList("hidden", withCode);
             _signInCodeField.EnableInClassList("hidden", !withCode);
-            _signInUsername.parent.EnableInClassList("hidden", withCode); // a code signs in on its own
             _useCode.text = Text(withCode ? "account.use_password" : "account.use_code");
+            _pageName.text = Text(withCode ? "account.sign_in_code_page" : "account.sign_in");
         }
 
-        // A signed-in player who isn't playing: a message and Play, in place of the fields.
-        private void SetSignedIn(bool signedIn, string message = null)
+        // The signed-in card's Set password page (a guest keeping their character), or back to the card.
+        private void SetSettingPassword(bool setting)
+        {
+            _root.EnableInClassList("setting-password", setting);
+            if (setting)
+            {
+                _root.RemoveFromClassList("signed-in");
+                _pageName.text = Text("account.set_password");
+                _setPasswordUsername.text = _join.PlayerName;
+                _setPassword.value = "";
+                MarkFieldRows();
+                SetButton(true, "account.save_password");
+                ShowError(null);
+                _setPassword.Focus();
+                return;
+            }
+
+            SetSignedIn(true);
+        }
+
+        // Back on the card's own pages.
+        private void PageBack()
+        {
+            if (SigningIn)
+            {
+                SetSigningIn(false);
+            }
+            else if (SettingPassword)
+            {
+                SetSettingPassword(false);
+            }
+        }
+
+        // The signed-in card: who the player is, beside their shape as it was last saved, in place of the new player's rows.
+        private void SetSignedIn(bool signedIn)
         {
             _root.EnableInClassList("signed-in", signedIn);
-            _signedInText.EnableInClassList("hidden", !signedIn);
-            _signedInText.text = !signedIn ? "" : message ?? (_join.Account != null
-                ? _content.Strings.Format("account.signed_in_as", ("name", _join.PlayerName))
-                : Text("account.signed_in"));
-            MarkFieldRows();
+            _root.RemoveFromClassList("setting-password");
             if (signedIn)
             {
+                var account = _join.Account;
+                _whoName.text = account?.Username ?? PlayerPrefs.GetString(NameKey, "");
+                var guest = account?.Guest ?? false;
+                _whoGuest.EnableInClassList("hidden", !guest);
+                _whoGuestNote.EnableInClassList("hidden", !guest);
+                if (account?.Character is CharacterView character && _content.Shapes.TryGet(character.Shape, out var shape))
+                {
+                    _shape = shape;
+                    _color = character.Color;
+                    _eyeColor = character.EyeColor;
+                }
+
                 SetButton(true, "join.play");
             }
+
+            MarkFieldRows();
         }
 
-        // Keys and gamepad skip the new player's rows while they're out of sight.
+        // Keys and gamepad skip the new player's rows while they're out of sight; Change Shape has no name row.
         private void MarkFieldRows()
         {
-            var away = SigningIn || SignedInCard;
-            foreach (var row in _rows.Take(_rows.Length - 1))
+            var away = SigningIn || SignedInCard || SettingPassword;
+            for (var i = 0; i < _rows.Length - 1; i++)
             {
-                row.EnableInClassList("hidden", away);
+                _rows[i].EnableInClassList("hidden", away || (i == 0 && Changing));
             }
-
-            _signInLink.EnableInClassList("hidden", Changing || SignedInCard);
         }
 
         // Changing the look: no server to pick, and the card can be closed without changing anything.
@@ -283,7 +368,6 @@ namespace ShapeLand.Client
             if (changing)
             {
                 _root.RemoveFromClassList("signing-in");
-                _signIn.AddToClassList("hidden");
                 SetSignedIn(false);
             }
             _root.EnableInClassList("changing", changing);
@@ -302,8 +386,11 @@ namespace ShapeLand.Client
             _cancelButton.EnableInClassList("hidden", !changing || _back != null);
             _backButton.EnableInClassList("hidden", _back == null);
             MarkFieldRows();
-            SetButton(true, changing ? "join.apply" : SignedInCard ? "join.play" : SigningIn ? "account.sign_in" : "join.join");
+            SetButton(true, MainButtonKey());
         }
+
+        // What the card's main button says when it's ready.
+        private string MainButtonKey() => Changing ? "join.apply" : SigningIn ? "account.sign_in" : SettingPassword ? "account.save_password" : "join.play";
 
         private void SetButton(bool enabled, string key)
         {
@@ -327,7 +414,7 @@ namespace ShapeLand.Client
             Refresh();
             _root.RemoveFromClassList("hidden");
             _shownOnFrame = Time.frameCount; // the press that brought the card up (from the Esc menu) isn't the card's
-            SelectRow(0);
+            SelectRow(FirstRow());
         }
 
         /// <summary>True while keys or a gamepad move the card's selection, which shows only then.</summary>
@@ -355,7 +442,6 @@ namespace ShapeLand.Client
 
             _back = back;
             SetChanging(true);
-            _name.value = spawn.Name;
             _shape = _content.Shapes.TryGet(spawn.Shape, out var shape) ? shape : _content.Shapes.All[0];
             _color = spawn.Color;
             _eyeColor = spawn.EyeColor;
@@ -387,7 +473,7 @@ namespace ShapeLand.Client
 
         private void Close()
         {
-            _awaitName = null;
+            _confirm.Close();
             _root.AddToClassList("hidden");
             _root.focusController?.focusedElement?.Blur(); // or Enter and the controller's submit button still reach the hidden card
             if (_preview != null)
@@ -419,6 +505,7 @@ namespace ShapeLand.Client
         {
             _content = content;
             UiText.Fill(_root, content.Strings);
+            UiText.Fill(_pop, content.Strings);
             SetChanging(false);
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = RememberedServer();
@@ -452,7 +539,15 @@ namespace ShapeLand.Client
 #if !UNITY_WEBGL || UNITY_EDITOR
                 _join.UseLoginServer(_server.value); // the one remembered from the card, as the session's
 #endif
-                Resume(); // a returning player goes straight into the game
+                if (GameSettings.AutoJoin)
+                {
+                    JoinFromPop(); // a returning player goes straight into the game
+                }
+                else
+                {
+                    ShowSignedInOnLaunch();
+                }
+
                 return;
             }
 
@@ -460,18 +555,110 @@ namespace ShapeLand.Client
             FocusName();
         }
 
-        // A returning player: the card stays down while the account loads and the character joins; it comes up only
-        // if that fails (a refused token shows the new player's card, through SignedOut).
-        private async void Resume()
+        // A returning player, joining behind the small pop-up (the card stays down); on failure the pop-up says why, with
+        // Retry, and Cancel brings up the signed-in card. A refused token shows the new player's card (through SignedOut).
+        private async void JoinFromPop()
         {
-            var error = await _join.ResumeAsync();
-            if (error == null || error == LoginErrors.SignedOut)
+            var attempt = ++_popAttempt;
+            _popBusy = true;
+            ShowPop();
+            var error = _join.Account == null ? await _join.LoadAccountAsync() : null;
+            if (attempt != _popAttempt)
             {
                 return;
             }
 
-            ShowSignedIn(LoginMessage(_content.Strings, error));
+            if (error == null)
+            {
+                ShowPop(); // with the name, now that the account has loaded
+                error = await _join.PlayAsync();
+                if (attempt != _popAttempt)
+                {
+                    return;
+                }
+            }
+
+            if (error == null)
+            {
+                return; // connecting; the spawn, a refusal or a failure comes next
+            }
+
+            _popBusy = false;
+            if (error == LoginErrors.SignedOut)
+            {
+                HidePop();
+            }
+            else if (_rejoinUntil == null)
+            {
+                FailPop(LoginMessage(_content.Strings, error));
+            }
         }
+
+        // Join on launch off: the signed-in card, once the account has loaded.
+        private async void ShowSignedInOnLaunch()
+        {
+            var error = await _join.LoadAccountAsync();
+            if (error != LoginErrors.SignedOut)
+            {
+                ShowSignedIn(error == null ? null : LoginMessage(_content.Strings, error));
+            }
+        }
+
+        private void ShowPop()
+        {
+            var name = _join.PlayerName;
+            _popMain.text = name.Length > 0 ? _content.Strings.Format("account.joining_as", ("name", name)) : Text("account.joining");
+            _popSub.text = Text("account.connecting");
+            _pop.RemoveFromClassList("failed");
+            _pop.RemoveFromClassList("hidden");
+        }
+
+        private void FailPop(string message)
+        {
+            _popBusy = false;
+            _popMain.text = message;
+            _popSub.text = "";
+            _pop.AddToClassList("failed");
+            _pop.RemoveFromClassList("hidden");
+        }
+
+        private void HidePop()
+        {
+            _popAttempt++;
+            _popBusy = false;
+            _pop.AddToClassList("hidden");
+        }
+
+        // The pop-up's Cancel: stops the join and brings up the signed-in card.
+        private void CancelPop()
+        {
+            _rejoinUntil = null;
+            HidePop();
+            _join.CancelJoin();
+            ShowSignedIn(null);
+        }
+
+        // Signing out from the signed-in card asks first; a guest would lose the character, so Set password comes first.
+        private void AskToSignOut()
+        {
+            var strings = _content.Strings;
+            var name = ("name", (object)_join.PlayerName);
+            if (_join.Account?.Guest ?? true)
+            {
+                _confirm.Show(strings.Format("account.sign_out_guest_title", name), strings.Format("account.sign_out_guest_note", name), null,
+                    (Text("account.set_password"), false, () => SetSettingPassword(true)),
+                    (Text("account.stay"), false, null),
+                    (Text("account.delete_sign_out"), true, SignOut));
+            }
+            else
+            {
+                _confirm.Show(Text("account.sign_out_title"), Text("account.sign_out_note"), null,
+                    (Text("account.stay"), false, null),
+                    (Text("account.sign_out"), true, SignOut));
+            }
+        }
+
+        private async void SignOut() => await _join.SignOutAsync(); // SignedOut brings up the new player's card
 
         // The card for a signed-in player who isn't playing, with a message.
         private void ShowSignedIn(string message)
@@ -481,6 +668,7 @@ namespace ShapeLand.Client
                 Close();
             }
 
+            HidePop();
             SetSignedIn(true);
             Show();
             ShowError(message);
@@ -499,6 +687,8 @@ namespace ShapeLand.Client
                 Close();
             }
 
+            HidePop();
+            _confirm.Close();
             SetSignedIn(false);
             SetSigningIn(false);
             Show();
@@ -611,6 +801,18 @@ namespace ShapeLand.Client
                 return;
             }
 
+            if (SettingPassword)
+            {
+                await SavePassword();
+                return;
+            }
+
+            if (Changing)
+            {
+                Apply();
+                return;
+            }
+
             if (SignedInCard)
             {
                 SetButton(false, "join.joining");
@@ -641,61 +843,59 @@ namespace ShapeLand.Client
                 PlayerPrefs.Save();
             }
 
-            if (_rejoinUntil == null)
-            {
-                ShowError(null); // while rejoining, the card keeps saying so between tries
-            }
-
-            if (Changing)
-            {
-                await Apply(name);
-                return;
-            }
-
+            ShowError(null);
+            _signInButton.RemoveFromClassList("pointed");
             SetButton(false, "join.joining");
 #if !UNITY_WEBGL || UNITY_EDITOR
             _join.UseLoginServer(ServerAddress());
 #endif
             var error = await _join.CreateGuestAsync(name, new NewCharacter { Shape = _shape.Number, Color = _color, EyeColor = _eyeColor });
-            if (error != null)
+            if (error == LoginErrors.NameTaken)
+            {
+                // Probably the player's own account from another device: Sign in, filled in with the name.
+                _takenName = name;
+                _signInButton.AddToClassList("pointed");
+                Retry(_content.Strings.Format("join.name_taken_new", ("name", name)));
+            }
+            else if (error != null)
             {
                 Retry(LoginMessage(_content.Strings, error, name));
             }
         }
 
-        // The Change Shape card: the look goes to the game server, a new name to the Login server first. The card
-        // closes on the new spawn either brings.
-        private async System.Threading.Tasks.Task Apply(string name)
+        // The Change Shape card: the look goes to the game server, and the card closes on the spawn it brings.
+        private void Apply()
         {
             var current = _join.Spawn.Value;
-            var lookChanged = _shape.Number != current.Shape || _color != current.Color || _eyeColor != current.EyeColor;
-            var nameChanged = name != current.Name;
-            if (!lookChanged && !nameChanged)
+            if (_shape.Number == current.Shape && _color == current.Color && _eyeColor == current.EyeColor)
             {
                 Close();
                 return;
             }
 
+            ShowError(null);
             SetButton(false, "join.applying");
-            if (nameChanged)
-            {
-                _awaitName = name;
-                var error = await _join.RenameAsync(name);
-                if (error != null)
-                {
-                    _awaitName = null;
-                    Retry(LoginMessage(_content.Strings, error, name));
-                    return;
-                }
-            }
-
-            if (lookChanged)
-            {
-                _join.ChangeLook(new LookChange { Shape = _shape.Number, Color = _color, EyeColor = _eyeColor });
-            }
+            _join.ChangeLook(new LookChange { Shape = _shape.Number, Color = _color, EyeColor = _eyeColor });
         }
 
-        // The sign-in panel: a username and password, or a recovery code alone.
+        // The signed-in card's Set password page; back to the card once it's saved.
+        private async System.Threading.Tasks.Task SavePassword()
+        {
+            SetButton(false, "account.saving");
+            ShowError(null);
+            var error = await _join.SetPasswordAsync(_setPassword.value);
+            _setPassword.value = "";
+            if (error != null)
+            {
+                ShowError(LoginMessage(_content.Strings, error));
+                SetButton(true, "account.save_password");
+                return;
+            }
+
+            SetSettingPassword(false);
+        }
+
+        // The Sign in page: a username and password, or a recovery code alone.
         private async System.Threading.Tasks.Task SignIn()
         {
             SetButton(false, "account.signing_in");
@@ -726,7 +926,7 @@ namespace ShapeLand.Client
                 return; // the server came back with new content; the reloaded page loads it and rejoins
             }
 
-            ShowSignedIn(RefusalMessage(_content.Strings, reason));
+            ShowSignedIn(RefusalMessage(_content.Strings, reason)); // the pop-up gives way to the card, which says why
         }
 
         private void OnLookRefused(LookRejection reason)
@@ -763,14 +963,14 @@ namespace ShapeLand.Client
             {
                 _rejoinUntil = Time.unscaledTime + RejoinSeconds;
                 _nextRejoin = Time.unscaledTime + 1;
-                ShowSignedIn(Text("join.rejoining"));
+                JoinFromPop();
                 return;
             }
 
             ShowSignedIn(LostMessage(_content.Strings, reason));
         }
 
-        // While rejoining, tries again each second while the card waits for the player.
+        // While rejoining, the pop-up tries again each second; its dots step meanwhile.
         private void Update()
         {
             if (Showing && WebPage.Playing && _content != null && Time.frameCount != _shownOnFrame)
@@ -800,7 +1000,17 @@ namespace ShapeLand.Client
             {
                 _root.EnableInClassList("waiting", waiting);
             }
-            if (_rejoinUntil is not float until || !_joinButton.enabledSelf || Time.unscaledTime < _nextRejoin)
+            if (Connecting && !_pop.ClassListContains("failed") && Time.unscaledTime >= _popDotAt)
+            {
+                _popDotAt = Time.unscaledTime + 0.4f;
+                _popDot = (_popDot + 1) % _popDots.Length;
+                for (var i = 0; i < _popDots.Length; i++)
+                {
+                    _popDots[i].EnableInClassList("lit", i == _popDot);
+                }
+            }
+
+            if (_rejoinUntil is not float until || !Connecting || _popBusy || Time.unscaledTime < _nextRejoin)
             {
                 return;
             }
@@ -808,15 +1018,12 @@ namespace ShapeLand.Client
             if (Time.unscaledTime > until)
             {
                 _rejoinUntil = null;
-                ShowSignedIn(LostMessage(_content.Strings, CloseReason.ServerShutDown));
+                FailPop(LostMessage(_content.Strings, CloseReason.ServerShutDown));
                 return;
             }
 
             _nextRejoin = Time.unscaledTime + 1;
-            if (SignedInCard)
-            {
-                Submit();
-            }
+            JoinFromPop();
         }
 
         // Keys and gamepad on the card, with the Esc menu's Menu actions: up and down move between rows, left and right
@@ -907,13 +1114,13 @@ namespace ShapeLand.Client
             {
                 if (by > 0)
                 {
-                    SelectRow(0);
+                    SelectRow(FirstRow());
                 }
 
                 return;
             }
 
-            if (by < 0 && _row == 0 && FromMenu)
+            if (by < 0 && _row == FirstRow() && FromMenu)
             {
                 SelectBack();
                 return;
@@ -937,11 +1144,14 @@ namespace ShapeLand.Client
 
         private static bool Usable(VisualElement row) => !row.ClassListContains("hidden");
 
+        // The top row in sight: the name, or the shape when changing the look.
+        private int FirstRow() => Math.Max(0, Array.FindIndex(_rows, Usable));
+
         private void SelectBack()
         {
-            SelectRow(0);
+            SelectRow(FirstRow());
             _onBack = true;
-            _rows[0].RemoveFromClassList("selected");
+            _rows[_row].RemoveFromClassList("selected");
             _backButton.AddToClassList("selected");
         }
 
@@ -1059,7 +1269,7 @@ namespace ShapeLand.Client
 
             if (_rejoinUntil != null && failure != JoinFailure.BadAddress)
             {
-                Retry(Text("join.rejoining")); // not back yet
+                _popBusy = false; // not back yet: the pop-up tries again
                 return;
             }
 
@@ -1070,7 +1280,11 @@ namespace ShapeLand.Client
                 _ when Application.platform == RuntimePlatform.WebGLPlayer => Text("join.unreachable_web"),
                 _ => _content.Strings.Format("join.unreachable", ("address", _join.LoginAddress)),
             };
-            if (_join.SignedIn)
+            if (Connecting)
+            {
+                FailPop(message);
+            }
+            else if (_join.SignedIn)
             {
                 ShowSignedIn(message);
             }
@@ -1083,7 +1297,7 @@ namespace ShapeLand.Client
         private void Retry(string message)
         {
             ShowError(message);
-            SetButton(true, Changing ? "join.apply" : SignedInCard ? "join.play" : SigningIn ? "account.sign_in" : "join.join");
+            SetButton(true, MainButtonKey());
         }
 
         private string Text(string key) => _content?.Strings.Get(key) ?? "";
@@ -1097,12 +1311,7 @@ namespace ShapeLand.Client
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
             _rejoinUntil = null;
-            if (_awaitName != null && Changing && spawn.Name != _awaitName)
-            {
-                return; // the look's spawn; the rename's comes next
-            }
-
-            _awaitName = null;
+            HidePop();
             Close();
         }
 

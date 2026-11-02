@@ -43,6 +43,8 @@ namespace ShapeLand.Client
         private string _loginAddress;
         private Uri _url;
         private JoinRequest? _pending;
+        // Bumped by CancelJoin, so a join already on its way stops before connecting.
+        private int _joinAttempt;
         private bool _ticketRetried;
         private bool _awaitingAnswer;
         private readonly HashSet<string> _flipped = new HashSet<string>();
@@ -222,6 +224,17 @@ namespace ShapeLand.Client
         /// </summary>
         public async Task<string> ResumeAsync()
         {
+            var attempt = _joinAttempt;
+            var error = await LoadAccountAsync();
+            return error != null || attempt != _joinAttempt ? error : await PlayAsync();
+        }
+
+        /// <summary>
+        /// Loads the signed-in account and its character without joining. Returns null, <see cref="LoginErrors.SignedOut"/>
+        /// when there's no usable token, or another error code.
+        /// </summary>
+        public async Task<string> LoadAccountAsync()
+        {
             if (!SignedIn)
             {
                 return LoginErrors.SignedOut;
@@ -240,7 +253,24 @@ namespace ShapeLand.Client
             }
 
             Account = account.Value;
-            return await PlayAsync();
+            return null;
+        }
+
+        /// <summary>
+        /// Stops a join on its way (the connecting pop-up's Cancel): a ticket still being fetched is dropped, and a
+        /// connection not yet in the game closes without a failure.
+        /// </summary>
+        public void CancelJoin()
+        {
+            _joinAttempt++;
+            if (Joined)
+            {
+                return;
+            }
+
+            _pending = null;
+            _awaitingAnswer = false;
+            _connection.Disconnect();
         }
 
         /// <summary>Makes a guest account with its first character, then joins. Returns an error code, or null.</summary>
@@ -276,7 +306,12 @@ namespace ShapeLand.Client
             Error = null;
             Rejected = null;
             DroppedFor = null;
+            var attempt = _joinAttempt;
             var ticket = await _login.GetTicketAsync();
+            if (attempt != _joinAttempt)
+            {
+                return null; // cancelled while the ticket was on its way
+            }
             if (!ticket.Succeeded)
             {
                 if (ticket.Error == LoginErrors.SignedOut)

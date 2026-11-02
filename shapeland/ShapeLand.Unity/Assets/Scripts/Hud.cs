@@ -32,7 +32,7 @@ namespace ShapeLand.Client
         private CollisionDebug _collisions;
         private GameMenu _menu;
         private AccountPage _account;
-        private Label _guestReminder;
+        private VisualElement _guestReminder;
         private float _guestReminderUntil;
         private VisualElement _lookButton;
         private VisualElement _menuButton;
@@ -111,7 +111,14 @@ namespace ShapeLand.Client
             _touch = new TouchControls(_root, view.OrbitCamera);
             _menu = new GameMenu(this, tree);
             _account = new AccountPage(this, tree);
-            _guestReminder = tree.Q<Label>("guest-reminder");
+            _guestReminder = tree.Q("guest-reminder");
+            tree.Q<Button>("guest-reminder-set").clicked += () =>
+            {
+                HideGuestReminder();
+                _menu.Close();
+                _account.ShowSetPassword(() => _menu.Show(GameMenu.AccountEntry, navigating: false));
+            };
+            tree.Q<Button>("guest-reminder-dismiss").clicked += HideGuestReminder;
             GameMenu.TakeOverNavigation(_root);
 
             join.ContentLoaded += OnContentLoaded;
@@ -145,17 +152,23 @@ namespace ShapeLand.Client
             if (GuestReminder.Due(join.Account))
             {
                 // Once, on a guest's first visit on a later day: their character lives only in this browser.
-                _guestReminder.text = join.Content.Strings.Get("account.reminder");
+                _guestReminder.Q<Label>("guest-reminder-text").text = join.Content.Strings.Format("account.reminder", ("name", join.PlayerName));
                 _guestReminder.RemoveFromClassList("hidden");
                 _guestReminderUntil = Time.unscaledTime + GuestReminder.ShowSeconds;
             }
+        }
+
+        private void HideGuestReminder()
+        {
+            _guestReminderUntil = 0;
+            _guestReminder.AddToClassList("hidden");
         }
 
         private void OnConnectionLost(CloseReason reason)
         {
             _menu.Close();
             _account.Close();
-            _guestReminder.AddToClassList("hidden");
+            HideGuestReminder();
             _root.AddToClassList("hidden");
         }
 
@@ -190,8 +203,7 @@ namespace ShapeLand.Client
 
             if (_guestReminderUntil > 0 && Time.unscaledTime > _guestReminderUntil)
             {
-                _guestReminderUntil = 0;
-                _guestReminder.AddToClassList("hidden");
+                HideGuestReminder();
             }
 
             // Esc closes the chat input itself (Chat), so a press just after that is left alone.

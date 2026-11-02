@@ -29,7 +29,7 @@ namespace ShapeLand.Client
         private const int ChangeLookEntry = 3;
 
         /// <summary>The Account entry's place in the list, where the Account page's Back returns to.</summary>
-        public const int AccountEntry = 5;
+        public const int AccountEntry = 3;
 
         private const int LeaveEntry = 6;
 
@@ -118,24 +118,25 @@ namespace ShapeLand.Client
             _settingsName = root.Q<Label>("menu-page-settings");
             root.Q("menu-host").pickingMode = PickingMode.Ignore;
 
-            _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-account"), root.Q("menu-leave") };
+            _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-account"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-leave") };
             _entryActions = new Action[]
             {
                 Close,
                 () => ShowPage(Page.Controls),
                 () => ShowPage(Page.Settings),
+                () => { Close(); _hud.OpenAccount(); },
                 () => { Close(); _hud.OpenLook(fromMenu: true); },
                 () => { Close(); _hud.ReturnToSpawn(); },
-                () => { Close(); _hud.OpenAccount(); },
                 () => ShowPage(Page.Leave),
             };
             _confirmEntries = new[] { root.Q("menu-stay"), root.Q("menu-leave-confirm") };
-            _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed"), root.Q("setting-stats"), root.Q("setting-hitboxes") };
+            _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed"), root.Q("setting-auto-join"), root.Q("setting-stats"), root.Q("setting-hitboxes") };
             _switches = new (int, VisualElement, Func<bool>, Action)[]
             {
                 (0, root.Q("walls-switch"), () => _hud.View.ShowThroughWalls, () => _hud.View.ShowThroughWalls = !_hud.View.ShowThroughWalls),
-                (2, root.Q("stats-switch"), () => _hud.Stats.Shown, () => _hud.Stats.Toggle()),
-                (3, root.Q("hitboxes-switch"), () => _hud.Collisions.Shown, () => _hud.Collisions.Toggle()),
+                (2, root.Q("auto-join-switch"), () => GameSettings.AutoJoin, () => GameSettings.AutoJoin = !GameSettings.AutoJoin),
+                (3, root.Q("stats-switch"), () => _hud.Stats.Shown, () => _hud.Stats.Toggle()),
+                (4, root.Q("hitboxes-switch"), () => _hud.Collisions.Shown, () => _hud.Collisions.Toggle()),
             };
             _tabs = new[]
             {

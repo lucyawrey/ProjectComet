@@ -11,9 +11,16 @@
                     </ui:Button>
                     <ui:Label text="#menu.change_look" class="menu-page-name" />
                 </ui:VisualElement>
-                <!-- Temporary account UI (signing in), to be reviewed and redone: plain, in the card's own styles. -->
-                <ui:VisualElement name="sign-in" class="fields sign-in hidden">
-                    <ui:VisualElement class="field">
+                <!-- The card's own pages, with Back: signing in, and setting a password from the signed-in card. -->
+                <ui:VisualElement class="page-head">
+                    <ui:Button name="page-back" class="menu-back" focusable="false">
+                        <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
+                        <ui:Label text="#menu.back" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Label name="page-name" class="menu-page-name" />
+                </ui:VisualElement>
+                <ui:VisualElement name="sign-in" class="card-page">
+                    <ui:VisualElement name="sign-in-username-field" class="field">
                         <ui:Label text="#account.username_label" class="label" />
                         <ui:TextField name="sign-in-username" max-length="16" class="input" />
                     </ui:VisualElement>
@@ -23,14 +30,25 @@
                     </ui:VisualElement>
                     <ui:VisualElement name="sign-in-code-field" class="field hidden">
                         <ui:Label text="#account.code_label" class="label" />
-                        <ui:TextField name="sign-in-code" max-length="40" class="input" />
+                        <ui:TextField name="sign-in-code" max-length="40" class="input code-input" />
+                        <ui:Label text="#account.code_sign_in_note" class="card-note" />
                     </ui:VisualElement>
-                    <ui:Button name="sign-in-use-code" text="#account.use_code" class="link-button" />
+                    <ui:Button name="sign-in-use-code" class="link-button" />
                 </ui:VisualElement>
-                <ui:Label name="signed-in-text" class="signed-in-text hidden" />
+                <ui:VisualElement name="set-password" class="card-page">
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.username_label" class="label" />
+                        <ui:Label name="set-password-username" class="input-value" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.new_password_label" class="label" />
+                        <ui:TextField name="set-password-field" password="true" max-length="128" class="input" />
+                        <ui:Label text="#account.password_rules" class="card-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
                 <ui:ScrollView name="card-scroll" class="card-scroll menu-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
                     <ui:VisualElement class="body">
-                        <ui:VisualElement class="fields">
+                        <ui:VisualElement name="player-fields" class="fields">
                             <ui:VisualElement name="name-row" class="field nav-row">
                                 <ui:VisualElement class="label-row">
                                     <ui:Label text="#join.name_label" class="label" />
@@ -50,6 +68,13 @@
                                 <ui:VisualElement name="eyes" class="row swatches" />
                             </ui:VisualElement>
                         </ui:VisualElement>
+                        <!-- A signed-in player who isn't playing: who they are, beside their shape. -->
+                        <ui:VisualElement name="who" class="who">
+                            <ui:Label text="#account.signed_in_as" class="label" />
+                            <ui:Label name="who-name" class="who-name" />
+                            <ui:Label name="who-guest" text="#account.guest" class="guest-tag" />
+                            <ui:Label name="who-guest-note" text="#account.guest_card_note" class="card-note" />
+                        </ui:VisualElement>
                         <ui:VisualElement class="preview-column">
                             <ui:VisualElement name="preview" class="preview" />
                             <ui:VisualElement name="stats" class="stats" />
@@ -64,10 +89,14 @@
                         </ui:VisualElement>
                         <ui:TextField name="server" class="input" />
                     </ui:VisualElement>
-                    <ui:Button name="sign-in-link" text="#account.sign_in_link" class="link-button" />
+                    <ui:VisualElement name="have-account" class="have-account">
+                        <ui:Label text="#account.have_account" class="have-account-text" />
+                        <ui:Button name="sign-in-button" text="#account.sign_in" class="cancel-button" />
+                    </ui:VisualElement>
+                    <ui:Button name="sign-out-button" text="#account.sign_out" class="link-button" />
                     <ui:VisualElement class="spacer" />
                     <ui:Button name="cancel-button" text="#join.cancel" class="cancel-button hidden" />
-                    <ui:Button name="join-button" text="#join.join" class="join-button" />
+                    <ui:Button name="join-button" text="#join.play" class="join-button" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
@@ -89,5 +118,20 @@
                 <ui:Label text="#menu.back" />
             </ui:VisualElement>
         </ui:VisualElement>
+    </ui:VisualElement>
+    <!-- Joining a returning player (on launch, and after a server restart): a small pop-up over the world. -->
+    <ui:VisualElement name="join-pop" class="join-pop hidden">
+        <ui:VisualElement name="pop-dots" class="pop-dots">
+            <ui:VisualElement class="pop-dot" />
+            <ui:VisualElement class="pop-dot" />
+            <ui:VisualElement class="pop-dot" />
+        </ui:VisualElement>
+        <ui:Label text="!" class="pop-fail-mark" />
+        <ui:VisualElement class="pop-text">
+            <ui:Label name="pop-main" class="pop-main" />
+            <ui:Label name="pop-sub" class="pop-sub" />
+        </ui:VisualElement>
+        <ui:Button name="pop-cancel" text="#account.cancel" class="cancel-button pop-button" />
+        <ui:Button name="pop-retry" text="#account.retry" class="join-button pop-button pop-retry" />
     </ui:VisualElement>
 </ui:UXML>

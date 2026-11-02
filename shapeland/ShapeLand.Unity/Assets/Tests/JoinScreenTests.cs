@@ -105,11 +105,12 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.Player, Is.Not.Null, "Never spawned.");
 
             yield return Server.ShutDownServer();
-            yield return TestGameServer.WaitFor(() => Screen.Error == Strings.Get("join.rejoining"), 10);
-            Assert.That(Screen.Showing, Is.True, "The join screen didn't come back.");
-            Assert.That(Screen.Error, Is.EqualTo(Strings.Get("join.rejoining")), "The card doesn't say it's rejoining.");
+            yield return TestGameServer.WaitFor(() => Screen.Connecting, 10);
+            Assert.That(Screen.Connecting, Is.True, "The connecting pop-up didn't come up.");
+            Assert.That(Screen.Showing, Is.False, "The card came up while rejoining.");
             yield return Wait(3); // several tries fail meanwhile
-            Assert.That(Screen.Error, Is.EqualTo(Strings.Get("join.rejoining")), "A failed try replaced the rejoining message.");
+            Assert.That(Screen.Connecting, Is.True, "The pop-up went away while rejoining.");
+            Assert.That(Screen.ConnectingError, Is.Null, "A failed try showed an error while rejoining.");
 
             yield return Server.StartAgain();
             yield return TestGameServer.WaitFor(() => View.Player != null, 15);
@@ -134,7 +135,8 @@ namespace ShapeLand.Client.Tests
             Field("name").value = "bot0001"; // the bot's name, in other capitals
             Click(join);
             yield return TestGameServer.WaitFor(() => Screen.Error != null, 10); // pressing Join cleared the last one
-            Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.name_taken", ("name", "bot0001"))), "A taken name wasn't reported.");
+            Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.name_taken_new", ("name", "bot0001"))), "A taken name wasn't reported.");
+            Assert.That(Screen.Root.Q<Button>("sign-in-button").ClassListContains("pointed"), Is.True, "A taken name doesn't point to Sign in.");
             Assert.That(join.enabledSelf, Is.True, "Join stayed disabled after a refusal.");
 
             Field("name").value = "Pebble";
@@ -158,7 +160,7 @@ namespace ShapeLand.Client.Tests
             Hud.OpenLook();
             yield return LaidOut("cancel-button");
             Assert.That(Screen.Changing, Is.True);
-            Assert.That(Field("name").value, Is.EqualTo("Pebble"), "The card isn't filled in with the current look.");
+            Assert.That(Screen.Root.Q("name-row").ClassListContains("hidden"), Is.True, "Change Shape still has the name row (renaming is on the Account page).");
             Assert.That(player.InputEnabled, Is.False, "The shape can still move while choosing a look.");
             Click(Screen.Root.Q<Button>("cancel-button"));
             yield return null;
@@ -167,7 +169,6 @@ namespace ShapeLand.Client.Tests
 
             Hud.OpenLook();
             yield return LaidOut("cancel-button");
-            Field("name").value = "Pebbles";
             Click(ShapeButton("shape.diamond"));
             Click(Swatch("colors", Join.Content.Colors.All[2].Number));
             var at = player.transform.position;
@@ -177,11 +178,11 @@ namespace ShapeLand.Client.Tests
             Assert.That(Screen.Error, Is.Null);
             Assert.That(View.Player, Is.SameAs(player), "The player was rebuilt rather than changed where they stand.");
             var spawn = View.Spawns[id];
-            Assert.That(spawn.Name, Is.EqualTo("Pebbles"));
+            Assert.That(spawn.Name, Is.EqualTo("Pebble"));
             Assert.That(Join.Content.Shapes[spawn.Shape].Id, Is.EqualTo("shape.diamond"));
             Assert.That(spawn.Color, Is.EqualTo(Join.Content.Colors.All[2].Number));
             Assert.That(Vector3.Distance(player.transform.position, at), Is.LessThan(0.5f), "The player moved.");
-            Assert.That(player.name, Is.EqualTo("Pebbles (you)"));
+            Assert.That(player.name, Is.EqualTo("Pebble (you)"));
         }
 
         [UnityTest]
