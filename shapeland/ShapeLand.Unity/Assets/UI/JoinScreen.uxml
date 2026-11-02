@@ -45,6 +45,10 @@
                         <ui:TextField name="set-password-field" password="true" max-length="128" class="input" />
                         <ui:Label text="#account.password_rules" class="card-note" />
                     </ui:VisualElement>
+                    <ui:VisualElement class="field">
+                        <ui:Label text="#account.confirm_password_label" class="label" />
+                        <ui:TextField name="set-password-again" password="true" max-length="128" class="input" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:ScrollView name="card-scroll" class="card-scroll menu-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Auto">
                     <ui:VisualElement class="body">
@@ -83,12 +87,6 @@
                 </ui:ScrollView>
                 <ui:Label name="error" class="error" />
                 <ui:VisualElement class="actions">
-                    <ui:VisualElement name="server-field" class="field server nav-row">
-                        <ui:VisualElement class="label-row">
-                            <ui:Label text="#join.server_label" class="label" />
-                        </ui:VisualElement>
-                        <ui:TextField name="server" class="input" />
-                    </ui:VisualElement>
                     <ui:VisualElement name="have-account" class="have-account">
                         <ui:Label text="#account.have_account" class="have-account-text" />
                         <ui:Button name="sign-in-button" text="#account.sign_in" class="cancel-button" />
@@ -97,6 +95,17 @@
                     <ui:VisualElement class="spacer" />
                     <ui:Button name="cancel-button" text="#join.cancel" class="cancel-button hidden" />
                     <ui:Button name="join-button" text="#join.play" class="join-button" />
+                </ui:VisualElement>
+                <!-- Desktop builds: the Login server, a quiet line under the buttons; Change opens the field. -->
+                <ui:VisualElement name="server-line" class="server-line">
+                    <ui:Label name="server-text" class="server-text" />
+                    <ui:Button name="server-change" text="#join.server_change" class="link-button" />
+                    <ui:VisualElement name="server-field" class="field server nav-row hidden">
+                        <ui:VisualElement class="label-row">
+                            <ui:Label text="#join.server_label" class="label" />
+                        </ui:VisualElement>
+                        <ui:TextField name="server" class="input" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

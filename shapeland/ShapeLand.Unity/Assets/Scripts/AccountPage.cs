@@ -42,6 +42,7 @@ namespace ShapeLand.Client
         private readonly VisualElement _passwordStep;
         private readonly Label _passwordUsername;
         private readonly TextField _passwordField;
+        private readonly TextField _passwordAgain;
         private readonly Label _passwordSignsOut;
         private readonly VisualElement _confirmStep;
         private readonly TextField _confirmField;
@@ -78,6 +79,7 @@ namespace ShapeLand.Client
             _passwordStep = root.Q("account-password");
             _passwordUsername = root.Q<Label>("account-password-username");
             _passwordField = root.Q<TextField>("account-password-field");
+            _passwordAgain = root.Q<TextField>("account-password-again");
             _passwordSignsOut = root.Q<Label>("account-password-signs-out");
             _confirmStep = root.Q("account-confirm");
             _confirmField = root.Q<TextField>("account-confirm-field");
@@ -100,7 +102,7 @@ namespace ShapeLand.Client
             root.Q("account-password-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Password));
             _codeRow.RegisterCallback<ClickEvent>(_ => MakeCode());
             root.Q("account-sign-out-row").RegisterCallback<ClickEvent>(_ => AskToSignOut());
-            foreach (var field in new[] { _renameField, _passwordField, _confirmField })
+            foreach (var field in new[] { _renameField, _passwordField, _passwordAgain, _confirmField })
             {
                 field.RegisterCallback<KeyDownEvent>(e =>
                 {
@@ -220,6 +222,7 @@ namespace ShapeLand.Client
                 case Step.Password:
                     _passwordUsername.text = _hud.Join.PlayerName;
                     _passwordField.value = "";
+                    _passwordAgain.value = "";
                     _passwordSignsOut.text = guest ? "" : strings.Format("account.password_signs_out", name);
                     _passwordSignsOut.EnableInClassList("hidden", guest);
                     SetSubmit();
@@ -307,6 +310,12 @@ namespace ShapeLand.Client
         {
             if (_busy)
             {
+                return;
+            }
+
+            if (_passwordField.value != _passwordAgain.value)
+            {
+                Message(Text("account.passwords_differ"));
                 return;
             }
 

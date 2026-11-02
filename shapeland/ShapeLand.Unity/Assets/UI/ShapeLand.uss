@@ -544,14 +544,18 @@ Label { padding: 0; margin: 0; }
 /* "Already have an account?" and Sign in, on the new player's card only; Sign out on the signed-in card only. */
 .have-account { flex-direction: row; align-items: center; }
 .have-account-text { font-size: 14px; color: rgb(169, 178, 196); margin-right: 10px; }
-#join.server-shown .have-account-text { display: none; }
-#join.server-shown .have-account { margin-left: 12px; align-self: flex-end; }
 #join.changing .have-account, #join.signing-in .have-account, #join.signed-in .have-account, #join.setting-password .have-account { display: none; }
 /* Pointed to after a new player picks a taken name. */
 .cancel-button.pointed { border-color: rgb(106, 161, 255); }
 #sign-out-button { display: none; align-self: center; }
 #join.signed-in #sign-out-button { display: flex; }
-#join.setting-password #server-field { display: none; }
+/* The server line: desktop builds only, on the new player's and signed-in cards. */
+.server-line { flex-direction: row; align-items: center; margin-top: 10px; }
+.server-line.hidden { display: none; }
+.server-text { font-size: 13px; color: rgb(141, 151, 171); margin-right: 8px; }
+.server-line .link-button { font-size: 13px; }
+.server-line.open .server-text, .server-line.open .link-button { display: none; }
+#join.setting-password .server-line { display: none; }
 
 /* The signed-in card: who the player is beside their turning shape, in place of the new player's rows. */
 .who { display: none; flex-grow: 1; justify-content: center; }
@@ -618,6 +622,7 @@ Label { padding: 0; margin: 0; }
 .account-text { font-size: 15px; white-space: normal; margin-bottom: 12px; max-width: 460px; }
 .account-row-value { flex-direction: row; align-items: center; font-size: 14px; color: rgb(169, 178, 196); }
 .account-row-value .guest-tag { margin-left: 10px; align-self: center; }
+.row-action { margin-left: 12px; }
 .row-chevron {
     width: 7px; height: 7px; margin-left: 10px; rotate: 45deg;
     border-right-width: 2px; border-top-width: 2px; border-color: rgb(169, 178, 196);

@@ -51,6 +51,8 @@ namespace ShapeLand.Client
         // Where Back goes, when the card was opened from the Esc menu.
         private Action _back;
         private VisualElement _serverField;
+        private VisualElement _serverLine;
+        private Label _serverText;
         private Label _pageName;
         private VisualElement _signIn;
         private TextField _signInUsername;
@@ -62,6 +64,7 @@ namespace ShapeLand.Client
         private Button _useCode;
         private Button _signInButton;
         private TextField _setPassword;
+        private TextField _setPasswordAgain;
         private Label _setPasswordUsername;
         private Label _whoName;
         private VisualElement _whoGuest;
@@ -215,6 +218,10 @@ namespace ShapeLand.Client
             _backButton = tree.Q<Button>("look-back");
             _backButton.clicked += Back;
             _serverField = tree.Q("server-field");
+            _serverLine = tree.Q("server-line");
+            _serverText = tree.Q<Label>("server-text");
+            tree.Q<Button>("server-change").clicked += OpenServerField;
+            _server.RegisterValueChangedCallback(_ => ShowServer());
             _pageName = tree.Q<Label>("page-name");
             tree.Q<Button>("page-back").clicked += PageBack;
             _signIn = tree.Q("sign-in");
@@ -230,6 +237,7 @@ namespace ShapeLand.Client
             _signInButton.clicked += () => SetSigningIn(true);
             tree.Q<Button>("sign-out-button").clicked += AskToSignOut;
             _setPassword = tree.Q<TextField>("set-password-field");
+            _setPasswordAgain = tree.Q<TextField>("set-password-again");
             _setPasswordUsername = tree.Q<Label>("set-password-username");
             _whoName = tree.Q<Label>("who-name");
             _whoGuest = tree.Q("who-guest");
@@ -303,6 +311,8 @@ namespace ShapeLand.Client
                 _pageName.text = Text("account.set_password");
                 _setPasswordUsername.text = _join.PlayerName;
                 _setPassword.value = "";
+                _setPasswordAgain.value = "";
+                CloseServerField();
                 MarkFieldRows();
                 SetButton(true, "account.save_password");
                 ShowError(null);
@@ -373,12 +383,14 @@ namespace ShapeLand.Client
             _root.EnableInClassList("changing", changing);
             _root.pickingMode = changing ? PickingMode.Ignore : PickingMode.Position;
 #if UNITY_WEBGL && !UNITY_EDITOR
-            _serverField.AddToClassList("hidden");
+            _serverLine.AddToClassList("hidden");
 #else
-            _serverField.EnableInClassList("hidden", changing);
+            _serverLine.EnableInClassList("hidden", changing);
 #endif
-            // Beside the server field there's room only for the Sign in button, not the question before it.
-            _root.EnableInClassList("server-shown", !_serverField.ClassListContains("hidden"));
+            if (changing)
+            {
+                CloseServerField();
+            }
             if (!changing)
             {
                 _back = null;
@@ -486,6 +498,28 @@ namespace ShapeLand.Client
             SetChanging(false);
         }
 
+        // The server line's Change: the field in place of the line's text, for keys and gamepad too.
+        private void OpenServerField()
+        {
+            _serverLine.AddToClassList("open");
+            _serverField.RemoveFromClassList("hidden");
+            _server.Focus();
+        }
+
+        private void CloseServerField()
+        {
+            _serverLine.RemoveFromClassList("open");
+            _serverField.AddToClassList("hidden");
+        }
+
+        private void ShowServer()
+        {
+            if (_content != null)
+            {
+                _serverText.text = _content.Strings.Format("join.server_line", ("address", ServerAddress()));
+            }
+        }
+
         // The Login server in the card, or the default one when it's empty.
         private string ServerAddress() => string.IsNullOrWhiteSpace(_server.value) ? _join.DefaultLoginAddress : _server.value.Trim();
 
@@ -511,6 +545,7 @@ namespace ShapeLand.Client
             SetChanging(false);
             _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = RememberedServer();
+            ShowServer();
             _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
             ShowStartZone(glide: false);
             _color = Remembered(ColorKey);
@@ -883,10 +918,17 @@ namespace ShapeLand.Client
         // The signed-in card's Set password page; back to the card once it's saved.
         private async System.Threading.Tasks.Task SavePassword()
         {
+            if (_setPassword.value != _setPasswordAgain.value)
+            {
+                ShowError(Text("account.passwords_differ"));
+                return;
+            }
+
             SetButton(false, "account.saving");
             ShowError(null);
             var error = await _join.SetPasswordAsync(_setPassword.value);
             _setPassword.value = "";
+            _setPasswordAgain.value = "";
             if (error != null)
             {
                 ShowError(LoginMessage(_content.Strings, error));
