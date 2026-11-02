@@ -72,6 +72,7 @@ namespace ShapeLand.Client
         private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
         // The step Confirm it's you goes on to once the password checks out.
         private Step _afterConfirm;
+        private bool _resubmitPassword; // the confirm came from a refused change, so the typed password goes on after it
         private bool _busy;
         // Whether the code shown was copied, which is as close to "saved" as the page can tell.
         private bool _copied;
@@ -117,7 +118,7 @@ namespace ShapeLand.Client
             _submit.clicked += Submit;
             _copy.clicked += CopyCode;
             _usernameRow.RegisterCallback<ClickEvent>(_ => ShowStep(Step.Rename));
-            _passwordRow.RegisterCallback<ClickEvent>(_ => ShowStep(Step.Password));
+            _passwordRow.RegisterCallback<ClickEvent>(_ => OpenPassword());
             _codeRow.RegisterCallback<ClickEvent>(_ => MakeCode());
             _signOut = root.Q<Button>("account-sign-out");
             _signOut.clicked += AskToSignOut;
@@ -445,7 +446,7 @@ namespace ShapeLand.Client
             }
             else if (item == _passwordRow)
             {
-                ShowStep(Step.Password);
+                OpenPassword();
             }
             else if (item == _codeRow)
             {
@@ -582,6 +583,31 @@ namespace ShapeLand.Client
             ShowStep(Step.Rows);
         }
 
+        // Changing a password needs a recent sign-in, so it's asked for before the new password is typed (a guest's
+        // first password needs none).
+        private async void OpenPassword()
+        {
+            if (_busy)
+            {
+                return;
+            }
+
+            _resubmitPassword = false;
+            if (!(_hud.Join.Account?.Guest ?? true))
+            {
+                Busy(true);
+                await _hud.Join.RefreshAccountAsync(); // whether the sign-in is still recent now, not when the page opened
+                Busy(false);
+                if (!(_hud.Join.Account?.RecentSignIn ?? false))
+                {
+                    AskToConfirm(Step.Password);
+                    return;
+                }
+            }
+
+            ShowStep(Step.Password);
+        }
+
         private async void SetPassword()
         {
             if (_busy)
@@ -600,6 +626,8 @@ namespace ShapeLand.Client
             Busy(false);
             if (error == LoginErrors.SignInAgain)
             {
+                // The sign-in got old while the new password was typed: confirm, then go on with it.
+                _resubmitPassword = true;
                 AskToConfirm(Step.Password);
                 return;
             }
@@ -667,9 +695,10 @@ namespace ShapeLand.Client
             {
                 MakeCode();
             }
-            else if (_afterConfirm == Step.Password)
+            else if (_afterConfirm == Step.Password && _resubmitPassword)
             {
                 // Back to the change with the new password still typed in, and on with it.
+                _resubmitPassword = false;
                 var (typed, again) = (_passwordField.value, _passwordAgain.value);
                 ShowStep(Step.Password);
                 _passwordField.value = typed;
