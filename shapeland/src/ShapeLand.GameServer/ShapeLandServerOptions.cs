@@ -35,4 +35,14 @@ public sealed class ShapeLandServerOptions
 
     /// <summary>How often moved players' positions are saved and held characters checked (kicks), in seconds.</summary>
     public double SaveIntervalSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// Joins without accounts, for the Unity editor's own server: clients join by name (<c>DevJoinRequest</c>), and
+    /// the characters live in memory, kept in <see cref="DevCharactersFile"/>, so no Login server, PostgreSQL or
+    /// tickets are needed. Debug builds only: a Release build refuses to start with it.
+    /// </summary>
+    public bool DevJoins { get; set; }
+
+    /// <summary>With <see cref="DevJoins"/>, the snapshot file the characters and their spots are kept in; empty for memory only.</summary>
+    public string DevCharactersFile { get; set; } = "";
 }

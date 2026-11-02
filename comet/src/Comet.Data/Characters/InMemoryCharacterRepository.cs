@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -6,8 +7,9 @@ namespace Comet.Data.Characters;
 
 /// <summary>
 /// The rows an <see cref="InMemoryCharacterRepository{TCharacter}"/> reads and writes, shareable between several
-/// repositories (servers) as one database would be. For tests: it also does what the Login server does to the
-/// region (adding characters, renaming, deleting, kicking). Thread-safe.
+/// repositories (servers) as one database would be. It also does what the Login server does to the region (adding
+/// characters, renaming, deleting, kicking), for tests and for a development server without accounts, which can
+/// keep the characters and their spots in a snapshot file (<see cref="Load"/>). Thread-safe.
 /// </summary>
 public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     where TCharacter : Character
@@ -22,6 +24,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     private readonly Dictionary<long, TCharacter> _characters = [];
     private readonly Dictionary<long, CharacterOwner> _owners = [];
     private readonly Dictionary<long, CharacterStatus> _statuses = [];
+    private string? _snapshot; // the file every change is written to, once loaded from one
 
     public TimeProvider Clock => clock;
 
@@ -31,9 +34,70 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     {
         lock (_lock)
         {
-            var copy = (TCharacter)character.Copy();
-            copy.CreatedAt = copy.UpdatedAt = Now;
-            _characters.Add(copy.Id, copy);
+            AddLocked(character);
+        }
+    }
+
+    /// <summary>
+    /// The live character with this name, ignoring case (as the name column does), or a new one from
+    /// <paramref name="make"/>, given the next free ID. Returns its ID, and whether it was made.
+    /// </summary>
+    public (long Id, bool Made) FindOrAdd(string name, Func<long, TCharacter> make)
+    {
+        lock (_lock)
+        {
+            var found = _characters.Values.FirstOrDefault(c => !c.IsDeleted && string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (found != null)
+            {
+                return (found.Id, false);
+            }
+
+            var id = _characters.Count == 0 ? 1 : _characters.Keys.Max() + 1;
+            AddLocked(make(id));
+            return (id, true);
+        }
+    }
+
+    /// <summary>
+    /// Reads the characters and their spots from a snapshot file, and from then on writes it after every change. A
+    /// missing file starts empty; one that won't read (damaged, or from an older character class) is renamed to
+    /// <c>.bad</c> and the database starts empty, returning why. Owners aren't kept, so no character loads held.
+    /// </summary>
+    public string? Load(string path)
+    {
+        lock (_lock)
+        {
+            _snapshot = path;
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            try
+            {
+                var snapshot = JsonSerializer.Deserialize<Snapshot>(File.ReadAllText(path))
+                    ?? throw new JsonException("The file is empty.");
+                _characters.Clear();
+                _statuses.Clear();
+                foreach (var character in snapshot.Characters)
+                {
+                    _characters.Add(character.Id, character);
+                }
+
+                foreach (var status in snapshot.Statuses.Where(s => _characters.ContainsKey(s.CharacterId)))
+                {
+                    _statuses.Add(status.CharacterId, status);
+                }
+
+                return null;
+            }
+            catch (Exception e) when (e is JsonException or NotSupportedException or ArgumentException)
+            {
+                _characters.Clear();
+                _statuses.Clear();
+                File.Move(path, path + ".bad", overwrite: true);
+                return e.Message;
+            }
         }
     }
 
@@ -69,6 +133,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         lock (_lock)
         {
             WriteStatusLocked(characterId, position);
+            WriteSnapshotLocked();
         }
     }
 
@@ -79,6 +144,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
             var character = _characters[characterId];
             character.Name = name;
             character.UpdatedAt = Now;
+            WriteSnapshotLocked();
         }
     }
 
@@ -89,6 +155,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         {
             _characters[characterId].DeletedAt = Now;
             BumpLocked(characterId);
+            WriteSnapshotLocked();
         }
     }
 
@@ -152,6 +219,11 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
                 applied.Add(save.CharacterId);
             }
 
+            if (applied.Count > 0)
+            {
+                WriteSnapshotLocked();
+            }
+
             return applied;
         }
     }
@@ -172,6 +244,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
             }
 
             stored.UpdatedAt = Now;
+            WriteSnapshotLocked();
             return true;
         }
     }
@@ -188,6 +261,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
             if (position is { } final)
             {
                 WriteStatusLocked(characterId, final);
+                WriteSnapshotLocked();
             }
 
             var owner = _owners[characterId];
@@ -217,6 +291,31 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
+    private void AddLocked(TCharacter character)
+    {
+        var copy = (TCharacter)character.Copy();
+        copy.CreatedAt = copy.UpdatedAt = Now;
+        _characters.Add(copy.Id, copy);
+        WriteSnapshotLocked();
+    }
+
+    // Under the lock, so one write goes at a time and each has the latest rows; written beside the file and renamed
+    // over it, so a crash mid-write leaves the last good one.
+    private void WriteSnapshotLocked()
+    {
+        if (_snapshot == null)
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_snapshot))!);
+        var next = _snapshot + ".new";
+        File.WriteAllText(next, JsonSerializer.Serialize(new Snapshot([.. _characters.Values], [.. _statuses.Values])));
+        File.Move(next, _snapshot, overwrite: true);
+    }
+
+    private sealed record Snapshot(List<TCharacter> Characters, List<CharacterStatus> Statuses);
+
     private bool HoldsLocked(long characterId, long version, int serverId) =>
         _owners.TryGetValue(characterId, out var owner)
         && owner.ServerId == serverId && owner.Version == version && owner.IsHeld;
@@ -244,7 +343,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
 }
 
 /// <summary>
-/// The character repository in memory, for game-server tests: the same contract as the PostgreSQL
+/// The character repository in memory, for game-server tests and development servers without accounts: the same contract as the PostgreSQL
 /// <see cref="CharacterRepository{TCharacter, TContext}"/> (claims, versions, refused saves, releases and the save
 /// queue), checked by the same contract tests.
 /// </summary>

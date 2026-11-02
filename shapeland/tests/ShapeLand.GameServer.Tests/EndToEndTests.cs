@@ -486,7 +486,7 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     /// <summary>A bare WebSocket client, for tests that send and read single messages.</summary>
-    private sealed class RawClient : IDisposable
+    internal sealed class RawClient : IDisposable
     {
         private readonly ClientWebSocket _socket = new();
         private readonly Queue<(ushort Id, ReadOnlyMemory<byte> Payload)> _received = new();

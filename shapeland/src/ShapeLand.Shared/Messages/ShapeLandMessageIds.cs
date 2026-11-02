@@ -13,6 +13,7 @@ namespace ShapeLand.Shared.Messages
         public const ushort LookRejected = MessageIds.FirstGameMessage + 4;
         public const ushort NameChanged = MessageIds.FirstGameMessage + 5;
         public const ushort Dropped = MessageIds.FirstGameMessage + 6;
+        public const ushort DevJoinRequest = MessageIds.FirstGameMessage + 7;
 
         // Chat
         public const ushort ChatSend = MessageIds.FirstGameMessage + 10;

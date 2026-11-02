@@ -40,6 +40,19 @@ public static class ShapeLandServer
         builder.Services.AddSingleton(builder.Configuration.GetSection("Comet:Connections").Get<ConnectionLimits>() ?? new ConnectionLimits());
         builder.Services.TryAddSingleton(TimeProvider.System);
 
+        var devJoins = builder.Configuration.GetValue<bool>("ShapeLand:DevJoins");
+#if DEBUG
+        if (devJoins)
+        {
+            AddDevCharacters(builder);
+        }
+#else
+        if (devJoins)
+        {
+            throw new InvalidOperationException("ShapeLand:DevJoins is for development: only a Debug build of the game server takes it.");
+        }
+#endif
+
         // Characters on PostgreSQL; tests put an in-memory repository and their own ticket keys in first.
         builder.Services.TryAddSingleton<ICharacterRepository<ShapeLandCharacter>>(services =>
         {
@@ -80,9 +93,14 @@ public static class ShapeLandServer
             services.GetRequiredService<ShapeLandContent>(),
             services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.StartSpawn,
             services.GetRequiredService<ConnectionRegistry>(),
-            services.GetRequiredService<TicketChecker>(),
+            devJoins ? null : services.GetRequiredService<TicketChecker>(),
             services.GetRequiredService<ICharacterRepository<ShapeLandCharacter>>(),
-            services.GetRequiredService<ILogger<ShapeLandGame>>()));
+            services.GetRequiredService<ILogger<ShapeLandGame>>())
+        {
+#if DEBUG
+            DevCharacters = services.GetService<DevCharacters>(),
+#endif
+        });
         builder.Services.AddSingleton<IConnectionHandler>(services => services.GetRequiredService<ShapeLandGame>());
         builder.Services.AddSingleton(services => new TickLoop(ShapeLandRules.TickRate, services.GetRequiredService<ShapeLandGame>().Tick));
         builder.Services.AddHostedService<GameStartup>();
@@ -132,9 +150,56 @@ public static class ShapeLandServer
             return Results.Json(new ServerInfo(contentHash));
         });
 
+#if DEBUG
+        if (devJoins)
+        {
+            // Lets the editor stop the server the way Ctrl+C does (spots saved, the snapshot written) rather than
+            // killing it, on every platform. Only from this computer.
+            app.MapPost("/dev/stop", (HttpContext context, IHostApplicationLifetime lifetime) =>
+            {
+                if (context.Connection.RemoteIpAddress is not { } address || !System.Net.IPAddress.IsLoopback(address))
+                {
+                    return Results.StatusCode(StatusCodes.Status403Forbidden);
+                }
+
+                lifetime.StopApplication();
+                return Results.Accepted();
+            });
+        }
+#endif
+
         app.Services.GetRequiredService<LoadedContent>(); // a missing content file stops the server now
         return app;
     }
+
+#if DEBUG
+    // Characters in memory, kept in the snapshot file, with positions saved every few seconds so a server the editor
+    // kills (rather than stops) loses little of where everyone stood.
+    private static void AddDevCharacters(WebApplicationBuilder builder)
+    {
+        builder.Services.AddSingleton(services =>
+        {
+            var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
+            var database = new InMemoryCharacterDatabase<ShapeLandCharacter>(services.GetRequiredService<TimeProvider>());
+            if (!string.IsNullOrEmpty(options.DevCharactersFile) && database.Load(options.DevCharactersFile) is { } problem)
+            {
+                services.GetRequiredService<ILogger<DevCharacters>>().LogWarning(
+                    "Couldn't read {File} ({Problem}); it was renamed to .bad, and the characters start over", options.DevCharactersFile, problem);
+            }
+
+            return new DevCharacters(database);
+        });
+        builder.Services.AddSingleton<ICharacterRepository<ShapeLandCharacter>>(services =>
+            new InMemoryCharacterRepository<ShapeLandCharacter>(
+                services.GetRequiredService<DevCharacters>().Database,
+                new CharacterRepositoryOptions
+                {
+                    ServerId = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.ServerId,
+                    SaveInterval = TimeSpan.FromSeconds(5),
+                },
+                services.GetRequiredService<ILogger<ICharacterRepository<ShapeLandCharacter>>>()));
+    }
+#endif
 
     // Before the server takes connections (hosted services start before it listens): waits for the database
     // (the Login server migrates it, and makes the ticket keys before that), then builds the game and starts the
