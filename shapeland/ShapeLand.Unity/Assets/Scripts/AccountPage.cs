@@ -10,7 +10,7 @@ namespace ShapeLand.Client
     /// The Esc menu's Account page: rows like Settings (Username, Set or Change password, Recovery code, Sign out), each
     /// opening its own step in the same window. Changing the password or making a code needs a recent sign-in; when the
     /// Login server says so, the Confirm it's you step asks for the password, then the change goes on. A new recovery
-    /// code is shown once, and leaving it any way but "I saved it" asks first. Signing out asks first, and a guest is
+    /// code is shown once; Copy counts as saving it, and leaving before that asks first. Signing out asks first, and a guest is
     /// offered Set password. Pointer and touch only for now; Esc or Back goes back a step, then to the menu.
     /// </summary>
     public sealed class AccountPage
@@ -58,6 +58,8 @@ namespace ShapeLand.Client
         // The step Confirm it's you goes on to once the password checks out.
         private Step _afterConfirm;
         private bool _busy;
+        // Whether the code shown was copied, which is as close to "saved" as the page can tell.
+        private bool _copied;
 
         public AccountPage(Hud hud, VisualElement root)
         {
@@ -97,6 +99,7 @@ namespace ShapeLand.Client
             {
                 GUIUtility.systemCopyBuffer = _codeText.text;
                 _copy.text = Text("account.copied");
+                _copied = true;
             };
             root.Q("account-username-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Rename));
             root.Q("account-password-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Password));
@@ -160,7 +163,7 @@ namespace ShapeLand.Client
             switch (_step)
             {
                 case Step.Code:
-                    AskToLeaveCode();
+                    LeaveCode();
                     return;
                 case Step.Rows:
                     Close();
@@ -236,6 +239,7 @@ namespace ShapeLand.Client
                 case Step.Code:
                     _codeIntro.text = strings.Format("account.code_intro", name);
                     _copy.text = Text("account.copy");
+                    _copied = false;
                     SetSubmit();
                     break;
             }
@@ -270,7 +274,7 @@ namespace ShapeLand.Client
                     Confirm();
                     break;
                 case Step.Code:
-                    ShowStep(Step.Rows);
+                    LeaveCode();
                     break;
             }
         }
@@ -397,6 +401,18 @@ namespace ShapeLand.Client
             }
         }
 
+        // Leaving the code: once copied it just goes; before that it asks, since the code can't be shown again.
+        private void LeaveCode()
+        {
+            if (_copied)
+            {
+                ShowStep(Step.Rows);
+                return;
+            }
+
+            AskToLeaveCode();
+        }
+
         private void AskToLeaveCode() =>
             _confirm.Show(Text("account.leave_code_title"), Text("account.leave_code_note"), null,
                 (Text("account.show_code"), false, null),
@@ -437,7 +453,7 @@ namespace ShapeLand.Client
                 Step.Rename => "account.save_username",
                 Step.Password => "account.save_password",
                 Step.Confirm => "account.continue",
-                _ => "account.saved_it",
+                _ => "account.done",
             });
         }
 
