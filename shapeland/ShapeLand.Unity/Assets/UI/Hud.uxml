@@ -170,13 +170,13 @@
                     <ui:VisualElement class="field">
                         <ui:Label text="#account.new_password_label" class="label" />
                         <ui:TextField name="account-password-field" password="true" max-length="128" class="input" />
-                        <ui:Label text="#account.password_rules" class="card-note" />
                     </ui:VisualElement>
                     <ui:VisualElement class="field">
                         <ui:Label text="#account.confirm_password_label" class="label" />
                         <ui:TextField name="account-password-again" password="true" max-length="128" class="input" />
-                        <ui:Label name="account-password-signs-out" class="card-note" />
                     </ui:VisualElement>
+                    <ui:Label text="#account.password_rules" class="card-note" />
+                    <ui:Label name="account-password-signs-out" class="card-note" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="account-confirm" class="account-step">

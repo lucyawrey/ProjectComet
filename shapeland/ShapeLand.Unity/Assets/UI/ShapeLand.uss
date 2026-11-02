@@ -628,7 +628,9 @@ Label { padding: 0; margin: 0; }
 .account-step { display: none; flex-grow: 1; }
 .account-step.shown { display: flex; }
 .account-form { padding: 4px 12px 0 12px; flex-grow: 1; }
-.account-form .field { max-width: 340px; }
+/* Fields evenly spaced; their notes together after the last one. */
+.account-form .field, .card-page .field { max-width: 340px; margin-bottom: 14px; }
+.account-form > .card-note, .card-page > .card-note { margin-top: 0; margin-bottom: 4px; }
 .account-text { font-size: 15px; white-space: normal; margin-bottom: 12px; max-width: 460px; }
 .account-row-value { flex-direction: row; align-items: center; font-size: 14px; color: rgb(169, 178, 196); }
 .account-who { flex-direction: row; align-items: center; padding: 2px 12px 10px 12px; border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07); }
