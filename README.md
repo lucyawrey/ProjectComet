@@ -19,9 +19,11 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 - **.NET 10 SDK**: for the servers, libraries, bots and tools.
 - **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/ShapeLand.Unity`).
-- **Docker**: for the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`).
+- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`).
 
 - **AWS CLI and Vercel CLI**: only for the public test build.
+
+The scripts are bash, and the Unity editor runs one to start the database, so working on the project needs macOS or Linux; Windows isn't supported yet.
 
 ## Layout
 
@@ -49,13 +51,14 @@ Run them from the repository root. Each script's options are listed below and in
 
 | Script | What it's for |
 | --- | --- |
+| `tools/comet-postgres.sh` | The shared development PostgreSQL, `comet-postgres` on `127.0.0.1:55432` (a Docker container that stays running, data in the `comet-postgres-data` volume), with a database per local stack. The other scripts and the Unity editor start it themselves; `tools/comet-postgres.sh` alone lists its commands. |
 | `tools/blender-export-glb.py` | Export each top-level object in a `.blend` file as a `.glb`, into the folder named by the file's `export_dir` property. Run it from Blender's Text Editor, or with `blender -b <file> --python tools/blender-export-glb.py`; the script's header has the setup. |
-| `tools/shapeland-dev.sh` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the server, for the editor's play mode or a desktop build. It restarts the server when the content changes. The Unity editor can run the server itself for play mode, with optional bots, web build and local network ([Comet › Server](comet/README.md#the-local-game-server)), so most level work needs no terminal. |
+| `tools/shapeland-dev.sh` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the servers, for the editor's play mode or a desktop build. It starts PostgreSQL (`tools/comet-postgres.sh`, with a database for the checkout and port), the Login server (on the game server's port + 10) and the game server, and restarts both servers when the content changes. The Unity editor can run the server itself for play mode, with optional bots, web build and local network ([Comet › Server](comet/README.md#the-local-game-server)), so most level work needs no terminal. |
 | `tools/shapeland-netrun.sh` | Headless bot runs under a simulated network profile, printing what the bots measured (snap-backs, cheaters caught, ping, interpolation delay). |
 | `tools/shapeland-net-profiles.sh` | The network profiles the other scripts use: `none`, `good` (about 80 ms round trip, 1% loss), `bad` (about 200 ms, 2% loss) and `awful` (about 200 ms, 5% loss). |
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
 | `tools/unity-batch.sh` | Run a Unity build or tests and return when the work is done: in the open editor when it has the project open, else in batch mode (where the editor often hangs while quitting). |
-| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
+| `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First time setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
 | `tools/StackBench/` | The stack benchmark: Comet's message layer under load, with no game logic. See its [README](tools/StackBench/README.md). |
 
 ### Play locally in a browser
@@ -72,10 +75,10 @@ tools/shapeland-dev.sh --spawn spawn.tests.start   # start everyone at one spawn
 | --- | --- |
 | `--rebuild` | Make the Unity web build even if it looks up to date. |
 | `--no-build` | Use the last web build as it is (content still rebuilds). |
-| `--bots N` | Start N honest bots (default 0). |
+| `--bots N` | Start N honest bots (default 0): guest accounts named `Bot0001` and on, whose tokens are kept in `artifacts/bot-tokens`, so later runs play the same accounts. |
 | `--cheaters N` | Start N speed-cheating bots (default 0). |
 | `--bots-chat` | Let the bots chat now and then (they stay quiet otherwise). |
-| `--port P` | The game server's port (default 5080). |
+| `--port P` | The game server's port (default 5080); the Login server takes P + 10. |
 | `--lan` | Listen on every network interface, so other devices on the network can join. |
 | `--no-open` | Don't open the page in a browser. |
 | `--net P` | Run the server and bots in Docker with a network profile on the server's link, so every client gets it (desktop builds too). |

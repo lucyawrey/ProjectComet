@@ -26,7 +26,12 @@ namespace ShapeLand.Client
         private const float SpeedStep = 0.05f;
         private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
         private const float RowHeight = 42;
-        private const int ChangeLookEntry = 3;
+        private const int ChangeLookEntry = 4;
+
+        /// <summary>The Account entry's place in the list, where the Account page's Back returns to.</summary>
+        public const int AccountEntry = 3;
+
+        private const int LeaveEntry = 6;
 
         /// <summary>
         /// Turns off UI Toolkit's own keys-and-gamepad navigation under <paramref name="root"/>: the menu and the look
@@ -113,23 +118,26 @@ namespace ShapeLand.Client
             _settingsName = root.Q<Label>("menu-page-settings");
             root.Q("menu-host").pickingMode = PickingMode.Ignore;
 
-            _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-leave") };
+            _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-account"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-leave") };
             _entryActions = new Action[]
             {
                 Close,
                 () => ShowPage(Page.Controls),
                 () => ShowPage(Page.Settings),
+                () => { Close(); _hud.OpenAccount(); },
                 () => { Close(); _hud.OpenLook(fromMenu: true); },
                 () => { Close(); _hud.ReturnToSpawn(); },
                 () => ShowPage(Page.Leave),
             };
-            _confirmEntries = new[] { root.Q("menu-stay"), root.Q("menu-leave-confirm") };
-            _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed"), root.Q("setting-stats"), root.Q("setting-hitboxes") };
+            // Leave first: the player was already heading there.
+            _confirmEntries = new[] { root.Q("menu-leave-confirm"), root.Q("menu-stay") };
+            _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed"), root.Q("setting-auto-join"), root.Q("setting-stats"), root.Q("setting-hitboxes") };
             _switches = new (int, VisualElement, Func<bool>, Action)[]
             {
                 (0, root.Q("walls-switch"), () => _hud.View.ShowThroughWalls, () => _hud.View.ShowThroughWalls = !_hud.View.ShowThroughWalls),
-                (2, root.Q("stats-switch"), () => _hud.Stats.Shown, () => _hud.Stats.Toggle()),
-                (3, root.Q("hitboxes-switch"), () => _hud.Collisions.Shown, () => _hud.Collisions.Toggle()),
+                (2, root.Q("auto-join-switch"), () => GameSettings.AutoJoin, () => GameSettings.AutoJoin = !GameSettings.AutoJoin),
+                (3, root.Q("stats-switch"), () => _hud.Stats.Shown, () => _hud.Stats.Toggle()),
+                (4, root.Q("hitboxes-switch"), () => _hud.Collisions.Shown, () => _hud.Collisions.Toggle()),
             };
             _tabs = new[]
             {
@@ -158,9 +166,10 @@ namespace ShapeLand.Client
                 _settingRows[i].RegisterCallback<PointerEnterEvent>(_ => Select(index));
             }
 
-            foreach (var (row, _, _, _) in _switches)
+            foreach (var (row, element, _, _) in _switches)
             {
                 _settingRows[row].RegisterCallback<ClickEvent>(_ => Flip(row));
+                element.AddToClassList("settling"); // no slide until Settings has been shown once (ShowPage)
             }
             foreach (var (kind, tab, _) in _tabs)
             {
@@ -227,7 +236,7 @@ namespace ShapeLand.Client
                     Close();
                     break;
                 case Page.Leave:
-                    ShowPage(Page.List, 5);
+                    ShowPage(Page.List, LeaveEntry);
                     break;
                 default:
                     ShowPage(Page.List, _page == Page.Controls ? 1 : 2);
@@ -402,12 +411,12 @@ namespace ShapeLand.Client
         {
             if (index == 0)
             {
-                Back();
+                Close();
+                _hud.Join.Leave();
             }
             else
             {
-                Close();
-                _hud.Join.Leave();
+                Back();
             }
         }
 
@@ -438,6 +447,14 @@ namespace ShapeLand.Client
             {
                 _shownSpeed = -1;
                 ShowSettings();
+                // The switches start "on" in Menu.uxml: they take their real state without sliding the first time.
+                _settings.schedule.Execute(() =>
+                {
+                    foreach (var (_, element, _, _) in _switches)
+                    {
+                        element.RemoveFromClassList("settling");
+                    }
+                }).ExecuteLater(200);
             }
 
             _scroll.scrollOffset = Vector2.zero;

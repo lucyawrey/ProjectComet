@@ -1,12 +1,15 @@
 #!/bin/bash
-# First boot of the public test build's game server, on Amazon Linux 2023 (ARM). tools/shapeland-testbuild.sh
-# fills in the {{…}} values and passes this as the instance's user data; its output goes to the console log
+# First boot of the public test build's server, on Amazon Linux 2023 (ARM): PostgreSQL, the Login server and the game
+# server behind Caddy. tools/shapeland-testbuild.sh fills in the {{…}} values, passes this as the instance's user data
+# and attaches the kept data volume once the instance runs; the output goes to the console log
 # (tools/shapeland-testbuild.sh log). The instance has no AWS permissions: the package comes through a pre-signed link.
 set -euxo pipefail
 
 HOST='{{HOST}}'
+PAGE_ORIGIN='{{PAGE_ORIGIN}}'
 ACME_EMAIL='{{ACME_EMAIL}}'
 PACKAGE_URL='{{PACKAGE_URL}}'
+VOLUME_ID='{{VOLUME_ID}}'
 HOURS='{{HOURS}}'
 BOTS='{{BOTS}}'
 CADDY_VERSION=2.10.0
@@ -27,17 +30,102 @@ curl -fsSL -o /tmp/caddy.tar.gz "https://github.com/caddyserver/caddy/releases/d
 echo "$CADDY_SHA512  /tmp/caddy.tar.gz" | sha512sum -c -
 tar -xzf /tmp/caddy.tar.gz -C /usr/local/bin caddy
 
-cat > /etc/systemd/system/shapeland.service <<UNIT
+dnf install -y postgresql18-server
+
+# The kept data volume, which outlives the instance: PostgreSQL's data, its password, the ticket signing key and the
+# bots' tokens. The script attaches it once the instance runs; it's formatted only the first time.
+device="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${VOLUME_ID//-/}"
+for _ in $(seq 1 60); do
+  [ -e "$device" ] && break
+  sleep 5
+done
+[ -e "$device" ] || { echo "shapeland-testbuild: the data volume never appeared"; exit 1; }
+blkid "$device" || mkfs.ext4 -L shapeland-data "$device"
+mkdir -p /data
+echo "$device /data ext4 defaults,nofail 0 2" >> /etc/fstab
+mount /data
+mkdir -p /data/postgres /data/secrets /data/keys /data/bot-tokens
+chown postgres: /data/postgres && chmod 700 /data/postgres
+chown shapeland: /data/keys /data/bot-tokens && chmod 700 /data/keys
+chmod 700 /data/secrets
+
+# PostgreSQL on the volume, listening on this machine only, tuned small for the instance's memory.
+mkdir -p /etc/systemd/system/postgresql.service.d
+cat > /etc/systemd/system/postgresql.service.d/data.conf <<UNIT
+[Service]
+Environment=PGDATA=/data/postgres
+UNIT
+systemctl daemon-reload
+if [ ! -f /data/postgres/PG_VERSION ]; then
+  runuser -u postgres -- initdb -D /data/postgres -E UTF8 --auth-local=peer --auth-host=scram-sha-256
+  cat >> /data/postgres/postgresql.conf <<CONF
+listen_addresses = 'localhost'
+max_connections = 40
+shared_buffers = 64MB
+effective_cache_size = 256MB
+work_mem = 2MB
+maintenance_work_mem = 32MB
+CONF
+fi
+systemctl enable --now postgresql.service
+
+# The database and its owner (the Login server migrates as the owner), made on the first boot with a random password
+# kept on the volume. Not traced, so the password stays out of the console log.
+set +x
+if [ ! -f /data/secrets/database-password ]; then
+  head -c 32 /dev/urandom | base64 | tr -d '/+=' > /data/secrets/database-password
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 \
+    -c "CREATE ROLE shapeland LOGIN PASSWORD '$(cat /data/secrets/database-password)'" \
+    -c "CREATE DATABASE shapeland OWNER shapeland"
+fi
+connection="Host=127.0.0.1;Database=shapeland;Username=shapeland;Password=$(cat /data/secrets/database-password)"
+printf 'Login__ConnectionString=%s\nShapeLand__ConnectionString=%s\n' "$connection" "$connection" > /data/secrets/servers.env
+chown root:shapeland /data/secrets/servers.env && chmod 640 /data/secrets/servers.env
+chmod 711 /data/secrets
+set -x
+
+# The Login server: accounts and join tickets. It makes the ticket signing key on its first start (kept on the
+# volume, so tickets stay valid across redeploys); the game server reads only the public key. Requests through Caddy
+# carry the player's address, so only the bots here (127.0.0.1 directly) skip the rate limits.
+cat > /etc/systemd/system/shapeland-login.service <<UNIT
 [Unit]
-Description=ShapeLand game server
-After=network-online.target
+Description=ShapeLand Login server
+After=network-online.target postgresql.service
+Requires=postgresql.service
 
 [Service]
 User=shapeland
 WorkingDirectory=/opt/shapeland
-ExecStart=/opt/shapeland/server/ShapeLand.GameServer --urls http://127.0.0.1:5080 --ShapeLand:ContentFile=/opt/shapeland/content.bin
+EnvironmentFile=/data/secrets/servers.env
+ExecStart=/opt/shapeland/login/ShapeLand.LoginServer --urls http://127.0.0.1:5090 \
+  --ShapeLand:ContentFile=/opt/shapeland/content.bin --ShapeLand:GameServer:Address=wss://$HOST/ws \
+  --Login:SigningKeyFile=/data/keys/login.pem --Login:PublicKeysFolder=/data/keys/public --Login:CreateSigningKey=true \
+  --Login:AllowedOrigins:0=$PAGE_ORIGIN --Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1
 Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# The game server, after the Login server (which makes the keys it reads); it restarts until they're there.
+# Ordered after PostgreSQL too, so on down or redeploy it stops (and saves its players) before the database does.
+cat > /etc/systemd/system/shapeland.service <<UNIT
+[Unit]
+Description=ShapeLand game server
+After=network-online.target postgresql.service shapeland-login.service
+Wants=postgresql.service
+
+[Service]
+User=shapeland
+WorkingDirectory=/opt/shapeland
+EnvironmentFile=/data/secrets/servers.env
+ExecStart=/opt/shapeland/server/ShapeLand.GameServer --urls http://127.0.0.1:5080 \
+  --ShapeLand:ContentFile=/opt/shapeland/content.bin --ShapeLand:TicketKeysFolder=/data/keys/public
+Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
@@ -45,7 +133,7 @@ UNIT
 
 cat > /etc/systemd/system/caddy.service <<UNIT
 [Unit]
-Description=Caddy, TLS for the ShapeLand game server
+Description=Caddy, TLS for the ShapeLand Login and game servers
 After=network-online.target shapeland.service
 
 [Service]
@@ -59,7 +147,8 @@ Restart=on-failure
 WantedBy=multi-user.target
 UNIT
 
-# Honest bots on the same instance, so visitors see someone moving; restarted if they stop (as when the server does).
+# Honest bots on the same instance, so visitors see someone moving: guest accounts whose tokens stay on the volume,
+# joining this machine's game server directly. Restarted if they stop (as when the server does).
 if [ "$BOTS" -gt 0 ]; then
   cat > /etc/systemd/system/shapeland-bots.service <<UNIT
 [Unit]
@@ -69,7 +158,8 @@ After=shapeland.service
 [Service]
 User=shapeland
 WorkingDirectory=/opt/shapeland
-ExecStart=/opt/shapeland/bots/ShapeLand.Bots --url ws://127.0.0.1:5080/ws --count $BOTS --cheaters 0 --content /opt/shapeland/content.bin
+ExecStart=/opt/shapeland/bots/ShapeLand.Bots --login http://127.0.0.1:5090 --tokens /data/bot-tokens \
+  --server ws://127.0.0.1:5080/ws --count $BOTS --cheaters 0 --content /opt/shapeland/content.bin
 Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 Restart=always
 RestartSec=10
@@ -80,7 +170,7 @@ UNIT
 fi
 
 systemctl daemon-reload
-systemctl enable --now shapeland.service
+systemctl enable --now shapeland-login.service shapeland.service
 if [ "$BOTS" -gt 0 ]; then
   systemctl enable --now shapeland-bots.service
 fi

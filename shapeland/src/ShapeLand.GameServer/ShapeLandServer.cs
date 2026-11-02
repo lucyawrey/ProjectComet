@@ -1,11 +1,17 @@
 using Comet.Content;
+using Comet.Data;
+using Comet.Data.Characters;
 using Comet.Server;
 using Comet.Server.Connections;
 using Comet.Server.Ticking;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
+using Comet.Tickets;
+using ShapeLand.Data;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -32,20 +38,82 @@ public static class ShapeLandServer
         builder.Services.AddSingleton(services => services.GetRequiredService<LoadedContent>().Content);
         builder.Services.AddSingleton(new ConnectionRegistry(ShapeLandProtocol.Options));
         builder.Services.AddSingleton(builder.Configuration.GetSection("Comet:Connections").Get<ConnectionLimits>() ?? new ConnectionLimits());
+        builder.Services.TryAddSingleton(TimeProvider.System);
+
+        // Characters on PostgreSQL; tests put an in-memory repository and their own ticket keys in first.
+        builder.Services.TryAddSingleton<ICharacterRepository<ShapeLandCharacter>>(services =>
+        {
+            var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
+            if (string.IsNullOrEmpty(options.ConnectionString))
+            {
+                throw new InvalidOperationException("Set ShapeLand:ConnectionString (the region database, which the Login server migrates).");
+            }
+
+            var clock = services.GetRequiredService<TimeProvider>();
+            return new CharacterRepository<ShapeLandCharacter, ShapeLandRegionContext>(
+                () =>
+                {
+                    var context = new DbContextOptionsBuilder<ShapeLandRegionContext>();
+                    context.UseCometRegion(options.ConnectionString, clock);
+                    return new ShapeLandRegionContext(context.Options);
+                },
+                new CharacterRepositoryOptions { ServerId = options.ServerId, SaveInterval = TimeSpan.FromSeconds(options.SaveIntervalSeconds) },
+                clock,
+                services.GetRequiredService<ILogger<ICharacterRepository<ShapeLandCharacter>>>());
+        });
+        builder.Services.TryAddSingleton(services =>
+        {
+            var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
+            var folder = string.IsNullOrEmpty(options.TicketKeysFolder)
+                ? Path.Combine(FindRepoRoot(), "artifacts", "keys", "public")
+                : options.TicketKeysFolder;
+            var keys = Directory.Exists(folder) ? TicketKeys.PublicKeysIn(folder) : [];
+            if (keys.Count == 0)
+            {
+                throw new InvalidOperationException($"No ticket keys in {folder}: start the Login server first (it makes them in development), or set ShapeLand:TicketKeysFolder.");
+            }
+
+            return new TicketChecker(keys, options.ServerId, services.GetRequiredService<TimeProvider>());
+        });
+
         builder.Services.AddSingleton(services => new ShapeLandGame(
             services.GetRequiredService<ShapeLandContent>(),
             services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.StartSpawn,
             services.GetRequiredService<ConnectionRegistry>(),
+            services.GetRequiredService<TicketChecker>(),
+            services.GetRequiredService<ICharacterRepository<ShapeLandCharacter>>(),
             services.GetRequiredService<ILogger<ShapeLandGame>>()));
         builder.Services.AddSingleton<IConnectionHandler>(services => services.GetRequiredService<ShapeLandGame>());
         builder.Services.AddSingleton(services => new TickLoop(ShapeLandRules.TickRate, services.GetRequiredService<ShapeLandGame>().Tick));
+        builder.Services.AddHostedService<GameStartup>();
 
         var app = builder.Build();
         // Behind a proxy on this machine (Caddy, in the public test build), the client's address comes from
         // X-Forwarded-For, so the per-address connection cap counts players, not the proxy. Only a loopback proxy
         // is trusted (ASP.NET's default), so no client can set the header for itself.
         app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor });
-        ServeWebBuild(app, app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.WebRoot);
+        var serverOptions = app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
+        if (!string.IsNullOrEmpty(serverOptions.WebRoot))
+        {
+            // The page's Content Security Policy, the same as shapeland/deploy/vercel.json gives the public test build
+            // (keep them in step), so a page change that breaks it shows up here first.
+            var policy = PagePolicy(serverOptions.LoginUrl);
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers.ContentSecurityPolicy = policy;
+                await next();
+            });
+
+            // The page's settings, as the deploy writes them on the public test build: where the Login server is.
+            var config = $"window.shapelandLogin = {System.Text.Json.JsonSerializer.Serialize(serverOptions.LoginUrl)};\n";
+            app.MapGet("/config.js", (HttpContext context) =>
+            {
+                context.Response.Headers.CacheControl = "no-cache";
+                return Results.Text(config, "text/javascript");
+            });
+        }
+
+        ServeWebBuild(app, serverOptions.WebRoot);
         app.UseWebSockets();
         app.MapCometWebSocket("/ws");
 
@@ -64,25 +132,67 @@ public static class ShapeLandServer
             return Results.Json(new ServerInfo(contentHash));
         });
 
-        var tickLoop = app.Services.GetRequiredService<TickLoop>();
-        var game = app.Services.GetRequiredService<ShapeLandGame>(); // load content and build the worlds before accepting players
-        app.Logger.LogInformation("Playing {Zones}", string.Join(", ", game.Content.Zones.All.Select(z => z.Id)));
-        tickLoop.Failed += (tick, e) =>
-        {
-            // Fail fast: the world may be half-updated, so stop rather than play on; the host flushes the log.
-            app.Logger.LogCritical(e, "The game failed on tick {Tick}; stopping the server", tick);
-            Environment.ExitCode = 1;
-            app.Lifetime.StopApplication();
-        };
-        app.Lifetime.ApplicationStarted.Register(tickLoop.Start);
-        app.Lifetime.ApplicationStopping.Register(tickLoop.Stop);
+        app.Services.GetRequiredService<LoadedContent>(); // a missing content file stops the server now
         return app;
+    }
+
+    // Before the server takes connections (hosted services start before it listens): waits for the database
+    // (the Login server migrates it, and makes the ticket keys before that), then builds the game and starts the
+    // tick loop. On shutdown: stops the tick loop, saves everyone's spot and releases them, and flushes the saves.
+    private sealed class GameStartup(IServiceProvider services, IHostApplicationLifetime lifetime, ILogger<GameStartup> logger) : IHostedService
+    {
+        private static readonly TimeSpan FlushTimeout = TimeSpan.FromSeconds(10);
+
+        public async Task StartAsync(CancellationToken cancellationToken)
+        {
+            await services.GetRequiredService<ICharacterRepository<ShapeLandCharacter>>().StartAsync(cancellationToken);
+            var game = services.GetRequiredService<ShapeLandGame>(); // loads the content and builds the worlds
+            logger.LogInformation("Playing {Zones}", string.Join(", ", game.Content.Zones.All.Select(z => z.Id)));
+
+            var tickLoop = services.GetRequiredService<TickLoop>();
+            tickLoop.Failed += (tick, e) =>
+            {
+                // Fail fast: the world may be half-updated, so stop rather than play on; the host flushes the log.
+                logger.LogCritical(e, "The game failed on tick {Tick}; stopping the server", tick);
+                Environment.ExitCode = 1;
+                lifetime.StopApplication();
+            };
+            lifetime.ApplicationStarted.Register(tickLoop.Start);
+            lifetime.ApplicationStopping.Register(tickLoop.Stop);
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken)
+        {
+            // ApplicationStopping has stopped the tick loop, so the game's state is safe to read here.
+            var game = services.GetRequiredService<ShapeLandGame>();
+            var repository = services.GetRequiredService<ICharacterRepository<ShapeLandCharacter>>();
+            try
+            {
+                await game.LeaveAllAsync().WaitAsync(FlushTimeout, CancellationToken.None);
+            }
+            catch (TimeoutException)
+            {
+                logger.LogWarning("The final saves didn't finish within {Timeout}", FlushTimeout);
+            }
+
+            await repository.StopAsync(FlushTimeout);
+        }
     }
 
     // Serves a Unity web build at the root, for development. The game scene's build is Brotli-compressed with
     // the decompression fallback (files named .unityweb): browsers that accept br get Content-Encoding: br and
     // decompress natively; the rest (Firefox over plain HTTP) get the bytes as they are, and Unity's loader
     // unpacks them.
+    // Scripts only from the page's own site (Unity's loader adds blob: scripts and needs 'wasm-unsafe-eval'), fonts
+    // from Google Fonts, and connections to the page's own server and the Login server.
+    private static string PagePolicy(string loginUrl)
+    {
+        var login = Uri.TryCreate(loginUrl, UriKind.Absolute, out var url) ? " " + url.GetLeftPart(UriPartial.Authority) : "";
+        return "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' https://fonts.googleapis.com; "
+            + "font-src https://fonts.gstatic.com; img-src 'self' data: blob:; worker-src 'self' blob:; "
+            + $"connect-src 'self'{login}; object-src 'none'; base-uri 'none'";
+    }
+
     private static void ServeWebBuild(WebApplication app, string webRoot)
     {
         if (string.IsNullOrEmpty(webRoot))

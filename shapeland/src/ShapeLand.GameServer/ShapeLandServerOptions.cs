@@ -7,8 +7,8 @@ public sealed class ShapeLandServerOptions
     public string ContentFile { get; set; } = "";
 
     /// <summary>
-    /// A spawn point (<c>spawn.*</c>) every new player starts at, in place of their shape's own, for tests and for
-    /// trying a level; empty for none.
+    /// A spawn point (<c>spawn.*</c>) every player starts at, in place of their saved spot or their shape's spawn,
+    /// for tests and for trying a level; empty for none.
     /// </summary>
     public string StartSpawn { get; set; } = "";
 
@@ -17,4 +17,22 @@ public sealed class ShapeLandServerOptions
     /// connects to the host it came from); empty serves none.
     /// </summary>
     public string WebRoot { get; set; } = "";
+
+    /// <summary>
+    /// The Login server's address (<c>http://localhost:5090</c>), for the page this server serves (<see cref="WebRoot"/>):
+    /// its <c>config.js</c> names it, as the deploy's does on the public test build.
+    /// </summary>
+    public string LoginUrl { get; set; } = "";
+
+    /// <summary>This server's node number: join tickets name it, and its owner rows and Snowflake IDs carry it.</summary>
+    public int ServerId { get; set; } = 1;
+
+    /// <summary>The PostgreSQL connection string for the region database (the Login server migrates it).</summary>
+    public string ConnectionString { get; set; } = "";
+
+    /// <summary>The folder of the Login server's public keys (<c>*.pem</c>); empty means this repository's artifacts/keys/public.</summary>
+    public string TicketKeysFolder { get; set; } = "";
+
+    /// <summary>How often moved players' positions are saved and held characters checked (kicks), in seconds.</summary>
+    public double SaveIntervalSeconds { get; set; } = 60;
 }

@@ -25,9 +25,6 @@ public sealed class BotSettings
     /// <summary>Stay within this distance of the island's center, in meters.</summary>
     public float WanderRadius { get; set; } = 18;
 
-    /// <summary>Ask for this body color (0xRRGGBB) instead of a random one from the starting set.</summary>
-    public uint? Color { get; set; }
-
     /// <summary>Seconds after joining before network numbers are recorded (the delay settles first); negative for none.</summary>
     public double WarmupSeconds { get; set; } = -1;
 }
@@ -36,13 +33,13 @@ public sealed class BotSettings
 public readonly record struct NetSample(double Seconds, double PingMs, double BestPingMs, double DelayMs, double TargetMs);
 
 /// <summary>
-/// One simulated player: joins, wanders the island with the shared player motor, jumps now and then and chats
+/// One simulated player: gets a join ticket from its account, joins, wanders the island with the shared player motor, jumps now and then and chats
 /// occasionally. A cheating bot slides faster than its shape allows and should be snapped back. Runs on the
 /// same client session as the Unity client (tick estimate, interpolation buffer, report schedule), so load
 /// tests exercise that code too. Counts what it sees, so tests and the bot program can check the server.
 /// Moves in the zone the server last put it in, its world from <paramref name="worlds"/> (shared by many bots).
 /// </summary>
-public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, ZoneWorlds worlds)
+public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, ZoneWorlds worlds, IBotAccount account)
 {
     private const int StepsPerSecond = 30;
 
@@ -72,7 +69,14 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private (long MoveStates, long Holds, double HeldTicks, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks) _baseline;
     private double _lastRecord;
 
-    public string Name => name;
+    /// <summary>The name the bot plays under: its account's, which may have a suffix if the name was taken.</summary>
+    public string Name { get; private set; } = name;
+
+    /// <summary>Why the bot couldn't get a join ticket (a Login error code), or null.</summary>
+    public string? LoginFailure { get; private set; }
+
+    /// <summary>Why the server dropped the bot after it joined, or null.</summary>
+    public DropReason? DroppedFor { get; private set; }
 
     public uint EntityId => _session.EntityId;
 
@@ -140,9 +144,28 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     /// <summary>How long the holds since the warmup were, in seconds, summed.</summary>
     public double HeldSeconds => Joined && _recording ? (_session.Entities.HeldTicks - _baseline.HeldTicks) / _session.Entities.TickRate : 0;
 
-    public async Task RunAsync(Uri url, CancellationToken stop)
+    public async Task RunAsync(CancellationToken stop)
     {
-        var transport = new WebSocketTransport(url);
+        BotTicket? ticket;
+        string? failure;
+        try
+        {
+            (ticket, failure) = await account.TicketAsync(stop);
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (ticket == null)
+        {
+            LoginFailure = failure;
+            Failed = true;
+            return;
+        }
+
+        Name = ticket.Name;
+        var transport = new WebSocketTransport(ticket.Server);
         _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
             gravity: content.Movement.Gravity);
         _session.GameMessage += OnGameMessage;
@@ -167,15 +190,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 if (!asked && transport.State == TransportState.Open)
                 {
                     asked = true;
-                    _shape = content.Shapes.All[_random.Next(content.Shapes.All.Count)];
-                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest
-                    {
-                        Name = name,
-                        Shape = _shape.Number,
-                        Color = settings.Color ?? content.Settings.Colors.Players[_random.Next(content.Settings.Colors.Players.Length)],
-                        EyeColor = content.Settings.Colors.Players[_random.Next(content.Settings.Colors.Players.Length)],
-                        ContentFingerprint = content.Fingerprint,
-                    });
+                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = ticket.Ticket, ContentFingerprint = content.Fingerprint });
                 }
 
                 _session.Update(now);
@@ -258,6 +273,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 var position = new Vector3(spawn.X, spawn.Y, spawn.Z);
                 if (_session.Welcomed && spawn.EntityId == _session.EntityId)
                 {
+                    _shape = content.Shapes[spawn.Shape];
+                    if (Joined)
+                    {
+                        break; // a new look or name, where it stands
+                    }
+
                     Joined = true;
                     _joinedAt = _lastNow;
                     _motor = new MotorState { Position = position, Grounded = true, Facing = spawn.Facing };
@@ -296,6 +317,9 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 _world.SetFlipped(flipped.Tag, flipped.Flipped);
                 _passThrough.Flipped(_world, flipped.Tag, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
                 break;
+            case ShapeLandMessageIds.Dropped:
+                DroppedFor = FrameReader.Decode<Dropped>(payload, options).Reason;
+                break;
             case ShapeLandMessageIds.JoinRejected:
                 Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;
                 break;
@@ -327,7 +351,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     /// <summary>Whether a player's name is a cheating bot's, as Program names them ("Cheater 01", "Far cheater 01").</summary>
     public static bool IsCheaterName(string name) =>
-        name.StartsWith("Cheater ", StringComparison.Ordinal) || name.Contains(" cheater ", StringComparison.Ordinal);
+        name.StartsWith("Cheater", StringComparison.Ordinal) || name.Contains("-cheater", StringComparison.Ordinal);
 
     // The speed-hitch test RemoteEntities applies to others' states, applied to this bot's own reports: what its
     // real movement does, to compare with what others draw.

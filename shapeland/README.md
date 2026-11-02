@@ -19,9 +19,13 @@ How Comet's libraries fit together, and how a move travels from one player to th
 
 Used by the server, the bots and the Unity client alike: `World/ShapeLandRules.cs` (tick rate, name and chat rules), `World/ShapeLandWorld.cs` (each zone's collision world, with its pads, and where shapes start), `World/TriggerCharge.cs` (timing a player standing in a spawn point, teleporter or trigger, as the server decides and the client draws pads charging), `Content/` (the shape and game settings types and the compiled content file) and `Messages/` (ShapeLand's own messages: joining, spawns, zones and flips, and chat).
 
+### Accounts: `src/ShapeLand.LoginServer`, `src/ShapeLand.Data`, `src/ShapeLand.Data.Accounts`
+
+The Login server hosts `Comet.Login` with ShapeLand's rules (`ShapeLandLoginRules`): the player's name is the account's username (3–16 letters, digits, `-` and `_`), a new guest starts with a shape and colors the content allows, unclaimed guests idle for 7 days are deleted, and everyone plays on the one game server. It migrates both schemas at startup. `ShapeLand.Data` adds the look columns to Comet's character (`ShapeLandCharacter`) and owns the region migrations; `ShapeLand.Data.Accounts` owns the account migrations (`dotnet tool run dotnet-ef migrations add <Name> --project shapeland/src/ShapeLand.Data`, and so on). `ShapeLand.Data.Tests` fails when a model change has no migration.
+
 ### Server: `src/ShapeLand.GameServer`
 
-`ShapeLandServer` sets up ASP.NET Core and the tick loop; `ShapeLandGame` is the game: joining and changing looks, movement checks, falls the server finishes, chat, and who sees whom. `Player` holds one connection's state. Messages arrive on each connection's own flow and are queued; the tick thread handles them in order, so the game's state belongs to it alone.
+`ShapeLandServer` sets up ASP.NET Core and the tick loop, and waits for the database at startup (only the Login server migrates); `ShapeLandGame` is the game: joining with a ticket as the saved character (at its saved spot, or its shape's spawn if that no longer fits), look changes and renames, saving where players are, drops (another tab took over, or a ban or deletion), movement checks, falls the server finishes, chat, and who sees whom. `Player` holds one connection's state. Messages arrive on each connection's own flow and are queued; the tick thread handles them in order, so the game's state belongs to it alone.
 
 ### Unity client: `ShapeLand.Unity`
 

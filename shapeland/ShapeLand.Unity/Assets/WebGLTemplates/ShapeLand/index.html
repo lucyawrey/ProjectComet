@@ -11,25 +11,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ShapeLand">
     <meta name="theme-color" content="#0e1117">
-    <script>
-      // A phone (a touch screen whose short side is phone-sized, not a tablet) gets the game filling the screen, in
-      // landscape. "no-fullscreen": the browser can't make the page full screen (iPhone Safari); "standalone": it
-      // was opened from the home screen.
-      (function () {
-        var root = document.documentElement;
-        var phone = matchMedia("(pointer: coarse)").matches && navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) <= 600;
-        root.classList.toggle("phone", phone);
-        root.classList.toggle("no-fullscreen", !root.requestFullscreen);
-        root.classList.toggle("standalone", navigator.standalone === true || matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches);
-      })();
-    </script>
+    <script src="TemplateData/early.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400&display=swap">
     <link rel="stylesheet" href="TemplateData/shapeland.css">
-    <!-- Written by the deploy (tools/shapeland-testbuild.sh) when the game server isn't the page's own host; absent
-         when the game server serves the page itself. -->
-    <script src="config.js" onerror="void 0"></script>
+    <!-- Names the Login server (window.shapelandLogin): written by the deploy (tools/shapeland-testbuild.sh), or served
+         by the development game server when it serves the page. No inline scripts or handlers anywhere: the page's
+         Content Security Policy allows only scripts from its own site. -->
+    <script src="config.js"></script>
   </head>
   <body data-state="checking">
     <main class="page-root">
@@ -89,157 +79,32 @@
     </main>
 
     <script src="Build/{{{ LOADER_FILENAME }}}"></script>
-    <script>
-      (function () {
-        // The page's text (page.* in shapeland/content/strings/en.toml), put in by the build (Builds.Web). Elements
-        // name theirs with data-text, their aria-label with data-label and their tooltip with data-title.
-        var TEXT = /* PAGE_TEXT */ {};
-        document.querySelectorAll("[data-text]").forEach(function (element) {
-          element.textContent = TEXT[element.dataset.text];
-        });
-        document.querySelectorAll("[data-label]").forEach(function (element) {
-          element.setAttribute("aria-label", TEXT[element.dataset.label]);
-        });
-        document.querySelectorAll("[data-title]").forEach(function (element) {
-          element.title = TEXT[element.dataset.title];
-        });
-
-        // The game server to use (window.shapelandServer, from config.js), or the page's own host.
-        var server = window.shapelandServer || "";
-        var body = document.body;
-        var root = document.documentElement;
-        var phone = root.classList.contains("phone");
-        var instance = null;
-
-        function show(state) { body.dataset.state = state; }
-
-        // Whether the game server is up: its /health answers "ok". Anything else (no answer, a timeout, or another
-        // host answering for its name, like a wildcard DNS record) means it isn't.
-        function serverUp() {
-          if (!server) {
-            return Promise.resolve(true); // the game server is serving this page
-          }
-          var http = server.replace(/^ws(s?):/, "http$1:").replace(/\/ws$/, "/health");
-          var abort = new AbortController();
-          var timer = setTimeout(function () { abort.abort(); }, 5000);
-          return fetch(http, { cache: "no-store", signal: abort.signal })
-            .then(function (response) { return response.ok ? response.text() : ""; })
-            .then(function (text) { return text === "ok"; }, function () { return false; })
-            .finally(function () { clearTimeout(timer); });
-        }
-
-        function start() {
-          show("checking");
-          serverUp().then(function (up) {
-            if (!up) {
-              show("closed");
-              return;
-            }
-            show("loading");
-            load();
-          });
-        }
-
-        function load() {
-          var bar = document.getElementById("progress");
-          var text = document.getElementById("progress-text");
-          createUnityInstance(document.querySelector("#unity-canvas"), {
-            arguments: [],
-            // Phones draw at most 1.5 pixels per CSS pixel: sharp enough, and far cheaper than 3.
-            devicePixelRatio: phone ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined,
-            // An error the browser hides the details of ("Script error.": from another origin, or the browser's own
-            // scripts such as content blockers, as iPhone Safari reports after Tap to play) isn't the game's: logged,
-            // not shown in Unity's alert. Every other error still is.
-            errorHandler: function (message) {
-              if (String(message).trim().indexOf("Script error") === 0) {
-                console.warn("Ignored a script error the browser hid the details of.");
-                return true;
-              }
-              return false;
-            },
+    <!-- What the build fills in, as data (not run, so the policy allows it): the page's text (put in by Builds.Web)
+         and Unity's loader settings. TemplateData/page.js reads it. -->
+    <script type="application/json" id="page-data">
+      {
+        "text": {"PAGE_TEXT": true},
+        "unity": {
 #if PROGRESSIVE_ASSET_LOADING
-            primaryDataUrls: {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
-            secondaryDataUrls: {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
+          "primaryDataUrls": {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
+          "secondaryDataUrls": {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
 #else
-            dataUrl: "Build/{{{ DATA_FILENAME }}}",
+          "dataUrl": "Build/{{{ DATA_FILENAME }}}",
 #endif
-            frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+          "frameworkUrl": "Build/{{{ FRAMEWORK_FILENAME }}}",
 #if USE_WASM
-            codeUrl: "Build/{{{ CODE_FILENAME }}}",
+          "codeUrl": "Build/{{{ CODE_FILENAME }}}",
 #endif
 #if SYMBOLS_FILENAME
-            symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+          "symbolsUrl": "Build/{{{ SYMBOLS_FILENAME }}}",
 #endif
-            streamingAssetsUrl: "StreamingAssets",
-            companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
-            productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
-            productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
-          }, function (progress) {
-            var percent = Math.round(progress * 100);
-            bar.style.width = percent + "%";
-            bar.parentElement.setAttribute("aria-valuenow", String(percent));
-            text.textContent = percent + "%";
-          }).then(function (unityInstance) {
-            instance = unityInstance;
-            document.getElementById("fullscreen").disabled = false;
-            if (phone && !root.classList.contains("standalone")) {
-              show("tap");
-            } else {
-              play();
-            }
-          }).catch(function (message) {
-            document.getElementById("failed-text").textContent = String(message);
-            show("failed");
-          });
+          "streamingAssetsUrl": "StreamingAssets",
+          "companyName": {{{ JSON.stringify(COMPANY_NAME) }}},
+          "productName": {{{ JSON.stringify(PRODUCT_NAME) }}},
+          "productVersion": {{{ JSON.stringify(PRODUCT_VERSION) }}}
         }
-
-        document.getElementById("check").addEventListener("click", function () {
-          var checked = document.getElementById("checked");
-          checked.textContent = TEXT["page.checking_again"];
-          serverUp().then(function (up) {
-            if (up) {
-              show("loading");
-              load();
-            } else {
-              var time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-              checked.textContent = TEXT["page.checked_at"].replace("{time}", time);
-            }
-          });
-        });
-
-        document.getElementById("fullscreen").addEventListener("click", function () {
-          if (instance) {
-            instance.SetFullscreen(1);
-          }
-        });
-
-        function play() {
-          show("open");
-          document.querySelector("#unity-canvas").focus();
-        }
-
-        // On a phone, the first tap makes the page full screen and turns it landscape where the browser allows it
-        // (not iPhone Safari, whose card says to Add to Home Screen instead), then plays.
-        document.getElementById("tap").addEventListener("click", function () {
-          if (root.requestFullscreen && !document.fullscreenElement) {
-            root.requestFullscreen({ navigationUI: "hide" }).then(function () {
-              return screen.orientation && screen.orientation.lock ? screen.orientation.lock("landscape") : null;
-            }).catch(function () {
-              // Refused or unsupported: play in the browser as it is.
-            });
-          }
-          play();
-        });
-
-        // Leaving full screen on a phone (the back gesture) brings the card back, to tap into it again.
-        document.addEventListener("fullscreenchange", function () {
-          if (phone && !document.fullscreenElement && body.dataset.state === "open") {
-            show("tap");
-          }
-        });
-
-        start();
-      })();
+      }
     </script>
+    <script src="TemplateData/page.js"></script>
   </body>
 </html>

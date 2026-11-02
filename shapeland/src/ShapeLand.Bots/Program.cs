@@ -1,15 +1,20 @@
 using ShapeLand.Bots;
 using ShapeLand.Shared.Content;
 
-// ShapeLand bots for phase 0: honest wanderers plus optional cheaters that slide too fast.
-//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--url ws://localhost:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
+// ShapeLand bots: honest wanderers plus optional cheaters that slide too fast. Each bot is a guest account on the
+// Login server (named like Bot0001), which says which game server to join; its token is kept in --tokens
+// (default artifacts/bot-tokens), so later runs play the same accounts.
+// --server replaces the game server address in the bots' tickets (in Docker, where the server's name differs).
+//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--login http://localhost:5090] [--tokens <folder>] [--server ws://server:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
 //     [--warmup 10] [--results file.json] [--meta key=value ...] [--prefix Bot] [--chat [30]] [--cheat-speed 2.5] [--cheat-jump 1]
 // Cheaters move --cheat-speed times faster than allowed and jump --cheat-jump times faster (small values make subtle
 // cheaters, for tuning the server's tolerances).
 // Bots stay quiet unless --chat is given, optionally with the average seconds between their lines (30).
 // With --warmup or --results, bots record network numbers (as the F3 overlay shows them) after the warmup and
 // print a summary at the end (NetReport); --results also writes them to a file, with each --meta pair in it.
-var url = new Uri(Arg("--url", "ws://localhost:5080/ws"));
+var login = new Uri(Arg("--login", "http://localhost:5090"));
+var tokens = Arg("--tokens", "");
+var serverOverride = Arg("--server", "") is { Length: > 0 } server ? new Uri(server) : null;
 var count = int.Parse(Arg("--count", "5"));
 var cheaters = int.Parse(Arg("--cheaters", "0"));
 var cheatSpeed = float.Parse(Arg("--cheat-speed", "2.5"), System.Globalization.CultureInfo.InvariantCulture);
@@ -31,10 +36,17 @@ using (var stream = File.OpenRead(contentFile != "" ? contentFile : Path.Combine
     content = ShapeLandContent.Load(stream);
 }
 
+if (tokens == "")
+{
+    tokens = Path.Combine(FindRepoRoot(), "artifacts", "bot-tokens");
+}
+
 var worlds = new ZoneWorlds(content);
+Bot NewBot(string name, int botSeed, BotSettings settings) =>
+    new(name, botSeed, settings, content, worlds, new LoginBotAccount(name, login, tokens, content, botSeed, serverOverride));
 var bots = Enumerable.Range(1, count)
-    .Select(i => new Bot($"{prefix} {i:00}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }, content, worlds))
-    .Concat(Enumerable.Range(1, cheaters).Select(i => new Bot($"{(prefix == "Bot" ? "Cheater" : prefix + " cheater")} {i:00}", seed * 1000 + 500 + i, new BotSettings { SpeedCheat = cheatSpeed, JumpCheat = cheatJump, ChatEverySeconds = chat }, content, worlds)))
+    .Select(i => NewBot($"{prefix}{i:0000}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }))
+    .Concat(Enumerable.Range(1, cheaters).Select(i => NewBot($"{(prefix == "Bot" ? "Cheater" : prefix + "-cheater")}{i:00}", seed * 1000 + 500 + i, new BotSettings { SpeedCheat = cheatSpeed, JumpCheat = cheatJump, ChatEverySeconds = chat })))
     .ToList();
 var isCheater = bots.Select((_, i) => i >= count).ToList();
 
@@ -44,23 +56,23 @@ Console.CancelKeyPress += (_, e) =>
     e.Cancel = true;
     stop.Cancel();
 };
-Console.WriteLine($"{bots.Count} bots joining {url}; Ctrl+C to stop.");
+Console.WriteLine($"{bots.Count} bots signing in at {login}; Ctrl+C to stop.");
 await Task.WhenAll(bots.Select(async (bot, i) =>
 {
     await Task.Delay(i * 100); // don't all join in the same instant
-    await bot.RunAsync(url, stop.Token);
+    await bot.RunAsync(stop.Token);
 }));
 
-Console.WriteLine($"{"Bot",-12} {"Joined",-7} {"Seen",5} {"States",7} {"Chat in/out",12} {"Snap-backs",11} {"Respawns",9}");
+Console.WriteLine($"{"Bot",-16} {"Joined",-7} {"Seen",5} {"States",7} {"Chat in/out",12} {"Snap-backs",11} {"Respawns",9}");
 foreach (var bot in bots)
 {
-    var joined = bot.Failed ? "failed" : bot.Rejected is { } reason ? reason.ToString() : bot.Joined ? "yes" : "no";
-    Console.WriteLine($"{bot.Name,-12} {joined,-7} {bot.SeenPlayers.Count,5} {bot.StatesReceived,7} {$"{bot.ChatsReceived}/{bot.ChatsSent}",12} {bot.SnapBacks,11} {bot.Respawns,9}");
+    var joined = bot.LoginFailure is { } refused ? refused : bot.Rejected is { } reason ? reason.ToString() : bot.DroppedFor is { } drop ? drop.ToString() : bot.Failed ? "failed" : bot.Joined ? "yes" : "no";
+    Console.WriteLine($"{bot.Name,-16} {joined,-7} {bot.SeenPlayers.Count,5} {bot.StatesReceived,7} {$"{bot.ChatsReceived}/{bot.ChatsSent}",12} {bot.SnapBacks,11} {bot.Respawns,9}");
 }
 
 if (warmup >= 0)
 {
-    var report = NetReport.Create(bots, isCheater, new NetReport.RunSettings(url.ToString(), count, cheaters, seconds, seed, warmup), meta);
+    var report = NetReport.Create(bots, isCheater, new NetReport.RunSettings(login.ToString(), count, cheaters, seconds, seed, warmup), meta);
     report.Print();
     if (resultsFile != "")
     {

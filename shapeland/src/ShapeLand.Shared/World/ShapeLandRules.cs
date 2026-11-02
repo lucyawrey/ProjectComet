@@ -9,7 +9,10 @@ namespace ShapeLand.Shared.World
     {
         /// <summary>Server ticks per second.</summary>
         public const int TickRate = 30;
-        /// <summary>The longest name, in UTF-16 characters after normalizing.</summary>
+        /// <summary>The shortest name.</summary>
+        public const int MinNameLength = 3;
+
+        /// <summary>The longest name.</summary>
         public const int MaxNameLength = 16;
         /// <summary>The longest chat line, in UTF-16 characters after normalizing.</summary>
         public const int MaxChatLength = 200;
@@ -17,13 +20,22 @@ namespace ShapeLand.Shared.World
         /// <summary>Seconds a connection has to join before the server drops it; clients reconnect for a later try.</summary>
         public const int JoinDeadlineSeconds = 10;
 
-        private static readonly Regex NamePattern = new Regex("^[A-Za-z0-9_-]+( [A-Za-z0-9_-]+)*$");
+        /// <summary>
+        /// Seconds the database has to hand over a joining character before the join fails as busy: well inside the
+        /// join deadline and the client's own wait, so the player hears "busy" rather than nothing.
+        /// </summary>
+        public const int ClaimDeadlineSeconds = 5;
 
-        /// <summary>Trims a name and checks it: letters, digits, '-', '_' and single spaces, at most <see cref="MaxNameLength"/> characters.</summary>
+        private static readonly Regex NamePattern = new Regex("^[A-Za-z0-9_-]+$");
+
+        /// <summary>
+        /// Trims a name and checks it: <see cref="MinNameLength"/> to <see cref="MaxNameLength"/> ASCII letters, digits,
+        /// '-' and '_'. A player's name is their account's username, unique ignoring case; capitals are kept for show.
+        /// </summary>
         public static bool TryNormalizeName(string? name, out string normalized)
         {
             normalized = (name ?? "").Trim();
-            return normalized.Length > 0 && normalized.Length <= MaxNameLength && NamePattern.IsMatch(normalized);
+            return normalized.Length >= MinNameLength && normalized.Length <= MaxNameLength && NamePattern.IsMatch(normalized);
         }
 
         /// <summary>Combining marks kept on one character (enough for real scripts and keycap emoji); more stack out of the bubble.</summary>

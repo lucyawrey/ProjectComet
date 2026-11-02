@@ -84,7 +84,7 @@ namespace ShapeLand.Client.Editor
         // than through a template variable, which Unity would save into the project settings.
         private static void FillPageText(string page)
         {
-            const string marker = "/* PAGE_TEXT */ {}";
+            const string marker = "{\"PAGE_TEXT\": true}";
             var html = File.ReadAllText(page);
             if (!html.Contains(marker))
             {

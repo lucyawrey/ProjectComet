@@ -8,7 +8,7 @@
 
 .backdrop {
     position: absolute; left: 0; top: 0; right: 0; bottom: 0;
-    background-color: rgba(10, 16, 30, 0.32);
+    background-color: rgba(8, 12, 22, 0.55); /* the one dim behind every menu, card and question (.menu-dim) */
     align-items: center; justify-content: center;
     -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf");
     font-size: 15px;
@@ -17,7 +17,6 @@
 .backdrop.hidden, .backdrop.waiting { display: none; }
 /* Changing the look in game: the game dims and the HUD fades as behind the Esc menu, the card has a page header
    (Back only when opened from the menu) in place of the title, and the HUD around it stays usable. */
-.backdrop.changing { background-color: rgba(8, 12, 22, 0.55); }
 .look-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
 .backdrop.changing .look-head { display: flex; }
 .backdrop.changing .join-title { display: none; }
@@ -49,7 +48,11 @@
 /* The selection shows only while keys or a gamepad move it (.navigating, set by JoinScreen and GameMenu). */
 .backdrop.navigating .nav-row.selected { background-color: rgba(106, 161, 255, 0.2); }
 .join-button, .cancel-button { border-width: 2px; border-color: rgba(0, 0, 0, 0); }
-.backdrop.navigating .join-button.selected, .backdrop.navigating .cancel-button.selected { border-color: rgb(255, 255, 255); }
+.backdrop.navigating .join-button.selected, .backdrop.navigating .cancel-button.selected,
+.backdrop.navigating .sign-out-button.selected { border-color: rgb(255, 255, 255); }
+/* Links and the Sign In and Set Password pages' fields, selected with keys or a gamepad. */
+.backdrop.navigating .link-button.selected { color: rgb(255, 255, 255); background-color: rgba(106, 161, 255, 0.2); border-radius: 4px; padding: 4px 6px; margin-left: -6px; }
+.backdrop.navigating .card-page .field.selected .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
 
 Label { padding: 0; margin: 0; }
 .title { font-size: 28px; margin-bottom: 8px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
@@ -358,9 +361,13 @@ Label { padding: 0; margin: 0; }
 .icon-pad-east { background-image: url("Icons/pad_east.png"); }
 
 /* While the menu is open the game dims and the HUD fades behind it. */
-/* The same for the look card changing the look (.look-open, set by Hud), whose dim is the card's own. */
+/* The same for the look card changing the look (.look-open, set by Hud), whose dim is the card's own, and the
+   Account page (.account-open, set by Hud), whose dim is #account-dim. */
 .hud.menu-open .hud-row, .hud.menu-open .tags, .hud.menu-open .chat, .hud.menu-open .net-stats,
+.hud.account-open .hud-row, .hud.account-open .tags, .hud.account-open .chat, .hud.account-open .net-stats,
 .hud.look-open .hud-row, .hud.look-open .tags { opacity: 0.35; }
+#account-dim { display: none; }
+.hud.account-open #account-dim { display: flex; }
 .menu-host, .menu, .menu-dim, .menu-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .menu-dim { background-color: rgba(8, 12, 22, 0.55); }
 
@@ -488,6 +495,7 @@ Label { padding: 0; margin: 0; }
     transition-property: left; transition-duration: 0.15s;
 }
 .switch.off .switch-knob { left: 3px; }
+.switch.settling .switch-knob { transition-duration: 0s; }
 .slider { flex-direction: row; align-items: center; }
 /* The track is taller than it looks, so it's easy to grab. */
 .slider-track { width: 150px; height: 24px; justify-content: center; }
@@ -520,3 +528,167 @@ Label { padding: 0; margin: 0; }
     display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
 }
 .hud.touch-input .hud-button.first-time .hud-tip { display: none; }
+
+/* ---- Accounts: the join card's pages, the signed-in card, the connecting pop-up, the confirm, the Account page and
+   the guest reminder (placeholder wording; layout from the accounts mockup). ---- */
+.link-button {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; padding: 4px 0; margin: 0 12px 0 0;
+    color: rgb(190, 200, 255); font-size: 14px; -unity-text-align: middle-left;
+}
+.link-button:hover { color: rgb(230, 235, 255); }
+.card-note { margin-top: 6px; font-size: 13px; color: rgb(141, 151, 171); white-space: normal; }
+.input-value { padding: 9px 11px; font-size: 15px; color: rgb(169, 178, 196); background-color: rgba(255, 255, 255, 0.04); border-radius: 4px; }
+.code-input .unity-base-text-field__input { -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+
+/* The card's pages (signing in, setting a password) replace the title and the new player's rows, keeping the card's size. */
+.page-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
+.card-page { display: none; flex-grow: 1; max-width: 360px; }
+#join.signing-in .page-head, #join.setting-password .page-head { display: flex; }
+#join.signing-in .join-title, #join.setting-password .join-title { display: none; }
+#join.signing-in .card-scroll, #join.setting-password .card-scroll { display: none; }
+#join.signing-in #sign-in, #join.setting-password #set-password { display: flex; }
+#sign-in.with-code { max-width: 440px; }
+
+/* "Already have an account?" and Sign in, on the new player's card only; Sign out on the signed-in card only. */
+.have-account { flex-direction: row; align-items: center; }
+.have-account-text { font-size: 14px; color: rgb(169, 178, 196); margin-right: 10px; }
+#join.changing .have-account, #join.signing-in .have-account, #join.signed-in .have-account, #join.setting-password .have-account { display: none; }
+/* Pointed to after a new player picks a taken name. */
+.cancel-button.pointed { border-color: rgb(106, 161, 255); }
+/* Sign out: the same button at the bottom left of the signed-in card and the Account page, in the Esc menu's
+   Leave game look (.menu-entry.leave) at the card's button size. */
+.sign-out-button, .sign-out-button:hover {
+    height: 40px; padding: 0 20px; margin: 0 12px 0 0;
+    background-color: rgba(16, 20, 28, 0.82);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.12); border-radius: 6px;
+    color: rgb(255, 160, 157); font-size: 16px;
+}
+.sign-out-button:hover { border-color: rgba(255, 160, 157, 0.6); }
+#sign-out-button { display: none; }
+#join.signed-in #sign-out-button { display: flex; }
+/* The server line: desktop builds only, on the new player's and signed-in cards. */
+.server-line { flex-direction: row; align-items: center; margin-top: 10px; }
+.server-line.hidden { display: none; }
+.server-text { font-size: 13px; color: rgb(141, 151, 171); margin-right: 8px; }
+.server-line .link-button { font-size: 13px; }
+.server-line.open .server-text, .server-line.open #server-change { display: none; }
+/* Cancel puts the address back and closes the field; beside it, level with the input. */
+.server-cancel { display: none; align-self: flex-end; margin: 0 0 9px 12px; }
+.server-line.open .server-cancel { display: flex; }
+#join.setting-password .server-line { display: none; }
+
+/* The signed-in card: who the player is beside their turning shape, in place of the new player's rows. */
+.who { display: none; flex-grow: 1; justify-content: center; }
+#join.signed-in .who { display: flex; }
+#join.signed-in #player-fields, #join.signed-in #stats { display: none; }
+#join.signed-in .preview-column { width: 200px; }
+#join.signed-in .preview { width: 160px; height: 160px; }
+.who-name { font-size: 30px; margin: 4px 0 8px 0; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.guest-tag {
+    align-self: flex-start; padding: 1px 8px; border-radius: 9px; font-size: 12px;
+    border-width: 1px; border-color: rgba(255, 214, 160, 0.6); color: rgb(255, 214, 160);
+}
+
+/* Change Shape has no name row (renaming is on the Account page), so the preview grows into the space. */
+.backdrop.changing .preview-column { width: 200px; }
+.backdrop.changing .preview { width: 150px; height: 150px; margin-bottom: 18px; }
+.backdrop.changing .stats { width: 190px; }
+
+/* The connecting pop-up: small and low on the screen, over the world, which isn't dimmed. */
+.join-pop {
+    position: absolute; left: 50%; bottom: 72px; translate: -50% 0; min-width: 320px;
+    flex-direction: row; align-items: center; padding: 12px 16px;
+    background-color: rgba(16, 20, 28, 0.92);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
+    -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf"); color: rgb(238, 241, 246);
+}
+.join-pop.hidden { display: none; }
+.join-pop.failed { border-color: rgba(255, 107, 103, 0.5); }
+.pop-dots { flex-direction: row; margin-right: 14px; }
+.pop-dot { width: 8px; height: 8px; margin-right: 5px; border-radius: 4px; background-color: rgba(238, 241, 246, 0.25); }
+.pop-dot.lit { background-color: rgb(106, 161, 255); }
+.pop-fail-mark {
+    display: none; width: 22px; height: 22px; margin-right: 14px; border-radius: 11px;
+    background-color: rgba(255, 107, 103, 0.25); color: rgb(255, 160, 157); font-size: 15px;
+    -unity-text-align: middle-center; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
+}
+.join-pop.failed .pop-dots { display: none; }
+.join-pop.failed .pop-fail-mark { display: flex; }
+.pop-text { flex-grow: 1; margin-right: 16px; }
+.pop-main { font-size: 16px; }
+.pop-sub { margin-top: 2px; font-size: 13px; color: rgb(141, 151, 171); white-space: normal; max-width: 300px; }
+.pop-button { height: 32px; padding: 0 14px; font-size: 14px; }
+.cancel-button.pop-button { margin-right: 8px; }
+.pop-retry { display: none; }
+.join-pop.failed .pop-retry { display: flex; }
+
+/* A confirm over the dimmed game or card, in the Esc menu's Leave game style (ConfirmPanel). */
+/* The selection with keys or a gamepad, as in the Esc menu. */
+.navigating .confirm-overlay .menu-entry.selected { background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6); color: rgb(255, 255, 255); }
+.navigating .confirm-overlay .menu-entry.leave.selected { background-color: rgb(190, 58, 54); }
+/* No dim of its own: the screen it's over already has the one dim. */
+.confirm-overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.confirm-overlay.hidden { display: none; }
+.confirm-overlay .menu-confirm-note { max-width: 440px; white-space: normal; -unity-text-align: upper-center; }
+/* The window a question came from steps aside while it's up, so the question reads against the dimmed game. */
+#join.confirming .card, .confirming .account-window { display: none; }
+#join.confirming .menu-prompts { display: none; }
+
+/* The Account page: rows like Settings, each opening its own step in the same window. */
+.account-window { flex-direction: column; }
+.hud.phone .account-window { bottom: 8px; } /* no prompts bar under the Account page */
+.account-step { display: none; flex-grow: 1; }
+.account-step.shown { display: flex; }
+.account-form { padding: 4px 12px 0 12px; flex-grow: 1; }
+/* Fields evenly spaced; their notes together after the last one. */
+.account-form .field, .card-page .field { max-width: 340px; margin-bottom: 14px; }
+.account-form > .card-note, .card-page > .card-note { margin-top: 0; margin-bottom: 4px; }
+.account-text { font-size: 15px; white-space: normal; margin-bottom: 12px; max-width: 460px; }
+.account-row-value { flex-direction: row; align-items: center; font-size: 14px; color: rgb(169, 178, 196); }
+.account-who { flex-direction: row; align-items: center; padding: 2px 12px 10px 12px; border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07); }
+.account-name { font-size: 22px; margin-right: 10px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.account-who .guest-tag { align-self: center; }
+.row-chevron {
+    width: 7px; height: 7px; margin-left: 10px; rotate: 45deg;
+    border-right-width: 2px; border-top-width: 2px; border-color: rgb(169, 178, 196);
+}
+.menu-row.account-row:hover { background-color: rgba(255, 255, 255, 0.04); }
+/* The selection with keys or a gamepad (AccountPage), as in the Esc menu's pages. */
+.account-window.navigating .menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.account-window.navigating .join-button.selected, .account-window.navigating .sign-out-button.selected,
+.account-window.navigating .copy-button.selected { border-color: rgb(255, 255, 255); }
+.account-window.navigating .input.selected .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
+.menu-row.disabled .menu-row-name { color: rgb(141, 151, 171); }
+.account-info {
+    margin: 10px 0 6px 0; padding: 8px 12px; font-size: 14px; white-space: normal;
+    background-color: rgba(106, 161, 255, 0.14); border-left-width: 3px; border-color: rgb(106, 161, 255);
+}
+.account-info.hidden { display: none; }
+.account-actions { flex-direction: row; align-items: center; flex-shrink: 0; }
+.account-window .error { flex-shrink: 0; margin: 8px 0 10px 0; } /* the join card's error box, above the buttons */
+.recovery-code {
+    flex-direction: row; align-items: center; justify-content: space-between; margin: 6px 0 10px 0; padding: 12px 14px;
+    background-color: rgba(255, 255, 255, 0.06); border-width: 1px; border-color: rgba(255, 255, 255, 0.3); border-radius: 6px;
+}
+.recovery-code-text { font-size: 20px; letter-spacing: 1px; -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+.copy-button {
+    height: 30px; padding: 0 12px; margin: 0 0 0 12px; border-width: 1px; border-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px; background-color: rgba(0, 0, 0, 0); color: rgb(238, 241, 246); font-size: 14px;
+}
+.copy-button:hover { background-color: rgba(255, 255, 255, 0.06); }
+.code-warning {
+    padding: 8px 12px; font-size: 14px; white-space: normal; color: rgb(255, 226, 186);
+    background-color: rgba(255, 176, 64, 0.14); border-left-width: 3px; border-color: rgb(255, 176, 64);
+}
+
+/* The guest reminder: a note under the HUD row, once, with Set password and Not now. */
+.guest-reminder {
+    position: absolute; left: 16px; top: 68px; width: 360px; padding: 10px 12px;
+    background-color: rgba(16, 20, 28, 0.92); border-width: 2px; border-color: rgba(255, 214, 160, 0.45); border-radius: 8px;
+}
+.guest-reminder.hidden { display: none; }
+.hud.touch-input .guest-reminder { top: 76px; }
+.guest-reminder-text { font-size: 14px; white-space: normal; }
+.guest-reminder-actions { flex-direction: row; margin-top: 8px; }
+.guest-reminder .join-button { height: 30px; padding: 0 12px; font-size: 14px; }
+.guest-reminder .cancel-button { height: 30px; padding: 0 12px; font-size: 14px; margin: 0 0 0 8px; }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Comet.Content;
 using Comet.Simulation;
@@ -28,8 +29,12 @@ namespace ShapeLand.Shared.Content
         [JsonRequired]
         [Key(4)] public SpawnSettings Spawns { get; set; } = new SpawnSettings();
 
+        /// <summary>
+        /// The colors every player can pick for their body and eyes, by key, as 0xRRGGBB, in the order they're shown
+        /// (more come from items later). Compiled into <see cref="ShapeLandContent.Colors"/> with their numbers.
+        /// </summary>
         [JsonRequired]
-        [Key(5)] public ColorSettings Colors { get; set; } = new ColorSettings();
+        [IgnoreMember] public Dictionary<string, uint> Colors { get; set; } = new Dictionary<string, uint>();
 
         /// <summary>How finely round primitives are cut, the same for all of them (players' shapes are regular solids, so it doesn't change them).</summary>
         [JsonRequired]
@@ -157,10 +162,4 @@ namespace ShapeLand.Shared.Content
         [JsonRequired] [Key(2)] public uint ChargeColor { get; set; }
     }
 
-    [MessagePackObject]
-    public sealed class ColorSettings
-    {
-        /// <summary>The colors every player can pick for their body and eyes, as 0xRRGGBB; more come from items later.</summary>
-        [JsonRequired] [Key(0)] public uint[] Players { get; set; } = new uint[0];
-    }
 }

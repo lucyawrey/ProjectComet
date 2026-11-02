@@ -31,6 +31,9 @@ namespace ShapeLand.Client
         private NetStats _stats;
         private CollisionDebug _collisions;
         private GameMenu _menu;
+        private AccountPage _account;
+        private VisualElement _guestReminder;
+        private float _guestReminderUntil;
         private VisualElement _lookButton;
         private VisualElement _menuButton;
         private bool _menuTipSeen;
@@ -39,6 +42,7 @@ namespace ShapeLand.Client
         private string _chatDraft;
         // The overlay's parts kept inside the screen's safe area, and the insets they have now.
         private VisualElement[] _safe;
+        private VisualElement[] _centeredSafe;
         private Vector4 _insets = new Vector4(-1, -1, -1, -1);
         // The screen and overlay sizes the safe area was last applied for: it's asked for again only when they change.
         private Vector4 _safeFor;
@@ -63,7 +67,10 @@ namespace ShapeLand.Client
         public bool CardShowing => card.Showing;
 
         /// <summary>True while the Esc menu is up, and on the frame it closed (<see cref="GameMenu.Blocking"/>).</summary>
-        public bool MenuBlocking => _menu != null && _menu.Blocking;
+        public bool MenuBlocking => _menu != null && (_menu.Blocking || _account.Open);
+
+        /// <summary>Brings up the Esc menu's Account page (from the menu); its Back returns to the menu.</summary>
+        public void OpenAccount() => _account.Show(() => _menu.Show(GameMenu.AccountEntry, navigating: _account.Navigating), _menu.Navigating);
 
         // On a phone the interface scales from a smaller design size than the panel settings' (960 x 600), so a panel
         // pixel is about a CSS pixel there and text stays readable; the join card still fits a small phone held
@@ -101,9 +108,19 @@ namespace ShapeLand.Client
                 tip.parent.RegisterCallback<PointerEnterEvent>(_ => MarkMenuTipSeen()));
             // The join card is its own document on the same panel settings, so the same insets fit it.
             var cardSafe = card.GetComponent<UIDocument>().rootVisualElement.Q("card-safe");
-            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe"), cardSafe };
+            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
+            _centeredSafe = new[] { tree.Q("menu-safe"), tree.Q("account-safe"), cardSafe };
             _touch = new TouchControls(_root, view.OrbitCamera);
             _menu = new GameMenu(this, tree);
+            _account = new AccountPage(this, tree);
+            _guestReminder = tree.Q("guest-reminder");
+            tree.Q<Button>("guest-reminder-set").clicked += () =>
+            {
+                HideGuestReminder();
+                _menu.Close();
+                _account.ShowSetPassword(() => _menu.Show(GameMenu.AccountEntry, navigating: false));
+            };
+            tree.Q<Button>("guest-reminder-dismiss").clicked += HideGuestReminder;
             GameMenu.TakeOverNavigation(_root);
 
             join.ContentLoaded += OnContentLoaded;
@@ -131,11 +148,29 @@ namespace ShapeLand.Client
 
         private void OnContentLoaded(ShapeLandContent content) => UiText.Fill(_root, content.Strings);
 
-        private void OnOwnSpawned(PlayerSpawn spawn) => _root.RemoveFromClassList("hidden");
+        private void OnOwnSpawned(PlayerSpawn spawn)
+        {
+            _root.RemoveFromClassList("hidden");
+            if (GuestReminder.Due(join.Account))
+            {
+                // Once, on a guest's first visit on a later day: their character lives only in this browser.
+                _guestReminder.Q<Label>("guest-reminder-text").text = join.Content.Strings.Get("account.reminder");
+                _guestReminder.RemoveFromClassList("hidden");
+                _guestReminderUntil = Time.unscaledTime + GuestReminder.ShowSeconds;
+            }
+        }
+
+        private void HideGuestReminder()
+        {
+            _guestReminderUntil = 0;
+            _guestReminder.AddToClassList("hidden");
+        }
 
         private void OnConnectionLost(CloseReason reason)
         {
             _menu.Close();
+            _account.Close();
+            HideGuestReminder();
             _root.AddToClassList("hidden");
         }
 
@@ -163,14 +198,24 @@ namespace ShapeLand.Client
             _lookButton.EnableInClassList("on", card.Changing);
             _menuButton.EnableInClassList("on", _menu.Open);
             _root.EnableInClassList("look-open", card.Changing);
+            _root.EnableInClassList("account-open", _account.Open);
             _menuButton.EnableInClassList("first-time", !_menuTipSeen && !_menu.Open && !CardShowing);
             _chat.Box.EnableInClassList("hidden", card.Changing);
             _stats.Panel.EnableInClassList("hidden", !_stats.Shown || card.Changing);
             ReopenChat();
 
+            if (_guestReminderUntil > 0 && Time.unscaledTime > _guestReminderUntil)
+            {
+                HideGuestReminder();
+            }
+
             // Esc closes the chat input itself (Chat), so a press just after that is left alone.
             var menu = view.Controls.Game.Menu;
-            if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
+            if (menu.WasPressedThisFrame() && _account.Open)
+            {
+                _account.Back();
+            }
+            else if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
             {
                 if (card.Changing && menu.activeControl is not KeyControl)
                 {
@@ -197,6 +242,10 @@ namespace ShapeLand.Client
                 {
                     _menu.Close();
                 }
+            }
+            else if (_account.Open)
+            {
+                _account.Update(view.Controls.Menu);
             }
             else
             {
@@ -258,11 +307,24 @@ namespace ShapeLand.Client
             _insets = insets;
             foreach (var safe in _safe)
             {
-                safe.style.top = insets.x;
-                safe.style.right = insets.y;
-                safe.style.bottom = insets.z;
-                safe.style.left = insets.w;
+                Inset(safe, insets);
             }
+
+            // The menu and the join card center in what's left, so they get even top and bottom insets: a phone in
+            // landscape has an inset only at the bottom (the home indicator), which would leave them off center.
+            var vertical = Mathf.Max(insets.x, insets.z);
+            foreach (var safe in _centeredSafe)
+            {
+                Inset(safe, new Vector4(vertical, insets.y, vertical, insets.w));
+            }
+        }
+
+        private static void Inset(VisualElement safe, Vector4 insets)
+        {
+            safe.style.top = insets.x;
+            safe.style.right = insets.y;
+            safe.style.bottom = insets.z;
+            safe.style.left = insets.w;
         }
 
         /// <summary>Back to the spawn point, unless typing or on the look card. Becomes an action once Comet has them.</summary>

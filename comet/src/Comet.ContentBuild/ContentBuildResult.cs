@@ -6,9 +6,12 @@ namespace Comet.ContentBuild;
 public sealed class ContentBuildResult
 {
     private readonly IReadOnlyList<ContentBuilder.IReadContent> _types;
+    private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> _keyNumbers;
 
-    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentError> warnings, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings, IReadOnlyList<Zone> zones, IReadOnlyList<Group> groups)
+    internal ContentBuildResult(IReadOnlyList<ContentError> errors, IReadOnlyList<ContentError> warnings, IReadOnlyList<ContentBuilder.IReadContent> types, StringTable? strings, IReadOnlyList<Zone> zones, IReadOnlyList<Group> groups,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> keyNumbers)
     {
+        _keyNumbers = keyNumbers;
         Zones = zones;
         Groups = groups;
         Errors = errors;
@@ -33,6 +36,17 @@ public sealed class ContentBuildResult
 
     /// <summary>The groups, in number order, if the game registered a groups folder (<see cref="ContentBuilder.AddGroups"/>); zones hold their copies already expanded.</summary>
     public IReadOnlyList<Group> Groups { get; }
+
+    /// <summary>The registry numbers of keys numbered with <see cref="ContentBuilder.AddKeys"/>, by key.</summary>
+    public IReadOnlyDictionary<string, int> Numbers(string kind)
+    {
+        if (!Succeeded)
+        {
+            throw new InvalidOperationException("The content build failed; see Errors.");
+        }
+
+        return _keyNumbers[kind];
+    }
 
     /// <summary>The entries of one registered type, in number order.</summary>
     public IReadOnlyList<T> Entries<T>()
