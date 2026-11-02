@@ -42,6 +42,7 @@ namespace ShapeLand.Client
         private string _chatDraft;
         // The overlay's parts kept inside the screen's safe area, and the insets they have now.
         private VisualElement[] _safe;
+        private VisualElement[] _centeredSafe;
         private Vector4 _insets = new Vector4(-1, -1, -1, -1);
         // The screen and overlay sizes the safe area was last applied for: it's asked for again only when they change.
         private Vector4 _safeFor;
@@ -107,7 +108,8 @@ namespace ShapeLand.Client
                 tip.parent.RegisterCallback<PointerEnterEvent>(_ => MarkMenuTipSeen()));
             // The join card is its own document on the same panel settings, so the same insets fit it.
             var cardSafe = card.GetComponent<UIDocument>().rootVisualElement.Q("card-safe");
-            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe"), tree.Q("menu-safe"), cardSafe };
+            _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
+            _centeredSafe = new[] { tree.Q("menu-safe"), tree.Q("account-safe"), cardSafe };
             _touch = new TouchControls(_root, view.OrbitCamera);
             _menu = new GameMenu(this, tree);
             _account = new AccountPage(this, tree);
@@ -300,11 +302,24 @@ namespace ShapeLand.Client
             _insets = insets;
             foreach (var safe in _safe)
             {
-                safe.style.top = insets.x;
-                safe.style.right = insets.y;
-                safe.style.bottom = insets.z;
-                safe.style.left = insets.w;
+                Inset(safe, insets);
             }
+
+            // The menu and the join card center in what's left, so they get even top and bottom insets: a phone in
+            // landscape has an inset only at the bottom (the home indicator), which would leave them off center.
+            var vertical = Mathf.Max(insets.x, insets.z);
+            foreach (var safe in _centeredSafe)
+            {
+                Inset(safe, new Vector4(vertical, insets.y, vertical, insets.w));
+            }
+        }
+
+        private static void Inset(VisualElement safe, Vector4 insets)
+        {
+            safe.style.top = insets.x;
+            safe.style.right = insets.y;
+            safe.style.bottom = insets.z;
+            safe.style.left = insets.w;
         }
 
         /// <summary>Back to the spawn point, unless typing or on the look card. Becomes an action once Comet has them.</summary>

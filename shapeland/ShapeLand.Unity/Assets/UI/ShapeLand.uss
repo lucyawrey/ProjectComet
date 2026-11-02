@@ -628,6 +628,7 @@ Label { padding: 0; margin: 0; }
 
 /* The Account page: rows like Settings, each opening its own step in the same window. */
 .account-window { flex-direction: column; }
+.hud.phone .account-window { bottom: 8px; } /* no prompts bar under the Account page */
 .account-step { display: none; flex-grow: 1; }
 .account-step.shown { display: flex; }
 .account-form { padding: 4px 12px 0 12px; flex-grow: 1; }

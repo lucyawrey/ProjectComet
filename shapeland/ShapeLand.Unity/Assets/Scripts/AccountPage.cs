@@ -91,7 +91,7 @@ namespace ShapeLand.Client
             _copy = root.Q<Button>("account-copy");
             _message = root.Q<Label>("account-message");
             _submit = root.Q<Button>("account-submit");
-            _confirm = new ConfirmPanel(_page.parent);
+            _confirm = new ConfirmPanel(root.Q("account-safe").parent); // dims the whole screen, insets included
 
             root.Q<Button>("account-back").clicked += Back;
             _submit.clicked += Submit;
