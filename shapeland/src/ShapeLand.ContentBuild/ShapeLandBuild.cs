@@ -16,6 +16,12 @@ public static class ShapeLandBuild
     public const string ModelRoot = "../ShapeLand.Unity/Assets";
 
     /// <summary>
+    /// The placeholders ShapeLand's code fills in, the only ones its interface text may use: {username} anywhere (the
+    /// client sets it as the player's), the rest only in the messages that get them.
+    /// </summary>
+    public static readonly string[] Placeholders = ["username", "address", "speed", "height", "percent", "rule", "api", "width", "time"];
+
+    /// <summary>
     /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with prop models under
     /// <paramref name="modelRoot"/> (by default <see cref="ModelRoot"/> from the content folder).
     /// </summary>
@@ -23,7 +29,7 @@ public static class ShapeLandBuild
         .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
         .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
         .AddKeys<GameSettings>("color", settings => settings.Colors.Keys.Select(key => $"color.{key}"))
-        .AddStrings()
+        .AddStrings(placeholders: Placeholders)
         .AddProps(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
         .AddGroups()
         .AddZones();

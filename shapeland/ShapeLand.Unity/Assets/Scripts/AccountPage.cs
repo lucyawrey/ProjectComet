@@ -195,7 +195,6 @@ namespace ShapeLand.Client
             _step = step;
             var guest = _hud.Join.Account?.Guest ?? true;
             var strings = _hud.Join.Content.Strings;
-            var name = ("name", (object)_hud.Join.PlayerName);
             _rows.EnableInClassList("shown", step == Step.Rows);
             _renameStep.EnableInClassList("shown", step == Step.Rename);
             _passwordStep.EnableInClassList("shown", step == Step.Password);
@@ -221,7 +220,7 @@ namespace ShapeLand.Client
                     break;
                 case Step.Rename:
                     _renameField.value = _hud.Join.PlayerName;
-                    _renameFree.text = strings.Format("account.rename_free", name);
+                    _renameFree.text = strings.Get("account.rename_free");
                     SetSubmit();
                     _renameField.Focus();
                     break;
@@ -229,7 +228,7 @@ namespace ShapeLand.Client
                     _passwordUsername.text = _hud.Join.PlayerName;
                     _passwordField.value = "";
                     _passwordAgain.value = "";
-                    _passwordSignsOut.text = guest ? "" : strings.Format("account.password_signs_out", name);
+                    _passwordSignsOut.text = guest ? "" : strings.Get("account.password_signs_out");
                     _passwordSignsOut.EnableInClassList("hidden", guest);
                     SetSubmit();
                     _passwordField.Focus();
@@ -240,7 +239,7 @@ namespace ShapeLand.Client
                     _confirmField.Focus();
                     break;
                 case Step.Code:
-                    _codeIntro.text = strings.Format("account.code_intro", name);
+                    _codeIntro.text = strings.Get("account.code_intro");
                     _copy.text = Text("account.copy");
                     _copied = false;
                     SetSubmit();
@@ -253,7 +252,7 @@ namespace ShapeLand.Client
             var guest = _hud.Join.Account?.Guest ?? true;
             _username.text = _hud.Join.PlayerName;
             _guestTag.EnableInClassList("hidden", !guest);
-            _guestInfo.text = _hud.Join.Content.Strings.Format("account.guest_note", ("name", _hud.Join.PlayerName));
+            _guestInfo.text = Text("account.guest_note");
             _guestInfo.EnableInClassList("hidden", !guest);
             _passwordName.text = Text(guest ? "account.set_password" : "account.change_password");
             // A guest has no recovery code until there's a password to recover.
@@ -425,10 +424,9 @@ namespace ShapeLand.Client
         private void AskToSignOut()
         {
             var strings = _hud.Join.Content.Strings;
-            var name = ("name", (object)_hud.Join.PlayerName);
             if (_hud.Join.Account?.Guest ?? true)
             {
-                _confirm.Show(strings.Format("account.sign_out_guest_title", name), strings.Format("account.sign_out_guest_note", name), null,
+                _confirm.Show(strings.Get("account.sign_out_guest_title"), strings.Get("account.sign_out_guest_note"), null,
                     (Text("account.set_password"), false, () => ShowStep(Step.Password)),
                     (Text("account.stay"), false, null),
                     (Text("account.delete_sign_out"), true, SignOut));

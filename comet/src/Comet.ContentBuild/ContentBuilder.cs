@@ -24,6 +24,7 @@ public sealed class ContentBuilder
     private readonly List<IContentType> _types = new();
     private readonly List<(string Kind, Func<IReadOnlyList<IReadContent>, IEnumerable<string>> Keys)> _keyed = new();
     private string? _stringFile;
+    private IReadOnlyCollection<string>? _placeholders;
     private string? _zonesFolder;
     private string? _groupsFolder;
 
@@ -50,10 +51,15 @@ public sealed class ContentBuilder
         return this;
     }
 
-    /// <summary>Reads interface text from <c>{folder}/en.toml</c> (<see cref="StringFile"/>); the file must exist.</summary>
-    public ContentBuilder AddStrings(string folder = "strings")
+    /// <summary>
+    /// Reads interface text from <c>{folder}/en.toml</c> (<see cref="StringFile"/>); the file must exist. Given
+    /// <paramref name="placeholders"/>, the names the game's code fills in, any other placeholder is an error, so a typo
+    /// like <c>{usernme}</c> fails the build instead of showing on screen.
+    /// </summary>
+    public ContentBuilder AddStrings(string folder = "strings", IReadOnlyCollection<string>? placeholders = null)
     {
         _stringFile = Path.Combine(folder, "en.toml");
+        _placeholders = placeholders;
         return this;
     }
 
@@ -126,7 +132,7 @@ public sealed class ContentBuilder
             var path = ContentPath(_stringFile);
             if (File.Exists(path))
             {
-                strings = StringFile.Read(path, DisplayPath(path), errors);
+                strings = StringFile.Read(path, DisplayPath(path), _placeholders, errors);
             }
             else
             {

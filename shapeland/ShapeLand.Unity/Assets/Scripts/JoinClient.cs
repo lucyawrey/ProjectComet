@@ -72,7 +72,17 @@ namespace ShapeLand.Client
         }
 
         /// <summary>The signed-in account and its character, once loaded; null when signed out.</summary>
-        public AccountResponse<CharacterView> Account { get; private set; }
+        public AccountResponse<CharacterView> Account
+        {
+            get => _account;
+            private set
+            {
+                _account = value;
+                _content?.Strings.SetShared("username", value?.Username ?? ""); // every {username} in the interface text
+            }
+        }
+
+        private AccountResponse<CharacterView> _account;
 
         /// <summary>A session token is kept: the player has an account on this device.</summary>
         public bool SignedIn => _login?.SignedIn ?? false;

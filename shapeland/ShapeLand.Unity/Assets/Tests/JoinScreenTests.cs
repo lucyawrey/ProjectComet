@@ -135,7 +135,7 @@ namespace ShapeLand.Client.Tests
             Field("name").value = "bot0001"; // the bot's name, in other capitals
             Click(join);
             yield return TestGameServer.WaitFor(() => Screen.Error != null, 10); // pressing Join cleared the last one
-            Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.name_taken_new", ("name", "bot0001"))), "A taken name wasn't reported.");
+            Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.name_taken_new", ("username", "bot0001"))), "A taken name wasn't reported.");
             Assert.That(Screen.Root.Q<Button>("sign-in-button").ClassListContains("pointed"), Is.True, "A taken name doesn't point to Sign in.");
             Assert.That(join.enabledSelf, Is.True, "Join stayed disabled after a refusal.");
 

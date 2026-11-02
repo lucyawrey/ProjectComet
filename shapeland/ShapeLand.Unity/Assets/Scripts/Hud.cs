@@ -154,7 +154,7 @@ namespace ShapeLand.Client
             if (GuestReminder.Due(join.Account))
             {
                 // Once, on a guest's first visit on a later day: their character lives only in this browser.
-                _guestReminder.Q<Label>("guest-reminder-text").text = join.Content.Strings.Format("account.reminder", ("name", join.PlayerName));
+                _guestReminder.Q<Label>("guest-reminder-text").text = join.Content.Strings.Get("account.reminder");
                 _guestReminder.RemoveFromClassList("hidden");
                 _guestReminderUntil = Time.unscaledTime + GuestReminder.ShowSeconds;
             }

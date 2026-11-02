@@ -162,7 +162,7 @@ namespace ShapeLand.Client
         /// <summary>What the card says for a Login server error code (<see cref="LoginErrors"/>).</summary>
         public static string LoginMessage(StringTable strings, string code, string name = "") => code switch
         {
-            LoginErrors.NameTaken => strings.Format("join.name_taken", ("name", name)),
+            LoginErrors.NameTaken => strings.Format("join.name_taken", ("username", name)),
             LoginErrors.InvalidName => strings.Get("join.name_rules"),
             LoginErrors.WrongPassword => strings.Get("account.wrong_password"),
             LoginErrors.WrongCode => strings.Get("account.wrong_code"),
@@ -652,7 +652,7 @@ namespace ShapeLand.Client
         private void ShowPop()
         {
             var name = _join.PlayerName;
-            _popMain.text = name.Length > 0 ? _content.Strings.Format("account.joining_as", ("name", name)) : Text("account.joining");
+            _popMain.text = Text(name.Length > 0 ? "account.joining_as" : "account.joining");
             _popSub.text = Text("account.connecting");
             _pop.RemoveFromClassList("failed");
             _pop.RemoveFromClassList("hidden");
@@ -687,10 +687,9 @@ namespace ShapeLand.Client
         private void AskToSignOut()
         {
             var strings = _content.Strings;
-            var name = ("name", (object)_join.PlayerName);
             if (_join.Account?.Guest ?? true)
             {
-                _confirm.Show(strings.Format("account.sign_out_guest_title", name), strings.Format("account.sign_out_guest_note", name), null,
+                _confirm.Show(strings.Get("account.sign_out_guest_title"), strings.Get("account.sign_out_guest_note"), null,
                     (Text("account.set_password"), false, () => SetSettingPassword(true)),
                     (Text("account.stay"), false, null),
                     (Text("account.delete_sign_out"), true, SignOut));
@@ -900,7 +899,7 @@ namespace ShapeLand.Client
                 // Probably the player's own account from another device: Sign in, filled in with the name.
                 _takenName = name;
                 _signInButton.AddToClassList("pointed");
-                Retry(_content.Strings.Format("join.name_taken_new", ("name", name)));
+                Retry(_content.Strings.Format("join.name_taken_new", ("username", name)));
             }
             else if (error != null)
             {
