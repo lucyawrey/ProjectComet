@@ -27,6 +27,8 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+args = Tool.Arguments(args);
+
 var project = Path.Combine(Tool.Repo, "shapeland", "ShapeLand.Unity");
 var log = "Logs/batch.log";
 var minutes = 30;

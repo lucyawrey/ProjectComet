@@ -26,6 +26,12 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     private readonly Dictionary<long, CharacterStatus> _statuses = [];
     private string? _snapshot; // the file every change is written to, once loaded from one
 
+    /// <summary>
+    /// The snapshot file couldn't be written (another program holding it, say), with why; the rows changed anyway,
+    /// and the next change tries again. Raised under the database's lock.
+    /// </summary>
+    public event Action<Exception>? SnapshotFailed;
+
     public TimeProvider Clock => clock;
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
@@ -75,8 +81,12 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
 
             try
             {
-                var snapshot = JsonSerializer.Deserialize<Snapshot>(File.ReadAllText(path))
-                    ?? throw new JsonException("The file is empty.");
+                var snapshot = JsonSerializer.Deserialize<Snapshot>(File.ReadAllText(path));
+                if (snapshot?.Characters == null || snapshot.Statuses == null)
+                {
+                    throw new JsonException("The file has no characters or statuses.");
+                }
+
                 _characters.Clear();
                 _statuses.Clear();
                 foreach (var character in snapshot.Characters)
@@ -91,11 +101,20 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
 
                 return null;
             }
-            catch (Exception e) when (e is JsonException or NotSupportedException or ArgumentException)
+            catch (Exception e) when (e is JsonException or NotSupportedException or ArgumentException or NullReferenceException
+                or IOException or UnauthorizedAccessException)
             {
                 _characters.Clear();
                 _statuses.Clear();
-                File.Move(path, path + ".bad", overwrite: true);
+                try
+                {
+                    File.Move(path, path + ".bad", overwrite: true);
+                }
+                catch (Exception moving) when (moving is IOException or UnauthorizedAccessException)
+                {
+                    return $"{e.Message}; it couldn't be set aside either ({moving.Message})";
+                }
+
                 return e.Message;
             }
         }
@@ -308,10 +327,17 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
             return;
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_snapshot))!);
-        var next = _snapshot + ".new";
-        File.WriteAllText(next, JsonSerializer.Serialize(new Snapshot([.. _characters.Values], [.. _statuses.Values])));
-        File.Move(next, _snapshot, overwrite: true);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_snapshot))!);
+            var next = _snapshot + ".new";
+            File.WriteAllText(next, JsonSerializer.Serialize(new Snapshot([.. _characters.Values], [.. _statuses.Values])));
+            File.Move(next, _snapshot, overwrite: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            SnapshotFailed?.Invoke(e);
+        }
     }
 
     private sealed record Snapshot(List<TCharacter> Characters, List<CharacterStatus> Statuses);

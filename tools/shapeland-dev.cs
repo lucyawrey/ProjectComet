@@ -44,6 +44,8 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
+args = Tool.Arguments(args);
+
 var project = Path.Combine(Tool.Repo, "shapeland", "ShapeLand.Unity");
 // Its own folder: these builds skip compression (the fast-web-build marker, Builds.cs), and tools/run
 // shapeland-deploy publishes artifacts/unity/shapeland/web, so a playtest build never goes out by mistake.

@@ -181,10 +181,11 @@ public static class ShapeLandServer
         {
             var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
             var database = new InMemoryCharacterDatabase<ShapeLandCharacter>(services.GetRequiredService<TimeProvider>());
+            var logger = services.GetRequiredService<ILogger<DevCharacters>>();
+            database.SnapshotFailed += e => logger.LogWarning("Couldn't write {File} ({Problem}); the next change tries again", options.DevCharactersFile, e.Message);
             if (!string.IsNullOrEmpty(options.DevCharactersFile) && database.Load(options.DevCharactersFile) is { } problem)
             {
-                services.GetRequiredService<ILogger<DevCharacters>>().LogWarning(
-                    "Couldn't read {File} ({Problem}); it was renamed to .bad, and the characters start over", options.DevCharactersFile, problem);
+                logger.LogWarning("Couldn't read {File} ({Problem}); it was renamed to .bad, and the characters start over", options.DevCharactersFile, problem);
             }
 
             return new DevCharacters(database);

@@ -9,8 +9,14 @@ public sealed class InMemoryCharacterDatabaseTests : IDisposable
 
     public void Dispose()
     {
+        if (Directory.Exists(_snapshot))
+        {
+            Directory.Delete(_snapshot);
+        }
+
         File.Delete(_snapshot);
         File.Delete(_snapshot + ".bad");
+        File.Delete(_snapshot + ".new");
     }
 
     private static TestCharacter Make(long id, string name, int look = 0) => new() { Id = id, AccountId = 1, Name = name, Look = look };
@@ -38,5 +44,31 @@ public sealed class InMemoryCharacterDatabaseTests : IDisposable
         Assert.Equal(7, reloaded.Character(id)!.Look);
         Assert.Equal(new CharacterPosition(3, 1, 2, 3, 0.5f), reloaded.Position(id));
         Assert.Null(reloaded.Owner(id));
+    }
+
+    [Fact]
+    public void ASnapshotWithNoListsIsSetAside()
+    {
+        File.WriteAllText(_snapshot, "{}");
+        var database = new InMemoryCharacterDatabase<TestCharacter>(TimeProvider.System);
+
+        Assert.NotNull(database.Load(_snapshot));
+        Assert.True(File.Exists(_snapshot + ".bad"));
+    }
+
+    [Fact]
+    public void AFailedWriteIsReportedAndTheChangeStands()
+    {
+        var database = new InMemoryCharacterDatabase<TestCharacter>(TimeProvider.System);
+        Assert.Null(database.Load(_snapshot));
+        Directory.CreateDirectory(_snapshot); // nothing can be renamed over a folder
+        var failures = new List<Exception>();
+        database.SnapshotFailed += failures.Add;
+
+        var (id, made) = database.FindOrAdd("Ada", id => Make(id, "Ada"));
+
+        Assert.True(made);
+        Assert.NotNull(database.Character(id));
+        Assert.NotEmpty(failures);
     }
 }

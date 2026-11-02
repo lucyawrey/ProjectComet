@@ -364,8 +364,15 @@ namespace ShapeLand.Client
 
                     break;
                 default:
-                    var count = Rows().Length;
-                    Select(Mathf.Clamp(_selected + by, _page == Page.Settings ? -1 : 0, count - 1));
+                    var rows = Rows();
+                    var next = Mathf.Clamp(_selected + by, _page == Page.Settings ? -1 : 0, rows.Length - 1);
+                    // Over an entry that's off (Account, with accounts off), to the next one on.
+                    while (next > 0 && next < rows.Length - 1 && !rows[next].enabledSelf)
+                    {
+                        next += by > 0 ? 1 : -1;
+                    }
+
+                    Select(next);
                     break;
             }
         }

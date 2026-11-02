@@ -33,6 +33,8 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 
+args = Tool.Arguments(args);
+
 var work = Path.Combine(Tool.Repo, "artifacts", "deploy");
 var web = Path.Combine(Tool.Repo, "artifacts", "unity", "shapeland", "web");
 var content = Path.Combine(Tool.Repo, "artifacts", "content", "shapeland", "content.bin");

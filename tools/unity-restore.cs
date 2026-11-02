@@ -16,6 +16,8 @@
 #:include shared/Tool.cs
 using System.Text.RegularExpressions;
 
+args = Tool.Arguments(args);
+
 if (args.FirstOrDefault() is "-h" or "--help") Tool.Usage();
 var project = Path.GetFullPath(Path.Combine(Tool.Repo, args.FirstOrDefault() ?? "shapeland/ShapeLand.Unity"));
 if (!File.Exists(Path.Combine(project, "Assets", "packages.config")))

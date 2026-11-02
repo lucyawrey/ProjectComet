@@ -381,7 +381,7 @@ namespace Comet.Unity.Editor
             var building = Task.Run(() => (
                 buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
                 buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null),
-                buildLogin ? Build(dotnet, root, loginProject) : new Built(login, null),
+                buildLogin ? Build(dotnet, root, loginProject) : new Built(accounts ? login : "", null), // none without accounts, whatever ran last
                 accounts ? Database(dotnet, databaseTool, root, CheckoutRoot(root), port) : new Built("", null)));
             _building = building;
             SessionState.SetInt(BuildingKey, progress);

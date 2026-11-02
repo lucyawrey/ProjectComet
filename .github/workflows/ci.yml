@@ -55,3 +55,5 @@ jobs:
           )
           for /f %%n in ('tools\run comet-postgres name "C:\a b\My Checkout" 5080') do set name=%%n
           if not "%name%"=="shapeland_my_checkout_5080" (echo Got %name% & exit /b 1)
+          for /f %%n in ('tools\run comet-postgres name C:\x\A^=B^;C 1') do set split=%%n
+          if not "%split%"=="shapeland_a_b_c_1" (echo Got %split% & exit /b 1)

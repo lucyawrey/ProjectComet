@@ -31,6 +31,8 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
+args = Tool.Arguments(args);
+
 var options = new Tool.Args(args);
 if (!options.More || options.Peek.StartsWith('-')) Tool.Usage(options.More && options.Peek is "-h" or "--help" ? 0 : 2);
 var profile = options.Take();

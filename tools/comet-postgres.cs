@@ -15,6 +15,8 @@
 #:include shared/Tool.cs
 using System.Text.RegularExpressions;
 
+args = Tool.Arguments(args);
+
 const string Container = "comet-postgres", Volume = "comet-postgres-data", Network = "comet", User = "comet",
     Password = "comet-dev-only";
 const int Port = 55432;

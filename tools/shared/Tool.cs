@@ -120,15 +120,26 @@ static class Tool
         return process;
     }
 
-    public static void Stop(Process process)
+    // Asks a program to stop as Ctrl+C would (SIGTERM on Linux and macOS: servers then tell their clients and save),
+    // and kills it with its children if it hasn't within the wait. Windows has no such signal, so there it's killed.
+    public static void Stop(Process process, int waitMilliseconds = 10_000)
     {
         try
         {
-            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            if (process.HasExited) return;
+            if (!IsWindows && Capture(Info("kill", ["-TERM", process.Id.ToString()]), withErrors: true).Code == 0
+                && process.WaitForExit(waitMilliseconds))
+                return;
+            process.Kill(entireProcessTree: true);
             process.WaitForExit(5000);
         }
         catch (InvalidOperationException) { } // already gone
     }
+
+    // The arguments a tool was given. tools\run.cmd passes its whole command line on as it was typed, so cmd never
+    // splits it (at = ; , as well as spaces), and the tool's own name comes first: dropped here.
+    public static string[] Arguments(string[] args) =>
+        Environment.GetEnvironmentVariable("COMET_TOOLS_RUN_CMD") == "1" && args.Length > 0 ? args[1..] : args;
 
     // Whether a URL answers at all, or answers successfully (with the given body, when one is asked for).
     public static bool Answers(string url, bool success = true, string? body = null)
