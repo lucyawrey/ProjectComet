@@ -146,6 +146,9 @@ namespace Comet.Unity.Editor
         [Tooltip("More arguments for the game server when there's a Login server: {database} is the connection string, {login} the Login server's URL.")]
         public string serverAccountArguments = "";
 
+        [Tooltip("More arguments for the game server without accounts (Comet › Server › Use Accounts off): {characters} is the file it keeps the characters in.")]
+        public string serverDevArguments = "";
+
         [Tooltip("The tool that starts the development database and gives a database's connection string (Comet's tools/comet-postgres.cs, run with dotnet), relative to the Unity project.")]
         public string databaseTool = "";
 

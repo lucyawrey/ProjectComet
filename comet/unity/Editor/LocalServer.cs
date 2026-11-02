@@ -207,6 +207,26 @@ namespace Comet.Unity.Editor
             return true;
         }
 
+        // Off, the editor's server runs alone, keeping characters in a file, and play mode joins it by name; on, the
+        // Login server and PostgreSQL (in Docker) run too. Flipping it stops the server, so the next start matches.
+        [MenuItem(Menu + "Use Accounts", priority = 61)]
+        private static void ToggleUseAccounts()
+        {
+            EditorPrefs.SetBool(LocalServerPort.UseAccountsKey, !LocalServerPort.UseAccounts);
+            Stop(quiet: false);
+            SharePort();
+        }
+
+        [MenuItem(Menu + "Use Accounts", validate = true)]
+        private static bool ShowUseAccounts()
+        {
+            UnityEditor.Menu.SetChecked(Menu + "Use Accounts", LocalServerPort.UseAccounts);
+            return !EditorApplication.isPlaying;
+        }
+
+        // Whether the editor's server runs with the Login server: Use Accounts is on and the game has one.
+        private static bool WithAccounts(CometSettings settings) => LocalServerPort.UseAccounts && !string.IsNullOrEmpty(settings.loginProject);
+
         /// <summary>Stops the editor's server and starts it again with the chosen options, building it first.</summary>
         public static void Restart()
         {
@@ -307,7 +327,7 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            if (!string.IsNullOrEmpty(settings.loginProject) && PortInUse(settings.loginPort))
+            if (WithAccounts(settings) && PortInUse(settings.loginPort))
             {
                 Debug.LogError($"Another program is using port {settings.loginPort}, so the local Login server can't start there. Close it (perhaps a Login server from another checkout), or change the Comet settings' Login port.");
                 return false;
@@ -340,7 +360,7 @@ namespace Comet.Unity.Editor
             var program = last?.program ?? "";
             var bots = last?.botsProgram ?? "";
             var login = last?.loginProgram ?? "";
-            var accounts = !string.IsNullOrEmpty(settings.loginProject);
+            var accounts = WithAccounts(settings);
             var buildServer = build || program.Length == 0 || !File.Exists(program);
             var buildBots = options.Bots > 0 && !string.IsNullOrEmpty(settings.botsProject) && (build || bots.Length == 0 || !File.Exists(bots));
             var buildLogin = accounts && (build || login.Length == 0 || !File.Exists(login));
@@ -453,6 +473,15 @@ namespace Comet.Unity.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(log)!);
             File.WriteAllText(log, "");
 
+            // Without accounts: the characters live in a file per checkout (in its ignored artifacts folder), so a
+            // designer comes back where they stood after a restart; deleting it starts them over.
+            var dev = login.Length == 0 && !string.IsNullOrEmpty(settings.serverDevArguments);
+            if (dev)
+            {
+                var characters = Path.Combine(CheckoutRoot(ContentBuild.ProjectRoot), "artifacts", "dev-characters.json");
+                arguments += " " + settings.serverDevArguments.Replace("{characters}", characters);
+            }
+
             // The Login server first: it migrates the database and makes the development ticket keys.
             var loginPid = 0;
             var loginStartTicks = 0L;
@@ -505,6 +534,8 @@ namespace Comet.Unity.Editor
                     loginStartTicks = loginStartTicks,
                     loginProgram = login,
                     waiting = true,
+                    dev = dev,
+                    port = settings.serverPort,
                     web = options.Web,
                     lan = options.Lan,
                     bots = options.Bots,
@@ -531,12 +562,38 @@ namespace Comet.Unity.Editor
 
             Kill(state.botsPid, state.botsStartTicks);
             Kill(state.loginPid, state.loginStartTicks);
+            if (state.dev)
+            {
+                StopCleanly(state);
+            }
+
             if (Kill(state.pid, state.startTicks) && !quiet)
             {
                 Debug.Log("Stopped the local game server.");
             }
 
             File.Delete(ContentBuild.ProjectPath(StateFile));
+        }
+
+        // Asks a server without accounts to stop the way Ctrl+C would (everyone's spot and the characters file written)
+        // and waits a few seconds for it, rather than killing it; Kill stops one that doesn't.
+        private static void StopCleanly(State state)
+        {
+            if (!Alive(state.pid, state.startTicks))
+            {
+                return;
+            }
+
+            try
+            {
+                Task.Run(() => Http.PostAsync($"http://localhost:{state.port}/dev/stop", null)).Wait();
+                using var process = Process.GetProcessById(state.pid);
+                process.WaitForExit(5000);
+            }
+            catch (Exception e) when (e is AggregateException or ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                // Gone already, or not answering: Kill sees to it.
+            }
         }
 
         /// <summary>The web build folder (a full path), if it has a page; null otherwise.</summary>
@@ -827,7 +884,7 @@ namespace Comet.Unity.Editor
             if (Settings() is { } settings)
             {
                 SessionState.SetInt(LocalServerPort.Key, settings.serverPort);
-                SessionState.SetInt(LocalServerPort.LoginKey, string.IsNullOrEmpty(settings.loginProject) ? 0 : settings.loginPort);
+                SessionState.SetInt(LocalServerPort.LoginKey, WithAccounts(settings) ? settings.loginPort : 0);
             }
         }
 
@@ -862,6 +919,8 @@ namespace Comet.Unity.Editor
             public long loginStartTicks;
             public string loginProgram = "";
             public bool waiting;
+            public bool dev; // without accounts: stopped through /dev/stop first
+            public int port;
             public bool web;
             public bool lan;
             public int bots;

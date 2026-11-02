@@ -66,6 +66,7 @@ MonoBehaviour:
   loginPort: 5090
   loginArguments: '"--Login:ConnectionString={database}" --Login:AllowedOrigins:0={page} --Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 --ShapeLand:GameServer:Address={game}'
   serverAccountArguments: '"--ShapeLand:ConnectionString={database}" --ShapeLand:LoginUrl={login}'
+  serverDevArguments: '--ShapeLand:DevJoins=true "--ShapeLand:DevCharactersFile={characters}"'
   databaseTool: ../../tools/comet-postgres.cs
   facetLength: 0.5
   minSides: 6

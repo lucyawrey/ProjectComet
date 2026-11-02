@@ -63,6 +63,9 @@ namespace ShapeLand.Client
         private string _serverBefore;
         private Label _pageName;
         private VisualElement _signIn;
+        // With accounts off, the last join's name and look, for joining again after the server restarts.
+        private string _devName;
+        private NewCharacter _devLook;
         private TextField _signInUsername;
         private TextField _signInPassword;
         private TextField _signInCode;
@@ -162,6 +165,9 @@ namespace ShapeLand.Client
             JoinRejection.Busy => strings.Get("join.busy"),
             JoinRejection.Replaced => strings.Get("drop.replaced"),
             JoinRejection.NoCharacter => strings.Get("account.no_character"),
+            JoinRejection.AccountsNeeded => strings.Get("join.accounts_needed"),
+            JoinRejection.BadName => strings.Get("join.name_rules"),
+            JoinRejection.NameOnline => strings.Get("join.name_online"),
             _ => strings.Get("join.not_accepted"),
         };
 
@@ -400,7 +406,7 @@ namespace ShapeLand.Client
 #if UNITY_WEBGL && !UNITY_EDITOR
             _serverLine.AddToClassList("hidden");
 #else
-            _serverLine.EnableInClassList("hidden", Changing || SettingPassword);
+            _serverLine.EnableInClassList("hidden", Changing || SettingPassword || !JoinClient.Accounts);
 #endif
             if (_rows != null && !Usable(_rows[_row]))
             {
@@ -609,6 +615,13 @@ namespace ShapeLand.Client
 
             AddSwatches(_colors, color => _color = color);
             AddSwatches(_eyes, color => _eyeColor = color);
+            if (!JoinClient.Accounts)
+            {
+                // The editor's own server, joined by name: no Login server to sign in to or pick.
+                _root.Q<Label>(className: "have-account-text").text = Text("account.off_note");
+                _signInButton.SetEnabled(false);
+            }
+
             WebPage.TakeRejoin(); // a returning player resumes below anyway
 #if !UNITY_WEBGL || UNITY_EDITOR
             _join.UseLoginServer(ServerAddress()); // the one remembered in the card, with the token kept for it
@@ -637,6 +650,13 @@ namespace ShapeLand.Client
         {
             var attempt = ++_popAttempt;
             _popBusy = true;
+            if (!JoinClient.Accounts)
+            {
+                _join.DevJoin(_devName, _devLook);
+                ShowPop();
+                return;
+            }
+
             ShowPop();
             var error = _join.Account == null ? await _join.LoadAccountAsync() : null;
             if (attempt != _popAttempt)
@@ -711,7 +731,7 @@ namespace ShapeLand.Client
             _rejoinUntil = null;
             HidePop();
             _join.CancelJoin();
-            ShowSignedIn(null);
+            ShowCardAgain(null);
         }
 
         // Signing out from the signed-in card asks first; a guest would lose the character, so Set password comes first.
@@ -734,6 +754,27 @@ namespace ShapeLand.Client
         }
 
         private async void SignOut() => await _join.SignOutAsync(); // SignedOut brings up the new player's card
+
+        // After a join that didn't happen or a game that ended: the signed-in card, or with accounts off (no account to
+        // show), the new player's card with its choices kept.
+        private void ShowCardAgain(string message)
+        {
+            if (JoinClient.Accounts)
+            {
+                ShowSignedIn(message);
+                return;
+            }
+
+            if (Changing)
+            {
+                Close();
+            }
+
+            HidePop();
+            SetSignedIn(false);
+            Show();
+            Retry(message);
+        }
 
         // The card for a signed-in player who isn't playing, with a message.
         private void ShowSignedIn(string message)
@@ -944,6 +985,13 @@ namespace ShapeLand.Client
             ShowError(null);
             _signInButton.RemoveFromClassList("pointed");
             SetButton(false, "join.joining");
+            if (!JoinClient.Accounts)
+            {
+                (_devName, _devLook) = (name, new NewCharacter { Shape = _shape.Number, Color = _color, EyeColor = _eyeColor });
+                _join.DevJoin(_devName, _devLook); // the spawn, a refusal or a failure comes next
+                return;
+            }
+
 #if !UNITY_WEBGL || UNITY_EDITOR
             _join.UseLoginServer(ServerAddress());
 #endif
@@ -1042,7 +1090,7 @@ namespace ShapeLand.Client
                 return; // the server came back with new content; the reloaded page loads it and rejoins
             }
 
-            ShowSignedIn(RefusalMessage(_content.Strings, reason)); // the pop-up gives way to the card, which says why
+            ShowCardAgain(RefusalMessage(_content.Strings, reason)); // the pop-up gives way to the card, which says why
         }
 
         private void OnLookRefused(LookRejection reason)
@@ -1056,6 +1104,22 @@ namespace ShapeLand.Client
         // The card comes back with the reason (none after leaving), and the choices made before.
         private void OnConnectionLost(CloseReason reason)
         {
+            if (!JoinClient.Accounts)
+            {
+                SetChanging(false);
+                if (reason == CloseReason.ServerShutDown)
+                {
+                    // The editor's server restarting (for new content, say): back in as the same name, where it stood.
+                    _rejoinUntil = Time.unscaledTime + RejoinSeconds;
+                    _nextRejoin = Time.unscaledTime + 1;
+                    JoinFromPop();
+                    return;
+                }
+
+                ShowCardAgain(reason == CloseReason.None ? null : LostMessage(_content.Strings, reason));
+                return;
+            }
+
             if (!_join.SignedIn)
             {
                 return; // signed out: OnSignedOut brought up the new player's card
@@ -1521,7 +1585,7 @@ namespace ShapeLand.Client
                 JoinFailure.BadAddress => _content.Strings.Format("join.bad_address", ("address", _join.Error ?? "")),
                 JoinFailure.Unanswered => Text("join.unanswered"),
                 _ when Application.platform == RuntimePlatform.WebGLPlayer => Text("join.unreachable_web"),
-                _ => _content.Strings.Format("join.unreachable", ("address", _join.LoginAddress)),
+                _ => _content.Strings.Format("join.unreachable", ("address", JoinClient.Accounts ? _join.LoginAddress : $"localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}")),
             };
             if (Connecting)
             {

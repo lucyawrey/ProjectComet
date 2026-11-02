@@ -393,6 +393,9 @@ Label { padding: 0; margin: 0; }
 /* Pressed: the button answers at once, before what it does. */
 .menu-entry:active, .menu-entry:hover:active, .menu-back:active, .menu-back:hover:active, .menu-dev:active, .menu-dev:hover:active { background-color: rgba(79, 140, 240, 0.8); }
 .menu-gap { height: 14px; }
+/* Under an entry that's off, why (the Account entry with accounts off in the editor). */
+.menu-entry-note { width: 280px; margin: -2px 0 8px 0; font-size: 13px; color: rgb(169, 178, 196); -unity-text-align: middle-center; white-space: normal; }
+.menu-entry:disabled { color: rgba(238, 241, 246, 0.4); }
 .hud.phone .menu-entry { height: 38px; font-size: 17px; margin-bottom: 4px; }
 .hud.phone .menu-gap { height: 8px; }
 
