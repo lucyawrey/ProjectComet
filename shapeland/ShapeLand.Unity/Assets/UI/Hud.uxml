@@ -147,7 +147,6 @@
                             <ui:Label name="account-code-note" class="setting-note" />
                         </ui:VisualElement>
                         <ui:VisualElement name="account-code-value" class="account-row-value" picking-mode="Ignore">
-                            <ui:Label text="#account.row_make_new" class="row-action" />
                             <ui:VisualElement class="row-chevron" />
                         </ui:VisualElement>
                     </ui:VisualElement>

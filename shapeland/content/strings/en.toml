@@ -71,7 +71,6 @@ change_password = "Change Password"
 recovery_code = "Create Recovery Code"
 row_recovery_code_note = "Use to sign in without a username and password"
 row_recovery_code_later = "Please set a password first"
-row_make_new = "Make new"
 change_username = "Change Username"
 # The Account page's rows (sentence case, like Settings' rows), apart from the buttons and page names.
 row_change_username = "Change username"
