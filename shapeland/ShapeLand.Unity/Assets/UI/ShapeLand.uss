@@ -544,6 +544,8 @@ Label { padding: 0; margin: 0; }
 /* "Already have an account?" and Sign in, on the new player's card only; Sign out on the signed-in card only. */
 .have-account { flex-direction: row; align-items: center; }
 .have-account-text { font-size: 14px; color: rgb(169, 178, 196); margin-right: 10px; }
+#join.server-shown .have-account-text { display: none; }
+#join.server-shown .have-account { margin-left: 12px; align-self: flex-end; }
 #join.changing .have-account, #join.signing-in .have-account, #join.signed-in .have-account, #join.setting-password .have-account { display: none; }
 /* Pointed to after a new player picks a taken name. */
 .cancel-button.pointed { border-color: rgb(106, 161, 255); }

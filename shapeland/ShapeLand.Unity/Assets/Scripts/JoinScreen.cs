@@ -377,6 +377,8 @@ namespace ShapeLand.Client
 #else
             _serverField.EnableInClassList("hidden", changing);
 #endif
+            // Beside the server field there's room only for the Sign in button, not the question before it.
+            _root.EnableInClassList("server-shown", !_serverField.ClassListContains("hidden"));
             if (!changing)
             {
                 _back = null;
