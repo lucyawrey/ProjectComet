@@ -692,7 +692,7 @@ namespace ShapeLand.Client
                 _confirm.Show(strings.Get("account.sign_out_guest_title"), strings.Get("account.sign_out_guest_note"), null,
                     (Text("account.set_password"), false, () => SetSettingPassword(true)),
                     (Text("account.stay"), false, null),
-                    (Text("account.delete_sign_out"), true, SignOut));
+                    (Text("account.sign_out"), true, SignOut));
             }
             else
             {
