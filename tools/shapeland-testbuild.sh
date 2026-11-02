@@ -176,7 +176,7 @@ setup() {
     echo "== Creating the daily snapshot policy (7 kept)"
     aws dlm create-default-role --resource-type snapshot > /dev/null 2>&1 || true
     role=$(aws iam get-role --role-name AWSDataLifecycleManagerDefaultRole --query Role.Arn --output text)
-    aws dlm create-lifecycle-policy --description "$tag data, daily" --state ENABLED --execution-role-arn "$role" \
+    aws dlm create-lifecycle-policy --description "$tag data daily" --state ENABLED --execution-role-arn "$role" \
       --policy-details "{\"PolicyType\":\"EBS_SNAPSHOT_MANAGEMENT\",\"ResourceTypes\":[\"VOLUME\"],
         \"TargetTags\":[{\"Key\":\"$tag\",\"Value\":\"data\"}],
         \"Schedules\":[{\"Name\":\"daily\",\"CreateRule\":{\"Interval\":24,\"IntervalUnit\":\"HOURS\",\"Times\":[\"09:00\"]},
