@@ -95,6 +95,15 @@ public static class ShapeLandServer
         var serverOptions = app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
         if (!string.IsNullOrEmpty(serverOptions.WebRoot))
         {
+            // The page's Content Security Policy, the same as shapeland/deploy/vercel.json gives the public test build
+            // (keep them in step), so a page change that breaks it shows up here first.
+            var policy = PagePolicy(serverOptions.LoginUrl);
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers.ContentSecurityPolicy = policy;
+                await next();
+            });
+
             // The page's settings, as the deploy writes them on the public test build: where the Login server is.
             var config = $"window.shapelandLogin = {System.Text.Json.JsonSerializer.Serialize(serverOptions.LoginUrl)};\n";
             app.MapGet("/config.js", (HttpContext context) =>
@@ -174,6 +183,16 @@ public static class ShapeLandServer
     // the decompression fallback (files named .unityweb): browsers that accept br get Content-Encoding: br and
     // decompress natively; the rest (Firefox over plain HTTP) get the bytes as they are, and Unity's loader
     // unpacks them.
+    // Scripts only from the page's own site (Unity's loader adds blob: scripts and needs 'wasm-unsafe-eval'), fonts
+    // from Google Fonts, and connections to the page's own server and the Login server.
+    private static string PagePolicy(string loginUrl)
+    {
+        var login = Uri.TryCreate(loginUrl, UriKind.Absolute, out var url) ? " " + url.GetLeftPart(UriPartial.Authority) : "";
+        return "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' https://fonts.googleapis.com; "
+            + "font-src https://fonts.gstatic.com; img-src 'self' data: blob:; worker-src 'self' blob:; "
+            + $"connect-src 'self'{login}; object-src 'none'; base-uri 'none'";
+    }
+
     private static void ServeWebBuild(WebApplication app, string webRoot)
     {
         if (string.IsNullOrEmpty(webRoot))

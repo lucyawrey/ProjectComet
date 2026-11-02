@@ -1,10 +1,15 @@
-# The public test build's TLS front (shapeland/deploy/boot.sh installs it): certificates for the game server's
-# hostname, from Let's Encrypt or, past its weekly limit, ZeroSSL; WebSockets proxied to the game server on this
-# machine, which trusts X-Forwarded-For only from loopback.
+# The public test build's TLS front (shapeland/deploy/boot.sh installs it): certificates for the server's hostname,
+# from Let's Encrypt or, past its weekly limit, ZeroSSL. /api/ goes to the Login server and everything else
+# (WebSockets, /health) to the game server, both on this machine and both trusting X-Forwarded-For only from loopback.
 {
 	email {$ACME_EMAIL}
 }
 
 {$SHAPELAND_HOST} {
-	reverse_proxy 127.0.0.1:5080
+	handle /api/* {
+		reverse_proxy 127.0.0.1:5090
+	}
+	handle {
+		reverse_proxy 127.0.0.1:5080
+	}
 }
