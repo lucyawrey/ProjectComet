@@ -1,0 +1,221 @@
+// Helpers the tools share (each includes this file with #:include; tools/run runs the tools): the repository, usage text, running programs
+// and waiting on servers. Everything here works on Linux, macOS and Windows.
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+static class Tool
+{
+    public static readonly string Self = (string)AppContext.GetData("EntryPointFilePath")!;
+    public static readonly string Repo = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Self)!, ".."));
+    public static readonly bool IsWindows = OperatingSystem.IsWindows();
+    public static readonly bool IsMac = OperatingSystem.IsMacOS();
+    public static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
+
+    // How a tool is run, for messages.
+    public static string Command(string tool) => IsWindows ? $"tools\\run {tool}" : $"tools/run {tool}";
+
+    // Runs another tool and returns its exit code.
+    public static int RunTool(string tool, params string[] args) =>
+        Run("dotnet", [Path.Combine(Repo, "tools", tool + ".cs"), "--", .. args]);
+
+    // The comment block at the top of the running tool, without the comment marks.
+    public static void Usage(int exitCode = 0)
+    {
+        foreach (var line in File.ReadLines(Self).TakeWhile(l => l.StartsWith("//")))
+        {
+            var text = line.Length > 2 && line[2] == ' ' ? line[3..] : line[2..];
+            Console.WriteLine(IsWindows ? text.Replace("tools/run ", "tools\\run ") : text);
+        }
+        Environment.Exit(exitCode);
+    }
+
+    public static Exception Fail(string message, int exitCode = 1)
+    {
+        Console.Error.WriteLine(message);
+        RunStops();
+        Environment.Exit(exitCode);
+        return new(); // never reached; lets callers write `throw Tool.Fail(...)`
+    }
+
+    // Where a program is: on PATH (with Windows' extensions, so npm's .cmd shims are found), or in the places a Mac
+    // app started from the Dock or Unity Hub doesn't have on its PATH.
+    public static string Find(string program)
+    {
+        var dirs = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator).ToList();
+        if (IsMac)
+            dirs.AddRange(["/usr/local/bin", "/opt/homebrew/bin", "/Applications/Docker.app/Contents/Resources/bin"]);
+        var extensions = IsWindows ? (Environment.GetEnvironmentVariable("PATHEXT") ?? ".EXE;.CMD;.BAT").Split(';') : [""];
+        foreach (var dir in dirs.Where(d => d != ""))
+            foreach (var extension in extensions)
+            {
+                var path = Path.Combine(dir, program + extension.ToLowerInvariant());
+                if (File.Exists(path)) return path;
+            }
+        return program;
+    }
+
+    public static bool Has(string program) => Find(program) != program;
+
+    public static ProcessStartInfo Info(string program, IEnumerable<string> args, string? folder = null,
+        IDictionary<string, string?>? env = null)
+    {
+        var info = new ProcessStartInfo(Find(program)) { WorkingDirectory = folder ?? Environment.CurrentDirectory };
+        foreach (var arg in args) info.ArgumentList.Add(arg);
+        if (env != null)
+            foreach (var (key, value) in env) info.Environment[key] = value;
+        return info;
+    }
+
+    // Runs a program with this terminal's input and output, and returns its exit code.
+    public static int Run(string program, params string[] args) => Run(Info(program, args));
+
+    public static int Run(ProcessStartInfo info)
+    {
+        using var process = Process.Start(info) ?? throw Fail($"Couldn't start {info.FileName}.");
+        process.WaitForExit();
+        return process.ExitCode;
+    }
+
+    // Runs a program and returns its exit code and output (stderr goes to this terminal unless asked for too).
+    public static (int Code, string Output) Capture(string program, params string[] args) =>
+        Capture(Info(program, args));
+
+    public static (int Code, string Output) Capture(ProcessStartInfo info, bool withErrors = false)
+    {
+        info.RedirectStandardOutput = true;
+        info.RedirectStandardError = withErrors;
+        info.RedirectStandardInput = true; // nothing to read: a program asking for input gets end of file
+        using var process = Process.Start(info) ?? throw Fail($"Couldn't start {info.FileName}.");
+        process.StandardInput.Close();
+        var output = withErrors ? Task.Run(() => process.StandardError.ReadToEnd()) : Task.FromResult("");
+        var text = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return (process.ExitCode, withErrors ? text + output.Result : text);
+    }
+
+    // The trimmed output of a program that must succeed.
+    public static string Output(string program, params string[] args)
+    {
+        var (code, text) = Capture(program, args);
+        if (code != 0) throw Fail($"Failed: {program} {string.Join(' ', args)}");
+        return text.Trim();
+    }
+
+    // Runs a build step quietly, showing its output only if it fails (dotnet prints compile errors to stdout).
+    public static void Quietly(string program, params string[] args) => Quietly(Info(program, args));
+
+    public static void Quietly(ProcessStartInfo info)
+    {
+        var (code, text) = Capture(info, withErrors: true);
+        if (code == 0) return;
+        Console.Error.WriteLine(text.TrimEnd());
+        throw Fail($"Failed: {Path.GetFileName(info.FileName)} {string.Join(' ', info.ArgumentList)}");
+    }
+
+    // A program started in the background, stopped (with its children) by Stop or when the tool stops.
+    public static Process Start(ProcessStartInfo info)
+    {
+        var process = Process.Start(info) ?? throw Fail($"Couldn't start {info.FileName}.");
+        OnStop(() => Stop(process));
+        return process;
+    }
+
+    public static void Stop(Process process)
+    {
+        try
+        {
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            process.WaitForExit(5000);
+        }
+        catch (InvalidOperationException) { } // already gone
+    }
+
+    // Whether a URL answers at all, or answers successfully (with the given body, when one is asked for).
+    public static bool Answers(string url, bool success = true, string? body = null)
+    {
+        try
+        {
+            using var response = Http.GetAsync(url).GetAwaiter().GetResult();
+            if (!success) return true;
+            if (!response.IsSuccessStatusCode) return false;
+            return body == null || response.Content.ReadAsStringAsync().GetAwaiter().GetResult() == body;
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException) { return false; }
+    }
+
+    // Polls until the check passes, up to the given number of tries.
+    public static bool WaitFor(Func<bool> check, int tries, TimeSpan delay)
+    {
+        for (var i = 0; i < tries; i++)
+        {
+            if (check()) return true;
+            Thread.Sleep(delay);
+        }
+        return false;
+    }
+
+    public static void OpenInBrowser(string url)
+    {
+        try
+        {
+            if (IsWindows) Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            else Capture(IsMac ? "open" : "xdg-open", url);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception) { }
+    }
+
+    // Cleanup that runs once, last added first, when the tool ends: normally, on an error, on Ctrl+C, or when it's
+    // told to stop (a kill, or closing the terminal).
+    static readonly List<Action> stops = [];
+    static readonly List<PosixSignalRegistration> signals = [];
+
+    public static void OnStop(Action stop)
+    {
+        lock (stops)
+        {
+            if (signals.Count == 0)
+            {
+                AppDomain.CurrentDomain.ProcessExit += (_, _) => RunStops();
+                foreach (var (signal, code) in new[] { (PosixSignal.SIGINT, 130), (PosixSignal.SIGTERM, 143), (PosixSignal.SIGHUP, 129) })
+                    signals.Add(PosixSignalRegistration.Create(signal, context =>
+                    {
+                        context.Cancel = true;
+                        RunStops();
+                        Environment.Exit(code);
+                    }));
+            }
+            stops.Add(stop);
+        }
+    }
+
+    public static void RunStops()
+    {
+        Action[] toRun;
+        lock (stops)
+        {
+            toRun = [.. stops];
+            stops.Clear();
+        }
+        for (var i = toRun.Length - 1; i >= 0; i--)
+        {
+            try { toRun[i](); }
+            catch (Exception e) { Console.Error.WriteLine($"While stopping: {e.Message}"); }
+        }
+    }
+
+    // Reads command-line options one at a time.
+    public sealed class Args(string[] args)
+    {
+        int next;
+        public bool More => next < args.Length;
+        public string Peek => args[next];
+        public string[] Rest => args[next..];
+        public string Take() => args[next++];
+
+        public string Value(string option) =>
+            More ? Take() : throw Fail($"{option} needs a value (see --help)", 2);
+
+        public int Number(string option) =>
+            int.TryParse(Value(option), out var n) && n >= 0 ? n : throw Fail($"{option} takes a whole number", 2);
+    }
+}

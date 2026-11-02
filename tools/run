@@ -1,0 +1,15 @@
+#!/bin/sh
+# Runs one of the tools in this folder (each a C# file app, tools/<tool>.cs) with its arguments, untouched:
+#
+#   tools/run <tool> [arguments]      for example tools/run unity-batch test, or tools/run unity-batch --help
+#
+# The -- keeps dotnet from taking arguments it knows (--help, --no-build, -p, --) for itself. On Windows, tools\run.
+tools=$(dirname "$0")
+if [ -z "$1" ] || [ ! -f "$tools/$1.cs" ]; then
+  echo "Usage: tools/run <tool> [arguments]. The tools:" >&2
+  for file in "$tools"/*.cs; do basename "$file" .cs; done | sed 's/^/  /' >&2
+  exit 2
+fi
+tool=$1
+shift
+exec dotnet "$tools/$tool.cs" -- "$@"

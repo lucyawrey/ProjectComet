@@ -19,7 +19,12 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 - **.NET 10 SDK**: for the servers, libraries, bots and tools.
 - **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/ShapeLand.Unity`).
-- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`).
+- **Docker**: for any local play (PostgreSQL runs in it), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/shapeland-netrun.sh`). On Linux, those runs need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them; Docker Desktop's VM on macOS and Windows has them):
+
+  ```sh
+  printf 'ifb\nsch_netem\nsch_ingress\nact_mirred\ncls_matchall\n' | sudo tee /etc/modules-load.d/netem.conf
+  sudo systemctl restart systemd-modules-load
+  ```
 
 - **AWS CLI and Vercel CLI**: only for the public test build.
 
@@ -29,7 +34,7 @@ The scripts are bash, and the Unity editor runs one to start the database, so wo
 
 - `comet/`: Comet, the shared base: protocol, simulation, client and server libraries, content tools, and the Unity package. Its [README](comet/README.md) explains how they fit together.
 - `shapeland/`: ShapeLand, the demo game: content, game server, bots, Unity client and deployment. Its [README](shapeland/README.md) maps the code and the tuning values.
-- `tools/`: scripts for building, running and testing (below), and the stack benchmark.
+- `tools/`: tools for building, running and testing (below).
 - `docs/`: project notes and the proposal.
 
 ## First time setup
@@ -59,7 +64,6 @@ Run them from the repository root. Each script's options are listed below and in
 | `tools/shapeland-testbuild.sh` | The public test build: the page on Vercel and the game server on an on-demand AWS instance. |
 | `tools/unity-batch.sh` | Run a Unity build or tests and return when the work is done: in the open editor when it has the project open, else in batch mode (where the editor often hangs while quitting). |
 | `tools/unity-restore.sh` | Restore a Unity project's NuGet packages (see First time setup). Takes the project as an optional argument (default `shapeland/ShapeLand.Unity`). |
-| `tools/StackBench/` | The stack benchmark: Comet's message layer under load, with no game logic. See its [README](tools/StackBench/README.md). |
 
 ### Play locally in a browser
 
