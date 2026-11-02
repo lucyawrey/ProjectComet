@@ -46,6 +46,24 @@ jobs:
           done
           test "$(tools/run comet-postgres name '/a b/My Checkout' 5080)" = shapeland_my_checkout_5080
 
+      - name: Diagnose (temporary)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: cmd
+        run: |
+          where dotnet
+          dotnet --version
+          dotnet --list-sdks
+          dir tools
+          echo --- shorthand
+          dotnet tools\comet-postgres.cs -- name a 1
+          echo --- shorthand, full path
+          dotnet "%CD%\tools\comet-postgres.cs" -- name a 1
+          echo --- run --file
+          dotnet run --file tools\comet-postgres.cs -- name a 1
+          echo --- launcher
+          call tools\run comet-postgres name a 1
+
       - name: Tools
         if: runner.os == 'Windows'
         shell: cmd
