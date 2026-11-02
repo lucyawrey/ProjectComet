@@ -83,6 +83,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(Join.Account.Guest, Is.False, "Still a guest with a password.");
 
             yield return SignOutFromThePage();
+            yield return LaidOut("sign-in-button");
             Click(Screen.Root.Q<Button>("sign-in-button"));
             yield return null;
             Field("sign-in-username").value = "unittest"; // in other capitals
@@ -116,14 +117,17 @@ namespace ShapeLand.Client.Tests
             yield return TestGameServer.WaitFor(() => AtStep("account-confirm"), 10);
             Assert.That(AtStep("account-confirm"), Is.True, "Making a recovery code didn't ask for the password again.");
             Hud.Root.Q<TextField>("account-confirm-field").value = NewPassword;
+            yield return SubmitStep("account-new-code");
             yield return SubmitStep("account-code");
             var code = Hud.Root.Q<Label>("account-code-text").text;
             Assert.That(code, Is.Not.Empty, "No recovery code shown.");
             yield return SubmitStep("account-rows");
 
             yield return SignOutFromThePage();
+            yield return LaidOut("sign-in-button");
             Click(Screen.Root.Q<Button>("sign-in-button"));
             yield return null;
+            yield return LaidOut("sign-in-use-code");
             Click(Screen.Root.Q<Button>("sign-in-use-code"));
             Field("sign-in-code").value = code;
             Click(Screen.Root.Q<Button>("join-button"));
