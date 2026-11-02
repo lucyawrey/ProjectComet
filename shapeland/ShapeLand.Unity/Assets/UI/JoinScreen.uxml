@@ -91,7 +91,7 @@
                         <ui:Label text="#account.have_account" class="have-account-text" />
                         <ui:Button name="sign-in-button" text="#account.sign_in" class="cancel-button" />
                     </ui:VisualElement>
-                    <ui:Button name="sign-out-button" text="#account.sign_out" class="link-button" />
+                    <ui:Button name="sign-out-button" text="#account.sign_out" class="sign-out-button" />
                     <ui:VisualElement class="spacer" />
                     <ui:Button name="cancel-button" text="#join.cancel" class="cancel-button hidden" />
                     <ui:Button name="join-button" text="#join.play" class="join-button" />

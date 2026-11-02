@@ -547,7 +547,16 @@ Label { padding: 0; margin: 0; }
 #join.changing .have-account, #join.signing-in .have-account, #join.signed-in .have-account, #join.setting-password .have-account { display: none; }
 /* Pointed to after a new player picks a taken name. */
 .cancel-button.pointed { border-color: rgb(106, 161, 255); }
-#sign-out-button { display: none; align-self: center; }
+/* Sign out: the same button on the signed-in card and the Account page, in Leave game's red. */
+.sign-out-button {
+    height: 40px; padding: 0 20px; margin: 0;
+    background-color: rgba(229, 57, 53, 0.12);
+    border-width: 2px; border-color: rgba(255, 160, 157, 0.35); border-radius: 4px;
+    color: rgb(255, 160, 157); font-size: 16px;
+}
+.sign-out-button:hover { background-color: rgba(229, 57, 53, 0.22); border-color: rgba(255, 160, 157, 0.6); }
+.account-sign-out { align-self: flex-start; margin: 18px 0 0 12px; }
+#sign-out-button { display: none; }
 #join.signed-in #sign-out-button { display: flex; }
 /* The server line: desktop builds only, on the new player's and signed-in cards. */
 .server-line { flex-direction: row; align-items: center; margin-top: 10px; }
@@ -631,7 +640,6 @@ Label { padding: 0; margin: 0; }
 }
 .menu-row.account-row:hover { background-color: rgba(255, 255, 255, 0.04); }
 .menu-row.disabled .menu-row-name { color: rgb(141, 151, 171); }
-.menu-row.sign-out .menu-row-name { color: rgb(255, 160, 157); }
 .account-info {
     margin: 10px 0 6px 0; padding: 8px 12px; font-size: 14px; white-space: normal;
     background-color: rgba(106, 161, 255, 0.14); border-left-width: 3px; border-color: rgb(106, 161, 255);

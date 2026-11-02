@@ -101,7 +101,7 @@ namespace ShapeLand.Client
             root.Q("account-username-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Rename));
             root.Q("account-password-row").RegisterCallback<ClickEvent>(_ => ShowStep(Step.Password));
             _codeRow.RegisterCallback<ClickEvent>(_ => MakeCode());
-            root.Q("account-sign-out-row").RegisterCallback<ClickEvent>(_ => AskToSignOut());
+            root.Q<Button>("account-sign-out").clicked += AskToSignOut;
             foreach (var field in new[] { _renameField, _passwordField, _passwordAgain, _confirmField })
             {
                 field.RegisterCallback<KeyDownEvent>(e =>

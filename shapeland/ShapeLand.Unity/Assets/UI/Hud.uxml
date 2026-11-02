@@ -149,13 +149,7 @@
                         <ui:VisualElement class="row-chevron" />
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:VisualElement class="menu-gap" />
-                <ui:VisualElement name="account-sign-out-row" class="menu-row account-row sign-out">
-                    <ui:Label text="#account.sign_out" class="menu-row-name" />
-                    <ui:VisualElement class="account-row-value" picking-mode="Ignore">
-                        <ui:VisualElement class="row-chevron" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
+                <ui:Button name="account-sign-out" text="#account.sign_out" class="sign-out-button account-sign-out" />
             </ui:ScrollView>
             <ui:VisualElement name="account-rename" class="account-step">
                 <ui:VisualElement class="account-form">
