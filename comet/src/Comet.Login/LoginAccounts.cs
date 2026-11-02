@@ -240,13 +240,15 @@ public sealed class LoginAccounts<TCharacter>(
     /// <summary>Revokes the session. A guest has no way back in, so signing out deletes it and frees its name at once.</summary>
     public async Task SignOutAsync(SignedIn signedIn, CancellationToken cancellationToken)
     {
+        // One transaction for a guest: its sessions go with it, so a failure can't leave it unreachable but holding its name.
+        if (signedIn.Account.IsGuest && await actions.DeleteAsync(signedIn.Account.Id, onlyGuest: true, cancellationToken))
+        {
+            await actions.PurgeAsync(cancellationToken);
+            return;
+        }
+
         db.Sessions.Remove(signedIn.Session);
         await db.SaveChangesAsync(cancellationToken);
-        if (signedIn.Account.IsGuest)
-        {
-            await actions.DeleteAsync(signedIn.Account.Id, cancellationToken);
-            await actions.PurgeAsync(cancellationToken);
-        }
     }
 
     /// <summary>Renames the account (and its live characters, if the game's names follow the username). The old name is free at once.</summary>

@@ -748,7 +748,19 @@ public sealed class EndToEndTests : IAsyncLifetime
             Assert.Equal(JoinRejection.BadTicket, (await client.NextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected)).Reason);
         }
 
-        await client.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint });
+        // A burst, so a refill while the round trips above ran slowly can't let every retry through.
+        try
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                await client.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint });
+            }
+        }
+        catch (WebSocketException)
+        {
+            // already dropped
+        }
+
         Assert.True(await client.ClosedAsync(TimeSpan.FromSeconds(2)));
     }
 

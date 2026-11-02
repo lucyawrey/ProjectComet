@@ -295,6 +295,12 @@ namespace Comet.Unity.Editor
                 return true;
             }
 
+            // A game server that crashed leaves its Login server (and bots) holding their ports; they're ours, so stop them.
+            if (Read() is { } left && !Alive(left.pid, left.startTicks))
+            {
+                Stop(quiet: true);
+            }
+
             if (PortInUse(settings.serverPort))
             {
                 Debug.LogError($"Another program is using port {settings.serverPort}, so the local game server can't start there. Close it, or change the Comet settings' server port.");

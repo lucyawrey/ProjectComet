@@ -938,9 +938,6 @@ namespace ShapeLand.Client
                 PlayerPrefs.SetString(ShapeKey, _shape.Id);
                 PlayerPrefs.SetInt(ColorKey, _color);
                 PlayerPrefs.SetInt(EyesKey, _eyeColor);
-#if !UNITY_WEBGL || UNITY_EDITOR
-                PlayerPrefs.SetString(ServerKey, ServerAddress());
-#endif
                 PlayerPrefs.Save();
             }
 
@@ -962,6 +959,13 @@ namespace ShapeLand.Client
             {
                 Retry(LoginMessage(_content.Strings, error, name));
             }
+#if !UNITY_WEBGL || UNITY_EDITOR
+            else
+            {
+                PlayerPrefs.SetString(ServerKey, ServerAddress()); // as for a sign-in: the guest's token is kept under this server
+                PlayerPrefs.Save();
+            }
+#endif
         }
 
         // The Change Shape card: the look goes to the game server, and the card closes on the spawn it brings.

@@ -282,7 +282,7 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var (accountId, characterId) = await IdsAsync("Alice");
         await ClaimAsync(characterId);
 
-        await _host.Actions.DeleteAsync(accountId, TestContext.Current.CancellationToken);
+        await _host.Actions.DeleteAsync(accountId, onlyGuest: false, TestContext.Current.CancellationToken);
 
         Assert.Equal(2, await OwnerVersionAsync(characterId));
         Assert.Equal(LoginErrors.SignedOut, await alice.ErrorOfAsync(alice.GetAsync(LoginPaths.Me)));
@@ -302,7 +302,7 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var alice = await ClaimedAsync("Alice", "a password");
         var code = (await alice.PostAsync<RecoveryCodeResponse>(LoginPaths.RecoveryCode)).Code;
         var (accountId, _) = await IdsAsync("Alice");
-        await _host.Actions.DeleteAsync(accountId, TestContext.Current.CancellationToken);
+        await _host.Actions.DeleteAsync(accountId, onlyGuest: false, TestContext.Current.CancellationToken);
 
         var other = _host.NewClient();
         var response = await other.PostAsync(LoginPaths.Restore, new { recoveryCode = code });

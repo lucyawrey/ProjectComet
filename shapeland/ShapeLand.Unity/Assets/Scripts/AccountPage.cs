@@ -178,7 +178,7 @@ namespace ShapeLand.Client
 
         /// <summary>
         /// Esc or Back: closes the question if one is up, else goes back a step, else closes the page and goes back to
-        /// the menu. A recovery code still showing asks first, since it can't be shown again.
+        /// the menu.
         /// </summary>
         public void Back()
         {

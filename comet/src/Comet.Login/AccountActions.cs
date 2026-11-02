@@ -57,16 +57,22 @@ public sealed class AccountActions<TCharacter>(
 
     /// <summary>
     /// Deletes the account: its sessions go, its username stays held until the purge, and (if the game says so) its
-    /// characters are deleted with it. A player online is kicked.
+    /// characters are deleted with it. A player online is kicked. With <paramref name="onlyGuest"/>, an account claimed
+    /// meanwhile is left alone; returns whether it was deleted.
     /// </summary>
-    public async Task DeleteAsync(long accountId, CancellationToken cancellationToken)
+    public async Task<bool> DeleteAsync(long accountId, bool onlyGuest, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<CometAccountContext>();
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var now = Now;
-        await db.Accounts.Where(a => a.Id == accountId && a.DeletedAt == null)
+        var deleted = await db.Accounts.Where(a => a.Id == accountId && a.DeletedAt == null && (!onlyGuest || a.ClaimedAt == null))
             .ExecuteUpdateAsync(set => set.SetProperty(a => a.DeletedAt, now).SetProperty(a => a.UpdatedAt, now), cancellationToken);
+        if (deleted == 0)
+        {
+            return false;
+        }
+
         await db.Sessions.Where(s => s.AccountId == accountId).ExecuteDeleteAsync(cancellationToken);
 
         await using var region = await regions.JoinAsync(db, cancellationToken);
@@ -78,6 +84,7 @@ public sealed class AccountActions<TCharacter>(
 
         await KickAsync(region, accountId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        return true;
     }
 
     /// <summary>
@@ -146,7 +153,7 @@ public sealed class AccountActions<TCharacter>(
 
         foreach (var accountId in idleGuests)
         {
-            await DeleteAsync(accountId, cancellationToken);
+            await DeleteAsync(accountId, onlyGuest: true, cancellationToken);
         }
 
         if (idleGuests.Count > 0)
