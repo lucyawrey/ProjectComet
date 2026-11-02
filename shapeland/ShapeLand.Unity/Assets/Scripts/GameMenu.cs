@@ -129,7 +129,8 @@ namespace ShapeLand.Client
                 () => { Close(); _hud.ReturnToSpawn(); },
                 () => ShowPage(Page.Leave),
             };
-            _confirmEntries = new[] { root.Q("menu-stay"), root.Q("menu-leave-confirm") };
+            // Leave first: the player was already heading there.
+            _confirmEntries = new[] { root.Q("menu-leave-confirm"), root.Q("menu-stay") };
             _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed"), root.Q("setting-auto-join"), root.Q("setting-stats"), root.Q("setting-hitboxes") };
             _switches = new (int, VisualElement, Func<bool>, Action)[]
             {
@@ -409,12 +410,12 @@ namespace ShapeLand.Client
         {
             if (index == 0)
             {
-                Back();
+                Close();
+                _hud.Join.Leave();
             }
             else
             {
-                Close();
-                _hud.Join.Leave();
+                Back();
             }
         }
 

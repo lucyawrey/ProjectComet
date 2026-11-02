@@ -690,8 +690,8 @@ namespace ShapeLand.Client
             else
             {
                 _confirm.Show(Text("account.sign_out_title"), Text("account.sign_out_note"), null,
-                    (Text("account.stay"), false, null),
-                    (Text("account.sign_out"), true, SignOut));
+                    (Text("account.sign_out"), true, SignOut),
+                    (Text("account.stay"), false, null));
             }
         }
 

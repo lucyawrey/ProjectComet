@@ -17,8 +17,8 @@
             <ui:VisualElement name="menu-confirm" class="menu-confirm hidden">
                 <ui:Label text="#menu.leave_title" class="menu-confirm-title" picking-mode="Ignore" />
                 <ui:Label text="#menu.leave_note" class="menu-confirm-note" picking-mode="Ignore" />
-                <ui:Button name="menu-stay" text="#menu.stay" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-leave-confirm" text="#menu.leave" class="menu-entry leave" focusable="false" />
+                <ui:Button name="menu-stay" text="#menu.stay" class="menu-entry" focusable="false" />
             </ui:VisualElement>
             <ui:VisualElement name="menu-window" class="menu-window hidden">
                 <ui:VisualElement class="menu-page-head">
