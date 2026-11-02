@@ -110,10 +110,12 @@ WantedBy=multi-user.target
 UNIT
 
 # The game server, after the Login server (which makes the keys it reads); it restarts until they're there.
+# Ordered after PostgreSQL too, so on down or redeploy it stops (and saves its players) before the database does.
 cat > /etc/systemd/system/shapeland.service <<UNIT
 [Unit]
 Description=ShapeLand game server
-After=network-online.target shapeland-login.service
+After=network-online.target postgresql.service shapeland-login.service
+Wants=postgresql.service
 
 [Service]
 User=shapeland

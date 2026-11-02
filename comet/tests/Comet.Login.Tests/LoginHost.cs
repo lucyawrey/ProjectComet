@@ -131,6 +131,7 @@ public sealed class LoginHost : IAsyncDisposable
             options.GuestIdle = TimeSpan.FromDays(7);
             options.AccountHold = TimeSpan.FromDays(7);
             options.CharacterHold = TimeSpan.FromDays(7);
+            options.CleanupPeriod = TimeSpan.FromDays(3650); // tests run the cleanup themselves, not when the clock moves
             options.AllowedOrigins = ["https://page.test"];
             options.RateLimits.SignInPerMinute = 1000;
             options.RateLimits.GuestsPerHour = 1000;

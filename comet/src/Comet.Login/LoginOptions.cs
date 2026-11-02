@@ -35,7 +35,7 @@ public sealed class LoginOptions
     /// <summary>Unclaimed guests idle this long are deleted. Null keeps them.</summary>
     public TimeSpan? GuestIdle { get; set; }
 
-    /// <summary>How long a deleted account stays (holding its username, restorable) before the purge.</summary>
+    /// <summary>How long a deleted account stays (holding its username, restorable) before the purge. Deleted guests go at the next purge.</summary>
     public TimeSpan AccountHold { get; set; } = TimeSpan.FromDays(30);
 
     /// <summary>How long a deleted character stays before the purge.</summary>

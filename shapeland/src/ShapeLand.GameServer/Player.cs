@@ -40,7 +40,11 @@ internal sealed class Player(Connection connection, int tickRate)
 
     public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
 
+    public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
+
     public TickLimiter LookLimiter { get; } = TickLimiter.Look(tickRate);
+
+    public TickLimiter RenameLimiter { get; } = TickLimiter.Rename(tickRate);
 
     public TickLimiter ReturnLimiter { get; } = TickLimiter.Return(tickRate);
 

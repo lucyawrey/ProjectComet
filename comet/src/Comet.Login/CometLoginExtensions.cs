@@ -41,6 +41,9 @@ public static class CometLoginExtensions
         configure?.Invoke(settings);
         services.AddSingleton(Options.Create(settings));
 
+        // A JSON null for a field that can't be null is a bad request (400), not a crash further in.
+        services.ConfigureHttpJsonOptions(json => json.SerializerOptions.RespectNullableAnnotations = true);
+
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton(sp => new SnowflakeIds(settings.NodeId, sp.GetRequiredService<TimeProvider>()));
         services.AddDbContext<TAccounts>((sp, options) => options.UseCometAccount(settings.ConnectionString, sp.GetRequiredService<TimeProvider>()));

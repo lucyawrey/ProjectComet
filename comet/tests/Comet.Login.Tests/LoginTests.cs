@@ -128,6 +128,13 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ANullFieldIsABadRequest()
+    {
+        var response = await _host.NewClient().PostAsync(LoginPaths.SignIn, new { username = (string?)null, password = "correct horse" });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task ShortPasswordsAreRefused()
     {
         var guest = await _host.GuestAsync("Alice");
@@ -318,9 +325,8 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var deleted = await accounts.Accounts.Where(a => a.DeletedAt != null).Select(a => a.UserName).ToListAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["Idle"], deleted);
 
-        // The purge, after the hold, frees the name.
-        _host.Clock.Advance(TimeSpan.FromDays(8));
-        await _host.Actions.PurgeAsync(TestContext.Current.CancellationToken);
+        // A guest can't restore itself, so the next purge frees the name without waiting out the hold.
+        Assert.Equal((1, 1), await _host.Actions.PurgeAsync(TestContext.Current.CancellationToken));
         await _host.GuestAsync("Idle");
     }
 

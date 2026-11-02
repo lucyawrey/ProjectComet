@@ -736,6 +736,22 @@ public sealed class EndToEndTests : IAsyncLifetime
         Assert.True(await Dropped(socket, TimeSpan.FromSeconds(2)));
     }
 
+    [Fact]
+    public async Task RetryingFailedJoinsTooFastDropsTheClient()
+    {
+        // Each retry checks a ticket, so a client can't retry without limit on one connection.
+        using var client = new RawClient();
+        await client.ConnectAsync(_url);
+        for (var i = 0; i < 5; i++)
+        {
+            await client.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint });
+            Assert.Equal(JoinRejection.BadTicket, (await client.NextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected)).Reason);
+        }
+
+        await client.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint });
+        Assert.True(await client.ClosedAsync(TimeSpan.FromSeconds(2)));
+    }
+
     /// <summary>Reads until the server closes or drops the connection, or <paramref name="wait"/> passes.</summary>
     private static async Task<bool> Dropped(ClientWebSocket socket, TimeSpan wait)
     {

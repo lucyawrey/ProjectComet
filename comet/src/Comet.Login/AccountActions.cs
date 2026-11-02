@@ -157,21 +157,31 @@ public sealed class AccountActions<TCharacter>(
         return idleGuests.Count;
     }
 
-    /// <summary>Removes accounts and characters deleted longer ago than their holds. Returns how many of each.</summary>
+    /// <summary>
+    /// Removes accounts and characters deleted longer ago than their holds, and deleted guests with their characters
+    /// at once (a guest can't sign in to restore itself, so the hold would only keep its name taken). Returns how many
+    /// of each.
+    /// </summary>
     public async Task<(int Accounts, int Characters)> PurgeAsync(CancellationToken cancellationToken)
     {
         var settings = options.Value;
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<CometAccountContext>();
+        var guests = await db.Accounts.Where(a => a.ClaimedAt == null && a.DeletedAt != null)
+            .Select(a => a.Id)
+            .ToListAsync(cancellationToken);
+
         int characters;
         await using (var region = regions.Create())
         {
             var cutoff = Now - settings.CharacterHold;
-            characters = await region.Characters.Where(c => c.DeletedAt < cutoff).ExecuteDeleteAsync(cancellationToken);
+            characters = await region.Characters
+                .Where(c => c.DeletedAt < cutoff || (c.DeletedAt != null && guests.Contains(c.AccountId)))
+                .ExecuteDeleteAsync(cancellationToken);
         }
 
-        await using var scope = scopes.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<CometAccountContext>();
         var accountCutoff = Now - settings.AccountHold;
-        var accounts = await db.Accounts.Where(a => a.DeletedAt < accountCutoff).ExecuteDeleteAsync(cancellationToken);
+        var accounts = await db.Accounts.Where(a => a.DeletedAt < accountCutoff || guests.Contains(a.Id)).ExecuteDeleteAsync(cancellationToken);
 
         if (accounts + characters > 0)
         {

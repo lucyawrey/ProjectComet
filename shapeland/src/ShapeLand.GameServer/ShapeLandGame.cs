@@ -132,7 +132,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                     _players[input.Connection] = new Player(input.Connection, ShapeLandRules.TickRate) { ConnectedTick = tick };
                     break;
                 case InputKind.Join:
-                    Join(_players[input.Connection], input.Join);
+                    Join(_players[input.Connection], input.Join, tick);
                     break;
                 case InputKind.Look:
                     ChangeLook(_players[input.Connection], input.Look, tick);
@@ -218,11 +218,11 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
     // A join hands the ticket to JoinedCharacters, which checks it and loads the character off the tick thread;
     // the player spawns when it comes back (Joined) on a later tick.
-    private void Join(Player player, JoinRequest request)
+    private void Join(Player player, JoinRequest request, uint tick)
     {
-        if (player.Joining || player.Joined)
+        if (player.Joining || player.Joined || !player.JoinLimiter.TryTake(tick))
         {
-            // One join per connection: no honest client asks again.
+            // One join at a time, and retries after a failure only at a pace no honest client exceeds.
             player.Connection.Disconnect();
             return;
         }
@@ -418,7 +418,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     // The player renamed their account: the name is read from the database off the tick thread, then shown.
     private void ReloadName(Player player, uint tick)
     {
-        if (!player.Joined || !player.LookLimiter.TryTake(tick) || !_joins.TryGet(player.Connection, out var characterId, out _))
+        if (!player.Joined || !player.RenameLimiter.TryTake(tick) || !_joins.TryGet(player.Connection, out var characterId, out _))
         {
             return;
         }
