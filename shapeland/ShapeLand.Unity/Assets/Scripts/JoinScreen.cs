@@ -53,6 +53,8 @@ namespace ShapeLand.Client
         private VisualElement _serverField;
         private VisualElement _serverLine;
         private Label _serverText;
+        // The address when Change was pressed, for Cancel to put back.
+        private string _serverBefore;
         private Label _pageName;
         private VisualElement _signIn;
         private TextField _signInUsername;
@@ -221,6 +223,11 @@ namespace ShapeLand.Client
             _serverLine = tree.Q("server-line");
             _serverText = tree.Q<Label>("server-text");
             tree.Q<Button>("server-change").clicked += OpenServerField;
+            tree.Q<Button>("server-cancel").clicked += () =>
+            {
+                _server.value = _serverBefore;
+                CloseServerField();
+            };
             _server.RegisterValueChangedCallback(_ => ShowServer());
             _pageName = tree.Q<Label>("page-name");
             tree.Q<Button>("page-back").clicked += PageBack;
@@ -501,6 +508,7 @@ namespace ShapeLand.Client
         // The server line's Change: the field in place of the line's text, for keys and gamepad too.
         private void OpenServerField()
         {
+            _serverBefore = _server.value;
             _serverLine.AddToClassList("open");
             _serverField.RemoveFromClassList("hidden");
             _server.Focus();
