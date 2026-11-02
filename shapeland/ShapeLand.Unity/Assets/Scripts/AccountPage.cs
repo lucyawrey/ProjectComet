@@ -52,7 +52,7 @@ namespace ShapeLand.Client
         private readonly TextField _confirmField;
         private readonly VisualElement _codeStep;
         private readonly VisualElement _newCodeStep;
-        private readonly Label _newCodeReplaces;
+        private readonly Label _newCodeStatus;
         private readonly Label _codeIntro;
         private readonly Label _codeText;
         private readonly Button _copy;
@@ -77,8 +77,6 @@ namespace ShapeLand.Client
         private Step _afterConfirm;
         private bool _resubmitPassword; // the confirm came from a refused change, so the typed password goes on after it
         private bool _busy;
-        // Whether the code shown was copied, which is as close to "saved" as the page can tell.
-        private bool _copied;
 
         public AccountPage(Hud hud, VisualElement root)
         {
@@ -105,7 +103,7 @@ namespace ShapeLand.Client
             _confirmStep = root.Q("account-confirm");
             _confirmField = root.Q<TextField>("account-confirm-field");
             _newCodeStep = root.Q("account-new-code");
-            _newCodeReplaces = root.Q<Label>("account-new-code-replaces");
+            _newCodeStatus = root.Q<Label>("account-new-code-status");
             _codeStep = root.Q("account-code");
             _codeIntro = root.Q<Label>("account-code-intro");
             _codeText = root.Q<Label>("account-code-text");
@@ -197,9 +195,6 @@ namespace ShapeLand.Client
 
             switch (_step)
             {
-                case Step.Code:
-                    LeaveCode();
-                    return;
                 case Step.Rows:
                     Close();
                     _back?.Invoke();
@@ -275,13 +270,12 @@ namespace ShapeLand.Client
                     FocusUnlessPad(_confirmField);
                     break;
                 case Step.NewCode:
-                    _newCodeReplaces.EnableInClassList("hidden", !(_hud.Join.Account?.HasRecoveryCode ?? false));
+                    _newCodeStatus.text = Text(_hud.Join.Account?.HasRecoveryCode ?? false ? "account.new_code_has" : "account.new_code_none");
                     SetSubmit();
                     break;
                 case Step.Code:
                     _codeIntro.text = strings.Get("account.code_intro");
                     _copy.text = Text("account.copy");
-                    _copied = false;
                     SetSubmit();
                     break;
             }
@@ -497,7 +491,6 @@ namespace ShapeLand.Client
         {
             GUIUtility.systemCopyBuffer = _codeText.text;
             _copy.text = Text("account.copied");
-            _copied = true;
         }
 
         // While a field has the keyboard, only Up and Down move on (Left and Right move the caret, letters type).
@@ -561,7 +554,7 @@ namespace ShapeLand.Client
                     MakeCode();
                     break;
                 case Step.Code:
-                    LeaveCode();
+                    ShowStep(Step.Rows);
                     break;
             }
         }
@@ -739,23 +732,6 @@ namespace ShapeLand.Client
                 ShowStep(_afterConfirm);
             }
         }
-
-        // Leaving the code: once copied it just goes; before that it asks, since the code can't be shown again.
-        private void LeaveCode()
-        {
-            if (_copied)
-            {
-                ShowStep(Step.Rows);
-                return;
-            }
-
-            AskToLeaveCode();
-        }
-
-        private void AskToLeaveCode() =>
-            _confirm.Show(Text("account.leave_code_title"), Text("account.leave_code_note"), null,
-                (Text("account.show_code"), false, null),
-                (Text("account.leave"), true, () => ShowStep(Step.Rows)));
 
         // Signing out asks first; a guest would lose the character, so Set password comes first.
         private void AskToSignOut()
