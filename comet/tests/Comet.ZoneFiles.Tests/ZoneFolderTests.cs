@@ -80,7 +80,7 @@ public class ZoneFolderTests
             rotation = [0.0, 45.0, 0.0]
             scale = [2.0, 1.0, 2.0]
 
-            """,
+            """.ReplaceLineEndings("\n"), // the test source may be checked out with Windows line endings
             File.ReadAllText(folder.PathOf("chunks/-1_0.toml")).ReplaceLineEndings("\n"));
         Assert.True(File.Exists(folder.PathOf("chunks/-1_0/main.height")));
         Assert.True(File.Exists(folder.PathOf("chunks/0_0/main.color")));
@@ -132,7 +132,7 @@ public class ZoneFolderTests
             [[trigger.effect]]
             toggle_tag = "gate"
             revert_seconds = 5.0
-            """,
+            """.ReplaceLineEndings("\n"),
             text);
     }
 
