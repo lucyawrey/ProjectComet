@@ -2,8 +2,11 @@
 # Runs ShapeLand locally for development: by default the web client served from the game server, for testing
 # in a browser without opening the Unity editor; with --no-web, just the server, for the editor's play mode or
 # a desktop build. Builds the content, makes the Unity web build in batch mode (uncompressed, for speed, into
-# artifacts/unity/shapeland/web-dev; skipped when nothing it uses changed since the last one), starts the game server, optionally starts bots, and opens the page. Then it watches the content
-# sources and restarts the server when they change. Ctrl+C stops everything.
+# artifacts/unity/shapeland/web-dev; skipped when nothing it uses changed since the last one), starts PostgreSQL (the
+# shared comet-postgres container, tools/comet-postgres.sh, with a database for this checkout and port), the Login
+# server (on the game server's port + 10) and the game server, optionally starts bots, and opens the page. Then it
+# watches the content sources and restarts the servers when they change. Ctrl+C stops everything but PostgreSQL.
+# Docker is needed.
 #
 #   tools/shapeland-dev.sh [--rebuild] [--no-build] [--no-web] [--bots N] [--cheaters N] [--port 5080] [--lan] [--no-open]
 #                          [--net PROFILE] [--bots-net PROFILE] [--bots-chat] [--no-watch] [--spawn KEY]
@@ -13,10 +16,11 @@
 #   --no-web       no web build or page: just the server, for the Unity editor's play mode or a desktop build.
 #                  Rerun it after changing server code. After a content change, restart play mode (which picks up
 #                  the new content), so client and server use the same numbers
-#   --bots N       start N honest bots (default 0)
+#   --bots N       start N honest bots (default 0): guest accounts named Bot0001 and on, their tokens kept in
+#                  artifacts/bot-tokens so later runs reuse them
 #   --cheaters N   start N speed-cheating bots (default 0)
 #   --bots-chat    let the bots chat now and then (they stay quiet otherwise)
-#   --port P       the game server's port (default 5080)
+#   --port P       the game server's port (default 5080); the Login server takes P + 10
 #   --lan          listen on every network interface, so other devices on the network can join
 #   --no-open      don't open the page in a browser
 #   --net P        run the server and bots in Docker with simulated network conditions on the server's link, so
@@ -86,6 +90,12 @@ elif [ "$bots_net" != none ]; then
   exit 2
 fi
 
+login_port=$((port + 10))
+echo "== PostgreSQL"
+database=$("$repo/tools/comet-postgres.sh" name "$repo" "$port")
+connection=$("$repo/tools/comet-postgres.sh" database "$database")
+echo "   Database $database in comet-postgres"
+
 build_content() {
   dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
 }
@@ -133,7 +143,8 @@ copy_content() {
 }
 copy_content
 
-echo "== Game server"
+echo "== Login and game servers"
+quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.LoginServer"
 quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.GameServer"
 if [ $((bots + cheaters)) -gt 0 ]; then
   quietly dotnet build -v quiet -nologo "$repo/shapeland/src/ShapeLand.Bots"
@@ -160,6 +171,12 @@ local_address() {
 }
 
 url="http://localhost:$port/"
+login_url="http://localhost:$login_port"
+if curl -s -o /dev/null "$login_url/"; then
+  echo "Something is already using port $login_port, the Login server's (the game server's + 10); stop it or use --port." >&2
+  lsof -nP -iTCP:"$login_port" -sTCP:LISTEN 2> /dev/null | sed 's/^/  /' >&2 || true
+  exit 1
+fi
 if curl -sf -o /dev/null "${url}health"; then
   echo "A game server is already running on port $port: another run of this script, or the Unity editor's" >&2
   echo "(stop that one with Comet › Server › Stop). Stop it or use --port." >&2
@@ -171,14 +188,22 @@ elif curl -s -o /dev/null "$url"; then
   exit 1
 fi
 
+# Where other devices reach this machine, with --lan: the page's Login server and the tickets' game server use it.
+public_host=localhost
+if [ "$host" = 0.0.0.0 ]; then
+  public_host=$(local_address || true)
+  [ -n "$public_host" ] || public_host=localhost
+fi
+
 server_pid=""
+login_pid=""
 bots_pid=""
 cleanup() {
   trap - EXIT INT TERM HUP
   if [ -n "$net" ]; then
     "${compose[@]}" --profile bots down -t 2 > /dev/null 2>&1 || true
   fi
-  for pid in $server_pid $bots_pid; do
+  for pid in $bots_pid $server_pid $login_pid; do
     kill "$pid" 2> /dev/null || true
   done
   wait 2> /dev/null || true
@@ -192,13 +217,30 @@ trap 'cleanup; exit 129' HUP
 
 start_server() {
   if [ -n "$net" ]; then
-    # The server's logs show in this terminal; the bots' (and netem's note) only with docker compose logs.
-    export SHAPELAND_WEBROOT="${web:+/app/web}" SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}" SHAPELAND_START_SPAWN="$spawn"
-    "${compose[@]}" up --no-log-prefix server &
+    # The servers' logs show in this terminal; the bots' (and netem's note) only with docker compose logs. The
+    # containers reach PostgreSQL as comet-postgres on the comet network.
+    export SHAPELAND_WEBROOT="${web:+/app/web}" SHAPELAND_PUBLISH="${host/localhost/127.0.0.1}:$port" BOTS_COUNT="$bots" BOTS_CHEATERS="$cheaters" BOTS_CHAT="${bots_chat:+30}" SHAPELAND_START_SPAWN="$spawn" \
+      SHAPELAND_DATABASE="${connection/Host=127.0.0.1;Port=55432/Host=comet-postgres;Port=5432}" LOGIN_PUBLISH="${host/localhost/127.0.0.1}:$login_port" \
+      SHAPELAND_LOGIN_URL="http://$public_host:$login_port" SHAPELAND_GAME_ADDRESS="ws://$public_host:$port/ws" SHAPELAND_PAGE="http://$public_host:$port" SHAPELAND_USER="$(id -u):$(id -g)"
+    "${compose[@]}" up --no-log-prefix login server &
   else
+    # Accounts first: it migrates the database and makes the development ticket keys the game server reads.
+    dotnet "$repo/artifacts/bin/ShapeLand.LoginServer/debug/ShapeLand.LoginServer.dll" \
+      --urls "http://$host:$login_port" --Login:ConnectionString="$connection" \
+      --Login:AllowedOrigins:0="http://localhost:$port" --Login:AllowedOrigins:1="http://$public_host:$port" \
+      --Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 \
+      --ShapeLand:GameServer:Address="ws://$public_host:$port/ws" &
+    login_pid=$!
+    for _ in $(seq 1 60); do
+      kill -0 "$login_pid" 2> /dev/null || { echo "The Login server stopped." >&2; exit 1; }
+      curl -sf -o /dev/null "$login_url/api/health" && break
+      sleep 0.5
+    done
+
     # The built programs run directly: stopping `dotnet run` can leave the program it started running.
     dotnet "$repo/artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll" \
       --urls "http://$host:$port" --ShapeLand:WebRoot="$web" --ShapeLand:StartSpawn="$spawn" \
+      --ShapeLand:ConnectionString="$connection" --ShapeLand:LoginUrl="http://$public_host:$login_port" \
       --Comet:Connections:MaxConnectionsPerAddress=1000 & # the bots all come from this machine
   fi
   server_pid=$!
@@ -216,7 +258,7 @@ start_server() {
     "${compose[@]}" --profile bots up -d bots > /dev/null 2>&1
   elif [ $((bots + cheaters)) -gt 0 ]; then
     dotnet "$repo/artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll" \
-      --url "ws://localhost:$port/ws" --count "$bots" --cheaters "$cheaters" "${bots_chat[@]+"${bots_chat[@]}"}" > /dev/null &
+      --login "$login_url" --count "$bots" --cheaters "$cheaters" "${bots_chat[@]+"${bots_chat[@]}"}" > /dev/null &
     bots_pid=$!
   fi
 }
@@ -225,11 +267,12 @@ stop_server() {
   if [ -n "$net" ]; then
     "${compose[@]}" --profile bots down -t 2 > /dev/null 2>&1 || true
   fi
-  for pid in $bots_pid $server_pid; do
+  for pid in $bots_pid $server_pid $login_pid; do
     kill "$pid" 2> /dev/null || true
     wait "$pid" 2> /dev/null || true
   done
   server_pid=""
+  login_pid=""
   bots_pid=""
 }
 
@@ -240,10 +283,9 @@ if [ -n "$web" ]; then
 else
   echo "== Server at localhost:$port, for the editor's play mode (Ctrl+C stops)${spawn:+, starting at $spawn}${net:+, network profile $net}"
 fi
+echo "   Login server at $login_url, database $database"
 if [ "$host" = 0.0.0.0 ]; then
-  address=$(local_address || true)
-  [ -n "$address" ] || address="<this machine's address>"
-  echo "   Other devices: http://$address:$port/"
+  echo "   Other devices: http://$public_host:$port/"
 fi
 if [ "$watch" = 1 ]; then
   echo "   Watching shapeland/content/: saving a change there rebuilds the content and restarts the server."
@@ -273,7 +315,7 @@ while kill -0 "$server_pid" 2> /dev/null; do
     continue
   fi
   copy_content
-  echo "== Restarting the game server"
+  echo "== Restarting the Login and game servers"
   stop_server
   start_server
   if [ -n "$web" ]; then

@@ -25,23 +25,20 @@ namespace ShapeLand.Client.Tests
             Assert.That(move.Y, Is.EqualTo(expectedZ).Within(1e-5f));
         }
 
-        [TestCase("http://localhost:5080/", "ws://localhost:5080/ws")]
-        [TestCase("https://example.org/play/index.html", "wss://example.org/ws")]
-        [TestCase("https://example.org/?server=game.example.org%3A5080", "wss://game.example.org:5080/ws")]
-        [TestCase("http://localhost:8000/?server=localhost%3A5080", "ws://localhost:5080/ws")]
-        [TestCase("http://localhost:8000/?debug=1&server=wss://game.example.org/ws", "wss://game.example.org/ws")]
-        [TestCase("file:///tmp/index.html", "localhost:5080")]
-        public void WebBuildsConnectToTheServerTheyCameFrom(string page, string expected)
+        // A web build's Login server: the one its page's config.js names, unless ?login= says otherwise.
+        [TestCase("https://shapeland.example.org/", "https://server.shapeland.example.org", "https://server.shapeland.example.org")]
+        [TestCase("https://shapeland.example.org/?login=http%3A%2F%2Flocalhost%3A5090", "https://server.shapeland.example.org", "http://localhost:5090")]
+        [TestCase("http://localhost:5080/", null, "localhost:5090")]
+        public void WebBuildsUseTheLoginServerTheirPageNames(string page, string pageLogin, string expected)
         {
-            Assert.That(JoinClient.AddressForPage(page, "localhost:5080"), Is.EqualTo(expected));
+            Assert.That(JoinClient.LoginForPage(page, "localhost:5090", pageLogin), Is.EqualTo(expected));
         }
 
-        // A page whose deploy names its game server (config.js on Vercel): that server, unless ?server= says otherwise.
-        [TestCase("https://shapeland.example.org/", "wss://server.shapeland.example.org/ws")]
-        [TestCase("https://shapeland.example.org/?server=localhost%3A5080", "wss://localhost:5080/ws")]
-        public void WebBuildsConnectToTheServerTheirPageNames(string page, string expected)
+        [TestCase("localhost:5090", "http://localhost:5090")]
+        [TestCase(" https://server.example.org/ ", "https://server.example.org")]
+        public void LoginAddressesBecomeUrls(string address, string expected)
         {
-            Assert.That(JoinClient.AddressForPage(page, "localhost:5080", "wss://server.shapeland.example.org/ws"), Is.EqualTo(expected));
+            Assert.That(JoinClient.LoginUrl(address), Is.EqualTo(expected));
         }
 
         [TestCase("localhost:5080", "ws://localhost:5080/ws")]

@@ -9,6 +9,23 @@ namespace Comet.Unity
         /// <summary>The editor session value holding it.</summary>
         public const string Key = "Comet.LocalServer.Port";
 
+        /// <summary>The editor session value holding the local Login server's port.</summary>
+        public const string LoginKey = "Comet.LocalServer.LoginPort";
+
+        /// <summary>The local Login server's port, in the editor once the local server's settings are known; null otherwise.</summary>
+        public static int? LoginInEditor
+        {
+            get
+            {
+#if UNITY_EDITOR
+                var port = UnityEditor.SessionState.GetInt(LoginKey, 0);
+                return port > 0 ? port : (int?)null;
+#else
+                return null;
+#endif
+            }
+        }
+
         /// <summary>The port, in the editor once the local server's settings are known; null otherwise.</summary>
         public static int? InEditor
         {

@@ -3,46 +3,48 @@ using MessagePack;
 namespace ShapeLand.Shared.Messages
 {
     /// <summary>
-    /// Client input: join the game with a name, a shape and colors. Sent after connecting, again after a rejection,
-    /// and once joined to change any of them: the player stays where they are and everyone gets a new <see cref="PlayerSpawn"/>.
+    /// Client input: join the game with a join ticket from the Login server, which names the player's character. Sent
+    /// once after connecting; after a rejection, the client fetches a new ticket and connects again.
     /// </summary>
     [MessagePackObject]
     public struct JoinRequest
     {
-        [Key(0)] public string Name;
-
-        /// <summary>The shape's content number.</summary>
-        [Key(1)] public int Shape;
-
-        /// <summary>The body color as 0xRRGGBB, one the player may use.</summary>
-        [Key(2)] public uint Color;
-
-        /// <summary>The eye color as 0xRRGGBB, one the player may use.</summary>
-        [Key(3)] public uint EyeColor;
+        /// <summary>The join ticket (a signed JWT), good once, for this server, for a minute.</summary>
+        [Key(0)] public string Ticket;
 
         /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
-        [Key(4)] public ulong ContentFingerprint;
+        [Key(1)] public ulong ContentFingerprint;
     }
 
     /// <summary>Why a join was refused.</summary>
     public enum JoinRejection : byte
     {
-        /// <summary>Empty, too long, or with characters other than letters, digits, spaces, '-' and '_'.</summary>
-        InvalidName = 1,
-
-        /// <summary>Someone online already has this name (names are compared ignoring case).</summary>
-        NameTaken = 2,
-
-        UnknownShape = 3,
-
-        /// <summary>A body or eye color the player may not use (not in the starting sets).</summary>
-        UnavailableColor = 5,
-
         /// <summary>The client's content isn't the server's (another build of the game, or content rebuilt since).</summary>
-        DifferentContent = 6,
+        DifferentContent = 1,
+
+        /// <summary>The ticket is malformed, forged, or for someone else's character.</summary>
+        BadTicket = 2,
+
+        /// <summary>The ticket expired or is from before the server started: fetch a new one.</summary>
+        ExpiredTicket = 3,
+
+        /// <summary>The ticket was used already: fetch a new one.</summary>
+        UsedTicket = 4,
+
+        /// <summary>The ticket is for another game server.</summary>
+        WrongServer = 5,
+
+        /// <summary>The character is gone (deleted).</summary>
+        NoCharacter = 6,
+
+        /// <summary>The server couldn't load the character in time: try again soon.</summary>
+        Busy = 7,
+
+        /// <summary>A newer join for the same character came in while this one was loading.</summary>
+        Replaced = 8,
     }
 
-    /// <summary>Server event: the join or change was refused; the client may try again.</summary>
+    /// <summary>Server event: the join was refused. The connection stays open but can't play.</summary>
     [MessagePackObject]
     public struct JoinRejected
     {
@@ -50,9 +52,74 @@ namespace ShapeLand.Shared.Messages
     }
 
     /// <summary>
+    /// Client input, once joined: change the look. The player stays where they are and everyone gets a new
+    /// <see cref="PlayerSpawn"/>; the look is saved at once.
+    /// </summary>
+    [MessagePackObject]
+    public struct LookChange
+    {
+        /// <summary>The shape's content number.</summary>
+        [Key(0)] public int Shape;
+
+        /// <summary>The body color's content number.</summary>
+        [Key(1)] public int Color;
+
+        /// <summary>The eye color's content number.</summary>
+        [Key(2)] public int EyeColor;
+    }
+
+    /// <summary>Why a look change was refused.</summary>
+    public enum LookRejection : byte
+    {
+        UnknownShape = 1,
+
+        /// <summary>A body or eye color the player may not use.</summary>
+        UnavailableColor = 2,
+
+        /// <summary>Changes came too fast.</summary>
+        TooFast = 3,
+    }
+
+    /// <summary>Server event: the look change was refused; the old look stays.</summary>
+    [MessagePackObject]
+    public struct LookRejected
+    {
+        [Key(0)] public LookRejection Reason;
+    }
+
+    /// <summary>
+    /// Client input, once joined: the player renamed their account at the Login server, so the server reloads the
+    /// name and everyone gets a new <see cref="PlayerSpawn"/>. Carries nothing: the server reads the name itself.
+    /// </summary>
+    [MessagePackObject]
+    public struct NameChanged
+    {
+    }
+
+    /// <summary>Why the server dropped a joined player.</summary>
+    public enum DropReason : byte
+    {
+        /// <summary>The same character joined again, from another tab or device, which plays on instead.</summary>
+        Replaced = 1,
+
+        /// <summary>
+        /// The account was banned or deleted, or the character was taken by another server. Clients don't reconnect
+        /// on their own after this or <see cref="Replaced"/>, so two tabs can't keep taking the character from each other.
+        /// </summary>
+        Removed = 2,
+    }
+
+    /// <summary>Server event: the player was taken out of the game, and the connection closes.</summary>
+    [MessagePackObject]
+    public struct Dropped
+    {
+        [Key(0)] public DropReason Reason;
+    }
+
+    /// <summary>
     /// Server event: a player is in view, with everything needed to draw them. The client's own player comes first,
     /// right after Comet's <c>Welcome</c>; later positions arrive as <c>EntityState</c>, and leaving as <c>EntityDespawn</c>.
-    /// Another spawn for a player already in view gives their new look, where they stand.
+    /// Another spawn for a player already in view gives their new look or name, where they stand.
     /// </summary>
     [MessagePackObject]
     public struct PlayerSpawn
@@ -63,15 +130,15 @@ namespace ShapeLand.Shared.Messages
         /// <summary>The shape's content number.</summary>
         [Key(2)] public int Shape;
 
-        /// <summary>The player's body color as 0xRRGGBB.</summary>
-        [Key(3)] public uint Color;
+        /// <summary>The body color's content number.</summary>
+        [Key(3)] public int Color;
 
         [Key(4)] public float X;
         [Key(5)] public float Y;
         [Key(6)] public float Z;
         [Key(7)] public float Facing;
 
-        /// <summary>The player's eye color as 0xRRGGBB.</summary>
-        [Key(8)] public uint EyeColor;
+        /// <summary>The eye color's content number.</summary>
+        [Key(8)] public int EyeColor;
     }
 }

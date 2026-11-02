@@ -1,11 +1,11 @@
-// What ShapeLand's web page tells the game (WebGLTemplates/ShapeLand), and reloading it. The deploy's config.js sets
-// window.shapelandServer when the game server isn't the page's own host.
+// What ShapeLand's web page tells the game (WebGLTemplates/ShapeLand), and reloading it. The page's config.js (the
+// deploy's, or the development game server's) sets window.shapelandLogin, the Login server.
 mergeInto(LibraryManager.library, {
-  // The game server's address as a newly allocated UTF-8 string that C# takes ownership of, or null for none.
-  ShapeLand_PageServer__deps: ['$stringToUTF8', '$lengthBytesUTF8', 'malloc'],
-  ShapeLand_PageServer__sig: 'p',
-  ShapeLand_PageServer: function () {
-    var server = typeof window !== 'undefined' && window.shapelandServer;
+  // The Login server's address as a newly allocated UTF-8 string that C# takes ownership of, or null for none.
+  ShapeLand_PageLogin__deps: ['$stringToUTF8', '$lengthBytesUTF8', 'malloc'],
+  ShapeLand_PageLogin__sig: 'p',
+  ShapeLand_PageLogin: function () {
+    var server = typeof window !== 'undefined' && window.shapelandLogin;
     if (!server) {
       return 0;
     }

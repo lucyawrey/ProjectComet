@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# The public test build: ShapeLand's page on Vercel (https://shapeland.lucyawrey.com) and its game server on an
-# on-demand AWS instance (wss://server.shapeland.lucyawrey.com/ws), brought up for a session or a few days and
-# terminated after. Run it from your own machine; nothing here needs an agent.
+# The public test build: ShapeLand's page on Vercel (https://shapeland.lucyawrey.com) and its servers on an
+# on-demand AWS instance (https://server.shapeland.lucyawrey.com: the Login server under /api/, the game server at
+# /ws), brought up for a session or a few days and terminated after. Accounts outlive the instance: PostgreSQL keeps
+# its data on a separate volume that down and redeploy keep, snapshotted daily (7 kept). Run it from your own
+# machine; nothing here needs an agent.
 #
-#   tools/shapeland-testbuild.sh setup                 once per AWS account: the S3 bucket and the firewall rules
-#   tools/shapeland-testbuild.sh up [--hours 24] [--bots 0]   build and start the game server, and point its hostname at it
-#   tools/shapeland-testbuild.sh down                  terminate the game server and park its hostname
+#   tools/shapeland-testbuild.sh setup                 once per AWS account: the S3 bucket, the firewall rules, the
+#                                                      data volume and its daily snapshots
+#   tools/shapeland-testbuild.sh up [--hours 0] [--bots 0]   build and start the servers, and point the hostname at them
+#   tools/shapeland-testbuild.sh down                  terminate the servers (keeping the data volume) and park the hostname
 #   tools/shapeland-testbuild.sh status                what's running, and whether the server answers
 #   tools/shapeland-testbuild.sh log                   the server's boot log (from its console)
 #   tools/shapeland-testbuild.sh page [--no-build]     build the web page and publish it on Vercel
@@ -14,14 +17,15 @@
 #
 #   --bots N       start N honest bots on the server's instance too, so visitors see someone moving (default 0)
 #   --hours H      the server shuts itself down (and is terminated) after H hours, so a forgotten one stops
-#                  costing money; 0 for never (default 24). `down` ends it sooner.
+#                  costing money; 0 for never (the default). `down` ends it sooner.
 #   --no-build     publish the last web build as it is
 #
 # Needs: the AWS CLI logged in (`aws login`), the Vercel CLI logged in (`vercel login`), Docker isn't needed.
 # Settings that aren't in the repo live in ~/.config/shapeland-testbuild/env (created on first use):
 #   ACME_EMAIL     the contact address Caddy gives Let's Encrypt and ZeroSSL for the server's certificate
-# Costs: a t4g.micro is about 20 cents a day while up (paid from the account's credits first); the page is on
-# Vercel's free plan. When the server is down, the page says the game isn't open for testing.
+# Costs: a t4g.micro is about 20 cents a day while up (paid from the account's credits first), the 8 GB data volume
+# and its snapshots well under a dollar a month; the page is on Vercel's free plan. When the servers are down, the
+# page says the game isn't open for testing.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
@@ -45,9 +49,9 @@ vercel_project=shapeland
 . "$repo/tools/shapeland-net-profiles.sh" # for quietly
 
 command=${1:-}
-[ -n "$command" ] || { sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+[ -n "$command" ] || { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 shift
-hours=24
+hours=0
 bots=0
 build=1
 packaged=0
@@ -88,6 +92,11 @@ instances() {
     --query 'Reservations[].Instances[].InstanceId' --output text
 }
 
+# The kept data volume's id, or None.
+data_volume() {
+  aws ec2 describe-volumes --filters "Name=tag:$tag,Values=data" --query 'Volumes[0].VolumeId' --output text
+}
+
 security_group() {
   aws ec2 describe-security-groups --filters "Name=group-name,Values=$tag" \
     --query 'SecurityGroups[0].GroupId' --output text
@@ -110,10 +119,13 @@ dns_set() {
   vercel dns add "$domain" "$server_name" A "$1" > /dev/null
 }
 
-# Whether the game server at address $1 answers over HTTPS with "ok" from /health. Asked at that address, so a
-# stale DNS answer on this machine can't mislead it; the certificate is still checked for the name.
+# Whether the game and Login servers at address $1 answer over HTTPS with "ok" from /health and /api/health. Asked
+# at that address, so a stale DNS answer on this machine can't mislead it; the certificate is still checked for the name.
 answers() {
-  [ "$(curl -s --max-time 5 --resolve "$server_host:443:$1" "https://$server_host/health" || true)" = ok ]
+  local path
+  for path in health api/health; do
+    [ "$(curl -s --max-time 5 --resolve "$server_host:443:$1" "https://$server_host/$path" || true)" = ok ] || return 1
+  done
 }
 
 # The running server's public address, if any.
@@ -151,16 +163,36 @@ setup() {
       'IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=0.0.0.0/0}],Ipv6Ranges=[{CidrIpv6=::/0}]' \
       'IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=[{CidrIp=0.0.0.0/0}],Ipv6Ranges=[{CidrIpv6=::/0}]' > /dev/null
   fi
-  echo "Set up: bucket $name, security group $sg."
+
+  local volume role
+  volume=$(data_volume)
+  if [ "$volume" = None ]; then
+    echo "== Creating the data volume (8 GB, encrypted) in ${region}a"
+    volume=$(aws ec2 create-volume --availability-zone "${region}a" --size 8 --volume-type gp3 --encrypted \
+      --tag-specifications "ResourceType=volume,Tags=[{Key=$tag,Value=data},{Key=Name,Value=$tag-data}]" \
+      --query VolumeId --output text)
+  fi
+  if [ "$(aws dlm get-lifecycle-policies --target-tags "$tag=data" --query 'length(Policies)' --output text 2> /dev/null)" != 1 ]; then
+    echo "== Creating the daily snapshot policy (7 kept)"
+    aws dlm create-default-role --resource-type snapshot > /dev/null 2>&1 || true
+    role=$(aws iam get-role --role-name AWSDataLifecycleManagerDefaultRole --query Role.Arn --output text)
+    aws dlm create-lifecycle-policy --description "$tag data, daily" --state ENABLED --execution-role-arn "$role" \
+      --policy-details "{\"PolicyType\":\"EBS_SNAPSHOT_MANAGEMENT\",\"ResourceTypes\":[\"VOLUME\"],
+        \"TargetTags\":[{\"Key\":\"$tag\",\"Value\":\"data\"}],
+        \"Schedules\":[{\"Name\":\"daily\",\"CreateRule\":{\"Interval\":24,\"IntervalUnit\":\"HOURS\",\"Times\":[\"09:00\"]},
+          \"RetainRule\":{\"Count\":7},\"CopyTags\":true}]}" > /dev/null
+  fi
+  echo "Set up: bucket $name, security group $sg, data volume $volume."
 }
 
-# The server package: the game server for Linux on ARM (self-contained), its content and the Caddyfile, and the
-# bots when any are asked for.
+# The server package: the Login and game servers for Linux on ARM (self-contained), the content and the Caddyfile,
+# and the bots when any are asked for.
 package() {
   local out="$work/package"
   rm -rf "$out" && mkdir -p "$out"
   echo "== Building the game server package"
   quietly dotnet run --project "$repo/shapeland/src/ShapeLand.ContentBuild" -- build
+  quietly dotnet publish "$repo/shapeland/src/ShapeLand.LoginServer" -c Release -r linux-arm64 --self-contained -o "$out/login"
   quietly dotnet publish "$repo/shapeland/src/ShapeLand.GameServer" -c Release -r linux-arm64 --self-contained -o "$out/server"
   if [ "$bots" -gt 0 ]; then
     quietly dotnet publish "$repo/shapeland/src/ShapeLand.Bots" -c Release -r linux-arm64 --self-contained -o "$out/bots"
@@ -171,12 +203,18 @@ package() {
 }
 
 up() {
-  local existing name key url ami sg boot id ip
+  local existing name key url ami sg boot id ip volume zone subnet
   settings
   existing=$(instances)
   [ -z "$existing" ] || { echo "A game server is already up ($existing); run down first." >&2; exit 1; }
   sg=$(security_group)
-  [ "$sg" != None ] || { echo "Run setup first." >&2; exit 1; }
+  volume=$(data_volume)
+  [ "$sg" != None ] && [ "$volume" != None ] || { echo "Run setup first." >&2; exit 1; }
+  # The instance starts beside the volume, in its availability zone; the last instance must have let it go.
+  aws ec2 wait volume-available --volume-ids "$volume"
+  zone=$(aws ec2 describe-volumes --volume-ids "$volume" --query 'Volumes[0].AvailabilityZone' --output text)
+  subnet=$(aws ec2 describe-subnets --filters "Name=availability-zone,Values=$zone" Name=default-for-az,Values=true \
+    --query 'Subnets[0].SubnetId' --output text)
 
   [ "$packaged" -eq 1 ] || package
   name=$(bucket)
@@ -187,6 +225,8 @@ up() {
   boot=$(cat "$repo/shapeland/deploy/boot.sh")
   # Quoted replacements: newer bash would otherwise read the link's & as "the matched text".
   boot=${boot//\{\{HOST\}\}/"$server_host"}
+  boot=${boot//\{\{PAGE_ORIGIN\}\}/"https://$page_host"}
+  boot=${boot//\{\{VOLUME_ID\}\}/"$volume"}
   boot=${boot//\{\{ACME_EMAIL\}\}/"$ACME_EMAIL"}
   boot=${boot//\{\{PACKAGE_URL\}\}/"$url"}
   boot=${boot//\{\{HOURS\}\}/"$hours"}
@@ -196,12 +236,14 @@ up() {
   echo "== Starting a $instance_type in $region"
   ami=$(aws ssm get-parameter --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64 \
     --query Parameter.Value --output text)
-  id=$(aws ec2 run-instances --image-id "$ami" --instance-type "$instance_type" --security-group-ids "$sg" \
+  id=$(aws ec2 run-instances --image-id "$ami" --instance-type "$instance_type" --security-group-ids "$sg" --subnet-id "$subnet" \
     --user-data "file://$work/boot.sh" --instance-initiated-shutdown-behavior terminate \
     --metadata-options HttpTokens=required \
     --tag-specifications "ResourceType=instance,Tags=[{Key=$tag,Value=server},{Key=Name,Value=$tag}]" \
     --query 'Instances[0].InstanceId' --output text)
   aws ec2 wait instance-running --instance-ids "$id"
+  echo "== Attaching the data volume $volume"
+  aws ec2 attach-volume --volume-id "$volume" --instance-id "$id" --device /dev/sdf > /dev/null
   ip=$(aws ec2 describe-instances --instance-ids "$id" --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
 
   echo "== Pointing $server_host at $ip"
@@ -210,7 +252,7 @@ up() {
   echo "== Waiting for the server to answer at https://$server_host (a few minutes: boot, then a certificate)"
   for _ in $(seq 1 60); do
     if answers "$ip"; then
-      echo "Up: $id at $ip, with $bots bots. Play at https://$page_host. It shuts down by itself in $hours hours (0: never); down ends it sooner."
+      echo "Up: $id at $ip, with $bots bots and the accounts on $volume. Play at https://$page_host. $([ "$hours" -gt 0 ] && echo "It shuts down by itself in $hours hours; down ends it sooner." || echo "It runs until down.")"
       return
     fi
     sleep 10
@@ -268,8 +310,8 @@ page() {
   rm -rf "$out" && mkdir -p "$out"
   cp -R "$web/." "$out/"
   mkdir -p "$out/StreamingAssets" && cp "$content" "$out/StreamingAssets/content.bin"
-  cp "$repo/shapeland/deploy/vercel.json" "$out/vercel.json"
-  printf 'window.shapelandServer = "wss://%s/ws";\n' "$server_host" > "$out/config.js"
+  sed "s/{{SERVER_HOST}}/$server_host/g" "$repo/shapeland/deploy/vercel.json" > "$out/vercel.json"
+  printf 'window.shapelandLogin = "https://%s";\n' "$server_host" > "$out/config.js"
 
   # The page's name needs its own record: once server.shapeland exists, the domain's wildcard no longer covers
   # shapeland itself (it has a name under it).

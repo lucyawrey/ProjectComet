@@ -24,12 +24,20 @@ namespace ShapeLand.Client
 
         private const string ShowThroughWallsKey = "showThroughWalls";
         private const string MenuTipSeenKey = "menuTipSeen";
+        private const string AutoJoinKey = "autoJoin";
 
         /// <summary>Whether the player's own shape shows where something hides it; on unless turned off.</summary>
         public static bool ShowThroughWalls
         {
             get => PlayerPrefs.GetInt(ShowThroughWallsKey, 1) == 1;
             set => Save(() => PlayerPrefs.SetInt(ShowThroughWallsKey, value ? 1 : 0));
+        }
+
+        /// <summary>Whether a signed-in player goes straight into the game on launch; off shows the join card first.</summary>
+        public static bool AutoJoin
+        {
+            get => PlayerPrefs.GetInt(AutoJoinKey, 1) == 1;
+            set => Save(() => PlayerPrefs.SetInt(AutoJoinKey, value ? 1 : 0));
         }
 
         /// <summary>

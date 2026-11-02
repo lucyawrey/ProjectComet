@@ -8,7 +8,8 @@ namespace Comet.ContentBuild;
 /// <summary>
 /// Reads a string file (<c>strings/en.toml</c>): interface text grouped in TOML tables, each key's text a string,
 /// keyed by its dotted path (<c>[join]</c> then <c>name_taken = "…"</c> is <c>join.name_taken</c>). Key parts are
-/// lowercase letters, digits and underscores; placeholders are <c>{name}</c>, with no other braces.
+/// lowercase letters, digits and underscores; placeholders are <c>{name}</c>, with no other braces, and only the
+/// names the game fills in when it lists them.
 /// </summary>
 internal static class StringFile
 {
@@ -17,7 +18,7 @@ internal static class StringFile
     private static readonly Regex Placeholder = new($"^\\{{{ContentBuilder.NamePattern}\\}}$");
 
     /// <summary>Reads the string file at <paramref name="path"/>, adding problems to <paramref name="errors"/> under the name <paramref name="file"/>.</summary>
-    public static StringTable Read(string path, string file, List<ContentError> errors)
+    public static StringTable Read(string path, string file, IReadOnlyCollection<string>? placeholders, List<ContentError> errors)
     {
         var table = new StringTable();
         var document = SyntaxParser.Parse(File.ReadAllText(path), file, validate: true);
@@ -29,7 +30,7 @@ internal static class StringFile
 
         foreach (var keyValue in document.KeyValues)
         {
-            Add(keyValue, "", table, file, errors);
+            Add(keyValue, "", table, file, placeholders, errors);
         }
 
         foreach (var group in document.Tables)
@@ -45,7 +46,7 @@ internal static class StringFile
             {
                 if (item is KeyValueSyntax keyValue && prefix is not null)
                 {
-                    Add(keyValue, prefix + ".", table, file, errors);
+                    Add(keyValue, prefix + ".", table, file, placeholders, errors);
                 }
             }
         }
@@ -53,7 +54,8 @@ internal static class StringFile
         return table;
     }
 
-    private static void Add(KeyValueSyntax keyValue, string prefix, StringTable table, string file, List<ContentError> errors)
+    private static void Add(KeyValueSyntax keyValue, string prefix, StringTable table, string file,
+        IReadOnlyCollection<string>? placeholders, List<ContentError> errors)
     {
         var name = Key(keyValue.Key!, file, errors);
         if (name is null)
@@ -73,6 +75,13 @@ internal static class StringFile
             if (!Placeholder.IsMatch(brace.Value))
             {
                 errors.Add(ContentBuilder.ErrorAt(file, value.Span, $"'{key}' has '{brace.Value}': placeholders are a lowercase name in braces, like {{name}}."));
+                return;
+            }
+
+            if (placeholders is not null && !placeholders.Contains(brace.Value[1..^1]))
+            {
+                errors.Add(ContentBuilder.ErrorAt(file, value.Span,
+                    $"'{key}' has '{brace.Value}', which the game doesn't fill in: use one of {string.Join(", ", placeholders.Select(p => $"{{{p}}}"))}."));
                 return;
             }
         }

@@ -452,7 +452,7 @@ namespace ShapeLand.Client
             _padColor ??= new MaterialPropertyBlock();
             var now = Time.time;
             var own = Player != null ? _join.SpawnNumber : null;
-            var body = Player != null && _join.Spawn is { } me ? Color(me.Color) : Color(_content.Settings.Spawns.UnsetColor);
+            var body = Player != null && _join.Spawn is { } me ? Color(_content.ColorRgb(me.Color)) : Color(_content.Settings.Spawns.UnsetColor);
             if (Player != null)
             {
                 var feet = Player.Motor.Position;
@@ -588,7 +588,7 @@ namespace ShapeLand.Client
             }
 
             Player.name = $"{spawn.Name} (you)";
-            _playerShape = BuildShape(shape, spawn.Color, spawn.EyeColor, Player.transform);
+            _playerShape = BuildShape(shape, _content.ColorRgb(spawn.Color), _content.ColorRgb(spawn.EyeColor), Player.transform);
             ApplyShowThroughWalls();
         }
 
@@ -623,7 +623,7 @@ namespace ShapeLand.Client
             }
 
             _spawns[spawn.EntityId] = spawn;
-            var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, transform);
+            var other = BuildShape(_join.Content.Shapes[spawn.Shape], _join.Content.ColorRgb(spawn.Color), _join.Content.ColorRgb(spawn.EyeColor), transform);
             other.name = $"{spawn.Name} ({spawn.EntityId})";
             var position = new Vector3(spawn.X, spawn.Y, spawn.Z);
             other.transform.SetPositionAndRotation(position, Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));

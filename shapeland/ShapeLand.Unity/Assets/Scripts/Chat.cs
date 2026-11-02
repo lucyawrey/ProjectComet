@@ -284,7 +284,7 @@ namespace ShapeLand.Client
             line.AddToClassList("chat-line");
             if (known)
             {
-                line.Add(new ShapeIcon(_hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]), GameView.Color(speaker.Color)));
+                line.Add(new ShapeIcon(_hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]), GameView.Color(_hud.Join.Content.ColorRgb(speaker.Color))));
             }
 
             // Chat is server-wide: a speaker in another zone isn't in view, but the line names them.

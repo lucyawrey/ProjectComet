@@ -2,12 +2,15 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
 using Comet.Content;
+using Comet.Data.Characters;
 using Comet.Protocol;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
 using Comet.Server.Connections;
+using Comet.Server.Joining;
 using Comet.Server.Movement;
 using Comet.Simulation;
+using ShapeLand.Data;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -15,7 +18,9 @@ using ShapeLand.Shared.World;
 namespace ShapeLand.GameServer;
 
 /// <summary>
-/// ShapeLand's game: players join with a name and shape, slide and jump, and chat in one server-wide channel. The
+/// ShapeLand's game: players join with a ticket from the Login server as their saved character, slide and jump, and
+/// chat in one server-wide channel. Where they are is saved as they move (batched) and as they leave; looks as they
+/// change. The
 /// server plays every zone; each player is in one and sees everyone in it (grid interest management comes with the
 /// full load test). Spawn points are claimed and teleporters used per player; triggers flip placements for the whole
 /// zone.
@@ -24,7 +29,7 @@ namespace ShapeLand.GameServer;
 /// order, so all game state belongs to the tick thread.
 /// </para>
 /// </summary>
-public sealed class ShapeLandGame : IConnectionHandler
+public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, ShapeLandCharacter>
 {
     private readonly ShapeLandContent content;
     private readonly ConnectionRegistry registry;
@@ -39,13 +44,22 @@ public sealed class ShapeLandGame : IConnectionHandler
     private readonly ConcurrentQueue<Input> _inbox = new();
     private readonly Dictionary<Connection, Player> _players = [];
     private readonly Random _random = new();
+    private readonly JoinedCharacters<Connection, ShapeLandCharacter> _joins;
+    private readonly ICharacterRepository<ShapeLandCharacter> _repository;
+    private uint _tick;
 
-    /// <summary>The game of <paramref name="content"/>'s zones; an unknown <paramref name="startSpawn"/> (a spawn point's key, or empty for none) stops it, listing the spawn points.</summary>
-    public ShapeLandGame(ShapeLandContent content, string startSpawn, ConnectionRegistry registry, ILogger<ShapeLandGame> logger)
+    /// <summary>
+    /// The game of <paramref name="content"/>'s zones, saving characters through <paramref name="repository"/>; an
+    /// unknown <paramref name="startSpawn"/> (a spawn point's key, or empty for none) stops it, listing the spawn points.
+    /// </summary>
+    public ShapeLandGame(ShapeLandContent content, string startSpawn, ConnectionRegistry registry,
+        Comet.Tickets.TicketChecker tickets, ICharacterRepository<ShapeLandCharacter> repository, ILogger<ShapeLandGame> logger)
     {
         this.content = content;
         this.registry = registry;
         this.logger = logger;
+        _repository = repository;
+        _joins = new(tickets, repository, TimeSpan.FromSeconds(ShapeLandRules.ClaimDeadlineSeconds), logger);
         foreach (var zone in content.Zones.All)
         {
             var state = new ZoneState(content, zone);
@@ -84,6 +98,8 @@ public sealed class ShapeLandGame : IConnectionHandler
         {
             MessageIds.PositionReport => new Input(connection, InputKind.Report) { Report = FrameReader.Decode<PositionReport>(payload, options), ClientTick = clientTick },
             ShapeLandMessageIds.JoinRequest => new Input(connection, InputKind.Join) { Join = FrameReader.Decode<JoinRequest>(payload, options) },
+            ShapeLandMessageIds.LookChange => new Input(connection, InputKind.Look) { Look = FrameReader.Decode<LookChange>(payload, options) },
+            ShapeLandMessageIds.NameChanged => new Input(connection, InputKind.NameChanged),
             ShapeLandMessageIds.ChatSend => new Input(connection, InputKind.Chat) { Chat = FrameReader.Decode<ChatSend>(payload, options) },
             ShapeLandMessageIds.ReturnToSpawn => new Input(connection, InputKind.Return),
             _ => null, // unknown or not for the server: ignored, so older servers tolerate newer clients
@@ -101,8 +117,15 @@ public sealed class ShapeLandGame : IConnectionHandler
     /// <summary>Runs one tick on the tick thread: the inputs that arrived since the last, falls and join deadlines, then the states of players who moved, sent to everyone else.</summary>
     public void Tick(uint tick)
     {
+        _tick = tick;
         while (_inbox.TryDequeue(out var input))
         {
+            if (input.Kind != InputKind.Connected && input.Kind != InputKind.Disconnected
+                && (!_players.TryGetValue(input.Connection, out var from) || from.Dropped))
+            {
+                continue; // a dropped player's inputs, until its connection closes
+            }
+
             switch (input.Kind)
             {
                 case InputKind.Connected:
@@ -110,6 +133,15 @@ public sealed class ShapeLandGame : IConnectionHandler
                     break;
                 case InputKind.Join:
                     Join(_players[input.Connection], input.Join, tick);
+                    break;
+                case InputKind.Look:
+                    ChangeLook(_players[input.Connection], input.Look, tick);
+                    break;
+                case InputKind.NameChanged:
+                    ReloadName(_players[input.Connection], tick);
+                    break;
+                case InputKind.NameLoaded:
+                    Rename(_players[input.Connection], input.CharacterId, input.Name, tick);
                     break;
                 case InputKind.Report:
                     Move(_players[input.Connection], input.Report, input.ClientTick, tick);
@@ -126,8 +158,11 @@ public sealed class ShapeLandGame : IConnectionHandler
             }
         }
 
+        // Finished joins, and players dropped because their character was taken or removed.
+        _joins.Update(this);
+
         // The server knows gravity: players silent in the air fall, so going quiet mid-jump can't be used to hover. Connections that never join are
-        // dropped, so they can't sit holding a place.
+        // dropped, so they can't sit holding a place (a join in progress has its own deadline).
         var seconds = (float)tick / ShapeLandRules.TickRate;
         foreach (var player in _players.Values)
         {
@@ -138,7 +173,8 @@ public sealed class ShapeLandGame : IConnectionHandler
                 Claim(player, seconds);
                 Teleport(player, tick, seconds);
             }
-            else if (tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate)
+            else if (player.Dropped ? tick >= player.CloseAtTick
+                : !player.Joining && tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate)
             {
                 player.Connection.Disconnect();
             }
@@ -163,6 +199,7 @@ public sealed class ShapeLandGame : IConnectionHandler
             }
 
             mover.Moved = false;
+            SavePosition(mover);
             var state = mover.State();
             foreach (var viewer in mover.Zone.Players)
             {
@@ -179,65 +216,138 @@ public sealed class ShapeLandGame : IConnectionHandler
         }
     }
 
-    // A joined player's join request changes their look (name, shape, colors) where they stand.
+    // A join hands the ticket to JoinedCharacters, which checks it and loads the character off the tick thread;
+    // the player spawns when it comes back (Joined) on a later tick.
     private void Join(Player player, JoinRequest request, uint tick)
     {
-        if (!player.JoinLimiter.TryTake(tick))
+        if (player.Joining || player.Joined || !player.JoinLimiter.TryTake(tick))
         {
-            // No honest client asks this often.
+            // One join at a time, and retries after a failure only at a pace no honest client exceeds.
             player.Connection.Disconnect();
             return;
         }
 
         if (request.ContentFingerprint != content.Fingerprint)
         {
-            Reject(JoinRejection.DifferentContent);
+            player.Connection.SendEvent(ShapeLandMessageIds.JoinRejected, new JoinRejected { Reason = JoinRejection.DifferentContent });
             return;
         }
 
-        if (!ShapeLandRules.TryNormalizeName(request.Name, out var name))
+        player.Joining = _joins.Begin(player.Connection, request.Ticket ?? "");
+    }
+
+    void IJoinHost<Connection, ShapeLandCharacter>.JoinFailed(Connection connection, JoinFailure failure)
+    {
+        if (!_players.TryGetValue(connection, out var player))
         {
-            Reject(JoinRejection.InvalidName);
             return;
         }
 
-        if (_players.Values.Any(p => p.Joined && p != player && string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
+        player.Joining = false;
+        var reason = failure switch
         {
-            Reject(JoinRejection.NameTaken);
-            return;
-        }
+            JoinFailure.ExpiredTicket => JoinRejection.ExpiredTicket,
+            JoinFailure.UsedTicket => JoinRejection.UsedTicket,
+            JoinFailure.WrongServer => JoinRejection.WrongServer,
+            JoinFailure.NoCharacter => JoinRejection.NoCharacter,
+            JoinFailure.Busy => JoinRejection.Busy,
+            JoinFailure.Replaced => JoinRejection.Replaced,
+            _ => JoinRejection.BadTicket,
+        };
+        connection.SendEvent(ShapeLandMessageIds.JoinRejected, new JoinRejected { Reason = reason });
+        logger.LogInformation("A join was refused: {Failure}", failure);
+    }
 
-        if (!content.Shapes.TryGet(request.Shape, out var shape))
+    void IJoinHost<Connection, ShapeLandCharacter>.Joined(Connection connection, CharacterClaim<ShapeLandCharacter> claim)
+    {
+        if (!_players.TryGetValue(connection, out var player))
         {
-            Reject(JoinRejection.UnknownShape);
+            _ = _joins.Leave(connection, null); // closed meanwhile
             return;
         }
 
-        if (Array.IndexOf(content.Settings.Colors.Players, request.Color) < 0 || Array.IndexOf(content.Settings.Colors.Players, request.EyeColor) < 0)
-        {
-            Reject(JoinRejection.UnavailableColor);
-            return;
-        }
-
-        var changing = player.Joined;
-        var oldName = player.Name;
+        player.Joining = false;
         player.Joined = true;
-        player.Name = name;
-        player.Shape = shape;
-        player.Color = request.Color;
-        player.EyeColor = request.EyeColor;
-        if (changing)
+        Spawn(player, claim.Character!, claim.Position, _tick);
+    }
+
+    CharacterPosition? IJoinHost<Connection, ShapeLandCharacter>.Dropped(Connection connection, bool replaced)
+    {
+        if (!_players.TryGetValue(connection, out var player) || !player.Joined)
         {
-            ChangeLook(player, oldName, tick);
-            return;
+            return null;
         }
 
-        // The shape's spawn (the content build checks it's in a zone), unless the server starts everyone at one.
-        var (zone, spawnPoint) = _startSpawn ?? _spawns.Values.First(s => s.Spawn.Id == shape.Spawn);
-        player.SpawnPoint = spawnPoint;
+        var position = PositionOf(player);
+        LeaveZone(player);
+        player.Joined = false;
+        player.Dropped = true;
+        player.CloseAtTick = _tick + 2; // after this tick's frame, with the reason, has gone out
+        connection.SendEvent(ShapeLandMessageIds.Dropped, new Dropped { Reason = replaced ? DropReason.Replaced : DropReason.Removed });
+        logger.LogInformation("{Name} was dropped: {Reason}", player.Name, replaced ? "joined again elsewhere" : "removed");
+        return position;
+    }
+
+    // Puts a newly joined character in the world: where it was saved, or (a missing zone, or a spot that's no longer
+    // in the zone) at its shape's spawn. A shape or color no longer in the content becomes the first one there is.
+    private void Spawn(Player player, ShapeLandCharacter character, CharacterPosition? saved, uint tick)
+    {
+        player.Character = character;
+        var lookChanged = false;
+        if (!content.Shapes.TryGet(character.Shape, out var shape))
+        {
+            shape = content.Shapes.All[0];
+            character.Shape = shape.Number;
+            lookChanged = true;
+        }
+
+        foreach (var eyes in new[] { false, true })
+        {
+            var color = eyes ? character.EyeColor : character.Color;
+            if (!content.Colors.TryGet(color, out _))
+            {
+                if (eyes)
+                {
+                    character.EyeColor = content.Colors.All[0].Number;
+                }
+                else
+                {
+                    character.Color = content.Colors.All[0].Number;
+                }
+
+                lookChanged = true;
+            }
+        }
+
+        if (lookChanged)
+        {
+            _joins.SaveCharacter(player.Connection, character);
+        }
+
+        player.Shape = shape;
+        var shapeSpawn = _startSpawn ?? _spawns.Values.First(s => s.Spawn.Id == shape.Spawn);
+        player.SpawnPoint = shapeSpawn.Spawn;
+
+        ZoneState zone;
+        Vector3 feet;
+        float facing;
+        var atSpawn = false;
+        if (_startSpawn == null && saved is { } spot && _zones.TryGetValue(spot.Zone, out var savedZone)
+            && Fits(savedZone, new Vector3(spot.X, spot.Y, spot.Z)))
+        {
+            zone = savedZone;
+            feet = new Vector3(spot.X, spot.Y, spot.Z);
+            facing = spot.Facing;
+        }
+        else
+        {
+            zone = shapeSpawn.Zone;
+            (feet, facing) = Comet.Simulation.Triggers.Arrive(shapeSpawn.Spawn.Volume, shapeSpawn.Spawn.Facing, zone.World, content.Movement, _random);
+            atSpawn = true;
+        }
+
         player.Zone = zone;
         player.Validator = new MovementValidator(zone.World, content.Movement, _tolerances, ShapeLandRules.TickRate);
-        var (feet, facing) = Comet.Simulation.Triggers.Arrive(spawnPoint.Volume, spawnPoint.Facing, zone.World, content.Movement, _random);
         player.Validator.Reset(feet, facing, tick);
         player.PlacedByServer(tick); // the others learn of them from the spawn, not a state
 
@@ -245,20 +355,109 @@ public sealed class ShapeLandGame : IConnectionHandler
         connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate, Zone = zone.Zone.Number });
         connection.SendEvent(ShapeLandMessageIds.ZoneEntered, new ZoneEntered { Zone = zone.Zone.Number, Flipped = zone.Flipped.ToArray() });
         connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, player.Spawn());
-        connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = spawnPoint.Number });
-        // Standing on the spawn already: it isn't claimed again until they step out and in.
-        player.SpawnCharge.Arrived(spawnPoint, spawnPoint.Volume);
+        connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = player.SpawnPoint.Number });
+        if (atSpawn)
+        {
+            // Standing on the spawn already: it isn't claimed again until they step out and in.
+            player.SpawnCharge.Arrived(player.SpawnPoint, player.SpawnPoint.Volume);
+        }
+
         Arrive(player, zone);
+        logger.LogInformation("{Name} joined as a {Shape} ({Players} online)", player.Name, shape.DisplayName, _players.Values.Count(p => p.Joined));
+    }
 
-        logger.LogInformation("{Name} joined as a {Shape} ({Players} online)", name, shape.DisplayName, _players.Values.Count(p => p.Joined));
+    // A saved spot still fits its zone: in one of its chunks, above the kill height, and not inside anything.
+    private bool Fits(ZoneState zone, Vector3 feet)
+    {
+        if (!float.IsFinite(feet.X) || !float.IsFinite(feet.Y) || !float.IsFinite(feet.Z) || feet.Y <= zone.World.KillHeight)
+        {
+            return false;
+        }
 
-        void Reject(JoinRejection reason) =>
-            player.Connection.SendEvent(ShapeLandMessageIds.JoinRejected, new JoinRejected { Reason = reason });
+        var chunk = ChunkCoord.Containing(feet);
+        return zone.Zone.Chunks.Any(c => c.Coord.Equals(chunk))
+            && !zone.World.IsBlocked(feet, content.Movement.BodyRadius, content.Movement.BodyHeight);
+    }
+
+    // A look change from the Change Shape card: checked against the content, saved, and shown to everyone where the
+    // player stands.
+    private void ChangeLook(Player player, LookChange change, uint tick)
+    {
+        if (!player.Joined)
+        {
+            return;
+        }
+
+        if (!player.LookLimiter.TryTake(tick))
+        {
+            player.Connection.SendEvent(ShapeLandMessageIds.LookRejected, new LookRejected { Reason = LookRejection.TooFast });
+            return;
+        }
+
+        if (!content.Shapes.TryGet(change.Shape, out var shape))
+        {
+            player.Connection.SendEvent(ShapeLandMessageIds.LookRejected, new LookRejected { Reason = LookRejection.UnknownShape });
+            return;
+        }
+
+        if (!content.Colors.TryGet(change.Color, out _) || !content.Colors.TryGet(change.EyeColor, out _))
+        {
+            player.Connection.SendEvent(ShapeLandMessageIds.LookRejected, new LookRejected { Reason = LookRejection.UnavailableColor });
+            return;
+        }
+
+        player.Shape = shape;
+        player.Character.Shape = shape.Number;
+        player.Character.Color = change.Color;
+        player.Character.EyeColor = change.EyeColor;
+        _joins.SaveCharacter(player.Connection, player.Character);
+        Respawn(player, tick);
+        logger.LogInformation("{Name} is now a {Shape}", player.Name, shape.DisplayName);
+    }
+
+    // The player renamed their account: the name is read from the database off the tick thread, then shown.
+    private void ReloadName(Player player, uint tick)
+    {
+        if (!player.Joined || !player.RenameLimiter.TryTake(tick) || !_joins.TryGet(player.Connection, out var characterId, out _))
+        {
+            return;
+        }
+
+        var connection = player.Connection;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(ShapeLandRules.JoinDeadlineSeconds));
+                var name = await _repository.LoadNameAsync(characterId, deadline.Token);
+                if (name != null)
+                {
+                    _inbox.Enqueue(new Input(connection, InputKind.NameLoaded) { CharacterId = characterId, Name = name });
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogWarning(e, "Couldn't reload the name of character {Character}", characterId);
+            }
+        });
+    }
+
+    private void Rename(Player player, long characterId, string name, uint tick)
+    {
+        if (!player.Joined || player.Character.Id != characterId || player.Name == name)
+        {
+            return;
+        }
+
+        var oldName = player.Name;
+        player.Character.Name = name;
+        Respawn(player, tick);
+        logger.LogInformation("{OldName} is now {Name}", oldName, name);
     }
 
     // The player stays where they are: a snap-back to there makes the reports still in flight, moved with the old
-    // shape's speed and jump, stale. Then everyone, the player too, gets a fresh spawn with the new look.
-    private void ChangeLook(Player player, string oldName, uint tick)
+    // shape's speed and jump, stale. Then everyone, the player too, gets a fresh spawn with the new look and name.
+    private void Respawn(Player player, uint tick)
     {
         player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick));
         var spawn = player.Spawn();
@@ -268,9 +467,19 @@ public sealed class ShapeLandGame : IConnectionHandler
             listener.Connection.EntityStates.Remove(player.EntityId);
             listener.Connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, spawn);
         }
-
-        logger.LogInformation("{OldName} is now {Name}, a {Shape}", oldName, player.Name, player.Shape.DisplayName);
     }
+
+    private static CharacterPosition PositionOf(Player player) => new(
+        player.Zone.Zone.Number, player.Validator.Position.X, player.Validator.Position.Y, player.Validator.Position.Z, player.Validator.Facing);
+
+    private void SavePosition(Player player) => _joins.SaveStatus(player.Connection, PositionOf(player));
+
+    /// <summary>
+    /// Saves every player's spot and releases their characters, for shutdown. Call after the tick loop has stopped,
+    /// since it reads the game's state.
+    /// </summary>
+    public Task LeaveAllAsync() =>
+        _joins.LeaveAll(connection => _players.TryGetValue(connection, out var player) && player.Joined ? PositionOf(player) : null);
 
     private void Move(Player player, PositionReport report, uint clientTick, uint tick)
     {
@@ -398,6 +607,7 @@ public sealed class ShapeLandGame : IConnectionHandler
         player.TeleportCharge.Clear();
         player.PlacedByServer(tick);
         Arrive(player, zone);
+        SavePosition(player);
         logger.LogInformation("{Name} went to {Zone}", player.Name, zone.Zone.Id);
     }
 
@@ -478,10 +688,12 @@ public sealed class ShapeLandGame : IConnectionHandler
     {
         if (!_players.Remove(connection, out var player) || !player.Joined)
         {
+            _ = _joins.Leave(connection, null); // a join in progress lets its character go
             return;
         }
 
         LeaveZone(player);
+        _ = _joins.Leave(connection, PositionOf(player)); // the final save, then the character is released
 
         logger.LogInformation(
             "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server, {Clamped} of {Stamps} stamps clamped",
@@ -501,6 +713,9 @@ public sealed class ShapeLandGame : IConnectionHandler
         Return,
         Connected,
         Join,
+        Look,
+        NameChanged,
+        NameLoaded,
         Report,
         Chat,
         Disconnected,
@@ -513,6 +728,13 @@ public sealed class ShapeLandGame : IConnectionHandler
         public PositionReport Report { get; init; }
 
         public ChatSend Chat { get; init; }
+
+        public LookChange Look { get; init; }
+
+        /// <summary>For <see cref="InputKind.NameLoaded"/>: the character and its name, read from the database.</summary>
+        public long CharacterId { get; init; }
+
+        public string Name { get; init; } = "";
 
         /// <summary>The report frame's header: the client's estimate of the server tick when it sent the report.</summary>
         public uint ClientTick { get; init; }

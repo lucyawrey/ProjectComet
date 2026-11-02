@@ -8,6 +8,7 @@
                 <ui:Button name="menu-resume" text="#menu.resume" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-controls" text="#menu.controls" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-settings" text="#menu.settings" class="menu-entry" focusable="false" />
+                <ui:Button name="menu-account" text="#account.page" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-look" text="#menu.change_look" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-respawn" text="#menu.respawn" class="menu-entry" focusable="false" />
                 <ui:VisualElement class="menu-gap" picking-mode="Ignore" />
@@ -16,8 +17,8 @@
             <ui:VisualElement name="menu-confirm" class="menu-confirm hidden">
                 <ui:Label text="#menu.leave_title" class="menu-confirm-title" picking-mode="Ignore" />
                 <ui:Label text="#menu.leave_note" class="menu-confirm-note" picking-mode="Ignore" />
-                <ui:Button name="menu-stay" text="#menu.stay" class="menu-entry" focusable="false" />
                 <ui:Button name="menu-leave-confirm" text="#menu.leave" class="menu-entry leave" focusable="false" />
+                <ui:Button name="menu-stay" text="#menu.stay" class="menu-entry" focusable="false" />
             </ui:VisualElement>
             <ui:VisualElement name="menu-window" class="menu-window hidden">
                 <ui:VisualElement class="menu-page-head">
@@ -32,15 +33,15 @@
                     <ui:Label text="#menu.pad_lb" class="menu-shoulder pad-part" picking-mode="Ignore" />
                     <ui:Button name="dev-keys" class="menu-dev" focusable="false">
                         <ui:Label text="#menu.keyboard_mouse" picking-mode="Ignore" />
-                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                        <ui:Label text="#menu.current_device" class="menu-in-use" picking-mode="Ignore" />
                     </ui:Button>
                     <ui:Button name="dev-pad" class="menu-dev" focusable="false">
                         <ui:Label text="#menu.gamepad" picking-mode="Ignore" />
-                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                        <ui:Label text="#menu.current_device" class="menu-in-use" picking-mode="Ignore" />
                     </ui:Button>
                     <ui:Button name="dev-touch" class="menu-dev" focusable="false">
                         <ui:Label text="#menu.touch" picking-mode="Ignore" />
-                        <ui:Label text="#menu.in_use" class="menu-in-use" picking-mode="Ignore" />
+                        <ui:Label text="#menu.current_device" class="menu-in-use" picking-mode="Ignore" />
                     </ui:Button>
                     <ui:Label text="#menu.pad_rb" class="menu-shoulder pad-part" picking-mode="Ignore" />
                 </ui:VisualElement>
@@ -187,6 +188,15 @@
                                     <ui:VisualElement name="speed-knob" class="slider-knob" picking-mode="Ignore" />
                                 </ui:VisualElement>
                                 <ui:Label name="speed-value" class="slider-value" picking-mode="Ignore" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="setting-auto-join" class="menu-row setting">
+                            <ui:VisualElement class="setting-text" picking-mode="Ignore">
+                                <ui:Label text="#menu.join_on_launch" class="menu-row-name" />
+                                <ui:Label text="#menu.join_on_launch_note" class="setting-note" />
+                            </ui:VisualElement>
+                            <ui:VisualElement name="auto-join-switch" class="switch" picking-mode="Ignore">
+                                <ui:VisualElement class="switch-knob" picking-mode="Ignore" />
                             </ui:VisualElement>
                         </ui:VisualElement>
                         <ui:Label text="#menu.debug" class="menu-section" />

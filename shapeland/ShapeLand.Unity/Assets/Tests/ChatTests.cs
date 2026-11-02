@@ -27,7 +27,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.InputEnabled, Is.True);
 
             yield return TestGameServer.WaitFor(() => Chat.LogLines().Count > 0, 10);
-            Assert.That(Chat.LogLines(), Is.EqualTo(new[] { "Unity test hello island" }));
+            Assert.That(Chat.LogLines(), Is.EqualTo(new[] { "UnityTest hello island" }));
             Assert.That(Tags.BubbleOf(Join.Session.EntityId), Is.EqualTo("hello island"), "No bubble over the player's own shape.");
             yield return Wait(0.6f);
             Assert.That(Chat.Opacity, Is.EqualTo(1), "The log isn't showing after a message.");
@@ -79,11 +79,11 @@ namespace ShapeLand.Client.Tests
         {
             yield return StartGame();
             yield return Server.StartBots(1, 20);
-            yield return TestGameServer.WaitFor(() => Chat.LogLines().Any(line => line.StartsWith("Bot 01 ")), 15);
-            var line = Chat.LogLines().FirstOrDefault(l => l.StartsWith("Bot 01 "));
+            yield return TestGameServer.WaitFor(() => Chat.LogLines().Any(line => line.StartsWith("Bot0001 ")), 15);
+            var line = Chat.LogLines().FirstOrDefault(l => l.StartsWith("Bot0001 "));
             Assert.That(line, Is.Not.Null, "The bot's chat never reached the log.");
-            var bot = View.Spawns.First(p => p.Value.Name == "Bot 01").Key;
-            Assert.That("Bot 01 " + Tags.BubbleOf(bot), Is.EqualTo(line), "The bot's bubble doesn't show its line.");
+            var bot = View.Spawns.First(p => p.Value.Name == "Bot0001").Key;
+            Assert.That("Bot0001 " + Tags.BubbleOf(bot), Is.EqualTo(line), "The bot's bubble doesn't show its line.");
         }
 
         [UnityTest]
@@ -99,7 +99,7 @@ namespace ShapeLand.Client.Tests
 
             var tooFast = Strings.Get("chat.too_fast");
             yield return TestGameServer.WaitFor(() => Chat.LogLines().Contains(tooFast), 10);
-            Assert.That(Chat.LogLines().Count(l => l.StartsWith("Unity test line")), Is.EqualTo(3), "The server's burst of three wasn't delivered.");
+            Assert.That(Chat.LogLines().Count(l => l.StartsWith("UnityTest line")), Is.EqualTo(3), "The server's burst of three wasn't delivered.");
             Assert.That(Chat.LogLines(), Does.Contain(tooFast), "Sending too fast wasn't explained.");
         }
     }

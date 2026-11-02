@@ -131,8 +131,23 @@ namespace Comet.Unity.Editor
         [Tooltip("The bots project, relative to the Unity project, for the local server's bots; empty: no bots.")]
         public string botsProject = "";
 
-        [Tooltip("The bots' arguments: {url} is the server's WebSocket URL and {count} how many to start.")]
+        [Tooltip("The bots' arguments: {url} is the game server's WebSocket URL, {login} the Login server's URL and {count} how many to start.")]
         public string botsArguments = "--url {url} --count {count}";
+
+        [Tooltip("The Login server project, relative to the Unity project, started beside the game server; empty: none.")]
+        public string loginProject = "";
+
+        [Tooltip("The port the local Login server listens on.")]
+        [Min(1)] public int loginPort = 5090;
+
+        [Tooltip("More arguments for the Login server: {database} is the connection string, {game} the game server's WebSocket URL, {page} the local page's origin.")]
+        public string loginArguments = "";
+
+        [Tooltip("More arguments for the game server when there's a Login server: {database} is the connection string, {login} the Login server's URL.")]
+        public string serverAccountArguments = "";
+
+        [Tooltip("The script that starts the development database and gives a database's connection string (Comet's tools/comet-postgres.sh), relative to the Unity project.")]
+        public string databaseScript = "";
 
         [Header("Polygon budget (Comet › Zones › Polygon Budget)")]
         [Tooltip("About how long each side of a round primitive is, in meters.")]

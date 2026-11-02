@@ -1,6 +1,22 @@
 # Content ID registry: each id's permanent number, by name, per content type.
 # The content build adds new ids; numbers never change and are never reused. Commit this file.
 
+[color]
+blue = 1
+brown = 2
+cff0068 = 3
+cyan = 4
+deep_blue = 5
+deep_green = 6
+green = 7
+ink = 8
+orange = 9
+pink = 10
+purple = 11
+red = 12
+white = 13
+yellow = 14
+
 [group]
 shape_cube = 1
 shape_diamond = 2
