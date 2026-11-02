@@ -32,7 +32,6 @@ using System.Formats.Tar;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
-using System.Text.Json;
 
 var work = Path.Combine(Tool.Repo, "artifacts", "deploy");
 var web = Path.Combine(Tool.Repo, "artifacts", "unity", "shapeland", "web");
@@ -206,22 +205,11 @@ void Setup()
         Console.WriteLine("== Creating the daily snapshot policy (7 kept)");
         Tool.Capture(Tool.Info("aws", ["dlm", "create-default-role", "--resource-type", "snapshot"]), withErrors: true);
         var role = Aws("iam", "get-role", "--role-name", "AWSDataLifecycleManagerDefaultRole", "--query", "Role.Arn", "--output", "text");
-        var details = JsonSerializer.Serialize(new
-        {
-            PolicyType = "EBS_SNAPSHOT_MANAGEMENT",
-            ResourceTypes = new[] { "VOLUME" },
-            TargetTags = new[] { new { Key = Tag, Value = "data" } },
-            Schedules = new[]
-            {
-                new
-                {
-                    Name = "daily",
-                    CreateRule = new { Interval = 24, IntervalUnit = "HOURS", Times = new[] { "09:00" } },
-                    RetainRule = new { Count = 7 },
-                    CopyTags = true,
-                },
-            },
-        });
+        var details = $$"""
+            {"PolicyType":"EBS_SNAPSHOT_MANAGEMENT","ResourceTypes":["VOLUME"],"TargetTags":[{"Key":"{{Tag}}","Value":"data"}],
+             "Schedules":[{"Name":"daily","CreateRule":{"Interval":24,"IntervalUnit":"HOURS","Times":["09:00"]},
+               "RetainRule":{"Count":7},"CopyTags":true}]}
+            """;
         Aws("dlm", "create-lifecycle-policy", "--description", $"{Tag} data daily", "--state", "ENABLED",
             "--execution-role-arn", role, "--policy-details", details);
     }
