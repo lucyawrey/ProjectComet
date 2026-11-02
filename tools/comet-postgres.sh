@@ -19,6 +19,8 @@ network=comet
 port=55432
 user=comet
 password=comet-dev-only
+# A Mac editor started from Unity Hub has no /usr/local/bin on its PATH, where Docker Desktop puts docker.
+PATH="$PATH:/usr/local/bin:/opt/homebrew/bin:/Applications/Docker.app/Contents/Resources/bin"
 
 start() {
   command -v docker > /dev/null || { echo "Docker is needed for local play (PostgreSQL runs in it)." >&2; exit 1; }
