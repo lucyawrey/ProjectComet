@@ -17,7 +17,7 @@ The vault's shared config and community plugins are in the repo, so they're read
 
 ## Requirements
 
-- **.NET 10 SDK, 10.0.300 or later**: for the servers, libraries, bots and tools (the tools use `#:include`, new in 10.0.300). Linux distributions' own .NET packages are often the older 10.0.1xx SDK; Microsoft's install script or packages have the current one.
+- **.NET 10 SDK**: for the servers, libraries, bots and tools.
 - **Unity 6000.6.4f1**: for ShapeLand's client (`shapeland/ShapeLand.Unity`).
 - **Docker**: for local play with accounts (PostgreSQL runs in it; the editor plays without them by default), the .NET tests that need a database (Testcontainers starts a throwaway PostgreSQL for each run), and the simulated-network runs (`--net` profiles and `tools/run shapeland-netrun`). Those runs need Linux: Docker Desktop's VM on macOS has no `ifb` device, which they use to delay incoming traffic, and on Windows it depends on the WSL kernel. On Linux they need your user in the `docker` group and the traffic-shaping kernel modules loaded at boot (containers can't load them):
 
@@ -45,7 +45,7 @@ On Windows, the tools run as `tools\run <tool>` (see [Tools](#tools)).
 
 Unity and the .NET SDK are all it takes: no Docker, no accounts.
 
-1. Install Unity Hub with Unity 6000.6.4f1 (add Web Build Support for web builds), and the .NET 10 SDK (10.0.300 or later).
+1. Install Unity Hub with Unity 6000.6.4f1 (add Web Build Support for web builds), and the .NET 10 SDK.
 2. Restore the Unity project's NuGet packages, once after cloning and again whenever `shapeland/ShapeLand.Unity/Assets/packages.config` changes: `tools/run unity-restore`. The editor can't compile the project without them.
 3. In Unity Hub, add the project from disk: `shapeland/ShapeLand.Unity`.
 4. Build the content once (Comet › Content › Build), open `Assets/Scenes/Game.unity` and press Play. The editor builds and starts its own game server ([the local game server](comet/README.md#the-local-game-server)), and the join card asks for a name and a look.
