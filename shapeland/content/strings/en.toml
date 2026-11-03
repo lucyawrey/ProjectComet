@@ -150,7 +150,7 @@ menu = "Menu"
 menu_key = "Esc"
 
 [menu]
-accounts_off = "Accounts are off (Comet › Server › Use Accounts)"
+accounts_off = "Account system is disabled"
 resume = "Resume"
 controls = "Controls"
 settings = "Settings"
