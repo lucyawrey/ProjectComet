@@ -32,8 +32,8 @@ namespace ShapeLand.Client
     {
         [SerializeField] private ShapePreview previewPrefab;
 
-        // PlayerPrefs keys for the choices remembered for next time.
-        private const string NameKey = "remember.name", ShapeKey = "remember.shape", ColorKey = "remember.color.number", EyesKey = "remember.eyes.number", ServerKey = "remember.login";
+        // The PlayerPrefs key for the server remembered for next time.
+        private const string ServerKey = "remember.login";
 
         private JoinClient _join;
         private GameView _view;
@@ -120,9 +120,6 @@ namespace ShapeLand.Client
         private Shape _shape;
         private int _color;
         private int _eyeColor;
-
-        /// <summary>Whether to remember the choices in PlayerPrefs for next time (off in tests).</summary>
-        public bool Remember { get; set; } = true;
 
         /// <summary>The screen's root, for tests.</summary>
         public VisualElement Root => _root;
@@ -368,7 +365,7 @@ namespace ShapeLand.Client
             if (signedIn)
             {
                 var account = _join.Account;
-                _whoName.text = account?.Username ?? PlayerPrefs.GetString(NameKey, "");
+                _whoName.text = account?.Username ?? "";
                 var guest = account?.Guest ?? false;
                 _whoGuest.EnableInClassList("hidden", !guest);
                 _whoGuestNote.EnableInClassList("hidden", !guest);
@@ -588,13 +585,9 @@ namespace ShapeLand.Client
             UiText.Fill(_root, content.Strings);
             UiText.Fill(_pop, content.Strings);
             SetChanging(false);
-            _name.value = PlayerPrefs.GetString(NameKey, "");
             _server.value = RememberedServer();
             ShowServer();
-            _shape = content.Shapes.All.FirstOrDefault(s => s.Id == PlayerPrefs.GetString(ShapeKey, "")) ?? content.Shapes.All[0];
-            ShowStartZone(glide: false);
-            _color = Remembered(ColorKey);
-            _eyeColor = Remembered(EyesKey);
+            StartFresh(glide: false);
 
             foreach (var shape in content.Shapes.All)
             {
@@ -776,7 +769,7 @@ namespace ShapeLand.Client
             Retry(message);
         }
 
-        // The card for a signed-in player who isn't playing, with a message.
+        // The card for a signed-in player who isn't playing, with a message: off the Sign In page, if it was last on it.
         private void ShowSignedIn(string message)
         {
             if (Changing)
@@ -785,6 +778,7 @@ namespace ShapeLand.Client
             }
 
             HidePop();
+            SetSigningIn(false);
             SetSignedIn(true);
             Show();
             ShowError(message);
@@ -805,16 +799,19 @@ namespace ShapeLand.Client
 
             HidePop();
             _confirm.Close();
+            StartFresh();
             SetSignedIn(false);
             SetSigningIn(false);
             Show();
         }
 
-        // The first color unless a remembered one (by number) is still in the content.
-        private int Remembered(string key)
+        // The new player's card as for someone new: no name, the first shape and colors.
+        private void StartFresh(bool glide = true)
         {
-            var saved = PlayerPrefs.GetInt(key, 0);
-            return _content.Colors.TryGet(saved, out _) ? saved : _content.Colors.All[0].Number;
+            _name.value = "";
+            _shape = _content.Shapes.All[0];
+            _color = _eyeColor = _content.Colors.All[0].Number;
+            ShowStartZone(glide);
         }
 
         private void AddSwatches(VisualElement row, Action<int> pick)
@@ -973,15 +970,6 @@ namespace ShapeLand.Client
                 return;
             }
 
-            if (Remember)
-            {
-                PlayerPrefs.SetString(NameKey, name);
-                PlayerPrefs.SetString(ShapeKey, _shape.Id);
-                PlayerPrefs.SetInt(ColorKey, _color);
-                PlayerPrefs.SetInt(EyesKey, _eyeColor);
-                PlayerPrefs.Save();
-            }
-
             ShowError(null);
             _signInButton.RemoveFromClassList("pointed");
             SetButton(false, "join.joining");
@@ -1114,6 +1102,11 @@ namespace ShapeLand.Client
                     _nextRejoin = Time.unscaledTime + 1;
                     JoinFromPop();
                     return;
+                }
+
+                if (reason == CloseReason.None)
+                {
+                    StartFresh(); // left the game; a lost connection keeps the choices, to join again
                 }
 
                 ShowCardAgain(reason == CloseReason.None ? null : LostMessage(_content.Strings, reason));

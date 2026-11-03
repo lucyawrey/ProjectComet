@@ -90,7 +90,6 @@ namespace ShapeLand.Client.Tests
             Tags = Object.FindAnyObjectByType<NameTags>();
             NetStats = Object.FindAnyObjectByType<NetStats>();
             Camera = Object.FindAnyObjectByType<OrbitCamera>();
-            Screen.Remember = false;
             NetStats.Remember = false;
             if (NetStats.Shown)
             {

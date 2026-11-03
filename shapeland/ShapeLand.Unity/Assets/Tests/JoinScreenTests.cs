@@ -94,6 +94,24 @@ namespace ShapeLand.Client.Tests
             Assert.That(Screen.Root.Q<Button>("join-button").enabledSelf, Is.True, "Play isn't enabled for another try.");
         }
 
+        [UnityTest]
+        public IEnumerator LeavingStartsTheCardFresh()
+        {
+            yield return StartGame(join: false);
+            Field("name").value = "Pebble";
+            Click(ShapeButton("shape.diamond"));
+            Click(Swatch("colors", Join.Content.Colors.All[1].Number));
+            Click(Screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => View.Player != null, 15);
+            Assert.That(View.Player, Is.Not.Null, "Never spawned.");
+
+            Join.Leave();
+            yield return TestGameServer.WaitFor(() => Screen.Showing, 10);
+            Assert.That(Field("name").value, Is.Empty, "The card kept the last player's name.");
+            Assert.That(ShapeButton(Join.Content.Shapes.All[0].Id).ClassListContains("on"), Is.True, "The card kept the last player's shape.");
+            Assert.That(Swatch("colors", Join.Content.Colors.All[0].Number).ClassListContains("on"), Is.True, "The card kept the last player's color.");
+        }
+
         // Without accounts, as the editor's server restarting for new content: back in as the same name.
         [UnityTest]
         public IEnumerator RejoinsAServerThatRestarted() => Rejoins(accounts: false);
