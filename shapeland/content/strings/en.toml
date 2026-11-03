@@ -35,7 +35,7 @@ unreachable = "Couldn't reach the server at {address}. Check the address, or whe
 [account]
 # A key ending _web is the same text for browsers, used there in place of the key's own (desktop) text.
 have_account = "Already have an account?"
-off_note = "Accounts are off in the editor (Comet › Server › Use Accounts)."
+off_note = "The account system is disabled."
 sign_in = "Sign In"
 signing_in = "Signing In…"
 sign_in_code_page = "Recovery Code Sign In"
