@@ -146,6 +146,7 @@ namespace Comet.Unity.Editor
                 chunk.Teleporters = new Teleporter[0];
                 chunk.Triggers = new Trigger[0];
                 chunk.Volumes = new CollisionVolume[0];
+                chunk.Signs = new Sign[0];
             }
 
             editing.ZoneData = MessagePackSerializer.Serialize(zone, Serializer);
@@ -280,12 +281,26 @@ namespace Comet.Unity.Editor
                 }).ToArray();
             }
 
+            foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
+            {
+                var chunk = ChunkAt(ToNumerics(sign.transform.position));
+                chunk.Signs = chunk.Signs.Append(new Sign
+                {
+                    Position = ToNumerics(sign.transform.position),
+                    Text = sign.text.Replace("\r\n", "\n"),
+                    TextColor = PlacedColors.ToRgb(sign.textColor),
+                    BackgroundColor = sign.background ? PlacedColors.ToRgb(sign.backgroundColor) : (uint?)null,
+                    BackgroundOpacity = sign.background ? sign.backgroundOpacity : 1,
+                    ShowDistance = sign.showDistance,
+                }).ToArray();
+            }
+
             // Tiles are kept whole-chunk while editing; the files keep only their ground.
             ZoneTerrainEditing.Crop(zone);
 
             // A chunk left with nothing in it is no longer part of the zone.
             zone.Chunks = chunks.Values
-                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Teleporters.Length + c.Triggers.Length + c.Volumes.Length > 0)
+                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Teleporters.Length + c.Triggers.Length + c.Volumes.Length + c.Signs.Length > 0)
                 .OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z)
                 .ToArray();
             return zone;
@@ -409,6 +424,18 @@ namespace Comet.Unity.Editor
                     component.chargeColor = trigger.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.triggerChargeColor;
                 }
 
+                foreach (var sign in chunk.Signs)
+                {
+                    var component = Child(root.Find(SignsFolder) ?? Child(root, SignsFolder), SignName(sign.Text)).gameObject.AddComponent<ZoneSign>();
+                    component.transform.position = ToUnity(sign.Position);
+                    component.text = sign.Text;
+                    component.textColor = PlacedColors.FromRgb(sign.TextColor);
+                    component.background = sign.BackgroundColor != null;
+                    component.backgroundColor = sign.BackgroundColor is { } back ? PlacedColors.FromRgb(back) : component.backgroundColor;
+                    component.backgroundOpacity = sign.BackgroundColor != null ? sign.BackgroundOpacity : component.backgroundOpacity;
+                    component.showDistance = sign.ShowDistance;
+                }
+
                 foreach (var volume in chunk.Volumes)
                 {
                     var box = Child(volumes, $"{volume.Kind} volume");
@@ -419,6 +446,26 @@ namespace Comet.Unity.Editor
                     component.size = ToUnity(volume.Size);
                 }
             }
+        }
+
+        private const string SignsFolder = "Signs";
+
+        // A sign's object name: its first line, shortened.
+        private static string SignName(string text)
+        {
+            var line = text.Split('\n')[0].Trim();
+            return "Sign " + (line.Length > 24 ? line.Substring(0, 24) + "…" : line);
+        }
+
+        /// <summary>Adds a sign at <paramref name="position"/> in an opened zone, with a new sign's defaults.</summary>
+        public static ZoneSign AddSign(ZoneEditing editing, Vector3 position)
+        {
+            var parent = editing.transform.Find(SignsFolder) ?? Child(editing.transform, SignsFolder);
+            var sign = Child(parent, "Sign").gameObject.AddComponent<ZoneSign>();
+            sign.transform.position = position;
+            sign.text = "Sign";
+            Undo.RegisterCreatedObjectUndo(sign.gameObject, "Add sign");
+            return sign;
         }
 
         // The folder objects each kind of trigger goes under.

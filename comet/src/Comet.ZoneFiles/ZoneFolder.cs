@@ -28,6 +28,8 @@ namespace Comet.ZoneFiles
         private const int AngleDecimals = 2;
         /// <summary>Decimal places written for times in seconds: milliseconds.</summary>
         private const int TimeDecimals = 3;
+        /// <summary>Decimal places written for sign background opacities: hundredths.</summary>
+        private const int OpacityDecimals = 2;
 
         private static readonly Regex ChunkName = new Regex(@"^(-?\d+)_(-?\d+)$");
 
@@ -194,7 +196,7 @@ namespace Comet.ZoneFiles
                 return null;
             }
 
-            toml.CheckKeys(table, "", "tile", "placement", "spawn", "teleporter", "trigger", "volume");
+            toml.CheckKeys(table, "", "tile", "placement", "spawn", "teleporter", "trigger", "volume", "sign");
             var chunk = new ZoneChunk { Coord = coord };
             var tiles = new List<TerrainTile>();
             var tileFiles = new HashSet<string>(StringComparer.Ordinal);
@@ -264,6 +266,19 @@ namespace Comet.ZoneFiles
                             RevertSeconds = toml.Float(e.Table, path, "revert_seconds", 0),
                         };
                     }).ToArray(),
+                };
+            }).ToArray();
+            chunk.Signs = toml.Tables(table, "sign").Select(t =>
+            {
+                toml.CheckKeys(t.Table, t.Path, "position", "text", "text_color", "background_color", "background_opacity", "show_distance");
+                return new Sign
+                {
+                    Position = toml.Vector(t.Table, t.Path, "position"),
+                    Text = toml.String(t.Table, t.Path, "text"),
+                    TextColor = t.Table.TryGetValue("text_color", out var text) ? Color(toml, text, $"{t.Path}.text_color") ?? 0xFFFFFF : 0xFFFFFF,
+                    BackgroundColor = t.Table.TryGetValue("background_color", out var back) ? Color(toml, back, $"{t.Path}.background_color") : null,
+                    BackgroundOpacity = toml.Float(t.Table, t.Path, "background_opacity", 1),
+                    ShowDistance = toml.Float(t.Table, t.Path, "show_distance", 45),
                 };
             }).ToArray();
             chunk.Volumes = toml.Tables(table, "volume").Select(v =>
@@ -454,7 +469,7 @@ namespace Comet.ZoneFiles
         // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
         internal static string HexColors(string text)
         {
-            text = Regex.Replace(text, @"^((?:ground_|under_|charge_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
+            text = Regex.Replace(text, @"^((?:ground_|under_|charge_|text_|background_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
             return Regex.Replace(text, @"^colors = \{.*\}$", line => Regex.Replace(line.Value, @"= (\d+)", m => $"= 0x{long.Parse(m.Groups[1].Value):X6}"), RegexOptions.Multiline);
         }
 
@@ -609,6 +624,26 @@ namespace Comet.ZoneFiles
                 }
 
                 return WritePad(teleporter, t.Volume);
+            });
+            AddTables(table, "sign", chunk.Signs, t =>
+            {
+                var sign = new TomlTable
+                {
+                    ["position"] = ZoneToml.Array3(t.Position, LengthDecimals),
+                    ["text"] = t.Text,
+                    ["text_color"] = (long)t.TextColor,
+                };
+                if (t.BackgroundColor is { } color)
+                {
+                    sign["background_color"] = (long)color;
+                    if (t.BackgroundOpacity != 1)
+                    {
+                        sign["background_opacity"] = ZoneToml.Round(t.BackgroundOpacity, OpacityDecimals);
+                    }
+                }
+
+                sign["show_distance"] = ZoneToml.Round(t.ShowDistance, LengthDecimals);
+                return sign;
             });
             AddTables(table, "trigger", chunk.Triggers, t =>
             {

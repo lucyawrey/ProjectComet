@@ -369,4 +369,33 @@ public class ZoneFolderTests
 
         Assert.Equal(["chunks/0_0/main.height: Missing: the chunk lists a tile for this piece."], errors.Select(e => e.ToString()));
     }
+
+    [Fact]
+    public void SignsRoundTripReadably()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        sample.Chunks[1].Signs =
+        [
+            new Sign { Position = new Vector3(12, 6, 5), Text = "To the cave\nmind the gap", TextColor = 0xFFEE00, BackgroundColor = 0x202030, BackgroundOpacity = 0.75f, ShowDistance = 60 },
+            new Sign { Position = new Vector3(14, 6, 9), Text = "Plate" },
+        ];
+        var zone = RoundTrip(sample, folder, out var errors);
+
+        Assert.Empty(errors);
+        Assert.Contains(
+            """
+            [[sign]]
+            position = [12.0, 6.0, 5.0]
+            text = "To the cave\nmind the gap"
+            text_color = 0xFFEE00
+            background_color = 0x202030
+            background_opacity = 0.75
+            show_distance = 60.0
+            """.ReplaceLineEndings("\n"),
+            File.ReadAllText(folder.PathOf("chunks/0_0.toml")).ReplaceLineEndings("\n"));
+        var signs = zone.Chunks[1].Signs;
+        Assert.Equal(("To the cave\nmind the gap", 0xFFEE00u, 0x202030u, 0.75f, 60f), (signs[0].Text, signs[0].TextColor, signs[0].BackgroundColor, signs[0].BackgroundOpacity, signs[0].ShowDistance));
+        Assert.Equal(("Plate", 0xFFFFFFu, (uint?)null, 45f), (signs[1].Text, signs[1].TextColor, signs[1].BackgroundColor, signs[1].ShowDistance));
+    }
 }

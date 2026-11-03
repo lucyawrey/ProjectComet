@@ -12,8 +12,9 @@ namespace Comet.ZoneFiles
     /// <summary>
     /// Checks what a zone's files mean, after <see cref="ZoneFolder.Read"/> has checked their form: ids and names,
     /// tiles that name a known piece and fit their chunk, terrain that matches where a piece's tiles meet, objects
-    /// whose pivots are in their own chunk, spawn, teleporter and trigger ids that name their zone, and toggle effects
-    /// that name placements in it. Run by the content build, and by the editor before it saves.
+    /// whose pivots are in their own chunk, spawn, teleporter and trigger ids that name their zone, signs' text and
+    /// ranges, and toggle effects that name placements in it. Run by the content build, and by the editor before it
+    /// saves.
     /// </summary>
     public static class ZoneValidation
     {
@@ -152,6 +153,30 @@ namespace Comet.ZoneFiles
                         {
                             Error(file, $"{trigger.Id}: revert_seconds can't be negative.");
                         }
+                    }
+                }
+
+                foreach (var sign in chunk.Signs)
+                {
+                    var what = $"sign at {Text(sign.Position)}";
+                    CheckPivot(chunk.Coord, sign.Position, "sign", file, Error);
+                    if (string.IsNullOrWhiteSpace(sign.Text))
+                    {
+                        Error(file, $"{what}: its text is empty.");
+                    }
+                    else if (sign.Text.Length > Sign.MaxText)
+                    {
+                        Error(file, $"{what}: its text is {sign.Text.Length} characters long; the most is {Sign.MaxText}.");
+                    }
+
+                    if (sign.BackgroundOpacity < 0 || sign.BackgroundOpacity > 1)
+                    {
+                        Error(file, $"{what}: background_opacity should be 0 to 1.");
+                    }
+
+                    if (sign.ShowDistance < 1 || sign.ShowDistance > Sign.MaxShowDistance)
+                    {
+                        Error(file, $"{what}: show_distance should be 1 to {Sign.MaxShowDistance} meters.");
                     }
                 }
 

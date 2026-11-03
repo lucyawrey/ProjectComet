@@ -232,6 +232,84 @@ namespace Comet.Simulation
             return found;
         }
 
+        /// <summary>
+        /// Whether the line from <paramref name="from"/> to <paramref name="to"/> passes into a mesh or the terrain:
+        /// crosses the front of a triangle, skipping meshes that are off or in <paramref name="passThrough"/>. Backs
+        /// don't count, so a line from inside a mesh sees out of it.
+        /// </summary>
+        public bool IsLineBlocked(Vector3 from, Vector3 to, ISet<int>? passThrough = null)
+        {
+            var off = _off;
+            var line = to - from;
+
+            // The cells the line crosses on the ground plane, in order (a grid walk); a triangle in several of them may
+            // be tested more than once, which is harmless for a yes or no.
+            int x = Cell(from.X), z = Cell(from.Z), endX = Cell(to.X), endZ = Cell(to.Z);
+            int stepX = Math.Sign(line.X), stepZ = Math.Sign(line.Z);
+            float NextEdge(float start, float delta, int cell, int step) =>
+                step == 0 ? float.PositiveInfinity : ((cell + (step > 0 ? 1 : 0)) * CellSize - start) / delta;
+            float crossX = NextEdge(from.X, line.X, x, stepX), crossZ = NextEdge(from.Z, line.Z, z, stepZ);
+            float cellX = stepX == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.X);
+            float cellZ = stepZ == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.Z);
+            for (var cells = Math.Abs(endX - x) + Math.Abs(endZ - z); cells >= 0; cells--)
+            {
+                if (_cells.TryGetValue((x, z), out var list))
+                {
+                    foreach (var t in list)
+                    {
+                        if (!Skip(t, off, passThrough) && Vector3.Dot(_normals[t], line) < 0 && CrossesTriangle(t, from, line))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                if (crossX < crossZ)
+                {
+                    x += stepX;
+                    crossX += cellX;
+                }
+                else
+                {
+                    z += stepZ;
+                    crossZ += cellZ;
+                }
+            }
+
+            return false;
+        }
+
+        // Whether from + s·line, for s in [0, 1], crosses triangle t (Möller–Trumbore).
+        private bool CrossesTriangle(int t, Vector3 from, Vector3 line)
+        {
+            var (a, b, c) = (_corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2]);
+            Vector3 ab = b - a, ac = c - a;
+            var p = Vector3.Cross(line, ac);
+            var determinant = Vector3.Dot(ab, p);
+            if (MathF.Abs(determinant) < 1e-9f)
+            {
+                return false; // parallel to its plane
+            }
+
+            var inverse = 1 / determinant;
+            var toFrom = from - a;
+            var u = Vector3.Dot(toFrom, p) * inverse;
+            if (u < 0 || u > 1)
+            {
+                return false;
+            }
+
+            var q = Vector3.Cross(toFrom, ab);
+            var v = Vector3.Dot(line, q) * inverse;
+            if (v < 0 || u + v > 1)
+            {
+                return false;
+            }
+
+            var along = Vector3.Dot(ac, q) * inverse;
+            return along >= 0 && along <= 1;
+        }
+
         /// <summary>The highest terrain at a point, among the pieces with ground there at or below <paramref name="maxY"/>.</summary>
         public bool TryGetTerrainHeight(float x, float z, float maxY, out float height)
         {

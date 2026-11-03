@@ -236,4 +236,26 @@ public class ZoneValidationTests
             ],
             Errors(zone));
     }
+
+    [Fact]
+    public void SignsHaveTextAndARangeAndBelongToTheirChunk()
+    {
+        var zone = Zones.Sample();
+        zone.Chunks[1].Signs =
+        [
+            new Sign { Position = new Vector3(12, 6, 5), Text = "  " },
+            new Sign { Position = new Vector3(13, 6, 5), Text = new string('a', Sign.MaxText + 1), BackgroundColor = 0, BackgroundOpacity = 2 },
+            new Sign { Position = new Vector3(-3, 6, 5), Text = "Lost", ShowDistance = 0 },
+        ];
+
+        Assert.Equal(
+            [
+                "chunks/0_0.toml: sign at [12, 6, 5]: its text is empty.",
+                $"chunks/0_0.toml: sign at [13, 6, 5]: its text is {Sign.MaxText + 1} characters long; the most is {Sign.MaxText}.",
+                "chunks/0_0.toml: sign at [13, 6, 5]: background_opacity should be 0 to 1.",
+                "chunks/0_0.toml: sign at [-3, 6, 5] is in chunk -1_0: objects belong to the chunk holding their pivot.",
+                "chunks/0_0.toml: sign at [-3, 6, 5]: show_distance should be 1 to 200 meters.",
+            ],
+            Errors(zone));
+    }
 }

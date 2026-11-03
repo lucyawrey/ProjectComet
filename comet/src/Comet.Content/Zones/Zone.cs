@@ -117,6 +117,8 @@ namespace Comet.Content
         [Key(5)] public Teleporter[] Teleporters { get; set; } = new Teleporter[0];
 
         [Key(6)] public Trigger[] Triggers { get; set; } = new Trigger[0];
+
+        [Key(7)] public Sign[] Signs { get; set; } = new Sign[0];
     }
 
     /// <summary>
@@ -312,6 +314,35 @@ namespace Comet.Content
 
         /// <summary>The color its pad turns toward while a player stands in it, as 0xRRGGBB, or null to leave it to the game.</summary>
         [Key(4)] public uint? ChargeColor { get; set; }
+    }
+
+    /// <summary>Text shown over a point, such as a label by a teleporter. How it's drawn is game policy.</summary>
+    [MessagePackObject]
+    public sealed class Sign
+    {
+        /// <summary>The most characters a sign's text has.</summary>
+        public const int MaxText = 200;
+
+        /// <summary>The farthest a sign can be seen, in meters.</summary>
+        public const float MaxShowDistance = 200;
+
+        /// <summary>The point the text is shown over, in world meters; it lies in its chunk.</summary>
+        [Key(0)] public Vector3 Position { get; set; }
+
+        /// <summary>The text, plain (line breaks allowed).</summary>
+        [Key(1)] public string Text { get; set; } = "";
+
+        /// <summary>The text's color, as 0xRRGGBB.</summary>
+        [Key(2)] public uint TextColor { get; set; } = 0xFFFFFF;
+
+        /// <summary>The color of the panel behind the text, as 0xRRGGBB, or null for no panel.</summary>
+        [Key(3)] public uint? BackgroundColor { get; set; }
+
+        /// <summary>How opaque the panel is, from 0 to 1.</summary>
+        [Key(4)] public float BackgroundOpacity { get; set; } = 1;
+
+        /// <summary>How far away it's shown, in meters.</summary>
+        [Key(5)] public float ShowDistance { get; set; } = 45;
     }
 
     /// <summary>Flips every placement with a tag on or off, and optionally back after a time.</summary>
