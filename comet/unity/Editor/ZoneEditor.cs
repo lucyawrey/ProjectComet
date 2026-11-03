@@ -284,17 +284,7 @@ namespace Comet.Unity.Editor
             foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
             {
                 var chunk = ChunkAt(ToNumerics(sign.transform.position));
-                chunk.Signs = chunk.Signs.Append(new Sign
-                {
-                    Position = ToNumerics(sign.transform.position),
-                    Text = sign.text.Replace("\r\n", "\n"),
-                    TextColor = PlacedColors.ToRgb(sign.textColor),
-                    BackgroundColor = sign.background ? PlacedColors.ToRgb(sign.backgroundColor) : (uint?)null,
-                    BackgroundOpacity = sign.background ? sign.backgroundOpacity : 1,
-                    ShowDistance = sign.showDistance,
-                    FontSize = sign.fontSize,
-                    Arrow = sign.background && sign.arrow,
-                }).ToArray();
+                chunk.Signs = chunk.Signs.Append(SignOf(sign, ToNumerics(sign.transform.position))).ToArray();
             }
 
             // Tiles are kept whole-chunk while editing; the files keep only their ground.
@@ -430,14 +420,7 @@ namespace Comet.Unity.Editor
                 {
                     var component = Child(root.Find(SignsFolder) ?? Child(root, SignsFolder), SignName(sign.Text)).gameObject.AddComponent<ZoneSign>();
                     component.transform.position = ToUnity(sign.Position);
-                    component.text = sign.Text;
-                    component.textColor = PlacedColors.FromRgb(sign.TextColor);
-                    component.background = sign.BackgroundColor != null;
-                    component.backgroundColor = sign.BackgroundColor is { } back ? PlacedColors.FromRgb(back) : component.backgroundColor;
-                    component.backgroundOpacity = sign.BackgroundColor != null ? sign.BackgroundOpacity : component.backgroundOpacity;
-                    component.showDistance = sign.ShowDistance;
-                    component.fontSize = sign.FontSize;
-                    component.arrow = sign.Arrow;
+                    Fill(component, sign);
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -459,6 +442,36 @@ namespace Comet.Unity.Editor
         {
             var line = text.Split('\n')[0].Trim();
             return "Sign " + (line.Length > 24 ? line.Substring(0, 24) + "…" : line);
+        }
+
+        // A sign as the scene has it, at the given position.
+        private static Sign SignOf(ZoneSign sign, System.Numerics.Vector3 position) => new Sign
+        {
+            Position = position,
+            Text = sign.text.Replace("\r\n", "\n"),
+            TextColor = PlacedColors.ToRgb(sign.textColor),
+            BackgroundColor = sign.background ? PlacedColors.ToRgb(sign.backgroundColor) : (uint?)null,
+            BackgroundOpacity = sign.background ? sign.backgroundOpacity : 1,
+            ShowDistance = sign.showDistance,
+            ScreenSized = sign.screenSized,
+            FontSize = sign.fontSize,
+            TextHeight = sign.textHeight,
+            Arrow = sign.background && sign.arrow,
+        };
+
+        // A sign object's fields from a zone file's sign (its position is set by the caller).
+        private static void Fill(ZoneSign component, Sign sign)
+        {
+            component.text = sign.Text;
+            component.textColor = PlacedColors.FromRgb(sign.TextColor);
+            component.background = sign.BackgroundColor != null;
+            component.backgroundColor = sign.BackgroundColor is { } back ? PlacedColors.FromRgb(back) : component.backgroundColor;
+            component.backgroundOpacity = sign.BackgroundColor != null ? sign.BackgroundOpacity : component.backgroundOpacity;
+            component.showDistance = sign.ShowDistance;
+            component.screenSized = sign.ScreenSized;
+            component.fontSize = sign.FontSize;
+            component.textHeight = sign.TextHeight;
+            component.arrow = sign.Arrow;
         }
 
         /// <summary>Adds a sign at <paramref name="position"/> in an opened zone, with a new sign's defaults.</summary>

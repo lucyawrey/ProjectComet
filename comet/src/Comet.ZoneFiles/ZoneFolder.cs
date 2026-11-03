@@ -272,7 +272,7 @@ namespace Comet.ZoneFiles
             }).ToArray();
             chunk.Signs = toml.Tables(table, "sign").Select(t =>
             {
-                toml.CheckKeys(t.Table, t.Path, "position", "text", "text_color", "background_color", "background_opacity", "show_distance", "font_size", "arrow");
+                toml.CheckKeys(t.Table, t.Path, "position", "text", "text_color", "background_color", "background_opacity", "show_distance", "screen_sized", "font_size", "text_height", "arrow");
                 return new Sign
                 {
                     Position = toml.Vector(t.Table, t.Path, "position"),
@@ -281,7 +281,9 @@ namespace Comet.ZoneFiles
                     BackgroundColor = t.Table.TryGetValue("background_color", out var back) ? Color(toml, back, $"{t.Path}.background_color") : null,
                     BackgroundOpacity = toml.Float(t.Table, t.Path, "background_opacity", 1),
                     ShowDistance = toml.Float(t.Table, t.Path, "show_distance", 45),
+                    ScreenSized = toml.Bool(t.Table, t.Path, "screen_sized", false),
                     FontSize = toml.Float(t.Table, t.Path, "font_size", 13),
+                    TextHeight = toml.Float(t.Table, t.Path, "text_height", 0.3f),
                     Arrow = toml.Bool(t.Table, t.Path, "arrow", false),
                 };
             }).ToArray();
@@ -647,7 +649,16 @@ namespace Comet.ZoneFiles
                 }
 
                 sign["show_distance"] = ZoneToml.Round(t.ShowDistance, LengthDecimals);
-                sign["font_size"] = ZoneToml.Round(t.FontSize, FontSizeDecimals);
+                if (t.ScreenSized)
+                {
+                    sign["screen_sized"] = true;
+                    sign["font_size"] = ZoneToml.Round(t.FontSize, FontSizeDecimals);
+                }
+                else
+                {
+                    sign["text_height"] = ZoneToml.Round(t.TextHeight, LengthDecimals);
+                }
+
                 if (t.Arrow)
                 {
                     sign["arrow"] = true;

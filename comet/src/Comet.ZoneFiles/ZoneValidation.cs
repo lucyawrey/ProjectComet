@@ -179,9 +179,14 @@ namespace Comet.ZoneFiles
                         Error(file, $"{what}: show_distance should be 1 to {Sign.MaxShowDistance} meters.");
                     }
 
-                    if (sign.FontSize < Sign.MinFontSize || sign.FontSize > Sign.MaxFontSize)
+                    if (sign.ScreenSized && (sign.FontSize < Sign.MinFontSize || sign.FontSize > Sign.MaxFontSize))
                     {
                         Error(file, $"{what}: font_size should be {Sign.MinFontSize} to {Sign.MaxFontSize}.");
+                    }
+
+                    if (!sign.ScreenSized && (sign.TextHeight < Sign.MinTextHeight || sign.TextHeight > Sign.MaxTextHeight))
+                    {
+                        Error(file, $"{what}: text_height should be {Sign.MinTextHeight} to {Sign.MaxTextHeight} meters.");
                     }
                 }
 

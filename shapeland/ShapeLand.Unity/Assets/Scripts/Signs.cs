@@ -7,8 +7,9 @@ using UnityEngine.UIElements;
 namespace ShapeLand.Client
 {
     /// <summary>
-    /// The signs of the zone shown: each one's text over its point, one readable size at any distance, while it's in
-    /// range and in sight of the camera. Behind the name tags and bubbles, in the same layer.
+    /// The signs of the zone shown: each one's text over its point, sized in the world (smaller further away) or one
+    /// size on screen like a name tag, while it's in range and in sight of the camera. Behind the name tags and
+    /// bubbles, in the same layer.
     /// </summary>
     [DefaultExecutionOrder(100)] // after the camera has moved
     [RequireComponent(typeof(Hud))]
@@ -21,6 +22,10 @@ namespace ShapeLand.Client
         // The sight line starts a little in front of the camera (one brushing a wall still sees) and stops short of
         // the sign (one on a wall or post isn't hidden by it), in meters.
         private const float CameraGap = 0.1f, SignGap = 0.3f;
+
+        // World-sized signs are laid out at a screen-sized sign's default font size, then scaled as a whole (padding
+        // and arrow too) to their text height at their distance. The arrow's height is the USS's .sign-arrow's.
+        private const float WorldLayoutFontSize = 13, ArrowHeight = 7, MaxWorldScale = 20;
 
         private readonly List<Shown> _signs = new List<Shown>();
         private readonly HashSet<int> _walls = new HashSet<int>();
@@ -66,7 +71,7 @@ namespace ShapeLand.Client
                     panel.AddToClassList("sign");
                     var text = new Label(sign.Text) { pickingMode = PickingMode.Ignore, enableRichText = false };
                     text.style.color = GameView.Color(sign.TextColor);
-                    text.style.fontSize = sign.FontSize;
+                    text.style.fontSize = sign.ScreenSized ? sign.FontSize : WorldLayoutFontSize;
                     panel.Add(text);
                     var back = sign.BackgroundColor is { } rgb ? GameView.Color(rgb) : Color.clear;
                     back.a = sign.BackgroundColor != null ? sign.BackgroundOpacity : 0;
@@ -80,7 +85,7 @@ namespace ShapeLand.Client
 
                     panel.style.display = DisplayStyle.None;
                     _layer.Insert(0, panel); // first, so the name tags and bubbles draw over it
-                    _signs.Add(new Shown(sign, panel));
+                    _signs.Add(new Shown(sign, panel) { HasArrow = sign.Arrow && sign.BackgroundColor != null });
                 }
             }
 
@@ -137,7 +142,27 @@ namespace ShapeLand.Client
                     label.style.left = at.x;
                     label.style.top = at.y;
                     label.style.opacity = shown.Opacity;
+                    if (!shown.Sign.ScreenSized)
+                    {
+                        WorldSize(shown, label, panel, camera, screen.z);
+                    }
                 }
+            }
+        }
+
+        // Scales a world-sized sign's panel to its text height at depth meters, about its point.
+        private static void WorldSize(Shown shown, VisualElement label, IPanel panel, Camera camera, float depth)
+        {
+            var panelHigh = panel.visualTree.layout.height;
+            var perMeter = camera.orthographic
+                ? panelHigh / (2 * camera.orthographicSize)
+                : panelHigh / (2 * depth * Mathf.Tan(camera.fieldOfView * Mathf.Deg2Rad / 2));
+            var scale = Mathf.Min(shown.Sign.TextHeight * perMeter / WorldLayoutFontSize, MaxWorldScale);
+            label.style.scale = new Scale(new Vector3(scale, scale, 1));
+            if (shown.HasArrow && !float.IsNaN(label.layout.height)) // NaN until its first layout
+            {
+                // About the arrow's tip, which is on the point; without an arrow, the panel's middle is (the default).
+                label.style.transformOrigin = new TransformOrigin(Length.Percent(50), Length.Pixels(label.layout.height + ArrowHeight));
             }
         }
 
@@ -164,6 +189,7 @@ namespace ShapeLand.Client
 
             public Sign Sign { get; }
             public VisualElement Panel { get; }
+            public bool HasArrow { get; set; }
             public bool Checked { get; set; }
             public bool InSight { get; set; }
             public float Opacity { get; set; }

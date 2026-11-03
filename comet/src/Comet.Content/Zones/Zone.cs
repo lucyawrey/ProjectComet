@@ -326,8 +326,11 @@ namespace Comet.Content
         /// <summary>The farthest a sign can be seen, in meters.</summary>
         public const float MaxShowDistance = 200;
 
-        /// <summary>The smallest and largest font sizes, in the game's interface pixels.</summary>
+        /// <summary>The smallest and largest font sizes of screen-sized signs, in the game's interface pixels.</summary>
         public const float MinFontSize = 8, MaxFontSize = 48;
+
+        /// <summary>The smallest and largest text heights of world-sized signs, in meters.</summary>
+        public const float MinTextHeight = 0.05f, MaxTextHeight = 5;
 
         /// <summary>The point the text is shown over, in world meters; it lies in its chunk.</summary>
         [Key(0)] public Vector3 Position { get; set; }
@@ -347,11 +350,20 @@ namespace Comet.Content
         /// <summary>How far away it's shown, in meters.</summary>
         [Key(5)] public float ShowDistance { get; set; } = 45;
 
-        /// <summary>The text's size, in the game's interface pixels.</summary>
+        /// <summary>A screen-sized sign's text size, in the game's interface pixels.</summary>
         [Key(6)] public float FontSize { get; set; } = 13;
 
         /// <summary>Whether the panel has a little arrow under it pointing at the point, as speech bubbles do.</summary>
         [Key(7)] public bool Arrow { get; set; }
+
+        /// <summary>
+        /// Whether it's one size on screen at any distance (<see cref="FontSize"/>), like a name tag, rather than sized
+        /// in the world (<see cref="TextHeight"/>), smaller further away.
+        /// </summary>
+        [Key(8)] public bool ScreenSized { get; set; }
+
+        /// <summary>A world-sized sign's text size: the height of its font, in meters.</summary>
+        [Key(9)] public float TextHeight { get; set; } = 0.3f;
     }
 
     /// <summary>Flips every placement with a tag on or off, and optionally back after a time.</summary>

@@ -12,8 +12,15 @@ namespace Comet.Unity
 
         public Color textColor = Color.white;
 
+        [Tooltip("One size on screen at any distance, like a name tag, rather than sized in the world (smaller further away).")]
+        public bool screenSized;
+
+        [Range(0.05f, 5)]
+        [Tooltip("A world-sized sign's text size: the height of its font, in meters.")]
+        public float textHeight = 0.3f;
+
         [Range(8, 48)]
-        [Tooltip("The text's size, in the game's interface pixels.")]
+        [Tooltip("A screen-sized sign's text size, in the game's interface pixels.")]
         public float fontSize = 13;
 
         [Tooltip("Draw a panel behind the text.")]
@@ -37,7 +44,13 @@ namespace Comet.Unity
             Gizmos.DrawWireSphere(transform.position, 0.15f);
 #if UNITY_EDITOR
             // Its text in its colors, so level editors see it without entering play mode.
-            var style = new GUIStyle(UnityEditor.EditorStyles.label) { alignment = TextAnchor.MiddleCenter, padding = new RectOffset(6, 6, 2, 2), fontSize = Mathf.RoundToInt(fontSize) };
+            var size = screenSized ? fontSize : WorldFontSize(Camera.current);
+            if (size < 2)
+            {
+                return; // too small to read from here
+            }
+
+            var style = new GUIStyle(UnityEditor.EditorStyles.label) { alignment = TextAnchor.MiddleCenter, padding = new RectOffset(6, 6, 2, 2), fontSize = Mathf.RoundToInt(size) };
             style.normal.textColor = textColor;
             style.normal.background = background ? Texture2D.whiteTexture : null;
             var saved = GUI.backgroundColor;
@@ -46,5 +59,26 @@ namespace Comet.Unity
             GUI.backgroundColor = saved;
 #endif
         }
+
+#if UNITY_EDITOR
+        // A world-sized sign's font size in the Scene view's points, as it looks from the scene camera.
+        private float WorldFontSize(Camera? camera)
+        {
+            if (camera == null)
+            {
+                return textHeight * 40;
+            }
+
+            var depth = camera.WorldToViewportPoint(transform.position).z;
+            if (depth <= 0)
+            {
+                return 0;
+            }
+
+            var pointsHigh = camera.pixelHeight / UnityEditor.EditorGUIUtility.pixelsPerPoint;
+            var perMeter = camera.orthographic ? pointsHigh / (2 * camera.orthographicSize) : pointsHigh / (2 * depth * Mathf.Tan(camera.fieldOfView * Mathf.Deg2Rad / 2));
+            return Mathf.Min(textHeight * perMeter, 200);
+        }
+#endif
     }
 }

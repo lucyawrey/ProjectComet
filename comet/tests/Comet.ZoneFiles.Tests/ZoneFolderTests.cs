@@ -377,8 +377,8 @@ public class ZoneFolderTests
         var sample = Zones.Sample();
         sample.Chunks[1].Signs =
         [
-            new Sign { Position = new Vector3(12, 6, 5), Text = "To the cave\nmind the gap", TextColor = 0xFFEE00, BackgroundColor = 0x202030, BackgroundOpacity = 0.75f, ShowDistance = 60, FontSize = 18, Arrow = true },
-            new Sign { Position = new Vector3(14, 6, 9), Text = "Plate" },
+            new Sign { Position = new Vector3(12, 6, 5), Text = "To the cave\nmind the gap", TextColor = 0xFFEE00, BackgroundColor = 0x202030, BackgroundOpacity = 0.75f, ShowDistance = 60, ScreenSized = true, FontSize = 18, Arrow = true },
+            new Sign { Position = new Vector3(14, 6, 9), Text = "Plate", TextHeight = 0.5f },
         ];
         var zone = RoundTrip(sample, folder, out var errors);
 
@@ -392,13 +392,15 @@ public class ZoneFolderTests
             background_color = 0x202030
             background_opacity = 0.75
             show_distance = 60.0
+            screen_sized = true
             font_size = 18.0
             arrow = true
             """.ReplaceLineEndings("\n"),
             File.ReadAllText(folder.PathOf("chunks/0_0.toml")).ReplaceLineEndings("\n"));
         var signs = zone.Chunks[1].Signs;
         Assert.Equal(("To the cave\nmind the gap", 0xFFEE00u, 0x202030u, 0.75f, 60f), (signs[0].Text, signs[0].TextColor, signs[0].BackgroundColor, signs[0].BackgroundOpacity, signs[0].ShowDistance));
-        Assert.Equal((18f, true), (signs[0].FontSize, signs[0].Arrow));
-        Assert.Equal(("Plate", 0xFFFFFFu, (uint?)null, 45f, 13f, false), (signs[1].Text, signs[1].TextColor, signs[1].BackgroundColor, signs[1].ShowDistance, signs[1].FontSize, signs[1].Arrow));
+        Assert.Equal((true, 18f, true), (signs[0].ScreenSized, signs[0].FontSize, signs[0].Arrow));
+        Assert.Equal(("Plate", 0xFFFFFFu, (uint?)null, 45f, false, 0.5f, false), (signs[1].Text, signs[1].TextColor, signs[1].BackgroundColor, signs[1].ShowDistance, signs[1].ScreenSized, signs[1].TextHeight, signs[1].Arrow));
+        Assert.Contains("text_height = 0.5", File.ReadAllText(folder.PathOf("chunks/0_0.toml")));
     }
 }
