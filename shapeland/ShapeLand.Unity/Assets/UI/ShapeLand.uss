@@ -269,12 +269,8 @@ Label { padding: 0; margin: 0; }
     background-color: rgba(18, 22, 30, 0.88); border-radius: 6px;
 }
 .bubble > Label { font-size: 14px; white-space: normal; -unity-text-align: middle-center; }
-.bubble-tail {
-    position: absolute; left: 50%; bottom: -6px;
-    width: 11px; height: 11px; margin-left: -6px;
-    rotate: 45deg;
-    background-color: rgba(18, 22, 30, 0.88);
-}
+/* Drawn in code in the bubble's background color (PanelArrow). */
+.bubble-tail { position: absolute; left: 50%; bottom: -7px; width: 14px; height: 7px; margin-left: -7px; }
 
 /* Network stats (NetStats, F3): rows with a state dot. Numbers in the mono face so they don't jitter. */
 .net-stats {

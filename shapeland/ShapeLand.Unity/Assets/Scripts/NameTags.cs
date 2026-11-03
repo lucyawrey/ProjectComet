@@ -140,8 +140,7 @@ namespace ShapeLand.Client
                 _bubble = new VisualElement { pickingMode = PickingMode.Ignore };
                 _bubble.AddToClassList("bubble");
                 _text = new Label { pickingMode = PickingMode.Ignore, enableRichText = false };
-                var tail = new VisualElement { pickingMode = PickingMode.Ignore };
-                tail.AddToClassList("bubble-tail");
+                var tail = new PanelArrow(null, "bubble-tail");
                 _bubble.Add(_text);
                 _bubble.Add(tail);
                 _bubble.style.display = DisplayStyle.None;

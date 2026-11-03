@@ -75,7 +75,7 @@ namespace ShapeLand.Client
                     {
                         // Over the point, with the arrow's tip on it, as a speech bubble sits over its speaker.
                         panel.AddToClassList("with-arrow");
-                        panel.Add(new Arrow(back));
+                        panel.Add(new PanelArrow(back, "sign-arrow"));
                     }
 
                     panel.style.display = DisplayStyle.None;
@@ -167,34 +167,6 @@ namespace ShapeLand.Client
             public bool Checked { get; set; }
             public bool InSight { get; set; }
             public float Opacity { get; set; }
-        }
-
-        // A little triangle under a sign's panel, in its background color, its tip at the bottom middle. Drawn rather
-        // than a turned square (as the bubbles' tail is), which would show its overlap with a see-through panel.
-        private sealed class Arrow : VisualElement
-        {
-            private readonly Color _color;
-
-            public Arrow(Color color)
-            {
-                _color = color;
-                pickingMode = PickingMode.Ignore;
-                AddToClassList("sign-arrow");
-                generateVisualContent += Draw;
-            }
-
-            private void Draw(MeshGenerationContext context)
-            {
-                var size = contentRect.size;
-                var painter = context.painter2D;
-                painter.fillColor = _color;
-                painter.BeginPath();
-                painter.MoveTo(Vector2.zero);
-                painter.LineTo(new Vector2(size.x, 0));
-                painter.LineTo(new Vector2(size.x / 2, size.y));
-                painter.ClosePath();
-                painter.Fill();
-            }
         }
     }
 }
