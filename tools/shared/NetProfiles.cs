@@ -5,7 +5,7 @@
 //   good   40 ms ± 10 ms and 1% loss each way (about 80 ms round trip)
 //   bad    100 ms ± 25 ms and 2% loss each way (about 200 ms round trip)
 //   awful  100 ms ± 25 ms and 5% loss each way
-static class NetProfiles
+public static class NetProfiles
 {
     // The profile's settings for the compose file, as PREFIX_DELAY, PREFIX_JITTER and PREFIX_LOSS.
     public static Dictionary<string, string?> Settings(string prefix, string profile)

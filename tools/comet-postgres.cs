@@ -12,7 +12,7 @@
 //   tools/run comet-postgres name CHECKOUT PORT    a database name for a stack: the checkout's folder and its port
 #:property NoWarn=CA2266
 #:property IncludeProjectNameInArtifactsPaths=true
-#:include shared/Tool.cs
+#:project shared/Tools.Shared.csproj
 using System.Text.RegularExpressions;
 
 args = Tool.Arguments(args);

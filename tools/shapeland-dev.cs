@@ -38,8 +38,7 @@
 // profile. ShapeLand only: Crystal's page comes from the Login server.
 #:property NoWarn=CA2266
 #:property IncludeProjectNameInArtifactsPaths=true
-#:include shared/Tool.cs
-#:include shared/NetProfiles.cs
+#:project shared/Tools.Shared.csproj
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;

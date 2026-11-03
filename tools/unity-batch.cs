@@ -22,7 +22,7 @@
 // first when the project's NuGet packages were never restored or packages.config changed since.
 #:property NoWarn=CA2266
 #:property IncludeProjectNameInArtifactsPaths=true
-#:include shared/Tool.cs
+#:project shared/Tools.Shared.csproj
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;

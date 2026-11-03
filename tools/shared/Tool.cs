@@ -1,9 +1,9 @@
-// Helpers the tools share (each includes this file with #:include; tools/run runs the tools): the repository, usage text, running programs
+// Helpers the tools share (a class library each references with #:project; tools/run runs the tools): the repository, usage text, running programs
 // and waiting on servers. Everything here works on Linux, macOS and Windows.
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-static class Tool
+public static class Tool
 {
     public static readonly string Self = (string)AppContext.GetData("EntryPointFilePath")!;
     public static readonly string Repo = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Self)!, ".."));

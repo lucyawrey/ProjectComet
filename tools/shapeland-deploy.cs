@@ -27,7 +27,7 @@
 // page says the game isn't open for testing.
 #:property NoWarn=CA2266
 #:property IncludeProjectNameInArtifactsPaths=true
-#:include shared/Tool.cs
+#:project shared/Tools.Shared.csproj
 using System.Formats.Tar;
 using System.IO.Compression;
 using System.Net;

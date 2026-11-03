@@ -26,8 +26,7 @@
 // --bots-net is given. Results go to artifacts/netruns/<time>-<profile>.json, with the server's log beside it.
 #:property NoWarn=CA2266
 #:property IncludeProjectNameInArtifactsPaths=true
-#:include shared/Tool.cs
-#:include shared/NetProfiles.cs
+#:project shared/Tools.Shared.csproj
 using System.Globalization;
 using System.Text.RegularExpressions;
 

@@ -13,7 +13,7 @@
 // out of player builds, and their analyzers are left off: nothing in Unity uses Tomlyn's source generator.
 #:property NoWarn=CA2266
 #:property IncludeProjectNameInArtifactsPaths=true
-#:include shared/Tool.cs
+#:project shared/Tools.Shared.csproj
 using System.Text.RegularExpressions;
 
 args = Tool.Arguments(args);
