@@ -25,8 +25,6 @@
 // Costs: a t4g.micro is about 20 cents a day while up (paid from the account's credits first), the 8 GB data volume
 // and its snapshots well under a dollar a month; the page is on Vercel's free plan. When the servers are down, the
 // page says the game isn't open for testing.
-#:property NoWarn=CA2266
-#:property IncludeProjectNameInArtifactsPaths=true
 #:project shared/Tools.Shared.csproj
 using System.Formats.Tar;
 using System.IO.Compression;

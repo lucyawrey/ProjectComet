@@ -36,8 +36,6 @@
 // (README.md, Requirements).
 // With the Unity editor open on the project, the web build runs in it (tools/run unity-batch); it must be on the Web
 // profile. ShapeLand only: Crystal's page comes from the Login server.
-#:property NoWarn=CA2266
-#:property IncludeProjectNameInArtifactsPaths=true
 #:project shared/Tools.Shared.csproj
 using System.Diagnostics;
 using System.Net;

@@ -20,8 +20,6 @@
 // paths, in the log, the output, the results and Unity arguments, are relative to the project. Exit code: 0 done
 // (tests passed), 2 tests failed, 1 if it failed or gave no result, 124 on the time limit. Runs tools/run unity-restore
 // first when the project's NuGet packages were never restored or packages.config changed since.
-#:property NoWarn=CA2266
-#:property IncludeProjectNameInArtifactsPaths=true
 #:project shared/Tools.Shared.csproj
 using System.Diagnostics;
 using System.Text.Json;

@@ -10,8 +10,6 @@
 //   tools/run comet-postgres fresh NAME            the same, emptying the database first
 //   tools/run comet-postgres drop NAME             drop the database NAME
 //   tools/run comet-postgres name CHECKOUT PORT    a database name for a stack: the checkout's folder and its port
-#:property NoWarn=CA2266
-#:property IncludeProjectNameInArtifactsPaths=true
 #:project shared/Tools.Shared.csproj
 using System.Text.RegularExpressions;
 
