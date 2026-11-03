@@ -87,8 +87,15 @@ namespace Comet.Unity.Editor
                 return;
             }
 
+            // Unity ignores a selection made inside its own selection callback: make it on the next editor update.
             _lastSelected = trigger.gameObject;
-            Selection.activeGameObject = trigger.gameObject;
+            EditorApplication.delayCall += () =>
+            {
+                if (trigger != null && Selection.activeGameObject == selected)
+                {
+                    Selection.activeGameObject = trigger.gameObject;
+                }
+            };
         }
 
         // A new spawn point, teleporter or trigger (duplicated or pasted) whose id another already has gets the first free one: key_2, key_3…
