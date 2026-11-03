@@ -123,7 +123,6 @@ namespace ShapeLand.Client.Tests
             yield return TestGameServer.WaitFor(() => View.Player != null || Screen.Error != null, 15);
             Assert.That(View.Player, Is.Not.Null, "Never spawned.");
             Assert.That(Hud.Root.Q("menu-account").enabledSelf, Is.False, "The Account entry is on without accounts.");
-            Assert.That(Hud.Root.Q("menu-account-note").ClassListContains("hidden"), Is.False, "The Account entry doesn't say why it's off.");
         }
 
         private IEnumerator Rejoins(bool accounts)

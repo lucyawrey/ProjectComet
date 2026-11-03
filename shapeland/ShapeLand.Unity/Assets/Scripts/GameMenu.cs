@@ -118,9 +118,8 @@ namespace ShapeLand.Client
             _settingsName = root.Q<Label>("menu-page-settings");
             root.Q("menu-host").pickingMode = PickingMode.Ignore;
 
-            // With accounts off (the editor), the Account page has nothing to show: its entry stays, off, saying why.
+            // With accounts off (the editor), the Account page has nothing to show: its entry stays, off.
             root.Q("menu-account").SetEnabled(JoinClient.Accounts);
-            root.Q("menu-account-note").EnableInClassList("hidden", JoinClient.Accounts);
             _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-account"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-leave") };
             _entryActions = new Action[]
             {
