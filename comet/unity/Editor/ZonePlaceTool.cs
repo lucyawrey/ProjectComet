@@ -336,7 +336,8 @@ namespace Comet.Unity.Editor
             EditorGUILayout.EndHorizontal();
             foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
             {
-                if (GUILayout.Button(sign.text.Split('\n')[0], EditorStyles.linkLabel))
+                var on = sign.transform.parent != null && sign.transform.parent.GetComponent<ZoneTrigger>() is { } trigger && trigger.Sign == sign ? $" ({trigger.id})" : "";
+                if (GUILayout.Button(sign.text.Split('\n')[0] + on, EditorStyles.linkLabel))
                 {
                     Selection.activeGameObject = sign.gameObject;
                     SceneView.lastActiveSceneView?.FrameSelected();

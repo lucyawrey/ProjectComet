@@ -281,7 +281,7 @@ namespace Comet.Unity.Editor
                 }).ToArray();
             }
 
-            foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
+            foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true).Where(s => !IsTriggerSign(s)))
             {
                 var chunk = ChunkAt(ToNumerics(sign.transform.position));
                 chunk.Signs = chunk.Signs.Append(SignOf(sign, ToNumerics(sign.transform.position))).ToArray();
@@ -311,8 +311,16 @@ namespace Comet.Unity.Editor
                 StandSeconds = trigger.standSeconds,
                 Rearm = (Rearm)trigger.rearm,
                 Pad = trigger.Pad is { } pad ? PlacementOf(pad) : null,
+                // From the volume's bottom center, turned back by its yaw: the sign's place in the volume's own space.
+                Sign = trigger.Sign is { } sign
+                    ? SignOf(sign, ToNumerics(Quaternion.Euler(0, -t.eulerAngles.y, 0) * (sign.transform.position - t.position)))
+                    : null,
             };
         }
+
+        // Whether a sign is saved with a trigger (a direct child of one) rather than on its own.
+        private static bool IsTriggerSign(ZoneSign sign) =>
+            sign.transform.parent != null && sign.transform.parent.GetComponent<ZoneTrigger>() is { } trigger && trigger.Sign == sign;
 
         /// <summary>
         /// Redraws a zone's terrain preview from <paramref name="zone"/>'s pieces: only the chunks in
@@ -474,6 +482,22 @@ namespace Comet.Unity.Editor
             component.arrow = sign.Arrow;
         }
 
+        /// <summary>
+        /// Adds a sign to a spawn point, teleporter or trigger, saved with it: over the middle of its volume's top,
+        /// with a new sign's defaults.
+        /// </summary>
+        public static ZoneSign AddSign(ZoneTrigger trigger)
+        {
+            var sign = Child(trigger.transform, $"{trigger.id} sign").gameObject.AddComponent<ZoneSign>();
+            sign.transform.localPosition = Vector3.up * (trigger.size.y + TriggerSignLift);
+            sign.text = "Sign";
+            Undo.RegisterCreatedObjectUndo(sign.gameObject, "Add Sign");
+            return sign;
+        }
+
+        // How far above a trigger's volume a sign added to it goes, in meters.
+        private const float TriggerSignLift = 0.5f;
+
         /// <summary>Adds a sign at <paramref name="position"/> in an opened zone, with a new sign's defaults.</summary>
         public static ZoneSign AddSign(ZoneEditing editing, Vector3 position)
         {
@@ -506,6 +530,13 @@ namespace Comet.Unity.Editor
             {
                 var thing = CreatePlaced(pad, point, settings, PadColor(component, settings));
                 thing.name = $"{id} pad";
+            }
+
+            if (volume.Sign is { } sign)
+            {
+                var child = Child(point, $"{id} sign").gameObject.AddComponent<ZoneSign>();
+                child.transform.localPosition = ToUnity(sign.Position);
+                Fill(child, sign);
             }
 
             return component;

@@ -65,7 +65,7 @@ namespace ShapeLand.Client
             Clear();
             foreach (var chunk in zone.Chunks)
             {
-                foreach (var sign in chunk.Signs)
+                foreach (var (point, sign) in chunk.AllSigns())
                 {
                     var panel = new VisualElement { pickingMode = PickingMode.Ignore };
                     panel.AddToClassList("sign");
@@ -85,7 +85,7 @@ namespace ShapeLand.Client
 
                     panel.style.display = DisplayStyle.None;
                     _layer.Insert(0, panel); // first, so the name tags and bubbles draw over it
-                    _signs.Add(new Shown(sign, panel) { HasArrow = sign.Arrow && sign.BackgroundColor != null });
+                    _signs.Add(new Shown(sign, point, panel) { HasArrow = sign.Arrow && sign.BackgroundColor != null });
                 }
             }
 
@@ -117,7 +117,7 @@ namespace ShapeLand.Client
             {
                 var index = (start + i) % _signs.Count;
                 var shown = _signs[index];
-                var point = Vectors.ToUnity(shown.Sign.Position);
+                var point = shown.Point;
                 var screen = camera.WorldToScreenPoint(point);
                 var inRange = screen.z > 0 && Vector3.Distance(eye, point) <= shown.Sign.ShowDistance;
                 if (!inRange)
@@ -181,13 +181,17 @@ namespace ShapeLand.Client
 
         private sealed class Shown
         {
-            public Shown(Sign sign, VisualElement panel)
+            public Shown(Sign sign, System.Numerics.Vector3 point, VisualElement panel)
             {
                 Sign = sign;
+                Point = Vectors.ToUnity(point);
                 Panel = panel;
             }
 
             public Sign Sign { get; }
+
+            /// <summary>The world point it's shown over (a trigger's sign has its position from its volume).</summary>
+            public Vector3 Point { get; }
             public VisualElement Panel { get; }
             public bool HasArrow { get; set; }
             public bool Checked { get; set; }

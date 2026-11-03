@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using MessagePack;
 
@@ -119,6 +121,23 @@ namespace Comet.Content
         [Key(6)] public Trigger[] Triggers { get; set; } = new Trigger[0];
 
         [Key(7)] public Sign[] Signs { get; set; } = new Sign[0];
+
+        /// <summary>Every sign in the chunk with the world point it's shown over: its own signs, then those on its spawns, teleporters and triggers.</summary>
+        public IEnumerable<(Vector3 Point, Sign Sign)> AllSigns()
+        {
+            foreach (var sign in Signs)
+            {
+                yield return (sign.Position, sign);
+            }
+
+            foreach (var volume in Spawns.Select(s => s.Volume).Concat(Teleporters.Select(t => t.Volume)).Concat(Triggers.Select(t => t.Volume)))
+            {
+                if (volume.Sign is { } sign)
+                {
+                    yield return (volume.ToWorld(sign.Position), sign);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -256,6 +275,17 @@ namespace Comet.Content
 
         /// <summary>The solid primitive drawn under the volume (in world space, never toggled), or null for none.</summary>
         [Key(6)] public Placement? Pad { get; set; }
+
+        /// <summary>A sign shown with it (its position from the volume's bottom center, turned with its yaw), or null for none.</summary>
+        [Key(7)] public Sign? Sign { get; set; }
+
+        /// <summary>A point in the volume's own space (from its bottom center, turned with its yaw) in world meters.</summary>
+        public Vector3 ToWorld(Vector3 local)
+        {
+            var radians = Yaw * MathF.PI / 180;
+            var (sin, cos) = (MathF.Sin(radians), MathF.Cos(radians));
+            return Position + new Vector3(local.X * cos + local.Z * sin, local.Y, -local.X * sin + local.Z * cos);
+        }
     }
 
     /// <summary>
@@ -332,7 +362,10 @@ namespace Comet.Content
         /// <summary>The smallest and largest text heights of world-sized signs, in meters.</summary>
         public const float MinTextHeight = 0.05f, MaxTextHeight = 5;
 
-        /// <summary>The point the text is shown over, in world meters; it lies in its chunk.</summary>
+        /// <summary>
+        /// The point the text is shown over, in world meters; it lies in its chunk. A trigger's sign has it from its
+        /// volume's bottom center instead (<see cref="TriggerVolume.Sign"/>).
+        /// </summary>
         [Key(0)] public Vector3 Position { get; set; }
 
         /// <summary>The text, plain (line breaks allowed).</summary>

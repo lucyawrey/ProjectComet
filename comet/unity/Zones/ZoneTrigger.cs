@@ -5,8 +5,8 @@ namespace Comet.Unity
 {
     /// <summary>
     /// What spawn points, teleporters and triggers share in a zone opened in the editor: a id, an invisible volume
-    /// standing on the object's position and turned by its Y rotation, a stand time and re-arming, and an optional pad
-    /// (a primitive placement as its child, solid in the game). The volume is drawn as the game's collision view draws it.
+    /// standing on the object's position and turned by its Y rotation, a stand time and re-arming, an optional pad
+    /// (a primitive placement as its child, solid in the game) and an optional sign (a sign as its child). The volume is drawn as the game's collision view draws it.
     /// </summary>
     [DisallowMultipleComponent]
     [SelectionBase]
@@ -70,6 +70,23 @@ namespace Comet.Unity
                     if (child.GetComponent<ZonePlacement>() is { } pad)
                     {
                         return pad;
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>The sign shown with it: a sign that's a direct child, or null. Saved with the trigger, so it moves with it.</summary>
+        public ZoneSign? Sign
+        {
+            get
+            {
+                foreach (Transform child in transform)
+                {
+                    if (child.GetComponent<ZoneSign>() is { } sign)
+                    {
+                        return sign;
                     }
                 }
 

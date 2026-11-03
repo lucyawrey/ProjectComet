@@ -158,36 +158,8 @@ namespace Comet.ZoneFiles
 
                 foreach (var sign in chunk.Signs)
                 {
-                    var what = $"sign at {Text(sign.Position)}";
                     CheckPivot(chunk.Coord, sign.Position, "sign", file, Error);
-                    if (string.IsNullOrWhiteSpace(sign.Text))
-                    {
-                        Error(file, $"{what}: its text is empty.");
-                    }
-                    else if (sign.Text.Length > Sign.MaxText)
-                    {
-                        Error(file, $"{what}: its text is {sign.Text.Length} characters long; the most is {Sign.MaxText}.");
-                    }
-
-                    if (sign.BackgroundOpacity < 0 || sign.BackgroundOpacity > 1)
-                    {
-                        Error(file, $"{what}: background_opacity should be 0 to 1.");
-                    }
-
-                    if (sign.ShowDistance < 1 || sign.ShowDistance > Sign.MaxShowDistance)
-                    {
-                        Error(file, $"{what}: show_distance should be 1 to {Sign.MaxShowDistance} meters.");
-                    }
-
-                    if (sign.ScreenSized && (sign.FontSize < Sign.MinFontSize || sign.FontSize > Sign.MaxFontSize))
-                    {
-                        Error(file, $"{what}: font_size should be {Sign.MinFontSize} to {Sign.MaxFontSize}.");
-                    }
-
-                    if (!sign.ScreenSized && (sign.TextHeight < Sign.MinTextHeight || sign.TextHeight > Sign.MaxTextHeight))
-                    {
-                        Error(file, $"{what}: text_height should be {Sign.MinTextHeight} to {Sign.MaxTextHeight} meters.");
-                    }
+                    CheckSign(sign, $"sign at {Text(sign.Position)}", file, Error);
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -667,6 +639,39 @@ namespace Comet.ZoneFiles
         }
 
         // A spawn point's, teleporter's or trigger's id, volume and pad.
+        // A sign's text, colors and sizes; where it is is checked by the caller.
+        private static void CheckSign(Sign sign, string what, string file, Action<string, string> error)
+        {
+            if (string.IsNullOrWhiteSpace(sign.Text))
+            {
+                error(file, $"{what}: its text is empty.");
+            }
+            else if (sign.Text.Length > Sign.MaxText)
+            {
+                error(file, $"{what}: its text is {sign.Text.Length} characters long; the most is {Sign.MaxText}.");
+            }
+
+            if (sign.BackgroundOpacity < 0 || sign.BackgroundOpacity > 1)
+            {
+                error(file, $"{what}: background_opacity should be 0 to 1.");
+            }
+
+            if (sign.ShowDistance < 1 || sign.ShowDistance > Sign.MaxShowDistance)
+            {
+                error(file, $"{what}: show_distance should be 1 to {Sign.MaxShowDistance} meters.");
+            }
+
+            if (sign.ScreenSized && (sign.FontSize < Sign.MinFontSize || sign.FontSize > Sign.MaxFontSize))
+            {
+                error(file, $"{what}: font_size should be {Sign.MinFontSize} to {Sign.MaxFontSize}.");
+            }
+
+            if (!sign.ScreenSized && (sign.TextHeight < Sign.MinTextHeight || sign.TextHeight > Sign.MaxTextHeight))
+            {
+                error(file, $"{what}: text_height should be {Sign.MinTextHeight} to {Sign.MaxTextHeight} meters.");
+            }
+        }
+
         private static void CheckTrigger(string id, string kind, TriggerVolume volume, ChunkCoord chunk, string zoneName, Dictionary<string, string> idFiles, string file, Action<string, string> error)
         {
             if (!IsZonedId(id, kind) || id.Split('.')[1] != zoneName)
@@ -715,6 +720,12 @@ namespace Comet.ZoneFiles
                 }
 
                 CheckPivot(chunk, pad.Position, $"{id}'s pad", file, error);
+            }
+
+            if (volume.Sign is { } sign)
+            {
+                // Its offset may reach into the next chunk: it goes with its trigger.
+                CheckSign(sign, $"{id}'s sign", file, error);
             }
         }
 

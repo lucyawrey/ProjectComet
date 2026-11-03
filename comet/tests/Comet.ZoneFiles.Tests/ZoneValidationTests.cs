@@ -260,4 +260,14 @@ public class ZoneValidationTests
             ],
             Errors(zone));
     }
+
+    [Fact]
+    public void TriggerSignsAreCheckedAndMayReachIntoTheNextChunk()
+    {
+        var zone = Zones.Sample();
+        var teleporter = zone.Chunks.SelectMany(c => c.Teleporters).Single();
+        teleporter.Volume.Sign = new Sign { Position = new Vector3(-20, 3, 0), Text = "" };
+
+        Assert.Equal(["chunks/0_0.toml: teleporter.meadow.to_cave's sign: its text is empty."], Errors(zone));
+    }
 }

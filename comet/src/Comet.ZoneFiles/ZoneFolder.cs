@@ -270,23 +270,7 @@ namespace Comet.ZoneFiles
                     }).ToArray(),
                 };
             }).ToArray();
-            chunk.Signs = toml.Tables(table, "sign").Select(t =>
-            {
-                toml.CheckKeys(t.Table, t.Path, "position", "text", "text_color", "background_color", "background_opacity", "show_distance", "screen_sized", "font_size", "text_height", "arrow");
-                return new Sign
-                {
-                    Position = toml.Vector(t.Table, t.Path, "position"),
-                    Text = toml.String(t.Table, t.Path, "text"),
-                    TextColor = t.Table.TryGetValue("text_color", out var text) ? Color(toml, text, $"{t.Path}.text_color") ?? 0xFFFFFF : 0xFFFFFF,
-                    BackgroundColor = t.Table.TryGetValue("background_color", out var back) ? Color(toml, back, $"{t.Path}.background_color") : null,
-                    BackgroundOpacity = toml.Float(t.Table, t.Path, "background_opacity", 1),
-                    ShowDistance = toml.Float(t.Table, t.Path, "show_distance", 45),
-                    ScreenSized = toml.Bool(t.Table, t.Path, "screen_sized", false),
-                    FontSize = toml.Float(t.Table, t.Path, "font_size", 13),
-                    TextHeight = toml.Float(t.Table, t.Path, "text_height", 0.3f),
-                    Arrow = toml.Bool(t.Table, t.Path, "arrow", false),
-                };
-            }).ToArray();
+            chunk.Signs = toml.Tables(table, "sign").Select(t => ReadSign(toml, t.Table, t.Path, "position")).ToArray();
             chunk.Volumes = toml.Tables(table, "volume").Select(v =>
             {
                 toml.CheckKeys(v.Table, v.Path, "kind", "position", "rotation", "size");
@@ -616,7 +600,7 @@ namespace Comet.ZoneFiles
                 var spawn = new TomlTable { ["id"] = s.Id };
                 WriteVolume(spawn, s.Volume);
                 spawn["facing"] = ZoneToml.SnakeCase(s.Facing.ToString());
-                return WritePad(spawn, s.Volume);
+                return WriteSubtables(spawn, s.Volume);
             });
             AddTables(table, "teleporter", chunk.Teleporters, t =>
             {
@@ -629,43 +613,9 @@ namespace Comet.ZoneFiles
                     teleporter["charge_color"] = (long)color;
                 }
 
-                return WritePad(teleporter, t.Volume);
+                return WriteSubtables(teleporter, t.Volume);
             });
-            AddTables(table, "sign", chunk.Signs, t =>
-            {
-                var sign = new TomlTable
-                {
-                    ["position"] = ZoneToml.Array3(t.Position, LengthDecimals),
-                    ["text"] = t.Text,
-                    ["text_color"] = (long)t.TextColor,
-                };
-                if (t.BackgroundColor is { } color)
-                {
-                    sign["background_color"] = (long)color;
-                    if (t.BackgroundOpacity != 1)
-                    {
-                        sign["background_opacity"] = ZoneToml.Round(t.BackgroundOpacity, OpacityDecimals);
-                    }
-                }
-
-                sign["show_distance"] = ZoneToml.Round(t.ShowDistance, LengthDecimals);
-                if (t.ScreenSized)
-                {
-                    sign["screen_sized"] = true;
-                    sign["font_size"] = ZoneToml.Round(t.FontSize, FontSizeDecimals);
-                }
-                else
-                {
-                    sign["text_height"] = ZoneToml.Round(t.TextHeight, LengthDecimals);
-                }
-
-                if (t.Arrow)
-                {
-                    sign["arrow"] = true;
-                }
-
-                return sign;
-            });
+            AddTables(table, "sign", chunk.Signs, t => SignTable(t, "position"));
             AddTables(table, "trigger", chunk.Triggers, t =>
             {
                 var trigger = new TomlTable { ["id"] = t.Id };
@@ -675,7 +625,7 @@ namespace Comet.ZoneFiles
                     trigger["charge_color"] = (long)color;
                 }
 
-                WritePad(trigger, t.Volume);
+                WriteSubtables(trigger, t.Volume);
                 AddTables(trigger, "effect", t.Effects, e =>
                 {
                     var effect = new TomlTable { ["toggle_tag"] = e.Tag };
@@ -707,7 +657,62 @@ namespace Comet.ZoneFiles
         }
 
         // The keys every trigger kind's table has: its volume, stand time, re-arm and pad.
-        private static readonly string[] VolumeKeys = { "volume", "position", "yaw", "size", "stand_seconds", "rearm", "pad" };
+        private static readonly string[] VolumeKeys = { "volume", "position", "yaw", "size", "stand_seconds", "rearm", "pad", "sign" };
+
+        // A sign's table: standalone ones have a position; a trigger's has an offset from its volume's bottom center.
+        private static Sign ReadSign(ZoneToml toml, TomlTable table, string path, string positionKey)
+        {
+            toml.CheckKeys(table, path, positionKey, "text", "text_color", "background_color", "background_opacity", "show_distance", "screen_sized", "font_size", "text_height", "arrow");
+            return new Sign
+            {
+                Position = toml.Vector(table, path, positionKey),
+                Text = toml.String(table, path, "text"),
+                TextColor = table.TryGetValue("text_color", out var text) ? Color(toml, text, $"{path}.text_color") ?? 0xFFFFFF : 0xFFFFFF,
+                BackgroundColor = table.TryGetValue("background_color", out var back) ? Color(toml, back, $"{path}.background_color") : null,
+                BackgroundOpacity = toml.Float(table, path, "background_opacity", 1),
+                ShowDistance = toml.Float(table, path, "show_distance", 45),
+                ScreenSized = toml.Bool(table, path, "screen_sized", false),
+                FontSize = toml.Float(table, path, "font_size", 13),
+                TextHeight = toml.Float(table, path, "text_height", 0.3f),
+                Arrow = toml.Bool(table, path, "arrow", false),
+            };
+        }
+
+        private static TomlTable SignTable(Sign t, string positionKey)
+        {
+            var sign = new TomlTable
+            {
+                [positionKey] = ZoneToml.Array3(t.Position, LengthDecimals),
+                ["text"] = t.Text,
+                ["text_color"] = (long)t.TextColor,
+            };
+            if (t.BackgroundColor is { } color)
+            {
+                sign["background_color"] = (long)color;
+                if (t.BackgroundOpacity != 1)
+                {
+                    sign["background_opacity"] = ZoneToml.Round(t.BackgroundOpacity, OpacityDecimals);
+                }
+            }
+
+            sign["show_distance"] = ZoneToml.Round(t.ShowDistance, LengthDecimals);
+            if (t.ScreenSized)
+            {
+                sign["screen_sized"] = true;
+                sign["font_size"] = ZoneToml.Round(t.FontSize, FontSizeDecimals);
+            }
+            else
+            {
+                sign["text_height"] = ZoneToml.Round(t.TextHeight, LengthDecimals);
+            }
+
+            if (t.Arrow)
+            {
+                sign["arrow"] = true;
+            }
+
+            return sign;
+        }
 
         private static TriggerVolume ReadVolume(ZoneToml toml, TomlTable table, string path)
         {
@@ -729,6 +734,18 @@ namespace Comet.ZoneFiles
                 else
                 {
                     toml.Error($"{path}.pad", "should be a table, such as [spawn.pad].");
+                }
+            }
+
+            if (table.TryGetValue("sign", out var sign))
+            {
+                if (sign is TomlTable signTable)
+                {
+                    volume.Sign = ReadSign(toml, signTable, $"{path}.sign", "offset");
+                }
+                else
+                {
+                    toml.Error($"{path}.sign", "should be a table, such as [teleporter.sign].");
                 }
             }
 
@@ -756,12 +773,17 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // The pad goes last, as TOML writes a subtable after its parent's values.
-        private static TomlTable WritePad(TomlTable table, TriggerVolume volume)
+        // The pad and sign go last, as TOML writes a subtable after its parent's values.
+        private static TomlTable WriteSubtables(TomlTable table, TriggerVolume volume)
         {
             if (volume.Pad is { } pad)
             {
                 table["pad"] = PlacementTable(pad);
+            }
+
+            if (volume.Sign is { } sign)
+            {
+                table["sign"] = SignTable(sign, "offset");
             }
 
             return table;

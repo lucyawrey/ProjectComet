@@ -403,4 +403,31 @@ public class ZoneFolderTests
         Assert.Equal(("Plate", 0xFFFFFFu, (uint?)null, 45f, false, 0.5f, false), (signs[1].Text, signs[1].TextColor, signs[1].BackgroundColor, signs[1].ShowDistance, signs[1].ScreenSized, signs[1].TextHeight, signs[1].Arrow));
         Assert.Contains("text_height = 0.5", File.ReadAllText(folder.PathOf("chunks/0_0.toml")));
     }
+
+    [Fact]
+    public void TriggerSignsRoundTripWithTheirTrigger()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        var spawn = sample.Chunks.SelectMany(c => c.Spawns).Single();
+        spawn.Volume.Sign = new Sign { Position = new Vector3(1, 3, 0), Text = "Gate", BackgroundColor = 0x202030, Arrow = true };
+        var zone = RoundTrip(sample, folder, out var errors);
+
+        Assert.Empty(errors);
+        Assert.Contains(
+            """
+            [spawn.sign]
+            offset = [1.0, 3.0, 0.0]
+            text = "Gate"
+            """.ReplaceLineEndings("\n"),
+            File.ReadAllText(folder.PathOf("chunks/0_0.toml")).ReplaceLineEndings("\n"));
+        var chunk = zone.Chunks.Single(c => c.Spawns.Length > 0);
+        var sign = chunk.Spawns[0].Volume.Sign!;
+        Assert.Equal(("Gate", new Vector3(1, 3, 0), true), (sign.Text, sign.Position, sign.Arrow));
+
+        // Shown over its offset turned with the volume's yaw (90 degrees: +X turns to -Z).
+        var (point, shown) = chunk.AllSigns().Single();
+        Assert.Same(sign, shown);
+        Assert.True(Vector3.Distance(new Vector3(5, 7, 4), point) < 1e-4f, $"The sign is shown over {point}.");
+    }
 }
