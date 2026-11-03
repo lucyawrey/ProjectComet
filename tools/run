@@ -3,7 +3,8 @@
 #
 #   tools/run <tool> [arguments]      for example tools/run unity-batch test, or tools/run unity-batch --help
 #
-# The -- keeps dotnet from taking arguments it knows (--help, --no-build, -p, --) for itself. On Windows, tools\run.
+# run --file works in any folder (the short dotnet <file>.cs fails in one with several project files on older
+# SDKs). The -- keeps dotnet from taking arguments it knows (--help, --no-build, -p, --) for itself. On Windows, tools\run.
 tools=$(dirname "$0")
 if [ -z "$1" ] || [ ! -f "$tools/$1.cs" ]; then
   echo "Usage: tools/run <tool> [arguments]. The tools:" >&2
@@ -12,4 +13,4 @@ if [ -z "$1" ] || [ ! -f "$tools/$1.cs" ]; then
 fi
 tool=$1
 shift
-exec dotnet "$tools/$tool.cs" -- "$@"
+exec dotnet run --file "$tools/$tool.cs" -- "$@"

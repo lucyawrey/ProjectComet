@@ -67,7 +67,7 @@ The deployed game needs the AWS CLI and the Vercel CLI, logged in; see [Deployin
 
 ## Tools
 
-Run them from the repository root with the launcher: `tools/run <tool> [arguments]` on Linux and macOS, `tools\run <tool> [arguments]` on Windows (Command Prompt or PowerShell; PowerShell wants `.\tools\run`). Each tool's options are listed below and in its header comment, and `--help` prints them. The launcher passes the arguments through untouched. A tool also runs as `dotnet tools/<tool>.cs -- [arguments]`; without the `--`, dotnet takes some arguments for itself (`--help`, `--no-build`, `-p`, `--`).
+Run them from the repository root with the launcher: `tools/run <tool> [arguments]` on Linux and macOS, `tools\run <tool> [arguments]` on Windows (Command Prompt or PowerShell; PowerShell wants `.\tools\run`). Each tool's options are listed below and in its header comment, and `--help` prints them. The launcher passes the arguments through untouched. A tool also runs as `dotnet run --file tools/<tool>.cs -- [arguments]` (the shorter `dotnet tools/<tool>.cs` fails, on SDKs before 10.0.300, in a folder with several project files); without the `--`, dotnet takes some arguments for itself (`--help`, `--no-build`, `-p`, `--`).
 
 | Tool | What it's for |
 | --- | --- |

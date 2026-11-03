@@ -78,7 +78,7 @@ foreach (var program in new[] { "ShapeLand.LoginServer", "ShapeLand.GameServer",
 // Its own Compose project, so a tools/run shapeland-dev run alongside keeps its containers. No web build.
 string[] compose = ["compose", "-p", "shapeland-netrun", "-f", Path.Combine(Tool.Repo, "shapeland", "docker", "compose.yaml")];
 // Each run starts from a fresh database and fresh bot accounts (comet-postgres, tools/run comet-postgres).
-var (code, connection) = Tool.Capture("dotnet", Path.Combine(Tool.Repo, "tools", "comet-postgres.cs"), "--", "fresh", $"shapeland_netrun_{port}");
+var (code, connection) = Tool.Capture("dotnet", "run", "--file", Path.Combine(Tool.Repo, "tools", "comet-postgres.cs"), "--", "fresh", $"shapeland_netrun_{port}");
 if (code != 0) throw Tool.Fail("Couldn't make the run's database (is Docker running?).");
 var tokens = Path.Combine(Tool.Repo, "artifacts", "bot-tokens", "net");
 if (Directory.Exists(tokens)) Directory.Delete(tokens, recursive: true);

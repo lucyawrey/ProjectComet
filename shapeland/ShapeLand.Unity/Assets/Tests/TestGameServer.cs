@@ -192,7 +192,7 @@ namespace ShapeLand.Client.Tests
         // Runs tools/comet-postgres.cs, returning what it prints (a connection string, for database and fresh).
         private static string Database(string command, string name)
         {
-            using var process = Process.Start(new ProcessStartInfo("dotnet", $"\"{Path.Combine(RepoRoot, "tools", "comet-postgres.cs")}\" -- {command} {name}")
+            using var process = Process.Start(new ProcessStartInfo("dotnet", $"run --file \"{Path.Combine(RepoRoot, "tools", "comet-postgres.cs")}\" -- {command} {name}")
             {
                 WorkingDirectory = RepoRoot,
                 UseShellExecute = false,

@@ -16,7 +16,7 @@ public static class Tool
 
     // Runs another tool and returns its exit code.
     public static int RunTool(string tool, params string[] args) =>
-        Run("dotnet", [Path.Combine(Repo, "tools", tool + ".cs"), "--", .. args]);
+        Run("dotnet", ["run", "--file", Path.Combine(Repo, "tools", tool + ".cs"), "--", .. args]);
 
     // The comment block at the top of the running tool, without the comment marks.
     public static void Usage(int exitCode = 0)

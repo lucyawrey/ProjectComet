@@ -723,7 +723,7 @@ namespace Comet.Unity.Editor
         {
             string Run(string arguments, out int exitCode)
             {
-                var start = new ProcessStartInfo(dotnet, $"\"{tool}\" -- {arguments}")
+                var start = new ProcessStartInfo(dotnet, $"run --file \"{tool}\" -- {arguments}") // the short form fails in the Unity folder, which holds several projects, on older SDKs
                 {
                     WorkingDirectory = root,
                     UseShellExecute = false,

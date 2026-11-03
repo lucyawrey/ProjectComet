@@ -192,7 +192,7 @@ throw Tool.Fail("The game server stopped.");
 
 string ToolOutput(string tool, params string[] toolArgs)
 {
-    var (code, text) = Tool.Capture("dotnet", [Path.Combine(Tool.Repo, "tools", tool + ".cs"), "--", .. toolArgs]);
+    var (code, text) = Tool.Capture("dotnet", ["run", "--file", Path.Combine(Tool.Repo, "tools", tool + ".cs"), "--", .. toolArgs]);
     return code == 0 ? text.Trim() : throw Tool.Fail($"{Tool.Command(tool)} {string.Join(' ', toolArgs)} failed.");
 }
 
