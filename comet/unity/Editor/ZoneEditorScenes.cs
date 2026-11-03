@@ -12,8 +12,7 @@ namespace Comet.Unity.Editor
     /// Ties the zone editor to Unity's own scene workflow: saving a zone's working scene (File › Save, Ctrl+S) saves
     /// the zone's files, a zone's terrain preview is drawn again when its scene opens, play mode ends or scripts reload, and play mode
     /// always starts in the game's own scene (the settings' Play Scene), so it plays the zone from content. A spawn
-    /// point that's duplicated or pasted gets a fresh id, and isn't the default. Clicking a trigger's pad in the Scene
-    /// view selects the trigger first, and the pad on a second click, as with a prefab's parts.
+    /// point that's duplicated or pasted gets a fresh id, and isn't the default.
     /// </summary>
     [InitializeOnLoad]
     public static class ZoneEditorScenes
@@ -41,7 +40,6 @@ namespace Comet.Unity.Editor
             };
 
             ObjectChangeEvents.changesPublished += FreshTriggerIds;
-            Selection.selectionChanged += TriggerBeforePad;
 
             // The asset database isn't ready while scripts load. This runs after every script reload, which can lose
             // the terrain preview.
@@ -68,34 +66,6 @@ namespace Comet.Unity.Editor
             {
                 EditorSceneManager.playModeStartScene = settings.playScene;
             }
-        }
-
-        // What was selected before the latest change, to tell a first click on a pad from a second.
-        private static GameObject? _lastSelected;
-
-        // A pad is a placement, so a selection base of its own: Unity's picking stops at it, not at its trigger.
-        private static void TriggerBeforePad()
-        {
-            var selected = Selection.activeGameObject;
-            var last = _lastSelected;
-            _lastSelected = selected;
-            if (selected == null || Selection.objects.Length != 1 || !(EditorWindow.focusedWindow is SceneView)
-                || selected.transform.parent == null || !(selected.transform.parent.GetComponent<ZoneTrigger>() is { } trigger)
-                || trigger.Pad == null || trigger.Pad.gameObject != selected
-                || last == trigger.gameObject || last == selected)
-            {
-                return;
-            }
-
-            // Unity ignores a selection made inside its own selection callback: make it on the next editor update.
-            _lastSelected = trigger.gameObject;
-            EditorApplication.delayCall += () =>
-            {
-                if (trigger != null && Selection.activeGameObject == selected)
-                {
-                    Selection.activeGameObject = trigger.gameObject;
-                }
-            };
         }
 
         // A new spawn point, teleporter or trigger (duplicated or pasted) whose id another already has gets the first free one: key_2, key_3…
