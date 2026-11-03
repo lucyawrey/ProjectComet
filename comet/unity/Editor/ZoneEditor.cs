@@ -374,8 +374,15 @@ namespace Comet.Unity.Editor
                     chunk = Child(terrain, name);
                     chunk.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
                     chunk.localPosition = new Vector3(mesh.Key.Origin.X, mesh.Key.Origin.Y, mesh.Key.Origin.Z);
-                    chunk.gameObject.AddComponent<MeshFilter>().sharedMesh = new Mesh { name = name };
+                    chunk.gameObject.AddComponent<MeshFilter>();
                     chunk.gameObject.AddComponent<MeshRenderer>();
+                }
+
+                // Made here too for a chunk whose mesh was lost (it's in no asset), as a script reload can.
+                var filter = chunk.GetComponent<MeshFilter>();
+                if (filter.sharedMesh == null)
+                {
+                    filter.sharedMesh = new Mesh { name = name };
                 }
 
                 chunk.GetComponent<MeshRenderer>().sharedMaterial = settings.terrainMaterial;
@@ -854,11 +861,13 @@ namespace Comet.Unity.Editor
             EditorUtility.DisplayDialog(title, errors.Count > 8 ? $"{shown}\n…and {errors.Count - 8} more (see the Console)." : shown, "OK");
         }
 
-        /// <summary>Draws an opened zone's terrain preview again if it's missing (it isn't saved with the scene).</summary>
+        /// <summary>Draws an opened zone's terrain preview again if it or a chunk's mesh is missing (they aren't saved with the scene).</summary>
         public static void RedrawIfMissing(ZoneEditing editing)
         {
             var settings = CometSettings.Find(quiet: true);
-            if (settings == null || !editing.HasZoneData || editing.transform.Find(TerrainName) != null)
+            var terrain = editing.transform.Find(TerrainName);
+            var drawn = terrain != null && terrain.Cast<Transform>().All(c => c.GetComponent<MeshFilter>() is { } f && f.sharedMesh != null && f.sharedMesh.vertexCount > 0);
+            if (settings == null || !editing.HasZoneData || drawn)
             {
                 return;
             }
