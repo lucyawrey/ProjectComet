@@ -146,8 +146,11 @@ namespace Comet.Unity.Editor
         [Tooltip("More arguments for the game server when there's a Login server: {database} is the connection string, {login} the Login server's URL.")]
         public string serverAccountArguments = "";
 
-        [Tooltip("The script that starts the development database and gives a database's connection string (Comet's tools/comet-postgres.sh), relative to the Unity project.")]
-        public string databaseScript = "";
+        [Tooltip("More arguments for the game server without accounts (Comet › Server › Use Accounts off): {characters} is the file it keeps the characters in.")]
+        public string serverDevArguments = "";
+
+        [Tooltip("The tool that starts the development database and gives a database's connection string (Comet's tools/comet-postgres.cs, run with dotnet), relative to the Unity project.")]
+        public string databaseTool = "";
 
         [Header("Polygon budget (Comet › Zones › Polygon Budget)")]
         [Tooltip("About how long each side of a round primitive is, in meters.")]
