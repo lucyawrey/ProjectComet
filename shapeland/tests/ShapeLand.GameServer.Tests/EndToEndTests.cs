@@ -552,15 +552,26 @@ public sealed class EndToEndTests : IAsyncLifetime
             return at;
         }
 
-        private async Task<T> Next<T>(ushort messageId, CancellationToken cancel)
+        /// <summary>Skips messages until one with any of <paramref name="messageIds"/> arrives; its id and payload.</summary>
+        public async Task<(ushort Id, ReadOnlyMemory<byte> Payload)> NextOfAsync(params ushort[] messageIds)
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(8));
+            return await NextOf(messageIds, timeout.Token);
+        }
+
+        private async Task<T> Next<T>(ushort messageId, CancellationToken cancel) =>
+            FrameReader.Decode<T>((await NextOf([messageId], cancel)).Payload, ShapeLandProtocol.Options);
+
+        private async Task<(ushort Id, ReadOnlyMemory<byte> Payload)> NextOf(ushort[] messageIds, CancellationToken cancel)
         {
             while (true)
             {
                 while (_received.TryDequeue(out var message))
                 {
-                    if (message.Id == messageId)
+                    if (messageIds.Contains(message.Id))
                     {
-                        return FrameReader.Decode<T>(message.Payload, ShapeLandProtocol.Options);
+                        return message;
                     }
                 }
 

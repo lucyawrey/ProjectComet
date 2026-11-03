@@ -1,4 +1,5 @@
 using System.Numerics;
+using Comet.Protocol.Framing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using ShapeLand.ContentBuild;
@@ -140,13 +141,14 @@ public sealed class DevJoinTests : IAsyncLifetime
             await first.SendAsync(ShapeLandMessageIds.DevJoinRequest, JoinAs("Bea"));
             await second.SendAsync(ShapeLandMessageIds.DevJoinRequest, JoinAs("bea"));
 
-            // Exactly one is refused (a timed-out read aborts its socket, so each client is read only once), and
-            // the other holds the one character.
-            var refusals = await Task.WhenAll(
-                first.TryNextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected, TimeSpan.FromSeconds(5)),
-                second.TryNextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected, TimeSpan.FromSeconds(5)));
-            Assert.Single(refusals, r => r != null);
-            Assert.Equal(JoinRejection.NameOnline, refusals.Single(r => r != null)!.Value.Reason);
+            // Each client reads until its own answer, a spawn or a refusal: exactly one is refused, and the other
+            // holds the one character (still connected, so its hold stands).
+            var answers = await Task.WhenAll(
+                first.NextOfAsync(ShapeLandMessageIds.PlayerSpawn, ShapeLandMessageIds.JoinRejected),
+                second.NextOfAsync(ShapeLandMessageIds.PlayerSpawn, ShapeLandMessageIds.JoinRejected));
+            var refusal = Assert.Single(answers, a => a.Id == ShapeLandMessageIds.JoinRejected);
+            Assert.Single(answers, a => a.Id == ShapeLandMessageIds.PlayerSpawn);
+            Assert.Equal(JoinRejection.NameOnline, FrameReader.Decode<JoinRejected>(refusal.Payload, ShapeLandProtocol.Options).Reason);
             var database = server.Services.GetRequiredService<DevCharacters>().Database;
             var (id, made) = database.FindOrAdd("BEA", id => new() { Id = id, AccountId = 1, Name = "x", Shape = 0, Color = 0, EyeColor = 0 });
             Assert.False(made);
