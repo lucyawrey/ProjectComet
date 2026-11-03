@@ -527,7 +527,7 @@ namespace Comet.Unity.Editor
             var dev = login.Length == 0 && !string.IsNullOrEmpty(settings.serverDevArguments);
             if (dev)
             {
-                var characters = Path.Combine(CheckoutRoot(ContentBuild.ProjectRoot), "artifacts", "dev-characters.json");
+                var characters = LocalServerPort.DevCharactersFile;
                 arguments += " " + settings.serverDevArguments.Replace("{characters}", characters);
             }
 
@@ -894,19 +894,7 @@ namespace Comet.Unity.Editor
         // The checkout (the folder holding .git, a folder in the main checkout and a file in a worktree) that holds
         // the Unity project, which names its database as tools/run shapeland-dev does; the Unity project's own folder is
         // named the same in every checkout.
-        private static string CheckoutRoot(string projectRoot)
-        {
-            for (var folder = projectRoot; folder != null; folder = Path.GetDirectoryName(folder))
-            {
-                var git = Path.Combine(folder, ".git");
-                if (Directory.Exists(git) || File.Exists(git))
-                {
-                    return folder;
-                }
-            }
-
-            return projectRoot;
-        }
+        private static string CheckoutRoot(string projectRoot) => LocalServerPort.CheckoutRoot(projectRoot);
 
         private static bool PortInUse(int port)
         {

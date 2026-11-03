@@ -633,9 +633,87 @@ namespace ShapeLand.Client
                 return;
             }
 
+#if UNITY_EDITOR
+            // Without accounts, a designer comes back as the character they played last on the editor's server.
+            if (!JoinClient.Accounts && LastDevCharacter() is { } last)
+            {
+                (_devName, _devLook) = (last.Name, new NewCharacter { Shape = last.Shape, Color = last.Color, EyeColor = last.EyeColor });
+                if (GameSettings.AutoJoin)
+                {
+                    JoinFromPop();
+                    return;
+                }
+
+                _name.value = last.Name;
+                _shape = _content.Shapes.TryGet(last.Shape, out var shape) ? shape : _content.Shapes.All[0];
+                (_color, _eyeColor) = (last.Color, last.EyeColor);
+                ShowStartZone(glide: false);
+                Refresh();
+            }
+#endif
+
             Show();
             FocusName();
         }
+
+#if UNITY_EDITOR
+        /// <summary>The editor server's character file to come back from without accounts; null for its own, "" for none (tests).</summary>
+        public static string DevCharactersFile { get; set; }
+
+        // The editor's server's characters without accounts, as it keeps them (ShapeLand.GameServer's DevCharacters).
+        [Serializable]
+        private sealed class DevFile
+        {
+            public DevCharacter[] Characters = new DevCharacter[0];
+            public DevStatus[] Statuses = new DevStatus[0];
+        }
+
+        [Serializable]
+        private sealed class DevCharacter
+        {
+            public long Id;
+            public string Name = "";
+            public int Shape, Color, EyeColor;
+            public bool IsDeleted;
+        }
+
+        [Serializable]
+        private sealed class DevStatus
+        {
+            public long CharacterId;
+            public string UpdatedAt = "";
+        }
+
+        // The character last played on the editor's server (the latest status saved), or null for none or no file.
+        private static DevCharacter LastDevCharacter()
+        {
+            try
+            {
+                var path = DevCharactersFile ?? Comet.Unity.LocalServerPort.DevCharactersFile;
+                if (path.Length == 0 || !System.IO.File.Exists(path))
+                {
+                    return null;
+                }
+
+                var file = JsonUtility.FromJson<DevFile>(System.IO.File.ReadAllText(path));
+                var live = file?.Characters?.Where(c => !c.IsDeleted && c.Name.Length > 0).ToList();
+                if (live == null || live.Count == 0)
+                {
+                    return null;
+                }
+
+                var latest = file.Statuses?.Where(st => live.Any(c => c.Id == st.CharacterId))
+                    .OrderByDescending(st => DateTime.TryParse(st.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind, out var at) ? at : DateTime.MinValue)
+                    .FirstOrDefault();
+                return latest != null ? live.First(c => c.Id == latest.CharacterId) : live[live.Count - 1];
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Couldn't read the editor server's characters ({e.Message}); starting with a new one.");
+                return null;
+            }
+        }
+#endif
 
         // A returning player, joining behind the small pop-up (the card stays down); on failure the pop-up says why, with
         // Retry, and Cancel brings up the signed-in card. A refused token shows the new player's card (through SignedOut).
