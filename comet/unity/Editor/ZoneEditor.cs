@@ -292,6 +292,8 @@ namespace Comet.Unity.Editor
                     BackgroundColor = sign.background ? PlacedColors.ToRgb(sign.backgroundColor) : (uint?)null,
                     BackgroundOpacity = sign.background ? sign.backgroundOpacity : 1,
                     ShowDistance = sign.showDistance,
+                    FontSize = sign.fontSize,
+                    Arrow = sign.background && sign.arrow,
                 }).ToArray();
             }
 
@@ -434,6 +436,8 @@ namespace Comet.Unity.Editor
                     component.backgroundColor = sign.BackgroundColor is { } back ? PlacedColors.FromRgb(back) : component.backgroundColor;
                     component.backgroundOpacity = sign.BackgroundColor != null ? sign.BackgroundOpacity : component.backgroundOpacity;
                     component.showDistance = sign.ShowDistance;
+                    component.fontSize = sign.FontSize;
+                    component.arrow = sign.Arrow;
                 }
 
                 foreach (var volume in chunk.Volumes)

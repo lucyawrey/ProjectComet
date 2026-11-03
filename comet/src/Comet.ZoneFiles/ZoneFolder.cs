@@ -30,6 +30,8 @@ namespace Comet.ZoneFiles
         private const int TimeDecimals = 3;
         /// <summary>Decimal places written for sign background opacities: hundredths.</summary>
         private const int OpacityDecimals = 2;
+        /// <summary>Decimal places written for sign font sizes: tenths of a pixel.</summary>
+        private const int FontSizeDecimals = 1;
 
         private static readonly Regex ChunkName = new Regex(@"^(-?\d+)_(-?\d+)$");
 
@@ -270,7 +272,7 @@ namespace Comet.ZoneFiles
             }).ToArray();
             chunk.Signs = toml.Tables(table, "sign").Select(t =>
             {
-                toml.CheckKeys(t.Table, t.Path, "position", "text", "text_color", "background_color", "background_opacity", "show_distance");
+                toml.CheckKeys(t.Table, t.Path, "position", "text", "text_color", "background_color", "background_opacity", "show_distance", "font_size", "arrow");
                 return new Sign
                 {
                     Position = toml.Vector(t.Table, t.Path, "position"),
@@ -279,6 +281,8 @@ namespace Comet.ZoneFiles
                     BackgroundColor = t.Table.TryGetValue("background_color", out var back) ? Color(toml, back, $"{t.Path}.background_color") : null,
                     BackgroundOpacity = toml.Float(t.Table, t.Path, "background_opacity", 1),
                     ShowDistance = toml.Float(t.Table, t.Path, "show_distance", 45),
+                    FontSize = toml.Float(t.Table, t.Path, "font_size", 13),
+                    Arrow = toml.Bool(t.Table, t.Path, "arrow", false),
                 };
             }).ToArray();
             chunk.Volumes = toml.Tables(table, "volume").Select(v =>
@@ -643,6 +647,12 @@ namespace Comet.ZoneFiles
                 }
 
                 sign["show_distance"] = ZoneToml.Round(t.ShowDistance, LengthDecimals);
+                sign["font_size"] = ZoneToml.Round(t.FontSize, FontSizeDecimals);
+                if (t.Arrow)
+                {
+                    sign["arrow"] = true;
+                }
+
                 return sign;
             });
             AddTables(table, "trigger", chunk.Triggers, t =>

@@ -290,7 +290,7 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Spawn points, teleporters, triggers and signs", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Spawn points, teleporters and triggers", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
             // Spawn points' and teleporters' pictures are their new pads, flattened, in their colors.
             void Adder(string kind, string label, string pad, Vector3 padSize, Color padColor)
@@ -313,7 +313,6 @@ namespace Comet.Unity.Editor
             Adder("spawn", "New spawn point", settings.spawnPad, settings.spawnPadSize, settings.spawnPadColor);
             Adder("teleporter", "New teleporter", settings.teleporterPad, settings.teleporterPadSize, settings.teleporterPadColor);
             Adder("trigger", "New trigger", "", Vector3.zero, Color.white);
-            Adder("sign", "New sign", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
             if (adding.Length > 0 && adding != "sign")
             {
@@ -326,6 +325,20 @@ namespace Comet.Unity.Editor
                 if (GUILayout.Button(point.id, EditorStyles.linkLabel))
                 {
                     Selection.activeGameObject = point.gameObject;
+                    SceneView.lastActiveSceneView?.FrameSelected();
+                }
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Signs", EditorStyles.boldLabel);
+            EditorGUILayout.BeginHorizontal();
+            Adder("sign", "New sign", "", Vector3.zero, Color.white);
+            EditorGUILayout.EndHorizontal();
+            foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
+            {
+                if (GUILayout.Button(sign.text.Split('\n')[0], EditorStyles.linkLabel))
+                {
+                    Selection.activeGameObject = sign.gameObject;
                     SceneView.lastActiveSceneView?.FrameSelected();
                 }
             }

@@ -49,7 +49,7 @@ namespace ShapeLand.Client
         {
             foreach (var sign in _signs)
             {
-                sign.Label.RemoveFromHierarchy();
+                sign.Panel.RemoveFromHierarchy();
             }
 
             _signs.Clear();
@@ -62,15 +62,25 @@ namespace ShapeLand.Client
             {
                 foreach (var sign in chunk.Signs)
                 {
-                    var label = new Label(sign.Text) { pickingMode = PickingMode.Ignore, enableRichText = false };
-                    label.AddToClassList("sign");
-                    label.style.color = GameView.Color(sign.TextColor);
+                    var panel = new VisualElement { pickingMode = PickingMode.Ignore };
+                    panel.AddToClassList("sign");
+                    var text = new Label(sign.Text) { pickingMode = PickingMode.Ignore, enableRichText = false };
+                    text.style.color = GameView.Color(sign.TextColor);
+                    text.style.fontSize = sign.FontSize;
+                    panel.Add(text);
                     var back = sign.BackgroundColor is { } rgb ? GameView.Color(rgb) : Color.clear;
                     back.a = sign.BackgroundColor != null ? sign.BackgroundOpacity : 0;
-                    label.style.backgroundColor = back;
-                    label.style.display = DisplayStyle.None;
-                    _layer.Insert(0, label); // first, so the name tags and bubbles draw over it
-                    _signs.Add(new Shown(sign, label));
+                    panel.style.backgroundColor = back;
+                    if (sign.Arrow && sign.BackgroundColor != null)
+                    {
+                        // Over the point, with the arrow's tip on it, as a speech bubble sits over its speaker.
+                        panel.AddToClassList("with-arrow");
+                        panel.Add(new Arrow(back));
+                    }
+
+                    panel.style.display = DisplayStyle.None;
+                    _layer.Insert(0, panel); // first, so the name tags and bubbles draw over it
+                    _signs.Add(new Shown(sign, panel));
                 }
             }
 
@@ -119,7 +129,7 @@ namespace ShapeLand.Client
 
                 var target = inRange && shown.Checked && shown.InSight ? 1 : 0;
                 shown.Opacity = Mathf.MoveTowards(shown.Opacity, target, Time.unscaledDeltaTime / FadeSeconds);
-                var label = shown.Label;
+                var label = shown.Panel;
                 label.style.display = shown.Opacity > 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 if (shown.Opacity > 0)
                 {
@@ -146,17 +156,45 @@ namespace ShapeLand.Client
 
         private sealed class Shown
         {
-            public Shown(Sign sign, Label label)
+            public Shown(Sign sign, VisualElement panel)
             {
                 Sign = sign;
-                Label = label;
+                Panel = panel;
             }
 
             public Sign Sign { get; }
-            public Label Label { get; }
+            public VisualElement Panel { get; }
             public bool Checked { get; set; }
             public bool InSight { get; set; }
             public float Opacity { get; set; }
+        }
+
+        // A little triangle under a sign's panel, in its background color, its tip at the bottom middle. Drawn rather
+        // than a turned square (as the bubbles' tail is), which would show its overlap with a see-through panel.
+        private sealed class Arrow : VisualElement
+        {
+            private readonly Color _color;
+
+            public Arrow(Color color)
+            {
+                _color = color;
+                pickingMode = PickingMode.Ignore;
+                AddToClassList("sign-arrow");
+                generateVisualContent += Draw;
+            }
+
+            private void Draw(MeshGenerationContext context)
+            {
+                var size = contentRect.size;
+                var painter = context.painter2D;
+                painter.fillColor = _color;
+                painter.BeginPath();
+                painter.MoveTo(Vector2.zero);
+                painter.LineTo(new Vector2(size.x, 0));
+                painter.LineTo(new Vector2(size.x / 2, size.y));
+                painter.ClosePath();
+                painter.Fill();
+            }
         }
     }
 }

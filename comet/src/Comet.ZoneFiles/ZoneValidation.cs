@@ -178,6 +178,11 @@ namespace Comet.ZoneFiles
                     {
                         Error(file, $"{what}: show_distance should be 1 to {Sign.MaxShowDistance} meters.");
                     }
+
+                    if (sign.FontSize < Sign.MinFontSize || sign.FontSize > Sign.MaxFontSize)
+                    {
+                        Error(file, $"{what}: font_size should be {Sign.MinFontSize} to {Sign.MaxFontSize}.");
+                    }
                 }
 
                 foreach (var volume in chunk.Volumes)

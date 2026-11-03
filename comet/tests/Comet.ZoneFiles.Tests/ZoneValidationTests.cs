@@ -245,7 +245,7 @@ public class ZoneValidationTests
         [
             new Sign { Position = new Vector3(12, 6, 5), Text = "  " },
             new Sign { Position = new Vector3(13, 6, 5), Text = new string('a', Sign.MaxText + 1), BackgroundColor = 0, BackgroundOpacity = 2 },
-            new Sign { Position = new Vector3(-3, 6, 5), Text = "Lost", ShowDistance = 0 },
+            new Sign { Position = new Vector3(-3, 6, 5), Text = "Lost", ShowDistance = 0, FontSize = 4 },
         ];
 
         Assert.Equal(
@@ -255,6 +255,7 @@ public class ZoneValidationTests
                 "chunks/0_0.toml: sign at [13, 6, 5]: background_opacity should be 0 to 1.",
                 "chunks/0_0.toml: sign at [-3, 6, 5] is in chunk -1_0: objects belong to the chunk holding their pivot.",
                 "chunks/0_0.toml: sign at [-3, 6, 5]: show_distance should be 1 to 200 meters.",
+                "chunks/0_0.toml: sign at [-3, 6, 5]: font_size should be 8 to 48.",
             ],
             Errors(zone));
     }

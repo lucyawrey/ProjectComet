@@ -254,12 +254,15 @@ Label { padding: 0; margin: 0; }
     padding: 2px 8px; font-size: 13px;
     background-color: rgba(18, 22, 30, 0.75); border-radius: 3px;
 }
-/* A sign (Signs): centered on its point; its colors are the sign's own, set inline. */
+/* A sign (Signs): centered on its point, or with its arrow, above it with the arrow's tip on it. Its colors and
+   font size are the sign's own, set inline. */
 .sign {
     position: absolute; translate: -50% -50%;
-    max-width: 260px; padding: 2px 8px; font-size: 13px; white-space: normal; -unity-text-align: middle-center;
-    border-radius: 3px;
+    max-width: 260px; padding: 2px 8px; border-radius: 3px;
 }
+.sign > Label { white-space: normal; -unity-text-align: middle-center; }
+.sign.with-arrow { translate: -50% -100%; margin-top: -7px; }
+.sign-arrow { position: absolute; left: 50%; bottom: -7px; width: 12px; height: 7px; margin-left: -6px; }
 .bubble {
     position: absolute; translate: -50% -100%;
     max-width: 220px; padding: 6px 11px;
