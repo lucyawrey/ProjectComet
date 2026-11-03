@@ -1,9 +1,9 @@
-# ShapeLand under simulated network conditions. Start it with tools/shapeland-dev.sh --net PROFILE, which
+# ShapeLand under simulated network conditions. Start it with tools/run shapeland-dev --net PROFILE, which
 # builds everything on the host and sets the variables below.
 #
 # netem sits on the game server's link, so every client gets the profile: the browser and desktop builds
 # (through the published port) and the bots. The bots' own container can add more on top (BOTS_NETEM_*). The Login
-# server has no netem: accounts aren't the netcode. Both servers reach PostgreSQL (tools/comet-postgres.sh) as
+# server has no netem: accounts aren't the netcode. Both servers reach PostgreSQL (tools/run comet-postgres) as
 # comet-postgres on the comet network.
 name: shapeland
 

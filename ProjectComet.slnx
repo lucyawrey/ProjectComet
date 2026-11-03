@@ -40,11 +40,4 @@
     <Project Path="shapeland/tests/ShapeLand.GameServer.Tests/ShapeLand.GameServer.Tests.csproj" />
     <Project Path="shapeland/tests/ShapeLand.LoginServer.Tests/ShapeLand.LoginServer.Tests.csproj" />
   </Folder>
-  <Folder Name="/tools/" />
-  <Folder Name="/tools/StackBench/">
-    <Project Path="tools/StackBench/StackBench.Bots/StackBench.Bots.csproj" />
-    <Project Path="tools/StackBench/StackBench.Metrics/StackBench.Metrics.csproj" />
-    <Project Path="tools/StackBench/StackBench.Report/StackBench.Report.csproj" />
-    <Project Path="tools/StackBench/StackBench.Server/StackBench.Server.csproj" />
-  </Folder>
 </Solution>

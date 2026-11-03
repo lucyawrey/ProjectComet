@@ -80,7 +80,7 @@ public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFo
         };
     }
 
-    // One file per bot. A bot's token only plays that bot, which a public test build gives away anyway.
+    // One file per bot. A bot's token only plays that bot, which the deployed game gives away anyway.
     private sealed class FileTokenStore(string path) : ITokenStore
     {
         public string? Load() => File.Exists(path) ? File.ReadAllText(path).Trim() : null;

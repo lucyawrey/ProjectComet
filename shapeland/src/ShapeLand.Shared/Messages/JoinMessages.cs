@@ -16,6 +16,30 @@ namespace ShapeLand.Shared.Messages
         [Key(1)] public ulong ContentFingerprint;
     }
 
+    /// <summary>
+    /// Client input, in the Unity editor with accounts off: join the editor's own game server without a Login server or
+    /// ticket, as the character with this name, made with this look if it's new (a returning name keeps its look and
+    /// spot). Only a Debug game server started for development takes it; any other answers
+    /// <see cref="JoinRejection.AccountsNeeded"/>.
+    /// </summary>
+    [MessagePackObject]
+    public struct DevJoinRequest
+    {
+        [Key(0)] public string Name;
+
+        /// <summary>The shape's content number.</summary>
+        [Key(1)] public int Shape;
+
+        /// <summary>The body color's content number.</summary>
+        [Key(2)] public int Color;
+
+        /// <summary>The eye color's content number.</summary>
+        [Key(3)] public int EyeColor;
+
+        /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
+        [Key(4)] public ulong ContentFingerprint;
+    }
+
     /// <summary>Why a join was refused.</summary>
     public enum JoinRejection : byte
     {
@@ -42,6 +66,15 @@ namespace ShapeLand.Shared.Messages
 
         /// <summary>A newer join for the same character came in while this one was loading.</summary>
         Replaced = 8,
+
+        /// <summary>A join without a ticket (<see cref="DevJoinRequest"/>) to a server that needs accounts.</summary>
+        AccountsNeeded = 9,
+
+        /// <summary>A <see cref="DevJoinRequest"/>'s name breaks the name rules.</summary>
+        BadName = 10,
+
+        /// <summary>A <see cref="DevJoinRequest"/>'s name is playing on the server already.</summary>
+        NameOnline = 11,
     }
 
     /// <summary>Server event: the join was refused. The connection stays open but can't play.</summary>

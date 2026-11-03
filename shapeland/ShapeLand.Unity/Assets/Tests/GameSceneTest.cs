@@ -55,24 +55,31 @@ namespace ShapeLand.Client.Tests
             InputSystem.settings.backgroundBehavior = _background;
             if (Server != null)
             {
-                JoinClient.ForgetToken(Server.Address);
+                if (Server.Address != null)
+                {
+                    JoinClient.ForgetToken(Server.Address);
+                }
+
                 Server.Dispose();
                 Server = null;
             }
         }
 
-        // Loads the Game scene against a fresh server and, unless the test drives the card itself, joins as "Unity
-        // test" with the card's choices.
-        protected IEnumerator StartGame(bool join = true)
+        // Loads the Game scene against a fresh server (with the Login server too, given accounts) and, unless the
+        // test drives the card itself, joins as "UnityTest" with the card's choices.
+        protected IEnumerator StartGame(bool join = true, bool accounts = false, string loginArguments = "")
         {
             TestGameServer.LoadContent();
 
-            Server = new TestGameServer();
+            Server = new TestGameServer(accounts, loginArguments);
             yield return Server.Start();
 
             // A session of the tests' own, empty at the start: every test begins as a new player.
             JoinClient.TokenKey = "tests-login-token";
-            JoinClient.ForgetToken(Server.Address);
+            if (accounts)
+            {
+                JoinClient.ForgetToken(Server.Address);
+            }
 
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/Scenes/Game.unity", new LoadSceneParameters(LoadSceneMode.Single));
             Join = Object.FindAnyObjectByType<JoinClient>();
@@ -93,7 +100,11 @@ namespace ShapeLand.Client.Tests
             yield return TestGameServer.WaitFor(() => Screen.Showing, 15);
             Assert.That(Screen.Showing, Is.True, "The join screen never came up.");
             yield return LaidOut("join-button");
-            Field("server").value = Server.Address;
+            if (accounts)
+            {
+                Field("server").value = Server.Address;
+            }
+
             if (!join)
             {
                 yield break;

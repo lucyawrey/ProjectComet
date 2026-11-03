@@ -72,7 +72,7 @@ namespace Comet.Unity.Editor
         private void Status(CometSettings settings)
         {
             var running = LocalServer.RunningWith;
-            var port = settings.serverPort;
+            var port = LocalServer.Port(settings);
             if (LocalServer.Building)
             {
                 EditorGUILayout.HelpBox($"Building, then starting on port {port}…", MessageType.None);

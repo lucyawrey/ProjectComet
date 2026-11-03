@@ -26,6 +26,27 @@ namespace Comet.Unity
             }
         }
 
+        /// <summary>
+        /// Whether play mode joins with accounts (Comet › Server › Use Accounts, off by default and kept per computer in
+        /// the editor's preferences); always true outside the editor, where builds join with accounts.
+        /// </summary>
+        public static bool UseAccounts
+        {
+            get
+            {
+#if UNITY_EDITOR
+                return UnityEditor.EditorPrefs.GetBool(UseAccountsKey, false);
+#else
+                return true;
+#endif
+            }
+        }
+
+#if UNITY_EDITOR
+        /// <summary>The editor preference holding <see cref="UseAccounts"/>, per Unity project (preferences are shared by every project).</summary>
+        public static string UseAccountsKey => "Comet.LocalServer.UseAccounts." + System.IO.Path.GetDirectoryName(UnityEngine.Application.dataPath);
+#endif
+
         /// <summary>The port, in the editor once the local server's settings are known; null otherwise.</summary>
         public static int? InEditor
         {

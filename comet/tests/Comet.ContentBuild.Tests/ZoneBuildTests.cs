@@ -81,7 +81,7 @@ public class ZoneBuildTests
 
         var error = Assert.Single(Build(folder).Errors);
 
-        Assert.Equal(Path.Combine(folder.Root, "zones", "meadow", "chunks/0_0.toml"), error.File);
+        Assert.Equal(Path.Combine(folder.Root, "zones", "meadow", "chunks", "0_0.toml"), error.File);
         Assert.StartsWith("spawn.meadow.gate at [-1, 0, 0] is in chunk -1_0", error.Message);
     }
 

@@ -53,7 +53,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     /// unknown <paramref name="startSpawn"/> (a spawn point's key, or empty for none) stops it, listing the spawn points.
     /// </summary>
     public ShapeLandGame(ShapeLandContent content, string startSpawn, ConnectionRegistry registry,
-        Comet.Tickets.TicketChecker tickets, ICharacterRepository<ShapeLandCharacter> repository, ILogger<ShapeLandGame> logger)
+        Comet.Tickets.TicketChecker? tickets, ICharacterRepository<ShapeLandCharacter> repository, ILogger<ShapeLandGame> logger)
     {
         this.content = content;
         this.registry = registry;
@@ -87,6 +87,11 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
     public ShapeLandContent Content => content;
 
+#if DEBUG
+    /// <summary>With joins without accounts (<see cref="ShapeLandServerOptions.DevJoins"/>), the characters they pick from.</summary>
+    public DevCharacters? DevCharacters { get; init; }
+#endif
+
     // Receive flows.
 
     public void OnConnected(Connection connection) => _inbox.Enqueue(new Input(connection, InputKind.Connected));
@@ -98,6 +103,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         {
             MessageIds.PositionReport => new Input(connection, InputKind.Report) { Report = FrameReader.Decode<PositionReport>(payload, options), ClientTick = clientTick },
             ShapeLandMessageIds.JoinRequest => new Input(connection, InputKind.Join) { Join = FrameReader.Decode<JoinRequest>(payload, options) },
+            ShapeLandMessageIds.DevJoinRequest => new Input(connection, InputKind.DevJoin) { DevJoin = FrameReader.Decode<DevJoinRequest>(payload, options) },
             ShapeLandMessageIds.LookChange => new Input(connection, InputKind.Look) { Look = FrameReader.Decode<LookChange>(payload, options) },
             ShapeLandMessageIds.NameChanged => new Input(connection, InputKind.NameChanged),
             ShapeLandMessageIds.ChatSend => new Input(connection, InputKind.Chat) { Chat = FrameReader.Decode<ChatSend>(payload, options) },
@@ -133,6 +139,9 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                     break;
                 case InputKind.Join:
                     Join(_players[input.Connection], input.Join, tick);
+                    break;
+                case InputKind.DevJoin:
+                    DevJoin(_players[input.Connection], input.DevJoin, tick);
                     break;
                 case InputKind.Look:
                     ChangeLook(_players[input.Connection], input.Look, tick);
@@ -220,21 +229,64 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     // the player spawns when it comes back (Joined) on a later tick.
     private void Join(Player player, JoinRequest request, uint tick)
     {
+        if (CanJoin(player, request.ContentFingerprint, tick))
+        {
+            player.Joining = _joins.Begin(player.Connection, request.Ticket ?? "");
+        }
+    }
+
+    // A join by name, without a ticket: only a Debug server started with ShapeLand:DevJoins takes it. A name that's
+    // playing is refused before the claim, so a dev join never replaces anyone.
+    private void DevJoin(Player player, DevJoinRequest request, uint tick)
+    {
+        if (!CanJoin(player, request.ContentFingerprint, tick))
+        {
+            return;
+        }
+
+#if DEBUG
+        if (DevCharacters is { } characters)
+        {
+            if (!ShapeLandRules.TryNormalizeName(request.Name, out var name))
+            {
+                Reject(player, JoinRejection.BadName);
+                return;
+            }
+
+            var characterId = characters.FindOrAdd(name, request.Shape, request.Color, request.EyeColor);
+            if (_joins.IsPlaying(characterId))
+            {
+                Reject(player, JoinRejection.NameOnline);
+                return;
+            }
+
+            player.Joining = _joins.Begin(player.Connection, characterId, DevCharacters.AccountId);
+            return;
+        }
+#endif
+        Reject(player, JoinRejection.AccountsNeeded);
+    }
+
+    private bool CanJoin(Player player, ulong contentFingerprint, uint tick)
+    {
         if (player.Joining || player.Joined || !player.JoinLimiter.TryTake(tick))
         {
             // One join at a time, and retries after a failure only at a pace no honest client exceeds.
             player.Connection.Disconnect();
-            return;
+            return false;
         }
 
-        if (request.ContentFingerprint != content.Fingerprint)
+        if (contentFingerprint != content.Fingerprint)
         {
-            player.Connection.SendEvent(ShapeLandMessageIds.JoinRejected, new JoinRejected { Reason = JoinRejection.DifferentContent });
-            return;
+            Reject(player, JoinRejection.DifferentContent);
+            return false;
         }
 
-        player.Joining = _joins.Begin(player.Connection, request.Ticket ?? "");
+        return true;
     }
+
+    private static void Reject(Player player, JoinRejection reason) =>
+        player.Connection.SendEvent(ShapeLandMessageIds.JoinRejected, new JoinRejected { Reason = reason });
 
     void IJoinHost<Connection, ShapeLandCharacter>.JoinFailed(Connection connection, JoinFailure failure)
     {
@@ -713,6 +765,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         Return,
         Connected,
         Join,
+        DevJoin,
         Look,
         NameChanged,
         NameLoaded,
@@ -724,6 +777,8 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     private sealed record Input(Connection Connection, InputKind Kind)
     {
         public JoinRequest Join { get; init; }
+
+        public DevJoinRequest DevJoin { get; init; }
 
         public PositionReport Report { get; init; }
 

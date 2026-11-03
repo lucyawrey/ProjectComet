@@ -11,6 +11,7 @@ namespace ShapeLand.Client.Tests
     // Joins the real ShapeLand servers from Play mode with the join client alone: makes a guest account at the Login
     // server, gets a ticket, and checks the welcome, the player's own spawn and the first pong. Needs the dotnet SDK on
     // the PATH, Docker, and the content built and copied (ShapeLand > Copy Content).
+    [Category("Accounts")]
     public class JoinTests
     {
         private TestGameServer _server;
@@ -66,7 +67,7 @@ namespace ShapeLand.Client.Tests
         private IEnumerator StartServer()
         {
             TestGameServer.LoadContent();
-            _server = new TestGameServer();
+            _server = new TestGameServer(accounts: true);
             yield return _server.Start();
         }
 

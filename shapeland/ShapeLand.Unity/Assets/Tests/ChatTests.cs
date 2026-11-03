@@ -74,10 +74,11 @@ namespace ShapeLand.Client.Tests
             Assert.That(Chat.Box.ClassListContains("hidden"), Is.False);
         }
 
-        [UnityTest]
+        // The bots sign in through the Login server.
+        [UnityTest, Category("Accounts")]
         public IEnumerator OthersChatInTheLogAndInBubbles()
         {
-            yield return StartGame();
+            yield return StartGame(accounts: true);
             yield return Server.StartBots(1, 20);
             yield return TestGameServer.WaitFor(() => Chat.LogLines().Any(line => line.StartsWith("Bot0001 ")), 15);
             var line = Chat.LogLines().FirstOrDefault(l => l.StartsWith("Bot0001 "));

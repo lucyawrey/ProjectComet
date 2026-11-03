@@ -16,8 +16,8 @@ namespace ShapeLand.Client.Editor
     /// <c>Assets/Settings/Build Profiles/</c> (File › Build Profiles); the player settings they need (the web build's
     /// Brotli with the decompression fallback, ShapeLand's page template, WebGPU then WebGL 2, IL2CPP, plain HTTP to
     /// the game server, a 1280×800 window on desktop) are saved in the project settings. Scripts build a profile with
-    /// <c>tools/unity-batch.sh</c>, into the repository's <c>artifacts/unity/shapeland/</c>. A web build asked for with
-    /// the marker file <see cref="FastWebMarker"/> (<c>tools/shapeland-dev.sh</c>, for local playtests) skips
+    /// <c>tools/run unity-batch</c>, into the repository's <c>artifacts/unity/shapeland/</c>. A web build asked for with
+    /// the marker file <see cref="FastWebMarker"/> (<c>tools/run shapeland-dev</c>, for local playtests) skips
     /// compression, which takes a minute or two of each build; the marker works whether the build runs in batch mode or
     /// in an open editor.
     /// </summary>

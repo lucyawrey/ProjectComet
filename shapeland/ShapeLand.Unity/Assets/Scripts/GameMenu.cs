@@ -118,6 +118,8 @@ namespace ShapeLand.Client
             _settingsName = root.Q<Label>("menu-page-settings");
             root.Q("menu-host").pickingMode = PickingMode.Ignore;
 
+            // With accounts off (the editor), the Account page has nothing to show: its entry stays, off.
+            root.Q("menu-account").SetEnabled(JoinClient.Accounts);
             _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-account"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-leave") };
             _entryActions = new Action[]
             {
@@ -361,8 +363,15 @@ namespace ShapeLand.Client
 
                     break;
                 default:
-                    var count = Rows().Length;
-                    Select(Mathf.Clamp(_selected + by, _page == Page.Settings ? -1 : 0, count - 1));
+                    var rows = Rows();
+                    var next = Mathf.Clamp(_selected + by, _page == Page.Settings ? -1 : 0, rows.Length - 1);
+                    // Over an entry that's off (Account, with accounts off), to the next one on.
+                    while (next > 0 && next < rows.Length - 1 && !rows[next].enabledSelf)
+                    {
+                        next += by > 0 ? 1 : -1;
+                    }
+
+                    Select(next);
                     break;
             }
         }
@@ -405,7 +414,13 @@ namespace ShapeLand.Client
             }
         }
 
-        private void ChooseEntry(int index) => _entryActions[index]();
+        private void ChooseEntry(int index)
+        {
+            if (_entries[index].enabledSelf)
+            {
+                _entryActions[index]();
+            }
+        }
 
         private void ChooseConfirm(int index)
         {

@@ -59,7 +59,7 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     where TConnection : class
     where TCharacter : Character
 {
-    private readonly TicketChecker _tickets;
+    private readonly TicketChecker? _tickets; // none on a development server that joins without tickets
     private readonly ICharacterRepository<TCharacter> _repository;
     private readonly TimeSpan _claimDeadline; // for the database to hand over a character, or the join fails as Busy
     private readonly ILogger _logger;
@@ -75,7 +75,7 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     private readonly Dictionary<long, TConnection> _holders = [];
 
     public JoinedCharacters(
-        TicketChecker tickets, ICharacterRepository<TCharacter> repository, TimeSpan claimDeadline, ILogger logger)
+        TicketChecker? tickets, ICharacterRepository<TCharacter> repository, TimeSpan claimDeadline, ILogger logger)
     {
         _tickets = tickets;
         _repository = repository;
@@ -99,11 +99,33 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         _pending.Add(connection, pending);
         _ = Task.Run(async () =>
         {
-            var (checkedTicket, rejection) = await _tickets.CheckAsync(ticket);
+            var (checkedTicket, rejection) = _tickets == null
+                ? (null, TicketRejection.Invalid)
+                : await _tickets.CheckAsync(ticket);
             _done.Enqueue(host => TicketChecked(host, connection, pending, checkedTicket, rejection));
         });
         return true;
     }
+
+    /// <summary>
+    /// Starts a join without a ticket, for a character the game has already picked (a development server without
+    /// accounts). The character must not be playing or joining (<see cref="IsPlaying"/>): this never replaces anyone.
+    /// </summary>
+    public bool Begin(TConnection connection, long characterId, long accountId)
+    {
+        if (_pending.ContainsKey(connection) || _joined.ContainsKey(connection) || IsPlaying(characterId))
+        {
+            return false;
+        }
+
+        var pending = new Pending { CharacterId = characterId };
+        _pending.Add(connection, pending);
+        StartClaim(connection, pending, characterId, accountId);
+        return true;
+    }
+
+    /// <summary>Whether a connection plays the character, or is joining as it.</summary>
+    public bool IsPlaying(long characterId) => _holders.ContainsKey(characterId);
 
     /// <summary>Runs finished joins, refused saves and drops. Call once per tick.</summary>
     public void Update(IJoinHost<TConnection, TCharacter> host)
@@ -201,24 +223,29 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
             }
         }
 
-        _holders[ticket.CharacterId] = connection;
+        StartClaim(connection, pending, ticket.CharacterId, ticket.AccountId);
+    }
+
+    private void StartClaim(TConnection connection, Pending pending, long characterId, long accountId)
+    {
+        _holders[characterId] = connection;
         _ = Task.Run(async () =>
         {
             using var deadline = new CancellationTokenSource(_claimDeadline);
-            var claim = await _repository.ClaimAsync(ticket.CharacterId, deadline.Token);
-            _done.Enqueue(h => Claimed(h, connection, pending, ticket, claim));
+            var claim = await _repository.ClaimAsync(characterId, deadline.Token);
+            _done.Enqueue(h => Claimed(h, connection, pending, characterId, accountId, claim));
         });
     }
 
-    private void Claimed(
-        IJoinHost<TConnection, TCharacter> host, TConnection connection, Pending pending, JoinTicket ticket, CharacterClaim<TCharacter> claim)
+    private void Claimed(IJoinHost<TConnection, TCharacter> host, TConnection connection, Pending pending,
+        long characterId, long accountId, CharacterClaim<TCharacter> claim)
     {
         if (pending.Abandoned)
         {
             // Closed or replaced while claiming: let the character go (refused harmlessly if a newer claim took it).
             if (claim.Outcome == ClaimOutcome.Claimed)
             {
-                _ = _repository.LeaveAsync(ticket.CharacterId, claim.Version, null);
+                _ = _repository.LeaveAsync(characterId, claim.Version, null);
             }
 
             return;
@@ -227,22 +254,22 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         _pending.Remove(connection);
         if (claim.Outcome != ClaimOutcome.Claimed)
         {
-            ForgetHolder(connection, ticket.CharacterId);
+            ForgetHolder(connection, characterId);
             host.JoinFailed(connection, claim.Outcome == ClaimOutcome.NotFound ? JoinFailure.NoCharacter : JoinFailure.Busy);
             return;
         }
 
-        if (claim.Character!.AccountId != ticket.AccountId)
+        if (claim.Character!.AccountId != accountId)
         {
             // A ticket naming someone else's character: never issued by our Login server.
-            _logger.LogWarning("A ticket for account {Account} named character {Character} of another account", ticket.AccountId, ticket.CharacterId);
-            _ = _repository.LeaveAsync(ticket.CharacterId, claim.Version, null);
-            ForgetHolder(connection, ticket.CharacterId);
+            _logger.LogWarning("A join for account {Account} named character {Character} of another account", accountId, characterId);
+            _ = _repository.LeaveAsync(characterId, claim.Version, null);
+            ForgetHolder(connection, characterId);
             host.JoinFailed(connection, JoinFailure.BadTicket);
             return;
         }
 
-        _joined.Add(connection, new Binding(ticket.CharacterId, ticket.AccountId, claim.Version));
+        _joined.Add(connection, new Binding(characterId, accountId, claim.Version));
         host.Joined(connection, claim);
     }
 

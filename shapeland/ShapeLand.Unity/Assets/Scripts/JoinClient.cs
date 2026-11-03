@@ -51,6 +51,8 @@ namespace ShapeLand.Client
         private string _loginAddress;
         private Uri _url;
         private JoinRequest? _pending;
+        private DevJoinRequest? _pendingDev;
+        private string _devName = "";
         // Bumped by CancelJoin, so a join already on its way stops before connecting.
         private int _joinAttempt;
         private bool _ticketRetried;
@@ -59,8 +61,14 @@ namespace ShapeLand.Client
         private double _askedAt;
         private double _connectedAt;
 
-        /// <summary>The player's name: their account's username.</summary>
-        public string PlayerName => Account?.Username ?? "";
+        /// <summary>The player's name: their account's username, or with accounts off, the name they joined with.</summary>
+        public string PlayerName => Accounts ? Account?.Username ?? "" : _devName;
+
+        /// <summary>
+        /// Whether joining goes through a Login server: always in builds; in the editor, unless Comet › Server › Use
+        /// Accounts is off, when play mode joins the editor's own server by name (<see cref="DevJoin"/>).
+        /// </summary>
+        public static bool Accounts => Comet.Unity.LocalServerPort.UseAccounts;
 
         /// <summary>
         /// The Login server to use unless the player names another: on the web, the page's <c>?login=</c>, else the one
@@ -92,8 +100,8 @@ namespace ShapeLand.Client
 
         private AccountResponse<CharacterView> _account;
 
-        /// <summary>A session token is kept: the player has an account on this device.</summary>
-        public bool SignedIn => _login?.SignedIn ?? false;
+        /// <summary>A session token is kept: the player has an account on this device (never with accounts off).</summary>
+        public bool SignedIn => Accounts && (_login?.SignedIn ?? false);
 
         /// <summary>Why the server dropped this player (another tab or device took over, or the account was removed), or null.</summary>
         public DropReason? DroppedFor { get; private set; }
@@ -293,6 +301,7 @@ namespace ShapeLand.Client
             }
 
             _pending = null;
+            _pendingDev = null;
             _awaitingAnswer = false;
             _connection.Disconnect();
         }
@@ -357,6 +366,27 @@ namespace ShapeLand.Client
             Connect(url);
             _pending = new JoinRequest { Ticket = ticket.Value.Ticket };
             return null;
+        }
+
+        /// <summary>
+        /// With accounts off (the editor): joins the editor's own game server as the character called
+        /// <paramref name="name"/>, made with <paramref name="look"/> if it's new.
+        /// </summary>
+        public void DevJoin(string name, NewCharacter look)
+        {
+            if (_content == null)
+            {
+                throw new InvalidOperationException("Join after the content has loaded.");
+            }
+
+            Failure = JoinFailure.None;
+            Error = null;
+            Rejected = null;
+            DroppedFor = null;
+            _devName = name;
+            _content.Strings.SetShared("username", name);
+            Connect(new Uri($"ws://localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}/ws"));
+            _pendingDev = new DevJoinRequest { Name = name, Shape = look.Shape, Color = look.Color, EyeColor = look.EyeColor };
         }
 
         private async void RetryAsync()
@@ -487,6 +517,7 @@ namespace ShapeLand.Client
             Joined = false;
             Spawn = null;
             _pending = null;
+            _pendingDev = null;
             _awaitingAnswer = false;
             _connection.Disconnect();
             ConnectionLost?.Invoke(reason);
@@ -562,8 +593,9 @@ namespace ShapeLand.Client
             {
                 // Idle after a refused join, the server drops the connection after its join deadline; that's no
                 // failure, and the next join reconnects.
-                var idle = !Joined && _pending == null && !_awaitingAnswer;
+                var idle = !Joined && _pending == null && _pendingDev == null && !_awaitingAnswer;
                 _pending = null;
+                _pendingDev = null;
                 _awaitingAnswer = false;
                 if (Failure == JoinFailure.None && !idle)
                 {
@@ -591,6 +623,16 @@ namespace ShapeLand.Client
                 session.Write(ShapeLandMessageIds.JoinRequest, request);
                 Log($"joining as {PlayerName}");
             }
+
+            if (_pendingDev is DevJoinRequest devRequest && session.Transport.State == TransportState.Open)
+            {
+                _pendingDev = null;
+                _awaitingAnswer = true;
+                _askedAt = Time.realtimeSinceStartupAsDouble;
+                devRequest.ContentFingerprint = _content.Fingerprint;
+                session.Write(ShapeLandMessageIds.DevJoinRequest, devRequest);
+                Log($"joining as {PlayerName}, without accounts");
+            }
         }
 
         private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
@@ -606,6 +648,12 @@ namespace ShapeLand.Client
                         _awaitingAnswer = false;
                         _ticketRetried = false;
                         Spawn = spawn;
+                        if (!Accounts)
+                        {
+                            _devName = spawn.Name; // as the character was first named, whatever case was typed
+                            _content.Strings.SetShared("username", spawn.Name);
+                        }
+
                         Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}) as {spawn.Name}, color {spawn.Color}, eyes {spawn.EyeColor}");
                         OwnSpawned?.Invoke(spawn);
                     }
