@@ -491,13 +491,14 @@ namespace Comet.Unity.Editor
 
         /// <summary>
         /// Adds a sign to a spawn point, teleporter or trigger, saved with it: over the middle of its volume's top,
-        /// with a new sign's defaults.
+        /// with a new sign's defaults and its arrow on.
         /// </summary>
         public static ZoneSign AddSign(ZoneTrigger trigger)
         {
             var sign = Child(trigger.transform, $"{trigger.id} sign").gameObject.AddComponent<ZoneSign>();
             sign.transform.localPosition = Vector3.up * (trigger.size.y + TriggerSignLift);
             sign.text = "Sign";
+            sign.arrow = true; // pointing down at its trigger
             Undo.RegisterCreatedObjectUndo(sign.gameObject, "Add Sign");
             return sign;
         }
