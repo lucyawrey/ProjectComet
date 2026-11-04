@@ -73,10 +73,10 @@ namespace ShapeLand.Client
                     text.style.color = GameView.Color(sign.TextColor);
                     text.style.fontSize = sign.ScreenSized ? sign.FontSize : WorldLayoutFontSize;
                     panel.Add(text);
-                    var back = sign.BackgroundColor is { } rgb ? GameView.Color(rgb) : Color.clear;
-                    back.a = sign.BackgroundColor != null ? sign.BackgroundOpacity : 0;
+                    var back = GameView.Color(sign.BackgroundColor);
+                    back.a = sign.Background ? sign.BackgroundOpacity : 0;
                     panel.style.backgroundColor = back;
-                    if (sign.Arrow && sign.BackgroundColor != null)
+                    if (sign.Arrow && sign.Background)
                     {
                         // Over the point, with the arrow's tip on it, as a speech bubble sits over its speaker.
                         panel.AddToClassList("with-arrow");
@@ -85,7 +85,7 @@ namespace ShapeLand.Client
 
                     panel.style.display = DisplayStyle.None;
                     _layer.Insert(0, panel); // first, so the name tags and bubbles draw over it
-                    _signs.Add(new Shown(sign, point, panel) { HasArrow = sign.Arrow && sign.BackgroundColor != null });
+                    _signs.Add(new Shown(sign, point, panel) { HasArrow = sign.Arrow && sign.Background });
                 }
             }
 
@@ -133,7 +133,8 @@ namespace ShapeLand.Client
                 }
 
                 var target = inRange && shown.Checked && shown.InSight ? 1 : 0;
-                shown.Opacity = Mathf.MoveTowards(shown.Opacity, target, Time.unscaledDeltaTime / FadeSeconds);
+                // Behind the camera it would draw mirrored, so it goes at once instead of fading.
+                shown.Opacity = screen.z <= 0 ? 0 : Mathf.MoveTowards(shown.Opacity, target, Time.unscaledDeltaTime / FadeSeconds);
                 var label = shown.Panel;
                 label.style.display = shown.Opacity > 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 if (shown.Opacity > 0)

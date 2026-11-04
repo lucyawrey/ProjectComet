@@ -21,15 +21,22 @@ namespace ShapeLand.Client.Tests
             var worldNear = ahead + Vector3.up;
             var worldFar = eye + Camera.transform.forward * 8 + Camera.transform.up;
             var feet = View.Player.transform.position;
+
+            // The tests zone's door, a box 1 by 3 by 4 m standing at (18, 0, 12), closed until its plate is stepped on.
+            var door = new Vector3(18, 1.5f, 12);
+            var behindDoor = door + (door - eye).normalized * 1.5f;
+            var onDoor = new Vector3(eye.x < door.x ? 17.45f : 18.55f, 1.5f, 12); // just in front of the face toward the camera
             var chunk = Join.Zone.Chunks[0];
             chunk.Signs = chunk.Signs.Concat(new[]
             {
-                new Sign { Position = Vectors.ToNumerics(ahead), Text = "Near", BackgroundColor = 0x12161E, BackgroundOpacity = 0.75f, ScreenSized = true, FontSize = 20, Arrow = true },
+                new Sign { Position = Vectors.ToNumerics(ahead), Text = "Near", Background = true, BackgroundColor = 0x12161E, BackgroundOpacity = 0.75f, ScreenSized = true, FontSize = 20, Arrow = true },
                 new Sign { Position = Vectors.ToNumerics(ahead + right), Text = "Plain", TextColor = 0xFFEE00, Arrow = true },
                 new Sign { Position = Vectors.ToNumerics(ahead - right), Text = "Far", ShowDistance = 2 },
                 new Sign { Position = Vectors.ToNumerics(feet + Vector3.down * 3), Text = "Buried" },
                 new Sign { Position = Vectors.ToNumerics(worldNear), Text = "World", TextHeight = 0.3f },
                 new Sign { Position = Vectors.ToNumerics(worldFar), Text = "World far", TextHeight = 0.3f },
+                new Sign { Position = Vectors.ToNumerics(behindDoor), Text = "Behind door" },
+                new Sign { Position = Vectors.ToNumerics(onDoor), Text = "On door" },
             }).ToArray();
 
             // The signs are read as a zone is entered; turning them off and on reads the zone again.
@@ -45,6 +52,9 @@ namespace ShapeLand.Client.Tests
             Assert.That(Showing("Plain"), Is.True);
             Assert.That(Showing("Far"), Is.False, "A sign past its distance is shown.");
             Assert.That(Showing("Buried"), Is.False, "A sign behind the ground is shown.");
+            Assert.That(View.Camera.WorldToScreenPoint(behindDoor).z > 0 && View.Camera.WorldToScreenPoint(onDoor).z > 0, Is.True, "The door isn't in front of the camera.");
+            Assert.That(Showing("Behind door"), Is.False, "A sign behind a wall is shown.");
+            Assert.That(Showing("On door"), Is.True, "A sign on a wall's face is hidden by it.");
             Assert.That(Of("Near").resolvedStyle.backgroundColor.a, Is.EqualTo(0.75f).Within(0.01f));
             Assert.That(Of("Plain").resolvedStyle.backgroundColor.a, Is.EqualTo(0f), "A sign without a background has one.");
             Assert.That(Of("Plain").Q<Label>().resolvedStyle.color, Is.EqualTo(GameView.Color(0xFFEE00)));

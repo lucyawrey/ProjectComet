@@ -244,7 +244,7 @@ public class ZoneValidationTests
         zone.Chunks[1].Signs =
         [
             new Sign { Position = new Vector3(12, 6, 5), Text = "  ", TextHeight = 9 },
-            new Sign { Position = new Vector3(13, 6, 5), Text = new string('a', Sign.MaxText + 1), BackgroundColor = 0, BackgroundOpacity = 2 },
+            new Sign { Position = new Vector3(13, 6, 5), Text = new string('a', Sign.MaxText + 1), Background = true, BackgroundOpacity = 2 },
             new Sign { Position = new Vector3(-3, 6, 5), Text = "Lost", ShowDistance = 0, ScreenSized = true, FontSize = 4 },
         ];
 

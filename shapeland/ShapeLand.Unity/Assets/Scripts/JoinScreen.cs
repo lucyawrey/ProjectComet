@@ -637,7 +637,11 @@ namespace ShapeLand.Client
             // Without accounts, a designer comes back as the character they played last on the editor's server.
             if (!JoinClient.Accounts && LastDevCharacter() is { } last)
             {
-                (_devName, _devLook) = (last.Name, new NewCharacter { Shape = last.Shape, Color = last.Color, EyeColor = last.EyeColor });
+                // A shape or color since removed from the content falls back to the first.
+                int Known(int color) => _content.Colors.TryGet(color, out _) ? color : _content.Colors.All[0].Number;
+                var (color, eyeColor) = (Known(last.Color), Known(last.EyeColor));
+                var lastShape = _content.Shapes.TryGet(last.Shape, out var shape) ? shape : _content.Shapes.All[0];
+                (_devName, _devLook) = (last.Name, new NewCharacter { Shape = lastShape.Number, Color = color, EyeColor = eyeColor });
                 if (GameSettings.AutoJoin)
                 {
                     JoinFromPop();
@@ -645,8 +649,8 @@ namespace ShapeLand.Client
                 }
 
                 _name.value = last.Name;
-                _shape = _content.Shapes.TryGet(last.Shape, out var shape) ? shape : _content.Shapes.All[0];
-                (_color, _eyeColor) = (last.Color, last.EyeColor);
+                _shape = lastShape;
+                (_color, _eyeColor) = (color, eyeColor);
                 ShowStartZone(glide: false);
                 Refresh();
             }

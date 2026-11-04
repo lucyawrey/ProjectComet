@@ -58,6 +58,7 @@ color = 0xB39DDB
 offset = [0.0, 1.5, 0.0]
 text = "Theatre"
 text_color = 0xFFFFFF
+background = true
 background_color = 0x12161E
 background_opacity = 0.75
 show_distance = 45.0

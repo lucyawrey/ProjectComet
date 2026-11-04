@@ -374,8 +374,8 @@ namespace Comet.Content
         /// <summary>The text's color, as 0xRRGGBB.</summary>
         [Key(2)] public uint TextColor { get; set; } = 0xFFFFFF;
 
-        /// <summary>The color of the panel behind the text, as 0xRRGGBB, or null for no panel.</summary>
-        [Key(3)] public uint? BackgroundColor { get; set; }
+        /// <summary>The color of the panel behind the text, as 0xRRGGBB; kept while there's no panel.</summary>
+        [Key(3)] public uint BackgroundColor { get; set; }
 
         /// <summary>How opaque the panel is, from 0 to 1.</summary>
         [Key(4)] public float BackgroundOpacity { get; set; } = 1;
@@ -386,7 +386,7 @@ namespace Comet.Content
         /// <summary>A screen-sized sign's text size, in the game's interface pixels.</summary>
         [Key(6)] public float FontSize { get; set; } = 13;
 
-        /// <summary>Whether the panel has a little arrow under it pointing at the point, as speech bubbles do.</summary>
+        /// <summary>Whether the panel has a little arrow under it pointing at the point, as speech bubbles do; only with <see cref="Background"/>.</summary>
         [Key(7)] public bool Arrow { get; set; }
 
         /// <summary>
@@ -397,6 +397,9 @@ namespace Comet.Content
 
         /// <summary>A world-sized sign's text size: the height of its font, in meters.</summary>
         [Key(9)] public float TextHeight { get; set; } = 0.3f;
+
+        /// <summary>Whether there's a panel behind the text (and so the arrow, if it has one).</summary>
+        [Key(10)] public bool Background { get; set; }
     }
 
     /// <summary>Flips every placement with a tag on or off, and optionally back after a time.</summary>

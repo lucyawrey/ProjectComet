@@ -638,7 +638,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A spawn point's, teleporter's or trigger's id, volume and pad.
         // A sign's text, colors and sizes; where it is is checked by the caller.
         private static void CheckSign(Sign sign, string what, string file, Action<string, string> error)
         {
@@ -672,6 +671,7 @@ namespace Comet.ZoneFiles
             }
         }
 
+        // A spawn point's, teleporter's or trigger's id, volume, pad and sign.
         private static void CheckTrigger(string id, string kind, TriggerVolume volume, ChunkCoord chunk, string zoneName, Dictionary<string, string> idFiles, string file, Action<string, string> error)
         {
             if (!IsZonedId(id, kind) || id.Split('.')[1] != zoneName)

@@ -465,13 +465,14 @@ namespace Comet.Unity.Editor
             Position = position,
             Text = sign.text.Replace("\r\n", "\n"),
             TextColor = PlacedColors.ToRgb(sign.textColor),
-            BackgroundColor = sign.background ? PlacedColors.ToRgb(sign.backgroundColor) : (uint?)null,
-            BackgroundOpacity = sign.background ? sign.backgroundOpacity : 1,
+            Background = sign.background,
+            BackgroundColor = PlacedColors.ToRgb(sign.backgroundColor),
+            BackgroundOpacity = sign.backgroundOpacity,
             ShowDistance = sign.showDistance,
             ScreenSized = sign.screenSized,
             FontSize = sign.fontSize,
             TextHeight = sign.textHeight,
-            Arrow = sign.background && sign.arrow,
+            Arrow = sign.arrow,
         };
 
         // A sign object's fields from a zone file's sign (its position is set by the caller).
@@ -479,9 +480,9 @@ namespace Comet.Unity.Editor
         {
             component.text = sign.Text;
             component.textColor = PlacedColors.FromRgb(sign.TextColor);
-            component.background = sign.BackgroundColor != null;
-            component.backgroundColor = sign.BackgroundColor is { } back ? PlacedColors.FromRgb(back) : component.backgroundColor;
-            component.backgroundOpacity = sign.BackgroundColor != null ? sign.BackgroundOpacity : component.backgroundOpacity;
+            component.background = sign.Background;
+            component.backgroundColor = PlacedColors.FromRgb(sign.BackgroundColor);
+            component.backgroundOpacity = sign.BackgroundOpacity;
             component.showDistance = sign.ShowDistance;
             component.screenSized = sign.ScreenSized;
             component.fontSize = sign.FontSize;
