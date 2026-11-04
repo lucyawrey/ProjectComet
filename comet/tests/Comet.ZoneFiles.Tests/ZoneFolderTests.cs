@@ -369,4 +369,74 @@ public class ZoneFolderTests
 
         Assert.Equal(["chunks/0_0/main.height: Missing: the chunk lists a tile for this piece."], errors.Select(e => e.ToString()));
     }
+
+    [Fact]
+    public void SignsRoundTripReadably()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        sample.Chunks[1].Signs =
+        [
+            new Sign { Position = new Vector3(12, 6, 5), Text = "To the cave\nmind the gap", TextColor = 0xFFEE00, Background = true, BackgroundColor = 0x202030, BackgroundOpacity = 0.75f, ShowDistance = 60, ScreenSized = true, FontSize = 18, Arrow = true },
+            // Settings not in use are kept, to come back when turned on again; a turned-off sign is kept but not shown.
+            new Sign { Position = new Vector3(14, 6, 9), Text = "Plate", TextHeight = 0.5f, BackgroundColor = 0x202030, BackgroundOpacity = 0.4f, Arrow = true, FontSize = 20, Off = true },
+        ];
+        var zone = RoundTrip(sample, folder, out var errors);
+
+        Assert.Empty(errors);
+        Assert.Contains(
+            """
+            [[sign]]
+            position = [12.0, 6.0, 5.0]
+            text = "To the cave\nmind the gap"
+            text_color = 0xFFEE00
+            background = true
+            background_color = 0x202030
+            background_opacity = 0.75
+            show_distance = 60.0
+            screen_sized = true
+            font_size = 18.0
+            arrow = true
+            """.ReplaceLineEndings("\n"),
+            File.ReadAllText(folder.PathOf("chunks/0_0.toml")).ReplaceLineEndings("\n"));
+        var signs = zone.Chunks[1].Signs;
+        Assert.Equal(("To the cave\nmind the gap", 0xFFEE00u, 0x202030u, 0.75f, 60f), (signs[0].Text, signs[0].TextColor, signs[0].BackgroundColor, signs[0].BackgroundOpacity, signs[0].ShowDistance));
+        Assert.Equal((true, true, 18f, true), (signs[0].Background, signs[0].ScreenSized, signs[0].FontSize, signs[0].Arrow));
+        Assert.Equal(("Plate", 0xFFFFFFu, 45f, false, 0.5f), (signs[1].Text, signs[1].TextColor, signs[1].ShowDistance, signs[1].ScreenSized, signs[1].TextHeight));
+        Assert.Equal((false, 0x202030u, 0.4f, true, 20f), (signs[1].Background, signs[1].BackgroundColor, signs[1].BackgroundOpacity, signs[1].Arrow, signs[1].FontSize));
+        Assert.Equal((false, true), (signs[0].Off, signs[1].Off));
+        Assert.Equal(["To the cave\nmind the gap"], zone.Chunks[1].AllSigns().Select(s => s.Sign.Text));
+        Assert.Contains("text_height = 0.5", File.ReadAllText(folder.PathOf("chunks/0_0.toml")));
+    }
+
+    [Fact]
+    public void TriggerSignsRoundTripWithTheirTrigger()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        var spawn = sample.Chunks.SelectMany(c => c.Spawns).Single();
+        spawn.Volume.Sign = new Sign { Position = new Vector3(1, 3, 0), Text = "Gate", Background = true, BackgroundColor = 0x202030, Arrow = true };
+        var zone = RoundTrip(sample, folder, out var errors);
+
+        Assert.Empty(errors);
+        Assert.Contains(
+            """
+            [spawn.sign]
+            offset = [1.0, 3.0, 0.0]
+            text = "Gate"
+            """.ReplaceLineEndings("\n"),
+            File.ReadAllText(folder.PathOf("chunks/0_0.toml")).ReplaceLineEndings("\n"));
+        var chunk = zone.Chunks.Single(c => c.Spawns.Length > 0);
+        var sign = chunk.Spawns[0].Volume.Sign!;
+        Assert.Equal(("Gate", new Vector3(1, 3, 0), true), (sign.Text, sign.Position, sign.Arrow));
+
+        // Shown over its offset turned with the volume's yaw (90 degrees: +X turns to -Z).
+        var (point, shown) = chunk.AllSigns().Single();
+        Assert.Same(sign, shown);
+        Assert.True(Vector3.Distance(new Vector3(5, 7, 4), point) < 1e-4f, $"The sign is shown over {point}.");
+
+        // Turned off, it's kept with its trigger but not shown.
+        sign.Off = true;
+        Assert.Empty(chunk.AllSigns());
+    }
 }

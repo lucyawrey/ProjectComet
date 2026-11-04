@@ -146,6 +146,7 @@ namespace Comet.Unity.Editor
                 chunk.Teleporters = new Teleporter[0];
                 chunk.Triggers = new Trigger[0];
                 chunk.Volumes = new CollisionVolume[0];
+                chunk.Signs = new Sign[0];
             }
 
             editing.ZoneData = MessagePackSerializer.Serialize(zone, Serializer);
@@ -280,12 +281,18 @@ namespace Comet.Unity.Editor
                 }).ToArray();
             }
 
+            foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true).Where(s => !IsTriggerSign(s)))
+            {
+                var chunk = ChunkAt(ToNumerics(sign.transform.position));
+                chunk.Signs = chunk.Signs.Append(SignOf(sign, ToNumerics(sign.transform.position))).ToArray();
+            }
+
             // Tiles are kept whole-chunk while editing; the files keep only their ground.
             ZoneTerrainEditing.Crop(zone);
 
             // A chunk left with nothing in it is no longer part of the zone.
             zone.Chunks = chunks.Values
-                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Teleporters.Length + c.Triggers.Length + c.Volumes.Length > 0)
+                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Teleporters.Length + c.Triggers.Length + c.Volumes.Length + c.Signs.Length > 0)
                 .OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z)
                 .ToArray();
             return zone;
@@ -304,8 +311,16 @@ namespace Comet.Unity.Editor
                 StandSeconds = trigger.standSeconds,
                 Rearm = (Rearm)trigger.rearm,
                 Pad = trigger.Pad is { } pad ? PlacementOf(pad) : null,
+                // From the volume's bottom center, turned back by its yaw: the sign's place in the volume's own space.
+                Sign = trigger.Sign is { } sign
+                    ? SignOf(sign, ToNumerics(Quaternion.Euler(0, -t.eulerAngles.y, 0) * (sign.transform.position - t.position)))
+                    : null,
             };
         }
+
+        // Whether a sign is saved with a trigger (a direct child of one) rather than on its own.
+        private static bool IsTriggerSign(ZoneSign sign) =>
+            sign.transform.parent != null && sign.transform.parent.GetComponent<ZoneTrigger>() is { } trigger && trigger.Sign == sign;
 
         /// <summary>
         /// Redraws a zone's terrain preview from <paramref name="zone"/>'s pieces: only the chunks in
@@ -359,8 +374,15 @@ namespace Comet.Unity.Editor
                     chunk = Child(terrain, name);
                     chunk.gameObject.hideFlags = HideFlags.NotEditable | HideFlags.DontSaveInEditor;
                     chunk.localPosition = new Vector3(mesh.Key.Origin.X, mesh.Key.Origin.Y, mesh.Key.Origin.Z);
-                    chunk.gameObject.AddComponent<MeshFilter>().sharedMesh = new Mesh { name = name };
+                    chunk.gameObject.AddComponent<MeshFilter>();
                     chunk.gameObject.AddComponent<MeshRenderer>();
+                }
+
+                // Made here too for a chunk whose mesh was lost (it's in no asset), as a script reload can.
+                var filter = chunk.GetComponent<MeshFilter>();
+                if (filter.sharedMesh == null)
+                {
+                    filter.sharedMesh = new Mesh { name = name };
                 }
 
                 chunk.GetComponent<MeshRenderer>().sharedMaterial = settings.terrainMaterial;
@@ -409,6 +431,13 @@ namespace Comet.Unity.Editor
                     component.chargeColor = trigger.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.triggerChargeColor;
                 }
 
+                foreach (var sign in chunk.Signs)
+                {
+                    var component = Child(root.Find(SignsFolder) ?? Child(root, SignsFolder), SignName(sign.Text)).gameObject.AddComponent<ZoneSign>();
+                    component.transform.position = ToUnity(sign.Position);
+                    Fill(component, sign);
+                }
+
                 foreach (var volume in chunk.Volumes)
                 {
                     var box = Child(volumes, $"{volume.Kind} volume");
@@ -419,6 +448,76 @@ namespace Comet.Unity.Editor
                     component.size = ToUnity(volume.Size);
                 }
             }
+        }
+
+        private const string SignsFolder = "Signs";
+
+        // A sign's object name: its first line, shortened.
+        private static string SignName(string text)
+        {
+            var line = text.Split('\n')[0].Trim();
+            return "Sign " + (line.Length > 24 ? line.Substring(0, 24) + "…" : line);
+        }
+
+        // A sign as the scene has it, at the given position.
+        private static Sign SignOf(ZoneSign sign, System.Numerics.Vector3 position) => new Sign
+        {
+            Position = position,
+            Text = sign.text.Replace("\r\n", "\n"),
+            TextColor = PlacedColors.ToRgb(sign.textColor),
+            Background = sign.background,
+            BackgroundColor = PlacedColors.ToRgb(sign.backgroundColor),
+            BackgroundOpacity = sign.backgroundOpacity,
+            ShowDistance = sign.showDistance,
+            ScreenSized = sign.screenSized,
+            FontSize = sign.fontSize,
+            TextHeight = sign.textHeight,
+            Arrow = sign.arrow,
+            Off = !sign.gameObject.activeSelf,
+        };
+
+        // A sign object's fields from a zone file's sign (its position is set by the caller).
+        private static void Fill(ZoneSign component, Sign sign)
+        {
+            component.text = sign.Text;
+            component.textColor = PlacedColors.FromRgb(sign.TextColor);
+            component.background = sign.Background;
+            component.backgroundColor = PlacedColors.FromRgb(sign.BackgroundColor);
+            component.backgroundOpacity = sign.BackgroundOpacity;
+            component.showDistance = sign.ShowDistance;
+            component.screenSized = sign.ScreenSized;
+            component.fontSize = sign.FontSize;
+            component.textHeight = sign.TextHeight;
+            component.arrow = sign.Arrow;
+            component.gameObject.SetActive(!sign.Off); // turned off (unchecked): kept but not shown in the game
+        }
+
+        /// <summary>
+        /// Adds a sign to a spawn point, teleporter or trigger, saved with it: over the middle of its volume's top,
+        /// with a new sign's defaults and its arrow on.
+        /// </summary>
+        public static ZoneSign AddSign(ZoneTrigger trigger)
+        {
+            var sign = Child(trigger.transform, $"{trigger.id} sign").gameObject.AddComponent<ZoneSign>();
+            sign.transform.localPosition = Vector3.up * (trigger.size.y + TriggerSignLift);
+            sign.text = "Sign";
+            sign.arrow = true; // pointing down at its trigger
+            Undo.RegisterCreatedObjectUndo(sign.gameObject, "Add Sign");
+            return sign;
+        }
+
+        // How far above a trigger's volume a sign added to it goes, in meters.
+        private const float TriggerSignLift = 0.5f;
+
+        /// <summary>Adds a sign at <paramref name="position"/> in an opened zone, with a new sign's defaults.</summary>
+        public static ZoneSign AddSign(ZoneEditing editing, Vector3 position)
+        {
+            var parent = editing.transform.Find(SignsFolder) ?? Child(editing.transform, SignsFolder);
+            var sign = Child(parent, "Sign").gameObject.AddComponent<ZoneSign>();
+            sign.transform.position = position;
+            sign.text = "Sign";
+            Undo.RegisterCreatedObjectUndo(sign.gameObject, "Add sign");
+            return sign;
         }
 
         // The folder objects each kind of trigger goes under.
@@ -442,6 +541,13 @@ namespace Comet.Unity.Editor
             {
                 var thing = CreatePlaced(pad, point, settings, PadColor(component, settings));
                 thing.name = $"{id} pad";
+            }
+
+            if (volume.Sign is { } sign)
+            {
+                var child = Child(point, $"{id} sign").gameObject.AddComponent<ZoneSign>();
+                child.transform.localPosition = ToUnity(sign.Position);
+                Fill(child, sign);
             }
 
             return component;
@@ -759,11 +865,13 @@ namespace Comet.Unity.Editor
             EditorUtility.DisplayDialog(title, errors.Count > 8 ? $"{shown}\n…and {errors.Count - 8} more (see the Console)." : shown, "OK");
         }
 
-        /// <summary>Draws an opened zone's terrain preview again if it's missing (it isn't saved with the scene).</summary>
+        /// <summary>Draws an opened zone's terrain preview again if it or a chunk's mesh is missing (they aren't saved with the scene).</summary>
         public static void RedrawIfMissing(ZoneEditing editing)
         {
             var settings = CometSettings.Find(quiet: true);
-            if (settings == null || !editing.HasZoneData || editing.transform.Find(TerrainName) != null)
+            var terrain = editing.transform.Find(TerrainName);
+            var drawn = terrain != null && terrain.Cast<Transform>().All(c => c.GetComponent<MeshFilter>() is { } f && f.sharedMesh != null && f.sharedMesh.vertexCount > 0);
+            if (settings == null || !editing.HasZoneData || drawn)
             {
                 return;
             }

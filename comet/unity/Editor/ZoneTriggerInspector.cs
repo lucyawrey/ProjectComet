@@ -6,7 +6,7 @@ namespace Comet.Unity.Editor
 {
     /// <summary>
     /// A spawn point's, teleporter's or trigger's Inspector: its fields, then buttons to fit its volume to its pad after
-    /// the pad is moved or resized, or to give it a pad if it has none.
+    /// the pad is moved or resized, or to give it a pad if it has none, and to add or select its sign.
     /// </summary>
     [CustomEditor(typeof(ZoneTrigger), true)]
     internal sealed class ZoneTriggerInspector : UnityEditor.Editor
@@ -22,13 +22,22 @@ namespace Comet.Unity.Editor
                 {
                     ZoneEditor.FitToPad(trigger);
                 }
-
-                return;
             }
-
-            if (GUILayout.Button(new GUIContent("Add Pad", "A flat solid primitive under the volume, as wide and deep as it, for players to stand on: square under a box volume, round under a cylinder or sphere.")))
+            else if (GUILayout.Button(new GUIContent("Add Pad", "A flat solid primitive under the volume, as wide and deep as it, for players to stand on: square under a box volume, round under a cylinder or sphere.")))
             {
                 AddPad(trigger);
+            }
+
+            if (trigger.Sign is { } sign)
+            {
+                if (GUILayout.Button(new GUIContent("Select Sign", "The sign shown with it: its child, saved with it, so it moves with it.")))
+                {
+                    Selection.activeGameObject = sign.gameObject;
+                }
+            }
+            else if (GUILayout.Button(new GUIContent("Add Sign", "A sign over the middle of the volume's top, saved with it, so it moves with it. Move it like any object after.")))
+            {
+                Selection.activeGameObject = ZoneEditor.AddSign(trigger).gameObject;
             }
         }
 

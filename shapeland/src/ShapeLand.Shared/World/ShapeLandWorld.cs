@@ -74,7 +74,7 @@ namespace ShapeLand.Shared.World
         }
 
         /// <summary>The <see cref="CollisionMesh.Kind"/> of each kind of mesh in a zone's world.</summary>
-        public const string PropKind = "prop", PrimitiveKind = "primitive";
+        public const string PropKind = "prop", PrimitiveKind = "primitive", WallKind = "wall";
 
         /// <summary>The world of <paramref name="zone"/>, one of <paramref name="content"/>'s, the same on client and server.</summary>
         public static CollisionWorld Create(ShapeLandContent content, Zone zone)
@@ -103,7 +103,7 @@ namespace ShapeLand.Shared.World
                     if (volume.Kind == VolumeKind.Wall)
                     {
                         var mesh = CollisionMesh.Box(volume.Size, Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(volume.Rotation)) * Matrix4x4.CreateTranslation(volume.Position));
-                        mesh.Kind = PrimitiveKind;
+                        mesh.Kind = WallKind;
                         meshes.Add(mesh);
                     }
                 }

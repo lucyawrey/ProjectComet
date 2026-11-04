@@ -107,4 +107,34 @@ public class CollisionWorldTests
         Assert.Equal(1f, top);
         Assert.True(world.IsBlocked(new Vector3(55, 0.5f, 40), 0.4f, 1));
     }
+
+    [Fact]
+    public void LinesAreBlockedByMeshesAndTerrainInTheirWay()
+    {
+        Assert.False(_world.IsLineBlocked(new Vector3(1, 2, 1), new Vector3(1, 2, 12)));
+        Assert.True(_world.IsLineBlocked(new Vector3(4, 2, 0), new Vector3(4, 2, 8))); // through the cube
+        Assert.True(_world.IsLineBlocked(new Vector3(0.5f, 2, 0.5f), new Vector3(10, 2, 10))); // across cells, through the cube
+        Assert.True(_world.IsLineBlocked(new Vector3(8, 2, 8), new Vector3(8, 0, 8))); // into the ground
+        Assert.False(_world.IsLineBlocked(new Vector3(4, 2, 0), new Vector3(4, 2, 2.9f))); // stops short of the cube
+    }
+
+    [Fact]
+    public void LinesFromInsideAMeshSeeOut()
+    {
+        Assert.False(_world.IsLineBlocked(new Vector3(4, 2, 4), new Vector3(4, 2, 8)));
+    }
+
+    [Fact]
+    public void LinesPassMeshesThatAreOffOrPassedThrough()
+    {
+        var wall = TestWorlds.Block(8, 8, 1, new Vector3(4, 3, 0.5f));
+        wall.Tag = "wall";
+        var world = TestWorlds.Create(wall);
+        Vector3 from = new(8, 2, 5), to = new(8, 2, 11);
+        Assert.True(world.IsLineBlocked(from, to));
+        Assert.False(world.IsLineBlocked(from, to, new HashSet<int>(world.MeshesTagged("wall"))));
+
+        world.SetFlipped("wall", true);
+        Assert.False(world.IsLineBlocked(from, to));
+    }
 }

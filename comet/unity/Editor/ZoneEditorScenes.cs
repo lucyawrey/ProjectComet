@@ -10,7 +10,7 @@ namespace Comet.Unity.Editor
 {
     /// <summary>
     /// Ties the zone editor to Unity's own scene workflow: saving a zone's working scene (File › Save, Ctrl+S) saves
-    /// the zone's files, a zone's terrain preview is drawn again when its scene opens or play mode ends, and play mode
+    /// the zone's files, a zone's terrain preview is drawn again when its scene opens, play mode ends or scripts reload, and play mode
     /// always starts in the game's own scene (the settings' Play Scene), so it plays the zone from content. A spawn
     /// point that's duplicated or pasted gets a fresh id, and isn't the default.
     /// </summary>
@@ -41,8 +41,19 @@ namespace Comet.Unity.Editor
 
             ObjectChangeEvents.changesPublished += FreshTriggerIds;
 
-            // The asset database isn't ready while scripts load.
-            EditorApplication.delayCall += () => SetPlayScene(CometSettings.Find(quiet: true));
+            // The asset database isn't ready while scripts load. This runs after every script reload, which can lose
+            // the terrain preview.
+            EditorApplication.delayCall += () =>
+            {
+                SetPlayScene(CometSettings.Find(quiet: true));
+                if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    for (var i = 0; i < SceneManager.sceneCount; i++)
+                    {
+                        Redraw(SceneManager.GetSceneAt(i));
+                    }
+                }
+            };
         }
 
         /// <summary>While true, saving a scene doesn't save its zone (as when a zone is opened and its scene first saved).</summary>

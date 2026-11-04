@@ -8,13 +8,13 @@ namespace Comet.Unity
     /// A prop, a primitive or a group copy placed in a zone opened in the editor (or in a group being edited): the
     /// object's transform is the placement's. A primitive's mesh is built at its size: the scale tool edits
     /// <see cref="size"/>, and any other scale is folded into it once a resize ends. A group copy's parts are drawn
-    /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy.
+    /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy (a prop or copy
+    /// carries a <see cref="ZonePickRoot"/> for that).
     /// Turning the object off (its checkbox) makes a placement that starts off: hidden and not solid in the game
     /// until a trigger flips it on by its tag.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
-    [SelectionBase]
     public sealed class ZonePlacement : MonoBehaviour
     {
         [Tooltip("The prop's id (prop.rock); empty for a primitive or a group copy.")]
@@ -92,7 +92,11 @@ namespace Comet.Unity
         public bool EditingInPlace
         {
             get => editingInPlace;
-            set => editingInPlace = value;
+            set
+            {
+                editingInPlace = value;
+                SyncPickRoot();
+            }
         }
 
         /// <summary>Whether this is placed in the zone itself, not a part of a copy whose group is being edited in place.</summary>
@@ -206,6 +210,10 @@ namespace Comet.Unity
 
         private void OnEnable()
         {
+#if UNITY_EDITOR
+            // Once whoever added it has set what it is.
+            UnityEditor.EditorApplication.delayCall += SyncPickRoot;
+#endif
             Rebuild();
             ApplyColor();
             if (IsGroup && !editingInPlace)
@@ -225,7 +233,29 @@ namespace Comet.Unity
 #if UNITY_EDITOR
             // Meshes can't be swapped in OnValidate itself.
             UnityEditor.EditorApplication.delayCall += Rebuild;
+            UnityEditor.EditorApplication.delayCall += SyncPickRoot;
 #endif
+        }
+
+        // Props and group copies are selected by a click on their meshes or parts; primitives aren't selection bases,
+        // and nor is a copy whose group is edited in place, so its parts are clicked straight.
+        private void SyncPickRoot()
+        {
+            if (this == null || Application.isPlaying)
+            {
+                return;
+            }
+
+            var wanted = IsGroup ? !editingInPlace : !isPrimitive;
+            var root = GetComponent<ZonePickRoot>();
+            if (wanted && root == null)
+            {
+                gameObject.AddComponent<ZonePickRoot>().hideFlags = HideFlags.HideInInspector;
+            }
+            else if (!wanted && root != null)
+            {
+                DestroyImmediate(root);
+            }
         }
     }
 }

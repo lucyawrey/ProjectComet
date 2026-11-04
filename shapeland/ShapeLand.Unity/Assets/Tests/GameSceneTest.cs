@@ -53,6 +53,7 @@ namespace ShapeLand.Client.Tests
 
             InputSystem.settings.editorInputBehaviorInPlayMode = _editorInput;
             InputSystem.settings.backgroundBehavior = _background;
+            JoinScreen.DevCharactersFile = null;
             if (Server != null)
             {
                 if (Server.Address != null)
@@ -76,6 +77,7 @@ namespace ShapeLand.Client.Tests
 
             // A session of the tests' own, empty at the start: every test begins as a new player.
             JoinClient.TokenKey = "tests-login-token";
+            JoinScreen.DevCharactersFile = ""; // not the editor server's characters: a new player
             if (accounts)
             {
                 JoinClient.ForgetToken(Server.Address);
@@ -90,7 +92,6 @@ namespace ShapeLand.Client.Tests
             Tags = Object.FindAnyObjectByType<NameTags>();
             NetStats = Object.FindAnyObjectByType<NetStats>();
             Camera = Object.FindAnyObjectByType<OrbitCamera>();
-            Screen.Remember = false;
             NetStats.Remember = false;
             if (NetStats.Shown)
             {

@@ -11,15 +11,15 @@ namespace Comet.Unity.Editor
 {
     /// <summary>
     /// The Scene view's place tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Place
-    /// Tool): pick a primitive, a prop, or a new spawn point, teleporter or trigger in its panel, then click in the
-    /// scene to place it on whatever is under the mouse. Placed objects are moved, turned and scaled with Unity's own
-    /// tools; spawn points, teleporters and triggers are edited in the Inspector.
+    /// Tool): pick a primitive, a prop, or a new spawn point, teleporter, trigger or sign in its panel, then click in
+    /// the scene to place it on whatever is under the mouse. Placed objects are moved, turned and scaled with Unity's
+    /// own tools; spawn points, teleporters, triggers and signs are edited in the Inspector.
     /// </summary>
     [EditorTool("Zone Place")]
     public sealed class ZonePlaceTool : EditorTool
     {
         [SerializeField] private string placeable = "";
-        // The kind of trigger to add (spawn, teleporter or trigger), or empty to place placeables; and its id.
+        // The kind of thing to add (spawn, teleporter, trigger or sign), or empty to place placeables; and its id (none for signs).
         [SerializeField] private string adding = "";
         [SerializeField] private string addingId = "";
         [SerializeField] private string groupId = "group.";
@@ -38,7 +38,7 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Place Tool", true)]
         private static bool CanSelect() => Editing != null;
 
-        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Prefab Icon").image, "Zone Place: place primitives, props, spawn points, teleporters and triggers in the opened zone");
+        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Prefab Icon").image, "Zone Place: place primitives, props, spawn points, teleporters, triggers and signs in the opened zone");
 
         public override bool IsAvailable() => Editing != null;
 
@@ -314,7 +314,7 @@ namespace Comet.Unity.Editor
             Adder("teleporter", "New teleporter", settings.teleporterPad, settings.teleporterPadSize, settings.teleporterPadColor);
             Adder("trigger", "New trigger", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
-            if (adding.Length > 0)
+            if (adding.Length > 0 && adding != "sign")
             {
                 EditorGUILayout.LabelField("ID");
                 addingId = EditorGUILayout.TextField(addingId);
@@ -329,9 +329,24 @@ namespace Comet.Unity.Editor
                 }
             }
 
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Signs", EditorStyles.boldLabel);
+            EditorGUILayout.BeginHorizontal();
+            Adder("sign", "New sign", "", Vector3.zero, Color.white);
+            EditorGUILayout.EndHorizontal();
+            foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
+            {
+                var on = sign.transform.parent != null && sign.transform.parent.GetComponent<ZoneTrigger>() is { } trigger && trigger.Sign == sign ? $" ({trigger.id})" : "";
+                if (GUILayout.Button(sign.text.Split('\n')[0] + on, EditorStyles.linkLabel))
+                {
+                    Selection.activeGameObject = sign.gameObject;
+                    SceneView.lastActiveSceneView?.FrameSelected();
+                }
+            }
+
             EditorGUILayout.HelpBox(adding.Length > 0 || !string.IsNullOrEmpty(placeable)
                 ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
-                : "Pick a primitive, a prop, a group, or a new spawn point, teleporter or trigger, then click in the scene to place it.", MessageType.None);
+                : "Pick a primitive, a prop, a group, or a new spawn point, teleporter, trigger or sign, then click in the scene to place it.", MessageType.None);
             EditorGUILayout.EndVertical();
         }
 
@@ -424,6 +439,13 @@ namespace Comet.Unity.Editor
                 }
 
                 Selection.activeGameObject = placed;
+                return;
+            }
+
+            if (adding == "sign")
+            {
+                // A little above the ground, so its text isn't half in it.
+                Selection.activeGameObject = ZoneEditor.AddSign(editing, at + Vector3.up * 1.5f).gameObject;
                 return;
             }
 

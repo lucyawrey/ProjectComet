@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 910666499}
   - component: {fileID: 910666504}
   - component: {fileID: 910666503}
+  - component: {fileID: 910666507}
   - component: {fileID: 910666506}
   - component: {fileID: 910666505}
   m_Layer: 0
@@ -219,6 +220,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ea0bb851f71e3ac0ab871b06443e8cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.NameTags
+--- !u!114 &910666507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910666498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8310348e065f4925b12df08300886845, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.Signs
 --- !u!114 &910666504
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -12,8 +12,9 @@ namespace Comet.ZoneFiles
     /// <summary>
     /// Checks what a zone's files mean, after <see cref="ZoneFolder.Read"/> has checked their form: ids and names,
     /// tiles that name a known piece and fit their chunk, terrain that matches where a piece's tiles meet, objects
-    /// whose pivots are in their own chunk, spawn, teleporter and trigger ids that name their zone, and toggle effects
-    /// that name placements in it. Run by the content build, and by the editor before it saves.
+    /// whose pivots are in their own chunk, spawn, teleporter and trigger ids that name their zone, signs' text and
+    /// ranges, and toggle effects that name placements in it. Run by the content build, and by the editor before it
+    /// saves.
     /// </summary>
     public static class ZoneValidation
     {
@@ -153,6 +154,12 @@ namespace Comet.ZoneFiles
                             Error(file, $"{trigger.Id}: revert_seconds can't be negative.");
                         }
                     }
+                }
+
+                foreach (var sign in chunk.Signs)
+                {
+                    CheckPivot(chunk.Coord, sign.Position, "sign", file, Error);
+                    CheckSign(sign, $"sign at {Text(sign.Position)}", file, Error);
                 }
 
                 foreach (var volume in chunk.Volumes)
@@ -631,7 +638,40 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A spawn point's, teleporter's or trigger's id, volume and pad.
+        // A sign's text, colors and sizes; where it is is checked by the caller.
+        private static void CheckSign(Sign sign, string what, string file, Action<string, string> error)
+        {
+            if (string.IsNullOrWhiteSpace(sign.Text))
+            {
+                error(file, $"{what}: its text is empty.");
+            }
+            else if (sign.Text.Length > Sign.MaxText)
+            {
+                error(file, $"{what}: its text is {sign.Text.Length} characters long; the most is {Sign.MaxText}.");
+            }
+
+            if (sign.BackgroundOpacity < 0 || sign.BackgroundOpacity > 1)
+            {
+                error(file, $"{what}: background_opacity should be 0 to 1.");
+            }
+
+            if (sign.ShowDistance < 1 || sign.ShowDistance > Sign.MaxShowDistance)
+            {
+                error(file, $"{what}: show_distance should be 1 to {Sign.MaxShowDistance} meters.");
+            }
+
+            if (sign.ScreenSized && (sign.FontSize < Sign.MinFontSize || sign.FontSize > Sign.MaxFontSize))
+            {
+                error(file, $"{what}: font_size should be {Sign.MinFontSize} to {Sign.MaxFontSize}.");
+            }
+
+            if (!sign.ScreenSized && (sign.TextHeight < Sign.MinTextHeight || sign.TextHeight > Sign.MaxTextHeight))
+            {
+                error(file, $"{what}: text_height should be {Sign.MinTextHeight} to {Sign.MaxTextHeight} meters.");
+            }
+        }
+
+        // A spawn point's, teleporter's or trigger's id, volume, pad and sign.
         private static void CheckTrigger(string id, string kind, TriggerVolume volume, ChunkCoord chunk, string zoneName, Dictionary<string, string> idFiles, string file, Action<string, string> error)
         {
             if (!IsZonedId(id, kind) || id.Split('.')[1] != zoneName)
@@ -680,6 +720,12 @@ namespace Comet.ZoneFiles
                 }
 
                 CheckPivot(chunk, pad.Position, $"{id}'s pad", file, error);
+            }
+
+            if (volume.Sign is { } sign)
+            {
+                // Its offset may reach into the next chunk: it goes with its trigger.
+                CheckSign(sign, $"{id}'s sign", file, error);
             }
         }
 

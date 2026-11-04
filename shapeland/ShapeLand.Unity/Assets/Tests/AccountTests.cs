@@ -95,6 +95,32 @@ namespace ShapeLand.Client.Tests
         }
 
         [UnityTest]
+        public IEnumerator SigningOutStartsTheCardFreshAndLeavingAfterSignInShowsTheSignedInCard()
+        {
+            yield return StartGame(accounts: true);
+            yield return OpenAccount();
+            ClickRow(Hud.Root.Q("account-password-row"));
+            yield return SetPassword(Password);
+            yield return SignOutFromThePage();
+            Assert.That(Field("name").value, Is.Empty, "The card kept the signed-out player's name.");
+            Assert.That(ShapeButton(Join.Content.Shapes.All[0].Id).ClassListContains("on"), Is.True, "The card kept the signed-out player's shape.");
+
+            // Signing in from the Sign In page, then leaving, comes back to the signed-in card rather than that page.
+            yield return LaidOut("sign-in-button");
+            Click(Screen.Root.Q<Button>("sign-in-button"));
+            yield return null;
+            Field("sign-in-username").value = "UnityTest";
+            Field("sign-in-password").value = Password;
+            Click(Screen.Root.Q<Button>("join-button"));
+            yield return TestGameServer.WaitFor(() => View.Player != null || Screen.Error != null, 15);
+            Assert.That(View.Player, Is.Not.Null, "Never spawned.");
+            Join.Leave();
+            yield return TestGameServer.WaitFor(() => Screen.Showing, 10);
+            Assert.That(Screen.SignedInCard, Is.True, "Leaving didn't show the signed-in card.");
+            Assert.That(Screen.Root.ClassListContains("signing-in"), Is.False, "Leaving went back to the Sign In page.");
+        }
+
+        [UnityTest]
         public IEnumerator ChangesAskForThePasswordAgainOnceTheSignInIsOld()
         {
             yield return StartGame(accounts: true, loginArguments: Recent);

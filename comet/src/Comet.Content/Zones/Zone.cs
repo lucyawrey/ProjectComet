@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using MessagePack;
 
@@ -117,6 +119,25 @@ namespace Comet.Content
         [Key(5)] public Teleporter[] Teleporters { get; set; } = new Teleporter[0];
 
         [Key(6)] public Trigger[] Triggers { get; set; } = new Trigger[0];
+
+        [Key(7)] public Sign[] Signs { get; set; } = new Sign[0];
+
+        /// <summary>Every sign in the chunk with the world point it's shown over: its own signs, then those on its spawns, teleporters and triggers.</summary>
+        public IEnumerable<(Vector3 Point, Sign Sign)> AllSigns()
+        {
+            foreach (var sign in Signs.Where(s => !s.Off))
+            {
+                yield return (sign.Position, sign);
+            }
+
+            foreach (var volume in Spawns.Select(s => s.Volume).Concat(Teleporters.Select(t => t.Volume)).Concat(Triggers.Select(t => t.Volume)))
+            {
+                if (volume.Sign is { Off: false } sign)
+                {
+                    yield return (volume.ToWorld(sign.Position), sign);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -254,6 +275,17 @@ namespace Comet.Content
 
         /// <summary>The solid primitive drawn under the volume (in world space, never toggled), or null for none.</summary>
         [Key(6)] public Placement? Pad { get; set; }
+
+        /// <summary>A sign shown with it (its position from the volume's bottom center, turned with its yaw), or null for none.</summary>
+        [Key(7)] public Sign? Sign { get; set; }
+
+        /// <summary>A point in the volume's own space (from its bottom center, turned with its yaw) in world meters.</summary>
+        public Vector3 ToWorld(Vector3 local)
+        {
+            var radians = Yaw * MathF.PI / 180;
+            var (sin, cos) = (MathF.Sin(radians), MathF.Cos(radians));
+            return Position + new Vector3(local.X * cos + local.Z * sin, local.Y, -local.X * sin + local.Z * cos);
+        }
     }
 
     /// <summary>
@@ -312,6 +344,65 @@ namespace Comet.Content
 
         /// <summary>The color its pad turns toward while a player stands in it, as 0xRRGGBB, or null to leave it to the game.</summary>
         [Key(4)] public uint? ChargeColor { get; set; }
+    }
+
+    /// <summary>Text shown over a point, such as a label by a teleporter. How it's drawn is game policy.</summary>
+    [MessagePackObject]
+    public sealed class Sign
+    {
+        /// <summary>The most characters a sign's text has.</summary>
+        public const int MaxText = 200;
+
+        /// <summary>The farthest a sign can be seen, in meters.</summary>
+        public const float MaxShowDistance = 200;
+
+        /// <summary>The smallest and largest font sizes of screen-sized signs, in the game's interface pixels.</summary>
+        public const float MinFontSize = 8, MaxFontSize = 48;
+
+        /// <summary>The smallest and largest text heights of world-sized signs, in meters.</summary>
+        public const float MinTextHeight = 0.05f, MaxTextHeight = 5;
+
+        /// <summary>
+        /// The point the text is shown over, in world meters; it lies in its chunk. A trigger's sign has it from its
+        /// volume's bottom center instead (<see cref="TriggerVolume.Sign"/>).
+        /// </summary>
+        [Key(0)] public Vector3 Position { get; set; }
+
+        /// <summary>The text, plain (line breaks allowed).</summary>
+        [Key(1)] public string Text { get; set; } = "";
+
+        /// <summary>The text's color, as 0xRRGGBB.</summary>
+        [Key(2)] public uint TextColor { get; set; } = 0xFFFFFF;
+
+        /// <summary>The color of the panel behind the text, as 0xRRGGBB; kept while there's no panel.</summary>
+        [Key(3)] public uint BackgroundColor { get; set; }
+
+        /// <summary>How opaque the panel is, from 0 to 1.</summary>
+        [Key(4)] public float BackgroundOpacity { get; set; } = 1;
+
+        /// <summary>How far away it's shown, in meters.</summary>
+        [Key(5)] public float ShowDistance { get; set; } = 45;
+
+        /// <summary>A screen-sized sign's text size, in the game's interface pixels.</summary>
+        [Key(6)] public float FontSize { get; set; } = 13;
+
+        /// <summary>Whether the panel has a little arrow under it pointing at the point, as speech bubbles do; only with <see cref="Background"/>.</summary>
+        [Key(7)] public bool Arrow { get; set; }
+
+        /// <summary>
+        /// Whether it's one size on screen at any distance (<see cref="FontSize"/>), like a name tag, rather than sized
+        /// in the world (<see cref="TextHeight"/>), smaller further away.
+        /// </summary>
+        [Key(8)] public bool ScreenSized { get; set; }
+
+        /// <summary>A world-sized sign's text size: the height of its font, in meters.</summary>
+        [Key(9)] public float TextHeight { get; set; } = 0.3f;
+
+        /// <summary>Whether there's a panel behind the text (and so the arrow, if it has one).</summary>
+        [Key(10)] public bool Background { get; set; }
+
+        /// <summary>Whether it's turned off: kept in the zone but not shown (left out of <see cref="ZoneChunk.AllSigns"/>).</summary>
+        [Key(11)] public bool Off { get; set; }
     }
 
     /// <summary>Flips every placement with a tag on or off, and optionally back after a time.</summary>
