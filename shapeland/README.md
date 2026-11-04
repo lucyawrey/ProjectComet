@@ -60,7 +60,7 @@ Every label and message players see, by key (`[join]` then `name_taken` is `join
 
 ### Bots and the content build
 
-`src/ShapeLand.Bots` runs headless players (honest wanderers, optional cheaters) for load and network runs. `src/ShapeLand.ContentBuild` compiles `content/` into `artifacts/content/shapeland/content.bin`.
+`src/ShapeLand.Bots` runs headless players (honest wanderers, optional cheaters) for load and network runs. They sign in as guests on the Login server, or with `--dev` join the editor's server without accounts by name (`--server` its address), as the editor starts them with Use Accounts off; a person and a bot can't share a name there. `src/ShapeLand.ContentBuild` compiles `content/` into `artifacts/content/shapeland/content.bin`.
 
 ## Building the level
 

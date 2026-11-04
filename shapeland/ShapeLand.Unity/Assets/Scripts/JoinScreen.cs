@@ -677,6 +677,7 @@ namespace ShapeLand.Client
         private sealed class DevCharacter
         {
             public long Id;
+            public long AccountId;
             public string Name = "";
             public int Shape, Color, EyeColor;
             public bool IsDeleted;
@@ -690,6 +691,9 @@ namespace ShapeLand.Client
         }
 
         // The character last played on the editor's server (the latest status saved), or null for none or no file.
+        // The editor server's account for people's characters (ShapeLand.GameServer's DevCharacters.AccountId).
+        private const long PeopleAccount = 1;
+
         private static DevCharacter LastDevCharacter()
         {
             try
@@ -701,7 +705,8 @@ namespace ShapeLand.Client
                 }
 
                 var file = JsonUtility.FromJson<DevFile>(System.IO.File.ReadAllText(path));
-                var live = file?.Characters?.Where(c => !c.IsDeleted && c.Name.Length > 0).ToList();
+                // People's characters only: the editor's bots have their own account.
+                var live = file?.Characters?.Where(c => !c.IsDeleted && c.Name.Length > 0 && c.AccountId == PeopleAccount).ToList();
                 if (live == null || live.Count == 0)
                 {
                     return null;

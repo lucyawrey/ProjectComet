@@ -849,7 +849,17 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            var arguments = settings.botsArguments
+            // Without accounts the bots join by name, if the game has a way for them to.
+            var template = state.dev ? settings.botsDevArguments : state.loginPort > 0 ? settings.botsArguments : "";
+            if (string.IsNullOrEmpty(template))
+            {
+                Debug.LogWarning(state.dev
+                    ? "The bots need accounts here: the Comet settings name no Bots Dev Arguments, so no bots start without Use Accounts."
+                    : "The bots need a Login server, so no bots start: turn on Comet › Server › Use Accounts.");
+                return;
+            }
+
+            var arguments = template
                 .Replace("{url}", $"ws://localhost:{state.port}/ws")
                 .Replace("{login}", $"http://localhost:{state.loginPort}")
                 .Replace("{count}", state.bots.ToString());

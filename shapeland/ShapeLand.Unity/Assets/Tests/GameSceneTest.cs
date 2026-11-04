@@ -68,7 +68,7 @@ namespace ShapeLand.Client.Tests
 
         // Loads the Game scene against a fresh server (with the Login server too, given accounts) and, unless the
         // test drives the card itself, joins as "UnityTest" with the card's choices.
-        protected IEnumerator StartGame(bool join = true, bool accounts = false, string loginArguments = "")
+        protected IEnumerator StartGame(bool join = true, bool accounts = false, string loginArguments = "", string devCharacters = "")
         {
             TestGameServer.LoadContent();
 
@@ -77,7 +77,7 @@ namespace ShapeLand.Client.Tests
 
             // A session of the tests' own, empty at the start: every test begins as a new player.
             JoinClient.TokenKey = "tests-login-token";
-            JoinScreen.DevCharactersFile = ""; // not the editor server's characters: a new player
+            JoinScreen.DevCharactersFile = devCharacters; // not the editor server's characters unless given: a new player
             if (accounts)
             {
                 JoinClient.ForgetToken(Server.Address);

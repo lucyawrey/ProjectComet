@@ -13,6 +13,30 @@ namespace ShapeLand.Client.Tests
     // changing the look in game, and coming back after a lost connection.
     public class JoinScreenTests : GameSceneTest
     {
+        // Without accounts the card comes back as the person last played on the editor's server, never as one of its
+        // bots, though the bots saved their spots later.
+        [UnityTest]
+        public IEnumerator WithoutAccountsTheCardComesBackAsTheLastPersonNotABot()
+        {
+            var file = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"shapeland-dev-{System.Guid.NewGuid():N}.json");
+            System.IO.File.WriteAllText(file,
+                "{\"Characters\":[{\"Id\":1,\"AccountId\":1,\"Name\":\"Ada\",\"Shape\":1,\"Color\":1,\"EyeColor\":1,\"IsDeleted\":false}," +
+                "{\"Id\":2,\"AccountId\":2,\"Name\":\"Bot0001\",\"Shape\":1,\"Color\":1,\"EyeColor\":1,\"IsDeleted\":false}]," +
+                "\"Statuses\":[{\"CharacterId\":1,\"UpdatedAt\":\"2026-11-04T10:00:00Z\"},{\"CharacterId\":2,\"UpdatedAt\":\"2026-11-04T11:00:00Z\"}]}");
+            var autoJoin = GameSettings.AutoJoin;
+            GameSettings.AutoJoin = false;
+            try
+            {
+                yield return StartGame(join: false, devCharacters: file);
+                Assert.That(Field("name").value, Is.EqualTo("Ada"));
+            }
+            finally
+            {
+                GameSettings.AutoJoin = autoJoin;
+                System.IO.File.Delete(file);
+            }
+        }
+
         [UnityTest]
         public IEnumerator ShowsThePickedShapesStartZoneThenTheServersOnceIn()
         {

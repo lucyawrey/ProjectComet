@@ -41,6 +41,10 @@ namespace Comet.Unity.Editor
             Open(picked, settings);
         }
 
+        // Zones open into a scene of their own, which play mode can't do.
+        [MenuItem("Comet/Zones/Open…", true)]
+        private static bool CanOpen() => !EditorApplication.isPlaying;
+
         // The zones opened lately on this computer, newest first: their folders relative to the project, per project.
         private const int RecentCount = 8;
         private static string RecentKey => "Comet.Zones.Recent." + ProjectRoot;
@@ -59,6 +63,9 @@ namespace Comet.Unity.Editor
         // A menu can't list items that change, and a pop-up menu can't open from one, so this opens a small window.
         [MenuItem("Comet/Zones/Open Recent…", priority = 2)]
         public static void OpenRecentMenu() => RecentZonesWindow.Show();
+
+        [MenuItem("Comet/Zones/Open Recent…", true)]
+        private static bool CanOpenRecent() => !EditorApplication.isPlaying;
 
         /// <summary>Opens a zone from <see cref="Recent"/>, after offering to save the current scene.</summary>
         internal static void OpenRecent(string folder)
@@ -119,6 +126,12 @@ namespace Comet.Unity.Editor
         /// <summary>Opens the zone in <paramref name="folder"/> into a new scene; false (with the reasons logged) if its files have errors.</summary>
         public static bool Open(string folder, CometSettings settings)
         {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("Zones can't be opened in play mode: stop playing first.");
+                return false;
+            }
+
             var errors = new List<ZoneFileError>();
             var zone = ZoneFolder.Read(folder, errors);
             if (errors.Count > 0)
