@@ -1,6 +1,8 @@
 using System.Numerics;
 using Comet.Protocol.Framing;
+using Comet.Protocol.Login;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using ShapeLand.Bots;
 using ShapeLand.ContentBuild;
@@ -229,6 +231,58 @@ public sealed class DevJoinTests : IAsyncLifetime
 
         Assert.Null(join);
         Assert.NotNull(failure);
+    }
+
+    [Fact]
+    public async Task ABotWhoseTicketIsRefusedFailsWithoutThrowing()
+    {
+        // A Login server that knows the account but won't give a ticket.
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.Configuration["Urls"] = "http://127.0.0.1:0";
+        await using var login = builder.Build();
+        login.MapGet(LoginPaths.Me, () => Results.Json(new AccountResponse<CharacterView> { Username = "Bot0001" }));
+        var ticketsAsked = 0;
+        login.MapPost(LoginPaths.Ticket, () =>
+        {
+            Interlocked.Increment(ref ticketsAsked);
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        });
+        await login.StartAsync(TestContext.Current.CancellationToken);
+        var tokens = Path.GetDirectoryName(_snapshot)!;
+        Directory.CreateDirectory(tokens);
+        await File.WriteAllTextAsync(Path.Combine(tokens, "Bot0001.token"), "cs_known", TestContext.Current.CancellationToken);
+        var account = new LoginBotAccount("Bot0001", new Uri(login.Urls.First()), tokens, _content, 1);
+
+        try
+        {
+            var (join, failure) = await account.JoinAsync(TestContext.Current.CancellationToken);
+
+            Assert.Null(join);
+            Assert.NotNull(failure);
+            Assert.True(ticketsAsked > 0, "The bot never asked for a ticket.");
+        }
+        finally
+        {
+            await login.StopAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task ARefusedBotStopsOnItsOwn()
+    {
+        var (server, url) = await StartServer();
+        try
+        {
+            var bot = new Bot(" ", 1, new BotSettings { ChatEverySeconds = 0 }, _content, new ZoneWorlds(_content), new DevBotAccount(" ", url, _content, 1));
+            var running = bot.RunAsync(TestContext.Current.CancellationToken);
+
+            Assert.Same(running, await Task.WhenAny(running, Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken)));
+            Assert.Equal(JoinRejection.BadName, bot.Rejected);
+        }
+        finally
+        {
+            await Stop(server);
+        }
     }
 
     [Fact]

@@ -121,7 +121,7 @@ namespace Comet.Unity.Editor
         }
 
         [MenuItem("Comet/Zones/Discard Changes", true)]
-        private static bool CanDiscard() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
+        private static bool CanDiscard() => !EditorApplication.isPlaying && UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
 
         /// <summary>Opens the zone in <paramref name="folder"/> into a new scene; false (with the reasons logged) if its files have errors.</summary>
         public static bool Open(string folder, CometSettings settings)

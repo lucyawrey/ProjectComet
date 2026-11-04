@@ -161,6 +161,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         {
             LoginFailure = failure;
             Failed = true;
+            Console.Error.WriteLine($"{Name} couldn't sign in: {failure}");
             return;
         }
 
@@ -183,7 +184,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.5 / StepsPerSecond));
         try
         {
-            while (transport.State != TransportState.Closed && await timer.WaitForNextTickAsync(stop))
+            // A refused join ends the bot, as a failed sign-in does, rather than leaving it connected and idle.
+            while (transport.State != TransportState.Closed && Rejected == null && await timer.WaitForNextTickAsync(stop))
             {
                 var now = clock.Elapsed.TotalSeconds;
                 _lastNow = now;
@@ -333,6 +335,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 break;
             case ShapeLandMessageIds.JoinRejected:
                 Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;
+                Console.Error.WriteLine($"{Name} was refused: {Rejected}");
                 break;
             case ShapeLandMessageIds.ChatMessage:
                 ChatsReceived++;

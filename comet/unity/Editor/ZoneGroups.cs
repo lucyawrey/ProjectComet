@@ -293,6 +293,12 @@ namespace Comet.Unity.Editor
         /// <summary>Opens a group in a scene of its own, its pivot at the origin; saving it updates every copy.</summary>
         public static bool Open(string id, CometSettings settings)
         {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("Groups can't be opened in play mode: stop playing first.");
+                return false;
+            }
+
             var entry = Load().FirstOrDefault(g => g.Group.Id == id);
             if (entry.Group == null)
             {

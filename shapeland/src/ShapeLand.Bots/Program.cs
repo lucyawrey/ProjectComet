@@ -84,7 +84,7 @@ foreach (var bot in bots)
 
 if (warmup >= 0)
 {
-    var report = NetReport.Create(bots, isCheater, new NetReport.RunSettings(login.ToString(), count, cheaters, seconds, seed, warmup), meta);
+    var report = NetReport.Create(bots, isCheater, new NetReport.RunSettings(dev ? serverOverride!.ToString() : login.ToString(), count, cheaters, seconds, seed, warmup), meta);
     report.Print();
     if (resultsFile != "")
     {

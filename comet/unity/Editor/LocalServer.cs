@@ -856,6 +856,7 @@ namespace Comet.Unity.Editor
                 Debug.LogWarning(state.dev
                     ? "The bots need accounts here: the Comet settings name no Bots Dev Arguments, so no bots start without Use Accounts."
                     : "The bots need a Login server, so no bots start: turn on Comet › Server › Use Accounts.");
+                state.bots = 0;
                 return;
             }
 
@@ -877,6 +878,7 @@ namespace Comet.Unity.Editor
             catch (Exception e)
             {
                 Debug.LogError($"Couldn't start the bots: {e.Message}");
+                state.bots = 0;
             }
         }
 
