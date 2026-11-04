@@ -652,8 +652,7 @@ namespace ShapeLand.Client
                 _name.value = last.Name;
                 _shape = lastShape;
                 (_color, _eyeColor) = (color, eyeColor);
-                ShowStartZone(glide: false);
-                Refresh();
+                ShowStartZone(glide: false); // Show, below, draws the card with them
             }
 #endif
 
