@@ -48,7 +48,7 @@ A game's content folder holds one TOML file per entry, in folders by type, plus 
 
 ## Zones and the zone editor
 
-A zone is a grid of 64 m chunks. Its terrain is made of pieces: heightmaps on a 1 m grid, stored as one tile per chunk they cover, that can stack (an island above the ground). Where a piece's ground ends, the mesher adds skirts: walls down to a flat bottom `skirt_depth` below the piece's lowest ground, or to its underside map if it has one, stopping on any terrain below. Placements (primitives, props and group copies), spawn points and collision volumes belong to the chunk holding their pivot. The folder layout is in `ZoneFolder`; the content build compiles it into `content.bin`, and servers and clients only ever read that.
+A zone is a grid of 64 m chunks. Its terrain is made of pieces: heightmaps on a 1 m grid, stored as one tile per chunk they cover, that can stack (an island above the ground). Where a piece's ground ends, the mesher adds skirts: walls down to a flat bottom `skirt_depth` below the piece's lowest ground, or to its underside map if it has one, stopping on any terrain below. Placements (primitives, props and group copies), spawn points and collision volumes belong to the chunk holding their pivot. The folder layout (`zone.toml`, then a folder per chunk, `chunks/<x>_<z>/`, holding its `chunk.toml` and terrain tiles) is in `ZoneFolder`; the content build compiles it into `content.bin`, and servers and clients only ever read that.
 
 The zone editor (Comet › Zones) opens a zone's folder into a working scene and saves it back:
 

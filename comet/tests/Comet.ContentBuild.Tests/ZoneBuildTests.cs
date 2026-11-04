@@ -81,7 +81,7 @@ public class ZoneBuildTests
 
         var error = Assert.Single(Build(folder).Errors);
 
-        Assert.Equal(Path.Combine(folder.Root, "zones", "meadow", "chunks", "0_0.toml"), error.File);
+        Assert.EndsWith("zones/meadow/chunks/0_0/chunk.toml", error.File.Replace('\\', '/'), StringComparison.Ordinal);
         Assert.StartsWith("spawn.meadow.gate at [-1, 0, 0] is in chunk -1_0", error.Message);
     }
 
@@ -230,7 +230,7 @@ public class ZoneBuildTests
         Assert.Empty(result.Errors);
         Assert.Equal(2, result.Warnings.Count);
         Assert.All(result.Warnings, w => Assert.True(w.Warning));
-        Assert.Contains(result.Warnings, w => w.Message.Contains("a box at [5, 0, 5] is blockout") && w.File.EndsWith("0_0.toml", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, w => w.Message.Contains("a box at [5, 0, 5] is blockout") && w.File.Replace('\\', '/').EndsWith("0_0/chunk.toml", StringComparison.Ordinal));
         Assert.Contains(result.Warnings, w => w.Message.Contains("group.hut at [10, 0, 10] has 1 blockout part"));
         Assert.Contains(": warning: ", result.Warnings[0].ToString());
 
