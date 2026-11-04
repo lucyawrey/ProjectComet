@@ -43,22 +43,47 @@ namespace Comet.Unity
             Gizmos.color = textColor;
             Gizmos.DrawWireSphere(transform.position, 0.15f);
 #if UNITY_EDITOR
-            // Its text in its colors, so level editors see it without entering play mode.
-            var size = screenSized ? fontSize : WorldFontSize(Camera.current);
+            DrawLabel(Camera.current, 1);
+#endif
+        }
+
+#if UNITY_EDITOR
+        // A turned-off sign gets no gizmo calls, so the Scene view draws it faded itself: kept, but not in the game.
+        [UnityEditor.InitializeOnLoadMethod]
+        private static void DrawTurnedOff() => UnityEditor.SceneView.duringSceneGui += view =>
+        {
+            if (Event.current.type != EventType.Repaint)
+            {
+                return;
+            }
+
+            foreach (var sign in FindObjectsByType<ZoneSign>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (!sign.gameObject.activeInHierarchy && sign.gameObject.scene.IsValid())
+                {
+                    sign.DrawLabel(view.camera, 0.35f);
+                }
+            }
+        };
+
+        // Its text in its colors, so level editors see it without entering play mode.
+        private void DrawLabel(Camera? camera, float alpha)
+        {
+            var size = screenSized ? fontSize : WorldFontSize(camera);
             if (size < 2)
             {
                 return; // too small to read from here
             }
 
             var style = new GUIStyle(UnityEditor.EditorStyles.label) { alignment = TextAnchor.MiddleCenter, padding = new RectOffset(6, 6, 2, 2), fontSize = Mathf.RoundToInt(size) };
-            style.normal.textColor = textColor;
+            style.normal.textColor = new Color(textColor.r, textColor.g, textColor.b, alpha);
             style.normal.background = background ? Texture2D.whiteTexture : null;
             var saved = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundOpacity);
+            GUI.backgroundColor = new Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundOpacity * alpha);
             UnityEditor.Handles.Label(transform.position, text.Length > 0 ? text : "(empty sign)", style);
             GUI.backgroundColor = saved;
-#endif
         }
+#endif
 
 #if UNITY_EDITOR
         // A world-sized sign's font size in the Scene view's points, as it looks from the scene camera.

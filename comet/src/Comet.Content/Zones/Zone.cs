@@ -125,14 +125,14 @@ namespace Comet.Content
         /// <summary>Every sign in the chunk with the world point it's shown over: its own signs, then those on its spawns, teleporters and triggers.</summary>
         public IEnumerable<(Vector3 Point, Sign Sign)> AllSigns()
         {
-            foreach (var sign in Signs)
+            foreach (var sign in Signs.Where(s => !s.Off))
             {
                 yield return (sign.Position, sign);
             }
 
             foreach (var volume in Spawns.Select(s => s.Volume).Concat(Teleporters.Select(t => t.Volume)).Concat(Triggers.Select(t => t.Volume)))
             {
-                if (volume.Sign is { } sign)
+                if (volume.Sign is { Off: false } sign)
                 {
                     yield return (volume.ToWorld(sign.Position), sign);
                 }
@@ -400,6 +400,9 @@ namespace Comet.Content
 
         /// <summary>Whether there's a panel behind the text (and so the arrow, if it has one).</summary>
         [Key(10)] public bool Background { get; set; }
+
+        /// <summary>Whether it's turned off: kept in the zone but not shown (left out of <see cref="ZoneChunk.AllSigns"/>).</summary>
+        [Key(11)] public bool Off { get; set; }
     }
 
     /// <summary>Flips every placement with a tag on or off, and optionally back after a time.</summary>

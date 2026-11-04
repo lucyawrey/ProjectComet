@@ -662,7 +662,7 @@ namespace Comet.ZoneFiles
         // A sign's table: standalone ones have a position; a trigger's has an offset from its volume's bottom center.
         private static Sign ReadSign(ZoneToml toml, TomlTable table, string path, string positionKey)
         {
-            toml.CheckKeys(table, path, positionKey, "text", "text_color", "background", "background_color", "background_opacity", "show_distance", "screen_sized", "font_size", "text_height", "arrow");
+            toml.CheckKeys(table, path, positionKey, "text", "text_color", "background", "background_color", "background_opacity", "show_distance", "screen_sized", "font_size", "text_height", "arrow", "off");
             return new Sign
             {
                 Position = toml.Vector(table, path, positionKey),
@@ -676,6 +676,7 @@ namespace Comet.ZoneFiles
                 FontSize = toml.Float(table, path, "font_size", 13),
                 TextHeight = toml.Float(table, path, "text_height", 0.3f),
                 Arrow = toml.Bool(table, path, "arrow", false),
+                Off = toml.Bool(table, path, "off", false),
             };
         }
 
@@ -723,6 +724,11 @@ namespace Comet.ZoneFiles
             if (t.Arrow)
             {
                 sign["arrow"] = true;
+            }
+
+            if (t.Off)
+            {
+                sign["off"] = true;
             }
 
             return sign;

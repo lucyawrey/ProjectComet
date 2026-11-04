@@ -378,8 +378,8 @@ public class ZoneFolderTests
         sample.Chunks[1].Signs =
         [
             new Sign { Position = new Vector3(12, 6, 5), Text = "To the cave\nmind the gap", TextColor = 0xFFEE00, Background = true, BackgroundColor = 0x202030, BackgroundOpacity = 0.75f, ShowDistance = 60, ScreenSized = true, FontSize = 18, Arrow = true },
-            // Settings not in use are kept, to come back when turned on again.
-            new Sign { Position = new Vector3(14, 6, 9), Text = "Plate", TextHeight = 0.5f, BackgroundColor = 0x202030, BackgroundOpacity = 0.4f, Arrow = true, FontSize = 20 },
+            // Settings not in use are kept, to come back when turned on again; a turned-off sign is kept but not shown.
+            new Sign { Position = new Vector3(14, 6, 9), Text = "Plate", TextHeight = 0.5f, BackgroundColor = 0x202030, BackgroundOpacity = 0.4f, Arrow = true, FontSize = 20, Off = true },
         ];
         var zone = RoundTrip(sample, folder, out var errors);
 
@@ -404,6 +404,8 @@ public class ZoneFolderTests
         Assert.Equal((true, true, 18f, true), (signs[0].Background, signs[0].ScreenSized, signs[0].FontSize, signs[0].Arrow));
         Assert.Equal(("Plate", 0xFFFFFFu, 45f, false, 0.5f), (signs[1].Text, signs[1].TextColor, signs[1].ShowDistance, signs[1].ScreenSized, signs[1].TextHeight));
         Assert.Equal((false, 0x202030u, 0.4f, true, 20f), (signs[1].Background, signs[1].BackgroundColor, signs[1].BackgroundOpacity, signs[1].Arrow, signs[1].FontSize));
+        Assert.Equal((false, true), (signs[0].Off, signs[1].Off));
+        Assert.Equal(["To the cave\nmind the gap"], zone.Chunks[1].AllSigns().Select(s => s.Sign.Text));
         Assert.Contains("text_height = 0.5", File.ReadAllText(folder.PathOf("chunks/0_0.toml")));
     }
 

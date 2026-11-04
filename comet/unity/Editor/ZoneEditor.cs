@@ -473,6 +473,7 @@ namespace Comet.Unity.Editor
             FontSize = sign.fontSize,
             TextHeight = sign.textHeight,
             Arrow = sign.arrow,
+            Off = !sign.gameObject.activeSelf,
         };
 
         // A sign object's fields from a zone file's sign (its position is set by the caller).
@@ -488,6 +489,7 @@ namespace Comet.Unity.Editor
             component.fontSize = sign.FontSize;
             component.textHeight = sign.TextHeight;
             component.arrow = sign.Arrow;
+            component.gameObject.SetActive(!sign.Off); // turned off (unchecked): kept but not shown in the game
         }
 
         /// <summary>
