@@ -62,6 +62,7 @@ MonoBehaviour:
   serverWebArgument: --ShapeLand:WebRoot={0}
   botsProject: ../src/ShapeLand.Bots
   botsArguments: --login {login} --count {count}
+  botsDevArguments: --dev --server {url} --count {count}
   loginProject: ../src/ShapeLand.LoginServer
   loginPort: 5090
   loginArguments: '"--Login:ConnectionString={database}" --Login:AllowedOrigins:0={page} --Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 --ShapeLand:GameServer:Address={game}'

@@ -5,14 +5,38 @@ using ShapeLand.Shared.Messages;
 
 namespace ShapeLand.Bots;
 
-/// <summary>A join ticket for a bot, the game server it's for, and the name the bot plays under.</summary>
-public sealed record BotTicket(string Ticket, Uri Server, string Name);
+/// <summary>
+/// How a bot joins: the game server, the name it plays under, and either a join ticket from the Login server or,
+/// without accounts, the look a new character gets (a join by name, <see cref="DevBotAccount"/>).
+/// </summary>
+public sealed record BotJoin(string? Ticket, Uri Server, string Name, NewCharacter? Look = null);
 
-/// <summary>Where a bot gets its join ticket: a real account on the Login server, or (in tests) a stand-in.</summary>
+/// <summary>Where a bot gets its join: a real account on the Login server, a name on a server without accounts, or (in tests) a stand-in.</summary>
 public interface IBotAccount
 {
-    /// <summary>Signs in (making the account if need be) and gets a join ticket, or null with the reason in <paramref name="failure"/>.</summary>
-    Task<(BotTicket? Ticket, string? Failure)> TicketAsync(CancellationToken cancellationToken);
+    /// <summary>Signs in (making the account if need be) and gets a join, or null with the reason in <c>Failure</c>.</summary>
+    Task<(BotJoin? Join, string? Failure)> JoinAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>A bot on the Unity editor's own server without accounts: it joins by name, made with a random look if it's new.</summary>
+public sealed class DevBotAccount(string name, Uri server, ShapeLandContent content, int seed) : IBotAccount
+{
+    public Task<(BotJoin? Join, string? Failure)> JoinAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<(BotJoin?, string?)>((new BotJoin(null, server, name, BotLooks.Random(content, new Random(seed))), null));
+}
+
+internal static class BotLooks
+{
+    public static NewCharacter Random(ShapeLandContent content, Random random)
+    {
+        var colors = content.Colors.All;
+        return new NewCharacter
+        {
+            Shape = content.Shapes.All[random.Next(content.Shapes.All.Count)].Number,
+            Color = colors[random.Next(colors.Count)].Number,
+            EyeColor = colors[random.Next(colors.Count)].Number,
+        };
+    }
 }
 
 /// <summary>
@@ -29,7 +53,7 @@ public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFo
 
     private readonly Random _random = new(seed);
 
-    public async Task<(BotTicket? Ticket, string? Failure)> TicketAsync(CancellationToken cancellationToken)
+    public async Task<(BotJoin? Join, string? Failure)> JoinAsync(CancellationToken cancellationToken)
     {
         using var http = new HttpClient { BaseAddress = loginServer, Timeout = TimeSpan.FromSeconds(15) };
         var tokens = new FileTokenStore(Path.Combine(tokenFolder, $"{name}.token"));
@@ -62,23 +86,19 @@ public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFo
         return (null, LoginErrors.NameTaken);
     }
 
-    private async Task<BotTicket?> TryTicketAsync(LoginClient<CharacterView> login)
+    private async Task<BotJoin?> TryTicketAsync(LoginClient<CharacterView> login)
     {
         var account = await login.GetAccountAsync();
-        var ticket = account.Succeeded ? await login.GetTicketAsync() : default;
-        return ticket.Succeeded ? new BotTicket(ticket.Value!.Ticket, serverOverride ?? new Uri(ticket.Value.Server), account.Value!.Username) : null;
+        if (!account.Succeeded || account.Value is not { } signedIn)
+        {
+            return null;
+        }
+
+        var ticket = await login.GetTicketAsync();
+        return ticket.Succeeded && ticket.Value is { } got ? new BotJoin(got.Ticket, serverOverride ?? new Uri(got.Server), signedIn.Username) : null;
     }
 
-    private NewCharacter RandomLook()
-    {
-        var colors = content.Colors.All;
-        return new NewCharacter
-        {
-            Shape = content.Shapes.All[_random.Next(content.Shapes.All.Count)].Number,
-            Color = colors[_random.Next(colors.Count)].Number,
-            EyeColor = colors[_random.Next(colors.Count)].Number,
-        };
-    }
+    private NewCharacter RandomLook() => BotLooks.Random(content, _random);
 
     // One file per bot. A bot's token only plays that bot, which the deployed game gives away anyway.
     private sealed class FileTokenStore(string path) : ITokenStore

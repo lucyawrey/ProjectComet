@@ -134,6 +134,9 @@ namespace Comet.Unity.Editor
         [Tooltip("The bots' arguments: {url} is the game server's WebSocket URL, {login} the Login server's URL and {count} how many to start.")]
         public string botsArguments = "--url {url} --count {count}";
 
+        [Tooltip("The bots' arguments without accounts (the game server taking joins by name): {url} is the game server's WebSocket URL, {count} the number of bots. Empty: no bots without accounts.")]
+        public string botsDevArguments = "";
+
         [Tooltip("The Login server project, relative to the Unity project, started beside the game server; empty: none.")]
         public string loginProject = "";
 

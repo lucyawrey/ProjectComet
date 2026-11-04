@@ -253,14 +253,19 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                 return;
             }
 
-            var characterId = characters.FindOrAdd(name, request.Shape, request.Color, request.EyeColor);
+            if (characters.FindOrAdd(name, request.Bot, request.Shape, request.Color, request.EyeColor) is not { } characterId)
+            {
+                Reject(player, JoinRejection.NameTaken);
+                return;
+            }
+
             if (_joins.IsPlaying(characterId))
             {
                 Reject(player, JoinRejection.NameOnline);
                 return;
             }
 
-            player.Joining = _joins.Begin(player.Connection, characterId, DevCharacters.AccountId);
+            player.Joining = _joins.Begin(player.Connection, characterId, characters.AccountOf(characterId));
             return;
         }
 #endif

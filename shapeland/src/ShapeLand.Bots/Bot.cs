@@ -146,11 +146,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public async Task RunAsync(CancellationToken stop)
     {
-        BotTicket? ticket;
+        BotJoin? ticket;
         string? failure;
         try
         {
-            (ticket, failure) = await account.TicketAsync(stop);
+            (ticket, failure) = await account.JoinAsync(stop);
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
@@ -161,6 +161,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         {
             LoginFailure = failure;
             Failed = true;
+            Console.Error.WriteLine($"{Name} couldn't sign in: {failure}");
             return;
         }
 
@@ -183,14 +184,26 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.5 / StepsPerSecond));
         try
         {
-            while (transport.State != TransportState.Closed && await timer.WaitForNextTickAsync(stop))
+            // A refused join ends the bot, as a failed sign-in does, rather than leaving it connected and idle.
+            while (transport.State != TransportState.Closed && Rejected == null && await timer.WaitForNextTickAsync(stop))
             {
                 var now = clock.Elapsed.TotalSeconds;
                 _lastNow = now;
                 if (!asked && transport.State == TransportState.Open)
                 {
                     asked = true;
-                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = ticket.Ticket, ContentFingerprint = content.Fingerprint });
+                    if (ticket.Ticket is { } joinTicket)
+                    {
+                        _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = joinTicket, ContentFingerprint = content.Fingerprint });
+                    }
+                    else
+                    {
+                        var look = ticket.Look ?? new NewCharacter();
+                        _session.Write(ShapeLandMessageIds.DevJoinRequest, new DevJoinRequest
+                        {
+                            Name = ticket.Name, Shape = look.Shape, Color = look.Color, EyeColor = look.EyeColor, ContentFingerprint = content.Fingerprint, Bot = true,
+                        });
+                    }
                 }
 
                 _session.Update(now);
@@ -322,6 +335,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 break;
             case ShapeLandMessageIds.JoinRejected:
                 Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;
+                Console.Error.WriteLine($"{Name} was refused: {Rejected}");
                 break;
             case ShapeLandMessageIds.ChatMessage:
                 ChatsReceived++;
