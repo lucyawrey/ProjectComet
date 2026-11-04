@@ -18,6 +18,8 @@ namespace ShapeLand.Client.Tests
             var eye = Camera.transform.position;
             var ahead = eye + Camera.transform.forward * 4;
             var right = Camera.transform.right * 1.5f;
+            var worldNear = ahead + Vector3.up;
+            var worldFar = eye + Camera.transform.forward * 8 + Camera.transform.up;
             var feet = View.Player.transform.position;
             var chunk = Join.Zone.Chunks[0];
             chunk.Signs = chunk.Signs.Concat(new[]
@@ -26,8 +28,8 @@ namespace ShapeLand.Client.Tests
                 new Sign { Position = Vectors.ToNumerics(ahead + right), Text = "Plain", TextColor = 0xFFEE00, Arrow = true },
                 new Sign { Position = Vectors.ToNumerics(ahead - right), Text = "Far", ShowDistance = 2 },
                 new Sign { Position = Vectors.ToNumerics(feet + Vector3.down * 3), Text = "Buried" },
-                new Sign { Position = Vectors.ToNumerics(ahead + Vector3.up), Text = "World", TextHeight = 0.3f },
-                new Sign { Position = Vectors.ToNumerics(eye + Camera.transform.forward * 8 + Camera.transform.up), Text = "World far", TextHeight = 0.3f },
+                new Sign { Position = Vectors.ToNumerics(worldNear), Text = "World", TextHeight = 0.3f },
+                new Sign { Position = Vectors.ToNumerics(worldFar), Text = "World far", TextHeight = 0.3f },
             }).ToArray();
 
             // The signs are read as a zone is entered; turning them off and on reads the zone again.
@@ -50,10 +52,15 @@ namespace ShapeLand.Client.Tests
             Assert.That(Of("Near").Q(className: "sign-arrow"), Is.Not.Null, "The sign has no arrow.");
             Assert.That(Of("Plain").Q(className: "sign-arrow"), Is.Null, "A sign without a background has an arrow.");
 
-            // World-sized signs are smaller further away: half the size at twice the distance. Screen-sized ones aren't scaled.
+            // World-sized signs shrink with their depth from the camera, measured now since the camera may have moved
+            // since they were placed. Screen-sized ones aren't scaled.
             Assert.That(Showing("World") && Showing("World far"), Is.True);
+            float Depth(Vector3 at) => View.Camera.WorldToScreenPoint(at).z;
+            var nearDepth = Depth(worldNear);
+            var farDepth = Depth(worldFar);
+            Assert.That(farDepth, Is.GreaterThan(nearDepth * 1.2f));
             var near = Of("World").resolvedStyle.scale.value.x;
-            Assert.That(Of("World far").resolvedStyle.scale.value.x, Is.EqualTo(near / 2).Within(near * 0.1f), "A world-sized sign isn't smaller further away.");
+            Assert.That(Of("World far").resolvedStyle.scale.value.x, Is.EqualTo(near * nearDepth / farDepth).Within(near * 0.05f), "A world-sized sign isn't smaller further away.");
             Assert.That(Of("Near").resolvedStyle.scale.value.x, Is.EqualTo(1f), "A screen-sized sign is scaled.");
         }
     }
