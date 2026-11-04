@@ -434,5 +434,9 @@ public class ZoneFolderTests
         var (point, shown) = chunk.AllSigns().Single();
         Assert.Same(sign, shown);
         Assert.True(Vector3.Distance(new Vector3(5, 7, 4), point) < 1e-4f, $"The sign is shown over {point}.");
+
+        // Turned off, it's kept with its trigger but not shown.
+        sign.Off = true;
+        Assert.Empty(chunk.AllSigns());
     }
 }

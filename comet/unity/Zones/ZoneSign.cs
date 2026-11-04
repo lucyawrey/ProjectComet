@@ -57,11 +57,15 @@ namespace Comet.Unity
                 return;
             }
 
-            foreach (var sign in FindObjectsByType<ZoneSign>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            // Only the open zones' signs, and only those turned off themselves, which are what's saved as off.
+            foreach (var zone in FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None))
             {
-                if (!sign.gameObject.activeInHierarchy && sign.gameObject.scene.IsValid())
+                foreach (var sign in zone.GetComponentsInChildren<ZoneSign>(true))
                 {
-                    sign.DrawLabel(view.camera, 0.35f);
+                    if (!sign.gameObject.activeSelf)
+                    {
+                        sign.DrawLabel(view.camera, 0.35f);
+                    }
                 }
             }
         };
