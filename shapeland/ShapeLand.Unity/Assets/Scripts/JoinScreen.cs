@@ -165,6 +165,7 @@ namespace ShapeLand.Client
             JoinRejection.AccountsNeeded => strings.Get("join.accounts_needed"),
             JoinRejection.BadName => strings.Get("join.name_rules"),
             JoinRejection.NameOnline => strings.Get("join.name_online"),
+            JoinRejection.NameTaken => strings.Get("join.bot_name"),
             _ => strings.Get("join.not_accepted"),
         };
 

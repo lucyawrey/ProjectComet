@@ -5,7 +5,9 @@ using ShapeLand.Shared.Content;
 // Login server (named like Bot0001), which says which game server to join; its token is kept in --tokens
 // (default artifacts/bot-tokens), so later runs play the same accounts.
 // --server replaces the game server address in the bots' tickets (in Docker, where the server's name differs).
-//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--login http://localhost:5090] [--tokens <folder>] [--server ws://server:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
+// --dev joins the Unity editor's own server without accounts instead, by name, at --server (--login and --tokens
+// are ignored).
+//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--dev] [--login http://localhost:5090] [--tokens <folder>] [--server ws://server:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
 //     [--warmup 10] [--results file.json] [--meta key=value ...] [--prefix Bot] [--chat [30]] [--cheat-speed 2.5] [--cheat-jump 1]
 // Cheaters move --cheat-speed times faster than allowed and jump --cheat-jump times faster (small values make subtle
 // cheaters, for tuning the server's tolerances).
@@ -41,9 +43,19 @@ if (tokens == "")
     tokens = Path.Combine(FindRepoRoot(), "artifacts", "bot-tokens");
 }
 
+var dev = args.Contains("--dev");
+if (dev && serverOverride == null)
+{
+    Console.Error.WriteLine("--dev needs --server: the game server to join by name.");
+    Environment.ExitCode = 2;
+    return;
+}
+
 var worlds = new ZoneWorlds(content);
 Bot NewBot(string name, int botSeed, BotSettings settings) =>
-    new(name, botSeed, settings, content, worlds, new LoginBotAccount(name, login, tokens, content, botSeed, serverOverride));
+    new(name, botSeed, settings, content, worlds, dev
+        ? new DevBotAccount(name, serverOverride!, content, botSeed)
+        : new LoginBotAccount(name, login, tokens, content, botSeed, serverOverride));
 var bots = Enumerable.Range(1, count)
     .Select(i => NewBot($"{prefix}{i:0000}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }))
     .Concat(Enumerable.Range(1, cheaters).Select(i => NewBot($"{(prefix == "Bot" ? "Cheater" : prefix + "-cheater")}{i:00}", seed * 1000 + 500 + i, new BotSettings { SpeedCheat = cheatSpeed, JumpCheat = cheatJump, ChatEverySeconds = chat })))
@@ -56,7 +68,7 @@ Console.CancelKeyPress += (_, e) =>
     e.Cancel = true;
     stop.Cancel();
 };
-Console.WriteLine($"{bots.Count} bots signing in at {login}; Ctrl+C to stop.");
+Console.WriteLine(dev ? $"{bots.Count} bots joining {serverOverride} by name; Ctrl+C to stop." : $"{bots.Count} bots signing in at {login}; Ctrl+C to stop.");
 await Task.WhenAll(bots.Select(async (bot, i) =>
 {
     await Task.Delay(i * 100); // don't all join in the same instant

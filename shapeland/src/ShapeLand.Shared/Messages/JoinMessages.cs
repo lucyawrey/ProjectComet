@@ -38,6 +38,9 @@ namespace ShapeLand.Shared.Messages
 
         /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
         [Key(4)] public ulong ContentFingerprint;
+
+        /// <summary>Whether it's a bot's join: bots' characters are kept apart from people's.</summary>
+        [Key(5)] public bool Bot;
     }
 
     /// <summary>Why a join was refused.</summary>
@@ -75,6 +78,9 @@ namespace ShapeLand.Shared.Messages
 
         /// <summary>A <see cref="DevJoinRequest"/>'s name is playing on the server already.</summary>
         NameOnline = 11,
+
+        /// <summary>A <see cref="DevJoinRequest"/>'s name is a bot's, or a bot's is a person's.</summary>
+        NameTaken = 12,
     }
 
     /// <summary>Server event: the join was refused. The connection stays open but can't play.</summary>

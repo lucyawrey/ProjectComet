@@ -80,13 +80,13 @@ public sealed class EndToEndTests : IAsyncLifetime
     }
 
     private Bot NewBot(string name, int seed, BotSettings settings) =>
-        new(name, seed, settings, _content, new ZoneWorlds(_content), new TestAccount(() => new BotTicket(Ticket(name), _url, name)));
+        new(name, seed, settings, _content, new ZoneWorlds(_content), new TestAccount(() => new BotJoin(Ticket(name), _url, name)));
 
     // A bot's account: a ticket for its character, made on first use.
-    private sealed class TestAccount(Func<BotTicket> ticket) : IBotAccount
+    private sealed class TestAccount(Func<BotJoin> ticket) : IBotAccount
     {
-        public Task<(BotTicket? Ticket, string? Failure)> TicketAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<(BotTicket?, string?)>((ticket(), null));
+        public Task<(BotJoin? Join, string? Failure)> JoinAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<(BotJoin?, string?)>((ticket(), null));
     }
 
     // The character called name (made on first use, with the first shape and colors unless given), as the Login server

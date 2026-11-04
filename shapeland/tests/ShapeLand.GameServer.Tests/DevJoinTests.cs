@@ -2,6 +2,7 @@ using System.Numerics;
 using Comet.Protocol.Framing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using ShapeLand.Bots;
 using ShapeLand.ContentBuild;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
@@ -66,10 +67,10 @@ public sealed class DevJoinTests : IAsyncLifetime
         await server.DisposeAsync();
     }
 
-    private DevJoinRequest JoinAs(string name, int shape = 0) => new()
+    private DevJoinRequest JoinAs(string name, int shape = 0, bool bot = false) => new()
     {
         Name = name, Shape = _content.Shapes.All[shape].Number, Color = _content.Colors.All[0].Number,
-        EyeColor = _content.Colors.All[0].Number, ContentFingerprint = _content.Fingerprint,
+        EyeColor = _content.Colors.All[0].Number, ContentFingerprint = _content.Fingerprint, Bot = bot,
     };
 
     private static async Task<PlayerSpawn> JoinAsync(RawClient client, Uri url, DevJoinRequest request)
@@ -158,6 +159,76 @@ public sealed class DevJoinTests : IAsyncLifetime
         {
             await Stop(server);
         }
+    }
+
+    [Fact]
+    public async Task BotsAndPeopleKeepTheirOwnNames()
+    {
+        var (server, url) = await StartServer();
+        try
+        {
+            using (var bot = new RawClient())
+            {
+                await JoinAsync(bot, url, JoinAs("Bot0001", bot: true));
+            }
+
+            using (var person = new RawClient())
+            {
+                await JoinAsync(person, url, JoinAs("Cyra"));
+            }
+
+            var characters = server.Services.GetRequiredService<DevCharacters>();
+            var botId = characters.Database.FindOrAdd("Bot0001", _ => throw new InvalidOperationException()).Id;
+            Assert.Equal(DevCharacters.BotAccountId, characters.AccountOf(botId));
+
+            using var asPerson = new RawClient();
+            Assert.Equal(JoinRejection.NameTaken, await RefusedAsync(asPerson, url, JoinAs("bot0001")));
+            using var asBot = new RawClient();
+            Assert.Equal(JoinRejection.NameTaken, await RefusedAsync(asBot, url, JoinAs("cyra", bot: true)));
+        }
+        finally
+        {
+            await Stop(server);
+        }
+    }
+
+    [Fact]
+    public async Task TheBotsJoinByName()
+    {
+        var (server, url) = await StartServer();
+        using var stop = new CancellationTokenSource();
+        try
+        {
+            var bot = new Bot("Bot0001", 1, new BotSettings { ChatEverySeconds = 0 }, _content, new ZoneWorlds(_content), new DevBotAccount("Bot0001", url, _content, 1));
+            var running = bot.RunAsync(stop.Token);
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (!bot.Joined && !bot.Failed && bot.Rejected == null && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(20, TestContext.Current.CancellationToken);
+            }
+
+            Assert.True(bot.Joined, $"The bot didn't join (rejected: {bot.Rejected}, failed: {bot.LoginFailure}).");
+            await stop.CancelAsync();
+            await running;
+        }
+        finally
+        {
+            await Stop(server);
+        }
+    }
+
+    [Fact]
+    public async Task ABotWhoseLoginServerIsGoneFailsWithoutThrowing()
+    {
+        var tokens = Path.GetDirectoryName(_snapshot)!;
+        Directory.CreateDirectory(tokens);
+        await File.WriteAllTextAsync(Path.Combine(tokens, "Bot0001.token"), "cs_stale", TestContext.Current.CancellationToken);
+        var account = new LoginBotAccount("Bot0001", new Uri("http://127.0.0.1:1/"), tokens, _content, 1);
+
+        var (join, failure) = await account.JoinAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(join);
+        Assert.NotNull(failure);
     }
 
     [Fact]

@@ -146,11 +146,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public async Task RunAsync(CancellationToken stop)
     {
-        BotTicket? ticket;
+        BotJoin? ticket;
         string? failure;
         try
         {
-            (ticket, failure) = await account.TicketAsync(stop);
+            (ticket, failure) = await account.JoinAsync(stop);
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
@@ -190,7 +190,18 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 if (!asked && transport.State == TransportState.Open)
                 {
                     asked = true;
-                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = ticket.Ticket, ContentFingerprint = content.Fingerprint });
+                    if (ticket.Ticket is { } joinTicket)
+                    {
+                        _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = joinTicket, ContentFingerprint = content.Fingerprint });
+                    }
+                    else
+                    {
+                        var look = ticket.Look ?? new NewCharacter();
+                        _session.Write(ShapeLandMessageIds.DevJoinRequest, new DevJoinRequest
+                        {
+                            Name = ticket.Name, Shape = look.Shape, Color = look.Color, EyeColor = look.EyeColor, ContentFingerprint = content.Fingerprint, Bot = true,
+                        });
+                    }
                 }
 
                 _session.Update(now);
