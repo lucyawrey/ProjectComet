@@ -25,3 +25,4 @@ Notes for coding agents (and anyone else) working in this repo. Requirements, la
 
 - `docs/` pages are Markdown named by page title, with spaces and capitals (they don't follow the repo's lowercase convention). The repo is also an Obsidian vault (config in `.obsidian/`).
 - Changes go through feature branches and squash-merged pull requests into `main`, so the PR title and description become the commit message: write them like one.
+- No AI attribution in history: commits are authored by the person running the agent, with no `Co-authored-by` trailers for agents, and PR descriptions have no "Generated with/by" or session-link footers. Remove any that a tool adds before opening the PR.
