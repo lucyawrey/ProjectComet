@@ -292,7 +292,11 @@ public class ZoneFolderTests
         using var folder = new TempFolder();
         ZoneFolder.Write(folder.Root, Zones.Sample());
         folder.Write("chunks/notes.txt", "kept");
-        folder.Write("chunks/9_9.toml", "kept"); // the old layout's chunk file: not the zone's, so left alone
+        // Not the zone's, so left alone: the old layout's chunk file, other folders, nested folders and other files.
+        folder.Write("chunks/9_9.toml", "kept");
+        folder.Write("chunks/old/0_0.toml", "kept");
+        folder.Write("chunks/0_0/backup/main.height", "kept");
+        folder.Write("chunks/0_0/0_0.toml", "kept");
 
         var zone = Zones.Sample();
         zone.Chunks = [zone.Chunks[1]];
@@ -304,7 +308,7 @@ public class ZoneFolderTests
         Assert.False(File.Exists(folder.PathOf("chunks/0_0/main.color")));
         Assert.True(File.Exists(folder.PathOf("chunks/0_0/main.height")));
         Assert.True(File.Exists(folder.PathOf("chunks/notes.txt")));
-        Assert.True(File.Exists(folder.PathOf("chunks/9_9.toml")));
+        Assert.All(new[] { "chunks/9_9.toml", "chunks/old/0_0.toml", "chunks/0_0/backup/main.height", "chunks/0_0/0_0.toml" }, f => Assert.True(File.Exists(folder.PathOf(f)), f));
     }
 
     [Fact]
@@ -316,6 +320,7 @@ public class ZoneFolderTests
         folder.Write("chunks/old/notes.txt", "");
         folder.Write("chunks/1_1/.DS_Store", "");
         folder.Write("chunks/2_2/main.height", "");
+        folder.Write("chunks/0_0/0_0.toml", ""); // not a tile file, so not reported
 
         var errors = new List<ZoneFileError>();
         var zone = ZoneFolder.Read(folder.Root, errors);
