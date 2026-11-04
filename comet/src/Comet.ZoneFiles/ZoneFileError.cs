@@ -9,7 +9,7 @@ namespace Comet.ZoneFiles
             Message = message;
         }
 
-        /// <summary>The file's path, relative to the zone's folder (<c>chunks/0_-1.toml</c>).</summary>
+        /// <summary>The file's path, relative to the zone's folder (<c>chunks/0_-1/chunk.toml</c>).</summary>
         public string File { get; }
 
         public string Message { get; }

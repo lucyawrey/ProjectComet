@@ -23,7 +23,7 @@ public class ZoneValidationTests
                 "zone.toml: id: 'meadow' isn't a valid zone id: use 'zone.' then lowercase letters, digits and underscores.",
                 "zone.toml: piece: 'main' is used twice.",
                 "zone.toml: piece: 'Sky Island' isn't a valid name: use lowercase letters, digits and underscores, starting with a letter.",
-                "chunks/-1_0.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop id.",
+                "chunks/-1_0/chunk.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop id.",
             ],
             Errors(zone));
     }
@@ -46,8 +46,8 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: tile: there's no piece 'cliff' in zone.toml.",
-                "chunks/0_0.toml: tile main: 17×65 samples from [50, 0] reach past the chunk's 65×65.",
+                "chunks/-1_0/chunk.toml: tile: there's no piece 'cliff' in zone.toml.",
+                "chunks/0_0/chunk.toml: tile main: 17×65 samples from [50, 0] reach past the chunk's 65×65.",
             ],
             Errors(zone));
     }
@@ -59,7 +59,7 @@ public class ZoneValidationTests
         zone.Chunks[1].Tiles[0].Heights = Zones.Flat(17, 65, 4.5f);
 
         Assert.Equal(
-            ["chunks/-1_0.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 0])."],
+            ["chunks/-1_0/chunk.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 0])."],
             Errors(zone));
     }
 
@@ -70,7 +70,7 @@ public class ZoneValidationTests
         zone.Chunks[1].Tiles[0].Heights.Samples[65 / 2 * 17] = Heightmap.Hole;
 
         Assert.Equal(
-            ["chunks/-1_0.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 32])."],
+            ["chunks/-1_0/chunk.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 32])."],
             Errors(zone));
     }
 
@@ -88,7 +88,7 @@ public class ZoneValidationTests
 
         zone.Chunks[1].Tiles[0].Heights.Samples[0] = Heightmap.Hole;
         Assert.Equal(
-            ["chunks/0_0.toml: tile main: the terrain doesn't match chunk 1_1's where they meet (world sample [64, 64])."],
+            ["chunks/0_0/chunk.toml: tile main: the terrain doesn't match chunk 1_1's where they meet (world sample [64, 64])."],
             Errors(zone));
     }
 
@@ -101,8 +101,8 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of prop.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
-                "chunks/0_0.toml: wall volume at [64, 0, 1] is in chunk 1_0: objects belong to the chunk holding their pivot.",
+                "chunks/-1_0/chunk.toml: placement of prop.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
+                "chunks/0_0/chunk.toml: wall volume at [64, 0, 1] is in chunk 1_0: objects belong to the chunk holding their pivot.",
             ],
             Errors(zone));
     }
@@ -156,7 +156,7 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of prop.cube: 'Gate!' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.",
+                "chunks/-1_0/chunk.toml: placement of prop.cube: 'Gate!' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.",
             ],
             Errors(zone));
     }
@@ -171,9 +171,9 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/0_0.toml: spawn: 'spawn.meadow.gate' is already used in chunks/-1_0.toml.",
-                "chunks/0_0.toml: teleporter: 'teleporter.hills.to_cave' isn't a valid teleporter id here: use 'teleporter.meadow.' then lowercase letters, digits and underscores.",
-                "chunks/0_0.toml: trigger: 'trigger.plate' isn't a valid trigger id here: use 'trigger.meadow.' then lowercase letters, digits and underscores.",
+                "chunks/0_0/chunk.toml: spawn: 'spawn.meadow.gate' is already used in chunks/-1_0/chunk.toml.",
+                "chunks/0_0/chunk.toml: teleporter: 'teleporter.hills.to_cave' isn't a valid teleporter id here: use 'teleporter.meadow.' then lowercase letters, digits and underscores.",
+                "chunks/0_0/chunk.toml: trigger: 'trigger.plate' isn't a valid trigger id here: use 'trigger.meadow.' then lowercase letters, digits and underscores.",
             ],
             Errors(zone).OrderBy(e => e, StringComparer.Ordinal));
     }
@@ -191,11 +191,11 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/0_0.toml: spawn.meadow.gate: a volume is a box, a cylinder or a sphere, not a arch.",
-                "chunks/0_0.toml: spawn.meadow.gate: size must be above 0 on every axis.",
-                "chunks/0_0.toml: spawn.meadow.gate: stand_seconds can't be negative.",
-                "chunks/0_0.toml: spawn.meadow.gate: a pad can't be tagged or start off; pads aren't toggled.",
-                "chunks/0_0.toml: teleporter.meadow.to_cave: a pad is a primitive.",
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: a volume is a box, a cylinder or a sphere, not a arch.",
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: size must be above 0 on every axis.",
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: stand_seconds can't be negative.",
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: a pad can't be tagged or start off; pads aren't toggled.",
+                "chunks/0_0/chunk.toml: teleporter.meadow.to_cave: a pad is a primitive.",
             ],
             Errors(zone));
     }
@@ -210,10 +210,10 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/0_0.toml: teleporter.meadow.to_cave: a teleporter can't target itself.",
-                "chunks/0_0.toml: trigger.meadow.plate: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.",
-                "chunks/0_0.toml: trigger.meadow.plate: no placement in the zone is tagged 'bridge'.",
-                "chunks/0_0.toml: trigger.meadow.plate: revert_seconds can't be negative.",
+                "chunks/0_0/chunk.toml: teleporter.meadow.to_cave: a teleporter can't target itself.",
+                "chunks/0_0/chunk.toml: trigger.meadow.plate: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.",
+                "chunks/0_0/chunk.toml: trigger.meadow.plate: no placement in the zone is tagged 'bridge'.",
+                "chunks/0_0/chunk.toml: trigger.meadow.plate: revert_seconds can't be negative.",
             ],
             Errors(zone));
     }
@@ -250,13 +250,13 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/0_0.toml: sign at [12, 6, 5]: its text is empty.",
-                "chunks/0_0.toml: sign at [12, 6, 5]: text_height should be 0.05 to 5 meters.",
-                $"chunks/0_0.toml: sign at [13, 6, 5]: its text is {Sign.MaxText + 1} characters long; the most is {Sign.MaxText}.",
-                "chunks/0_0.toml: sign at [13, 6, 5]: background_opacity should be 0 to 1.",
-                "chunks/0_0.toml: sign at [-3, 6, 5] is in chunk -1_0: objects belong to the chunk holding their pivot.",
-                "chunks/0_0.toml: sign at [-3, 6, 5]: show_distance should be 1 to 200 meters.",
-                "chunks/0_0.toml: sign at [-3, 6, 5]: font_size should be 8 to 48.",
+                "chunks/0_0/chunk.toml: sign at [12, 6, 5]: its text is empty.",
+                "chunks/0_0/chunk.toml: sign at [12, 6, 5]: text_height should be 0.05 to 5 meters.",
+                $"chunks/0_0/chunk.toml: sign at [13, 6, 5]: its text is {Sign.MaxText + 1} characters long; the most is {Sign.MaxText}.",
+                "chunks/0_0/chunk.toml: sign at [13, 6, 5]: background_opacity should be 0 to 1.",
+                "chunks/0_0/chunk.toml: sign at [-3, 6, 5] is in chunk -1_0: objects belong to the chunk holding their pivot.",
+                "chunks/0_0/chunk.toml: sign at [-3, 6, 5]: show_distance should be 1 to 200 meters.",
+                "chunks/0_0/chunk.toml: sign at [-3, 6, 5]: font_size should be 8 to 48.",
             ],
             Errors(zone));
     }
@@ -268,6 +268,6 @@ public class ZoneValidationTests
         var teleporter = zone.Chunks.SelectMany(c => c.Teleporters).Single();
         teleporter.Volume.Sign = new Sign { Position = new Vector3(-20, 3, 0), Text = "" };
 
-        Assert.Equal(["chunks/0_0.toml: teleporter.meadow.to_cave's sign: its text is empty."], Errors(zone));
+        Assert.Equal(["chunks/0_0/chunk.toml: teleporter.meadow.to_cave's sign: its text is empty."], Errors(zone));
     }
 }

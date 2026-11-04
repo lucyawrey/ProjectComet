@@ -12,15 +12,16 @@ namespace Comet.ZoneFiles
 {
     /// <summary>
     /// A zone's folder: <c>zone.toml</c> (the zone's id, terrain pieces, borders, entrances and transition rooms),
-    /// then a TOML file per chunk in <c>chunks/</c>, named by its grid position (<c>chunks/0_-1.toml</c>), with the
-    /// chunk's terrain tiles beside it in a folder of the same name: <c>&lt;piece&gt;.height</c>, and optionally
-    /// <c>&lt;piece&gt;.under.height</c>, <c>&lt;piece&gt;.color</c> and <c>&lt;piece&gt;.under.color</c> (the underside's
-    /// colors, only with an underside). The zone is its set of chunk files.
+    /// then a folder per chunk in <c>chunks/</c>, named by its grid position (<c>chunks/0_-1/</c>), holding the chunk's
+    /// <c>chunk.toml</c> and its terrain tiles: <c>&lt;piece&gt;.height</c>, and optionally <c>&lt;piece&gt;.under.height</c>,
+    /// <c>&lt;piece&gt;.color</c> and <c>&lt;piece&gt;.under.color</c> (the underside's colors, only with an underside).
+    /// The zone is its set of chunk folders.
     /// </summary>
     public static class ZoneFolder
     {
         public const string ZoneFile = "zone.toml";
         public const string ChunksFolder = "chunks";
+        public const string ChunkFileName = "chunk.toml";
 
         /// <summary>Decimal places written for positions, sizes and scales: millimeters.</summary>
         private const int LengthDecimals = 3;
@@ -36,7 +37,7 @@ namespace Comet.ZoneFiles
         private static readonly Regex ChunkName = new Regex(@"^(-?\d+)_(-?\d+)$");
 
         /// <summary>The chunk file's path in the zone folder.</summary>
-        public static string ChunkFile(ChunkCoord coord) => $"{ChunksFolder}/{coord}.toml";
+        public static string ChunkFile(ChunkCoord coord) => $"{ChunksFolder}/{coord}/{ChunkFileName}";
 
         /// <summary>The path in the zone folder of a tile file: <paramref name="kind"/> is <c>height</c>, <c>under.height</c>, <c>color</c> or <c>under.color</c>.</summary>
         public static string TileFile(ChunkCoord coord, string piece, string kind) => $"{ChunksFolder}/{coord}/{piece}.{kind}";
@@ -66,14 +67,26 @@ namespace Comet.ZoneFiles
             var chunksPath = Path.Combine(folder, ChunksFolder);
             if (Directory.Exists(chunksPath))
             {
-                foreach (var path in Directory.EnumerateFiles(chunksPath, "*.toml").OrderBy(p => p, StringComparer.Ordinal))
+                // Files directly in chunks/ and folders without a chunk file are left alone, unless the folder holds
+                // terrain tiles, which would otherwise be dropped without a word.
+                foreach (var path in Directory.EnumerateDirectories(chunksPath).OrderBy(p => p, StringComparer.Ordinal))
                 {
-                    var name = Path.GetFileNameWithoutExtension(path);
+                    var name = Path.GetFileName(path);
+                    var file = $"{ChunksFolder}/{name}/{ChunkFileName}";
+                    if (!File.Exists(Path.Combine(path, ChunkFileName)))
+                    {
+                        if (Directory.EnumerateFiles(path).Any(IsTileFile))
+                        {
+                            errors.Add(new ZoneFileError($"{ChunksFolder}/{name}", $"This folder has terrain tiles but no {ChunkFileName}."));
+                        }
+
+                        continue;
+                    }
+
                     var match = ChunkName.Match(name);
-                    var file = $"{ChunksFolder}/{Path.GetFileName(path)}";
                     if (!match.Success || !int.TryParse(match.Groups[1].Value, out var x) || !int.TryParse(match.Groups[2].Value, out var z))
                     {
-                        errors.Add(new ZoneFileError(file, "Chunk files are named by their grid position, x_z (such as 0_-1.toml)."));
+                        errors.Add(new ZoneFileError(file, "Chunk folders are named by their grid position, x_z (such as 0_-1)."));
                         continue;
                     }
 
@@ -283,15 +296,15 @@ namespace Comet.ZoneFiles
                 };
             }).ToArray();
 
-            // Files in the tile folder that no tile reads are probably a piece renamed by hand: say so rather than
-            // silently ignoring them.
+            // Tile files in the chunk folder that no tile reads are probably a piece renamed by hand: say so rather than
+            // silently ignoring them. Other files there aren't the zone's.
             var tileFolder = Path.Combine(folder, ChunksFolder, coord.ToString());
             if (Directory.Exists(tileFolder))
             {
                 foreach (var path in Directory.EnumerateFiles(tileFolder).OrderBy(p => p, StringComparer.Ordinal))
                 {
                     var tileFile = $"{ChunksFolder}/{coord}/{Path.GetFileName(path)}";
-                    if (!tileFiles.Contains(tileFile))
+                    if (IsTileFile(path) && !tileFiles.Contains(tileFile))
                     {
                         errors.Add(new ZoneFileError(tileFile, $"No tile in {file} uses this file."));
                     }
@@ -846,7 +859,11 @@ namespace Comet.ZoneFiles
             File.WriteAllBytes(path, bytes);
         }
 
-        // Removes the chunk and tile files a save didn't write (deleted chunks and tiles), and tile folders left empty.
+        private static bool IsTileFile(string path) => path.EndsWith(".height", StringComparison.Ordinal) || path.EndsWith(".color", StringComparison.Ordinal);
+
+        // Removes the chunk and tile files a save didn't write (deleted chunks and tiles) from the chunk folders (x_z,
+        // the files directly in them), and chunk folders left empty. Anything else in chunks/ isn't the zone's, so it's
+        // left alone.
         private static void RemoveStale(string folder, HashSet<string> written)
         {
             var chunksPath = Path.Combine(folder, ChunksFolder);
@@ -855,17 +872,17 @@ namespace Comet.ZoneFiles
                 return;
             }
 
-            foreach (var path in Directory.EnumerateFiles(chunksPath, "*", SearchOption.AllDirectories).ToList())
+            var chunkFolders = Directory.EnumerateDirectories(chunksPath).Where(d => ChunkName.IsMatch(Path.GetFileName(d))).ToList();
+            foreach (var path in chunkFolders.SelectMany(d => Directory.EnumerateFiles(d)).ToList())
             {
                 var file = Path.GetRelativePath(folder, path).Replace('\\', '/');
-                var ours = file.EndsWith(".toml", StringComparison.Ordinal) || file.EndsWith(".height", StringComparison.Ordinal) || file.EndsWith(".color", StringComparison.Ordinal);
-                if (ours && !written.Contains(file))
+                if ((Path.GetFileName(path) == ChunkFileName || IsTileFile(path)) && !written.Contains(file))
                 {
                     File.Delete(path);
                 }
             }
 
-            foreach (var directory in Directory.EnumerateDirectories(chunksPath))
+            foreach (var directory in chunkFolders)
             {
                 if (!Directory.EnumerateFileSystemEntries(directory).Any())
                 {
