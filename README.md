@@ -59,7 +59,7 @@ dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
-C# and the project files are formatted with [CSharpier](https://csharpier.com) (`dotnet tool restore`, then `dotnet csharpier format .`); VS Code formats them on save with the recommended CSharpier extension. `tools/run check` runs what CI runs: the formatting check, the content build and the tests. To skip the reformat in `git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+C# and the project files are formatted with [CSharpier](https://csharpier.com) (`dotnet tool restore`, then `dotnet csharpier format .`); VS Code formats them on save with the recommended CSharpier extension. `tools/run check` runs what CI runs (the formatting check, the content build and the tests), then fails on interface text still left as a placeholder. How code is written and how pull requests work is in [CONTRIBUTING.md](CONTRIBUTING.md). To skip the reformat in `git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 The tests that use PostgreSQL need Docker. To play with accounts in the editor, as builds do, turn on Comet › Server › Use Accounts (per computer): the editor's server then runs with the Login server and PostgreSQL in Docker. Play-mode tests run with `tools/run unity-batch test PlayMode`; adding `-- -testCategory "!Accounts"` skips the ones that need Docker. The code guides are in [Comet's README](comet/README.md) and [ShapeLand's](shapeland/README.md).
 

@@ -1,12 +1,12 @@
 # Agent guide
 
-Notes for coding agents (and anyone else) working in this repo. Requirements, layout, setup and the tools are in `README.md`; the proposal is in `docs/`.
+Notes for coding agents (and anyone else) working in this repo. Requirements, layout, setup and the tools are in `README.md`; how code is written and reviewed is in `CONTRIBUTING.md`; the proposal is in `docs/`.
 
 **Names:** *Comet* is the shared base (servers, libraries, Unity package, tools); *Crystal* is the working name of the game built on it; *ShapeLand* is Comet's small demo and reference game. *ProjectComet* covers the whole project.
 
 ## Ground rules
 
-- **Human-made creative content only.** Agents help with code. No AI-generated models, textures, readable in-game text, music or sound; plain interface labels and messages are the exception. An agent may generate a starting point when asked (such as meshes exported for Blender), but never commits it: it's handed to a person, who edits it and checks it in.
+- **Human-made creative content only.** Agents help with code. No AI-generated models, textures, in-game text, music or sound. Interface text (buttons, menus, hints, messages) is written by people too: where a change needs some, leave a placeholder in square brackets that says what's needed, such as `[button that saves the zone]`, and `tools/run check` lists any that remain. Labels that name a data field one to one are the exception. An agent may generate a starting point when asked (such as meshes exported for Blender), but never commits it: it's handed to a person, who edits it and checks it in.
 - **Comet keeps thin mechanisms; game policy is game code.** Anything specific to one game belongs in that game, not in `comet/`.
 - **The stack:** a Unity client with web export as a main target, plain .NET servers, and WebSocket for every client. Servers and shared libraries are C#.
 - **American English** in code, interface text and technical docs (color, center, meter, normalize).
