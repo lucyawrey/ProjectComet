@@ -6,7 +6,7 @@ namespace Comet.ZoneFiles.Tests;
 // Test zones, and a throwaway folder to save them in.
 internal static class Zones
 {
-    /// <summary>A flat tile of <paramref name="size"/> samples at <paramref name="height"/> meters.</summary>
+    /// <summary>A flat tile of <paramref name="sizeX"/> by <paramref name="sizeZ"/> samples at <paramref name="height"/> meters.</summary>
     public static Heightmap Flat(int sizeX, int sizeZ, float height) =>
         new()
         {

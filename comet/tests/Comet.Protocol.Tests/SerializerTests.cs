@@ -1,4 +1,3 @@
-using Comet.Protocol.Messages;
 using MessagePack;
 
 namespace Comet.Protocol.Tests;

@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Comet.Data.Accounts;
 using Comet.Protocol.Login;
 using Comet.Tickets;
 using Microsoft.EntityFrameworkCore;

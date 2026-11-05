@@ -1,5 +1,4 @@
 using System.Numerics;
-using Comet.Content;
 
 namespace Comet.Simulation.Tests;
 
