@@ -24,10 +24,18 @@ public sealed class DevCharacters(InMemoryCharacterDatabase<ShapeLandCharacter> 
     public long? FindOrAdd(string name, bool bot, int shape, int color, int eyeColor)
     {
         var account = bot ? BotAccountId : AccountId;
-        var (id, _) = database.FindOrAdd(name, id => new ShapeLandCharacter
-        {
-            Id = id, AccountId = account, Name = name, Shape = shape, Color = color, EyeColor = eyeColor,
-        });
+        var (id, _) = database.FindOrAdd(
+            name,
+            id => new ShapeLandCharacter
+            {
+                Id = id,
+                AccountId = account,
+                Name = name,
+                Shape = shape,
+                Color = color,
+                EyeColor = eyeColor,
+            }
+        );
         return database.Character(id)?.AccountId == account ? id : null;
     }
 

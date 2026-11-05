@@ -62,7 +62,15 @@ namespace Comet.Simulation
                 c[i] = new Vector3((i & 1) == 0 ? -e.X : e.X, (i & 2) == 0 ? -e.Y : e.Y, (i & 4) == 0 ? -e.Z : e.Z);
             }
 
-            int[][] faces = { new[] { 0, 2, 3, 1 }, new[] { 4, 5, 7, 6 }, new[] { 0, 1, 5, 4 }, new[] { 2, 6, 7, 3 }, new[] { 0, 4, 6, 2 }, new[] { 1, 3, 7, 5 } };
+            int[][] faces =
+            {
+                new[] { 0, 2, 3, 1 },
+                new[] { 4, 5, 7, 6 },
+                new[] { 0, 1, 5, 4 },
+                new[] { 2, 6, 7, 3 },
+                new[] { 0, 4, 6, 2 },
+                new[] { 1, 3, 7, 5 },
+            };
             var triangles = new List<Vector3>();
             foreach (var f in faces)
             {

@@ -32,7 +32,8 @@ namespace ShapeLand.Client
     {
         private const string LogPrefix = "JOIN";
 
-        [SerializeField] private string address = "localhost:5090";
+        [SerializeField]
+        private string address = "localhost:5090";
 
         /// <summary>
         /// The start of the session tokens' PlayerPrefs keys, one per Login server, so a token is only ever sent to the
@@ -53,6 +54,7 @@ namespace ShapeLand.Client
         private JoinRequest? _pending;
         private DevJoinRequest? _pendingDev;
         private string _devName = "";
+
         // Bumped by CancelJoin, so a join already on its way stops before connecting.
         private int _joinAttempt;
         private bool _ticketRetried;
@@ -386,7 +388,13 @@ namespace ShapeLand.Client
             _devName = name;
             _content.Strings.SetShared("username", name);
             Connect(new Uri($"ws://localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}/ws"));
-            _pendingDev = new DevJoinRequest { Name = name, Shape = look.Shape, Color = look.Color, EyeColor = look.EyeColor };
+            _pendingDev = new DevJoinRequest
+            {
+                Name = name,
+                Shape = look.Shape,
+                Color = look.Color,
+                EyeColor = look.EyeColor,
+            };
         }
 
         private async void RetryAsync()
@@ -544,8 +552,13 @@ namespace ShapeLand.Client
         {
             _url = serverUrl;
             _connectedAt = Time.realtimeSinceStartupAsDouble;
-            var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
-                _content.Movement.Gravity, ShapeLandWorld.GroundHeight(_content, World));
+            var session = _connection.Connect(
+                serverUrl,
+                ShapeLandProtocol.Options,
+                ShapeLandWorld.TeleportSpeed(_content),
+                _content.Movement.Gravity,
+                ShapeLandWorld.GroundHeight(_content, World)
+            );
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
             session.EntityDespawned += id =>
@@ -553,7 +566,8 @@ namespace ShapeLand.Client
                 Log($"entity {id} left");
                 OtherLeft?.Invoke(id);
             };
-            session.Corrected += correction => Log($"corrected ({correction.Reason}) to ({correction.X:0.0}, {correction.Y:0.0}, {correction.Z:0.0})");
+            session.Corrected += correction =>
+                Log($"corrected ({correction.Reason}) to ({correction.X:0.0}, {correction.Y:0.0}, {correction.Z:0.0})");
             Log($"connecting to {serverUrl}");
         }
 

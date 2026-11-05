@@ -23,8 +23,12 @@ public class FeatureEdgesTests
     {
         var quad = new[]
         {
-            new Vector3(0, 0, 0), new Vector3(0, 0, 1), new Vector3(1, 0, 1),
-            new Vector3(0, 0, 0), new Vector3(1, 0, 1), new Vector3(1, 0, 0),
+            new Vector3(0, 0, 0),
+            new Vector3(0, 0, 1),
+            new Vector3(1, 0, 1),
+            new Vector3(0, 0, 0),
+            new Vector3(1, 0, 1),
+            new Vector3(1, 0, 0),
         };
         Assert.Equal(8, FeatureEdges.Of(quad).Length);
     }
@@ -34,8 +38,12 @@ public class FeatureEdgesTests
     {
         var quad = new[]
         {
-            new Vector3(0, 0, 0), new Vector3(0, 0, 1), new Vector3(1, 0, 1),
-            new Vector3(0.0001f, 0, 0), new Vector3(1, 0, 1.0001f), new Vector3(1, 0, 0),
+            new Vector3(0, 0, 0),
+            new Vector3(0, 0, 1),
+            new Vector3(1, 0, 1),
+            new Vector3(0.0001f, 0, 0),
+            new Vector3(1, 0, 1.0001f),
+            new Vector3(1, 0, 0),
         };
         Assert.Equal(8, FeatureEdges.Of(quad).Length);
     }

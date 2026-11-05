@@ -33,12 +33,16 @@ namespace ShapeLand.Client.Editor
             // from a Linux-targeted editor failed every draw. Batch runs start on the profile's platform instead.
             if (Application.isBatchMode && EditorUserBuildSettings.activeBuildTarget != report.summary.platform)
             {
-                throw new BuildFailedException($"The editor is on {EditorUserBuildSettings.activeBuildTarget}; start it on {report.summary.platform} (-activeBuildProfile)");
+                throw new BuildFailedException(
+                    $"The editor is on {EditorUserBuildSettings.activeBuildTarget}; start it on {report.summary.platform} (-activeBuildProfile)"
+                );
             }
 
             if (!ContentBuild.Copy())
             {
-                throw new BuildFailedException($"Run the content build first: Comet › Content › Build, or dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build ({ContentBuild.Source})");
+                throw new BuildFailedException(
+                    $"Run the content build first: Comet › Content › Build, or dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build ({ContentBuild.Source})"
+                );
             }
 
             AssetDatabase.Refresh();
@@ -103,7 +107,9 @@ namespace ShapeLand.Client.Editor
                 content = ShapeLandContent.Load(stream);
             }
 
-            var pairs = content.Strings.Entries.Where(e => e.Key.StartsWith("page.")).OrderBy(e => e.Key, StringComparer.Ordinal)
+            var pairs = content
+                .Strings.Entries.Where(e => e.Key.StartsWith("page."))
+                .OrderBy(e => e.Key, StringComparer.Ordinal)
                 .Select(e => $"{Json(e.Key)}: {Json(e.Value)}");
             return "{ " + string.Join(", ", pairs) + " }";
         }
@@ -113,14 +119,16 @@ namespace ShapeLand.Client.Editor
             var result = new StringBuilder("\"");
             foreach (var c in text)
             {
-                result.Append(c switch
-                {
-                    '"' => "\\\"",
-                    '\\' => "\\\\",
-                    '<' => "\\u003c", // never "</script>" inside the page's script
-                    _ when c < ' ' => $"\\u{(int)c:x4}",
-                    _ => c.ToString(),
-                });
+                result.Append(
+                    c switch
+                    {
+                        '"' => "\\\"",
+                        '\\' => "\\\\",
+                        '<' => "\\u003c", // never "</script>" inside the page's script
+                        _ when c < ' ' => $"\\u{(int)c:x4}",
+                        _ => c.ToString(),
+                    }
+                );
             }
 
             return result.Append('"').ToString();

@@ -41,7 +41,6 @@ public abstract class CometAccountContext(DbContextOptions options) : DbContext(
             account.Ignore(a => a.PhoneNumber);
             account.Ignore(a => a.PhoneNumberConfirmed);
             account.Ignore(a => a.TwoFactorEnabled);
-
         });
 
         modelBuilder.Entity<Session>(session =>
@@ -58,7 +57,6 @@ public abstract class CometAccountContext(DbContextOptions options) : DbContext(
 public static class CometAccountDatabase
 {
     /// <summary>Options for a game's <see cref="CometAccountContext"/>.</summary>
-    public static DbContextOptionsBuilder UseCometAccount(
-        this DbContextOptionsBuilder options, string connectionString, TimeProvider clock) =>
+    public static DbContextOptionsBuilder UseCometAccount(this DbContextOptionsBuilder options, string connectionString, TimeProvider clock) =>
         options.UseComet(connectionString, CometAccountContext.Schema, clock);
 }

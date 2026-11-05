@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,5 +11,4 @@
     <ProjectReference Include="..\ShapeLand.Data.Accounts\ShapeLand.Data.Accounts.csproj" />
     <ProjectReference Include="..\ShapeLand.Shared\ShapeLand.Shared.csproj" />
   </ItemGroup>
-
 </Project>

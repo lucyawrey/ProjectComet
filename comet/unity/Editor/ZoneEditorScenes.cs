@@ -24,7 +24,10 @@ namespace Comet.Unity.Editor
             EditorApplication.playModeStateChanged += state =>
             {
                 // The test runner enters play mode from a scene of its own, which must stay the one that loads.
-                if (state == PlayModeStateChange.ExitingEditMode && SceneManager.GetActiveScene().name.StartsWith("InitTestScene", StringComparison.Ordinal))
+                if (
+                    state == PlayModeStateChange.ExitingEditMode
+                    && SceneManager.GetActiveScene().name.StartsWith("InitTestScene", StringComparison.Ordinal)
+                )
                 {
                     EditorSceneManager.playModeStartScene = null;
                 }

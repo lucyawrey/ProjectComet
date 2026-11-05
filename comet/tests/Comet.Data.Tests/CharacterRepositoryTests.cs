@@ -319,7 +319,15 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
     private async Task<long> AddAsync(string name, int look = 0)
     {
         var id = Interlocked.Increment(ref _nextId);
-        await Backend.AddAsync(new TestCharacter { Id = id, AccountId = id + 1_000_000, Name = name, Look = look });
+        await Backend.AddAsync(
+            new TestCharacter
+            {
+                Id = id,
+                AccountId = id + 1_000_000,
+                Name = name,
+                Look = look,
+            }
+        );
         return id;
     }
 
@@ -357,12 +365,19 @@ public sealed class InMemoryCharacterRepositoryTests : CharacterRepositoryContra
     {
         private readonly InMemoryCharacterDatabase<TestCharacter> _db = new(TimeProvider.System);
 
-        public ICharacterRepository<TestCharacter> CreateRepository(CharacterRepositoryOptions options) => new InMemoryCharacterRepository<TestCharacter>(_db, options);
+        public ICharacterRepository<TestCharacter> CreateRepository(CharacterRepositoryOptions options) =>
+            new InMemoryCharacterRepository<TestCharacter>(_db, options);
+
         public Task AddAsync(TestCharacter character) => Done(() => _db.Add(character));
+
         public Task RenameAsync(long id, string name) => Done(() => _db.Rename(id, name));
+
         public Task DeleteAsync(long id) => Done(() => _db.Delete(id));
+
         public Task KickAsync(long id) => Done(() => _db.Kick(id));
+
         public Task<TestCharacter?> CharacterAsync(long id) => Task.FromResult(_db.Character(id));
+
         public Task<CharacterPosition?> PositionAsync(long id) => Task.FromResult(_db.Position(id));
 
         public Task<(int ServerId, long Version, bool Held)?> OwnerAsync(long id) =>

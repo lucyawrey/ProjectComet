@@ -54,8 +54,14 @@ internal static class StringFile
         return table;
     }
 
-    private static void Add(KeyValueSyntax keyValue, string prefix, StringTable table, string file,
-        IReadOnlyCollection<string>? placeholders, List<ContentError> errors)
+    private static void Add(
+        KeyValueSyntax keyValue,
+        string prefix,
+        StringTable table,
+        string file,
+        IReadOnlyCollection<string>? placeholders,
+        List<ContentError> errors
+    )
     {
         var name = Key(keyValue.Key!, file, errors);
         if (name is null)
@@ -74,14 +80,25 @@ internal static class StringFile
         {
             if (!Placeholder.IsMatch(brace.Value))
             {
-                errors.Add(ContentBuilder.ErrorAt(file, value.Span, $"'{key}' has '{brace.Value}': placeholders are a lowercase name in braces, like {{name}}."));
+                errors.Add(
+                    ContentBuilder.ErrorAt(
+                        file,
+                        value.Span,
+                        $"'{key}' has '{brace.Value}': placeholders are a lowercase name in braces, like {{name}}."
+                    )
+                );
                 return;
             }
 
             if (placeholders is not null && !placeholders.Contains(brace.Value[1..^1]))
             {
-                errors.Add(ContentBuilder.ErrorAt(file, value.Span,
-                    $"'{key}' has '{brace.Value}', which the game doesn't fill in: use one of {string.Join(", ", placeholders.Select(p => $"{{{p}}}"))}."));
+                errors.Add(
+                    ContentBuilder.ErrorAt(
+                        file,
+                        value.Span,
+                        $"'{key}' has '{brace.Value}', which the game doesn't fill in: use one of {string.Join(", ", placeholders.Select(p => $"{{{p}}}"))}."
+                    )
+                );
                 return;
             }
         }
@@ -96,7 +113,13 @@ internal static class StringFile
         var bad = parts.FirstOrDefault(p => !KeyPart.IsMatch(ContentBuilder.KeyText(p)));
         if (bad is not null)
         {
-            errors.Add(ContentBuilder.ErrorAt(file, bad.Span, $"'{ContentBuilder.KeyText(bad)}' isn't a valid key: use lowercase letters, digits and underscores."));
+            errors.Add(
+                ContentBuilder.ErrorAt(
+                    file,
+                    bad.Span,
+                    $"'{ContentBuilder.KeyText(bad)}' isn't a valid key: use lowercase letters, digits and underscores."
+                )
+            );
             return null;
         }
 

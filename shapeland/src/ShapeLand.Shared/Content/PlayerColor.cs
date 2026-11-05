@@ -12,12 +12,15 @@ namespace ShapeLand.Shared.Content
     public sealed class PlayerColor : IContentEntry
     {
         [JsonIgnore]
-        [Key(0)] public int Number { get; set; }
+        [Key(0)]
+        public int Number { get; set; }
 
         /// <summary>The key, as <c>color.name</c>.</summary>
-        [Key(1)] public string Id { get; set; } = "";
+        [Key(1)]
+        public string Id { get; set; } = "";
 
         /// <summary>The color as 0xRRGGBB.</summary>
-        [Key(2)] public uint Rgb { get; set; }
+        [Key(2)]
+        public uint Rgb { get; set; }
     }
 }

@@ -27,7 +27,19 @@ namespace Comet.Simulation
         public static Vector3[] For(Placement placement, PolygonBudget budget)
         {
             var p = placement.Primitive ?? throw new ArgumentException("Not a primitive's placement.", nameof(placement));
-            var key = (p.Kind, p.Sides, p.Bevel, p.Steps, p.OpeningWidth, p.OpeningHeight, p.Thickness, placement.Scale, budget.FacetLength, budget.MinSides, budget.MaxSides);
+            var key = (
+                p.Kind,
+                p.Sides,
+                p.Bevel,
+                p.Steps,
+                p.OpeningWidth,
+                p.OpeningHeight,
+                p.Thickness,
+                placement.Scale,
+                budget.FacetLength,
+                budget.MinSides,
+                budget.MaxSides
+            );
             lock (Cache)
             {
                 if (!Cache.TryGetValue(key, out var triangles))
@@ -104,20 +116,21 @@ namespace Comet.Simulation
         // About the circumference of an ellipse with these diameters (Ramanujan's first approximation).
         private static float Ellipse(float width, float depth)
         {
-            float a = width / 2, b = depth / 2;
+            float a = width / 2,
+                b = depth / 2;
             return MathF.PI * (3 * (a + b) - MathF.Sqrt((3 * a + b) * (a + 3 * b)));
         }
 
-        private static Vector2[] Rectangle(Vector3 size) => new[]
-        {
-            new Vector2(-size.X / 2, 0), new Vector2(size.X / 2, 0), new Vector2(size.X / 2, size.Y), new Vector2(-size.X / 2, size.Y),
-        };
+        private static Vector2[] Rectangle(Vector3 size) =>
+            new[] { new Vector2(-size.X / 2, 0), new Vector2(size.X / 2, 0), new Vector2(size.X / 2, size.Y), new Vector2(-size.X / 2, size.Y) };
 
         // Steps climbing toward +X, as a profile in X and Y (counterclockwise): step k's top is k step heights up.
         private static Vector2[] Stairs(Vector3 size, int steps)
         {
             var count = steps > 0 ? steps : Math.Clamp((int)MathF.Round(size.Y / DefaultStepHeight), 1, Primitive.MaxSteps);
-            float run = size.X / count, rise = size.Y / count, left = -size.X / 2;
+            float run = size.X / count,
+                rise = size.Y / count,
+                left = -size.X / 2;
             var profile = new List<Vector2> { new Vector2(left, 0), new Vector2(size.X / 2, 0), new Vector2(size.X / 2, size.Y) };
             for (var k = count; k >= 1; k--)
             {
@@ -143,8 +156,14 @@ namespace Comet.Simulation
 
             return new[]
             {
-                new Vector2(-size.X / 2, 0), new Vector2(-half, 0), new Vector2(-half, top), new Vector2(half, top),
-                new Vector2(half, 0), new Vector2(size.X / 2, 0), new Vector2(size.X / 2, size.Y), new Vector2(-size.X / 2, size.Y),
+                new Vector2(-size.X / 2, 0),
+                new Vector2(-half, 0),
+                new Vector2(-half, top),
+                new Vector2(half, top),
+                new Vector2(half, 0),
+                new Vector2(size.X / 2, 0),
+                new Vector2(size.X / 2, size.Y),
+                new Vector2(-size.X / 2, size.Y),
             };
         }
 
@@ -154,9 +173,12 @@ namespace Comet.Simulation
         private static Vector2[] Arch(Vector3 size, float thickness, int? sides, PolygonBudget budget)
         {
             const float least = 0.05f;
-            float outerX = size.X / 2, outerY = Math.Min(outerX, size.Y), springs = size.Y - outerY;
+            float outerX = size.X / 2,
+                outerY = Math.Min(outerX, size.Y),
+                springs = size.Y - outerY;
             var t = Math.Clamp(thickness, least, Math.Max(least, Math.Min(outerX, outerY) - least));
-            float innerX = Math.Max(least, outerX - t), innerY = Math.Max(least, outerY - t);
+            float innerX = Math.Max(least, outerX - t),
+                innerY = Math.Max(least, outerY - t);
             var segments = Math.Max(2, (sides ?? budget.Sides(Ellipse(2 * outerX, 2 * outerY))) / 2);
             var profile = new List<Vector2> { new Vector2(-outerX, 0), new Vector2(-innerX, 0) };
             for (var i = 0; i <= segments; i++)
@@ -317,7 +339,8 @@ namespace Comet.Simulation
             public static bool IsSolid(PrimitiveKind kind) =>
                 kind is PrimitiveKind.Tetrahedron or PrimitiveKind.Octahedron or PrimitiveKind.Dodecahedron or PrimitiveKind.Icosahedron;
 
-            private static readonly Dictionary<PrimitiveKind, (Vector3[] Points, int[][] Faces)> Solids = new Dictionary<PrimitiveKind, (Vector3[], int[][])>();
+            private static readonly Dictionary<PrimitiveKind, (Vector3[] Points, int[][] Faces)> Solids =
+                new Dictionary<PrimitiveKind, (Vector3[], int[][])>();
 
             public static (Vector3[] Points, int[][] Faces) Get(PrimitiveKind kind)
             {
@@ -365,7 +388,13 @@ namespace Comet.Simulation
                         // On a face, with a corner at the back and a face toward +Z: height = edge × √(2/3).
                         var edge = MathF.Sqrt(1.5f);
                         var radius = edge / MathF.Sqrt(3);
-                        points = new[] { new Vector3(0, 0, -radius), new Vector3(-edge / 2, 0, radius / 2), new Vector3(edge / 2, 0, radius / 2), new Vector3(0, 1, 0) };
+                        points = new[]
+                        {
+                            new Vector3(0, 0, -radius),
+                            new Vector3(-edge / 2, 0, radius / 2),
+                            new Vector3(edge / 2, 0, radius / 2),
+                            new Vector3(0, 1, 0),
+                        };
                         return (points, Hull(points));
                     }
                     case PrimitiveKind.Octahedron:
@@ -374,8 +403,12 @@ namespace Comet.Simulation
                         var s = 0.5f / MathF.Sqrt(2);
                         points = new[]
                         {
-                            new Vector3(0, 0, 0), new Vector3(0, 1, 0),
-                            new Vector3(-s, 0.5f, -s), new Vector3(s, 0.5f, -s), new Vector3(s, 0.5f, s), new Vector3(-s, 0.5f, s),
+                            new Vector3(0, 0, 0),
+                            new Vector3(0, 1, 0),
+                            new Vector3(-s, 0.5f, -s),
+                            new Vector3(s, 0.5f, -s),
+                            new Vector3(s, 0.5f, s),
+                            new Vector3(-s, 0.5f, s),
                         };
                         return (points, Hull(points));
                     }
@@ -430,11 +463,13 @@ namespace Comet.Simulation
                 }
                 var down = -Vector3.UnitY;
                 var axis = Vector3.Cross(normal, down);
-                var turn = axis.LengthSquared() < 1e-10f
-                    ? (Vector3.Dot(normal, down) > 0 ? Quaternion.Identity : Quaternion.CreateFromAxisAngle(Vector3.UnitX, MathF.PI))
-                    : Quaternion.CreateFromAxisAngle(Vector3.Normalize(axis), MathF.Acos(Math.Clamp(Vector3.Dot(normal, down), -1, 1)));
+                var turn =
+                    axis.LengthSquared() < 1e-10f
+                        ? (Vector3.Dot(normal, down) > 0 ? Quaternion.Identity : Quaternion.CreateFromAxisAngle(Vector3.UnitX, MathF.PI))
+                        : Quaternion.CreateFromAxisAngle(Vector3.Normalize(axis), MathF.Acos(Math.Clamp(Vector3.Dot(normal, down), -1, 1)));
                 var turned = points.Select(p => Vector3.Transform(p, turn)).ToArray();
-                float low = turned.Min(p => p.Y), high = turned.Max(p => p.Y);
+                float low = turned.Min(p => p.Y),
+                    high = turned.Max(p => p.Y);
                 var standing = turned.Select(p => new Vector3(p.X, p.Y - low, p.Z) / (high - low)).ToArray();
                 return (standing, faces);
             }
@@ -521,7 +556,8 @@ namespace Comet.Simulation
             // A profile in X and Y (a simple polygon, counterclockwise), run through the depth along Z around the pivot.
             public void Prism(Vector2[] profile, float depth)
             {
-                float front = -depth / 2, back = depth / 2;
+                float front = -depth / 2,
+                    back = depth / 2;
                 Vector3 At(Vector2 p, float z) => new Vector3(p.X, p.Y, z);
                 foreach (var (a, b, c) in Triangulate(profile))
                 {

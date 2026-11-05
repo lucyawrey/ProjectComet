@@ -24,7 +24,12 @@ namespace Comet.Unity.Editor
             using (new EditorGUI.DisabledScope(!own))
             {
                 _resetIcon ??= new GUIContent(EditorGUIUtility.IconContent("Refresh").image, "Reset to the default color");
-                reset = GUILayout.Button(_resetIcon, EditorStyles.iconButton, GUILayout.Width(20), GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                reset = GUILayout.Button(
+                    _resetIcon,
+                    EditorStyles.iconButton,
+                    GUILayout.Width(20),
+                    GUILayout.Height(EditorGUIUtility.singleLineHeight)
+                );
             }
 
             EditorGUILayout.EndHorizontal();

@@ -98,12 +98,24 @@ namespace Comet.Unity.Editor
                 var color = PartColor(part, settings);
                 if (part.Primitive != null)
                 {
-                    meshes.Add((PrimitiveMeshes.For(part, settings.Budget), Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), Vector3.one), color));
+                    meshes.Add(
+                        (
+                            PrimitiveMeshes.For(part, settings.Budget),
+                            Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), Vector3.one),
+                            color
+                        )
+                    );
                 }
                 else if (settings.props != null && settings.props.Model(part.Prop) is { } model)
                 {
-                    var matrix = Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), ToUnity(part.Scale)) * model.transform.worldToLocalMatrix;
-                    foreach (var filter in model.GetComponentsInChildren<MeshFilter>().Where(f => f.sharedMesh != null && !f.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal)))
+                    var matrix =
+                        Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), ToUnity(part.Scale))
+                        * model.transform.worldToLocalMatrix;
+                    foreach (
+                        var filter in model
+                            .GetComponentsInChildren<MeshFilter>()
+                            .Where(f => f.sharedMesh != null && !f.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal))
+                    )
                     {
                         meshes.Add((filter.sharedMesh, matrix * filter.transform.localToWorldMatrix, color));
                     }
@@ -148,8 +160,17 @@ namespace Comet.Unity.Editor
 
             var root = new GameObject(PartsName).transform;
             root.SetParent(copy.transform, false);
-            var material = settings.placedMaterial != null ? settings.placedMaterial : AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat");
-            var parts = Groups.Expand(new Placement { Group = copy.group, Colors = ZoneEditor.PlacementOf(copy).Colors, Blockout = copy.blockout }, Find);
+            var material =
+                settings.placedMaterial != null ? settings.placedMaterial : AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat");
+            var parts = Groups.Expand(
+                new Placement
+                {
+                    Group = copy.group,
+                    Colors = ZoneEditor.PlacementOf(copy).Colors,
+                    Blockout = copy.blockout,
+                },
+                Find
+            );
             if (parts.Count == 0)
             {
                 Debug.LogWarning($"{copy.name}: there's no group '{copy.group}', or it has no parts.", copy);
@@ -199,18 +220,32 @@ namespace Comet.Unity.Editor
         /// </summary>
         public static bool SaveSelection(ZoneEditing editing, string id, CometSettings settings)
         {
-            var selected = Selection.gameObjects.Select(g => g.GetComponent<ZonePlacement>())
-                .Where(p => p != null && p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null && p.GetComponentInParent<ZoneEditing>(true) == editing)
+            var selected = Selection
+                .gameObjects.Select(g => g.GetComponent<ZonePlacement>())
+                .Where(p =>
+                    p != null
+                    && p.IsLoose
+                    && p.GetComponentInParent<ZoneTrigger>(true) == null
+                    && p.GetComponentInParent<ZoneEditing>(true) == editing
+                )
                 .ToList();
             if (selected.Count == 0)
             {
-                EditorUtility.DisplayDialog("Save as group", "Select the placed objects to make into a group first (spawn markers can't be in one).", "OK");
+                EditorUtility.DisplayDialog(
+                    "Save as group",
+                    "Select the placed objects to make into a group first (spawn markers can't be in one).",
+                    "OK"
+                );
                 return false;
             }
 
             if (!ZoneValidation.IsId(id, "group") || Find(id) != null)
             {
-                EditorUtility.DisplayDialog("Save as group", Find(id) != null ? $"There's already a group '{id}'." : "Pick a new id: 'group.' then lowercase letters, digits and underscores.", "OK");
+                EditorUtility.DisplayDialog(
+                    "Save as group",
+                    Find(id) != null ? $"There's already a group '{id}'." : "Pick a new id: 'group.' then lowercase letters, digits and underscores.",
+                    "OK"
+                );
                 return false;
             }
 
@@ -225,13 +260,15 @@ namespace Comet.Unity.Editor
             var group = new Group
             {
                 Id = id,
-                Parts = selected.Select(p =>
-                {
-                    var part = ZoneEditor.PlacementOf(p);
-                    part.Position -= ToNumerics(pivot);
-                    part.Tag = null;
-                    return part;
-                }).ToArray(),
+                Parts = selected
+                    .Select(p =>
+                    {
+                        var part = ZoneEditor.PlacementOf(p);
+                        part.Position -= ToNumerics(pivot);
+                        part.Tag = null;
+                        return part;
+                    })
+                    .ToArray(),
             };
             var file = GroupFile.FileFor(id);
             if (!Check(group, file, settings))
@@ -270,25 +307,29 @@ namespace Comet.Unity.Editor
             Undo.SetCurrentGroupName($"Unpack {copy.group}");
             var undoGroup = Undo.GetCurrentGroup();
             var parent = copy.transform.parent;
-            var made = Groups.Place(ZoneEditor.PlacementOf(copy), group).Select(part =>
-            {
-                var thing = ZoneEditor.CreatePlaced(part, parent, settings);
-                Undo.RegisterCreatedObjectUndo(thing, $"Unpack {copy.group}");
-                return thing;
-            }).ToArray();
+            var made = Groups
+                .Place(ZoneEditor.PlacementOf(copy), group)
+                .Select(part =>
+                {
+                    var thing = ZoneEditor.CreatePlaced(part, parent, settings);
+                    Undo.RegisterCreatedObjectUndo(thing, $"Unpack {copy.group}");
+                    return thing;
+                })
+                .ToArray();
             Undo.DestroyObjectImmediate(copy.gameObject);
             Undo.CollapseUndoOperations(undoGroup);
             Selection.objects = made.Cast<Object>().ToArray();
         }
 
         /// <summary>Asks to save the open scenes' changes, then opens a group (<see cref="Open"/>), after the current GUI pass.</summary>
-        public static void OpenLater(string id, CometSettings settings) => EditorApplication.delayCall += () =>
-        {
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+        public static void OpenLater(string id, CometSettings settings) =>
+            EditorApplication.delayCall += () =>
             {
-                Open(id, settings);
-            }
-        };
+                if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                {
+                    Open(id, settings);
+                }
+            };
 
         /// <summary>Opens a group in a scene of its own, its pivot at the origin; saving it updates every copy.</summary>
         public static bool Open(string id, CometSettings settings)
@@ -359,7 +400,11 @@ namespace Comet.Unity.Editor
             {
                 Id = editing.groupId,
                 DisplayName = Find(editing.groupId)?.DisplayName, // kept from its file: the scene doesn't hold it
-                Parts = editing.GetComponentsInChildren<ZonePlacement>(true).Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null).Select(p => ZoneEditor.PlacementOf(p)).ToArray(),
+                Parts = editing
+                    .GetComponentsInChildren<ZonePlacement>(true)
+                    .Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null)
+                    .Select(p => ZoneEditor.PlacementOf(p))
+                    .ToArray(),
             };
             var path = ZoneEditor.ProjectPath(editing.folder);
             if (!Check(group, Path.GetRelativePath(ZoneEditor.ProjectPath(settings.groupsFolder), path).Replace('\\', '/'), settings))
@@ -429,8 +474,15 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            var parts = copy.GetComponentsInChildren<ZonePlacement>(true).Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>(true) == copy).ToList();
-            var group = new Group { Id = copy.group, DisplayName = entry.Group.DisplayName, Parts = parts.Select(p => ZoneEditor.PlacementOf(p, copy.transform)).ToArray() };
+            var parts = copy.GetComponentsInChildren<ZonePlacement>(true)
+                .Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>(true) == copy)
+                .ToList();
+            var group = new Group
+            {
+                Id = copy.group,
+                DisplayName = entry.Group.DisplayName,
+                Parts = parts.Select(p => ZoneEditor.PlacementOf(p, copy.transform)).ToArray(),
+            };
             if (!Check(group, entry.File, settings))
             {
                 return false;
@@ -455,7 +507,11 @@ namespace Comet.Unity.Editor
         {
             Undo.SetCurrentGroupName(undoName);
             var undoGroup = Undo.GetCurrentGroup();
-            foreach (var part in copy.GetComponentsInChildren<ZonePlacement>(true).Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>(true) == copy).ToList())
+            foreach (
+                var part in copy.GetComponentsInChildren<ZonePlacement>(true)
+                    .Where(p => p != copy && p.transform.parent.GetComponentInParent<ZonePlacement>(true) == copy)
+                    .ToList()
+            )
             {
                 Undo.DestroyObjectImmediate(part.gameObject);
             }
@@ -469,38 +525,44 @@ namespace Comet.Unity.Editor
 
         // The bar shown in the Scene view while a group is edited in place.
         [InitializeOnLoadMethod]
-        private static void InPlaceBar() => SceneView.duringSceneGui += view =>
-        {
-            if (Event.current.type != EventType.Layout && Event.current.type != EventType.Repaint && Event.current.type != EventType.MouseDown && Event.current.type != EventType.MouseUp)
+        private static void InPlaceBar() =>
+            SceneView.duringSceneGui += view =>
             {
-                return;
-            }
+                if (
+                    Event.current.type != EventType.Layout
+                    && Event.current.type != EventType.Repaint
+                    && Event.current.type != EventType.MouseDown
+                    && Event.current.type != EventType.MouseUp
+                )
+                {
+                    return;
+                }
 
-            if (InPlace is not { } copy || CometSettings.Find(quiet: true) is not { } settings)
-            {
-                return;
-            }
+                if (InPlace is not { } copy || CometSettings.Find(quiet: true) is not { } settings)
+                {
+                    return;
+                }
 
-            Handles.BeginGUI();
-            var width = 420f;
-            GUILayout.BeginArea(new Rect((view.position.width - width) / 2, 8, width, 30), EditorStyles.helpBox);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Editing {copy.group} in place", EditorStyles.boldLabel);
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Save group", GUILayout.Width(100)))
-            {
-                SaveInPlace(settings);
-            }
+                Handles.BeginGUI();
+                var width = 420f;
+                GUILayout.BeginArea(new Rect((view.position.width - width) / 2, 8, width, 30), EditorStyles.helpBox);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"Editing {copy.group} in place", EditorStyles.boldLabel);
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Save group", GUILayout.Width(100)))
+                {
+                    SaveInPlace(settings);
+                }
 
-            if (GUILayout.Button("Cancel", GUILayout.Width(70)))
-            {
-                CancelInPlace();
-            }
+                if (GUILayout.Button("Cancel", GUILayout.Width(70)))
+                {
+                    CancelInPlace();
+                }
 
-            GUILayout.EndHorizontal();
-            GUILayout.EndArea();
-            Handles.EndGUI();
-        };
+                GUILayout.EndHorizontal();
+                GUILayout.EndArea();
+                Handles.EndGUI();
+            };
 
         // Checks a new or changed group against the others: the problems in it, or in a loop it would make.
         /// <summary>
@@ -527,20 +589,28 @@ namespace Comet.Unity.Editor
             var elsewhere = Uses(id, settings, openZone: editing.IsGroup ? null : ZoneEditor.ProjectPath(editing.folder), openGroupFile: openFile);
             if (elsewhere.Count > 0)
             {
-                EditorUtility.DisplayDialog("Delete group", $"{id} is still used, so it wasn't deleted:\n\n{string.Join("\n", elsewhere.Take(12))}"
-                    + (elsewhere.Count > 12 ? $"\n…and {elsewhere.Count - 12} more" : "") + "\n\nRemove or unpack those first.", "OK");
+                EditorUtility.DisplayDialog(
+                    "Delete group",
+                    $"{id} is still used, so it wasn't deleted:\n\n{string.Join("\n", elsewhere.Take(12))}"
+                        + (elsewhere.Count > 12 ? $"\n…and {elsewhere.Count - 12} more" : "")
+                        + "\n\nRemove or unpack those first.",
+                    "OK"
+                );
                 return;
             }
 
             // The open scene's saved files may use it too (copies removed but not saved yet): saving fixes those.
             var saved = editing.IsGroup
                 ? Find(editing.groupId)?.Parts.Any(p => p.Group == id) == true
-                : ZoneFolder.Read(ZoneEditor.ProjectPath(editing.folder), new List<ZoneFileError>())?.Chunks.Any(c => c.Placements.Any(p => p.Group == id)) == true;
+                : ZoneFolder
+                    .Read(ZoneEditor.ProjectPath(editing.folder), new List<ZoneFileError>())
+                    ?.Chunks.Any(c => c.Placements.Any(p => p.Group == id)) == true;
             var what = editing.IsGroup ? $"the group {editing.groupId}" : "this zone";
             var message = $"Delete {id}? Its file ({entry.File}) is deleted; this can't be undone here. Its id stays reserved, never reused.";
             if (here.Count > 0)
             {
-                message += $"\n\n{here.Count} {(here.Count == 1 ? "copy" : "copies")} in {what} will be unpacked into loose placements, and {what} saved.";
+                message +=
+                    $"\n\n{here.Count} {(here.Count == 1 ? "copy" : "copies")} in {what} will be unpacked into loose placements, and {what} saved.";
             }
             else if (saved)
             {
@@ -587,7 +657,9 @@ namespace Comet.Unity.Editor
             var zones = ZoneEditor.ProjectPath(settings.zonesFolder);
             if (Directory.Exists(zones))
             {
-                foreach (var folder in Directory.GetDirectories(zones).Where(f => openZone == null || Path.GetFullPath(f) != Path.GetFullPath(openZone)))
+                foreach (
+                    var folder in Directory.GetDirectories(zones).Where(f => openZone == null || Path.GetFullPath(f) != Path.GetFullPath(openZone))
+                )
                 {
                     var zone = ZoneFolder.Read(folder, new List<ZoneFileError>());
                     var count = zone?.Chunks.Sum(c => c.Placements.Count(p => p.Group == id)) ?? 0;
@@ -603,8 +675,14 @@ namespace Comet.Unity.Editor
             var content = Path.GetDirectoryName(groups.TrimEnd(Path.DirectorySeparatorChar));
             if (content != null && Directory.Exists(content))
             {
-                foreach (var file in Directory.EnumerateFiles(content, "*.toml", SearchOption.AllDirectories)
-                    .Where(f => !f.StartsWith(groups, System.StringComparison.Ordinal) && !f.StartsWith(zones + Path.DirectorySeparatorChar, System.StringComparison.Ordinal)))
+                foreach (
+                    var file in Directory
+                        .EnumerateFiles(content, "*.toml", SearchOption.AllDirectories)
+                        .Where(f =>
+                            !f.StartsWith(groups, System.StringComparison.Ordinal)
+                            && !f.StartsWith(zones + Path.DirectorySeparatorChar, System.StringComparison.Ordinal)
+                        )
+                )
                 {
                     if (File.ReadAllText(file).Contains($"\"{id}\""))
                     {
@@ -623,7 +701,8 @@ namespace Comet.Unity.Editor
         private static bool Check(Group group, string file, CometSettings settings)
         {
             var groups = Load().Where(g => g.Group.Id != group.Id).Append((group, file)).ToList();
-            var errors = ZoneValidation.CheckGroups(groups, id => settings.props != null ? ZoneEditor.PropFor(settings.props, id) : null)
+            var errors = ZoneValidation
+                .CheckGroups(groups, id => settings.props != null ? ZoneEditor.PropFor(settings.props, id) : null)
                 .Where(e => e.File == file || Mentions(e.Message, group.Id))
                 .ToList();
             if (errors.Count > 0)

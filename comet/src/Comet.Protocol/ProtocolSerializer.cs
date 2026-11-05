@@ -12,16 +12,17 @@ namespace Comet.Protocol
     public static class ProtocolSerializer
     {
         /// <summary>Comet's messages only.</summary>
-        public static readonly MessagePackSerializerOptions Options = MessagePackSerializerOptions.Standard
-            .WithResolver(CompositeResolver.Create(ProtocolResolver.Instance, StandardResolver.Instance));
+        public static readonly MessagePackSerializerOptions Options = MessagePackSerializerOptions.Standard.WithResolver(
+            CompositeResolver.Create(ProtocolResolver.Instance, StandardResolver.Instance)
+        );
 
         /// <summary>Comet's messages plus a game's, whose formatters come from <paramref name="gameResolver"/>.</summary>
-        public static MessagePackSerializerOptions CreateOptions(IFormatterResolver gameResolver) => MessagePackSerializerOptions.Standard
-            .WithResolver(CompositeResolver.Create(gameResolver, ProtocolResolver.Instance, StandardResolver.Instance));
+        public static MessagePackSerializerOptions CreateOptions(IFormatterResolver gameResolver) =>
+            MessagePackSerializerOptions.Standard.WithResolver(
+                CompositeResolver.Create(gameResolver, ProtocolResolver.Instance, StandardResolver.Instance)
+            );
     }
 
     [GeneratedMessagePackResolver]
-    internal partial class ProtocolResolver
-    {
-    }
+    internal partial class ProtocolResolver { }
 }

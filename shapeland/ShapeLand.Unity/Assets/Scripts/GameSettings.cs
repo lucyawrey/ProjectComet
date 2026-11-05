@@ -20,7 +20,8 @@ namespace ShapeLand.Client
     public static class GameSettings
     {
         /// <summary>The lowest and highest camera speed, as a multiple of the camera's own turning speeds.</summary>
-        public const float MinCameraSpeed = 0.25f, MaxCameraSpeed = 3f;
+        public const float MinCameraSpeed = 0.25f,
+            MaxCameraSpeed = 3f;
 
         private const string ShowThroughWallsKey = "showThroughWalls";
         private const string MenuTipSeenKey = "menuTipSeen";

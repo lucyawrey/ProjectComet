@@ -8,7 +8,9 @@ public class LoginClientTests
     private sealed class Tokens : ITokenStore
     {
         public string? Saved { get; set; }
+
         public string? Load() => Saved;
+
         public void Save(string? token) => Saved = token;
     }
 
@@ -24,6 +26,7 @@ public class LoginClientTests
         }
 
         public string? Load() => null;
+
         public void Save(string? token) { }
     }
 
@@ -102,7 +105,10 @@ public class LoginClientTests
     public async Task NoAnswerIsUnreachable()
     {
         var tokens = new Tokens { Saved = "cs_abc" };
-        var client = new LoginClient<Look>(new Transport(new LoginHttpResponse(0, "refused"), new LoginHttpResponse(502, "<html>Bad gateway</html>")), tokens);
+        var client = new LoginClient<Look>(
+            new Transport(new LoginHttpResponse(0, "refused"), new LoginHttpResponse(502, "<html>Bad gateway</html>")),
+            tokens
+        );
 
         Assert.Equal(LoginClient<Look>.Unreachable, (await client.GetTicketAsync()).Error);
         Assert.Equal(LoginClient<Look>.Unreachable, (await client.GetTicketAsync()).Error);

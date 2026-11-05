@@ -122,7 +122,14 @@ namespace Comet.Simulation
         /// rectangle) kept a body's radius in from its edge where it's wide enough, standing on ground between a step below its bottom and its top, with nothing in the way; else
         /// its center on the ground there, else its bottom center.
         /// </summary>
-        public static (Vector3 Feet, float Facing) Arrive(TriggerVolume volume, SpawnFacing facing, CollisionWorld world, MovementRules rules, Random random, ISet<int>? passThrough = null)
+        public static (Vector3 Feet, float Facing) Arrive(
+            TriggerVolume volume,
+            SpawnFacing facing,
+            CollisionWorld world,
+            MovementRules rules,
+            Random random,
+            ISet<int>? passThrough = null
+        )
         {
             var top = volume.Position.Y + volume.Size.Y;
             var lowest = volume.Position.Y - rules.StepHeight;
@@ -142,8 +149,10 @@ namespace Comet.Simulation
             var yaw = facing switch
             {
                 SpawnFacing.Direction => volume.Yaw * MathF.PI / 180,
-                SpawnFacing.TowardPoint when Vector2.Distance(new Vector2(feet.X, feet.Z), new Vector2(center.X, center.Z)) > 0.01f =>
-                    MathF.Atan2(center.X - feet.X, center.Z - feet.Z),
+                SpawnFacing.TowardPoint when Vector2.Distance(new Vector2(feet.X, feet.Z), new Vector2(center.X, center.Z)) > 0.01f => MathF.Atan2(
+                    center.X - feet.X,
+                    center.Z - feet.Z
+                ),
                 SpawnFacing.Random => (float)(random.NextDouble() * 2 * Math.PI - Math.PI),
                 _ => 0f,
             };
@@ -167,7 +176,8 @@ namespace Comet.Simulation
         private static Vector3 RandomSpot(TriggerVolume volume, float margin, Random random)
         {
             var half = Vector3.Max(volume.Size / 2 - new Vector3(margin), Vector3.Zero);
-            float x, z;
+            float x,
+                z;
             if (volume.Kind == PrimitiveKind.Box)
             {
                 x = (float)(random.NextDouble() * 2 - 1) * half.X;

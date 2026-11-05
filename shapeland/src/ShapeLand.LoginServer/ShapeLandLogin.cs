@@ -17,11 +17,7 @@ public static class ShapeLandLogin
 
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-        {
-            Args = args,
-            ContentRootPath = AppContext.BaseDirectory,
-        });
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
         configure?.Invoke(builder);
         builder.AddCometLogFile();
 
@@ -29,7 +25,8 @@ public static class ShapeLandLogin
         var content = LoadContent(shapeLand["ContentFile"]);
         var gameServer = new GameServerAddress(
             shapeLand.GetValue("GameServer:Id", 1),
-            shapeLand["GameServer:Address"] ?? throw new InvalidOperationException("Set ShapeLand:GameServer:Address."));
+            shapeLand["GameServer:Address"] ?? throw new InvalidOperationException("Set ShapeLand:GameServer:Address.")
+        );
         builder.Services.AddSingleton(content);
         builder.Services.AddSingleton(gameServer);
 
@@ -70,7 +67,8 @@ public static class ShapeLandLogin
         {
             throw new FileNotFoundException(
                 "No compiled content. Run the content build (dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build) or set ShapeLand:ContentFile.",
-                path);
+                path
+            );
         }
 
         using var file = File.OpenRead(path);

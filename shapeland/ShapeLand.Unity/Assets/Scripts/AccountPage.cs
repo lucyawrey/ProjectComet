@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Comet.Protocol.Login;
 using ShapeLand.Shared.World;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -66,13 +66,16 @@ namespace ShapeLand.Client
         private readonly VisualElement _usernameRow;
         private readonly VisualElement _passwordRow;
         private readonly VisualElement _confirmHost;
+
         // Keys and gamepad: the selected item in the step (or Back above it), and the held direction's repeat.
         private int _selected;
         private bool _onBack;
         private Vector2 _held;
         private float _repeatAt;
         private int _shownOnFrame;
-        private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
+        private const float RepeatDelay = 0.4f,
+            RepeatInterval = 0.1f;
+
         // The step Confirm it's you goes on to once the password checks out.
         private Step _afterConfirm;
         private bool _resubmitPassword; // the confirm came from a refused change, so the typed password goes on after it
@@ -127,22 +130,25 @@ namespace ShapeLand.Client
             _signOut.clicked += AskToSignOut;
             foreach (var field in new[] { _renameField, _passwordField, _passwordAgain, _confirmField })
             {
-                field.RegisterCallback<KeyDownEvent>(e =>
-                {
-                    if (e.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
+                field.RegisterCallback<KeyDownEvent>(
+                    e =>
                     {
-                        Submit();
-                        e.StopPropagation();
-                    }
-                    else if (e.keyCode == KeyCode.Tab)
-                    {
-                        Navigating = true;
-                        field.Blur();
-                        Move(e.shiftKey ? -1 : 1);
-                        FocusSelectedField();
-                        e.StopPropagation();
-                    }
-                }, TrickleDown.TrickleDown);
+                        if (e.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
+                        {
+                            Submit();
+                            e.StopPropagation();
+                        }
+                        else if (e.keyCode == KeyCode.Tab)
+                        {
+                            Navigating = true;
+                            field.Blur();
+                            Move(e.shiftKey ? -1 : 1);
+                            FocusSelectedField();
+                            e.StopPropagation();
+                        }
+                    },
+                    TrickleDown.TrickleDown
+                );
             }
         }
 
@@ -150,7 +156,9 @@ namespace ShapeLand.Client
         public bool Open => !_page.ClassListContains("hidden") || _confirm.Open;
 
         /// <summary>True while a field on the page has the keyboard.</summary>
-        public bool Typing => Open && _page.focusController?.focusedElement is VisualElement focused
+        public bool Typing =>
+            Open
+            && _page.focusController?.focusedElement is VisualElement focused
             && (focused is TextField || focused.GetFirstAncestorOfType<TextField>() != null);
 
         /// <summary>
@@ -389,17 +397,18 @@ namespace ShapeLand.Client
         }
 
         // The step's items, top to bottom: the rows and Sign Out; a form's fields and its button; the code's Copy and Done.
-        private List<VisualElement> Items() => _step switch
-        {
-            Step.Rows => (_hud.Join.Account?.Guest ?? true)
-                ? new List<VisualElement> { _usernameRow, _passwordRow, _signOut }
-                : new List<VisualElement> { _usernameRow, _passwordRow, _codeRow, _signOut },
-            Step.Rename => new List<VisualElement> { _renameField, _submit },
-            Step.Password => new List<VisualElement> { _passwordField, _passwordAgain, _submit },
-            Step.Confirm => new List<VisualElement> { _confirmField, _submit },
-            Step.NewCode => new List<VisualElement> { _submit },
-            _ => new List<VisualElement> { _copy, _submit },
-        };
+        private List<VisualElement> Items() =>
+            _step switch
+            {
+                Step.Rows => (_hud.Join.Account?.Guest ?? true)
+                    ? new List<VisualElement> { _usernameRow, _passwordRow, _signOut }
+                    : new List<VisualElement> { _usernameRow, _passwordRow, _codeRow, _signOut },
+                Step.Rename => new List<VisualElement> { _renameField, _submit },
+                Step.Password => new List<VisualElement> { _passwordField, _passwordAgain, _submit },
+                Step.Confirm => new List<VisualElement> { _confirmField, _submit },
+                Step.NewCode => new List<VisualElement> { _submit },
+                _ => new List<VisualElement> { _copy, _submit },
+            };
 
         // Up from the first item reaches Back; down from Back, the first item again.
         private void Move(int by)
@@ -424,7 +433,21 @@ namespace ShapeLand.Client
         private void Mark()
         {
             var items = Items();
-            foreach (var item in new VisualElement[] { _usernameRow, _passwordRow, _codeRow, _signOut, _renameField, _passwordField, _passwordAgain, _confirmField, _copy, _submit })
+            foreach (
+                var item in new VisualElement[]
+                {
+                    _usernameRow,
+                    _passwordRow,
+                    _codeRow,
+                    _signOut,
+                    _renameField,
+                    _passwordField,
+                    _passwordAgain,
+                    _confirmField,
+                    _copy,
+                    _submit,
+                }
+            )
             {
                 item.EnableInClassList("selected", !_onBack && items.IndexOf(item) == _selected);
             }
@@ -497,8 +520,14 @@ namespace ShapeLand.Client
         private static Vector2 TypingArrows()
         {
             var keyboard = Keyboard.current;
-            return keyboard == null ? Vector2.zero
-                : new Vector2(0, keyboard.upArrowKey.isPressed ? 1 : keyboard.downArrowKey.isPressed ? -1 : 0);
+            return keyboard == null
+                ? Vector2.zero
+                : new Vector2(
+                    0,
+                    keyboard.upArrowKey.isPressed ? 1
+                        : keyboard.downArrowKey.isPressed ? -1
+                        : 0
+                );
         }
 
         // A held direction steps once, then repeats after a pause; down is positive.
@@ -739,16 +768,24 @@ namespace ShapeLand.Client
             var strings = _hud.Join.Content.Strings;
             if (_hud.Join.Account?.Guest ?? true)
             {
-                _confirm.Show(strings.Get("account.sign_out_guest_title"), strings.Get("account.sign_out_guest_note"), null,
+                _confirm.Show(
+                    strings.Get("account.sign_out_guest_title"),
+                    strings.Get("account.sign_out_guest_note"),
+                    null,
                     (Text("account.set_password"), false, () => ShowStep(Step.Password)),
                     (Text("account.stay"), false, null),
-                    (Text("account.sign_out"), true, SignOut));
+                    (Text("account.sign_out"), true, SignOut)
+                );
             }
             else
             {
-                _confirm.Show(Text("account.sign_out_title"), Text("account.sign_out_note"), null,
+                _confirm.Show(
+                    Text("account.sign_out_title"),
+                    Text("account.sign_out_note"),
+                    null,
                     (Text("account.sign_out"), true, SignOut),
-                    (Text("account.stay"), false, null));
+                    (Text("account.stay"), false, null)
+                );
             }
         }
 
@@ -762,14 +799,16 @@ namespace ShapeLand.Client
         private void SetSubmit()
         {
             _submit.SetEnabled(true);
-            _submit.text = Text(_step switch
-            {
-                Step.Rename => "account.save_username",
-                Step.Password => "account.save_password",
-                Step.Confirm => "account.continue",
-                Step.NewCode => "account.create_code",
-                _ => "account.done",
-            });
+            _submit.text = Text(
+                _step switch
+                {
+                    Step.Rename => "account.save_username",
+                    Step.Password => "account.save_password",
+                    Step.Confirm => "account.continue",
+                    Step.NewCode => "account.create_code",
+                    _ => "account.done",
+                }
+            );
         }
 
         // While a request is out the button shows it's working and the page holds still.

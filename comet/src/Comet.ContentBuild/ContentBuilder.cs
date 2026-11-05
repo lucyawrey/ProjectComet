@@ -2,12 +2,12 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.RegularExpressions;
 using Comet.Content;
-using Group = Comet.Content.Group;
 using Comet.ZoneFiles;
 using Tomlyn;
 using Tomlyn.Parsing;
 using Tomlyn.Serialization;
 using Tomlyn.Syntax;
+using Group = Comet.Content.Group;
 
 namespace Comet.ContentBuild;
 
@@ -70,28 +70,33 @@ public sealed class ContentBuilder
     public ContentBuilder AddProps(string modelRoot, string folder = "props")
     {
         var root = Path.GetFullPath(modelRoot);
-        return Add("prop", folder, CometToml.Default.Prop, (prop, validation) =>
-        {
-            if (prop.Color > 0xFFFFFF)
+        return Add(
+            "prop",
+            folder,
+            CometToml.Default.Prop,
+            (prop, validation) =>
             {
-                validation.Error(nameof(Prop.Color), $"0x{prop.Color:X} isn't a color: use 0xRRGGBB.");
-            }
+                if (prop.Color > 0xFFFFFF)
+                {
+                    validation.Error(nameof(Prop.Color), $"0x{prop.Color:X} isn't a color: use 0xRRGGBB.");
+                }
 
-            if (Path.IsPathRooted(prop.Model) || prop.Model.Split('/', '\\').Contains(".."))
-            {
-                validation.Error(nameof(Prop.Model), $"'{prop.Model}' must be a path inside the model folder, without '..'.");
-                return;
-            }
+                if (Path.IsPathRooted(prop.Model) || prop.Model.Split('/', '\\').Contains(".."))
+                {
+                    validation.Error(nameof(Prop.Model), $"'{prop.Model}' must be a path inside the model folder, without '..'.");
+                    return;
+                }
 
-            try
-            {
-                ModelBaker.Bake(prop, Path.Combine(root, prop.Model));
+                try
+                {
+                    ModelBaker.Bake(prop, Path.Combine(root, prop.Model));
+                }
+                catch (ContentException e)
+                {
+                    validation.Error(nameof(Prop.Model), e.Message);
+                }
             }
-            catch (ContentException e)
-            {
-                validation.Error(nameof(Prop.Model), e.Message);
-            }
-        });
+        );
     }
 
     /// <summary>
@@ -193,7 +198,13 @@ public sealed class ContentBuilder
         return groups.Select(g => g.Group).GroupBy(g => g.Id).Select(same => same.First()).ToList();
     }
 
-    private List<Zone> ReadZones(string folder, Dictionary<string, Prop> props, Dictionary<string, Group> groups, List<ContentError> errors, List<ContentError> warnings)
+    private List<Zone> ReadZones(
+        string folder,
+        Dictionary<string, Prop> props,
+        Dictionary<string, Group> groups,
+        List<ContentError> errors,
+        List<ContentError> warnings
+    )
     {
         var zones = new List<Zone>();
         if (!Directory.Exists(folder))
@@ -209,7 +220,13 @@ public sealed class ContentBuilder
             if (zoneErrors.Count == 0)
             {
                 zoneErrors.AddRange(ZoneValidation.Check(zone));
-                zoneErrors.AddRange(ZoneValidation.CheckPlacements(zone, key => props.TryGetValue(key, out var prop) ? prop : null, key => groups.TryGetValue(key, out var group) ? group : null));
+                zoneErrors.AddRange(
+                    ZoneValidation.CheckPlacements(
+                        zone,
+                        key => props.TryGetValue(key, out var prop) ? prop : null,
+                        key => groups.TryGetValue(key, out var group) ? group : null
+                    )
+                );
             }
 
             var zoneFile = DisplayPath(Path.Combine(zoneFolder, ZoneFolder.ZoneFile));
@@ -221,8 +238,11 @@ public sealed class ContentBuilder
             errors.AddRange(zoneErrors.Select(e => new ContentError(DisplayPath(Path.Combine(zoneFolder, e.File)), 1, 1, e.Message)));
             if (zoneErrors.Count == 0)
             {
-                warnings.AddRange(ZoneValidation.Blockout(zone, key => groups.TryGetValue(key, out var group) ? group : null)
-                    .Select(w => new ContentError(DisplayPath(Path.Combine(zoneFolder, w.File)), 1, 1, w.Message, Warning: true)));
+                warnings.AddRange(
+                    ZoneValidation
+                        .Blockout(zone, key => groups.TryGetValue(key, out var group) ? group : null)
+                        .Select(w => new ContentError(DisplayPath(Path.Combine(zoneFolder, w.File)), 1, 1, w.Message, Warning: true))
+                );
 
                 // Group copies become their parts: the game loads plain placements.
                 Groups.Expand(zone, key => groups.TryGetValue(key, out var group) ? group : null);
@@ -299,15 +319,15 @@ public sealed class ContentBuilder
     internal static string KeyText(KeySyntax key) => string.Join('.', KeyParts(key).Select(KeyText));
 
     /// <summary>The parts of a dotted key, in order.</summary>
-    internal static IEnumerable<BareKeyOrStringValueSyntax> KeyParts(KeySyntax key) =>
-        new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!));
+    internal static IEnumerable<BareKeyOrStringValueSyntax> KeyParts(KeySyntax key) => new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!));
 
-    internal static string KeyText(BareKeyOrStringValueSyntax key) => key switch
-    {
-        BareKeySyntax bare => bare.Key!.Text!,
-        StringValueSyntax quoted => quoted.Value!,
-        _ => key.ToString(),
-    };
+    internal static string KeyText(BareKeyOrStringValueSyntax key) =>
+        key switch
+        {
+            BareKeySyntax bare => bare.Key!.Text!,
+            StringValueSyntax quoted => quoted.Value!,
+            _ => key.ToString(),
+        };
 
     private interface IContentType
     {
@@ -369,15 +389,19 @@ public sealed class ContentBuilder
                     continue;
                 }
 
-                var fileErrors = UnknownKeys.Find(document, ContentJson.Options.GetTypeInfo(typeof(T)))
+                var fileErrors = UnknownKeys
+                    .Find(document, ContentJson.Options.GetTypeInfo(typeof(T)))
                     .Select(u => ErrorAt(file, u.Node.Span, u.Message))
                     .ToList();
                 // TOML allows nan and inf, but no content number means either, and every comparison a range check
                 // makes with NaN is false, so it would pass them.
-                fileErrors.AddRange(document.Descendants()
-                    .OfType<FloatValueSyntax>()
-                    .Where(f => !double.IsFinite(f.Value))
-                    .Select(f => ErrorAt(file, f.Span, $"{f.Token?.Text ?? f.Value.ToString()} isn't allowed: content numbers must be finite.")));
+                fileErrors.AddRange(
+                    document
+                        .Descendants()
+                        .OfType<FloatValueSyntax>()
+                        .Where(f => !double.IsFinite(f.Value))
+                        .Select(f => ErrorAt(file, f.Span, $"{f.Token?.Text ?? f.Value.ToString()} isn't allowed: content numbers must be finite."))
+                );
                 T? entry = null;
                 try
                 {
@@ -387,9 +411,11 @@ public sealed class ContentBuilder
                 {
                     // A missing key has no place of its own (Tomlyn points at the end of the file), so use the top.
                     var reason = Reason(e.Message);
-                    fileErrors.Add(reason.StartsWith("Missing required", StringComparison.Ordinal)
-                        ? new ContentError(file, 1, 1, reason)
-                        : new ContentError(file, e.Line ?? 1, e.Column ?? 1, reason));
+                    fileErrors.Add(
+                        reason.StartsWith("Missing required", StringComparison.Ordinal)
+                            ? new ContentError(file, 1, 1, reason)
+                            : new ContentError(file, e.Line ?? 1, e.Column ?? 1, reason)
+                    );
                 }
 
                 if (entry is not null && fileErrors.Count == 0)
@@ -397,7 +423,10 @@ public sealed class ContentBuilder
                     var validation = new ContentValidation(file, document);
                     if (!_idPattern.IsMatch(entry.Id))
                     {
-                        validation.Error(nameof(IContentEntry.Id), $"'{entry.Id}' isn't a valid {Kind} id: use '{Kind}.' then lowercase letters, digits and underscores.");
+                        validation.Error(
+                            nameof(IContentEntry.Id),
+                            $"'{entry.Id}' isn't a valid {Kind} id: use '{Kind}.' then lowercase letters, digits and underscores."
+                        );
                     }
                     else if (firstFileById.TryGetValue(entry.Id, out var first))
                     {

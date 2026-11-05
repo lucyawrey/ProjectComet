@@ -19,7 +19,14 @@ public sealed class InMemoryCharacterDatabaseTests : IDisposable
         File.Delete(_snapshot + ".new");
     }
 
-    private static TestCharacter Make(long id, string name, int look = 0) => new() { Id = id, AccountId = 1, Name = name, Look = look };
+    private static TestCharacter Make(long id, string name, int look = 0) =>
+        new()
+        {
+            Id = id,
+            AccountId = 1,
+            Name = name,
+            Look = look,
+        };
 
     [Fact]
     public void FindOrAddIgnoresCaseAndGivesTheNextFreeId()

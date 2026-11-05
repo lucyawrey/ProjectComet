@@ -18,12 +18,23 @@ namespace Comet.Unity.Editor
             EditorGUILayout.Space();
             if (trigger.Pad != null)
             {
-                if (GUILayout.Button(new GUIContent("Fit Trigger to Pad", "Stands the volume on the pad's top, as wide and deep as the pad; its height stays.")))
+                if (
+                    GUILayout.Button(
+                        new GUIContent("Fit Trigger to Pad", "Stands the volume on the pad's top, as wide and deep as the pad; its height stays.")
+                    )
+                )
                 {
                     ZoneEditor.FitToPad(trigger);
                 }
             }
-            else if (GUILayout.Button(new GUIContent("Add Pad", "A flat solid primitive under the volume, as wide and deep as it, for players to stand on: square under a box volume, round under a cylinder or sphere.")))
+            else if (
+                GUILayout.Button(
+                    new GUIContent(
+                        "Add Pad",
+                        "A flat solid primitive under the volume, as wide and deep as it, for players to stand on: square under a box volume, round under a cylinder or sphere."
+                    )
+                )
+            )
             {
                 AddPad(trigger);
             }
@@ -35,7 +46,14 @@ namespace Comet.Unity.Editor
                     Selection.activeGameObject = sign.gameObject;
                 }
             }
-            else if (GUILayout.Button(new GUIContent("Add Sign", "A sign over the middle of the volume's top, saved with it, so it moves with it. Move it like any object after.")))
+            else if (
+                GUILayout.Button(
+                    new GUIContent(
+                        "Add Sign",
+                        "A sign over the middle of the volume's top, saved with it, so it moves with it. Move it like any object after."
+                    )
+                )
+            )
             {
                 Selection.activeGameObject = ZoneEditor.AddSign(trigger).gameObject;
             }
@@ -54,13 +72,17 @@ namespace Comet.Unity.Editor
             var kind = trigger.volume == ZoneTrigger.VolumeKind.Box ? PrimitiveKind.Box : PrimitiveKind.Cylinder;
             var (primitive, _) = ZoneEditor.Starting(kind);
             var t = trigger.transform;
-            var pad = ZoneEditor.CreatePlaced(new Placement
-            {
-                Primitive = primitive,
-                Position = ZoneEditor.ToNumerics(t.position - Vector3.up * (height / 2)),
-                Rotation = new System.Numerics.Vector3(0, t.eulerAngles.y, 0),
-                Scale = new System.Numerics.Vector3(trigger.size.x, height, trigger.size.z),
-            }, t, settings);
+            var pad = ZoneEditor.CreatePlaced(
+                new Placement
+                {
+                    Primitive = primitive,
+                    Position = ZoneEditor.ToNumerics(t.position - Vector3.up * (height / 2)),
+                    Rotation = new System.Numerics.Vector3(0, t.eulerAngles.y, 0),
+                    Scale = new System.Numerics.Vector3(trigger.size.x, height, trigger.size.z),
+                },
+                t,
+                settings
+            );
             pad.name = $"{trigger.id} pad";
             Undo.RegisterCreatedObjectUndo(pad, "Add Pad");
             ZoneEditor.FitToPad(trigger);

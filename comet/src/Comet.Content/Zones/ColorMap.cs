@@ -10,13 +10,16 @@ namespace Comet.Content
     public sealed class ColorMap
     {
         /// <summary>Samples along X.</summary>
-        [Key(0)] public int SizeX { get; set; }
+        [Key(0)]
+        public int SizeX { get; set; }
 
         /// <summary>Samples along Z.</summary>
-        [Key(1)] public int SizeZ { get; set; }
+        [Key(1)]
+        public int SizeZ { get; set; }
 
         /// <summary><see cref="SizeX"/> × <see cref="SizeZ"/> colors as 0xRRGGBB, row by row along Z.</summary>
-        [Key(2)] public uint[] Colors { get; set; } = new uint[0];
+        [Key(2)]
+        public uint[] Colors { get; set; } = new uint[0];
 
         /// <summary>The color at column <paramref name="x"/>, row <paramref name="z"/>, as 0xRRGGBB.</summary>
         public uint this[int x, int z] => Colors[z * SizeX + x];

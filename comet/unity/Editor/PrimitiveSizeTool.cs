@@ -17,45 +17,47 @@ namespace Comet.Unity.Editor
         // Unity's own transform tools, which it doesn't make public: the rest of this context.
         private static Type? Builtin(string name) => typeof(EditorTool).Assembly.GetType("UnityEditor." + name);
 
-        protected override Type? GetEditorToolType(Tool tool) => tool switch
-        {
-            Tool.Scale => typeof(ZoneScaleTool),
-            Tool.Move => Builtin("MoveTool"),
-            Tool.Rotate => Builtin("RotateTool"),
-            Tool.Rect => Builtin("RectTool"),
-            Tool.Transform => Builtin("TransformTool"),
-            _ => null,
-        };
+        protected override Type? GetEditorToolType(Tool tool) =>
+            tool switch
+            {
+                Tool.Scale => typeof(ZoneScaleTool),
+                Tool.Move => Builtin("MoveTool"),
+                Tool.Rotate => Builtin("RotateTool"),
+                Tool.Rect => Builtin("RectTool"),
+                Tool.Transform => Builtin("TransformTool"),
+                _ => null,
+            };
 
         // Follows the selection, checked each editor update (Unity's selection events don't always come): this
         // context while a placement is selected, Unity's own otherwise. Left alone while a tool of its own (the zone
         // place or terrain tool) is active, which a change of context would turn off.
         [InitializeOnLoadMethod]
-        private static void FollowSelection() => EditorApplication.update += () =>
-        {
-            if (Tools.current == Tool.Custom && ToolManager.activeToolType != typeof(ZoneScaleTool))
+        private static void FollowSelection() =>
+            EditorApplication.update += () =>
             {
-                return;
-            }
+                if (Tools.current == Tool.Custom && ToolManager.activeToolType != typeof(ZoneScaleTool))
+                {
+                    return;
+                }
 
-            var placements = Selection.gameObjects.Any(g => g.TryGetComponent<ZonePlacement>(out _));
-            var ours = ToolManager.activeContextType == typeof(ZoneToolContext);
-            try
-            {
-                if (placements && !ours)
+                var placements = Selection.gameObjects.Any(g => g.TryGetComponent<ZonePlacement>(out _));
+                var ours = ToolManager.activeContextType == typeof(ZoneToolContext);
+                try
                 {
-                    ToolManager.SetActiveContext<ZoneToolContext>();
+                    if (placements && !ours)
+                    {
+                        ToolManager.SetActiveContext<ZoneToolContext>();
+                    }
+                    else if (!placements && ours)
+                    {
+                        ToolManager.SetActiveContext<GameObjectToolContext>();
+                    }
                 }
-                else if (!placements && ours)
+                catch (InvalidOperationException)
                 {
-                    ToolManager.SetActiveContext<GameObjectToolContext>();
+                    // Unity hasn't told its tools about the new selection yet: next update.
                 }
-            }
-            catch (InvalidOperationException)
-            {
-                // Unity hasn't told its tools about the new selection yet: next update.
-            }
-        };
+            };
     }
 
     /// <summary>
@@ -72,7 +74,13 @@ namespace Comet.Unity.Editor
         public override GUIContent toolbarIcon => EditorGUIUtility.IconContent("ScaleTool");
 
         private static ZonePlacement? Single =>
-            Selection.count == 1 && Selection.activeGameObject != null && Selection.activeGameObject.TryGetComponent<ZonePlacement>(out var p) && p.isPrimitive && !p.IsGroup ? p : null;
+            Selection.count == 1
+            && Selection.activeGameObject != null
+            && Selection.activeGameObject.TryGetComponent<ZonePlacement>(out var p)
+            && p.isPrimitive
+            && !p.IsGroup
+                ? p
+                : null;
 
         public override void OnToolGUI(EditorWindow window)
         {
@@ -94,7 +102,11 @@ namespace Comet.Unity.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(placement, "Resize primitive");
-                placement.size = new Vector3(Mathf.Max(Mathf.Abs(size.x), 0.01f), Mathf.Max(Mathf.Abs(size.y), 0.01f), Mathf.Max(Mathf.Abs(size.z), 0.01f));
+                placement.size = new Vector3(
+                    Mathf.Max(Mathf.Abs(size.x), 0.01f),
+                    Mathf.Max(Mathf.Abs(size.y), 0.01f),
+                    Mathf.Max(Mathf.Abs(size.z), 0.01f)
+                );
                 placement.PreviewResize();
                 _resizing = true;
             }

@@ -11,5 +11,6 @@ public sealed class ZoneWorlds(ShapeLandContent content)
 {
     private readonly ConcurrentDictionary<int, Lazy<CollisionWorld>> _worlds = new();
 
-    public CollisionWorld For(Zone zone) => _worlds.GetOrAdd(zone.Number, _ => new Lazy<CollisionWorld>(() => ShapeLandWorld.Create(content, zone))).Value;
+    public CollisionWorld For(Zone zone) =>
+        _worlds.GetOrAdd(zone.Number, _ => new Lazy<CollisionWorld>(() => ShapeLandWorld.Create(content, zone))).Value;
 }

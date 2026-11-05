@@ -6,7 +6,8 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct ChatSend
     {
-        [Key(0)] public string Text;
+        [Key(0)]
+        public string Text;
     }
 
     /// <summary>
@@ -16,9 +17,14 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct ChatMessage
     {
-        [Key(0)] public uint EntityId;
-        [Key(1)] public string Text;
-        [Key(2)] public string Name;
+        [Key(0)]
+        public uint EntityId;
+
+        [Key(1)]
+        public string Text;
+
+        [Key(2)]
+        public string Name;
     }
 
     /// <summary>Why the server didn't deliver a chat line.</summary>
@@ -35,6 +41,7 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct ChatRejected
     {
-        [Key(0)] public ChatRejection Reason;
+        [Key(0)]
+        public ChatRejection Reason;
     }
 }

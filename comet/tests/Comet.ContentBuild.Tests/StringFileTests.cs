@@ -72,8 +72,7 @@ public class StringFileTests
         using var folder = new ContentFolder();
         folder.Write("strings/en.toml", "a = \"Hi {username}\"\nb = \"Hi {usernme}\"\n");
 
-        var result = new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget)
-            .AddStrings(placeholders: ["username"]).Build();
+        var result = new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddStrings(placeholders: ["username"]).Build();
 
         var error = Assert.Single(result.Errors);
         Assert.Equal(2, error.Line);

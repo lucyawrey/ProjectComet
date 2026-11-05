@@ -45,6 +45,7 @@ namespace Comet.Simulation
         public sealed class Piece
         {
             private readonly Dictionary<ChunkCoord, TerrainTile> _tiles = new Dictionary<ChunkCoord, TerrainTile>();
+
             // The same tiles in a grid over the chunks they span, since every sample lookup finds its tile: index
             // (z - _gridMinZ) * _gridWidth + (x - _gridMinX), null where a chunk has no tile.
             private TerrainTile?[] _grid = new TerrainTile?[0];
@@ -83,10 +84,12 @@ namespace Comet.Simulation
                 {
                     var tile = pair.Value;
                     var map = tile.Heights;
-                    int originX = pair.Key.X * ZoneGrid.ChunkSize + tile.OriginX, originZ = pair.Key.Z * ZoneGrid.ChunkSize + tile.OriginZ;
+                    int originX = pair.Key.X * ZoneGrid.ChunkSize + tile.OriginX,
+                        originZ = pair.Key.Z * ZoneGrid.ChunkSize + tile.OriginZ;
                     for (var tz = 0; tz < map.SizeZ; tz++)
                     {
-                        int z = originZ + tz, row = z - minZ;
+                        int z = originZ + tz,
+                            row = z - minZ;
                         var southward = FloorDiv(z, ZoneGrid.ChunkSize) - pair.Key.Z;
                         if (row < 0 || row >= depth || southward < 0 || southward > 1)
                         {
@@ -95,7 +98,8 @@ namespace Comet.Simulation
 
                         for (var tx = 0; tx < map.SizeX; tx++)
                         {
-                            int x = originX + tx, column = x - minX;
+                            int x = originX + tx,
+                                column = x - minX;
                             var westward = FloorDiv(x, ZoneGrid.ChunkSize) - pair.Key.X;
                             if (column < 0 || column >= width || westward < 0 || westward > 1 || !map.TryGetHeight(tx, tz, out var height))
                             {
@@ -127,8 +131,7 @@ namespace Comet.Simulation
             public bool TryGetHeightAt(float x, float z, out float height) => Interpolate(x, z, underside: false, out height);
 
             /// <summary>The bottom of the piece under a world position: its underside map where it has one, else its flat bottom.</summary>
-            public float BottomAt(float x, float z) =>
-                Interpolate(x, z, underside: true, out var under) ? under : BottomHeight;
+            public float BottomAt(float x, float z) => Interpolate(x, z, underside: true, out var under) ? under : BottomHeight;
 
             /// <summary>The height of the piece's flat bottom: <see cref="TerrainPiece.SkirtDepth"/> below its lowest ground.</summary>
             public float BottomHeight => _bottomHeight ??= LowestGround() - Settings.SkirtDepth;
@@ -195,7 +198,11 @@ namespace Comet.Simulation
                 var v = gz - cz;
                 if (u + v <= 1)
                 {
-                    if (!TryGet(cx, cz, underside, out var h00) || !TryGet(cx + 1, cz, underside, out var h10) || !TryGet(cx, cz + 1, underside, out var h01))
+                    if (
+                        !TryGet(cx, cz, underside, out var h00)
+                        || !TryGet(cx + 1, cz, underside, out var h10)
+                        || !TryGet(cx, cz + 1, underside, out var h01)
+                    )
                     {
                         return false;
                     }
@@ -204,7 +211,11 @@ namespace Comet.Simulation
                     return true;
                 }
 
-                if (!TryGet(cx + 1, cz + 1, underside, out var h11) || !TryGet(cx + 1, cz, underside, out var h10b) || !TryGet(cx, cz + 1, underside, out var h01b))
+                if (
+                    !TryGet(cx + 1, cz + 1, underside, out var h11)
+                    || !TryGet(cx + 1, cz, underside, out var h10b)
+                    || !TryGet(cx, cz + 1, underside, out var h01b)
+                )
                 {
                     return false;
                 }
@@ -221,12 +232,20 @@ namespace Comet.Simulation
                 var x = chunk.X * ZoneGrid.ChunkSize + tile.OriginX;
                 var z = chunk.Z * ZoneGrid.ChunkSize + tile.OriginZ;
                 var (minX, minZ, maxX, maxZ) = Extent;
-                Extent = (System.Math.Min(minX, x), System.Math.Min(minZ, z), System.Math.Max(maxX, x + tile.Heights.SizeX - 1), System.Math.Max(maxZ, z + tile.Heights.SizeZ - 1));
+                Extent = (
+                    System.Math.Min(minX, x),
+                    System.Math.Min(minZ, z),
+                    System.Math.Max(maxX, x + tile.Heights.SizeX - 1),
+                    System.Math.Max(maxZ, z + tile.Heights.SizeZ - 1)
+                );
             }
 
             private void IndexTiles()
             {
-                int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+                int minX = int.MaxValue,
+                    minZ = int.MaxValue,
+                    maxX = int.MinValue,
+                    maxZ = int.MinValue;
                 foreach (var coord in _tiles.Keys)
                 {
                     minX = System.Math.Min(minX, coord.X);
@@ -268,7 +287,8 @@ namespace Comet.Simulation
                 var chunkX = FloorDiv(x, ZoneGrid.ChunkSize) - (which & 1);
                 var chunkZ = FloorDiv(z, ZoneGrid.ChunkSize) - (which >> 1);
                 tx = tz = 0;
-                int gx = chunkX - _gridMinX, gz = chunkZ - _gridMinZ;
+                int gx = chunkX - _gridMinX,
+                    gz = chunkZ - _gridMinZ;
                 if (gx < 0 || gz < 0 || gx >= _gridWidth || gz >= _gridDepth || _grid[gz * _gridWidth + gx] is not { } found)
                 {
                     tile = null!;

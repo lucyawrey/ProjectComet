@@ -154,7 +154,12 @@ namespace ShapeLand.Client
             _respawns.text = player.Respawns.ToString();
 
             SetState(_pingDot, clock.LastRoundTrip * 1000 > PingWarnMs ? "warn" : null);
-            SetState(_holdsDot, holdsPercent > HoldsBadPercent ? "bad" : holdsPercent > HoldsWarnPercent ? "warn" : null);
+            SetState(
+                _holdsDot,
+                holdsPercent > HoldsBadPercent ? "bad"
+                    : holdsPercent > HoldsWarnPercent ? "warn"
+                    : null
+            );
             // An honest player is never snapped back: one means a margin is too tight.
             SetState(_snapsDot, player.SnapBacks > 0 ? "bad" : null);
         }
@@ -177,8 +182,18 @@ namespace ShapeLand.Client
                 _frame.text = $"{averageMs:0.0}";
                 _frameWorst.text = $"{_frameWorstSeconds * 1000:0}";
                 var strings = _hud.Join.Content?.Strings;
-                _graphics.text = strings?.Format("stats.graphics_value", ("api", GraphicsName(SystemInfo.graphicsDeviceType)), ("width", Screen.width), ("height", Screen.height));
-                SetState(_frameDot, averageMs > FrameBadMs ? "bad" : averageMs > FrameWarnMs ? "warn" : null);
+                _graphics.text = strings?.Format(
+                    "stats.graphics_value",
+                    ("api", GraphicsName(SystemInfo.graphicsDeviceType)),
+                    ("width", Screen.width),
+                    ("height", Screen.height)
+                );
+                SetState(
+                    _frameDot,
+                    averageMs > FrameBadMs ? "bad"
+                        : averageMs > FrameWarnMs ? "warn"
+                        : null
+                );
             }
 
             _frameSeconds = 0;
@@ -186,11 +201,12 @@ namespace ShapeLand.Client
             _frames = 0;
         }
 
-        private static string GraphicsName(GraphicsDeviceType type) => type switch
-        {
-            GraphicsDeviceType.OpenGLES3 when Application.platform == RuntimePlatform.WebGLPlayer => "WebGL 2",
-            _ => type.ToString(),
-        };
+        private static string GraphicsName(GraphicsDeviceType type) =>
+            type switch
+            {
+                GraphicsDeviceType.OpenGLES3 when Application.platform == RuntimePlatform.WebGLPlayer => "WebGL 2",
+                _ => type.ToString(),
+            };
 
         private static void SetState(VisualElement dot, string state)
         {

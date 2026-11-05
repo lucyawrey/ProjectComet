@@ -12,18 +12,19 @@ namespace Comet.Unity.Editor
     {
         private static bool _held;
 
-        static PlayModeReloads() => EditorApplication.playModeStateChanged += state =>
-        {
-            if (state == PlayModeStateChange.EnteredPlayMode && !_held)
+        static PlayModeReloads() =>
+            EditorApplication.playModeStateChanged += state =>
             {
-                EditorApplication.LockReloadAssemblies();
-                _held = true;
-            }
-            else if (state is PlayModeStateChange.ExitingPlayMode or PlayModeStateChange.EnteredEditMode && _held)
-            {
-                _held = false;
-                EditorApplication.UnlockReloadAssemblies();
-            }
-        };
+                if (state == PlayModeStateChange.EnteredPlayMode && !_held)
+                {
+                    EditorApplication.LockReloadAssemblies();
+                    _held = true;
+                }
+                else if (state is PlayModeStateChange.ExitingPlayMode or PlayModeStateChange.EnteredEditMode && _held)
+                {
+                    _held = false;
+                    EditorApplication.UnlockReloadAssemblies();
+                }
+            };
     }
 }

@@ -57,8 +57,16 @@ namespace ShapeLand.Client.Tests
         // The confirm panel's choice with this text, wherever its host is.
         private void Choose(string text)
         {
-            var choice = Hud.Root.Query<Button>(className: "menu-entry").ToList().Concat(Screen.Root.Query<Button>(className: "menu-entry").ToList())
-                .FirstOrDefault(b => b.text == text && b.GetFirstAncestorOfType<VisualElement>() != null && b.parent.ClassListContains("menu-confirm") && b.worldBound.width > 0);
+            var choice = Hud
+                .Root.Query<Button>(className: "menu-entry")
+                .ToList()
+                .Concat(Screen.Root.Query<Button>(className: "menu-entry").ToList())
+                .FirstOrDefault(b =>
+                    b.text == text
+                    && b.GetFirstAncestorOfType<VisualElement>() != null
+                    && b.parent.ClassListContains("menu-confirm")
+                    && b.worldBound.width > 0
+                );
             Assert.That(choice, Is.Not.Null, $"No \"{text}\" to choose.");
             Click(choice);
         }
@@ -184,8 +192,11 @@ namespace ShapeLand.Client.Tests
             yield return OpenAccount();
             Click(Hud.Root.Q<Button>("account-sign-out"));
             yield return null;
-            Assert.That(Hud.Root.Query<Label>(className: "menu-confirm-title").ToList().Any(l => l.text == Strings.Get("account.sign_out_guest_title")),
-                Is.True, "A guest signing out wasn't warned.");
+            Assert.That(
+                Hud.Root.Query<Label>(className: "menu-confirm-title").ToList().Any(l => l.text == Strings.Get("account.sign_out_guest_title")),
+                Is.True,
+                "A guest signing out wasn't warned."
+            );
             Choose(Strings.Get("account.sign_out"));
             yield return TestGameServer.WaitFor(() => Screen.Showing && !Join.SignedIn, 10);
             Assert.That(Join.SignedIn, Is.False);

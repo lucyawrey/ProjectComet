@@ -64,8 +64,7 @@ public sealed class Connection
     private readonly ConnectionRegistry _registry;
     private readonly IConnectionHandler _handler;
     private readonly TickLoop _tickLoop;
-    private readonly Channel<Outgoing> _outgoing = Channel.CreateUnbounded<Outgoing>(
-        new UnboundedChannelOptions { SingleReader = true });
+    private readonly Channel<Outgoing> _outgoing = Channel.CreateUnbounded<Outgoing>(new UnboundedChannelOptions { SingleReader = true });
 
     // Tick thread.
     private readonly MessageWriter _events;
@@ -168,15 +167,18 @@ public sealed class Connection
         // States wait while events do, so an entity's state never arrives before the events about it (its spawn).
         if (_eventSizes.Count == 0)
         {
-            EntityStates.Drain(_tickFrame, static (frame, state) =>
-            {
-                if (frame.Length > TickFrameStateLimit)
+            EntityStates.Drain(
+                _tickFrame,
+                static (frame, state) =>
                 {
-                    return false;
+                    if (frame.Length > TickFrameStateLimit)
+                    {
+                        return false;
+                    }
+                    frame.Write(MessageIds.EntityState, state);
+                    return true;
                 }
-                frame.Write(MessageIds.EntityState, state);
-                return true;
-            });
+            );
         }
 
         if (_tickFrame.MessageCount == 0 || !_outgoing.Writer.TryWrite(new Outgoing(null, _tickFrame.Length)))
@@ -327,7 +329,10 @@ public sealed class Connection
     private void Charge()
     {
         var now = Stopwatch.GetTimestamp();
-        _messageAllowance = Math.Min(MessageBurst, _messageAllowance + Stopwatch.GetElapsedTime(_allowanceTime, now).TotalSeconds * MaxMessagesPerSecond);
+        _messageAllowance = Math.Min(
+            MessageBurst,
+            _messageAllowance + Stopwatch.GetElapsedTime(_allowanceTime, now).TotalSeconds * MaxMessagesPerSecond
+        );
         _allowanceTime = now;
         if (--_messageAllowance < 0)
         {
@@ -344,9 +349,7 @@ public sealed class Connection
             {
                 try
                 {
-                    var data = item.Rented is null
-                        ? _tickFrame.WrittenMemory[..item.Length]
-                        : item.Rented.AsMemory(0, item.Length);
+                    var data = item.Rented is null ? _tickFrame.WrittenMemory[..item.Length] : item.Rented.AsMemory(0, item.Length);
                     // A client that stops reading fills its socket's buffers, and the send waits; give up on it.
                     timeout.CancelAfter(SendTimeout);
                     await _socket.SendAsync(data, WebSocketMessageType.Binary, endOfMessage: true, timeout.Token);
@@ -397,9 +400,7 @@ public sealed class Connection
         {
             await _socket.CloseOutputAsync(status, reason, CancellationToken.None);
         }
-        catch (Exception e) when (e is WebSocketException or ObjectDisposedException)
-        {
-        }
+        catch (Exception e) when (e is WebSocketException or ObjectDisposedException) { }
     }
 
     /// <summary>A queued frame: an immediate frame in a rented buffer, or (when <see cref="Rented"/> is null) the tick frame.</summary>

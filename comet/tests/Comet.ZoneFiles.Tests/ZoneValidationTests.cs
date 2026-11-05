@@ -25,7 +25,8 @@ public class ZoneValidationTests
                 "zone.toml: piece: 'Sky Island' isn't a valid name: use lowercase letters, digits and underscores, starting with a letter.",
                 "chunks/-1_0/chunk.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop id.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -49,7 +50,8 @@ public class ZoneValidationTests
                 "chunks/-1_0/chunk.toml: tile: there's no piece 'cliff' in zone.toml.",
                 "chunks/0_0/chunk.toml: tile main: 17×65 samples from [50, 0] reach past the chunk's 65×65.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -60,7 +62,8 @@ public class ZoneValidationTests
 
         Assert.Equal(
             ["chunks/-1_0/chunk.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 0])."],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -71,7 +74,8 @@ public class ZoneValidationTests
 
         Assert.Equal(
             ["chunks/-1_0/chunk.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 32])."],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -80,7 +84,20 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks =
         [
-            new ZoneChunk { Coord = new ChunkCoord(0, 0), Tiles = [new TerrainTile { Piece = "main", OriginX = 60, OriginZ = 60, Heights = Zones.Flat(5, 5, 2) }] },
+            new ZoneChunk
+            {
+                Coord = new ChunkCoord(0, 0),
+                Tiles =
+                [
+                    new TerrainTile
+                    {
+                        Piece = "main",
+                        OriginX = 60,
+                        OriginZ = 60,
+                        Heights = Zones.Flat(5, 5, 2),
+                    },
+                ],
+            },
             new ZoneChunk { Coord = new ChunkCoord(1, 1), Tiles = [new TerrainTile { Piece = "main", Heights = Zones.Flat(5, 5, 2) }] },
         ];
         zone.Borders = [];
@@ -89,7 +106,8 @@ public class ZoneValidationTests
         zone.Chunks[1].Tiles[0].Heights.Samples[0] = Heightmap.Hole;
         Assert.Equal(
             ["chunks/0_0/chunk.toml: tile main: the terrain doesn't match chunk 1_1's where they meet (world sample [64, 64])."],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -104,7 +122,8 @@ public class ZoneValidationTests
                 "chunks/-1_0/chunk.toml: placement of prop.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
                 "chunks/0_0/chunk.toml: wall volume at [64, 0, 1] is in chunk 1_0: objects belong to the chunk holding their pivot.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -113,11 +132,52 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         var placements = zone.Chunks[0].Placements;
         placements[0].Primitive = new Primitive { Kind = PrimitiveKind.Box, Sides = 8 };
-        zone.Chunks[0].Placements = placements.Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Cylinder, Sides = 2 } })
-            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Stairs, Steps = -1 } })
-            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Doorway, OpeningWidth = 1, OpeningHeight = 2 } })
-            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Wall, OpeningWidth = 1, OpeningHeight = 2 } })
-            .Append(new Placement { Position = placements[0].Position, Primitive = new Primitive { Kind = PrimitiveKind.Box, Thickness = 0.5f } })
+        zone.Chunks[0].Placements = placements
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive { Kind = PrimitiveKind.Cylinder, Sides = 2 },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive { Kind = PrimitiveKind.Stairs, Steps = -1 },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive
+                    {
+                        Kind = PrimitiveKind.Doorway,
+                        OpeningWidth = 1,
+                        OpeningHeight = 2,
+                    },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive
+                    {
+                        Kind = PrimitiveKind.Wall,
+                        OpeningWidth = 1,
+                        OpeningHeight = 2,
+                    },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive { Kind = PrimitiveKind.Box, Thickness = 0.5f },
+                }
+            )
             .ToArray();
 
         var errors = Errors(zone).ToList();
@@ -149,23 +209,46 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements =
         [
-            new Placement { Prop = "prop.cube", Tag = "gate", Position = new Vector3(-10, 0, 1) },
-            new Placement { Prop = "prop.cube", Tag = "gate", Position = new Vector3(-12, 0, 1) },
-            new Placement { Prop = "prop.cube", Tag = "Gate!", Position = new Vector3(-14, 0, 1) },
+            new Placement
+            {
+                Prop = "prop.cube",
+                Tag = "gate",
+                Position = new Vector3(-10, 0, 1),
+            },
+            new Placement
+            {
+                Prop = "prop.cube",
+                Tag = "gate",
+                Position = new Vector3(-12, 0, 1),
+            },
+            new Placement
+            {
+                Prop = "prop.cube",
+                Tag = "Gate!",
+                Position = new Vector3(-14, 0, 1),
+            },
         ];
 
         Assert.Equal(
             [
                 "chunks/-1_0/chunk.toml: placement of prop.cube: 'Gate!' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
     public void TriggerIdsNameTheirZoneAndAreUnique()
     {
         var zone = Zones.Sample();
-        zone.Chunks[0].Spawns = [new SpawnPoint { Id = "spawn.meadow.gate", Volume = new TriggerVolume { Position = new Vector3(-5, 4, 5) } }];
+        zone.Chunks[0].Spawns =
+        [
+            new SpawnPoint
+            {
+                Id = "spawn.meadow.gate",
+                Volume = new TriggerVolume { Position = new Vector3(-5, 4, 5) },
+            },
+        ];
         zone.Chunks[1].Teleporters[0].Id = "teleporter.hills.to_cave";
         zone.Chunks[1].Triggers[0].Id = "trigger.plate";
 
@@ -175,7 +258,8 @@ public class ZoneValidationTests
                 "chunks/0_0/chunk.toml: teleporter: 'teleporter.hills.to_cave' isn't a valid teleporter id here: use 'teleporter.meadow.' then lowercase letters, digits and underscores.",
                 "chunks/0_0/chunk.toml: trigger: 'trigger.plate' isn't a valid trigger id here: use 'trigger.meadow.' then lowercase letters, digits and underscores.",
             ],
-            Errors(zone).OrderBy(e => e, StringComparer.Ordinal));
+            Errors(zone).OrderBy(e => e, StringComparer.Ordinal)
+        );
     }
 
     [Fact]
@@ -197,7 +281,8 @@ public class ZoneValidationTests
                 "chunks/0_0/chunk.toml: spawn.meadow.gate: a pad can't be tagged or start off; pads aren't toggled.",
                 "chunks/0_0/chunk.toml: teleporter.meadow.to_cave: a pad is a primitive.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -215,7 +300,8 @@ public class ZoneValidationTests
                 "chunks/0_0/chunk.toml: trigger.meadow.plate: no placement in the zone is tagged 'bridge'.",
                 "chunks/0_0/chunk.toml: trigger.meadow.plate: revert_seconds can't be negative.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -234,7 +320,8 @@ public class ZoneValidationTests
                 "zone.toml: entrance cave: size must be above 0 on every axis.",
                 "zone.toml: transition_room hall: there's no entrance 'door'.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -243,9 +330,27 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks[1].Signs =
         [
-            new Sign { Position = new Vector3(12, 6, 5), Text = "  ", TextHeight = 9 },
-            new Sign { Position = new Vector3(13, 6, 5), Text = new string('a', Sign.MaxText + 1), Background = true, BackgroundOpacity = 2 },
-            new Sign { Position = new Vector3(-3, 6, 5), Text = "Lost", ShowDistance = 0, ScreenSized = true, FontSize = 4 },
+            new Sign
+            {
+                Position = new Vector3(12, 6, 5),
+                Text = "  ",
+                TextHeight = 9,
+            },
+            new Sign
+            {
+                Position = new Vector3(13, 6, 5),
+                Text = new string('a', Sign.MaxText + 1),
+                Background = true,
+                BackgroundOpacity = 2,
+            },
+            new Sign
+            {
+                Position = new Vector3(-3, 6, 5),
+                Text = "Lost",
+                ShowDistance = 0,
+                ScreenSized = true,
+                FontSize = 4,
+            },
         ];
 
         Assert.Equal(
@@ -258,7 +363,8 @@ public class ZoneValidationTests
                 "chunks/0_0/chunk.toml: sign at [-3, 6, 5]: show_distance should be 1 to 200 meters.",
                 "chunks/0_0/chunk.toml: sign at [-3, 6, 5]: font_size should be 8 to 48.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]

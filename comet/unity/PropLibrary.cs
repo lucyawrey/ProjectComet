@@ -33,7 +33,8 @@ namespace Comet.Unity
             public Color color;
         }
 
-        [SerializeField] private List<Entry> entries = new List<Entry>();
+        [SerializeField]
+        private List<Entry> entries = new List<Entry>();
 
         private Dictionary<string, Entry>? _byId;
 

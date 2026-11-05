@@ -27,13 +27,16 @@ public sealed class WebBuildTests : IAsyncLifetime
             content!.Save(file);
         }
 
-        _server = ShapeLandServer.Build([], builder =>
-        {
-            builder.Configuration["ShapeLand:ContentFile"] = contentFile;
-            builder.Configuration["ShapeLand:WebRoot"] = _root;
-            builder.Configuration["Urls"] = "http://127.0.0.1:0";
-            TestServices.AddInMemoryCharacters(builder);
-        });
+        _server = ShapeLandServer.Build(
+            [],
+            builder =>
+            {
+                builder.Configuration["ShapeLand:ContentFile"] = contentFile;
+                builder.Configuration["ShapeLand:WebRoot"] = _root;
+                builder.Configuration["Urls"] = "http://127.0.0.1:0";
+                TestServices.AddInMemoryCharacters(builder);
+            }
+        );
         await _server.StartAsync(TestContext.Current.CancellationToken);
         _http = new HttpClient { BaseAddress = new Uri(_server.Urls.First()) };
     }

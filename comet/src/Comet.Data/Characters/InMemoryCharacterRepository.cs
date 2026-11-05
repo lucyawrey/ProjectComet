@@ -101,8 +101,15 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
 
                 return null;
             }
-            catch (Exception e) when (e is JsonException or NotSupportedException or ArgumentException or NullReferenceException
-                or IOException or UnauthorizedAccessException)
+            catch (Exception e)
+                when (e
+                        is JsonException
+                            or NotSupportedException
+                            or ArgumentException
+                            or NullReferenceException
+                            or IOException
+                            or UnauthorizedAccessException
+                )
             {
                 _characters.Clear();
                 _statuses.Clear();
@@ -216,13 +223,18 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
             }
             else
             {
-                owner = new() { CharacterId = characterId, ServerId = serverId, Version = 1, CreatedAt = Now, UpdatedAt = Now };
+                owner = new()
+                {
+                    CharacterId = characterId,
+                    ServerId = serverId,
+                    Version = 1,
+                    CreatedAt = Now,
+                    UpdatedAt = Now,
+                };
                 _owners.Add(characterId, owner);
             }
 
-            CharacterPosition? position = _statuses.TryGetValue(characterId, out var s)
-                ? new(s.Zone, s.X, s.Y, s.Z, s.Facing)
-                : null;
+            CharacterPosition? position = _statuses.TryGetValue(characterId, out var s) ? new(s.Zone, s.X, s.Y, s.Z, s.Facing) : null;
             return new(ClaimOutcome.Claimed, (TCharacter)character.Copy(), position, owner.Version);
         }
     }
@@ -343,8 +355,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     private sealed record Snapshot(List<TCharacter> Characters, List<CharacterStatus> Statuses);
 
     private bool HoldsLocked(long characterId, long version, int serverId) =>
-        _owners.TryGetValue(characterId, out var owner)
-        && owner.ServerId == serverId && owner.Version == version && owner.IsHeld;
+        _owners.TryGetValue(characterId, out var owner) && owner.ServerId == serverId && owner.Version == version && owner.IsHeld;
 
     private void BumpLocked(long characterId)
     {
@@ -359,7 +370,16 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     {
         if (!_statuses.TryGetValue(characterId, out var status))
         {
-            status = new() { CharacterId = characterId, Zone = 0, X = 0, Y = 0, Z = 0, Facing = 0, CreatedAt = Now };
+            status = new()
+            {
+                CharacterId = characterId,
+                Zone = 0,
+                X = 0,
+                Y = 0,
+                Z = 0,
+                Facing = 0,
+                CreatedAt = Now,
+            };
             _statuses.Add(characterId, status);
         }
 
@@ -374,8 +394,10 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
 /// queue), checked by the same contract tests.
 /// </summary>
 public sealed class InMemoryCharacterRepository<TCharacter>(
-    InMemoryCharacterDatabase<TCharacter> database, CharacterRepositoryOptions options, ILogger? logger = null)
-    : QueuedCharacterRepository<TCharacter>(options, database.Clock, logger ?? NullLogger.Instance)
+    InMemoryCharacterDatabase<TCharacter> database,
+    CharacterRepositoryOptions options,
+    ILogger? logger = null
+) : QueuedCharacterRepository<TCharacter>(options, database.Clock, logger ?? NullLogger.Instance)
     where TCharacter : Character
 {
     public InMemoryCharacterDatabase<TCharacter> Database => database;

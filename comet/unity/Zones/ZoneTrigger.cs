@@ -42,7 +42,8 @@ namespace Comet.Unity
         public Vector3 size = new Vector3(2, 2, 2);
 
         [Tooltip("How long a player stands inside before it fires, in seconds (0 fires at once).")]
-        [Min(0)] public float standSeconds;
+        [Min(0)]
+        public float standSeconds;
 
         [Tooltip("Step off: fires again only after stepping out. Repeat: again every stand time while inside.")]
         public RearmMode rearm;

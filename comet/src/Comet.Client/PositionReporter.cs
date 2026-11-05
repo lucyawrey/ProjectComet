@@ -38,7 +38,8 @@ namespace Comet.Client
             var ground = new Vector2(velocity.X, velocity.Z);
             var direction = ground.LengthSquared() > MovingSpeedSquared ? Vector2.Normalize(ground) : Vector2.Zero;
 
-            var report = moving != _wasMoving
+            var report =
+                moving != _wasMoving
                 || moving && now - _lastReport >= Interval - TimeTolerance
                 || direction != Vector2.Zero && _reportedDirection != Vector2.Zero && Vector2.Dot(direction, _reportedDirection) < _sharpTurnCos;
 

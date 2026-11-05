@@ -11,8 +11,7 @@ namespace Comet.ContentBuild;
 /// </summary>
 public sealed class IdRegistry
 {
-    private const string Header =
-        """
+    private const string Header = """
         # Content ID registry: each id's permanent number, by name, per content type.
         # The content build adds new ids; numbers never change and are never reused. Commit this file.
 
@@ -79,7 +78,9 @@ public sealed class IdRegistry
                 }
                 else if (numbers.TryGetValue((int)value.Value, out var other))
                 {
-                    errors.Add(ContentBuilder.ErrorAt(displayPath, value.Span, $"Number {value.Value} is used by both '{kind}.{other}' and '{kind}.{name}'."));
+                    errors.Add(
+                        ContentBuilder.ErrorAt(displayPath, value.Span, $"Number {value.Value} is used by both '{kind}.{other}' and '{kind}.{name}'.")
+                    );
                 }
                 else if (!names.Add(name))
                 {

@@ -4,7 +4,15 @@ namespace Comet.ContentBuild.Tests;
 
 public class HeightmapFormatTests
 {
-    private static Heightmap Sample() => new() { SizeX = 3, SizeZ = 2, Scale = 0.5f, Offset = -10f, Samples = [0, 1, 2, 3, 4, 65535] };
+    private static Heightmap Sample() =>
+        new()
+        {
+            SizeX = 3,
+            SizeZ = 2,
+            Scale = 0.5f,
+            Offset = -10f,
+            Samples = [0, 1, 2, 3, 4, 65535],
+        };
 
     [Fact]
     public void RoundTripsWithAn18ByteHeader()
@@ -75,7 +83,11 @@ public class HeightmapFormatTests
     public void AHugeClaimedSizeIsTruncatedNotAnOverflow()
     {
         // 65535 × 65535 samples overflowed an int and crashed the tool.
-        var bytes = WithHeader(b => { BitConverter.TryWriteBytes(b.AsSpan(6), ushort.MaxValue); BitConverter.TryWriteBytes(b.AsSpan(8), ushort.MaxValue); });
+        var bytes = WithHeader(b =>
+        {
+            BitConverter.TryWriteBytes(b.AsSpan(6), ushort.MaxValue);
+            BitConverter.TryWriteBytes(b.AsSpan(8), ushort.MaxValue);
+        });
 
         Assert.Contains("truncated", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream(bytes))).Message);
     }

@@ -13,7 +13,14 @@ public class LatestOnlyQueueTests
         queue.Set(key: 1, 11);
 
         var drained = new List<int>();
-        queue.Drain(drained, static (list, value) => { list.Add(value); return true; });
+        queue.Drain(
+            drained,
+            static (list, value) =>
+            {
+                list.Add(value);
+                return true;
+            }
+        );
 
         Assert.Equal([11, 20], drained);
         Assert.Equal(1, queue.TakeReplacedCount());
@@ -45,7 +52,14 @@ public class LatestOnlyQueueTests
         queue.Set(key: 3, 31);
 
         var drained = new List<int>();
-        queue.Drain(drained, static (list, value) => { list.Add(value); return true; });
+        queue.Drain(
+            drained,
+            static (list, value) =>
+            {
+                list.Add(value);
+                return true;
+            }
+        );
 
         Assert.Equal([10, 31], drained);
     }
@@ -59,18 +73,28 @@ public class LatestOnlyQueueTests
         queue.Set(key: 3, 30);
 
         var drained = new List<int>();
-        queue.Drain(drained, static (list, value) =>
-        {
-            if (list.Count == 1)
+        queue.Drain(
+            drained,
+            static (list, value) =>
             {
-                return false;
+                if (list.Count == 1)
+                {
+                    return false;
+                }
+                list.Add(value);
+                return true;
             }
-            list.Add(value);
-            return true;
-        });
+        );
         queue.Set(key: 3, 31);
         queue.Set(key: 1, 12);
-        queue.Drain(drained, static (list, value) => { list.Add(value); return true; });
+        queue.Drain(
+            drained,
+            static (list, value) =>
+            {
+                list.Add(value);
+                return true;
+            }
+        );
 
         Assert.Equal([10, 20, 31, 12], drained);
         Assert.Equal(1, queue.TakeReplacedCount());

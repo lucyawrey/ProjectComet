@@ -85,7 +85,11 @@ public enum ClaimOutcome
 /// status save), and the owner version every later save carries.
 /// </summary>
 public sealed record CharacterClaim<TCharacter>(
-    ClaimOutcome Outcome, TCharacter? Character = null, CharacterPosition? Position = null, long Version = 0)
+    ClaimOutcome Outcome,
+    TCharacter? Character = null,
+    CharacterPosition? Position = null,
+    long Version = 0
+)
     where TCharacter : Character;
 
 /// <summary>Settings for a game server's character repository.</summary>

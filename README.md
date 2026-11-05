@@ -59,6 +59,8 @@ dotnet build ProjectComet.slnx
 dotnet test --solution ProjectComet.slnx
 ```
 
+C# and the project files are formatted with [CSharpier](https://csharpier.com) (`dotnet tool restore`, then `dotnet csharpier format .`); VS Code formats them on save with the recommended CSharpier extension. `tools/run check` runs what CI runs: the formatting check, the content build and the tests.
+
 The tests that use PostgreSQL need Docker. To play with accounts in the editor, as builds do, turn on Comet › Server › Use Accounts (per computer): the editor's server then runs with the Login server and PostgreSQL in Docker. Play-mode tests run with `tools/run unity-batch test PlayMode`; adding `-- -testCategory "!Accounts"` skips the ones that need Docker. The code guides are in [Comet's README](comet/README.md) and [ShapeLand's](shapeland/README.md).
 
 ### Putting the game online
@@ -71,6 +73,7 @@ Run them from the repository root with the launcher: `tools/run <tool> [argument
 
 | Tool | What it's for |
 | --- | --- |
+| `tools/run check` | The checks CI runs: the formatting check, the content build and the tests. |
 | `tools/run comet-postgres` | The shared development PostgreSQL, `comet-postgres` on `127.0.0.1:55432` (a Docker container that stays running, data in the `comet-postgres-data` volume), with a database per local stack. The other tools and the Unity editor start it themselves; `tools/run comet-postgres` alone lists its commands. |
 | `tools/blender-export-glb.py` | Export each top-level object in a `.blend` file as a `.glb`, into the folder named by the file's `export_dir` property. Run it from Blender's Text Editor, or with `blender -b <file> --python tools/blender-export-glb.py`; the script's header has the setup. |
 | `tools/run shapeland-dev` | Run ShapeLand locally: the web client in a browser, served by a local game server, without opening the Unity editor; or, with `--no-web`, just the servers, for the editor's play mode or a desktop build. It starts PostgreSQL (`tools/run comet-postgres`, with a database for the checkout and port), the Login server (on the game server's port + 10) and the game server, and restarts both servers when the content changes. The Unity editor can run the server itself for play mode, with optional bots, web build and local network ([Comet › Server](comet/README.md#the-local-game-server)), so most level work needs no terminal. |

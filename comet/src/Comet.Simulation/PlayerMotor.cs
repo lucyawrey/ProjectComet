@@ -9,8 +9,10 @@ namespace Comet.Simulation
     {
         /// <summary>The bottom center of the body.</summary>
         public Vector3 Position;
+
         /// <summary>In meters per second.</summary>
         public Vector3 Velocity;
+
         /// <summary>True while standing on terrain or a box.</summary>
         public bool Grounded;
 
@@ -31,7 +33,17 @@ namespace Comet.Simulation
         /// <param name="maxSpeed">The player's top ground speed, in meters per second.</param>
         /// <param name="jumpVelocity">The player's jump take-off speed, in meters per second.</param>
         /// <param name="passThrough">Meshes the player passes through (turned on around them), or null.</param>
-        public static void Step(ref MotorState state, Vector2 move, bool jump, float seconds, float maxSpeed, float jumpVelocity, CollisionWorld world, MovementRules rules, ISet<int>? passThrough = null)
+        public static void Step(
+            ref MotorState state,
+            Vector2 move,
+            bool jump,
+            float seconds,
+            float maxSpeed,
+            float jumpVelocity,
+            CollisionWorld world,
+            MovementRules rules,
+            ISet<int>? passThrough = null
+        )
         {
             if (move.LengthSquared() > 1)
             {
@@ -71,8 +83,24 @@ namespace Comet.Simulation
             // jump up a slope keeps its speed, and one that comes up just short of a ledge carries on over it.
             var position = state.Position;
             var stepUp = state.Grounded ? rules.StepHeight : 0;
-            position = TryMoveAxis(position, new Vector3(current.X * seconds, 0, 0), state.Grounded ? stepUp : MathF.Min(2 * MathF.Abs(current.X * seconds), rules.MantleHeight), world, rules, passThrough, ref current.X);
-            position = TryMoveAxis(position, new Vector3(0, 0, current.Y * seconds), state.Grounded ? stepUp : MathF.Min(2 * MathF.Abs(current.Y * seconds), rules.MantleHeight), world, rules, passThrough, ref current.Y);
+            position = TryMoveAxis(
+                position,
+                new Vector3(current.X * seconds, 0, 0),
+                state.Grounded ? stepUp : MathF.Min(2 * MathF.Abs(current.X * seconds), rules.MantleHeight),
+                world,
+                rules,
+                passThrough,
+                ref current.X
+            );
+            position = TryMoveAxis(
+                position,
+                new Vector3(0, 0, current.Y * seconds),
+                state.Grounded ? stepUp : MathF.Min(2 * MathF.Abs(current.Y * seconds), rules.MantleHeight),
+                world,
+                rules,
+                passThrough,
+                ref current.Y
+            );
 
             // Move vertically, landing on ground or stopping under something solid.
             var startY = position.Y;
@@ -90,7 +118,11 @@ namespace Comet.Simulation
             // Terrain may rise by up to twice the distance moved (slopes up to ~63°), however fast the player moves.
             var snap = state.Grounded ? rules.GroundSnap : 0;
             var climb = 2 * Vector2.Distance(new Vector2(state.Position.X, state.Position.Z), new Vector2(position.X, position.Z));
-            if (velocityY <= 0 && world.TryGetGround(position, rules.BodyRadius, startY + stepUp, out var ground, climb, passThrough) && targetY - snap <= ground)
+            if (
+                velocityY <= 0
+                && world.TryGetGround(position, rules.BodyRadius, startY + stepUp, out var ground, climb, passThrough)
+                && targetY - snap <= ground
+            )
             {
                 position.Y = ground;
                 velocityY = 0;
@@ -127,7 +159,15 @@ namespace Comet.Simulation
             return turned - 2 * MathF.PI * MathF.Floor((turned + MathF.PI) / (2 * MathF.PI));
         }
 
-        private static Vector3 TryMoveAxis(Vector3 position, Vector3 delta, float stepUp, CollisionWorld world, MovementRules rules, ISet<int>? passThrough, ref float axisVelocity)
+        private static Vector3 TryMoveAxis(
+            Vector3 position,
+            Vector3 delta,
+            float stepUp,
+            CollisionWorld world,
+            MovementRules rules,
+            ISet<int>? passThrough,
+            ref float axisVelocity
+        )
         {
             if (delta == Vector3.Zero)
             {

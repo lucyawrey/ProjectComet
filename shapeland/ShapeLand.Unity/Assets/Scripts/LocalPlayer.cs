@@ -20,10 +20,12 @@ namespace ShapeLand.Client
     public sealed class LocalPlayer : MonoBehaviour
     {
         [Tooltip("After a respawn, how long the camera glides to the spawn before the shape fades in, in seconds.")]
-        [SerializeField] private float respawnGlideSeconds = 0.5f;
+        [SerializeField]
+        private float respawnGlideSeconds = 0.5f;
 
         [Tooltip("The farthest a respawn glides the camera, in meters across the ground; farther, or into another zone, it cuts.")]
-        [SerializeField] private float respawnGlideDistance = 30f;
+        [SerializeField]
+        private float respawnGlideDistance = 30f;
 
         /// <summary>
         /// Motor steps per second. Faster than the server's tick so input waits less (about 8 ms on average
@@ -101,7 +103,16 @@ namespace ShapeLand.Client
         public void TeleportCancelled() => _fade.Cancel();
 
         /// <summary>Starts the player as <paramref name="shape"/> at <paramref name="position"/>, facing <paramref name="facing"/> radians, moved by <paramref name="controls"/> relative to the camera.</summary>
-        public void Begin(ClientSession session, CollisionWorld world, MovementRules rules, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)
+        public void Begin(
+            ClientSession session,
+            CollisionWorld world,
+            MovementRules rules,
+            Shape shape,
+            Vector3 position,
+            float facing,
+            OrbitCamera orbitCamera,
+            ShapeLandControls controls
+        )
         {
             _rules = rules;
             _session = session;
@@ -109,7 +120,12 @@ namespace ShapeLand.Client
             _shape = shape;
             _camera = orbitCamera;
             _controls = controls;
-            _motor = new MotorState { Position = Vectors.ToNumerics(position), Grounded = true, Facing = facing };
+            _motor = new MotorState
+            {
+                Position = Vectors.ToNumerics(position),
+                Grounded = true,
+                Facing = facing,
+            };
             _previous = _motor;
             _session.Corrected += OnCorrected;
             Draw(1);
@@ -140,7 +156,8 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var move = InputEnabled && !_fade.Holding ? CameraRelative(_controls.Game.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
+            var move =
+                InputEnabled && !_fade.Holding ? CameraRelative(_controls.Game.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
             _jumpQueued |= InputEnabled && !_fade.Holding && _controls.Game.Jump.WasPressedThisFrame();
 
             var now = CometConnection.Now;
@@ -158,7 +175,10 @@ namespace ShapeLand.Client
 
                 _jumpQueued = false;
                 // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.
-                if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds))
+                if (
+                    _session.TickOfStep(stepNumber, StepsPerSecond, out var tick)
+                    && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds)
+                )
                 {
                     _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
                 }

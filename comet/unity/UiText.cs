@@ -15,18 +15,19 @@ namespace Comet.Unity
         public static void Fill(VisualElement root, StringTable strings)
         {
             var withPlaceholders = new List<(TextElement Element, string Key)>();
-            root.Query<TextElement>().ForEach(element =>
-            {
-                if (element.text.StartsWith("#"))
+            root.Query<TextElement>()
+                .ForEach(element =>
                 {
-                    var key = element.text.Substring(1);
-                    element.text = strings.Get(key);
-                    if (strings.Raw(key).Contains('{'))
+                    if (element.text.StartsWith("#"))
                     {
-                        withPlaceholders.Add((element, key));
+                        var key = element.text.Substring(1);
+                        element.text = strings.Get(key);
+                        if (strings.Raw(key).Contains('{'))
+                        {
+                            withPlaceholders.Add((element, key));
+                        }
                     }
-                }
-            });
+                });
 
             if (withPlaceholders.Count > 0)
             {

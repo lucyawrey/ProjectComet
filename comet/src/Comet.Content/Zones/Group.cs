@@ -14,16 +14,20 @@ namespace Comet.Content
     [MessagePackObject]
     public sealed class Group : IContentEntry
     {
-        [Key(0)] public int Number { get; set; }
+        [Key(0)]
+        public int Number { get; set; }
 
         /// <summary>The group's id (<c>group.tree</c>).</summary>
-        [Key(1)] public string Id { get; set; } = "";
+        [Key(1)]
+        public string Id { get; set; } = "";
 
         /// <summary>The group's parts, placed relative to its pivot.</summary>
-        [Key(2)] public Placement[] Parts { get; set; } = new Placement[0];
+        [Key(2)]
+        public Placement[] Parts { get; set; } = new Placement[0];
 
         /// <summary>The name the zone editor shows for it; null shows its id without the <c>group.</c> prefix.</summary>
-        [Key(3)] public string? DisplayName { get; set; }
+        [Key(3)]
+        public string? DisplayName { get; set; }
     }
 
     /// <summary>Expands group copies into the placements they stand for.</summary>
@@ -85,21 +89,23 @@ namespace Comet.Content
         {
             var rotation = ZoneGrid.Rotation(copy.Rotation);
             var scale = copy.Scale.X;
-            return group.Parts.Select(part => new Placement
-            {
-                Prop = part.Prop,
-                Primitive = part.Primitive,
-                Group = part.Group,
-                Role = part.Role,
-                Position = copy.Position + Vector3.Transform(part.Position * scale, rotation),
-                Rotation = ZoneGrid.Euler(Quaternion.Concatenate(ZoneGrid.Rotation(part.Rotation), rotation)),
-                Scale = part.Scale * scale,
-                Color = part.Role is { } role && copy.Colors?.TryGetValue(role, out var color) == true ? color : part.Color,
-                Colors = part.Group is null ? null : Over(copy.Colors, part.Colors),
-                Blockout = part.Blockout || copy.Blockout,
-                Tag = copy.Tag,
-                Off = part.Off || copy.Off,
-            }).ToList();
+            return group
+                .Parts.Select(part => new Placement
+                {
+                    Prop = part.Prop,
+                    Primitive = part.Primitive,
+                    Group = part.Group,
+                    Role = part.Role,
+                    Position = copy.Position + Vector3.Transform(part.Position * scale, rotation),
+                    Rotation = ZoneGrid.Euler(Quaternion.Concatenate(ZoneGrid.Rotation(part.Rotation), rotation)),
+                    Scale = part.Scale * scale,
+                    Color = part.Role is { } role && copy.Colors?.TryGetValue(role, out var color) == true ? color : part.Color,
+                    Colors = part.Group is null ? null : Over(copy.Colors, part.Colors),
+                    Blockout = part.Blockout || copy.Blockout,
+                    Tag = copy.Tag,
+                    Off = part.Off || copy.Off,
+                })
+                .ToList();
         }
 
         /// <summary>The roles a group's parts play, its nested groups' included.</summary>

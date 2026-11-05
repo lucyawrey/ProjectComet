@@ -52,6 +52,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private readonly FixedStep _fixed = new(StepsPerSecond);
     private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
     private ClientSession _session = null!;
+
     // The bot's own view of its zone's shared world, with the zone's flips as the server last said (WithOwnFlips).
     private CollisionWorld _world = worlds.For(content.Zones.All[0]).WithOwnFlips();
     private readonly PassThrough _passThrough = new();
@@ -167,8 +168,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
         Name = ticket.Name;
         var transport = new WebSocketTransport(ticket.Server);
-        _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
-            gravity: content.Movement.Gravity);
+        _session = new ClientSession(
+            transport,
+            ShapeLandProtocol.Options,
+            teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
+            gravity: content.Movement.Gravity
+        );
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
         _session.EntityDespawned += id =>
@@ -194,15 +199,26 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                     asked = true;
                     if (ticket.Ticket is { } joinTicket)
                     {
-                        _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = joinTicket, ContentFingerprint = content.Fingerprint });
+                        _session.Write(
+                            ShapeLandMessageIds.JoinRequest,
+                            new JoinRequest { Ticket = joinTicket, ContentFingerprint = content.Fingerprint }
+                        );
                     }
                     else
                     {
                         var look = ticket.Look ?? new NewCharacter();
-                        _session.Write(ShapeLandMessageIds.DevJoinRequest, new DevJoinRequest
-                        {
-                            Name = ticket.Name, Shape = look.Shape, Color = look.Color, EyeColor = look.EyeColor, ContentFingerprint = content.Fingerprint, Bot = true,
-                        });
+                        _session.Write(
+                            ShapeLandMessageIds.DevJoinRequest,
+                            new DevJoinRequest
+                            {
+                                Name = ticket.Name,
+                                Shape = look.Shape,
+                                Color = look.Color,
+                                EyeColor = look.EyeColor,
+                                ContentFingerprint = content.Fingerprint,
+                                Bot = true,
+                            }
+                        );
                     }
                 }
 
@@ -228,9 +244,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 _session.Flush(now);
             }
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested)
-        {
-        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
 
         transport.Close();
         await transport.Completion;
@@ -258,10 +272,23 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
-        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, _world, content.Movement, _passThrough);
+        PlayerMotor.Step(
+            ref _motor,
+            move,
+            jump,
+            seconds,
+            _shape.MaxSpeed * settings.SpeedCheat,
+            _shape.JumpVelocity * settings.JumpCheat,
+            _world,
+            content.Movement,
+            _passThrough
+        );
         _passThrough.Prune(_world, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
         // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
-        if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond))
+        if (
+            _session.TickOfStep(stepNumber, StepsPerSecond, out var tick)
+            && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond)
+        )
         {
             _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
             CountOwnHitch(tick, _motor.Position);
@@ -273,7 +300,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             ChatsSent++;
             _nextChat = elapsed + settings.ChatEverySeconds * (0.5 + _random.NextDouble());
         }
-
     }
 
     private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
@@ -294,7 +320,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
                     Joined = true;
                     _joinedAt = _lastNow;
-                    _motor = new MotorState { Position = position, Grounded = true, Facing = spawn.Facing };
+                    _motor = new MotorState
+                    {
+                        Position = position,
+                        Grounded = true,
+                        Facing = spawn.Facing,
+                    };
                     _fixed.Reset();
                     _target = RandomPoint();
                     _nextJump = 2 + _random.NextDouble() * 4;
@@ -407,7 +438,15 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         if (!_recording)
         {
             _recording = true;
-            _baseline = (entities.MoveStates, entities.Holds, entities.HeldTicks, entities.Jumps, entities.SpeedHitches, entities.Overruns, entities.VisibleBlendBacks);
+            _baseline = (
+                entities.MoveStates,
+                entities.Holds,
+                entities.HeldTicks,
+                entities.Jumps,
+                entities.SpeedHitches,
+                entities.Overruns,
+                entities.VisibleBlendBacks
+            );
             _lastRecord = now;
             _nextSample = now;
         }
@@ -421,12 +460,15 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
         _nextSample += 0.25;
         var delay = _session.InterpolationDelay;
-        NetSamples.Add(new NetSample(
-            now - _joinedAt,
-            _session.Clock.LastRoundTrip * 1000,
-            _session.Clock.RoundTrip * 1000,
-            delay.Seconds * 1000,
-            delay.Target / delay.TickRate * 1000));
+        NetSamples.Add(
+            new NetSample(
+                now - _joinedAt,
+                _session.Clock.LastRoundTrip * 1000,
+                _session.Clock.RoundTrip * 1000,
+                delay.Seconds * 1000,
+                delay.Target / delay.TickRate * 1000
+            )
+        );
     }
 
     private Vector2 RandomPoint()

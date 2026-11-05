@@ -60,9 +60,14 @@ public sealed class TicketChecker
             return (null, TicketRejection.Invalid);
         }
 
-        if (!jwt.TryGetPayloadValue<string>(JwtRegisteredClaimNames.Sub, out var sub) || !long.TryParse(sub, out var account) ||
-            !jwt.TryGetPayloadValue<string>(TicketClaims.Character, out var chr) || !long.TryParse(chr, out var character) ||
-            string.IsNullOrEmpty(jwt.Id) || jwt.Audiences.Count() != 1)
+        if (
+            !jwt.TryGetPayloadValue<string>(JwtRegisteredClaimNames.Sub, out var sub)
+            || !long.TryParse(sub, out var account)
+            || !jwt.TryGetPayloadValue<string>(TicketClaims.Character, out var chr)
+            || !long.TryParse(chr, out var character)
+            || string.IsNullOrEmpty(jwt.Id)
+            || jwt.Audiences.Count() != 1
+        )
         {
             return (null, TicketRejection.Invalid);
         }

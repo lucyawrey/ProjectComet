@@ -74,8 +74,7 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     // The connection that has (or is claiming) each character: the newest join.
     private readonly Dictionary<long, TConnection> _holders = [];
 
-    public JoinedCharacters(
-        TicketChecker? tickets, ICharacterRepository<TCharacter> repository, TimeSpan claimDeadline, ILogger logger)
+    public JoinedCharacters(TicketChecker? tickets, ICharacterRepository<TCharacter> repository, TimeSpan claimDeadline, ILogger logger)
     {
         _tickets = tickets;
         _repository = repository;
@@ -99,9 +98,7 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         _pending.Add(connection, pending);
         _ = Task.Run(async () =>
         {
-            var (checkedTicket, rejection) = _tickets == null
-                ? (null, TicketRejection.Invalid)
-                : await _tickets.CheckAsync(ticket);
+            var (checkedTicket, rejection) = _tickets == null ? (null, TicketRejection.Invalid) : await _tickets.CheckAsync(ticket);
             _done.Enqueue(host => TicketChecked(host, connection, pending, checkedTicket, rejection));
         });
         return true;
@@ -186,7 +183,12 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         Task.WhenAll(_joined.Keys.ToList().Select(connection => Leave(connection, positionOf(connection))));
 
     private void TicketChecked(
-        IJoinHost<TConnection, TCharacter> host, TConnection connection, Pending pending, JoinTicket? ticket, TicketRejection? rejection)
+        IJoinHost<TConnection, TCharacter> host,
+        TConnection connection,
+        Pending pending,
+        JoinTicket? ticket,
+        TicketRejection? rejection
+    )
     {
         if (pending.Abandoned)
         {
@@ -196,13 +198,16 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         if (ticket == null)
         {
             _pending.Remove(connection);
-            host.JoinFailed(connection, rejection switch
-            {
-                TicketRejection.Expired => JoinFailure.ExpiredTicket,
-                TicketRejection.Used => JoinFailure.UsedTicket,
-                TicketRejection.WrongServer => JoinFailure.WrongServer,
-                _ => JoinFailure.BadTicket,
-            });
+            host.JoinFailed(
+                connection,
+                rejection switch
+                {
+                    TicketRejection.Expired => JoinFailure.ExpiredTicket,
+                    TicketRejection.Used => JoinFailure.UsedTicket,
+                    TicketRejection.WrongServer => JoinFailure.WrongServer,
+                    _ => JoinFailure.BadTicket,
+                }
+            );
             return;
         }
 
@@ -237,8 +242,14 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         });
     }
 
-    private void Claimed(IJoinHost<TConnection, TCharacter> host, TConnection connection, Pending pending,
-        long characterId, long accountId, CharacterClaim<TCharacter> claim)
+    private void Claimed(
+        IJoinHost<TConnection, TCharacter> host,
+        TConnection connection,
+        Pending pending,
+        long characterId,
+        long accountId,
+        CharacterClaim<TCharacter> claim
+    )
     {
         if (pending.Abandoned)
         {
@@ -276,9 +287,11 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     private void Refuse(IJoinHost<TConnection, TCharacter> host, SaveRefused refused)
     {
         // Only the connection playing that character under that version: a newer one keeps playing.
-        if (_holders.TryGetValue(refused.CharacterId, out var connection)
+        if (
+            _holders.TryGetValue(refused.CharacterId, out var connection)
             && _joined.TryGetValue(connection, out var binding)
-            && binding.Version == refused.Version)
+            && binding.Version == refused.Version
+        )
         {
             host.Dropped(connection, replaced: false);
             _joined.Remove(connection);

@@ -50,7 +50,12 @@ namespace Comet.Unity
         /// The file the editor's server keeps its characters in without accounts: one per checkout, in its ignored
         /// artifacts folder. What's in it is the game's.
         /// </summary>
-        public static string DevCharactersFile => System.IO.Path.Combine(CheckoutRoot(System.IO.Path.GetDirectoryName(UnityEngine.Application.dataPath)!), "artifacts", "dev-characters.json");
+        public static string DevCharactersFile =>
+            System.IO.Path.Combine(
+                CheckoutRoot(System.IO.Path.GetDirectoryName(UnityEngine.Application.dataPath)!),
+                "artifacts",
+                "dev-characters.json"
+            );
 
         /// <summary>The checkout holding a folder: the nearest one up with a .git, or the folder itself.</summary>
         public static string CheckoutRoot(string folder)

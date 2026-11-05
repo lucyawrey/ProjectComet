@@ -26,7 +26,8 @@ switch (args)
                                     content and the editor schemas to artifacts/content/shapeland;
                                     blockout placements are warnings, or errors with --release
               schema                write only the editor schemas
-            """);
+            """
+        );
         return 2;
 }
 
@@ -58,7 +59,9 @@ int Build(bool release)
     File.Move(temporary, file, overwrite: true);
 
     WriteSchemas();
-    Console.WriteLine($"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Props.All.Count} props, {compiled.Zones.All.Count} zone(s) and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}.");
+    Console.WriteLine(
+        $"Compiled {compiled.Shapes.All.Count} shapes, {compiled.Props.All.Count} props, {compiled.Zones.All.Count} zone(s) and {compiled.Strings.Entries.Count} interface strings to {Path.GetRelativePath(repo, file)}."
+    );
     return 0;
 }
 

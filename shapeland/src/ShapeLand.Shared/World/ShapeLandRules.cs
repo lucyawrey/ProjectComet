@@ -9,11 +9,13 @@ namespace ShapeLand.Shared.World
     {
         /// <summary>Server ticks per second.</summary>
         public const int TickRate = 30;
+
         /// <summary>The shortest name.</summary>
         public const int MinNameLength = 3;
 
         /// <summary>The longest name.</summary>
         public const int MaxNameLength = 16;
+
         /// <summary>The longest chat line, in UTF-16 characters after normalizing.</summary>
         public const int MaxChatLength = 200;
 

@@ -44,36 +44,76 @@ using System.Net.Sockets;
 args = Tool.Arguments(args);
 
 var project = Path.Combine(Tool.Repo, "shapeland", "ShapeLand.Unity");
+
 // Its own folder: these builds skip compression (the fast-web-build marker, Builds.cs), and tools/run
 // shapeland-deploy publishes artifacts/unity/shapeland/web, so a playtest build never goes out by mistake.
 var web = Path.Combine(Tool.Repo, "artifacts", "unity", "shapeland", "web-dev");
 var content = Path.Combine(Tool.Repo, "artifacts", "content", "shapeland", "content.bin");
 var bin = Path.Combine(Tool.Repo, "artifacts", "bin");
 
-bool rebuild = false, build = true, serveWeb = true, openPage = true, botsChat = false, watch = true, lan = false;
-int bots = 0, cheaters = 0, port = 5080;
+bool rebuild = false,
+    build = true,
+    serveWeb = true,
+    openPage = true,
+    botsChat = false,
+    watch = true,
+    lan = false;
+int bots = 0,
+    cheaters = 0,
+    port = 5080;
 string? net = null;
-string botsNet = "none", spawn = "";
+string botsNet = "none",
+    spawn = "";
 var options = new Tool.Args(args);
 while (options.More)
 {
     switch (options.Take())
     {
-        case "--rebuild": rebuild = true; break;
-        case "--no-build": build = false; break;
-        case "--no-web": serveWeb = false; openPage = false; break;
-        case "--bots": bots = options.Number("--bots"); break;
-        case "--cheaters": cheaters = options.Number("--cheaters"); break;
-        case "--port": port = options.Number("--port"); break;
-        case "--lan": lan = true; break;
-        case "--no-open": openPage = false; break;
-        case "--net": net = options.Value("--net"); break;
-        case "--bots-net": botsNet = options.Value("--bots-net"); break;
-        case "--bots-chat": botsChat = true; break;
-        case "--no-watch": watch = false; break;
-        case "--spawn": spawn = options.Value("--spawn"); break;
-        case "-h" or "--help": Tool.Usage(); break;
-        case var other: throw Tool.Fail($"Unknown option {other} (see --help)", 2);
+        case "--rebuild":
+            rebuild = true;
+            break;
+        case "--no-build":
+            build = false;
+            break;
+        case "--no-web":
+            serveWeb = false;
+            openPage = false;
+            break;
+        case "--bots":
+            bots = options.Number("--bots");
+            break;
+        case "--cheaters":
+            cheaters = options.Number("--cheaters");
+            break;
+        case "--port":
+            port = options.Number("--port");
+            break;
+        case "--lan":
+            lan = true;
+            break;
+        case "--no-open":
+            openPage = false;
+            break;
+        case "--net":
+            net = options.Value("--net");
+            break;
+        case "--bots-net":
+            botsNet = options.Value("--bots-net");
+            break;
+        case "--bots-chat":
+            botsChat = true;
+            break;
+        case "--no-watch":
+            watch = false;
+            break;
+        case "--spawn":
+            spawn = options.Value("--spawn");
+            break;
+        case "-h" or "--help":
+            Tool.Usage();
+            break;
+        case var other:
+            throw Tool.Fail($"Unknown option {other} (see --help)", 2);
     }
 }
 
@@ -109,9 +149,11 @@ if (serveWeb && build && (rebuild || Stale()))
     File.WriteAllText(marker, "");
     var code = Tool.RunTool("unity-batch", "-l", "Logs/web.log", "build", "Web", web);
     File.Delete(marker);
-    if (code != 0) throw Tool.Fail("The Unity web build failed.");
+    if (code != 0)
+        throw Tool.Fail("The Unity web build failed.");
     // Marks the build as up to date, but only a build that made its page.
-    if (!File.Exists(page)) throw Tool.Fail($"The Unity build made no page at {page} (log: {project}/Logs/web.log)");
+    if (!File.Exists(page))
+        throw Tool.Fail($"The Unity build made no page at {page} (log: {project}/Logs/web.log)");
     File.SetLastWriteTimeUtc(page, DateTime.UtcNow);
 }
 else if (serveWeb && !File.Exists(page))
@@ -137,8 +179,10 @@ var loginUrl = $"http://localhost:{loginPort}";
 if (Tool.Answers($"{loginUrl}/", success: false))
     throw Tool.Fail($"Something is already using port {loginPort}, the Login server's (the game server's + 10); stop it or use --port.");
 if (Tool.Answers($"{url}health"))
-    throw Tool.Fail($"A game server is already running on port {port}: another run of this tool, or the Unity editor's\n" +
-        "(stop that one with Comet › Server › Stop). Stop it or use --port.");
+    throw Tool.Fail(
+        $"A game server is already running on port {port}: another run of this tool, or the Unity editor's\n"
+            + "(stop that one with Comet › Server › Stop). Stop it or use --port."
+    );
 if (Tool.Answers(url, success: false))
     throw Tool.Fail($"Something else is already using port {port}; stop it or use --port.");
 
@@ -146,17 +190,24 @@ if (Tool.Answers(url, success: false))
 var host = lan ? "0.0.0.0" : "localhost";
 var publicHost = lan ? LocalAddress() ?? "localhost" : "localhost";
 
-Process? server = null, login = null, botsProcess = null;
+Process? server = null,
+    login = null,
+    botsProcess = null;
 Tool.OnStop(StopServers);
 StartServers();
 
-Console.WriteLine(serveWeb
-    ? $"== Playing at {url} (Ctrl+C stops){(spawn != "" ? $", starting at {spawn}" : "")}{(net != null ? $", network profile {net}" : "")}"
-    : $"== Server at localhost:{port}, for the editor's play mode (Ctrl+C stops){(spawn != "" ? $", starting at {spawn}" : "")}{(net != null ? $", network profile {net}" : "")}");
+Console.WriteLine(
+    serveWeb
+        ? $"== Playing at {url} (Ctrl+C stops){(spawn != "" ? $", starting at {spawn}" : "")}{(net != null ? $", network profile {net}" : "")}"
+        : $"== Server at localhost:{port}, for the editor's play mode (Ctrl+C stops){(spawn != "" ? $", starting at {spawn}" : "")}{(net != null ? $", network profile {net}" : "")}"
+);
 Console.WriteLine($"   Login server at {loginUrl}, database {database}");
-if (lan) Console.WriteLine($"   Other devices: http://{publicHost}:{port}/");
-if (watch) Console.WriteLine("   Watching shapeland/content/: saving a change there rebuilds the content and restarts the server.");
-if (openPage) Tool.OpenInBrowser(url);
+if (lan)
+    Console.WriteLine($"   Other devices: http://{publicHost}:{port}/");
+if (watch)
+    Console.WriteLine("   Watching shapeland/content/: saving a change there rebuilds the content and restarts the server.");
+if (openPage)
+    Tool.OpenInBrowser(url);
 
 if (!watch)
 {
@@ -169,7 +220,8 @@ if (!watch)
 while (!server!.HasExited)
 {
     Thread.Sleep(1000);
-    if (!ContentChangedSince(contentChecked)) continue;
+    if (!ContentChangedSince(contentChecked))
+        continue;
     Thread.Sleep(500); // let an editor finish saving several files
     contentChecked = DateTime.UtcNow; // changes from here on start another round
     Console.WriteLine("== Content changed; rebuilding");
@@ -182,9 +234,11 @@ while (!server!.HasExited)
     Console.WriteLine("== Restarting the Login and game servers");
     StopServers();
     StartServers();
-    Console.WriteLine(serveWeb
-        ? "== Restarted with the new content. Browsers reload and rejoin by themselves."
-        : "== Restarted with the new content. Restart play mode to play with it.");
+    Console.WriteLine(
+        serveWeb
+            ? "== Restarted with the new content. Browsers reload and rejoin by themselves."
+            : "== Restarted with the new content. Restart play mode to play with it."
+    );
 }
 throw Tool.Fail("The game server stopped.");
 
@@ -199,20 +253,29 @@ bool TryBuildContent() =>
 
 void BuildContent()
 {
-    if (!TryBuildContent()) throw Tool.Fail("The content build failed.");
+    if (!TryBuildContent())
+        throw Tool.Fail("The content build failed.");
 }
 
 // The Unity build is up to date when no file it's made from is newer than its page.
 bool Stale()
 {
-    if (!File.Exists(page)) return true;
+    if (!File.Exists(page))
+        return true;
     var built = File.GetLastWriteTimeUtc(page);
-    string[] sources = [Path.Combine(project, "Assets"), Path.Combine(project, "Packages"), Path.Combine(project, "ProjectSettings"),
+    string[] sources =
+    [
+        Path.Combine(project, "Assets"),
+        Path.Combine(project, "Packages"),
+        Path.Combine(project, "ProjectSettings"),
         .. new[] { "Comet.Client", "Comet.Content", "Comet.Protocol", "Comet.Simulation" }.Select(p => Path.Combine(Tool.Repo, "comet", "src", p)),
-        Path.Combine(Tool.Repo, "comet", "unity"), Path.Combine(Tool.Repo, "shapeland", "src", "ShapeLand.Shared"),
-        Path.Combine(Tool.Repo, "shapeland", "content", "strings")];
+        Path.Combine(Tool.Repo, "comet", "unity"),
+        Path.Combine(Tool.Repo, "shapeland", "src", "ShapeLand.Shared"),
+        Path.Combine(Tool.Repo, "shapeland", "content", "strings"),
+    ];
     var streaming = Path.DirectorySeparatorChar + "StreamingAssets" + Path.DirectorySeparatorChar;
-    return sources.Where(Directory.Exists)
+    return sources
+        .Where(Directory.Exists)
         .SelectMany(d => Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories))
         .Any(f => !f.EndsWith(".meta") && !f.Contains(streaming) && File.GetLastWriteTimeUtc(f) > built);
 }
@@ -222,16 +285,22 @@ bool ContentChangedSince(DateTime time)
     var folder = Path.Combine(Tool.Repo, "shapeland", "content");
     try
     {
-        return Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.AllDirectories).Append(folder)
+        return Directory
+            .EnumerateFileSystemEntries(folder, "*", SearchOption.AllDirectories)
+            .Append(folder)
             .Any(p => File.GetLastWriteTimeUtc(p) > time);
     }
-    catch (IOException) { return false; } // something changed while looking; the next round sees it
+    catch (IOException)
+    {
+        return false;
+    } // something changed while looking; the next round sees it
 }
 
 // Content changes need no Unity build: the page loads it from StreamingAssets.
 void CopyContent()
 {
-    if (webRoot == null) return;
+    if (webRoot == null)
+        return;
     var copy = Path.Combine(webRoot, "StreamingAssets", "content.bin");
     Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
     if (!File.Exists(copy) || !File.ReadAllBytes(copy).AsSpan().SequenceEqual(File.ReadAllBytes(content)))
@@ -248,7 +317,10 @@ static string? LocalAddress()
         socket.Connect("1.1.1.1", 53);
         return (socket.LocalEndPoint as IPEndPoint)?.Address.ToString();
     }
-    catch (SocketException) { return null; }
+    catch (SocketException)
+    {
+        return null;
+    }
 }
 
 void StartServers()
@@ -279,32 +351,67 @@ void StartServers()
     else
     {
         // Accounts first: it migrates the database and makes the development ticket keys the game server reads.
-        login = Tool.Start(Tool.Info("dotnet", [Path.Combine(bin, "ShapeLand.LoginServer", "debug", "ShapeLand.LoginServer.dll"),
-            "--urls", $"http://{host}:{loginPort}", $"--Login:ConnectionString={connection}",
-            $"--Login:AllowedOrigins:0=http://localhost:{port}", $"--Login:AllowedOrigins:1=http://{publicHost}:{port}",
-            "--Login:RateLimits:ExemptAddresses:0=127.0.0.1", "--Login:RateLimits:ExemptAddresses:1=::1",
-            $"--ShapeLand:GameServer:Address=ws://{publicHost}:{port}/ws"]));
+        login = Tool.Start(
+            Tool.Info(
+                "dotnet",
+                [
+                    Path.Combine(bin, "ShapeLand.LoginServer", "debug", "ShapeLand.LoginServer.dll"),
+                    "--urls",
+                    $"http://{host}:{loginPort}",
+                    $"--Login:ConnectionString={connection}",
+                    $"--Login:AllowedOrigins:0=http://localhost:{port}",
+                    $"--Login:AllowedOrigins:1=http://{publicHost}:{port}",
+                    "--Login:RateLimits:ExemptAddresses:0=127.0.0.1",
+                    "--Login:RateLimits:ExemptAddresses:1=::1",
+                    $"--ShapeLand:GameServer:Address=ws://{publicHost}:{port}/ws",
+                ]
+            )
+        );
         if (!Tool.WaitFor(() => login.HasExited || Tool.Answers($"{loginUrl}/api/health"), 60, TimeSpan.FromMilliseconds(500)) || login.HasExited)
             throw Tool.Fail("The Login server stopped.");
 
         // The built programs run directly: stopping `dotnet run` can leave the program it started running.
-        server = Tool.Start(Tool.Info("dotnet", [Path.Combine(bin, "ShapeLand.GameServer", "debug", "ShapeLand.GameServer.dll"),
-            "--urls", $"http://{host}:{port}", $"--ShapeLand:WebRoot={webRoot ?? ""}", $"--ShapeLand:StartSpawn={spawn}",
-            $"--ShapeLand:ConnectionString={connection}", $"--ShapeLand:LoginUrl=http://{publicHost}:{loginPort}",
-            "--Comet:Connections:MaxConnectionsPerAddress=1000"])); // the bots all come from this machine
+        server = Tool.Start(
+            Tool.Info(
+                "dotnet",
+                [
+                    Path.Combine(bin, "ShapeLand.GameServer", "debug", "ShapeLand.GameServer.dll"),
+                    "--urls",
+                    $"http://{host}:{port}",
+                    $"--ShapeLand:WebRoot={webRoot ?? ""}",
+                    $"--ShapeLand:StartSpawn={spawn}",
+                    $"--ShapeLand:ConnectionString={connection}",
+                    $"--ShapeLand:LoginUrl=http://{publicHost}:{loginPort}",
+                    "--Comet:Connections:MaxConnectionsPerAddress=1000",
+                ]
+            )
+        ); // the bots all come from this machine
     }
 
     // Answering, and still running (so it's this server, not one that started meanwhile).
     Tool.WaitFor(() => server.HasExited || Tool.Answers($"{url}health"), 60, TimeSpan.FromMilliseconds(500));
-    if (server.HasExited) throw Tool.Fail("The game server stopped.");
-    if (!Tool.Answers($"{url}health")) throw Tool.Fail($"The game server didn't start at {url}.");
+    if (server.HasExited)
+        throw Tool.Fail("The game server stopped.");
+    if (!Tool.Answers($"{url}health"))
+        throw Tool.Fail($"The game server didn't start at {url}.");
 
     if (bots + cheaters > 0 && net != null)
         Tool.Quietly(Tool.Info("docker", [.. composeFile, "--profile", "bots", "up", "-d", "bots"], env: compose));
     else if (bots + cheaters > 0)
     {
-        var info = Tool.Info("dotnet", [Path.Combine(bin, "ShapeLand.Bots", "debug", "ShapeLand.Bots.dll"),
-            "--login", loginUrl, "--count", bots.ToString(), "--cheaters", cheaters.ToString(), .. botsChat ? new[] { "--chat" } : []]);
+        var info = Tool.Info(
+            "dotnet",
+            [
+                Path.Combine(bin, "ShapeLand.Bots", "debug", "ShapeLand.Bots.dll"),
+                "--login",
+                loginUrl,
+                "--count",
+                bots.ToString(),
+                "--cheaters",
+                cheaters.ToString(),
+                .. botsChat ? new[] { "--chat" } : [],
+            ]
+        );
         info.RedirectStandardOutput = true;
         botsProcess = Tool.Start(info);
         botsProcess.OutputDataReceived += (_, _) => { };
@@ -317,6 +424,7 @@ void StopServers()
     if (net != null)
         Tool.Capture(Tool.Info("docker", [.. composeFile, "--profile", "bots", "down", "-t", "2"], env: compose), withErrors: true);
     foreach (var process in new[] { botsProcess, server, login })
-        if (process != null) Tool.Stop(process);
+        if (process != null)
+            Tool.Stop(process);
     (server, login, botsProcess) = (null, null, null);
 }

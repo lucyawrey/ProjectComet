@@ -11,10 +11,15 @@ namespace ShapeLand.Client
     /// </summary>
     public sealed class ShapePreview : MonoBehaviour
     {
-        [SerializeField] private Camera previewCamera;
-        [SerializeField] private float degreesPerSecond = 40;
+        [SerializeField]
+        private Camera previewCamera;
+
+        [SerializeField]
+        private float degreesPerSecond = 40;
+
         [Tooltip("The render texture's size in pixels.")]
-        [SerializeField] private int textureSize = 256;
+        [SerializeField]
+        private int textureSize = 256;
 
         private RenderTexture _texture;
         private ShapeBody _shape;

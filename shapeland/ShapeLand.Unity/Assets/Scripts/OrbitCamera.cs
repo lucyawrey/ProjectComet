@@ -13,28 +13,36 @@ namespace ShapeLand.Client
     public sealed class OrbitCamera : MonoBehaviour
     {
         [Tooltip("The point looked at, above the target's feet, in meters.")]
-        [SerializeField] private float lookHeight = 0.8f;
+        [SerializeField]
+        private float lookHeight = 0.8f;
 
         [Tooltip("Distance from the look point, in meters.")]
-        [SerializeField] private float distance = 6f;
+        [SerializeField]
+        private float distance = 6f;
 
         [Tooltip("Degrees turned per pixel of mouse movement.")]
-        [SerializeField] private float mouseDegreesPerPixel = 0.2f;
+        [SerializeField]
+        private float mouseDegreesPerPixel = 0.2f;
 
         [Tooltip("Degrees per second at full stick.")]
-        [SerializeField] private Vector2 stickDegreesPerSecond = new Vector2(180, 120);
+        [SerializeField]
+        private Vector2 stickDegreesPerSecond = new Vector2(180, 120);
 
         [Tooltip("Lowest and highest pitch, in degrees (positive looks down).")]
-        [SerializeField] private Vector2 pitchLimits = new Vector2(-10, 70);
+        [SerializeField]
+        private Vector2 pitchLimits = new Vector2(-10, 70);
 
         [Tooltip("The least height kept above the ground, in meters.")]
-        [SerializeField] private float groundClearance = 0.3f;
+        [SerializeField]
+        private float groundClearance = 0.3f;
 
         [Tooltip("Before joining: distance, pitch and turning speed (degrees per second) of the slow orbit around the island.")]
-        [SerializeField] private Vector3 showcase = new Vector3(30, 25, 6);
+        [SerializeField]
+        private Vector3 showcase = new Vector3(30, 25, 6);
 
         [Tooltip("Before joining: about how long the orbit takes to glide to another shape's spawn in the same zone, in seconds.")]
-        [SerializeField] private float showcaseGlideSeconds = 0.4f;
+        [SerializeField]
+        private float showcaseGlideSeconds = 0.4f;
 
         private float _pitch = 20;
         private ShapeLandControls _controls;
@@ -109,7 +117,14 @@ namespace ShapeLand.Client
                 {
                     Yaw = Mathf.Repeat(Yaw + showcase.z * Time.unscaledDeltaTime, 360);
                     var orbit = Quaternion.Euler(showcase.y, Yaw, 0);
-                    _shownCenter = Vector3.SmoothDamp(_shownCenter, center, ref _glideVelocity, showcaseGlideSeconds, Mathf.Infinity, Time.unscaledDeltaTime);
+                    _shownCenter = Vector3.SmoothDamp(
+                        _shownCenter,
+                        center,
+                        ref _glideVelocity,
+                        showcaseGlideSeconds,
+                        Mathf.Infinity,
+                        Time.unscaledDeltaTime
+                    );
                     var middle = _shownCenter + Vector3.up * 2;
                     transform.SetPositionAndRotation(middle - orbit * Vector3.forward * showcase.x, orbit);
                 }
@@ -138,7 +153,11 @@ namespace ShapeLand.Client
 
             var look = followed + Vector3.up * lookHeight;
             var position = look + rotation * Vector3.back * distance;
-            if (_world != null && _world.TryGetTerrainHeight(position.x, position.z, position.y + 1000, out var ground) && position.y < ground + groundClearance)
+            if (
+                _world != null
+                && _world.TryGetTerrainHeight(position.x, position.z, position.y + 1000, out var ground)
+                && position.y < ground + groundClearance
+            )
             {
                 position.y = ground + groundClearance;
                 rotation = Quaternion.LookRotation(look - position);

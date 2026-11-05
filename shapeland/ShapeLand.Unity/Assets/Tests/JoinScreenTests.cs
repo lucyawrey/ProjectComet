@@ -19,10 +19,12 @@ namespace ShapeLand.Client.Tests
         public IEnumerator WithoutAccountsTheCardComesBackAsTheLastPersonNotABot()
         {
             var file = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"shapeland-dev-{System.Guid.NewGuid():N}.json");
-            System.IO.File.WriteAllText(file,
-                "{\"Characters\":[{\"Id\":1,\"AccountId\":1,\"Name\":\"Ada\",\"Shape\":1,\"Color\":1,\"EyeColor\":1,\"IsDeleted\":false}," +
-                "{\"Id\":2,\"AccountId\":2,\"Name\":\"Bot0001\",\"Shape\":1,\"Color\":1,\"EyeColor\":1,\"IsDeleted\":false}]," +
-                "\"Statuses\":[{\"CharacterId\":1,\"UpdatedAt\":\"2026-11-04T10:00:00Z\"},{\"CharacterId\":2,\"UpdatedAt\":\"2026-11-04T11:00:00Z\"}]}");
+            System.IO.File.WriteAllText(
+                file,
+                "{\"Characters\":[{\"Id\":1,\"AccountId\":1,\"Name\":\"Ada\",\"Shape\":1,\"Color\":1,\"EyeColor\":1,\"IsDeleted\":false},"
+                    + "{\"Id\":2,\"AccountId\":2,\"Name\":\"Bot0001\",\"Shape\":1,\"Color\":1,\"EyeColor\":1,\"IsDeleted\":false}],"
+                    + "\"Statuses\":[{\"CharacterId\":1,\"UpdatedAt\":\"2026-11-04T10:00:00Z\"},{\"CharacterId\":2,\"UpdatedAt\":\"2026-11-04T11:00:00Z\"}]}"
+            );
             var autoJoin = GameSettings.AutoJoin;
             GameSettings.AutoJoin = false;
             try
@@ -92,7 +94,11 @@ namespace ShapeLand.Client.Tests
             yield return null;
             var screen = Hud.Root.panel.visualTree.worldBound;
             Assert.That(Hud.Root.worldBound.height, Is.EqualTo(screen.height).Within(1), "The overlay doesn't fill the screen.");
-            Assert.That(Hud.Root.Q("chat").worldBound.yMax, Is.LessThanOrEqualTo(screen.yMax).And.GreaterThan(screen.height / 2), "The chat box isn't in the lower part of the screen.");
+            Assert.That(
+                Hud.Root.Q("chat").worldBound.yMax,
+                Is.LessThanOrEqualTo(screen.yMax).And.GreaterThan(screen.height / 2),
+                "The chat box isn't in the lower part of the screen."
+            );
         }
 
         [UnityTest]
@@ -133,7 +139,11 @@ namespace ShapeLand.Client.Tests
             yield return TestGameServer.WaitFor(() => Screen.Showing, 10);
             Assert.That(Field("name").value, Is.Empty, "The card kept the last player's name.");
             Assert.That(ShapeButton(Join.Content.Shapes.All[0].Id).ClassListContains("on"), Is.True, "The card kept the last player's shape.");
-            Assert.That(Swatch("colors", Join.Content.Colors.All[0].Number).ClassListContains("on"), Is.True, "The card kept the last player's color.");
+            Assert.That(
+                Swatch("colors", Join.Content.Colors.All[0].Number).ClassListContains("on"),
+                Is.True,
+                "The card kept the last player's color."
+            );
         }
 
         // Without accounts, as the editor's server restarting for new content: back in as the same name.
@@ -232,7 +242,11 @@ namespace ShapeLand.Client.Tests
             Hud.OpenLook();
             yield return LaidOut("cancel-button");
             Assert.That(Screen.Changing, Is.True);
-            Assert.That(Screen.Root.Q("name-row").ClassListContains("hidden"), Is.True, "Change Shape still has the name row (renaming is on the Account page).");
+            Assert.That(
+                Screen.Root.Q("name-row").ClassListContains("hidden"),
+                Is.True,
+                "Change Shape still has the name row (renaming is on the Account page)."
+            );
             Assert.That(player.InputEnabled, Is.False, "The shape can still move while choosing a look.");
             Click(Screen.Root.Q<Button>("cancel-button"));
             yield return null;

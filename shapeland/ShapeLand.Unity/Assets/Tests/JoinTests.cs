@@ -87,12 +87,15 @@ namespace ShapeLand.Client.Tests
         private void Join(JoinClient join)
         {
             join.UseLoginServer(_server.Address);
-            _ = join.CreateGuestAsync("UnityTest", new NewCharacter
-            {
-                Shape = join.Content.Shapes.All[0].Number,
-                Color = join.Content.Colors.All[0].Number,
-                EyeColor = join.Content.Colors.All[0].Number,
-            });
+            _ = join.CreateGuestAsync(
+                "UnityTest",
+                new NewCharacter
+                {
+                    Shape = join.Content.Shapes.All[0].Number,
+                    Color = join.Content.Colors.All[0].Number,
+                    EyeColor = join.Content.Colors.All[0].Number,
+                }
+            );
         }
 
         private static IEnumerator WaitForJoin(JoinClient join)

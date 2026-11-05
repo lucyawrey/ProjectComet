@@ -20,7 +20,9 @@ namespace Comet.Unity
         [Tooltip("The prop's id (prop.rock); empty for a primitive or a group copy.")]
         public string prop = "";
 
-        [Tooltip("The group this is a copy of (group.tree); empty for a prop or a primitive. Copies look like their group: edit the group to change them all.")]
+        [Tooltip(
+            "The group this is a copy of (group.tree); empty for a prop or a primitive. Copies look like their group: edit the group to change them all."
+        )]
         public string group = "";
 
         [Tooltip("Whether this places a primitive, built in code, instead of a prop.")]
@@ -32,7 +34,9 @@ namespace Comet.Unity
         [Tooltip("Blockout: a stand-in for finished geometry, drawn in a dev look and reported by the content build.")]
         public bool blockout;
 
-        [Tooltip("A group part's role (body, leaves), for game code to find or color it by, and for copies to recolor it by; empty for most. Only a group's parts have one.")]
+        [Tooltip(
+            "A group part's role (body, leaves), for game code to find or color it by, and for copies to recolor it by; empty for most. Only a group's parts have one."
+        )]
         public string role = "";
 
         [Tooltip("The primitive's kind.")]
@@ -42,25 +46,34 @@ namespace Comet.Unity
         public Vector3 size = Vector3.one;
 
         [Tooltip("A round primitive's sides, or 0 to take them from the polygon budget.")]
-        [Min(0)] public int sides;
+        [Min(0)]
+        public int sides;
 
         [Tooltip("How far a box's edges are cut back, in meters.")]
-        [Min(0)] public float bevel;
+        [Min(0)]
+        public float bevel;
 
         [Tooltip("A stairway's steps, or 0 for steps about 0.25 m high.")]
-        [Min(0)] public int steps;
+        [Min(0)]
+        public int steps;
 
         [Tooltip("A doorway's opening, width and height in meters.")]
         public Vector2 opening;
 
         [Tooltip("An arch's thickness: how wide its legs and band are, in meters.")]
-        [Min(0)] public float thickness;
+        [Min(0)]
+        public float thickness;
 
         // Drawn by the editor's inspector as one color field with a reset button: editing it gives the placement its
         // own color, resetting goes back to the default (its prop's, else the game's).
-        [HideInInspector] public bool ownColor;
-        [HideInInspector] public Color color = Color.gray;
-        [SerializeField, HideInInspector] private Color defaultColor = Color.gray;
+        [HideInInspector]
+        public bool ownColor;
+
+        [HideInInspector]
+        public Color color = Color.gray;
+
+        [SerializeField, HideInInspector]
+        private Color defaultColor = Color.gray;
 
         /// <summary>A role a group copy recolors, and its color.</summary>
         [System.Serializable]
@@ -71,7 +84,8 @@ namespace Comet.Unity
         }
 
         // A group copy's colors by role, drawn by the editor's inspector: its parts with these roles take them.
-        [HideInInspector] public List<RoleColor> roleColors = new List<RoleColor>();
+        [HideInInspector]
+        public List<RoleColor> roleColors = new List<RoleColor>();
 
         /// <summary>How finely round primitives are cut while editing: the game's, set by the editor (Comet › Zones › Polygon Budget).</summary>
         public static PolygonBudget Budget { get; set; } = new PolygonBudget();
@@ -86,7 +100,8 @@ namespace Comet.Unity
         public bool IsGroup => !string.IsNullOrEmpty(group);
 
         // Set while a copy's group is edited in place: its parts are then real placements under it, not a preview.
-        [SerializeField, HideInInspector] private bool editingInPlace;
+        [SerializeField, HideInInspector]
+        private bool editingInPlace;
 
         /// <summary>Whether this copy's group is being edited in place (its parts are placements under it).</summary>
         public bool EditingInPlace
@@ -103,13 +118,19 @@ namespace Comet.Unity
         public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>(true) == null;
 
         /// <summary>The primitive placed, or null for a prop.</summary>
-        public Primitive? Primitive => isPrimitive
-            ? new Primitive
-            {
-                Kind = kind, Sides = sides > 0 ? sides : (int?)null, Bevel = bevel, Steps = steps,
-                OpeningWidth = opening.x, OpeningHeight = opening.y, Thickness = thickness,
-            }
-            : null;
+        public Primitive? Primitive =>
+            isPrimitive
+                ? new Primitive
+                {
+                    Kind = kind,
+                    Sides = sides > 0 ? sides : (int?)null,
+                    Bevel = bevel,
+                    Steps = steps,
+                    OpeningWidth = opening.x,
+                    OpeningHeight = opening.y,
+                    Thickness = thickness,
+                }
+                : null;
 
         // The mesh shown while a resize is dragged: refilled at each size rather than cached, then dropped.
         private Mesh? _dragMesh;
@@ -128,7 +149,11 @@ namespace Comet.Unity
             }
 
             var builder = new PrimitiveMeshes.Builder();
-            builder.Add(Comet.Simulation.PrimitiveMesher.Build(Primitive!, new System.Numerics.Vector3(size.x, size.y, size.z), Budget), System.Numerics.Matrix4x4.Identity, 0xFFFFFF);
+            builder.Add(
+                Comet.Simulation.PrimitiveMesher.Build(Primitive!, new System.Numerics.Vector3(size.x, size.y, size.z), Budget),
+                System.Numerics.Matrix4x4.Identity,
+                0xFFFFFF
+            );
             _dragMesh.Clear();
             builder.Fill(_dragMesh);
             filter.sharedMesh = _dragMesh;
@@ -142,7 +167,10 @@ namespace Comet.Unity
                 return;
             }
 
-            var mesh = PrimitiveMeshes.For(new Placement { Primitive = Primitive, Scale = new System.Numerics.Vector3(size.x, size.y, size.z) }, Budget);
+            var mesh = PrimitiveMeshes.For(
+                new Placement { Primitive = Primitive, Scale = new System.Numerics.Vector3(size.x, size.y, size.z) },
+                Budget
+            );
             if (TryGetComponent<MeshFilter>(out var filter))
             {
                 filter.sharedMesh = mesh;
@@ -198,7 +226,10 @@ namespace Comet.Unity
             {
                 foreach (var renderer in GetComponentsInChildren<Renderer>(true))
                 {
-                    if (!renderer.name.EndsWith(Comet.Content.Prop.CollisionSuffix, System.StringComparison.Ordinal) && renderer.sharedMaterial != material)
+                    if (
+                        !renderer.name.EndsWith(Comet.Content.Prop.CollisionSuffix, System.StringComparison.Ordinal)
+                        && renderer.sharedMaterial != material
+                    )
                     {
                         renderer.sharedMaterial = material;
                     }

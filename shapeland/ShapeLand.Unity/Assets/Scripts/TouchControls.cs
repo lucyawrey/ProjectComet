@@ -31,6 +31,7 @@ namespace ShapeLand.Client
         private readonly VisualElement _jump;
         private readonly VisualElement _hud;
         private readonly OrbitCamera _camera;
+
         // The virtual gamepad the stick and Jump drive, added once touch controls can appear (so a desktop never has one).
         private Gamepad _pad;
         private GamepadState _state;
@@ -194,8 +195,13 @@ namespace ShapeLand.Client
             {
                 // Like the right mouse button's drag: up turns the camera as a mouse moved up does.
                 var delta = (Vector2)e.deltaPosition;
-                _camera.Turn(DragTurn(new Vector2(delta.x, -delta.y), _layer.resolvedStyle.height,
-                    DegreesPerScreenHeight * GameSettings.CameraSpeed(InputKind.Touch)));
+                _camera.Turn(
+                    DragTurn(
+                        new Vector2(delta.x, -delta.y),
+                        _layer.resolvedStyle.height,
+                        DegreesPerScreenHeight * GameSettings.CameraSpeed(InputKind.Touch)
+                    )
+                );
             }
         }
 
@@ -264,11 +270,20 @@ namespace ShapeLand.Client
         {
             foreach (var gamepad in Gamepad.all)
             {
-                if (gamepad != _pad && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.buttonEast.wasPressedThisFrame
-                    || gamepad.startButton.wasPressedThisFrame || gamepad.selectButton.wasPressedThisFrame
-                    || gamepad.leftShoulder.wasPressedThisFrame || gamepad.rightShoulder.wasPressedThisFrame
-                    || gamepad.dpad.ReadValue().sqrMagnitude > 0.25f
-                    || gamepad.leftStick.ReadValue().sqrMagnitude > 0.25f || gamepad.rightStick.ReadValue().sqrMagnitude > 0.25f))
+                if (
+                    gamepad != _pad
+                    && (
+                        gamepad.buttonSouth.wasPressedThisFrame
+                        || gamepad.buttonEast.wasPressedThisFrame
+                        || gamepad.startButton.wasPressedThisFrame
+                        || gamepad.selectButton.wasPressedThisFrame
+                        || gamepad.leftShoulder.wasPressedThisFrame
+                        || gamepad.rightShoulder.wasPressedThisFrame
+                        || gamepad.dpad.ReadValue().sqrMagnitude > 0.25f
+                        || gamepad.leftStick.ReadValue().sqrMagnitude > 0.25f
+                        || gamepad.rightStick.ReadValue().sqrMagnitude > 0.25f
+                    )
+                )
                 {
                     return true;
                 }

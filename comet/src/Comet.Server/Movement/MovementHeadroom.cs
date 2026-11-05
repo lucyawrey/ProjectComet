@@ -29,8 +29,7 @@ public sealed class MovementHeadroom
     /// The banked movement, in seconds at <c>factor</c> × max speed, that this player's reports needed so far with that
     /// speed factor (<see cref="MovementTolerances.MaxBurstSeconds"/>); 0 if they never moved faster than it allows.
     /// </summary>
-    public float BurstSecondsNeeded(int factorIndex) =>
-        _maxSpeed[factorIndex] > 0 ? _maxDeficit[factorIndex] / _maxSpeed[factorIndex] : 0;
+    public float BurstSecondsNeeded(int factorIndex) => _maxSpeed[factorIndex] > 0 ? _maxDeficit[factorIndex] / _maxSpeed[factorIndex] : 0;
 
     /// <summary>Records one accepted move: <paramref name="distance"/> meters in <paramref name="elapsedSeconds"/>, against <paramref name="maxSpeed"/>.</summary>
     internal void AddMove(float distance, float elapsedSeconds, float maxSpeed)

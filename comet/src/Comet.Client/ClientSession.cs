@@ -71,8 +71,14 @@ namespace Comet.Client
         /// <param name="teleportSpeed">Other entities moving faster than this jump instead of gliding (see <see cref="RemoteEntities"/>).</param>
         /// <param name="gravity">For dead-reckoning other entities in the air (<see cref="RemoteEntities"/>).</param>
         /// <param name="groundHeight">The highest ground under a position at or below it, so dead reckoning never goes below it.</param>
-        public ClientSession(IClientTransport transport, MessagePackSerializerOptions options, double pingInterval = 1, float teleportSpeed = float.PositiveInfinity,
-            float gravity = 0, Func<Vector3, float?>? groundHeight = null)
+        public ClientSession(
+            IClientTransport transport,
+            MessagePackSerializerOptions options,
+            double pingInterval = 1,
+            float teleportSpeed = float.PositiveInfinity,
+            float gravity = 0,
+            Func<Vector3, float?>? groundHeight = null
+        )
         {
             _gravity = gravity;
             _groundHeight = groundHeight;
@@ -239,17 +245,21 @@ namespace Comet.Client
         }
 
         /// <summary>Queues a report of the player's own position, echoing the last correction.</summary>
-        public void ReportPosition(Vector3 position, Vector3 velocity, float facing) => _messages.Write(MessageIds.PositionReport, new PositionReport
-        {
-            X = position.X,
-            Y = position.Y,
-            Z = position.Z,
-            VelocityX = velocity.X,
-            VelocityY = velocity.Y,
-            VelocityZ = velocity.Z,
-            Facing = facing,
-            CorrectionSequence = CorrectionSequence,
-        });
+        public void ReportPosition(Vector3 position, Vector3 velocity, float facing) =>
+            _messages.Write(
+                MessageIds.PositionReport,
+                new PositionReport
+                {
+                    X = position.X,
+                    Y = position.Y,
+                    Z = position.Z,
+                    VelocityX = velocity.X,
+                    VelocityY = velocity.Y,
+                    VelocityZ = velocity.Z,
+                    Facing = facing,
+                    CorrectionSequence = CorrectionSequence,
+                }
+            );
 
         /// <summary>
         /// Sends the queued messages in one frame, if there are any, stamped with the tick of a report queued with
@@ -288,7 +298,10 @@ namespace Comet.Client
                         EntityId = welcome.EntityId;
                         _clock = new ServerClock(welcome.TickRate);
                         _clock.OnFrame(tick, now);
-                        _entities = new RemoteEntities(welcome.TickRate, teleportSpeed: _teleportSpeed, gravity: _gravity) { GroundHeight = _groundHeight };
+                        _entities = new RemoteEntities(welcome.TickRate, teleportSpeed: _teleportSpeed, gravity: _gravity)
+                        {
+                            GroundHeight = _groundHeight,
+                        };
                         _delay = new InterpolationDelay(welcome.TickRate);
                         _nextPing = now;
                         WelcomeArrived?.Invoke(welcome);
@@ -306,7 +319,13 @@ namespace Comet.Client
                     case MessageIds.EntityState:
                         var state = FrameReader.Decode<EntityState>(payload, _options);
                         StatesReceived++;
-                        var previous = _entities?.AddState(state.EntityId, state.Tick, new Vector3(state.X, state.Y, state.Z), state.Facing, new Vector3(state.VelocityX, state.VelocityY, state.VelocityZ));
+                        var previous = _entities?.AddState(
+                            state.EntityId,
+                            state.Tick,
+                            new Vector3(state.X, state.Y, state.Z),
+                            state.Facing,
+                            new Vector3(state.VelocityX, state.VelocityY, state.VelocityZ)
+                        );
                         if (previous.HasValue && _clock!.Synced && !_catchingUp)
                         {
                             _delay!.AddSample(_clock.ReceiveTick(now) - previous.Value, now);

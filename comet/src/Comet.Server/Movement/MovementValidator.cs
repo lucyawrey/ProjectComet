@@ -204,8 +204,12 @@ public sealed class MovementValidator
     }
 
     private static bool IsFinite(in PositionReport report) =>
-        float.IsFinite(report.X) && float.IsFinite(report.Y) && float.IsFinite(report.Z)
-        && float.IsFinite(report.VelocityX) && float.IsFinite(report.VelocityY) && float.IsFinite(report.VelocityZ)
+        float.IsFinite(report.X)
+        && float.IsFinite(report.Y)
+        && float.IsFinite(report.Z)
+        && float.IsFinite(report.VelocityX)
+        && float.IsFinite(report.VelocityY)
+        && float.IsFinite(report.VelocityZ)
         && float.IsFinite(report.Facing);
 
     // Into [-π, π], so a huge facing can't make viewers' angle interpolation overflow.
@@ -234,7 +238,9 @@ public sealed class MovementValidator
     // Notes the ground under an accepted position, if it's standing on some; returns whether it is.
     private bool Land(Vector3 position, uint tick)
     {
-        var landed = _world.TryGetGround(position, _rules.BodyRadius, position.Y + _tolerances.HeightSlack, out var ground, 0, PassThrough) && position.Y - ground <= _tolerances.HeightSlack;
+        var landed =
+            _world.TryGetGround(position, _rules.BodyRadius, position.Y + _tolerances.HeightSlack, out var ground, 0, PassThrough)
+            && position.Y - ground <= _tolerances.HeightSlack;
         if (!landed && _world.IsWedged(position, _rules.BodyRadius, _rules.BodyHeight, PassThrough))
         {
             landed = true;
@@ -253,8 +259,7 @@ public sealed class MovementValidator
     }
 
     // Seconds since the last ground, less the takeoff slack: how far into a jump a moment at tick can be.
-    private float AirTime(uint tick) =>
-        MathF.Max(0, (tick > _groundTick ? tick - _groundTick : 0) / (float)_tickRate - _tolerances.AirTimeSlack);
+    private float AirTime(uint tick) => MathF.Max(0, (tick > _groundTick ? tick - _groundTick : 0) / (float)_tickRate - _tolerances.AirTimeSlack);
 
     /// <summary>
     /// How far above the last ground a player can be at <paramref name="tick"/>: a full jump (with the tolerances)
@@ -319,7 +324,9 @@ public sealed class MovementValidator
         PlayerMotor.Step(ref _fall, _fallMove, jump: false, 1f / _tickRate, maxSpeed, jumpVelocity, _world, _rules, PassThrough);
         Position = _fall.Position;
         Facing = _fall.Facing;
-        return Position.Y < _world.KillHeight ? FallResult.FellOut : _fall.Grounded ? FallResult.Landed : null;
+        return Position.Y < _world.KillHeight ? FallResult.FellOut
+            : _fall.Grounded ? FallResult.Landed
+            : null;
     }
 
     private FallResult Finish(FallResult result, uint tick)
@@ -341,22 +348,29 @@ public sealed class MovementValidator
     }
 
     /// <summary>The correction after a server fall lands: to where it landed, with the sequence it began.</summary>
-    public PositionCorrection Landing() => new()
-    {
-        Sequence = CorrectionSequence,
-        Reason = CorrectionReason.SnapBack,
-        X = Position.X,
-        Y = Position.Y,
-        Z = Position.Z,
-        Facing = Facing,
-    };
+    public PositionCorrection Landing() =>
+        new()
+        {
+            Sequence = CorrectionSequence,
+            Reason = CorrectionReason.SnapBack,
+            X = Position.X,
+            Y = Position.Y,
+            Z = Position.Z,
+            Facing = Facing,
+        };
 
     /// <summary>
     /// Moves the player somewhere new (a spawn point, a teleporter) and builds the correction that tells them, as
     /// <paramref name="reason"/>; with <paramref name="world"/>, into that world (another zone), passing through
     /// nothing yet. Later reports must echo its sequence.
     /// </summary>
-    public PositionCorrection Teleport(Vector3 position, float facing, uint tick, CorrectionReason reason = CorrectionReason.Respawn, CollisionWorld? world = null)
+    public PositionCorrection Teleport(
+        Vector3 position,
+        float facing,
+        uint tick,
+        CorrectionReason reason = CorrectionReason.Respawn,
+        CollisionWorld? world = null
+    )
     {
         if (world != null && world != _world)
         {

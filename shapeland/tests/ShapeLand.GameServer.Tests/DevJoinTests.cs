@@ -45,20 +45,23 @@ public sealed class DevJoinTests : IAsyncLifetime
     // A dev server on a free port with the tests' snapshot file; or, with devJoins off, one that needs accounts.
     private async Task<(WebApplication Server, Uri Url)> StartServer(bool devJoins = true)
     {
-        var server = ShapeLandServer.Build([], builder =>
-        {
-            builder.Configuration["ShapeLand:ContentFile"] = _contentFile;
-            builder.Configuration["Urls"] = "http://127.0.0.1:0";
-            if (devJoins)
+        var server = ShapeLandServer.Build(
+            [],
+            builder =>
             {
-                builder.Configuration["ShapeLand:DevJoins"] = "true";
-                builder.Configuration["ShapeLand:DevCharactersFile"] = _snapshot;
+                builder.Configuration["ShapeLand:ContentFile"] = _contentFile;
+                builder.Configuration["Urls"] = "http://127.0.0.1:0";
+                if (devJoins)
+                {
+                    builder.Configuration["ShapeLand:DevJoins"] = "true";
+                    builder.Configuration["ShapeLand:DevCharactersFile"] = _snapshot;
+                }
+                else
+                {
+                    TestServices.AddInMemoryCharacters(builder);
+                }
             }
-            else
-            {
-                TestServices.AddInMemoryCharacters(builder);
-            }
-        });
+        );
         await server.StartAsync(TestContext.Current.CancellationToken);
         return (server, new Uri(server.Urls.First().Replace("http://", "ws://") + "/ws"));
     }
@@ -69,11 +72,16 @@ public sealed class DevJoinTests : IAsyncLifetime
         await server.DisposeAsync();
     }
 
-    private DevJoinRequest JoinAs(string name, int shape = 0, bool bot = false) => new()
-    {
-        Name = name, Shape = _content.Shapes.All[shape].Number, Color = _content.Colors.All[0].Number,
-        EyeColor = _content.Colors.All[0].Number, ContentFingerprint = _content.Fingerprint, Bot = bot,
-    };
+    private DevJoinRequest JoinAs(string name, int shape = 0, bool bot = false) =>
+        new()
+        {
+            Name = name,
+            Shape = _content.Shapes.All[shape].Number,
+            Color = _content.Colors.All[0].Number,
+            EyeColor = _content.Colors.All[0].Number,
+            ContentFingerprint = _content.Fingerprint,
+            Bot = bot,
+        };
 
     private static async Task<PlayerSpawn> JoinAsync(RawClient client, Uri url, DevJoinRequest request)
     {
@@ -123,7 +131,10 @@ public sealed class DevJoinTests : IAsyncLifetime
             var back = await JoinAsync(again, url, JoinAs("ADA", shape: 0));
             Assert.Equal("Ada", back.Name);
             Assert.Equal(_content.Shapes.All[1].Number, back.Shape); // the saved look, not the card's
-            Assert.True(Vector3.Distance(left, new Vector3(back.X, back.Y, back.Z)) < 0.01f, $"left at {left}, back at ({back.X}, {back.Y}, {back.Z})");
+            Assert.True(
+                Vector3.Distance(left, new Vector3(back.X, back.Y, back.Z)) < 0.01f,
+                $"left at {left}, back at ({back.X}, {back.Y}, {back.Z})"
+            );
         }
         finally
         {
@@ -148,12 +159,25 @@ public sealed class DevJoinTests : IAsyncLifetime
             // holds the one character (still connected, so its hold stands).
             var answers = await Task.WhenAll(
                 first.NextOfAsync(ShapeLandMessageIds.PlayerSpawn, ShapeLandMessageIds.JoinRejected),
-                second.NextOfAsync(ShapeLandMessageIds.PlayerSpawn, ShapeLandMessageIds.JoinRejected));
+                second.NextOfAsync(ShapeLandMessageIds.PlayerSpawn, ShapeLandMessageIds.JoinRejected)
+            );
             var refusal = Assert.Single(answers, a => a.Id == ShapeLandMessageIds.JoinRejected);
             Assert.Single(answers, a => a.Id == ShapeLandMessageIds.PlayerSpawn);
             Assert.Equal(JoinRejection.NameOnline, FrameReader.Decode<JoinRejected>(refusal.Payload, ShapeLandProtocol.Options).Reason);
             var database = server.Services.GetRequiredService<DevCharacters>().Database;
-            var (id, made) = database.FindOrAdd("BEA", id => new() { Id = id, AccountId = 1, Name = "x", Shape = 0, Color = 0, EyeColor = 0 });
+            var (id, made) = database.FindOrAdd(
+                "BEA",
+                id =>
+                    new()
+                    {
+                        Id = id,
+                        AccountId = 1,
+                        Name = "x",
+                        Shape = 0,
+                        Color = 0,
+                        EyeColor = 0,
+                    }
+            );
             Assert.False(made);
             Assert.True(database.Owner(id) is { Held: true }, "Neither join holds the character.");
         }
@@ -201,7 +225,14 @@ public sealed class DevJoinTests : IAsyncLifetime
         using var stop = new CancellationTokenSource();
         try
         {
-            var bot = new Bot("Bot0001", 1, new BotSettings { ChatEverySeconds = 0 }, _content, new ZoneWorlds(_content), new DevBotAccount("Bot0001", url, _content, 1));
+            var bot = new Bot(
+                "Bot0001",
+                1,
+                new BotSettings { ChatEverySeconds = 0 },
+                _content,
+                new ZoneWorlds(_content),
+                new DevBotAccount("Bot0001", url, _content, 1)
+            );
             var running = bot.RunAsync(stop.Token);
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (!bot.Joined && !bot.Failed && bot.Rejected == null && DateTime.UtcNow < deadline)
@@ -242,11 +273,14 @@ public sealed class DevJoinTests : IAsyncLifetime
         await using var login = builder.Build();
         login.MapGet(LoginPaths.Me, () => Results.Json(new AccountResponse<CharacterView> { Username = "Bot0001" }));
         var ticketsAsked = 0;
-        login.MapPost(LoginPaths.Ticket, () =>
-        {
-            Interlocked.Increment(ref ticketsAsked);
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-        });
+        login.MapPost(
+            LoginPaths.Ticket,
+            () =>
+            {
+                Interlocked.Increment(ref ticketsAsked);
+                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+        );
         await login.StartAsync(TestContext.Current.CancellationToken);
         var tokens = Path.GetDirectoryName(_snapshot)!;
         Directory.CreateDirectory(tokens);
@@ -273,7 +307,14 @@ public sealed class DevJoinTests : IAsyncLifetime
         var (server, url) = await StartServer();
         try
         {
-            var bot = new Bot(" ", 1, new BotSettings { ChatEverySeconds = 0 }, _content, new ZoneWorlds(_content), new DevBotAccount(" ", url, _content, 1));
+            var bot = new Bot(
+                " ",
+                1,
+                new BotSettings { ChatEverySeconds = 0 },
+                _content,
+                new ZoneWorlds(_content),
+                new DevBotAccount(" ", url, _content, 1)
+            );
             var running = bot.RunAsync(TestContext.Current.CancellationToken);
 
             Assert.Same(running, await Task.WhenAny(running, Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken)));
@@ -326,7 +367,10 @@ public sealed class DevJoinTests : IAsyncLifetime
             using var again = new RawClient();
             var back = await JoinAsync(again, url, JoinAs("cyrus"));
             Assert.Equal("Cyrus", back.Name);
-            Assert.True(Vector3.Distance(left, new Vector3(back.X, back.Y, back.Z)) < 0.01f, $"left at {left}, back at ({back.X}, {back.Y}, {back.Z})");
+            Assert.True(
+                Vector3.Distance(left, new Vector3(back.X, back.Y, back.Z)) < 0.01f,
+                $"left at {left}, back at ({back.X}, {back.Y}, {back.Z})"
+            );
         }
         finally
         {

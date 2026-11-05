@@ -10,8 +10,7 @@ public class SnowflakeIdsTests
         private readonly Queue<DateTimeOffset> _times = new(times);
         private DateTimeOffset _last = times[^1];
 
-        public override DateTimeOffset GetUtcNow() =>
-            _times.Count > 0 ? _times.Dequeue() : _last = _last.AddMilliseconds(1);
+        public override DateTimeOffset GetUtcNow() => _times.Count > 0 ? _times.Dequeue() : _last = _last.AddMilliseconds(1);
     }
 
     private static readonly DateTimeOffset T = new(2026, 11, 1, 12, 0, 0, TimeSpan.Zero);

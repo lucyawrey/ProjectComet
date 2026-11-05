@@ -33,9 +33,18 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
     public async Task BadNamesAndCharactersAreRefused()
     {
         var client = _host.NewClient();
-        Assert.Equal(LoginErrors.InvalidName, await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "a b", character = new { look = 1 } })));
-        Assert.Equal(LoginErrors.InvalidName, await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "ab", character = new { look = 1 } })));
-        Assert.Equal(LoginErrors.InvalidCharacter, await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "Okay", character = new { look = 99 } })));
+        Assert.Equal(
+            LoginErrors.InvalidName,
+            await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "a b", character = new { look = 1 } }))
+        );
+        Assert.Equal(
+            LoginErrors.InvalidName,
+            await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "ab", character = new { look = 1 } }))
+        );
+        Assert.Equal(
+            LoginErrors.InvalidCharacter,
+            await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "Okay", character = new { look = 99 } }))
+        );
 
         await using var region = _host.Region();
         Assert.Empty(await region.Characters.ToListAsync(TestContext.Current.CancellationToken));
@@ -46,17 +55,22 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
     {
         await _host.GuestAsync("Alice");
         var client = _host.NewClient();
-        Assert.Equal(LoginErrors.NameTaken, await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "ALICE", character = new { look = 1 } })));
+        Assert.Equal(
+            LoginErrors.NameTaken,
+            await client.ErrorOfAsync(client.PostAsync(LoginPaths.Guest, new { name = "ALICE", character = new { look = 1 } }))
+        );
     }
 
     [Fact]
     public async Task TwoGuestsTakingOneNameAtOnceMakeOneAccount()
     {
-        var attempts = Enumerable.Range(0, 8).Select(_ =>
-        {
-            var client = _host.NewClient();
-            return client.PostAsync(LoginPaths.Guest, new { name = "Racer", character = new { look = 1 } });
-        });
+        var attempts = Enumerable
+            .Range(0, 8)
+            .Select(_ =>
+            {
+                var client = _host.NewClient();
+                return client.PostAsync(LoginPaths.Guest, new { name = "Racer", character = new { look = 1 } });
+            });
         var responses = await Task.WhenAll(attempts);
 
         Assert.Single(responses, r => r.IsSuccessStatusCode);
@@ -287,7 +301,10 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         Assert.Equal(2, await OwnerVersionAsync(characterId));
         Assert.Equal(LoginErrors.SignedOut, await alice.ErrorOfAsync(alice.GetAsync(LoginPaths.Me)));
         var other = _host.NewClient();
-        Assert.Equal(LoginErrors.NameTaken, await other.ErrorOfAsync(other.PostAsync(LoginPaths.Guest, new { name = "Alice", character = new { look = 1 } })));
+        Assert.Equal(
+            LoginErrors.NameTaken,
+            await other.ErrorOfAsync(other.PostAsync(LoginPaths.Guest, new { name = "Alice", character = new { look = 1 } }))
+        );
         Assert.Equal(LoginErrors.AccountDeleted, await other.SignInAsync("Alice", "a password"));
         Assert.Equal(LoginErrors.AccountDeleted, await other.SignInWithCodeAsync(code));
 
@@ -327,7 +344,10 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
 
         Assert.Equal(1, await _host.Actions.CleanUpGuestsAsync(TestContext.Current.CancellationToken));
         await using var accounts = _host.Accounts();
-        var deleted = await accounts.Accounts.Where(a => a.DeletedAt != null).Select(a => a.UserName).ToListAsync(TestContext.Current.CancellationToken);
+        var deleted = await accounts
+            .Accounts.Where(a => a.DeletedAt != null)
+            .Select(a => a.UserName)
+            .ToListAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["Idle"], deleted);
 
         // A guest can't restore itself, so the next purge frees the name without waiting out the hold.
@@ -346,7 +366,11 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var response = await client.Http.SendAsync(preflight, TestContext.Current.CancellationToken);
 
         Assert.Equal("https://page.test", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
-        Assert.Contains("authorization", string.Join(",", response.Headers.GetValues("Access-Control-Allow-Headers")), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "authorization",
+            string.Join(",", response.Headers.GetValues("Access-Control-Allow-Headers")),
+            StringComparison.OrdinalIgnoreCase
+        );
 
         var stranger = new HttpRequestMessage(HttpMethod.Options, LoginPaths.Me);
         stranger.Headers.Add("Origin", "https://evil.test");
@@ -375,7 +399,14 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var owner = await region.CharacterOwners.SingleOrDefaultAsync(o => o.CharacterId == characterId, TestContext.Current.CancellationToken);
         if (owner == null)
         {
-            region.CharacterOwners.Add(new() { CharacterId = characterId, ServerId = TestRules.ServerId, Version = 1 });
+            region.CharacterOwners.Add(
+                new()
+                {
+                    CharacterId = characterId,
+                    ServerId = TestRules.ServerId,
+                    Version = 1,
+                }
+            );
         }
         else
         {
@@ -397,11 +428,14 @@ public sealed class RateLimitTests(PostgresContainer postgres)
     [Fact]
     public async Task SignInsAreLimitedPerAddressExceptExemptOnes()
     {
-        await using var host = await LoginHost.StartAsync(postgres, options =>
-        {
-            options.RateLimits.SignInPerMinute = 5;
-            options.RateLimits.ExemptAddresses = ["192.0.2.50"];
-        });
+        await using var host = await LoginHost.StartAsync(
+            postgres,
+            options =>
+            {
+                options.RateLimits.SignInPerMinute = 5;
+                options.RateLimits.ExemptAddresses = ["192.0.2.50"];
+            }
+        );
 
         var limited = host.NewClient("203.0.113.9");
         for (var i = 0; i < 5; i++)

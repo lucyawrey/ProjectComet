@@ -14,8 +14,12 @@ namespace Comet.Unity
         public Color spawn = new Color(0.4f, 0.85f, 0.4f, 0.7f);
         public Color teleporter = new Color(0.4f, 0.7f, 1, 0.7f);
         public Color trigger = new Color(1, 0.6f, 0.25f, 0.7f);
-        [Tooltip("Players' bodies.")] public Color body = new Color(1, 0.9f, 0.3f, 0.6f);
-        [Tooltip("The body left where the server snapped a player back.")] public Color snapBack = new Color(1, 0.25f, 0.25f, 0.8f);
+
+        [Tooltip("Players' bodies.")]
+        public Color body = new Color(1, 0.9f, 0.3f, 0.6f);
+
+        [Tooltip("The body left where the server snapped a player back.")]
+        public Color snapBack = new Color(1, 0.25f, 0.25f, 0.8f);
 
         private static CollisionColors? _defaults;
 

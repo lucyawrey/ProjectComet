@@ -132,24 +132,42 @@ namespace ShapeLand.Client.Tests
         protected static void Click(VisualElement button)
         {
             var center = button.worldBound.center;
-            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 }))
+            using (
+                var down = PointerDownEvent.GetPooled(
+                    new Event
+                    {
+                        type = EventType.MouseDown,
+                        mousePosition = center,
+                        button = 0,
+                        clickCount = 1,
+                    }
+                )
+            )
             {
                 down.target = button;
                 button.SendEvent(down);
             }
 
-            using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 }))
+            using (
+                var up = PointerUpEvent.GetPooled(
+                    new Event
+                    {
+                        type = EventType.MouseUp,
+                        mousePosition = center,
+                        button = 0,
+                        clickCount = 1,
+                    }
+                )
+            )
             {
                 up.target = button;
                 button.SendEvent(up);
             }
         }
 
-        protected VisualElement ShapeButton(string id) =>
-            Screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Id == id);
+        protected VisualElement ShapeButton(string id) => Screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Id == id);
 
-        protected VisualElement Swatch(string row, int color) =>
-            Screen.Root.Q(row).Children().First(b => (int)b.userData == color);
+        protected VisualElement Swatch(string row, int color) => Screen.Root.Q(row).Children().First(b => (int)b.userData == color);
 
         protected void Press(params Key[] keys)
         {

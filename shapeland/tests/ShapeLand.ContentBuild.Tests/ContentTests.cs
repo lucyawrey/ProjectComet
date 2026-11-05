@@ -83,7 +83,10 @@ public class ContentTests
         var radius = content!.Movement.BodyRadius;
         for (var ahead = 2; ahead <= 19; ahead++) // past the spawn marker, flat ground at 0 m
         {
-            Assert.True(world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, ahead), radius, feet.Y + 1, out var ground), $"No ground {ahead} m ahead.");
+            Assert.True(
+                world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, ahead), radius, feet.Y + 1, out var ground),
+                $"No ground {ahead} m ahead."
+            );
             Assert.Equal(0f, ground, 0.01f);
         }
 
@@ -110,7 +113,10 @@ public class ContentTests
     public void TerrainIsTheSameForTheSameSeed()
     {
         Assert.Equal(TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples, TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples);
-        Assert.NotEqual(TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples, TestTerrain.GenerateZone(2).Chunks[3].Tiles[0].Heights.Samples);
+        Assert.NotEqual(
+            TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples,
+            TestTerrain.GenerateZone(2).Chunks[3].Tiles[0].Heights.Samples
+        );
     }
 
     [Fact]
@@ -133,12 +139,15 @@ public class ContentTests
         var blocks = zone.Chunks.SelectMany(c => c.Placements).Where(p => p.Tag == null).ToList();
 
         Assert.Equal(4, blocks.Count);
-        Assert.All(blocks, b =>
-        {
-            Assert.Equal(PrimitiveKind.Box, b.Primitive!.Kind);
-            Assert.True(island.TryGetHeightAt(b.Position.X, b.Position.Z, out var ground));
-            Assert.Equal(ground - 0.5f, b.Position.Y, 2);
-        });
+        Assert.All(
+            blocks,
+            b =>
+            {
+                Assert.Equal(PrimitiveKind.Box, b.Primitive!.Kind);
+                Assert.True(island.TryGetHeightAt(b.Position.X, b.Position.Z, out var ground));
+                Assert.Equal(ground - 0.5f, b.Position.Y, 2);
+            }
+        );
     }
 
     [Fact]
@@ -163,15 +172,21 @@ public class ContentTests
 
     [Fact]
     public void LooksAreOnlyPrimitives() =>
-        RuleIsChecked(Path.Combine("shapes", "cube.toml"), "look = \"group.prop_look\"", "looks are built only from primitives",
-            ("groups/prop_look.toml", "id = \"group.prop_look\"\n\n[[part]]\nprop = \"prop.strange_shape\"\nrole = \"body\"\nposition = [0.0, 0.0, 0.0]\n"));
+        RuleIsChecked(
+            Path.Combine("shapes", "cube.toml"),
+            "look = \"group.prop_look\"",
+            "looks are built only from primitives",
+            (
+                "groups/prop_look.toml",
+                "id = \"group.prop_look\"\n\n[[part]]\nprop = \"prop.strange_shape\"\nrole = \"body\"\nposition = [0.0, 0.0, 0.0]\n"
+            )
+        );
 
     [Theory]
     [InlineData("facet_length = 0.0", "facet_length: 0 is out of range")]
     [InlineData("min_sides = 2", "min_sides: 2 is too few")]
     [InlineData("max_sides = 4", "max_sides: 4 is out of range")]
-    public void SettingsRulesAreChecked(string line, string message) =>
-        RuleIsChecked(Path.Combine("settings", "game.toml"), line, message);
+    public void SettingsRulesAreChecked(string line, string message) => RuleIsChecked(Path.Combine("settings", "game.toml"), line, message);
 
     // Builds a copy of the content with one line of a file replaced (or added) and perhaps a file added, expecting one
     // error naming the changed file.
@@ -237,11 +252,16 @@ public class ContentTests
     [Fact]
     public void EveryMessagePackTypeHasASourceGeneratedFormatter()
     {
-        var contentTypes = typeof(Shape).Assembly.GetTypes()
+        var contentTypes = typeof(Shape)
+            .Assembly.GetTypes()
             .Concat(typeof(Heightmap).Assembly.GetTypes())
             .Where(t => t.GetCustomAttributes(typeof(MessagePackObjectAttribute), false).Length > 0)
             .ToList();
-        var resolvers = new[] { typeof(Shape).Assembly.GetType("ShapeLand.Shared.Content.ShapeLandResolver")!, typeof(Heightmap).Assembly.GetType("Comet.Content.ContentResolver")! }
+        var resolvers = new[]
+        {
+            typeof(Shape).Assembly.GetType("ShapeLand.Shared.Content.ShapeLandResolver")!,
+            typeof(Heightmap).Assembly.GetType("Comet.Content.ContentResolver")!,
+        }
             .Select(t => (IFormatterResolver)t.GetField("Instance")!.GetValue(null)!)
             .ToList();
         var getFormatter = typeof(IFormatterResolver).GetMethod(nameof(IFormatterResolver.GetFormatter))!;

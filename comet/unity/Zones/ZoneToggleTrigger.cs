@@ -14,7 +14,8 @@ namespace Comet.Unity
             public string toggleTag = "";
 
             [Tooltip("Seconds until they flip back, or 0 to stay. Firing again before then restarts the wait.")]
-            [Min(0)] public float revertSeconds;
+            [Min(0)]
+            public float revertSeconds;
         }
 
         [Tooltip("What firing does: each effect flips its placements on or off.")]

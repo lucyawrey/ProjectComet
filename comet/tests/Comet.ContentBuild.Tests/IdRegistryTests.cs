@@ -15,9 +15,7 @@ public class IdRegistryTests
         var saved = File.ReadAllText(folder.Registry);
         var second = folder.Build();
 
-        Assert.Equal(
-            [("widget.old", 1), ("widget.new_a", 8), ("widget.new_b", 9)],
-            first.Entries<Widget>().Select(w => (w.Id, w.Number)));
+        Assert.Equal([("widget.old", 1), ("widget.new_a", 8), ("widget.new_b", 9)], first.Entries<Widget>().Select(w => (w.Id, w.Number)));
         Assert.EndsWith("[widget]\nold = 1\ngone = 7\nnew_a = 8\nnew_b = 9\n", saved);
         Assert.Equal(saved, File.ReadAllText(folder.Registry));
         Assert.Equal([1, 8, 9], second.Entries<Widget>().Select(w => w.Number));

@@ -50,25 +50,26 @@ namespace Comet.Unity
 #if UNITY_EDITOR
         // A turned-off sign gets no gizmo calls, so the Scene view draws it faded itself: kept, but not in the game.
         [UnityEditor.InitializeOnLoadMethod]
-        private static void DrawTurnedOff() => UnityEditor.SceneView.duringSceneGui += view =>
-        {
-            if (Event.current.type != EventType.Repaint)
+        private static void DrawTurnedOff() =>
+            UnityEditor.SceneView.duringSceneGui += view =>
             {
-                return;
-            }
-
-            // Only the open zones' signs, and only those turned off themselves, which are what's saved as off.
-            foreach (var zone in FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None))
-            {
-                foreach (var sign in zone.GetComponentsInChildren<ZoneSign>(true))
+                if (Event.current.type != EventType.Repaint)
                 {
-                    if (!sign.gameObject.activeSelf)
+                    return;
+                }
+
+                // Only the open zones' signs, and only those turned off themselves, which are what's saved as off.
+                foreach (var zone in FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None))
+                {
+                    foreach (var sign in zone.GetComponentsInChildren<ZoneSign>(true))
                     {
-                        sign.DrawLabel(view.camera, 0.35f);
+                        if (!sign.gameObject.activeSelf)
+                        {
+                            sign.DrawLabel(view.camera, 0.35f);
+                        }
                     }
                 }
-            }
-        };
+            };
 
         // Its text in its colors, so level editors see it without entering play mode.
         private void DrawLabel(Camera? camera, float alpha)
@@ -79,7 +80,12 @@ namespace Comet.Unity
                 return; // too small to read from here
             }
 
-            var style = new GUIStyle(UnityEditor.EditorStyles.label) { alignment = TextAnchor.MiddleCenter, padding = new RectOffset(6, 6, 2, 2), fontSize = Mathf.RoundToInt(size) };
+            var style = new GUIStyle(UnityEditor.EditorStyles.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                padding = new RectOffset(6, 6, 2, 2),
+                fontSize = Mathf.RoundToInt(size),
+            };
             style.normal.textColor = new Color(textColor.r, textColor.g, textColor.b, alpha);
             style.normal.background = background ? Texture2D.whiteTexture : null;
             var saved = GUI.backgroundColor;
@@ -105,7 +111,9 @@ namespace Comet.Unity
             }
 
             var pointsHigh = camera.pixelHeight / UnityEditor.EditorGUIUtility.pixelsPerPoint;
-            var perMeter = camera.orthographic ? pointsHigh / (2 * camera.orthographicSize) : pointsHigh / (2 * depth * Mathf.Tan(camera.fieldOfView * Mathf.Deg2Rad / 2));
+            var perMeter = camera.orthographic
+                ? pointsHigh / (2 * camera.orthographicSize)
+                : pointsHigh / (2 * depth * Mathf.Tan(camera.fieldOfView * Mathf.Deg2Rad / 2));
             return Mathf.Min(textHeight * perMeter, 200);
         }
 #endif

@@ -17,23 +17,38 @@ public class MovementValidatorTests
     public MovementValidatorTests()
     {
         // Flat ground at 0 over 32 m, with a 2 m cube at (20, 20) and a hole around (28, 28).
-        var map = new Heightmap { SizeX = 33, SizeZ = 33, Scale = 1, Offset = -1, Samples = Enumerable.Repeat((ushort)1, 33 * 33).ToArray() };
+        var map = new Heightmap
+        {
+            SizeX = 33,
+            SizeZ = 33,
+            Scale = 1,
+            Offset = -1,
+            Samples = Enumerable.Repeat((ushort)1, 33 * 33).ToArray(),
+        };
         map.Samples[28 * 33 + 28] = Heightmap.Hole;
         var zone = new Zone
         {
             Pieces = [new TerrainPiece { Name = "main", SkirtDepth = 5 }],
             Chunks = [new ZoneChunk { Tiles = [new TerrainTile { Piece = "main", Heights = map }] }],
         };
-        var world = new CollisionWorld(
-            new ZoneTerrain(zone),
-            [CollisionMesh.Box(new Vector3(19, 0, 19), new Vector3(21, 2, 21))],
-            killHeight: -20);
+        var world = new CollisionWorld(new ZoneTerrain(zone), [CollisionMesh.Box(new Vector3(19, 0, 19), new Vector3(21, 2, 21))], killHeight: -20);
         _validator = new MovementValidator(world, new MovementRules(), new MovementTolerances(), TickRate);
         _validator.Reset(new Vector3(4, 0, 4), 0, tick: 100);
     }
 
     private MovementVerdict Report(float x, float y, float z, uint tick, uint sequence = 0) =>
-        _validator.Check(new PositionReport { X = x, Y = y, Z = z, CorrectionSequence = sequence }, tick, MaxSpeed, JumpVelocity);
+        _validator.Check(
+            new PositionReport
+            {
+                X = x,
+                Y = y,
+                Z = z,
+                CorrectionSequence = sequence,
+            },
+            tick,
+            MaxSpeed,
+            JumpVelocity
+        );
 
     [Fact]
     public void AcceptsWalkingAtFullSpeed()
@@ -107,7 +122,13 @@ public class MovementValidatorTests
         // Two steep wedges back to back on flat ground, their slopes forming a V narrower than the body.
         static CollisionMesh Wedge(float x, float yaw)
         {
-            var placement = new Placement { Position = new Vector3(x, 0, 4), Scale = new Vector3(1, 4, 2), Rotation = new Vector3(0, yaw, 0), Primitive = new Primitive { Kind = PrimitiveKind.Wedge } };
+            var placement = new Placement
+            {
+                Position = new Vector3(x, 0, 4),
+                Scale = new Vector3(1, 4, 2),
+                Rotation = new Vector3(0, yaw, 0),
+                Primitive = new Primitive { Kind = PrimitiveKind.Wedge },
+            };
             return CollisionMesh.Placed(PrimitiveMesher.For(placement, new PolygonBudget()), placement.Matrix());
         }
 
@@ -123,9 +144,48 @@ public class MovementValidatorTests
         validator.Reset(state.Position, 0, tick: 100);
         var wedged = state.Position.Y;
         // Still there long after a player in the air would have come down: standing, not hovering; then a jump.
-        Assert.Equal(MovementVerdict.Accepted, validator.Check(new PositionReport { X = 8, Y = wedged, Z = 4 }, 160, MaxSpeed, JumpVelocity));
-        Assert.Equal(MovementVerdict.Accepted, validator.Check(new PositionReport { X = 8, Y = wedged, Z = 4 }, 220, MaxSpeed, JumpVelocity));
-        Assert.Equal(MovementVerdict.Accepted, validator.Check(new PositionReport { X = 8, Y = wedged + 0.9f, Z = 4 }, 230, MaxSpeed, JumpVelocity));
+        Assert.Equal(
+            MovementVerdict.Accepted,
+            validator.Check(
+                new PositionReport
+                {
+                    X = 8,
+                    Y = wedged,
+                    Z = 4,
+                },
+                160,
+                MaxSpeed,
+                JumpVelocity
+            )
+        );
+        Assert.Equal(
+            MovementVerdict.Accepted,
+            validator.Check(
+                new PositionReport
+                {
+                    X = 8,
+                    Y = wedged,
+                    Z = 4,
+                },
+                220,
+                MaxSpeed,
+                JumpVelocity
+            )
+        );
+        Assert.Equal(
+            MovementVerdict.Accepted,
+            validator.Check(
+                new PositionReport
+                {
+                    X = 8,
+                    Y = wedged + 0.9f,
+                    Z = 4,
+                },
+                230,
+                MaxSpeed,
+                JumpVelocity
+            )
+        );
     }
 
     [Fact]
@@ -159,8 +219,21 @@ public class MovementValidatorTests
 
     private MovementVerdict Report(Vector3 at, Vector3 velocity, uint tick, uint? stamp = null, uint sequence = 0) =>
         _validator.Check(
-            new PositionReport { X = at.X, Y = at.Y, Z = at.Z, VelocityX = velocity.X, VelocityY = velocity.Y, VelocityZ = velocity.Z, CorrectionSequence = sequence },
-            tick, MaxSpeed, JumpVelocity, stamp);
+            new PositionReport
+            {
+                X = at.X,
+                Y = at.Y,
+                Z = at.Z,
+                VelocityX = velocity.X,
+                VelocityY = velocity.Y,
+                VelocityZ = velocity.Z,
+                CorrectionSequence = sequence,
+            },
+            tick,
+            MaxSpeed,
+            JumpVelocity,
+            stamp
+        );
 
     // A real jump from (4, 0, 4): height after t seconds, with the shared gravity.
     private static float JumpHeight(float t) => MathF.Max(0, JumpVelocity * t - 0.5f * new MovementRules().Gravity * t * t);
@@ -301,7 +374,15 @@ public class MovementValidatorTests
     [InlineData(0, 0, 0, float.NaN)]
     public void NumbersThatArentFiniteAreRejected(float x, float velocityX, float velocityY, float facing)
     {
-        var report = new PositionReport { X = 4.4f + x, Y = 0, Z = 4, VelocityX = velocityX, VelocityY = velocityY, Facing = facing };
+        var report = new PositionReport
+        {
+            X = 4.4f + x,
+            Y = 0,
+            Z = 4,
+            VelocityX = velocityX,
+            VelocityY = velocityY,
+            Facing = facing,
+        };
         Assert.Equal(MovementVerdict.NotFinite, _validator.Check(report, 102, MaxSpeed, JumpVelocity));
         Assert.Equal(new Vector3(4, 0, 4), _validator.Position);
         Assert.Equal(1, _validator.Violations);
@@ -354,7 +435,20 @@ public class MovementValidatorTests
     [InlineData(100f)]
     public void FacingIsHeldToOneTurn(float facing)
     {
-        Assert.Equal(MovementVerdict.Accepted, _validator.Check(new PositionReport { X = 4.1f, Z = 4, Facing = facing }, 102, MaxSpeed, JumpVelocity));
+        Assert.Equal(
+            MovementVerdict.Accepted,
+            _validator.Check(
+                new PositionReport
+                {
+                    X = 4.1f,
+                    Z = 4,
+                    Facing = facing,
+                },
+                102,
+                MaxSpeed,
+                JumpVelocity
+            )
+        );
         Assert.InRange(_validator.Facing, -MathF.PI, MathF.PI);
         if (MathF.Abs(facing) < 1000)
         {

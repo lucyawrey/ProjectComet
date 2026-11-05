@@ -22,30 +22,41 @@ namespace Comet.Simulation
 
         // How far below a clear body IsWedged looks for what holds it up: more than TryRest's millimeter.
         private const float WedgeDepth = 0.01f;
+
         // How far past touching a push-out goes, so the body ends clear rather than exactly against the surface.
         private const float PushMargin = 0.002f;
 
         private readonly List<CollisionMesh> _meshes;
+
         // Triangles at most the steepest walkable slope (their normal at least this upright) can be stood on.
         private readonly float _walkableNormalY;
+
         // Which meshes are terrain: not closed, so never "inside", and not obstacles for the camera.
         private readonly bool[] _terrain;
         private readonly Vector3[] _corners;
         private readonly Vector3[] _normals;
+
         // Each triangle's lowest cell on each axis: a query spanning several cells looks at a triangle only in the
         // first of them it's listed in, so it isn't looked at twice.
         private readonly (int X, int Z)[] _firstCells;
+
         // Which mesh each triangle belongs to.
         private readonly int[] _meshOf;
         private readonly Dictionary<(int X, int Z), List<int>> _cells = new Dictionary<(int X, int Z), List<int>>();
         private readonly Dictionary<string, List<int>> _tagged = new Dictionary<string, List<int>>();
+
         // Which meshes are off, replaced whole on a change so queries on other threads see one state or the other.
         private volatile bool[] _off;
 
         // Scratch space for clipping triangles to footprints, per thread.
-        [ThreadStatic] private static List<Vector3>? _polygon;
-        [ThreadStatic] private static List<Vector3>? _scratch;
-        [ThreadStatic] private static Dictionary<int, int>? _crossings;
+        [ThreadStatic]
+        private static List<Vector3>? _polygon;
+
+        [ThreadStatic]
+        private static List<Vector3>? _scratch;
+
+        [ThreadStatic]
+        private static Dictionary<int, int>? _crossings;
 
         /// <summary>A world of <paramref name="terrain"/> (if any) and <paramref name="meshes"/>, where falling below <paramref name="killHeight"/> meters is out of the world.</summary>
         public CollisionWorld(ZoneTerrain? terrain, IEnumerable<CollisionMesh> meshes, float killHeight, float maxSlope = 60)
@@ -202,7 +213,8 @@ namespace Comet.Simulation
             // A hair inside the footprint, so a triangle that only touches its edge doesn't hold it up.
             var r = MathF.Max(0, radius - Epsilon);
             var off = _off;
-            int fromX = Cell(feet.X - r), fromZ = Cell(feet.Z - r);
+            int fromX = Cell(feet.X - r),
+                fromZ = Cell(feet.Z - r);
             for (var z = fromZ; z <= Cell(feet.Z + r); z++)
             {
                 for (var x = fromX; x <= Cell(feet.X + r); x++)
@@ -244,11 +256,16 @@ namespace Comet.Simulation
 
             // The cells the line crosses on the ground plane, in order (a grid walk); a triangle in several of them may
             // be tested more than once, which is harmless for a yes or no.
-            int x = Cell(from.X), z = Cell(from.Z), endX = Cell(to.X), endZ = Cell(to.Z);
-            int stepX = Math.Sign(line.X), stepZ = Math.Sign(line.Z);
+            int x = Cell(from.X),
+                z = Cell(from.Z),
+                endX = Cell(to.X),
+                endZ = Cell(to.Z);
+            int stepX = Math.Sign(line.X),
+                stepZ = Math.Sign(line.Z);
             float NextEdge(float start, float delta, int cell, int step) =>
                 step == 0 ? float.PositiveInfinity : ((cell + (step > 0 ? 1 : 0)) * CellSize - start) / delta;
-            float crossX = NextEdge(from.X, line.X, x, stepX), crossZ = NextEdge(from.Z, line.Z, z, stepZ);
+            float crossX = NextEdge(from.X, line.X, x, stepX),
+                crossZ = NextEdge(from.Z, line.Z, z, stepZ);
             float cellX = stepX == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.X);
             float cellZ = stepZ == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.Z);
             for (var cells = Math.Abs(endX - x) + Math.Abs(endZ - z); cells >= 0; cells--)
@@ -283,7 +300,8 @@ namespace Comet.Simulation
         private bool CrossesTriangle(int t, Vector3 from, Vector3 line)
         {
             var (a, b, c) = (_corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2]);
-            Vector3 ab = b - a, ac = c - a;
+            Vector3 ab = b - a,
+                ac = c - a;
             var p = Vector3.Cross(line, ac);
             var determinant = Vector3.Dot(ab, p);
             if (MathF.Abs(determinant) < 1e-9f)
@@ -351,7 +369,8 @@ namespace Comet.Simulation
         public bool IsWedged(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
             var lower = feet - new Vector3(0, WedgeDepth, 0);
-            return !IsBlocked(feet, radius, bodyHeight, passThrough) && IsBlocked(lower, radius, bodyHeight, passThrough)
+            return !IsBlocked(feet, radius, bodyHeight, passThrough)
+                && IsBlocked(lower, radius, bodyHeight, passThrough)
                 && !TryPushOut(ref lower, radius, bodyHeight, passThrough);
         }
 
@@ -424,12 +443,14 @@ namespace Comet.Simulation
         {
             var off = _off;
             var r = radius - Epsilon;
-            float bottom = feet.Y + Epsilon, top = feet.Y + bodyHeight - Epsilon;
+            float bottom = feet.Y + Epsilon,
+                top = feet.Y + bodyHeight - Epsilon;
             var polygon = _polygon ??= new List<Vector3>(8);
             var scratch = _scratch ??= new List<Vector3>(8);
             var center = Flat(feet);
             var deepest = Vector2.Zero;
-            int fromX = Cell(feet.X - r), fromZ = Cell(feet.Z - r);
+            int fromX = Cell(feet.X - r),
+                fromZ = Cell(feet.Z - r);
             for (var z = fromZ; z <= Cell(feet.Z + r); z++)
             {
                 for (var x = fromX; x <= Cell(feet.X + r); x++)
@@ -441,7 +462,11 @@ namespace Comet.Simulation
 
                     foreach (var t in list)
                     {
-                        if (!FirstLook(t, x, z, fromX, fromZ) || Skip(t, off, passThrough) || !TriangleTouchesCylinder(t, feet, r, bottom, top, polygon, scratch))
+                        if (
+                            !FirstLook(t, x, z, fromX, fromZ)
+                            || Skip(t, off, passThrough)
+                            || !TriangleTouchesCylinder(t, feet, r, bottom, top, polygon, scratch)
+                        )
                         {
                             continue;
                         }
@@ -479,10 +504,12 @@ namespace Comet.Simulation
         {
             var off = _off;
             var r = radius - Epsilon;
-            float bottom = feet.Y + Epsilon, top = feet.Y + bodyHeight - Epsilon;
+            float bottom = feet.Y + Epsilon,
+                top = feet.Y + bodyHeight - Epsilon;
             var polygon = _polygon ??= new List<Vector3>(8);
             var scratch = _scratch ??= new List<Vector3>(8);
-            int fromX = Cell(feet.X - r), fromZ = Cell(feet.Z - r);
+            int fromX = Cell(feet.X - r),
+                fromZ = Cell(feet.Z - r);
             for (var z = fromZ; z <= Cell(feet.Z + r); z++)
             {
                 for (var x = fromX; x <= Cell(feet.X + r); x++)
@@ -494,8 +521,11 @@ namespace Comet.Simulation
 
                     foreach (var t in list)
                     {
-                        if (FirstLook(t, x, z, fromX, fromZ) && (only < 0 ? !Skip(t, off, passThrough) : _meshOf[t] == only)
-                            && TriangleTouchesCylinder(t, feet, r, bottom, top, polygon, scratch))
+                        if (
+                            FirstLook(t, x, z, fromX, fromZ)
+                            && (only < 0 ? !Skip(t, off, passThrough) : _meshOf[t] == only)
+                            && TriangleTouchesCylinder(t, feet, r, bottom, top, polygon, scratch)
+                        )
                         {
                             return true;
                         }
@@ -521,7 +551,11 @@ namespace Comet.Simulation
             crossings.Clear();
             foreach (var t in list)
             {
-                if (!_terrain[_meshOf[t]] && (only < 0 ? !Skip(t, off, passThrough) : _meshOf[t] == only) && CrossesAbove(point, _corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2]))
+                if (
+                    !_terrain[_meshOf[t]]
+                    && (only < 0 ? !Skip(t, off, passThrough) : _meshOf[t] == only)
+                    && CrossesAbove(point, _corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2])
+                )
                 {
                     crossings.TryGetValue(_meshOf[t], out var count);
                     crossings[_meshOf[t]] = count + 1;
@@ -574,7 +608,11 @@ namespace Comet.Simulation
 
             foreach (var piece in Terrain.Pieces)
             {
-                if (piece.TryGetHeightAt(position.X, position.Z, out var top) && position.Y < top - slack && position.Y > piece.BottomAt(position.X, position.Z))
+                if (
+                    piece.TryGetHeightAt(position.X, position.Z, out var top)
+                    && position.Y < top - slack
+                    && position.Y > piece.BottomAt(position.X, position.Z)
+                )
                 {
                     return true;
                 }
@@ -584,7 +622,8 @@ namespace Comet.Simulation
         }
 
         // Whether a query skips triangle t: its mesh is off, or the player passes through it.
-        private bool Skip(int t, bool[] off, ISet<int>? passThrough) => off[_meshOf[t]] || (passThrough != null && passThrough.Count > 0 && passThrough.Contains(_meshOf[t]));
+        private bool Skip(int t, bool[] off, ISet<int>? passThrough) =>
+            off[_meshOf[t]] || (passThrough != null && passThrough.Count > 0 && passThrough.Contains(_meshOf[t]));
 
         private static int Cell(float coordinate) => (int)MathF.Floor(coordinate / CellSize);
 
@@ -688,7 +727,10 @@ namespace Comet.Simulation
                 }
 
                 var side = Cross(q - p, center - p);
-                var s = side > 1e-9f ? 1 : side < -1e-9f ? -1 : 0;
+                var s =
+                    side > 1e-9f ? 1
+                    : side < -1e-9f ? -1
+                    : 0;
                 if (s == 0 || (sign != 0 && s != sign))
                 {
                     inside = false;

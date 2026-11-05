@@ -26,12 +26,16 @@ namespace Comet.Client
     {
         /// <summary>How far back samples count toward the target, in seconds.</summary>
         public const double WindowSeconds = 2;
+
         /// <summary>The share of samples the delay should cover (0.95 covers all but the slowest 5%).</summary>
         public const double Percentile = 0.95;
+
         /// <summary>How much slower than real time the render tick may run while the delay grows (0.04 is 4%).</summary>
         public const double GrowRate = 0.04;
+
         /// <summary>How much faster than real time the render tick may run while the delay shrinks.</summary>
         public const double ShrinkRate = 0.02;
+
         /// <summary>How long a raw target holds before a lower one can replace it, in seconds.</summary>
         public const double HoldSeconds = 5;
 

@@ -115,10 +115,17 @@ namespace Comet.Client.Login
 
         /// <summary>Restores a deleted account (after a sign-in said <see cref="LoginErrors.AccountDeleted"/>) and signs in.</summary>
         public Task<LoginResult<bool>> RestoreAsync(string username, string password, string? recoveryCode = null) =>
-            StartSessionAsync(LoginPaths.Restore, new SignInRequest { Username = username, Password = password, RecoveryCode = recoveryCode });
+            StartSessionAsync(
+                LoginPaths.Restore,
+                new SignInRequest
+                {
+                    Username = username,
+                    Password = password,
+                    RecoveryCode = recoveryCode,
+                }
+            );
 
-        public Task<LoginResult<AccountResponse<TCharacter>>> GetAccountAsync() =>
-            SendAsync<AccountResponse<TCharacter>>("GET", LoginPaths.Me, null);
+        public Task<LoginResult<AccountResponse<TCharacter>>> GetAccountAsync() => SendAsync<AccountResponse<TCharacter>>("GET", LoginPaths.Me, null);
 
         public Task<LoginResult<bool>> SetPasswordAsync(string password) =>
             SendAsync<bool>("POST", LoginPaths.Password, new PasswordRequest { Password = password });
@@ -126,11 +133,9 @@ namespace Comet.Client.Login
         public Task<LoginResult<RecoveryCodeResponse>> MakeRecoveryCodeAsync() =>
             SendAsync<RecoveryCodeResponse>("POST", LoginPaths.RecoveryCode, null);
 
-        public Task<LoginResult<bool>> RenameAsync(string name) =>
-            SendAsync<bool>("POST", LoginPaths.Rename, new RenameRequest { Name = name });
+        public Task<LoginResult<bool>> RenameAsync(string name) => SendAsync<bool>("POST", LoginPaths.Rename, new RenameRequest { Name = name });
 
-        public Task<LoginResult<TicketResponse>> GetTicketAsync() =>
-            SendAsync<TicketResponse>("POST", LoginPaths.Ticket, null);
+        public Task<LoginResult<TicketResponse>> GetTicketAsync() => SendAsync<TicketResponse>("POST", LoginPaths.Ticket, null);
 
         /// <summary>Signs out on the server (best effort) and forgets the token either way.</summary>
         public async Task SignOutAsync()
@@ -212,16 +217,16 @@ namespace Comet.Client.Login
             try
             {
                 using var problem = JsonDocument.Parse(response.Body);
-                if (problem.RootElement.ValueKind == JsonValueKind.Object
+                if (
+                    problem.RootElement.ValueKind == JsonValueKind.Object
                     && problem.RootElement.TryGetProperty("code", out var code)
-                    && code.ValueKind == JsonValueKind.String)
+                    && code.ValueKind == JsonValueKind.String
+                )
                 {
                     return code.GetString()!;
                 }
             }
-            catch (JsonException)
-            {
-            }
+            catch (JsonException) { }
 
             return response.Status == 429 ? LoginErrors.RateLimited : Unreachable;
         }

@@ -89,29 +89,31 @@ internal sealed class Player(Connection connection, int tickRate)
         Moved = true;
     }
 
-    public EntityState State() => new()
-    {
-        EntityId = EntityId,
-        X = Validator.Position.X,
-        Y = Validator.Position.Y,
-        Z = Validator.Position.Z,
-        Facing = Validator.Facing,
-        Tick = StateTick,
-        VelocityX = Validator.Velocity.X,
-        VelocityY = Validator.Velocity.Y,
-        VelocityZ = Validator.Velocity.Z,
-    };
+    public EntityState State() =>
+        new()
+        {
+            EntityId = EntityId,
+            X = Validator.Position.X,
+            Y = Validator.Position.Y,
+            Z = Validator.Position.Z,
+            Facing = Validator.Facing,
+            Tick = StateTick,
+            VelocityX = Validator.Velocity.X,
+            VelocityY = Validator.Velocity.Y,
+            VelocityZ = Validator.Velocity.Z,
+        };
 
-    public PlayerSpawn Spawn() => new()
-    {
-        EntityId = EntityId,
-        Name = Name,
-        Shape = Shape.Number,
-        Color = Character.Color,
-        EyeColor = Character.EyeColor,
-        X = Validator.Position.X,
-        Y = Validator.Position.Y,
-        Z = Validator.Position.Z,
-        Facing = Validator.Facing,
-    };
+    public PlayerSpawn Spawn() =>
+        new()
+        {
+            EntityId = EntityId,
+            Name = Name,
+            Shape = Shape.Number,
+            Color = Character.Color,
+            EyeColor = Character.EyeColor,
+            X = Validator.Position.X,
+            Y = Validator.Position.Y,
+            Z = Validator.Position.Z,
+            Facing = Validator.Facing,
+        };
 }

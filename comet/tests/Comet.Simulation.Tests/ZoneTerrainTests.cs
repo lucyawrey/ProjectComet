@@ -6,7 +6,14 @@ public class ZoneTerrainTests
 {
     private static Heightmap Map(int sizeX, int sizeZ, Func<int, int, float?> height)
     {
-        var map = new Heightmap { SizeX = sizeX, SizeZ = sizeZ, Scale = 0.01f, Offset = -50, Samples = new ushort[sizeX * sizeZ] };
+        var map = new Heightmap
+        {
+            SizeX = sizeX,
+            SizeZ = sizeZ,
+            Scale = 0.01f,
+            Offset = -50,
+            Samples = new ushort[sizeX * sizeZ],
+        };
         for (var z = 0; z < sizeZ; z++)
         {
             for (var x = 0; x < sizeX; x++)
@@ -25,7 +32,10 @@ public class ZoneTerrainTests
         var zone = new Zone
         {
             Pieces = [new TerrainPiece { Name = "main" }],
-            Chunks = [new ZoneChunk { Tiles = [new TerrainTile { Piece = "main", Heights = Map(2, 2, (x, z) => x + 2 * z + (x == 1 && z == 1 ? 1 : 0)) }] }],
+            Chunks =
+            [
+                new ZoneChunk { Tiles = [new TerrainTile { Piece = "main", Heights = Map(2, 2, (x, z) => x + 2 * z + (x == 1 && z == 1 ? 1 : 0)) }] },
+            ],
         };
         var piece = new ZoneTerrain(zone)["main"];
 
@@ -45,7 +55,19 @@ public class ZoneTerrainTests
             Pieces = [new TerrainPiece { Name = "main", SkirtDepth = 3 }],
             Chunks =
             [
-                new ZoneChunk { Coord = new ChunkCoord(0, 0), Tiles = [new TerrainTile { Piece = "main", OriginX = 62, Heights = Map(3, 2, (x, _) => x) }] },
+                new ZoneChunk
+                {
+                    Coord = new ChunkCoord(0, 0),
+                    Tiles =
+                    [
+                        new TerrainTile
+                        {
+                            Piece = "main",
+                            OriginX = 62,
+                            Heights = Map(3, 2, (x, _) => x),
+                        },
+                    ],
+                },
                 new ZoneChunk { Coord = new ChunkCoord(1, 0), Tiles = [new TerrainTile { Piece = "main", Heights = Map(3, 2, (x, _) => 2 + x) }] },
             ],
         };
@@ -65,7 +87,21 @@ public class ZoneTerrainTests
         var zone = new Zone
         {
             Pieces = [new TerrainPiece { Name = "island", SkirtDepth = 8 }],
-            Chunks = [new ZoneChunk { Tiles = [new TerrainTile { Piece = "island", Heights = Map(2, 2, (_, _) => 5), Underside = Map(2, 2, (_, _) => 1) }] }],
+            Chunks =
+            [
+                new ZoneChunk
+                {
+                    Tiles =
+                    [
+                        new TerrainTile
+                        {
+                            Piece = "island",
+                            Heights = Map(2, 2, (_, _) => 5),
+                            Underside = Map(2, 2, (_, _) => 1),
+                        },
+                    ],
+                },
+            ],
         };
 
         Assert.Equal(1, new ZoneTerrain(zone)["island"].BottomAt(0.5f, 0.5f), 3);

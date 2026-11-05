@@ -21,8 +21,7 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
     private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DefaultStopTimeout = TimeSpan.FromSeconds(10);
 
-    private readonly Channel<Operation> _operations =
-        Channel.CreateUnbounded<Operation>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly Channel<Operation> _operations = Channel.CreateUnbounded<Operation>(new UnboundedChannelOptions { SingleReader = true });
 
     // Status saves waiting for the next interval, latest per character. Written by the game's thread, taken by the
     // writer.
@@ -61,20 +60,16 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
     protected abstract Task<CharacterClaim<TCharacter>> ClaimCoreAsync(long characterId, CancellationToken cancellationToken);
 
     /// <summary>Writes the saves whose version still holds, returning the characters whose saves applied.</summary>
-    protected abstract Task<IReadOnlySet<long>> SaveStatusesCoreAsync(
-        IReadOnlyList<StatusSave> saves, CancellationToken cancellationToken);
+    protected abstract Task<IReadOnlySet<long>> SaveStatusesCoreAsync(IReadOnlyList<StatusSave> saves, CancellationToken cancellationToken);
 
     /// <summary>Writes the game's own columns if the version still holds; false if it doesn't.</summary>
-    protected abstract Task<bool> SaveCharacterCoreAsync(
-        TCharacter character, long version, CancellationToken cancellationToken);
+    protected abstract Task<bool> SaveCharacterCoreAsync(TCharacter character, long version, CancellationToken cancellationToken);
 
     /// <summary>Writes the final status (if any) and releases the character, if the version still holds.</summary>
-    protected abstract Task LeaveCoreAsync(
-        long characterId, long version, CharacterPosition? position, CancellationToken cancellationToken);
+    protected abstract Task LeaveCoreAsync(long characterId, long version, CharacterPosition? position, CancellationToken cancellationToken);
 
     /// <summary>Returns the characters still held under their versions, and marks them as active.</summary>
-    protected abstract Task<IReadOnlySet<long>> CheckHeldCoreAsync(
-        IReadOnlyList<HeldCharacter> held, CancellationToken cancellationToken);
+    protected abstract Task<IReadOnlySet<long>> CheckHeldCoreAsync(IReadOnlyList<HeldCharacter> held, CancellationToken cancellationToken);
 
     /// <summary>Whether a failure is the database being unreachable or busy, so the writer retries it.</summary>
     protected virtual bool IsTransient(Exception exception) => false;
@@ -188,9 +183,7 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
                 _operations.Writer.TryWrite(new FlushOperation(null));
             }
         }
-        catch (OperationCanceledException)
-        {
-        }
+        catch (OperationCanceledException) { }
     }
 
     private async Task WriteAsync()
@@ -199,14 +192,16 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
         {
             try
             {
-                await (operation switch
-                {
-                    ClaimOperation claim => ClaimNowAsync(claim),
-                    LookOperation look => SaveLookNowAsync(look),
-                    LeaveOperation leave => LeaveNowAsync(leave),
-                    FlushOperation flush => FlushNowAsync(flush),
-                    _ => throw new InvalidOperationException($"Unknown operation {operation}"),
-                });
+                await (
+                    operation switch
+                    {
+                        ClaimOperation claim => ClaimNowAsync(claim),
+                        LookOperation look => SaveLookNowAsync(look),
+                        LeaveOperation leave => LeaveNowAsync(leave),
+                        FlushOperation flush => FlushNowAsync(flush),
+                        _ => throw new InvalidOperationException($"Unknown operation {operation}"),
+                    }
+                );
             }
             catch (Exception exception)
             {
@@ -247,7 +242,8 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
                         await SaveStatusesAsync([save], token);
                         return true;
                     },
-                    cancel.Token);
+                    cancel.Token
+                );
             }
 
             result = await RetryAsync(token => ClaimCoreAsync(claim.CharacterId, token), cancel.Token);
@@ -302,7 +298,8 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
                 await LeaveCoreAsync(leave.CharacterId, leave.Version, position, token);
                 return true;
             },
-            _abort.Token);
+            _abort.Token
+        );
 
         if (_held.TryGetValue(leave.CharacterId, out var version) && version == leave.Version)
         {
@@ -401,21 +398,18 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
 
     private abstract record Operation
     {
-        public virtual void Fail()
-        {
-        }
+        public virtual void Fail() { }
     }
 
-    private sealed record ClaimOperation(
-        long CharacterId, TaskCompletionSource<CharacterClaim<TCharacter>> Done, CancellationToken CancellationToken) : Operation
+    private sealed record ClaimOperation(long CharacterId, TaskCompletionSource<CharacterClaim<TCharacter>> Done, CancellationToken CancellationToken)
+        : Operation
     {
         public override void Fail() => Done.TrySetResult(new(ClaimOutcome.Unavailable));
     }
 
     private sealed record LookOperation(TCharacter Character, long Version) : Operation;
 
-    private sealed record LeaveOperation(
-        long CharacterId, long Version, CharacterPosition? Position, TaskCompletionSource Done) : Operation
+    private sealed record LeaveOperation(long CharacterId, long Version, CharacterPosition? Position, TaskCompletionSource Done) : Operation
     {
         public override void Fail() => Done.TrySetResult();
     }

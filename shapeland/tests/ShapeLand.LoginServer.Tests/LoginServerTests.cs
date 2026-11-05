@@ -51,7 +51,9 @@ public sealed class LoginServerTests(PostgresContainer postgres) : IAsyncDisposa
     private sealed class Tokens : ITokenStore
     {
         private string? _token;
+
         public string? Load() => _token;
+
         public void Save(string? token) => _token = token;
     }
 
@@ -85,7 +87,10 @@ public sealed class LoginServerTests(PostgresContainer postgres) : IAsyncDisposa
         Assert.True((await client.CreateGuestAsync("Alice", Look(shape, color))).Succeeded);
 
         var me = await client.GetAccountAsync();
-        Assert.Equal(("Alice", shape, color, color), (me.Value!.Character!.Name, me.Value.Character.Shape, me.Value.Character.Color, me.Value.Character.EyeColor));
+        Assert.Equal(
+            ("Alice", shape, color, color),
+            (me.Value!.Character!.Name, me.Value.Character.Shape, me.Value.Character.Color, me.Value.Character.EyeColor)
+        );
         Assert.Equal("ws://game.test/ws", (await client.GetTicketAsync()).Value!.Server);
     }
 
@@ -94,7 +99,11 @@ public sealed class LoginServerTests(PostgresContainer postgres) : IAsyncDisposa
     {
         var connection = await postgres.CreateDatabaseAsync();
         await using var repository = new CharacterRepository<ShapeLandCharacter, ShapeLandRegionContext>(
-            () => Region(connection), new CharacterRepositoryOptions { ServerId = 1 }, TimeProvider.System, NullLogger.Instance);
+            () => Region(connection),
+            new CharacterRepositoryOptions { ServerId = 1 },
+            TimeProvider.System,
+            NullLogger.Instance
+        );
         var starting = repository.StartAsync(TestContext.Current.CancellationToken);
 
         await Task.Delay(1500, TestContext.Current.CancellationToken);
@@ -111,10 +120,15 @@ public sealed class LoginServerTests(PostgresContainer postgres) : IAsyncDisposa
         Assert.Equal(ClaimOutcome.Claimed, (await repository.ClaimAsync(id, TestContext.Current.CancellationToken)).Outcome);
     }
 
-    private static NewCharacter Look(int shape, int color) => new() { Shape = shape, Color = color, EyeColor = color };
+    private static NewCharacter Look(int shape, int color) =>
+        new()
+        {
+            Shape = shape,
+            Color = color,
+            EyeColor = color,
+        };
 
-    private static LoginClient<CharacterView> Client(WebApplication app) =>
-        new(new HttpLoginTransport(app.GetTestClient()), new Tokens());
+    private static LoginClient<CharacterView> Client(WebApplication app) => new(new HttpLoginTransport(app.GetTestClient()), new Tokens());
 
     private static ShapeLandRegionContext Region(string connection)
     {
@@ -125,19 +139,24 @@ public sealed class LoginServerTests(PostgresContainer postgres) : IAsyncDisposa
 
     private async Task<WebApplication> StartAsync(string connection)
     {
-        _app = ShapeLandLogin.Build([], builder =>
-        {
-            builder.WebHost.UseTestServer();
-            builder.Logging.ClearProviders();
-            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        _app = ShapeLandLogin.Build(
+            [],
+            builder =>
             {
-                ["Login:ConnectionString"] = connection,
-                ["Login:SigningKeyFile"] = Path.Combine(_keys, "login.pem"),
-                ["Login:PublicKeysFolder"] = Path.Combine(_keys, "public"),
-                ["Login:CreateSigningKey"] = "true",
-                ["ShapeLand:GameServer:Address"] = "ws://game.test/ws",
-            });
-        });
+                builder.WebHost.UseTestServer();
+                builder.Logging.ClearProviders();
+                builder.Configuration.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["Login:ConnectionString"] = connection,
+                        ["Login:SigningKeyFile"] = Path.Combine(_keys, "login.pem"),
+                        ["Login:PublicKeysFolder"] = Path.Combine(_keys, "public"),
+                        ["Login:CreateSigningKey"] = "true",
+                        ["ShapeLand:GameServer:Address"] = "ws://game.test/ws",
+                    }
+                );
+            }
+        );
         await _app.StartAsync();
         return _app;
     }
