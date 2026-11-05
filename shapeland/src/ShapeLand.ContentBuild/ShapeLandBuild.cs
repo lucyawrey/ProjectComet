@@ -11,7 +11,6 @@ namespace ShapeLand.ContentBuild;
 public static class ShapeLandBuild
 {
     /// <summary>The test zone's folder, made by the <c>terrain</c> command until ShapeLand's level is built with the editor.</summary>
-
     /// <summary>Where prop models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
     public const string ModelRoot = "../ShapeLand.Unity/Assets";
 
@@ -25,21 +24,27 @@ public static class ShapeLandBuild
     /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with prop models under
     /// <paramref name="modelRoot"/> (by default <see cref="ModelRoot"/> from the content folder).
     /// </summary>
-    public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) => new ContentBuilder(contentRoot)
-        .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
-        .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
-        .AddKeys<GameSettings>("color", settings => settings.Colors.Keys.Select(key => $"color.{key}"))
-        .AddStrings(placeholders: Placeholders)
-        .AddProps(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
-        .AddGroups()
-        .AddZones();
+    public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) =>
+        new ContentBuilder(contentRoot)
+            .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
+            .Add("settings", "settings", ShapeLandToml.Default.GameSettings, ValidateSettings)
+            .AddKeys<GameSettings>("color", settings => settings.Colors.Keys.Select(key => $"color.{key}"))
+            .AddStrings(placeholders: Placeholders)
+            .AddProps(modelRoot ?? Path.Combine(contentRoot, ModelRoot))
+            .AddGroups()
+            .AddZones();
 
     /// <summary>
     /// Checks and compiles the content folder; null content means there were errors. Warnings (blockout placements)
     /// go into <paramref name="warnings"/>, or with <paramref name="release"/> are errors.
     /// </summary>
-    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(string contentRoot, bool saveRegistry = true, string? modelRoot = null,
-        bool release = false, ICollection<ContentError>? warnings = null)
+    public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(
+        string contentRoot,
+        bool saveRegistry = true,
+        string? modelRoot = null,
+        bool release = false,
+        ICollection<ContentError>? warnings = null
+    )
     {
         var result = CreateBuilder(contentRoot, modelRoot).Build(saveRegistry, release);
         foreach (var warning in result.Warnings)
@@ -65,7 +70,14 @@ public static class ShapeLandBuild
         var settings = result.Entries<GameSettings>();
         if (settings.Count != 1)
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "settings"), 1, 1, $"{settings.Count} game settings files: the game needs exactly one (settings/game.toml)."));
+            errors.Add(
+                new ContentError(
+                    Path.Combine(contentRoot, "settings"),
+                    1,
+                    1,
+                    $"{settings.Count} game settings files: the game needs exactly one (settings/game.toml)."
+                )
+            );
             return (null, errors);
         }
 
@@ -97,11 +109,20 @@ public static class ShapeLandBuild
                 var parts = Groups.Expand(new Placement { Group = shape.Look }, key => groups.TryGetValue(key, out var g) ? g : null);
                 if (parts.FirstOrDefault(p => p.Primitive == null) is { } prop)
                 {
-                    errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has {prop.Prop}, but looks are built only from primitives."));
+                    errors.Add(
+                        new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has {prop.Prop}, but looks are built only from primitives.")
+                    );
                 }
                 else if (!parts.Any(p => p.Role == "body"))
                 {
-                    errors.Add(new ContentError(file, 1, 1, $"{shape.Id}: its look {shape.Look} has no part with role = \"body\" to take the player's color."));
+                    errors.Add(
+                        new ContentError(
+                            file,
+                            1,
+                            1,
+                            $"{shape.Id}: its look {shape.Look} has no part with role = \"body\" to take the player's color."
+                        )
+                    );
                 }
             }
         }
@@ -110,7 +131,14 @@ public static class ShapeLandBuild
         var spawns = result.Zones.SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
         foreach (var shape in result.Entries<Shape>().Where(s => !spawns.Contains(s.Spawn)))
         {
-            errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point; change the shape's 'spawn =' to one there is: {(spawns.Count > 0 ? string.Join(", ", spawns.OrderBy(k => k, StringComparer.Ordinal)) : "(none yet)")}."));
+            errors.Add(
+                new ContentError(
+                    Path.Combine(contentRoot, "shapes"),
+                    1,
+                    1,
+                    $"{shape.Id}: spawn '{shape.Spawn}' isn't a spawn point; change the shape's 'spawn =' to one there is: {(spawns.Count > 0 ? string.Join(", ", spawns.OrderBy(k => k, StringComparer.Ordinal)) : "(none yet)")}."
+                )
+            );
         }
 
         if (errors.Count > 0)
@@ -120,8 +148,17 @@ public static class ShapeLandBuild
 
         // The player colors in the file's order, which is the order they're shown in.
         var colorNumbers = result.Numbers("color");
-        var colors = settings[0].Colors.Select(c => new PlayerColor { Id = $"color.{c.Key}", Number = colorNumbers[$"color.{c.Key}"], Rgb = c.Value });
-        return (new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Prop>(), result.Zones, result.Groups, colors), errors);
+        var colors = settings[0]
+            .Colors.Select(c => new PlayerColor
+            {
+                Id = $"color.{c.Key}",
+                Number = colorNumbers[$"color.{c.Key}"],
+                Rgb = c.Value,
+            });
+        return (
+            new ShapeLandContent(result.Entries<Shape>(), settings[0], result.Strings!, result.Entries<Prop>(), result.Zones, result.Groups, colors),
+            errors
+        );
     }
 
     private static void ValidateSettings(GameSettings settings, ContentValidation validation)
@@ -142,7 +179,13 @@ public static class ShapeLandBuild
             }
         }
 
-        const string movement = nameof(GameSettings.Movement), world = nameof(GameSettings.World), spawns = nameof(GameSettings.Spawns), teleporters = nameof(GameSettings.Teleporters), triggers = nameof(GameSettings.Triggers), colors = nameof(GameSettings.Colors), primitives = nameof(GameSettings.Primitives);
+        const string movement = nameof(GameSettings.Movement),
+            world = nameof(GameSettings.World),
+            spawns = nameof(GameSettings.Spawns),
+            teleporters = nameof(GameSettings.Teleporters),
+            triggers = nameof(GameSettings.Triggers),
+            colors = nameof(GameSettings.Colors),
+            primitives = nameof(GameSettings.Primitives);
         var m = settings.Movement;
         InRange(movement, nameof(m.Gravity), m.Gravity, 200);
         InRange(movement, nameof(m.BodyRadius), m.BodyRadius, 5);
@@ -174,7 +217,11 @@ public static class ShapeLandBuild
 
         if (budget.MaxSides < budget.MinSides || budget.MaxSides > 256)
         {
-            validation.Error(primitives, nameof(budget.MaxSides), $"{budget.MaxSides} is out of range (at least min_sides, {budget.MinSides}, and at most 256).");
+            validation.Error(
+                primitives,
+                nameof(budget.MaxSides),
+                $"{budget.MaxSides} is out of range (at least min_sides, {budget.MinSides}, and at most 256)."
+            );
         }
 
         IsColor(world, nameof(WorldSettings.GroundColor), settings.World.GroundColor);
@@ -231,6 +278,4 @@ public static class ShapeLandBuild
 [TomlSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [TomlSerializable(typeof(Shape))]
 [TomlSerializable(typeof(GameSettings))]
-internal partial class ShapeLandToml : TomlSerializerContext
-{
-}
+internal partial class ShapeLandToml : TomlSerializerContext { }

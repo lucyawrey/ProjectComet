@@ -21,9 +21,14 @@ namespace ShapeLand.Client
 
         // Comet's colors (terrain, volumes, bodies), and ShapeLand's for its kinds of mesh, muted alike. Changes in
         // play mode redraw the view.
-        [SerializeField] private CollisionColors colors = null!;
-        [SerializeField] private Color propColor = new Color(0.75f, 0.75f, 0.75f, 0.45f);
-        [SerializeField] private Color primitiveColor = new Color(0.7f, 0.6f, 1, 0.45f);
+        [SerializeField]
+        private CollisionColors colors = null!;
+
+        [SerializeField]
+        private Color propColor = new Color(0.75f, 0.75f, 0.75f, 0.45f);
+
+        [SerializeField]
+        private Color primitiveColor = new Color(0.7f, 0.6f, 1, 0.45f);
 
         private Hud _hud;
         private Chat _chat;
@@ -157,13 +162,14 @@ namespace ShapeLand.Client
             }
         }
 
-        private static string Key(MovementVerdict verdict) => verdict switch
-        {
-            MovementVerdict.NotFinite => "not_finite",
-            MovementVerdict.TooFast => "too_fast",
-            MovementVerdict.TooHigh => "too_high",
-            _ => "inside_solid",
-        };
+        private static string Key(MovementVerdict verdict) =>
+            verdict switch
+            {
+                MovementVerdict.NotFinite => "not_finite",
+                MovementVerdict.TooFast => "too_fast",
+                MovementVerdict.TooHigh => "too_high",
+                _ => "inside_solid",
+            };
 
         private void OnDisable()
         {

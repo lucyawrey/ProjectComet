@@ -11,19 +11,23 @@ namespace ShapeLand.Shared.Messages
     public struct ZoneEntered
     {
         /// <summary>The zone's content number.</summary>
-        [Key(0)] public int Zone;
+        [Key(0)]
+        public int Zone;
 
         /// <summary>The tags of the zone's placements that triggers have flipped from how they start.</summary>
-        [Key(1)] public string[] Flipped;
+        [Key(1)]
+        public string[] Flipped;
     }
 
     /// <summary>Server event: a trigger flipped the placements with a tag in the player's zone, or they flipped back.</summary>
     [MessagePackObject]
     public struct PlacementsFlipped
     {
-        [Key(0)] public string Tag;
+        [Key(0)]
+        public string Tag;
 
         /// <summary>True when they're flipped from how they start, false when they're back.</summary>
-        [Key(1)] public bool Flipped;
+        [Key(1)]
+        public bool Flipped;
     }
 }

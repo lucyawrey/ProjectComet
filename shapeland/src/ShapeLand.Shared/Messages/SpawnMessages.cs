@@ -10,15 +10,15 @@ namespace ShapeLand.Shared.Messages
     public struct SpawnSet
     {
         /// <summary>The spawn point's content number.</summary>
-        [Key(0)] public int Spawn;
+        [Key(0)]
+        public int Spawn;
 
         /// <summary>Whether the player just claimed it (rather than starting there).</summary>
-        [Key(1)] public bool Claimed;
+        [Key(1)]
+        public bool Claimed;
     }
 
     /// <summary>Client input: send me back to my spawn point.</summary>
     [MessagePackObject]
-    public struct ReturnToSpawn
-    {
-    }
+    public struct ReturnToSpawn { }
 }

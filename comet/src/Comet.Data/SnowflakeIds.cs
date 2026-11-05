@@ -47,8 +47,7 @@ public sealed class SnowflakeIds
             {
                 if (_lastTime - time > (long)MaxClockStepBack.TotalMilliseconds)
                 {
-                    throw new InvalidOperationException(
-                        $"The clock stepped back {_lastTime - time} ms; refusing to make IDs that could repeat.");
+                    throw new InvalidOperationException($"The clock stepped back {_lastTime - time} ms; refusing to make IDs that could repeat.");
                 }
 
                 time = WaitUntil(_lastTime);

@@ -30,7 +30,12 @@ public sealed class TickLoop
         TickRate = tickRate;
         Period = TimeSpan.FromSeconds(1.0 / tickRate);
         _onTick = onTick;
-        _thread = new Thread(Run) { Name = "Tick loop", IsBackground = true, Priority = ThreadPriority.AboveNormal };
+        _thread = new Thread(Run)
+        {
+            Name = "Tick loop",
+            IsBackground = true,
+            Priority = ThreadPriority.AboveNormal,
+        };
     }
 
     /// <summary>Ticks per second.</summary>
@@ -90,10 +95,13 @@ public sealed class TickLoop
             }
 
             var tickEnd = Stopwatch.GetTimestamp();
-            TickCompleted?.Invoke(new TickTiming(
-                tick,
-                Stopwatch.GetElapsedTime((long)scheduled, Math.Max(tickStart, (long)scheduled)),
-                Stopwatch.GetElapsedTime(tickStart, tickEnd)));
+            TickCompleted?.Invoke(
+                new TickTiming(
+                    tick,
+                    Stopwatch.GetElapsedTime((long)scheduled, Math.Max(tickStart, (long)scheduled)),
+                    Stopwatch.GetElapsedTime(tickStart, tickEnd)
+                )
+            );
 
             scheduled += period;
             var now = Stopwatch.GetTimestamp();

@@ -10,12 +10,12 @@ namespace Comet.Content
     public static class ContentSerializer
     {
         /// <summary>Options that read and write Comet's content types and the game's, through <paramref name="gameResolver"/>.</summary>
-        public static MessagePackSerializerOptions CreateOptions(IFormatterResolver gameResolver) => MessagePackSerializerOptions.Standard
-            .WithResolver(CompositeResolver.Create(gameResolver, ContentResolver.Instance, StandardResolver.Instance));
+        public static MessagePackSerializerOptions CreateOptions(IFormatterResolver gameResolver) =>
+            MessagePackSerializerOptions.Standard.WithResolver(
+                CompositeResolver.Create(gameResolver, ContentResolver.Instance, StandardResolver.Instance)
+            );
     }
 
     [GeneratedMessagePackResolver]
-    internal partial class ContentResolver
-    {
-    }
+    internal partial class ContentResolver { }
 }

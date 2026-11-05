@@ -21,14 +21,17 @@ public class TickLoopTests
     public async Task OverrunningTickDoesNotCatchUp()
     {
         var ticks = 0;
-        var loop = new TickLoop(tickRate: 100, tick =>
-        {
-            Interlocked.Increment(ref ticks);
-            if (tick == 1)
+        var loop = new TickLoop(
+            tickRate: 100,
+            tick =>
             {
-                Thread.Sleep(200);
+                Interlocked.Increment(ref ticks);
+                if (tick == 1)
+                {
+                    Thread.Sleep(200);
+                }
             }
-        });
+        );
 
         loop.Start();
         await Task.Delay(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
@@ -42,14 +45,17 @@ public class TickLoopTests
     public async Task AFailingTickStopsTheLoopAndReportsIt()
     {
         var ticks = 0;
-        var loop = new TickLoop(tickRate: 100, tick =>
-        {
-            Interlocked.Increment(ref ticks);
-            if (tick == 3)
+        var loop = new TickLoop(
+            tickRate: 100,
+            tick =>
             {
-                throw new InvalidOperationException("boom");
+                Interlocked.Increment(ref ticks);
+                if (tick == 3)
+                {
+                    throw new InvalidOperationException("boom");
+                }
             }
-        });
+        );
         var failed = new TaskCompletionSource<(uint, Exception)>();
         loop.Failed += (tick, e) => failed.TrySetResult((tick, e));
 

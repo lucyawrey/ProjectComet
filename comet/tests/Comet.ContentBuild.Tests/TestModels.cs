@@ -15,7 +15,14 @@ internal static class TestModels
             var mesh = model.CreateMesh(name);
             var positions = model.CreateAccessor();
 #pragma warning disable CS0618 // SetData with DimensionType and EncodingType: plain enough for one test triangle
-            positions.SetData(model.UseBufferView(Floats(new Vector3(0, 1, 0), new Vector3(0, 1, 1), new Vector3(1, 1, 0))), 0, 3, DimensionType.VEC3, EncodingType.FLOAT, false);
+            positions.SetData(
+                model.UseBufferView(Floats(new Vector3(0, 1, 0), new Vector3(0, 1, 1), new Vector3(1, 1, 0))),
+                0,
+                3,
+                DimensionType.VEC3,
+                EncodingType.FLOAT,
+                false
+            );
 #pragma warning restore CS0618
             mesh.CreatePrimitive().SetVertexAccessor("POSITION", positions);
             var node = scene.CreateNode(name);

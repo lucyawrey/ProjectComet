@@ -92,13 +92,31 @@ public class ClientSessionTests
     public void StatesFeedTheBufferOnceTheGameSpawnsTheEntity()
     {
         Welcome(now: 0);
-        ServerSends(103, MessageIds.EntityState, new EntityState { EntityId = 9, X = 1, Tick = 103 });
+        ServerSends(
+            103,
+            MessageIds.EntityState,
+            new EntityState
+            {
+                EntityId = 9,
+                X = 1,
+                Tick = 103,
+            }
+        );
         _session.Update(0.1);
         Assert.False(_session.Entities.Contains(9));
 
         _session.Entities.Spawn(9, 103, Vector3.Zero, 0);
         // Buffered by the state's own tick, not the tick of the frame that carried it.
-        ServerSends(108, MessageIds.EntityState, new EntityState { EntityId = 9, X = 2, Tick = 105 });
+        ServerSends(
+            108,
+            MessageIds.EntityState,
+            new EntityState
+            {
+                EntityId = 9,
+                X = 2,
+                Tick = 105,
+            }
+        );
         _session.Update(0.2);
 
         Assert.Equal(2, _session.StatesReceived);
@@ -119,7 +137,16 @@ public class ClientSessionTests
         // A hidden tab: states kept arriving for 10 s, but the session only sees them all when it runs again.
         for (uint tick = 104; tick < 404; tick += 2)
         {
-            ServerSends(tick, MessageIds.EntityState, new EntityState { EntityId = 9, X = tick / 100f, Tick = tick });
+            ServerSends(
+                tick,
+                MessageIds.EntityState,
+                new EntityState
+                {
+                    EntityId = 9,
+                    X = tick / 100f,
+                    Tick = tick,
+                }
+            );
         }
 
         _session.Update(15.1);
@@ -152,7 +179,16 @@ public class ClientSessionTests
         _session.Flush(0);
         Sent();
 
-        ServerSends(110, MessageIds.PositionCorrection, new PositionCorrection { Sequence = 3, Reason = CorrectionReason.SnapBack, X = 4 });
+        ServerSends(
+            110,
+            MessageIds.PositionCorrection,
+            new PositionCorrection
+            {
+                Sequence = 3,
+                Reason = CorrectionReason.SnapBack,
+                X = 4,
+            }
+        );
         _session.Update(0.1);
         _session.ReportPosition(new Vector3(4, 0, 0), Vector3.UnitX, 1);
         _session.Flush(0.1);
@@ -259,7 +295,10 @@ public class ClientSessionTests
             var waited = now - (start + 3);
             if (Math.Abs(waited - ClientSession.ReportHoldSeconds) > 0.02)
             {
-                Assert.True(waited > ClientSession.ReportHoldSeconds == _session.ReportsHeld, $"held: {_session.ReportsHeld} at {now - start:0.000} s");
+                Assert.True(
+                    waited > ClientSession.ReportHoldSeconds == _session.ReportsHeld,
+                    $"held: {_session.ReportsHeld} at {now - start:0.000} s"
+                );
             }
         }
     }
@@ -345,8 +384,6 @@ public class ClientSessionTests
 
         public void Close() => CloseRequested = true;
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() { }
     }
 }

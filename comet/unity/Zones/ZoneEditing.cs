@@ -20,7 +20,8 @@ namespace Comet.Unity
 
         // Kept as base64 text, not a byte array: Unity's undo compares arrays element by element when their length
         // changes, which took seconds for each terrain stroke, while a string is one value.
-        [SerializeField, HideInInspector] private string zoneData = "";
+        [SerializeField, HideInInspector]
+        private string zoneData = "";
 
         /// <summary>The zone's stored parts, serialized. Set it after <c>Undo.RecordObject</c> to make an undo step.</summary>
         public byte[] ZoneData

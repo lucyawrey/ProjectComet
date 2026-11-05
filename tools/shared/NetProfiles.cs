@@ -18,7 +18,12 @@ public static class NetProfiles
             "awful" => ("100ms", "25ms", "5%"),
             _ => throw Tool.Fail($"Unknown network profile {profile} (none, good, bad or awful).", 2),
         };
-        return new() { [$"{prefix}_DELAY"] = delay, [$"{prefix}_JITTER"] = jitter, [$"{prefix}_LOSS"] = loss };
+        return new()
+        {
+            [$"{prefix}_DELAY"] = delay,
+            [$"{prefix}_JITTER"] = jitter,
+            [$"{prefix}_LOSS"] = loss,
+        };
     }
 
     // Fails unless the kernel modules netem needs are loaded. Only Linux runs Docker on this machine's own kernel.
@@ -29,8 +34,10 @@ public static class NetProfiles
     {
         if (!OperatingSystem.IsLinux())
         {
-            Console.Error.WriteLine("Simulated network runs are tested on Linux; Docker Desktop's VM may have no ifb device, and the " +
-                "server's container then stops at \"Unknown device type\".");
+            Console.Error.WriteLine(
+                "Simulated network runs are tested on Linux; Docker Desktop's VM may have no ifb device, and the "
+                    + "server's container then stops at \"Unknown device type\"."
+            );
             return;
         }
         foreach (var module in new[] { "ifb", "sch_netem", "sch_ingress", "act_mirred", "cls_matchall" })
@@ -40,10 +47,8 @@ public static class NetProfiles
 
     // The host user for the containers, so files they write in artifacts/ stay readable outside Docker. Docker
     // Desktop maps file owners itself, so Windows leaves it to the compose file's default.
-    public static string? HostUser() =>
-        OperatingSystem.IsWindows() ? null : $"{Tool.Output("id", "-u")}:{Tool.Output("id", "-g")}";
+    public static string? HostUser() => OperatingSystem.IsWindows() ? null : $"{Tool.Output("id", "-u")}:{Tool.Output("id", "-g")}";
 
     // A connection string for this machine's comet-postgres, as containers on the comet network reach it.
-    public static string ForContainers(string connection) =>
-        connection.Replace("Host=127.0.0.1;Port=55432", "Host=comet-postgres;Port=5432");
+    public static string ForContainers(string connection) => connection.Replace("Host=127.0.0.1;Port=55432", "Host=comet-postgres;Port=5432");
 }

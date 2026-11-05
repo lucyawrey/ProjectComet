@@ -79,8 +79,20 @@ namespace Comet.Unity.Editor
             try
             {
                 building = new Process { StartInfo = start };
-                building.OutputDataReceived += (_, e) => { lock (output) { output.AppendLine(e.Data); } };
-                building.ErrorDataReceived += (_, e) => { lock (output) { output.AppendLine(e.Data); } };
+                building.OutputDataReceived += (_, e) =>
+                {
+                    lock (output)
+                    {
+                        output.AppendLine(e.Data);
+                    }
+                };
+                building.ErrorDataReceived += (_, e) =>
+                {
+                    lock (output)
+                    {
+                        output.AppendLine(e.Data);
+                    }
+                };
                 building.Start();
                 building.BeginOutputReadLine();
                 building.BeginErrorReadLine();
@@ -170,7 +182,11 @@ namespace Comet.Unity.Editor
             var name = windows ? "dotnet.exe" : "dotnet";
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var known = windows
-                ? new[] { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet", name), Path.Combine(home, ".dotnet", name) }
+                ? new[]
+                {
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet", name),
+                    Path.Combine(home, ".dotnet", name),
+                }
                 : new[]
                 {
                     Path.Combine(home, ".dotnet", name),
@@ -179,8 +195,10 @@ namespace Comet.Unity.Editor
                     "/usr/share/dotnet/dotnet",
                     "/usr/bin/dotnet",
                 };
-            var onPath = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
-                .Where(dir => dir.Length > 0).Select(dir => Path.Combine(dir, name));
+            var onPath = (Environment.GetEnvironmentVariable("PATH") ?? "")
+                .Split(Path.PathSeparator)
+                .Where(dir => dir.Length > 0)
+                .Select(dir => Path.Combine(dir, name));
             return onPath.Concat(known).FirstOrDefault(File.Exists) ?? "dotnet";
         }
 

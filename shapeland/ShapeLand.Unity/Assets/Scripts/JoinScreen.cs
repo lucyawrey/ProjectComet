@@ -30,7 +30,8 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(UIDocument), typeof(JoinClient), typeof(GameView))]
     public sealed class JoinScreen : MonoBehaviour
     {
-        [SerializeField] private ShapePreview previewPrefab;
+        [SerializeField]
+        private ShapePreview previewPrefab;
 
         // The PlayerPrefs key for the server remembered for next time.
         private const string ServerKey = "remember.login";
@@ -48,6 +49,7 @@ namespace ShapeLand.Client
         private Button _joinButton;
         private Button _cancelButton;
         private Button _backButton;
+
         // Where Back goes, when the card was opened from the Esc menu.
         private Action _back;
         private VisualElement _serverField;
@@ -59,10 +61,12 @@ namespace ShapeLand.Client
         private VisualElement _nameRow;
         private VisualElement[] _pageRows;
         private Label _serverText;
+
         // The address when Change was pressed, for Cancel to put back.
         private string _serverBefore;
         private Label _pageName;
         private VisualElement _signIn;
+
         // With accounts off, the last join's name and look, for joining again after the server restarts.
         private string _devName;
         private NewCharacter _devLook;
@@ -82,9 +86,11 @@ namespace ShapeLand.Client
         private VisualElement _whoGuestNote;
         private ConfirmPanel _confirm;
         private bool _withCode;
+
         // A new player's name that's taken: the card points them to Sign in, filled in with it.
         private string _takenName;
         private bool _busy;
+
         // The connecting pop-up: each join from it counts, so a cancelled one's answer is ignored; the dots step.
         private VisualElement _pop;
         private Label _popMain;
@@ -95,6 +101,7 @@ namespace ShapeLand.Client
         private int _popDot;
         private float _popDotAt;
         private ShapePreview _preview;
+
         // Keys and gamepad: the rows they move through (name, shape, color, eyes, then the bottom line of server field
         // and buttons), the selected one, the selected item on the bottom line, and the held direction's repeat.
         private VisualElement[] _rows;
@@ -102,12 +109,15 @@ namespace ShapeLand.Client
         private VisualElement _buttonsRow;
         private int _row;
         private int _buttonIndex;
+
         // Up from the name row reaches Back, when the card has it (opened from the Esc menu).
         private bool _onBack;
         private Vector2 _held;
         private float _repeatAt;
         private int _shownOnFrame;
-        private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
+        private const float RepeatDelay = 0.4f,
+            RepeatInterval = 0.1f;
+
         // What each shape and color button does, for left and right to pick with.
         private readonly Dictionary<VisualElement, Action> _choose = new();
 
@@ -146,7 +156,8 @@ namespace ShapeLand.Client
         public string ConnectingError => Connecting && _pop.ClassListContains("failed") ? _popMain.text : null;
 
         /// <summary>True while a text field on the card has the keyboard.</summary>
-        public bool Typing => _root?.focusController?.focusedElement is VisualElement focused
+        public bool Typing =>
+            _root?.focusController?.focusedElement is VisualElement focused
             && (focused is TextField || focused.GetFirstAncestorOfType<TextField>() != null);
 
         /// <summary>The message on the card, or null when there is none.</summary>
@@ -156,48 +167,53 @@ namespace ShapeLand.Client
         public static (float Speed, float JumpHeight) Stats(Shape shape, MovementRules rules) => (shape.MaxSpeed, rules.JumpApex(shape.JumpVelocity));
 
         /// <summary>What the card says when the server refuses a join.</summary>
-        public static string RefusalMessage(StringTable strings, JoinRejection reason) => reason switch
-        {
-            JoinRejection.DifferentContent => strings.Get(Debug.isDebugBuild ? "join.different_content_dev" : "join.different_content"),
-            JoinRejection.Busy => strings.Get("join.busy"),
-            JoinRejection.Replaced => strings.Get("drop.replaced"),
-            JoinRejection.NoCharacter => strings.Get("account.no_character"),
-            JoinRejection.AccountsNeeded => strings.Get("join.accounts_needed"),
-            JoinRejection.BadName => strings.Get("join.name_rules"),
-            JoinRejection.NameOnline => strings.Get("join.name_online"),
-            JoinRejection.NameTaken => strings.Get("join.bot_name"),
-            _ => strings.Get("join.not_accepted"),
-        };
+        public static string RefusalMessage(StringTable strings, JoinRejection reason) =>
+            reason switch
+            {
+                JoinRejection.DifferentContent => strings.Get(Debug.isDebugBuild ? "join.different_content_dev" : "join.different_content"),
+                JoinRejection.Busy => strings.Get("join.busy"),
+                JoinRejection.Replaced => strings.Get("drop.replaced"),
+                JoinRejection.NoCharacter => strings.Get("account.no_character"),
+                JoinRejection.AccountsNeeded => strings.Get("join.accounts_needed"),
+                JoinRejection.BadName => strings.Get("join.name_rules"),
+                JoinRejection.NameOnline => strings.Get("join.name_online"),
+                JoinRejection.NameTaken => strings.Get("join.bot_name"),
+                _ => strings.Get("join.not_accepted"),
+            };
 
         /// <summary>What the card says for a Login server error code (<see cref="LoginErrors"/>).</summary>
-        public static string LoginMessage(StringTable strings, string code, string name = "") => code switch
-        {
-            LoginErrors.NameTaken => strings.Format("join.name_taken", ("username", name)),
-            LoginErrors.InvalidName => strings.Get("join.name_rules"),
-            LoginErrors.WrongPassword => strings.Get("account.wrong_password"),
-            LoginErrors.WrongCode => strings.Get("account.wrong_code"),
-            LoginErrors.LockedOut => strings.Get("account.locked_out"),
-            LoginErrors.RateLimited => strings.Get("account.rate_limited"),
-            LoginErrors.WeakPassword => strings.Get("account.weak_password"),
-            LoginErrors.SignInAgain => strings.Get("account.sign_in_again"),
-            LoginErrors.Banned => strings.Get("account.banned"),
-            LoginErrors.AccountDeleted => strings.Get("account.deleted"),
-            LoginErrors.NoCharacter => strings.Get("account.no_character"),
-            LoginErrors.SignedOut => strings.Get("account.signed_out"),
-            Comet.Client.Login.LoginClient<CharacterView>.Unreachable => strings.Get("account.unreachable"),
-            _ => strings.Get("account.failed"),
-        };
+        public static string LoginMessage(StringTable strings, string code, string name = "") =>
+            code switch
+            {
+                LoginErrors.NameTaken => strings.Format("join.name_taken", ("username", name)),
+                LoginErrors.InvalidName => strings.Get("join.name_rules"),
+                LoginErrors.WrongPassword => strings.Get("account.wrong_password"),
+                LoginErrors.WrongCode => strings.Get("account.wrong_code"),
+                LoginErrors.LockedOut => strings.Get("account.locked_out"),
+                LoginErrors.RateLimited => strings.Get("account.rate_limited"),
+                LoginErrors.WeakPassword => strings.Get("account.weak_password"),
+                LoginErrors.SignInAgain => strings.Get("account.sign_in_again"),
+                LoginErrors.Banned => strings.Get("account.banned"),
+                LoginErrors.AccountDeleted => strings.Get("account.deleted"),
+                LoginErrors.NoCharacter => strings.Get("account.no_character"),
+                LoginErrors.SignedOut => strings.Get("account.signed_out"),
+                Comet.Client.Login.LoginClient<CharacterView>.Unreachable => strings.Get("account.unreachable"),
+                _ => strings.Get("account.failed"),
+            };
 
         /// <summary>What the card says after the connection was lost for <paramref name="reason"/>.</summary>
-        public static string LostMessage(StringTable strings, CloseReason reason) => strings.Get(reason switch
-        {
-            CloseReason.Lost => "connection.lost",
-            CloseReason.ServerClosed => "connection.server_closed",
-            CloseReason.ServerShutDown => "connection.server_shut_down",
-            CloseReason.FellBehind => "connection.fell_behind",
-            CloseReason.ProtocolError => "connection.protocol_error",
-            _ => "connection.failed",
-        });
+        public static string LostMessage(StringTable strings, CloseReason reason) =>
+            strings.Get(
+                reason switch
+                {
+                    CloseReason.Lost => "connection.lost",
+                    CloseReason.ServerClosed => "connection.server_closed",
+                    CloseReason.ServerShutDown => "connection.server_shut_down",
+                    CloseReason.FellBehind => "connection.fell_behind",
+                    CloseReason.ProtocolError => "connection.protocol_error",
+                    _ => "connection.failed",
+                }
+            );
 
         private void Awake()
         {
@@ -272,7 +288,15 @@ namespace ShapeLand.Client
             // rows (name, shape, color, eyes), the buttons, and the server line; only those in sight are reached.
             _scroll = tree.Q<ScrollView>("card-scroll");
             _nameRow = tree.Q("name-row");
-            _pageRows = new VisualElement[] { _signInUsernameField, _signInPasswordField, _signInCodeField, _useCode, tree.Q("set-password-row"), tree.Q("set-password-again-row") };
+            _pageRows = new VisualElement[]
+            {
+                _signInUsernameField,
+                _signInPasswordField,
+                _signInCodeField,
+                _useCode,
+                tree.Q("set-password-row"),
+                tree.Q("set-password-again-row"),
+            };
             _rows = _pageRows.Concat(_scroll.Query(className: "nav-row").ToList()).Append(_buttonsRow).Append(_serverLine).ToArray();
             for (var i = 0; i < _rows.Length; i++)
             {
@@ -440,7 +464,11 @@ namespace ShapeLand.Client
         }
 
         // What the card's main button says when it's ready.
-        private string MainButtonKey() => Changing ? "join.apply" : SigningIn ? "account.sign_in" : SettingPassword ? "account.save_password" : "join.play";
+        private string MainButtonKey() =>
+            Changing ? "join.apply"
+            : SigningIn ? "account.sign_in"
+            : SettingPassword ? "account.save_password"
+            : "join.play";
 
         private void SetButton(bool enabled, string key)
         {
@@ -572,7 +600,11 @@ namespace ShapeLand.Client
         {
             var remembered = PlayerPrefs.GetString(ServerKey, "");
 #if UNITY_EDITOR
-            if (Comet.Unity.LocalServerPort.LoginInEditor != null && Uri.TryCreate(JoinClient.LoginUrl(remembered), UriKind.Absolute, out var url) && url.IsLoopback)
+            if (
+                Comet.Unity.LocalServerPort.LoginInEditor != null
+                && Uri.TryCreate(JoinClient.LoginUrl(remembered), UriKind.Absolute, out var url)
+                && url.IsLoopback
+            )
             {
                 return _join.DefaultLoginAddress;
             }
@@ -642,7 +674,15 @@ namespace ShapeLand.Client
                 int Known(int color) => _content.Colors.TryGet(color, out _) ? color : _content.Colors.All[0].Number;
                 var (color, eyeColor) = (Known(last.Color), Known(last.EyeColor));
                 var lastShape = _content.Shapes.TryGet(last.Shape, out var shape) ? shape : _content.Shapes.All[0];
-                (_devName, _devLook) = (last.Name, new NewCharacter { Shape = lastShape.Number, Color = color, EyeColor = eyeColor });
+                (_devName, _devLook) = (
+                    last.Name,
+                    new NewCharacter
+                    {
+                        Shape = lastShape.Number,
+                        Color = color,
+                        EyeColor = eyeColor,
+                    }
+                );
                 if (GameSettings.AutoJoin)
                 {
                     JoinFromPop();
@@ -678,7 +718,9 @@ namespace ShapeLand.Client
             public long Id;
             public long AccountId;
             public string Name = "";
-            public int Shape, Color, EyeColor;
+            public int Shape,
+                Color,
+                EyeColor;
             public bool IsDeleted;
         }
 
@@ -711,8 +753,11 @@ namespace ShapeLand.Client
                     return null;
                 }
 
-                var latest = file.Statuses?.Where(st => live.Any(c => c.Id == st.CharacterId))
-                    .OrderByDescending(st => DateTime.TryParse(st.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind, out var at) ? at : DateTime.MinValue)
+                var latest = file
+                    .Statuses?.Where(st => live.Any(c => c.Id == st.CharacterId))
+                    .OrderByDescending(st =>
+                        DateTime.TryParse(st.UpdatedAt, null, System.Globalization.DateTimeStyles.RoundtripKind, out var at) ? at : DateTime.MinValue
+                    )
                     .FirstOrDefault();
                 return latest != null ? live.First(c => c.Id == latest.CharacterId) : live[live.Count - 1];
             }
@@ -820,16 +865,24 @@ namespace ShapeLand.Client
             var strings = _content.Strings;
             if (_join.Account?.Guest ?? true)
             {
-                _confirm.Show(strings.Get("account.sign_out_guest_title"), strings.Get("account.sign_out_guest_note"), null,
+                _confirm.Show(
+                    strings.Get("account.sign_out_guest_title"),
+                    strings.Get("account.sign_out_guest_note"),
+                    null,
                     (Text("account.set_password"), false, () => SetSettingPassword(true)),
                     (Text("account.stay"), false, null),
-                    (Text("account.sign_out"), true, SignOut));
+                    (Text("account.sign_out"), true, SignOut)
+                );
             }
             else
             {
-                _confirm.Show(Text("account.sign_out_title"), Text("account.sign_out_note"), null,
+                _confirm.Show(
+                    Text("account.sign_out_title"),
+                    Text("account.sign_out_note"),
+                    null,
                     (Text("account.sign_out"), true, SignOut),
-                    (Text("account.stay"), false, null));
+                    (Text("account.stay"), false, null)
+                );
             }
         }
 
@@ -941,8 +994,16 @@ namespace ShapeLand.Client
             var (speed, jump) = Stats(_shape, _content.Movement);
             _stats.Clear();
             var strings = _content.Strings;
-            _stats.Add(Stat(strings.Get("join.speed"), strings.Format("join.speed_value", ("speed", speed.ToString("0.#"))), speed / best.Max(s => s.Speed)));
-            _stats.Add(Stat(strings.Get("join.jump"), strings.Format("join.jump_value", ("height", jump.ToString("0.0"))), jump / best.Max(s => s.JumpHeight)));
+            _stats.Add(
+                Stat(strings.Get("join.speed"), strings.Format("join.speed_value", ("speed", speed.ToString("0.#"))), speed / best.Max(s => s.Speed))
+            );
+            _stats.Add(
+                Stat(
+                    strings.Get("join.jump"),
+                    strings.Format("join.jump_value", ("height", jump.ToString("0.0"))),
+                    jump / best.Max(s => s.JumpHeight)
+                )
+            );
         }
 
         private static void MarkSwatch(VisualElement row, int color)
@@ -1006,8 +1067,14 @@ namespace ShapeLand.Client
         private static Vector2 TypingArrows()
         {
             var keyboard = Keyboard.current;
-            return keyboard == null ? Vector2.zero
-                : new Vector2(0, keyboard.upArrowKey.isPressed ? 1 : keyboard.downArrowKey.isPressed ? -1 : 0);
+            return keyboard == null
+                ? Vector2.zero
+                : new Vector2(
+                    0,
+                    keyboard.upArrowKey.isPressed ? 1
+                        : keyboard.downArrowKey.isPressed ? -1
+                        : 0
+                );
         }
 
         /// <summary>
@@ -1062,7 +1129,15 @@ namespace ShapeLand.Client
             SetButton(false, "join.joining");
             if (!JoinClient.Accounts)
             {
-                (_devName, _devLook) = (name, new NewCharacter { Shape = _shape.Number, Color = _color, EyeColor = _eyeColor });
+                (_devName, _devLook) = (
+                    name,
+                    new NewCharacter
+                    {
+                        Shape = _shape.Number,
+                        Color = _color,
+                        EyeColor = _eyeColor,
+                    }
+                );
                 _join.DevJoin(_devName, _devLook); // the spawn, a refusal or a failure comes next
                 return;
             }
@@ -1070,7 +1145,15 @@ namespace ShapeLand.Client
 #if !UNITY_WEBGL || UNITY_EDITOR
             _join.UseLoginServer(ServerAddress());
 #endif
-            var error = await _join.CreateGuestAsync(name, new NewCharacter { Shape = _shape.Number, Color = _color, EyeColor = _eyeColor });
+            var error = await _join.CreateGuestAsync(
+                name,
+                new NewCharacter
+                {
+                    Shape = _shape.Number,
+                    Color = _color,
+                    EyeColor = _eyeColor,
+                }
+            );
             if (error == LoginErrors.NameTaken)
             {
                 // Probably the player's own account from another device: Sign in, filled in with the name.
@@ -1103,7 +1186,14 @@ namespace ShapeLand.Client
 
             ShowError(null);
             SetButton(false, "join.applying");
-            _join.ChangeLook(new LookChange { Shape = _shape.Number, Color = _color, EyeColor = _eyeColor });
+            _join.ChangeLook(
+                new LookChange
+                {
+                    Shape = _shape.Number,
+                    Color = _color,
+                    EyeColor = _eyeColor,
+                }
+            );
         }
 
         // The signed-in card's Set password page; back to the card once it's saved.
@@ -1457,7 +1547,10 @@ namespace ShapeLand.Client
         private int FirstRow() => Math.Max(0, Array.FindIndex(_rows, Usable));
 
         // Back above the top row: the card's own pages', or the look card's when it came from the Esc menu.
-        private Button CurrentBack => SigningIn || SettingPassword ? _pageBack : FromMenu ? _backButton : null;
+        private Button CurrentBack =>
+            SigningIn || SettingPassword ? _pageBack
+            : FromMenu ? _backButton
+            : null;
 
         private void SelectBack()
         {
@@ -1492,18 +1585,22 @@ namespace ShapeLand.Client
             {
                 var signIn = !Changing && !SigningIn && !SignedInCard && !SettingPassword;
                 return new VisualElement[] { signIn ? _signInButton : null, SignedInCard ? _signOutButton : null, _cancelButton, _joinButton }
-                    .Where(item => item != null && Usable(item)).ToList();
+                    .Where(item => item != null && Usable(item))
+                    .ToList();
             }
 
             if (row == _serverLine)
             {
-                return _serverLine.ClassListContains("open") ? new List<VisualElement> { _serverField, _serverCancel } : new List<VisualElement> { _serverChange };
+                return _serverLine.ClassListContains("open")
+                    ? new List<VisualElement> { _serverField, _serverCancel }
+                    : new List<VisualElement> { _serverChange };
             }
 
             return new List<VisualElement>();
         }
 
-        private VisualElement[] AllItems() => new VisualElement[] { _signInButton, _signOutButton, _cancelButton, _joinButton, _serverChange, _serverField, _serverCancel };
+        private VisualElement[] AllItems() =>
+            new VisualElement[] { _signInButton, _signOutButton, _cancelButton, _joinButton, _serverChange, _serverField, _serverCancel };
 
         private void SelectItem(VisualElement item)
         {
@@ -1665,7 +1762,10 @@ namespace ShapeLand.Client
                 JoinFailure.BadAddress => _content.Strings.Format("join.bad_address", ("address", _join.Error ?? "")),
                 JoinFailure.Unanswered => Text("join.unanswered"),
                 _ when Application.platform == RuntimePlatform.WebGLPlayer => Text("join.unreachable_web"),
-                _ => _content.Strings.Format("join.unreachable", ("address", JoinClient.Accounts ? _join.LoginAddress : $"localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}")),
+                _ => _content.Strings.Format(
+                    "join.unreachable",
+                    ("address", JoinClient.Accounts ? _join.LoginAddress : $"localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}")
+                ),
             };
             if (Connecting)
             {

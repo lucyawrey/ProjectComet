@@ -15,19 +15,24 @@ namespace Comet.Content
         public const ushort Hole = 0;
 
         /// <summary>Samples along X.</summary>
-        [Key(0)] public int SizeX { get; set; }
+        [Key(0)]
+        public int SizeX { get; set; }
 
         /// <summary>Samples along Z.</summary>
-        [Key(1)] public int SizeZ { get; set; }
+        [Key(1)]
+        public int SizeZ { get; set; }
 
         /// <summary>Meters per sample step.</summary>
-        [Key(2)] public float Scale { get; set; }
+        [Key(2)]
+        public float Scale { get; set; }
 
         /// <summary>The height in meters of sample value 0; ground samples start at 1.</summary>
-        [Key(3)] public float Offset { get; set; }
+        [Key(3)]
+        public float Offset { get; set; }
 
         /// <summary><see cref="SizeX"/> × <see cref="SizeZ"/> samples, row by row along Z.</summary>
-        [Key(4)] public ushort[] Samples { get; set; } = new ushort[0];
+        [Key(4)]
+        public ushort[] Samples { get; set; } = new ushort[0];
 
         /// <summary>True where the sample at column <paramref name="x"/>, row <paramref name="z"/> has no ground.</summary>
         public bool IsHole(int x, int z) => Samples[z * SizeX + x] == Hole;

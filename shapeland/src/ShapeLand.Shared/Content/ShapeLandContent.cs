@@ -13,7 +13,15 @@ namespace ShapeLand.Shared.Content
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
         /// <summary>Content made in memory (by the content build, or tests); <see cref="Fingerprint"/> is 0 until it's saved.</summary>
-        public ShapeLandContent(IEnumerable<Shape> shapes, GameSettings settings, StringTable strings, IEnumerable<Prop> props, IEnumerable<Zone> zones, IEnumerable<Group>? groups = null, IEnumerable<PlayerColor>? colors = null)
+        public ShapeLandContent(
+            IEnumerable<Shape> shapes,
+            GameSettings settings,
+            StringTable strings,
+            IEnumerable<Prop> props,
+            IEnumerable<Zone> zones,
+            IEnumerable<Group>? groups = null,
+            IEnumerable<PlayerColor>? colors = null
+        )
         {
             Colors = new ContentTable<PlayerColor>("color", colors ?? Enumerable.Empty<PlayerColor>());
             Groups = new ContentTable<Group>("group", (groups ?? Enumerable.Empty<Group>()).OrderBy(g => g.Number));
@@ -33,7 +41,9 @@ namespace ShapeLand.Shared.Content
 
         /// <summary>A player color's 0xRRGGBB by its number, or the first color's for a number the content doesn't have.</summary>
         public uint ColorRgb(int number) =>
-            Colors.TryGet(number, out var color) ? color.Rgb : Colors.All.Count > 0 ? Colors.All[0].Rgb : 0xFFFFFF;
+            Colors.TryGet(number, out var color) ? color.Rgb
+            : Colors.All.Count > 0 ? Colors.All[0].Rgb
+            : 0xFFFFFF;
 
         /// <summary>The game-wide values (<c>content/settings/game.toml</c>).</summary>
         public GameSettings Settings { get; }
@@ -56,8 +66,10 @@ namespace ShapeLand.Shared.Content
         /// <summary>The primitive kind of a shape's body (its look's first <c>body</c> part), or null if it has none.</summary>
         public PrimitiveKind? BodyKind(Shape shape) =>
             Groups.TryGet(shape.Look, out var look)
-                ? Comet.Content.Groups.Expand(new Placement { Group = look.Id }, key => Groups.TryGet(key, out var g) ? g : null)
-                    .FirstOrDefault(p => p.Role == "body")?.Primitive?.Kind
+                ? Comet
+                    .Content.Groups.Expand(new Placement { Group = look.Id }, key => Groups.TryGet(key, out var g) ? g : null)
+                    .FirstOrDefault(p => p.Role == "body")
+                    ?.Primitive?.Kind
                 : null;
 
         /// <summary>
@@ -82,13 +94,28 @@ namespace ShapeLand.Shared.Content
                 throw new ContentException("The content file is corrupt or from an incompatible build.", e);
             }
 
-            return new ShapeLandContent(file.Shapes, file.Settings, file.Strings, file.Props, file.Zones, file.Groups, file.Colors) { Fingerprint = FingerprintOf(data) };
+            return new ShapeLandContent(file.Shapes, file.Settings, file.Strings, file.Props, file.Zones, file.Groups, file.Colors)
+            {
+                Fingerprint = FingerprintOf(data),
+            };
         }
 
         /// <summary>Writes the content file and sets <see cref="Fingerprint"/> to match it.</summary>
         public void Save(Stream stream)
         {
-            var data = MessagePackSerializer.Serialize(new ContentFile { Shapes = Shapes.All.ToArray(), Strings = Strings, Props = Props.All.ToArray(), Zones = Zones.All.ToArray(), Settings = Settings, Groups = Groups.All.ToArray(), Colors = Colors.All.ToArray() }, SerializerOptions);
+            var data = MessagePackSerializer.Serialize(
+                new ContentFile
+                {
+                    Shapes = Shapes.All.ToArray(),
+                    Strings = Strings,
+                    Props = Props.All.ToArray(),
+                    Zones = Zones.All.ToArray(),
+                    Settings = Settings,
+                    Groups = Groups.All.ToArray(),
+                    Colors = Colors.All.ToArray(),
+                },
+                SerializerOptions
+            );
             Fingerprint = FingerprintOf(data);
             stream.Write(data, 0, data.Length);
         }
@@ -108,24 +135,29 @@ namespace ShapeLand.Shared.Content
         [MessagePackObject(AllowPrivate = true)]
         internal sealed class ContentFile
         {
-            [Key(0)] public Shape[] Shapes { get; set; } = new Shape[0];
+            [Key(0)]
+            public Shape[] Shapes { get; set; } = new Shape[0];
 
-            [Key(2)] public StringTable Strings { get; set; } = new StringTable();
+            [Key(2)]
+            public StringTable Strings { get; set; } = new StringTable();
 
-            [Key(3)] public Zone[] Zones { get; set; } = new Zone[0];
+            [Key(3)]
+            public Zone[] Zones { get; set; } = new Zone[0];
 
-            [Key(4)] public Prop[] Props { get; set; } = new Prop[0];
+            [Key(4)]
+            public Prop[] Props { get; set; } = new Prop[0];
 
-            [Key(5)] public GameSettings Settings { get; set; } = new GameSettings();
+            [Key(5)]
+            public GameSettings Settings { get; set; } = new GameSettings();
 
-            [Key(6)] public Group[] Groups { get; set; } = new Group[0];
+            [Key(6)]
+            public Group[] Groups { get; set; } = new Group[0];
 
-            [Key(7)] public PlayerColor[] Colors { get; set; } = new PlayerColor[0];
+            [Key(7)]
+            public PlayerColor[] Colors { get; set; } = new PlayerColor[0];
         }
     }
 
     [GeneratedMessagePackResolver]
-    internal partial class ShapeLandResolver
-    {
-    }
+    internal partial class ShapeLandResolver { }
 }

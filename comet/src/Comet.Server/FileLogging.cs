@@ -63,13 +63,17 @@ public static class FileLogging
         private static StreamWriter Open(string path)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            return new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) { AutoFlush = true };
+            return new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+            {
+                AutoFlush = true,
+            };
         }
     }
 
     private sealed class FileLogger(string category, StreamWriter writer) : ILogger
     {
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
 

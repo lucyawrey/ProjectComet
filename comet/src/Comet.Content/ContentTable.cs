@@ -38,13 +38,10 @@ namespace Comet.Content
         /// <summary>Every entry, in number order.</summary>
         public IReadOnlyList<T> All => _all;
 
-        public T this[string id] => _byId.TryGetValue(id, out var entry)
-            ? entry
-            : throw new ContentException($"Unknown {Kind} id '{id}'.");
+        public T this[string id] => _byId.TryGetValue(id, out var entry) ? entry : throw new ContentException($"Unknown {Kind} id '{id}'.");
 
-        public T this[int number] => _byNumber.TryGetValue(number, out var entry)
-            ? entry
-            : throw new ContentException($"Unknown {Kind} number {number}.");
+        public T this[int number] =>
+            _byNumber.TryGetValue(number, out var entry) ? entry : throw new ContentException($"Unknown {Kind} number {number}.");
 
         /// <summary>The entry with <paramref name="id"/>, if there is one.</summary>
         public bool TryGet(string id, out T entry) => _byId.TryGetValue(id, out entry!);

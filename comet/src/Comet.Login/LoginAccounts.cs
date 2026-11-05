@@ -32,7 +32,8 @@ public sealed class LoginAccounts<TCharacter>(
     TicketIssuer tickets,
     SnowflakeIds ids,
     IOptions<LoginOptions> options,
-    TimeProvider clock)
+    TimeProvider clock
+)
     where TCharacter : Character
 {
     private const int MaxPasswordLength = 128;
@@ -42,14 +43,22 @@ public sealed class LoginAccounts<TCharacter>(
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     public async Task<(string? Token, LoginError? Error)> CreateGuestAsync(
-        string name, JsonElement characterRequest, CancellationToken cancellationToken)
+        string name,
+        JsonElement characterRequest,
+        CancellationToken cancellationToken
+    )
     {
         if (rules.CheckName(name) is { } invalid)
         {
             return (null, new(StatusCodes.Status400BadRequest, invalid));
         }
 
-        var account = new Account { Id = ids.Next(), UserName = name, LastActiveAt = Now };
+        var account = new Account
+        {
+            Id = ids.Next(),
+            UserName = name,
+            LastActiveAt = Now,
+        };
         var character = rules.CreateCharacter(ids.Next(), account.Id, name, characterRequest);
         if (character == null)
         {
@@ -81,7 +90,12 @@ public sealed class LoginAccounts<TCharacter>(
     }
 
     public async Task<(string? Token, LoginError? Error)> SignInAsync(
-        string username, string password, string address, bool restore, CancellationToken cancellationToken)
+        string username,
+        string password,
+        string address,
+        bool restore,
+        CancellationToken cancellationToken
+    )
     {
         var account = await users.FindByNameAsync(username);
         if (account == null || account.PasswordHash == null)
@@ -105,8 +119,7 @@ public sealed class LoginAccounts<TCharacter>(
     }
 
     /// <summary>Signs in with a recovery code, which works even while passwords are locked out, and revokes every other session.</summary>
-    public async Task<(string? Token, LoginError? Error)> SignInWithCodeAsync(
-        string typed, bool restore, CancellationToken cancellationToken)
+    public async Task<(string? Token, LoginError? Error)> SignInWithCodeAsync(string typed, bool restore, CancellationToken cancellationToken)
     {
         var code = RecoveryCodes.Normalize(typed);
         var hash = code == null ? null : RecoveryCodes.Hash(code);
@@ -273,8 +286,8 @@ public sealed class LoginAccounts<TCharacter>(
             {
                 await using var region = await regions.JoinAsync(db, cancellationToken);
                 var now = Now;
-                await region.Characters
-                    .Where(c => c.AccountId == account.Id && c.DeletedAt == null)
+                await region
+                    .Characters.Where(c => c.AccountId == account.Id && c.DeletedAt == null)
                     .ExecuteUpdateAsync(set => set.SetProperty(c => c.Name, name).SetProperty(c => c.UpdatedAt, now), cancellationToken);
             }
 
@@ -309,7 +322,11 @@ public sealed class LoginAccounts<TCharacter>(
     private bool IsRecent(Session session) => Now - session.CreatedAt < Settings.RecentSignIn;
 
     private async Task<(string? Token, LoginError? Error)> StartSessionAsync(
-        Account account, bool restore, bool revokeOthers, CancellationToken cancellationToken)
+        Account account,
+        bool restore,
+        bool revokeOthers,
+        CancellationToken cancellationToken
+    )
     {
         if (account.IsBanned)
         {
@@ -342,13 +359,15 @@ public sealed class LoginAccounts<TCharacter>(
     private async Task<string> NewSessionAsync(long accountId, CancellationToken cancellationToken)
     {
         var token = SessionTokens.New();
-        db.Sessions.Add(new()
-        {
-            Id = ids.Next(),
-            AccountId = accountId,
-            TokenHash = SessionTokens.Hash(token),
-            ExpiresAt = Now + Settings.SessionLifetime,
-        });
+        db.Sessions.Add(
+            new()
+            {
+                Id = ids.Next(),
+                AccountId = accountId,
+                TokenHash = SessionTokens.Hash(token),
+                ExpiresAt = Now + Settings.SessionLifetime,
+            }
+        );
         await db.SaveChangesAsync(cancellationToken);
         return token;
     }
@@ -359,7 +378,8 @@ public sealed class LoginAccounts<TCharacter>(
     private async Task<TCharacter?> CharacterOfAsync(long accountId, CancellationToken cancellationToken)
     {
         await using var region = regions.Create();
-        return await region.Characters.AsNoTracking()
+        return await region
+            .Characters.AsNoTracking()
             .Where(c => c.AccountId == accountId && c.DeletedAt == null)
             .OrderBy(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);

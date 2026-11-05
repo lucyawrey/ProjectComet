@@ -29,7 +29,14 @@ public class CollisionWorldTests
     public void SlopesHoldTheBodyAtTheirHighestPointUnderIt()
     {
         // A 45° ramp rising 2 m toward +X over x 0..2, its foot at (20, 0, 20): not walkable faces are ignored.
-        var ramp = new CollisionMesh([new Vector3(20, 0, 19), new Vector3(20, 0, 21), new Vector3(22, 2, 19), new Vector3(22, 2, 19), new Vector3(20, 0, 21), new Vector3(22, 2, 21)]);
+        var ramp = new CollisionMesh([
+            new Vector3(20, 0, 19),
+            new Vector3(20, 0, 21),
+            new Vector3(22, 2, 19),
+            new Vector3(22, 2, 19),
+            new Vector3(20, 0, 21),
+            new Vector3(22, 2, 21),
+        ]);
         var world = new CollisionWorld(null, [ramp], -20);
 
         Assert.True(world.TryGetGround(new Vector3(21, 5, 20), 0.4f, 5, out var ground));
@@ -130,7 +137,8 @@ public class CollisionWorldTests
         var wall = TestWorlds.Block(8, 8, 1, new Vector3(4, 3, 0.5f));
         wall.Tag = "wall";
         var world = TestWorlds.Create(wall);
-        Vector3 from = new(8, 2, 5), to = new(8, 2, 11);
+        Vector3 from = new(8, 2, 5),
+            to = new(8, 2, 11);
         Assert.True(world.IsLineBlocked(from, to));
         Assert.False(world.IsLineBlocked(from, to, new HashSet<int>(world.MeshesTagged("wall"))));
 

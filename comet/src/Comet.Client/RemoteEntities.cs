@@ -58,8 +58,15 @@ namespace Comet.Client
         /// <param name="gravity">Downward acceleration while dead-reckoning an entity moving vertically, in meters per second squared.</param>
         /// <param name="maxExtrapolation">How long, in seconds, an entity is dead-reckoned before it holds.</param>
         /// <param name="blend">How long, in seconds, the difference is eased out when a late state arrives.</param>
-        public RemoteEntities(int tickRate, double reportInterval = 1.0 / 15, double idleGap = 0.2, float teleportSpeed = float.PositiveInfinity,
-            float gravity = 0, double maxExtrapolation = 0.3, double blend = 0.15)
+        public RemoteEntities(
+            int tickRate,
+            double reportInterval = 1.0 / 15,
+            double idleGap = 0.2,
+            float teleportSpeed = float.PositiveInfinity,
+            float gravity = 0,
+            double maxExtrapolation = 0.3,
+            double blend = 0.15
+        )
         {
             TickRate = tickRate;
             ReportIntervalTicks = reportInterval * tickRate;

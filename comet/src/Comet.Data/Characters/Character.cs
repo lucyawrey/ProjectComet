@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Comet.Data.Characters;
 
 /// <summary>

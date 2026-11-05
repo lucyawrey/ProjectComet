@@ -13,8 +13,7 @@ public class TestCharacter : Character
     public required int Look { get; set; }
 }
 
-public sealed class TestRegionContext(DbContextOptions<TestRegionContext> options)
-    : CometRegionContext<TestCharacter>(options);
+public sealed class TestRegionContext(DbContextOptions<TestRegionContext> options) : CometRegionContext<TestCharacter>(options);
 
 /// <summary>
 /// One throwaway PostgreSQL 18 container for the test run (Testcontainers; needs Docker). Each test makes its own

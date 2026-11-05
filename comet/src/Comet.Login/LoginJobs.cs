@@ -14,8 +14,11 @@ namespace Comet.Login;
 /// one stops startup, and applies both schemas' migrations. Only the Login server migrates; game servers wait for it.
 /// </summary>
 internal sealed class Startup<TCharacter>(
-    IServiceScopeFactory scopes, RegionContexts<TCharacter> regions, IOptions<LoginOptions> options, ILogger<Startup<TCharacter>> logger)
-    : IHostedService
+    IServiceScopeFactory scopes,
+    RegionContexts<TCharacter> regions,
+    IOptions<LoginOptions> options,
+    ILogger<Startup<TCharacter>> logger
+) : IHostedService
     where TCharacter : Character
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -49,8 +52,11 @@ internal sealed class Startup<TCharacter>(
 
 /// <summary>Runs the guest cleanup and the purge every <see cref="LoginOptions.CleanupPeriod"/>, starting soon after startup.</summary>
 internal sealed class Cleanup<TCharacter>(
-    AccountActions<TCharacter> actions, IOptions<LoginOptions> options, TimeProvider clock, ILogger<Cleanup<TCharacter>> logger)
-    : BackgroundService
+    AccountActions<TCharacter> actions,
+    IOptions<LoginOptions> options,
+    TimeProvider clock,
+    ILogger<Cleanup<TCharacter>> logger
+) : BackgroundService
     where TCharacter : Character
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -67,7 +73,6 @@ internal sealed class Cleanup<TCharacter>(
             {
                 logger.LogError(exception, "The account cleanup failed; it runs again next period");
             }
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
+        } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }

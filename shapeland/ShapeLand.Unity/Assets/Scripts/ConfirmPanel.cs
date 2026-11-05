@@ -16,7 +16,10 @@ namespace ShapeLand.Client
         private readonly VisualElement _column;
         private readonly VisualElement _host;
         private Action _cancel;
-        private readonly System.Collections.Generic.List<(Button Button, Action Chosen)> _choices = new System.Collections.Generic.List<(Button, Action)>();
+        private readonly System.Collections.Generic.List<(Button Button, Action Chosen)> _choices = new System.Collections.Generic.List<(
+            Button,
+            Action
+        )>();
         private int _selected;
 
         /// <summary>Adds the (hidden) panel to <paramref name="host"/>, which gets <c>confirming</c> while it's up.</summary>
@@ -62,7 +65,11 @@ namespace ShapeLand.Client
                 {
                     Close();
                     chosen?.Invoke();
-                }) { text = text, focusable = false };
+                })
+                {
+                    text = text,
+                    focusable = false,
+                };
                 button.AddToClassList("menu-entry");
                 button.EnableInClassList("leave", risky);
                 _choices.Add((button, chosen));

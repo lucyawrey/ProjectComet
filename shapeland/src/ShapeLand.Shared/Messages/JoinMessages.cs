@@ -10,10 +10,12 @@ namespace ShapeLand.Shared.Messages
     public struct JoinRequest
     {
         /// <summary>The join ticket (a signed JWT), good once, for this server, for a minute.</summary>
-        [Key(0)] public string Ticket;
+        [Key(0)]
+        public string Ticket;
 
         /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
-        [Key(1)] public ulong ContentFingerprint;
+        [Key(1)]
+        public ulong ContentFingerprint;
     }
 
     /// <summary>
@@ -25,22 +27,28 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct DevJoinRequest
     {
-        [Key(0)] public string Name;
+        [Key(0)]
+        public string Name;
 
         /// <summary>The shape's content number.</summary>
-        [Key(1)] public int Shape;
+        [Key(1)]
+        public int Shape;
 
         /// <summary>The body color's content number.</summary>
-        [Key(2)] public int Color;
+        [Key(2)]
+        public int Color;
 
         /// <summary>The eye color's content number.</summary>
-        [Key(3)] public int EyeColor;
+        [Key(3)]
+        public int EyeColor;
 
         /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
-        [Key(4)] public ulong ContentFingerprint;
+        [Key(4)]
+        public ulong ContentFingerprint;
 
         /// <summary>Whether it's a bot's join: bots' characters are kept apart from people's.</summary>
-        [Key(5)] public bool Bot;
+        [Key(5)]
+        public bool Bot;
     }
 
     /// <summary>Why a join was refused.</summary>
@@ -87,7 +95,8 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct JoinRejected
     {
-        [Key(0)] public JoinRejection Reason;
+        [Key(0)]
+        public JoinRejection Reason;
     }
 
     /// <summary>
@@ -98,13 +107,16 @@ namespace ShapeLand.Shared.Messages
     public struct LookChange
     {
         /// <summary>The shape's content number.</summary>
-        [Key(0)] public int Shape;
+        [Key(0)]
+        public int Shape;
 
         /// <summary>The body color's content number.</summary>
-        [Key(1)] public int Color;
+        [Key(1)]
+        public int Color;
 
         /// <summary>The eye color's content number.</summary>
-        [Key(2)] public int EyeColor;
+        [Key(2)]
+        public int EyeColor;
     }
 
     /// <summary>Why a look change was refused.</summary>
@@ -123,7 +135,8 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct LookRejected
     {
-        [Key(0)] public LookRejection Reason;
+        [Key(0)]
+        public LookRejection Reason;
     }
 
     /// <summary>
@@ -131,9 +144,7 @@ namespace ShapeLand.Shared.Messages
     /// name and everyone gets a new <see cref="PlayerSpawn"/>. Carries nothing: the server reads the name itself.
     /// </summary>
     [MessagePackObject]
-    public struct NameChanged
-    {
-    }
+    public struct NameChanged { }
 
     /// <summary>Why the server dropped a joined player.</summary>
     public enum DropReason : byte
@@ -152,7 +163,8 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct Dropped
     {
-        [Key(0)] public DropReason Reason;
+        [Key(0)]
+        public DropReason Reason;
     }
 
     /// <summary>
@@ -163,21 +175,34 @@ namespace ShapeLand.Shared.Messages
     [MessagePackObject]
     public struct PlayerSpawn
     {
-        [Key(0)] public uint EntityId;
-        [Key(1)] public string Name;
+        [Key(0)]
+        public uint EntityId;
+
+        [Key(1)]
+        public string Name;
 
         /// <summary>The shape's content number.</summary>
-        [Key(2)] public int Shape;
+        [Key(2)]
+        public int Shape;
 
         /// <summary>The body color's content number.</summary>
-        [Key(3)] public int Color;
+        [Key(3)]
+        public int Color;
 
-        [Key(4)] public float X;
-        [Key(5)] public float Y;
-        [Key(6)] public float Z;
-        [Key(7)] public float Facing;
+        [Key(4)]
+        public float X;
+
+        [Key(5)]
+        public float Y;
+
+        [Key(6)]
+        public float Z;
+
+        [Key(7)]
+        public float Facing;
 
         /// <summary>The eye color's content number.</summary>
-        [Key(8)] public int EyeColor;
+        [Key(8)]
+        public int EyeColor;
     }
 }

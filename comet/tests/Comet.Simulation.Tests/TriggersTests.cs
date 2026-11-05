@@ -6,7 +6,13 @@ namespace Comet.Simulation.Tests;
 public class TriggersTests
 {
     private static TriggerVolume Volume(PrimitiveKind kind, float x, float z, Vector3 size, float yaw = 0) =>
-        new() { Kind = kind, Position = new Vector3(x, 1, z), Size = size, Yaw = yaw };
+        new()
+        {
+            Kind = kind,
+            Position = new Vector3(x, 1, z),
+            Size = size,
+            Yaw = yaw,
+        };
 
     [Fact]
     public void BoxesAndCylindersReachFromBottomToTop()
@@ -74,15 +80,28 @@ public class TriggersTests
     public void PlayersStandingOnAPadAreInsideTheVolumeOnItsTop()
     {
         // A hub teleporter's numbers: the pad from 9.208 m, 0.4 m tall, and the volume standing on its top.
-        var pad = new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Box }, Position = new Vector3(-0.408f, 9.208f, 41.307f), Scale = new Vector3(2, 0.4f, 2) };
+        var pad = new Placement
+        {
+            Primitive = new Primitive { Kind = PrimitiveKind.Box },
+            Position = new Vector3(-0.408f, 9.208f, 41.307f),
+            Scale = new Vector3(2, 0.4f, 2),
+        };
         var world = new CollisionWorld(null, [CollisionMesh.Placed(PrimitiveMesher.For(pad, new PolygonBudget()), pad.Matrix())], -100);
-        var volume = new TriggerVolume { Kind = PrimitiveKind.Box, Position = new Vector3(-0.408f, 9.608f, 41.307f), Size = new Vector3(2, 1, 2) };
+        var volume = new TriggerVolume
+        {
+            Kind = PrimitiveKind.Box,
+            Position = new Vector3(-0.408f, 9.608f, 41.307f),
+            Size = new Vector3(2, 1, 2),
+        };
         var random = new Random(5);
         for (var i = 0; i < 20; i++)
         {
             var (feet, _) = Triggers.Arrive(volume, SpawnFacing.Direction, world, TestWorlds.Rules, random);
             Assert.True(world.TryGetGround(feet + new Vector3(0, 0.5f, 0), TestWorlds.Rules.BodyRadius, feet.Y + 0.5f, out var ground));
-            Assert.True(Triggers.Inside(volume, new Vector3(feet.X, ground, feet.Z)), $"standing at {ground} isn't inside a volume from {volume.Position.Y}");
+            Assert.True(
+                Triggers.Inside(volume, new Vector3(feet.X, ground, feet.Z)),
+                $"standing at {ground} isn't inside a volume from {volume.Position.Y}"
+            );
         }
     }
 
@@ -104,8 +123,20 @@ public class TriggersTests
         var world = TestWorlds.Create();
         var random = new Random(3);
 
-        Assert.Equal(MathF.PI / 2, Triggers.Arrive(Volume(PrimitiveKind.Box, 8, 4, new Vector3(0.1f, 2, 0.1f), yaw: 90), SpawnFacing.Direction, world, TestWorlds.Rules, random).Facing, 4);
-        var (feet, facing) = Triggers.Arrive(Volume(PrimitiveKind.Cylinder, 8, 4, new Vector3(4, 2, 4)), SpawnFacing.TowardPoint, world, TestWorlds.Rules, random);
+        Assert.Equal(
+            MathF.PI / 2,
+            Triggers
+                .Arrive(Volume(PrimitiveKind.Box, 8, 4, new Vector3(0.1f, 2, 0.1f), yaw: 90), SpawnFacing.Direction, world, TestWorlds.Rules, random)
+                .Facing,
+            4
+        );
+        var (feet, facing) = Triggers.Arrive(
+            Volume(PrimitiveKind.Cylinder, 8, 4, new Vector3(4, 2, 4)),
+            SpawnFacing.TowardPoint,
+            world,
+            TestWorlds.Rules,
+            random
+        );
         var toward = new Vector2(8 - feet.X, 4 - feet.Z);
         Assert.Equal(MathF.Atan2(toward.X, toward.Y), facing, 4);
     }
@@ -119,7 +150,15 @@ public class TriggersTests
             [
                 new ZoneChunk
                 {
-                    Spawns = [new SpawnPoint { Id = "spawn.test.a", Number = 7, Volume = Volume(PrimitiveKind.Cylinder, 4, 4, new Vector3(4, 2, 4)) }],
+                    Spawns =
+                    [
+                        new SpawnPoint
+                        {
+                            Id = "spawn.test.a",
+                            Number = 7,
+                            Volume = Volume(PrimitiveKind.Cylinder, 4, 4, new Vector3(4, 2, 4)),
+                        },
+                    ],
                     Teleporters = [new Teleporter { Id = "teleporter.test.b", Volume = Volume(PrimitiveKind.Box, 10, 4, new Vector3(2, 2, 2)) }],
                 },
             ],

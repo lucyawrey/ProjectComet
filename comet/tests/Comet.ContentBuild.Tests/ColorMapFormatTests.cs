@@ -4,7 +4,13 @@ namespace Comet.ContentBuild.Tests;
 
 public class ColorMapFormatTests
 {
-    private static ColorMap Sample() => new() { SizeX = 2, SizeZ = 2, Colors = [0x000000, 0xff0000, 0x00ff80, 0x123456] };
+    private static ColorMap Sample() =>
+        new()
+        {
+            SizeX = 2,
+            SizeZ = 2,
+            Colors = [0x000000, 0xff0000, 0x00ff80, 0x123456],
+        };
 
     [Fact]
     public void RoundTripsWithA10ByteHeader()

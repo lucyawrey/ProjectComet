@@ -15,7 +15,10 @@ using System.Text.RegularExpressions;
 
 args = Tool.Arguments(args);
 
-const string Container = "comet-postgres", Volume = "comet-postgres-data", Network = "comet", User = "comet",
+const string Container = "comet-postgres",
+    Volume = "comet-postgres-data",
+    Network = "comet",
+    User = "comet",
     Password = "comet-dev-only";
 const int Port = 55432;
 
@@ -28,7 +31,8 @@ switch (command)
     case "database" or "fresh":
         var name = DatabaseName();
         Start();
-        if (command == "fresh") Psql($"DROP DATABASE IF EXISTS {name} WITH (FORCE)");
+        if (command == "fresh")
+            Psql($"DROP DATABASE IF EXISTS {name} WITH (FORCE)");
         // The comet user owns it, as the Login server needs (its migrations make a collation in public).
         if (Psql($"SELECT 1 FROM pg_database WHERE datname = '{name}'", tuples: true) != "1")
             Psql($"CREATE DATABASE {name}");
@@ -54,13 +58,15 @@ switch (command)
 string DatabaseName()
 {
     var name = args.ElementAtOrDefault(1) ?? throw Tool.Fail("Give a database name.", 2);
-    return Regex.IsMatch(name, "^[a-z_][a-z0-9_]*$") ? name
+    return Regex.IsMatch(name, "^[a-z_][a-z0-9_]*$")
+        ? name
         : throw Tool.Fail($"Database names here are lowercase letters, digits and '_': {name}", 2);
 }
 
 void Start()
 {
-    if (!Tool.Has("docker")) throw Tool.Fail("Docker is needed for local play with accounts (PostgreSQL runs in it).");
+    if (!Tool.Has("docker"))
+        throw Tool.Fail("Docker is needed for local play with accounts (PostgreSQL runs in it).");
     if (Tool.Capture("docker", "network", "inspect", Network).Code != 0)
         Tool.Output("docker", "network", "create", Network);
     if (Tool.Output("docker", "ps", "-q", "--filter", $"name=^{Container}$") == "")
@@ -68,15 +74,39 @@ void Start()
         if (Tool.Output("docker", "ps", "-aq", "--filter", $"name=^{Container}$") != "")
             Tool.Output("docker", "start", Container);
         else
-            Tool.Output("docker", "run", "-d", "--name", Container, "--restart", "unless-stopped", "--network", Network,
-                "-p", $"127.0.0.1:{Port}:5432", "-v", $"{Volume}:/var/lib/postgresql",
-                "-e", $"POSTGRES_USER={User}", "-e", $"POSTGRES_PASSWORD={Password}", "postgres:18");
+            Tool.Output(
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                Container,
+                "--restart",
+                "unless-stopped",
+                "--network",
+                Network,
+                "-p",
+                $"127.0.0.1:{Port}:5432",
+                "-v",
+                $"{Volume}:/var/lib/postgresql",
+                "-e",
+                $"POSTGRES_USER={User}",
+                "-e",
+                $"POSTGRES_PASSWORD={Password}",
+                "postgres:18"
+            );
     }
-    if (!Tool.WaitFor(() => Tool.Capture(Tool.Info("docker", ["exec", Container, "pg_isready", "-q", "-U", User]), withErrors: true).Code == 0,
-            60, TimeSpan.FromMilliseconds(500)))
+    if (
+        !Tool.WaitFor(
+            () => Tool.Capture(Tool.Info("docker", ["exec", Container, "pg_isready", "-q", "-U", User]), withErrors: true).Code == 0,
+            60,
+            TimeSpan.FromMilliseconds(500)
+        )
+    )
         throw Tool.Fail($"comet-postgres didn't start; see docker logs {Container}.");
 }
 
 string Psql(string sql, bool tuples = false) =>
-    Tool.Output("docker", ["exec", Container, "psql", "-q", "-v", "ON_ERROR_STOP=1", "-U", User, "-d", "postgres",
-        .. tuples ? new[] { "-tA" } : [], "-c", sql]);
+    Tool.Output(
+        "docker",
+        ["exec", Container, "psql", "-q", "-v", "ON_ERROR_STOP=1", "-U", User, "-d", "postgres", .. tuples ? new[] { "-tA" } : [], "-c", sql]
+    );

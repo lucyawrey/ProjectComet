@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <!-- The Login server's mechanisms: accounts, sessions, recovery codes, guests, join tickets. A game hosts it. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -20,5 +19,4 @@
     <ProjectReference Include="..\Comet.Protocol\Comet.Protocol.csproj" />
     <ProjectReference Include="..\Comet.Tickets\Comet.Tickets.csproj" />
   </ItemGroup>
-
 </Project>

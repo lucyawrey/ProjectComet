@@ -4,13 +4,13 @@ using Comet.Data.Characters;
 using Comet.Server;
 using Comet.Server.Connections;
 using Comet.Server.Ticking;
+using Comet.Tickets;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
-using Comet.Tickets;
 using ShapeLand.Data;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
@@ -25,11 +25,7 @@ public static class ShapeLandServer
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
         // Settings load from the build output, so the server can be started from any folder.
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-        {
-            Args = args,
-            ContentRootPath = AppContext.BaseDirectory,
-        });
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
         configure?.Invoke(builder);
         builder.AddCometLogFile();
 
@@ -72,7 +68,8 @@ public static class ShapeLandServer
                 },
                 new CharacterRepositoryOptions { ServerId = options.ServerId, SaveInterval = TimeSpan.FromSeconds(options.SaveIntervalSeconds) },
                 clock,
-                services.GetRequiredService<ILogger<ICharacterRepository<ShapeLandCharacter>>>());
+                services.GetRequiredService<ILogger<ICharacterRepository<ShapeLandCharacter>>>()
+            );
         });
         builder.Services.TryAddSingleton(services =>
         {
@@ -83,7 +80,9 @@ public static class ShapeLandServer
             var keys = Directory.Exists(folder) ? TicketKeys.PublicKeysIn(folder) : [];
             if (keys.Count == 0)
             {
-                throw new InvalidOperationException($"No ticket keys in {folder}: start the Login server first (it makes them in development), or set ShapeLand:TicketKeysFolder.");
+                throw new InvalidOperationException(
+                    $"No ticket keys in {folder}: start the Login server first (it makes them in development), or set ShapeLand:TicketKeysFolder."
+                );
             }
 
             return new TicketChecker(keys, options.ServerId, services.GetRequiredService<TimeProvider>());
@@ -95,7 +94,8 @@ public static class ShapeLandServer
             services.GetRequiredService<ConnectionRegistry>(),
             devJoins ? null : services.GetRequiredService<TicketChecker>(),
             services.GetRequiredService<ICharacterRepository<ShapeLandCharacter>>(),
-            services.GetRequiredService<ILogger<ShapeLandGame>>())
+            services.GetRequiredService<ILogger<ShapeLandGame>>()
+        )
         {
 #if DEBUG
             DevCharacters = services.GetService<DevCharacters>(),
@@ -116,19 +116,24 @@ public static class ShapeLandServer
             // The page's Content Security Policy, the same as shapeland/deploy/vercel.json gives the deployed game
             // (keep them in step), so a page change that breaks it shows up here first.
             var policy = PagePolicy(serverOptions.LoginUrl);
-            app.Use(async (context, next) =>
-            {
-                context.Response.Headers.ContentSecurityPolicy = policy;
-                await next();
-            });
+            app.Use(
+                async (context, next) =>
+                {
+                    context.Response.Headers.ContentSecurityPolicy = policy;
+                    await next();
+                }
+            );
 
             // The page's settings, as the deploy writes them: where the Login server is.
             var config = $"window.shapelandLogin = {System.Text.Json.JsonSerializer.Serialize(serverOptions.LoginUrl)};\n";
-            app.MapGet("/config.js", (HttpContext context) =>
-            {
-                context.Response.Headers.CacheControl = "no-cache";
-                return Results.Text(config, "text/javascript");
-            });
+            app.MapGet(
+                "/config.js",
+                (HttpContext context) =>
+                {
+                    context.Response.Headers.CacheControl = "no-cache";
+                    return Results.Text(config, "text/javascript");
+                }
+            );
         }
 
         ServeWebBuild(app, serverOptions.WebRoot);
@@ -136,35 +141,44 @@ public static class ShapeLandServer
         app.MapCometWebSocket("/ws");
 
         // Whether the server is up, for the web page on another host (it may be served from a CDN): any page may ask.
-        app.MapGet("/health", (HttpContext context) =>
-        {
-            context.Response.Headers.AccessControlAllowOrigin = "*";
-            return "ok";
-        });
+        app.MapGet(
+            "/health",
+            (HttpContext context) =>
+            {
+                context.Response.Headers.AccessControlAllowOrigin = "*";
+                return "ok";
+            }
+        );
 
         // The content's hash, so the editor can tell whether this server plays the content it has; for any page, like /health.
         var contentHash = app.Services.GetRequiredService<LoadedContent>().Hash;
-        app.MapGet("/info", (HttpContext context) =>
-        {
-            context.Response.Headers.AccessControlAllowOrigin = "*";
-            return Results.Json(new ServerInfo(contentHash));
-        });
+        app.MapGet(
+            "/info",
+            (HttpContext context) =>
+            {
+                context.Response.Headers.AccessControlAllowOrigin = "*";
+                return Results.Json(new ServerInfo(contentHash));
+            }
+        );
 
 #if DEBUG
         if (devJoins)
         {
             // Lets the editor stop the server the way Ctrl+C does (spots saved, the snapshot written) rather than
             // killing it, on every platform. Only from this computer.
-            app.MapPost("/dev/stop", (HttpContext context, IHostApplicationLifetime lifetime) =>
-            {
-                if (context.Connection.RemoteIpAddress is not { } address || !System.Net.IPAddress.IsLoopback(address))
+            app.MapPost(
+                "/dev/stop",
+                (HttpContext context, IHostApplicationLifetime lifetime) =>
                 {
-                    return Results.StatusCode(StatusCodes.Status403Forbidden);
-                }
+                    if (context.Connection.RemoteIpAddress is not { } address || !System.Net.IPAddress.IsLoopback(address))
+                    {
+                        return Results.StatusCode(StatusCodes.Status403Forbidden);
+                    }
 
-                lifetime.StopApplication();
-                return Results.Accepted();
-            });
+                    lifetime.StopApplication();
+                    return Results.Accepted();
+                }
+            );
         }
 #endif
 
@@ -182,23 +196,28 @@ public static class ShapeLandServer
             var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
             var database = new InMemoryCharacterDatabase<ShapeLandCharacter>(services.GetRequiredService<TimeProvider>());
             var logger = services.GetRequiredService<ILogger<DevCharacters>>();
-            database.SnapshotFailed += e => logger.LogWarning("Couldn't write {File} ({Problem}); the next change tries again", options.DevCharactersFile, e.Message);
+            database.SnapshotFailed += e =>
+                logger.LogWarning("Couldn't write {File} ({Problem}); the next change tries again", options.DevCharactersFile, e.Message);
             if (!string.IsNullOrEmpty(options.DevCharactersFile) && database.Load(options.DevCharactersFile) is { } problem)
             {
-                logger.LogWarning("Couldn't read {File} ({Problem}); it was renamed to .bad, and the characters start over", options.DevCharactersFile, problem);
+                logger.LogWarning(
+                    "Couldn't read {File} ({Problem}); it was renamed to .bad, and the characters start over",
+                    options.DevCharactersFile,
+                    problem
+                );
             }
 
             return new DevCharacters(database);
         });
-        builder.Services.AddSingleton<ICharacterRepository<ShapeLandCharacter>>(services =>
-            new InMemoryCharacterRepository<ShapeLandCharacter>(
-                services.GetRequiredService<DevCharacters>().Database,
-                new CharacterRepositoryOptions
-                {
-                    ServerId = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.ServerId,
-                    SaveInterval = TimeSpan.FromSeconds(5),
-                },
-                services.GetRequiredService<ILogger<ICharacterRepository<ShapeLandCharacter>>>()));
+        builder.Services.AddSingleton<ICharacterRepository<ShapeLandCharacter>>(services => new InMemoryCharacterRepository<ShapeLandCharacter>(
+            services.GetRequiredService<DevCharacters>().Database,
+            new CharacterRepositoryOptions
+            {
+                ServerId = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value.ServerId,
+                SaveInterval = TimeSpan.FromSeconds(5),
+            },
+            services.GetRequiredService<ILogger<ICharacterRepository<ShapeLandCharacter>>>()
+        ));
     }
 #endif
 
@@ -278,32 +297,34 @@ public static class ShapeLandServer
         types.Mappings[".unityweb"] = "application/octet-stream";
         types.Mappings[".webmanifest"] = "application/manifest+json";
         app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = files,
-            ContentTypeProvider = types,
-            OnPrepareResponse = context =>
+        app.UseStaticFiles(
+            new StaticFileOptions
             {
-                if (context.File.Name == "content.bin")
+                FileProvider = files,
+                ContentTypeProvider = types,
+                OnPrepareResponse = context =>
                 {
-                    // Checked on every load, so a page reloaded for new content gets it.
-                    context.Context.Response.Headers.CacheControl = "no-cache";
-                    return;
-                }
+                    if (context.File.Name == "content.bin")
+                    {
+                        // Checked on every load, so a page reloaded for new content gets it.
+                        context.Context.Response.Headers.CacheControl = "no-cache";
+                        return;
+                    }
 
-                if (!context.File.Name.EndsWith(".unityweb", StringComparison.Ordinal))
-                {
-                    return;
-                }
+                    if (!context.File.Name.EndsWith(".unityweb", StringComparison.Ordinal))
+                    {
+                        return;
+                    }
 
-                var headers = context.Context.Response.Headers;
-                headers.Vary = "Accept-Encoding";
-                if (context.Context.Request.Headers.AcceptEncoding.ToString().Contains("br", StringComparison.Ordinal))
-                {
-                    headers.ContentEncoding = "br";
-                }
-            },
-        });
+                    var headers = context.Context.Response.Headers;
+                    headers.Vary = "Accept-Encoding";
+                    if (context.Context.Request.Headers.AcceptEncoding.ToString().Contains("br", StringComparison.Ordinal))
+                    {
+                        headers.ContentEncoding = "br";
+                    }
+                },
+            }
+        );
         app.Logger.LogInformation("Serving the web build in {WebRoot}", webRoot);
     }
 
@@ -325,7 +346,8 @@ public static class ShapeLandServer
         {
             throw new FileNotFoundException(
                 "No compiled content. Run the content build (dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build) or set ShapeLand:ContentFile.",
-                path);
+                path
+            );
         }
 
         var file = File.ReadAllBytes(path);

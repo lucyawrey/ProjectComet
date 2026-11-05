@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>Exe</OutputType>
@@ -26,5 +25,4 @@
     <ProjectReference Include="..\..\src\Comet.Client\Comet.Client.csproj" />
     <ProjectReference Include="..\..\src\Comet.Login\Comet.Login.csproj" />
   </ItemGroup>
-
 </Project>

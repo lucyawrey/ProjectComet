@@ -24,7 +24,8 @@ namespace ShapeLand.Client
 
         // Steps of the camera speed slider, and how a held direction repeats.
         private const float SpeedStep = 0.05f;
-        private const float RepeatDelay = 0.4f, RepeatInterval = 0.1f;
+        private const float RepeatDelay = 0.4f,
+            RepeatInterval = 0.1f;
         private const float RowHeight = 42;
         private const int ChangeLookEntry = 4;
 
@@ -79,10 +80,12 @@ namespace ShapeLand.Client
         private readonly Label _speedValue;
         private readonly Label _controlsName;
         private readonly Label _settingsName;
+
         // Per page, the rows the selection moves through (Controls has none: up and down scroll it).
         private readonly VisualElement[] _entries;
         private readonly VisualElement[] _confirmEntries;
         private readonly VisualElement[] _settingRows;
+
         // The Settings rows that are switches, by row: what they show and how they flip.
         private readonly (int Row, VisualElement Switch, Func<bool> On, Action Flip)[] _switches;
         private readonly (InputKind Kind, VisualElement Tab, VisualElement Rows)[] _tabs;
@@ -120,20 +123,48 @@ namespace ShapeLand.Client
 
             // With accounts off (the editor), the Account page has nothing to show: its entry stays, off.
             root.Q("menu-account").SetEnabled(JoinClient.Accounts);
-            _entries = new[] { root.Q("menu-resume"), root.Q("menu-controls"), root.Q("menu-settings"), root.Q("menu-account"), root.Q("menu-look"), root.Q("menu-respawn"), root.Q("menu-leave") };
+            _entries = new[]
+            {
+                root.Q("menu-resume"),
+                root.Q("menu-controls"),
+                root.Q("menu-settings"),
+                root.Q("menu-account"),
+                root.Q("menu-look"),
+                root.Q("menu-respawn"),
+                root.Q("menu-leave"),
+            };
             _entryActions = new Action[]
             {
                 Close,
                 () => ShowPage(Page.Controls),
                 () => ShowPage(Page.Settings),
-                () => { Close(); _hud.OpenAccount(); },
-                () => { Close(); _hud.OpenLook(fromMenu: true); },
-                () => { Close(); _hud.ReturnToSpawn(); },
+                () =>
+                {
+                    Close();
+                    _hud.OpenAccount();
+                },
+                () =>
+                {
+                    Close();
+                    _hud.OpenLook(fromMenu: true);
+                },
+                () =>
+                {
+                    Close();
+                    _hud.ReturnToSpawn();
+                },
                 () => ShowPage(Page.Leave),
             };
             // Leave first: the player was already heading there.
             _confirmEntries = new[] { root.Q("menu-leave-confirm"), root.Q("menu-stay") };
-            _settingRows = new[] { root.Q("setting-walls"), root.Q("setting-speed"), root.Q("setting-auto-join"), root.Q("setting-stats"), root.Q("setting-hitboxes") };
+            _settingRows = new[]
+            {
+                root.Q("setting-walls"),
+                root.Q("setting-speed"),
+                root.Q("setting-auto-join"),
+                root.Q("setting-stats"),
+                root.Q("setting-hitboxes"),
+            };
             _switches = new (int, VisualElement, Func<bool>, Action)[]
             {
                 (0, root.Q("walls-switch"), () => _hud.View.ShowThroughWalls, () => _hud.View.ShowThroughWalls = !_hud.View.ShowThroughWalls),
@@ -272,8 +303,11 @@ namespace ShapeLand.Client
             }
 
             var step = NavigationStep(actions.Navigate.ReadValue<Vector2>());
-            var pressed = actions.Submit.WasPressedThisFrame() || actions.Back.WasPressedThisFrame()
-                || actions.NextTab.WasPressedThisFrame() || actions.PreviousTab.WasPressedThisFrame();
+            var pressed =
+                actions.Submit.WasPressedThisFrame()
+                || actions.Back.WasPressedThisFrame()
+                || actions.NextTab.WasPressedThisFrame()
+                || actions.PreviousTab.WasPressedThisFrame();
             if (!Navigating && step != Vector2Int.zero)
             {
                 Navigating = true; // the first press only shows where the selection is
@@ -463,13 +497,15 @@ namespace ShapeLand.Client
                 _shownSpeed = -1;
                 ShowSettings();
                 // The switches start "on" in Menu.uxml: they take their real state without sliding the first time.
-                _settings.schedule.Execute(() =>
-                {
-                    foreach (var (_, element, _, _) in _switches)
+                _settings
+                    .schedule.Execute(() =>
                     {
-                        element.RemoveFromClassList("settling");
-                    }
-                }).ExecuteLater(200);
+                        foreach (var (_, element, _, _) in _switches)
+                        {
+                            element.RemoveFromClassList("settling");
+                        }
+                    })
+                    .ExecuteLater(200);
             }
 
             _scroll.scrollOffset = Vector2.zero;
@@ -494,13 +530,14 @@ namespace ShapeLand.Client
             return (InputKind)(((int)kind + by + count) % count);
         }
 
-        private VisualElement[] Rows() => _page switch
-        {
-            Page.List => _entries,
-            Page.Leave => _confirmEntries,
-            Page.Settings => _settingRows,
-            _ => Array.Empty<VisualElement>(),
-        };
+        private VisualElement[] Rows() =>
+            _page switch
+            {
+                Page.List => _entries,
+                Page.Leave => _confirmEntries,
+                Page.Settings => _settingRows,
+                _ => Array.Empty<VisualElement>(),
+            };
 
         private void Select(int index)
         {

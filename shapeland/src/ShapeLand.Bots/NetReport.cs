@@ -12,12 +12,16 @@ public sealed class NetReport
 {
     /// <summary>The <c>--meta</c> pairs the run was given, such as the commit and network profile.</summary>
     public required Dictionary<string, string> Meta { get; init; }
+
     /// <summary>The run's command-line settings.</summary>
     public required RunSettings Run { get; init; }
+
     /// <summary>The client's tuning numbers at the time.</summary>
     public required TuningSettings Tuning { get; init; }
+
     /// <summary>The run's totals, as printed.</summary>
     public required Summary Totals { get; init; }
+
     /// <summary>Each bot's numbers and samples.</summary>
     public required List<BotResult> Bots { get; init; }
 
@@ -26,21 +30,62 @@ public sealed class NetReport
 
     /// <summary>The client's tuning numbers this run used; the server's (validation margins) go by the commit in Meta.</summary>
     public sealed record TuningSettings(
-        double DelayWindowSeconds, double DelayPercentile, double DelayGrowRate, double DelayShrinkRate,
-        double DelayMarginMs, double DelayFloorMs, double DelayHoldSeconds, double IdleGapMs);
+        double DelayWindowSeconds,
+        double DelayPercentile,
+        double DelayGrowRate,
+        double DelayShrinkRate,
+        double DelayMarginMs,
+        double DelayFloorMs,
+        double DelayHoldSeconds,
+        double IdleGapMs
+    );
 
     /// <summary>The totals printed at the end of a run: network numbers from honest bots only, after the warmup.</summary>
     public sealed record Summary(
-        int HonestSnapBacks, int Respawns, int CheatersCaught, int Cheaters,
-        double PingMedianMs, double PingP95Ms, double BestPingMedianMs,
-        double DelayMedianMs, double DelayP5Ms, double DelayP95Ms, double TargetP5Ms, double TargetP95Ms,
-        double TargetSwingMsPerSecond, double DelaySwingMsPerSecond, double HoldPercent, double HoldMeanMs, double HeldMsPerMove, long MoveStates, long Jumps, long SpeedHitches, double OwnHitchPercent,
-        double VisibleHitchesPerMinute, long Overruns, long VisibleBlendBacks);
+        int HonestSnapBacks,
+        int Respawns,
+        int CheatersCaught,
+        int Cheaters,
+        double PingMedianMs,
+        double PingP95Ms,
+        double BestPingMedianMs,
+        double DelayMedianMs,
+        double DelayP5Ms,
+        double DelayP95Ms,
+        double TargetP5Ms,
+        double TargetP95Ms,
+        double TargetSwingMsPerSecond,
+        double DelaySwingMsPerSecond,
+        double HoldPercent,
+        double HoldMeanMs,
+        double HeldMsPerMove,
+        long MoveStates,
+        long Jumps,
+        long SpeedHitches,
+        double OwnHitchPercent,
+        double VisibleHitchesPerMinute,
+        long Overruns,
+        long VisibleBlendBacks
+    );
 
     /// <summary>One bot's numbers after the warmup, with its samples.</summary>
     public sealed record BotResult(
-        string Name, bool Cheater, bool Joined, int SnapBacks, int Respawns, long MoveStates, long Holds,
-        double HeldSeconds, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks, double WatchedSeconds, DateTimeOffset StartedAt, List<NetSample> Samples)
+        string Name,
+        bool Cheater,
+        bool Joined,
+        int SnapBacks,
+        int Respawns,
+        long MoveStates,
+        long Holds,
+        double HeldSeconds,
+        long Jumps,
+        long SpeedHitches,
+        long Overruns,
+        long VisibleBlendBacks,
+        double WatchedSeconds,
+        DateTimeOffset StartedAt,
+        List<NetSample> Samples
+    )
     {
         public long VisibleHitches => Overruns + VisibleBlendBacks + Jumps;
     }
@@ -48,30 +93,65 @@ public sealed class NetReport
     /// <summary>The report for <paramref name="bots"/>, where <paramref name="cheaters"/> marks which of them cheated.</summary>
     public static NetReport Create(IReadOnlyList<Bot> bots, IReadOnlyList<bool> cheaters, RunSettings run, Dictionary<string, string> meta)
     {
-        var results = bots.Select((bot, i) => new BotResult(
-            bot.Name, cheaters[i], bot.Joined, bot.SnapBacks, bot.Respawns, bot.MoveStates, bot.Holds, bot.HeldSeconds, bot.Jumps, bot.SpeedHitches, bot.Overruns, bot.VisibleBlendBacks, bot.WatchedSeconds, bot.StartedAt, bot.NetSamples)).ToList();
+        var results = bots.Select(
+                (bot, i) =>
+                    new BotResult(
+                        bot.Name,
+                        cheaters[i],
+                        bot.Joined,
+                        bot.SnapBacks,
+                        bot.Respawns,
+                        bot.MoveStates,
+                        bot.Holds,
+                        bot.HeldSeconds,
+                        bot.Jumps,
+                        bot.SpeedHitches,
+                        bot.Overruns,
+                        bot.VisibleBlendBacks,
+                        bot.WatchedSeconds,
+                        bot.StartedAt,
+                        bot.NetSamples
+                    )
+            )
+            .ToList();
         var honest = results.Where(r => !r.Cheater).ToList();
         var samples = honest.SelectMany(r => r.Samples).ToList();
         var moves = honest.Sum(r => r.MoveStates);
         var holds = honest.Sum(r => r.Holds);
 
         // How fast the target moves, averaged over every honest bot's consecutive samples.
-        var swings = honest.SelectMany(r => r.Samples.Zip(r.Samples.Skip(1), (a, b) => Math.Abs(b.TargetMs - a.TargetMs) / (b.Seconds - a.Seconds))).ToList();
-        var delaySwings = honest.SelectMany(r => r.Samples.Zip(r.Samples.Skip(1), (a, b) => Math.Abs(b.DelayMs - a.DelayMs) / (b.Seconds - a.Seconds))).ToList();
+        var swings = honest
+            .SelectMany(r => r.Samples.Zip(r.Samples.Skip(1), (a, b) => Math.Abs(b.TargetMs - a.TargetMs) / (b.Seconds - a.Seconds)))
+            .ToList();
+        var delaySwings = honest
+            .SelectMany(r => r.Samples.Zip(r.Samples.Skip(1), (a, b) => Math.Abs(b.DelayMs - a.DelayMs) / (b.Seconds - a.Seconds)))
+            .ToList();
 
         var delay = new InterpolationDelay(30);
         var tuning = new TuningSettings(
-            InterpolationDelay.WindowSeconds, InterpolationDelay.Percentile, InterpolationDelay.GrowRate, InterpolationDelay.ShrinkRate,
-            delay.MarginTicks / delay.TickRate * 1000, delay.FloorTicks / delay.TickRate * 1000, InterpolationDelay.HoldSeconds,
-            new RemoteEntities(30).IdleGapTicks / 30 * 1000);
+            InterpolationDelay.WindowSeconds,
+            InterpolationDelay.Percentile,
+            InterpolationDelay.GrowRate,
+            InterpolationDelay.ShrinkRate,
+            delay.MarginTicks / delay.TickRate * 1000,
+            delay.FloorTicks / delay.TickRate * 1000,
+            InterpolationDelay.HoldSeconds,
+            new RemoteEntities(30).IdleGapTicks / 30 * 1000
+        );
 
         var summary = new Summary(
-            honest.Sum(r => r.SnapBacks), results.Sum(r => r.Respawns),
-            results.Count(r => r.Cheater && r.SnapBacks > 0), results.Count(r => r.Cheater),
-            Percentile(samples.Select(s => s.PingMs), 0.5), Percentile(samples.Select(s => s.PingMs), 0.95),
+            honest.Sum(r => r.SnapBacks),
+            results.Sum(r => r.Respawns),
+            results.Count(r => r.Cheater && r.SnapBacks > 0),
+            results.Count(r => r.Cheater),
+            Percentile(samples.Select(s => s.PingMs), 0.5),
+            Percentile(samples.Select(s => s.PingMs), 0.95),
             Percentile(samples.Select(s => s.BestPingMs), 0.5),
-            Percentile(samples.Select(s => s.DelayMs), 0.5), Percentile(samples.Select(s => s.DelayMs), 0.05), Percentile(samples.Select(s => s.DelayMs), 0.95),
-            Percentile(samples.Select(s => s.TargetMs), 0.05), Percentile(samples.Select(s => s.TargetMs), 0.95),
+            Percentile(samples.Select(s => s.DelayMs), 0.5),
+            Percentile(samples.Select(s => s.DelayMs), 0.05),
+            Percentile(samples.Select(s => s.DelayMs), 0.95),
+            Percentile(samples.Select(s => s.TargetMs), 0.05),
+            Percentile(samples.Select(s => s.TargetMs), 0.95),
             swings.Count > 0 ? swings.Average() : 0,
             delaySwings.Count > 0 ? delaySwings.Average() : 0,
             moves > 0 ? 100.0 * holds / moves : 0,
@@ -80,27 +160,53 @@ public sealed class NetReport
             moves,
             honest.Sum(r => r.Jumps),
             honest.Sum(r => r.SpeedHitches),
-            bots.Where((_, i) => !cheaters[i]).Sum(b => b.OwnMoves) is var own and > 0 ? 100.0 * bots.Where((_, i) => !cheaters[i]).Sum(b => b.OwnHitches) / own : 0,
+            bots.Where((_, i) => !cheaters[i]).Sum(b => b.OwnMoves) is var own and > 0
+                ? 100.0 * bots.Where((_, i) => !cheaters[i]).Sum(b => b.OwnHitches) / own
+                : 0,
             honest.Sum(r => r.WatchedSeconds) is var watched and > 0 ? honest.Sum(r => r.VisibleHitches) / (watched / 60) : 0,
             honest.Sum(r => r.Overruns),
-            honest.Sum(r => r.VisibleBlendBacks));
+            honest.Sum(r => r.VisibleBlendBacks)
+        );
 
-        return new NetReport { Meta = meta, Run = run, Tuning = tuning, Totals = summary, Bots = results };
+        return new NetReport
+        {
+            Meta = meta,
+            Run = run,
+            Tuning = tuning,
+            Totals = summary,
+            Bots = results,
+        };
     }
 
     public void Print()
     {
         var s = Totals;
         Console.WriteLine();
-        Console.WriteLine($"Network results{(Meta.Count > 0 ? " (" + string.Join(", ", Meta.Select(m => $"{m.Key} {m.Value}")) + ")" : "")}, after a {Run.WarmupSeconds:0} s warmup:");
-        Console.WriteLine($"  Snap-backs     {s.HonestSnapBacks} on honest bots; cheaters caught {s.CheatersCaught} of {s.Cheaters}; respawns {s.Respawns}");
+        Console.WriteLine(
+            $"Network results{(Meta.Count > 0 ? " (" + string.Join(", ", Meta.Select(m => $"{m.Key} {m.Value}")) + ")" : "")}, after a {Run.WarmupSeconds:0} s warmup:"
+        );
+        Console.WriteLine(
+            $"  Snap-backs     {s.HonestSnapBacks} on honest bots; cheaters caught {s.CheatersCaught} of {s.Cheaters}; respawns {s.Respawns}"
+        );
         Console.WriteLine($"  Ping           median {s.PingMedianMs:0} ms, 95th percentile {s.PingP95Ms:0}; best median {s.BestPingMedianMs:0}");
-        Console.WriteLine($"  Delay          median {s.DelayMedianMs:0} ms, 5th to 95th percentile {s.DelayP5Ms:0}-{s.DelayP95Ms:0}, moving {s.DelaySwingMsPerSecond:0} ms/s on average");
-        Console.WriteLine($"  Target         5th to 95th percentile {s.TargetP5Ms:0}-{s.TargetP95Ms:0} ms, moving {s.TargetSwingMsPerSecond:0} ms/s on average");
-        Console.WriteLine($"  Holds          {s.HoldPercent:0.0}% of {s.MoveStates} moves, {s.HoldMeanMs:0} ms each, {s.HeldMsPerMove:0.00} ms held per move");
-        Console.WriteLine($"  Visible        {s.VisibleHitchesPerMinute:0.0} hitches per other player per minute: {s.Overruns} dead reckoning ran out, {s.VisibleBlendBacks} blend-backs over 0.2 m, {s.Jumps} jumps");
-        Console.WriteLine($"  Jumps          {s.Jumps} of the honest others' moves drawn as a jump (too far to walk between stamps; cheaters aren't counted)");
-        Console.WriteLine($"  Speed hitches  {(s.MoveStates > 0 ? 100.0 * s.SpeedHitches / s.MoveStates : 0):0.0}% of moves change ground speed by over 30% from the step before ({s.OwnHitchPercent:0.0}% of the bots' own reports do)");
+        Console.WriteLine(
+            $"  Delay          median {s.DelayMedianMs:0} ms, 5th to 95th percentile {s.DelayP5Ms:0}-{s.DelayP95Ms:0}, moving {s.DelaySwingMsPerSecond:0} ms/s on average"
+        );
+        Console.WriteLine(
+            $"  Target         5th to 95th percentile {s.TargetP5Ms:0}-{s.TargetP95Ms:0} ms, moving {s.TargetSwingMsPerSecond:0} ms/s on average"
+        );
+        Console.WriteLine(
+            $"  Holds          {s.HoldPercent:0.0}% of {s.MoveStates} moves, {s.HoldMeanMs:0} ms each, {s.HeldMsPerMove:0.00} ms held per move"
+        );
+        Console.WriteLine(
+            $"  Visible        {s.VisibleHitchesPerMinute:0.0} hitches per other player per minute: {s.Overruns} dead reckoning ran out, {s.VisibleBlendBacks} blend-backs over 0.2 m, {s.Jumps} jumps"
+        );
+        Console.WriteLine(
+            $"  Jumps          {s.Jumps} of the honest others' moves drawn as a jump (too far to walk between stamps; cheaters aren't counted)"
+        );
+        Console.WriteLine(
+            $"  Speed hitches  {(s.MoveStates > 0 ? 100.0 * s.SpeedHitches / s.MoveStates : 0):0.0}% of moves change ground speed by over 30% from the step before ({s.OwnHitchPercent:0.0}% of the bots' own reports do)"
+        );
     }
 
     public void Write(string path)

@@ -35,14 +35,24 @@ while (options.More && options.Peek is not ("--" or "build" or "test"))
 {
     switch (options.Take())
     {
-        case "-p": project = Path.GetFullPath(options.Value("-p")); break;
-        case "-l": log = options.Value("-l"); break;
-        case "-t": minutes = options.Number("-t"); break;
-        case "-h" or "--help": Tool.Usage(); break;
-        case var other: throw Tool.Fail($"Unknown option {other} (Unity arguments go after --)", 2);
+        case "-p":
+            project = Path.GetFullPath(options.Value("-p"));
+            break;
+        case "-l":
+            log = options.Value("-l");
+            break;
+        case "-t":
+            minutes = options.Number("-t");
+            break;
+        case "-h" or "--help":
+            Tool.Usage();
+            break;
+        case var other:
+            throw Tool.Fail($"Unknown option {other} (Unity arguments go after --)", 2);
     }
 }
-if (!options.More) throw Tool.Fail("Say what to run: build, test or -- <Unity arguments>", 2);
+if (!options.More)
+    throw Tool.Fail("Say what to run: build, test or -- <Unity arguments>", 2);
 var job = options.Take();
 var rest = options.Rest;
 string[] extra = [];
@@ -55,25 +65,35 @@ Environment.CurrentDirectory = project;
 log = Path.GetFullPath(log);
 var deadline = DateTime.UtcNow.AddMinutes(minutes);
 
-string profile = "", output = "", asset = "", mode = "PlayMode", results = "";
+string profile = "",
+    output = "",
+    asset = "",
+    mode = "PlayMode",
+    results = "";
 if (job == "build")
 {
-    if (rest.Length != 2) throw Tool.Fail("build takes a profile and an output path", 2);
+    if (rest.Length != 2)
+        throw Tool.Fail("build takes a profile and an output path", 2);
     (profile, output) = (rest[0], Path.GetFullPath(rest[1]));
     asset = $"Assets/Settings/Build Profiles/{profile}.asset";
-    if (!File.Exists(asset)) throw Tool.Fail($"No build profile at {asset}", 2);
+    if (!File.Exists(asset))
+        throw Tool.Fail($"No build profile at {asset}", 2);
 }
 else if (job == "test")
 {
     mode = rest.ElementAtOrDefault(0) ?? "PlayMode";
     results = rest.ElementAtOrDefault(1) ?? "";
-    if (mode is not ("PlayMode" or "EditMode")) throw Tool.Fail("test takes PlayMode or EditMode", 2);
+    if (mode is not ("PlayMode" or "EditMode"))
+        throw Tool.Fail("test takes PlayMode or EditMode", 2);
 }
 
 // A fresh clone or worktree has no NuGet packages, and the editor can't compile without them.
 var restored = new FileInfo("Assets/Packages/.restored");
-if (File.Exists("Assets/packages.config") && (!restored.Exists || restored.LastWriteTimeUtc <= File.GetLastWriteTimeUtc("Assets/packages.config"))
-    && Tool.RunTool("unity-restore", project) != 0)
+if (
+    File.Exists("Assets/packages.config")
+    && (!restored.Exists || restored.LastWriteTimeUtc <= File.GetLastWriteTimeUtc("Assets/packages.config"))
+    && Tool.RunTool("unity-restore", project) != 0
+)
     throw Tool.Fail("The NuGet restore failed.");
 
 Directory.CreateDirectory(Path.GetDirectoryName(log)!);
@@ -88,17 +108,22 @@ Environment.Exit(port != null ? InEditor() : InBatchMode());
 // macOS and Windows paths ignore case, so a shell in ~/developer must still find an editor opened on ~/Developer.
 string? EditorPort()
 {
-    if (!Tool.Has("unity")) return null;
+    if (!Tool.Has("unity"))
+        return null;
     var (code, text) = Tool.Capture(Tool.Info("unity", ["status", "--json", "--non-interactive"]), withErrors: true);
-    if (code != 0) return null;
+    if (code != 0)
+        return null;
     var comparison = OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
     try
     {
         using var status = JsonDocument.Parse(text);
-        if (!status.RootElement.TryGetProperty("data", out var data) || !data.TryGetProperty("instances", out var instances)) return null;
+        if (!status.RootElement.TryGetProperty("data", out var data) || !data.TryGetProperty("instances", out var instances))
+            return null;
         foreach (var instance in instances.EnumerateArray())
-            if (string.Equals(Path.TrimEndingDirectorySeparator(instance.GetProperty("project").GetString() ?? ""), project, comparison)
-                && instance.GetProperty("state").GetString() == "ready")
+            if (
+                string.Equals(Path.TrimEndingDirectorySeparator(instance.GetProperty("project").GetString() ?? ""), project, comparison)
+                && instance.GetProperty("state").GetString() == "ready"
+            )
                 return instance.GetProperty("port").ToString();
     }
     catch (JsonException) { }
@@ -109,12 +134,20 @@ string? EditorPort()
 // messages hold raw control characters (tabs, line breaks), which JSON strings don't allow, so they become spaces.
 JsonElement Editor(params string[] command)
 {
-    var (code, text) = Tool.Capture(Tool.Info("unity", ["command", .. command, "--project-path", project, "--json",
-        "--non-interactive", "--no-pager", "--no-banner"]), withErrors: true);
+    var (code, text) = Tool.Capture(
+        Tool.Info("unity", ["command", .. command, "--project-path", project, "--json", "--non-interactive", "--no-pager", "--no-banner"]),
+        withErrors: true
+    );
     text = Regex.Replace(text, @"[\x00-\x1f]", " ");
     JsonElement json;
-    try { json = JsonDocument.Parse(text).RootElement; }
-    catch (JsonException) { throw Tool.Fail(text); }
+    try
+    {
+        json = JsonDocument.Parse(text).RootElement;
+    }
+    catch (JsonException)
+    {
+        throw Tool.Fail(text);
+    }
     if (code != 0)
     {
         var errors = json.TryGetProperty("errors", out var list) ? list.EnumerateArray().Select(e => e.GetProperty("message").GetString()) : [text];
@@ -129,7 +162,8 @@ JsonElement Await(string command, params string[] ends)
     while (true)
     {
         var result = Editor(command);
-        if (ends.Contains(result.GetProperty("status").GetString())) return result;
+        if (ends.Contains(result.GetProperty("status").GetString()))
+            return result;
         if (DateTime.UtcNow >= deadline)
             throw Tool.Fail($"Unity ran past {minutes} minutes; stopped waiting (it may still be running in the editor)", 124);
         Thread.Sleep(2000);
@@ -144,20 +178,27 @@ int InEditor()
         var want = Regex.Match(File.ReadAllText(asset), @"^  m_BuildTarget: *(\S+)", RegexOptions.Multiline).Groups[1].Value;
         var have = Editor("eval", "--code", "return ((int)EditorUserBuildSettings.activeBuildTarget).ToString();").GetProperty("result").GetString();
         if (want != have)
-            throw Tool.Fail($"The open editor is on another platform than the {profile} profile; switch to the profile there (File › Build Profiles) or close the editor.");
+            throw Tool.Fail(
+                $"The open editor is on another platform than the {profile} profile; switch to the profile there (File › Build Profiles) or close the editor."
+            );
         Editor("build", "--confirm", "true", "--profileName", profile, "--outputPath", output);
         var build = Await("build_status", "completed");
         File.WriteAllText(log, build.GetRawText());
         var outcome = build.TryGetProperty("result", out var r) ? r.GetString() : "Unknown";
         if (build.TryGetProperty("errors", out var errors))
-            foreach (var error in errors.EnumerateArray()) Console.WriteLine(error.ToString());
+            foreach (var error in errors.EnumerateArray())
+                Console.WriteLine(error.ToString());
         Console.WriteLine($"Unity: build {outcome} (report: {log})");
         return outcome == "Succeeded" ? 0 : 1;
     }
 
     results = Path.GetFullPath(results == "" ? "Logs/results.json" : results);
     var done = false;
-    Tool.OnStop(() => { if (!done) Tool.Capture(Tool.Info("unity", ["command", "cancel_tests", "--project-path", project, "--non-interactive"]), withErrors: true); });
+    Tool.OnStop(() =>
+    {
+        if (!done)
+            Tool.Capture(Tool.Info("unity", ["command", "cancel_tests", "--project-path", project, "--non-interactive"]), withErrors: true);
+    });
     Editor("run_tests", "--mode", mode, "--async_tests", "true");
     var run = Await("test_status", "completed", "failed");
     done = true;
@@ -169,7 +210,9 @@ int InEditor()
     int Count(string name) => run.TryGetProperty("summary", out var s) && s.TryGetProperty(name, out var n) ? n.GetInt32() : 0;
     var (total, failed) = (Count("total"), Count("failed"));
     Console.WriteLine($"Unity: {total} tests, {failed} failed (results: {results})");
-    return total == 0 ? 1 : failed > 0 ? 2 : 0;
+    return total == 0 ? 1
+        : failed > 0 ? 2
+        : 0;
 }
 
 int InBatchMode()
@@ -182,11 +225,25 @@ int InBatchMode()
         _ => rest,
     };
     unityArgs = [.. unityArgs, .. extra];
-    var version = Regex.Match(File.ReadAllText("ProjectSettings/ProjectVersion.txt"), @"^m_EditorVersion: *(\S+)", RegexOptions.Multiline).Groups[1].Value;
-    var unity = Tool.IsMac ? $"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity"
-        : Tool.IsWindows ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Unity", "Hub", "Editor", version, "Editor", "Unity.exe")
+    var version = Regex
+        .Match(File.ReadAllText("ProjectSettings/ProjectVersion.txt"), @"^m_EditorVersion: *(\S+)", RegexOptions.Multiline)
+        .Groups[1]
+        .Value;
+    var unity =
+        Tool.IsMac ? $"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity"
+        : Tool.IsWindows
+            ? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "Unity",
+                "Hub",
+                "Editor",
+                version,
+                "Editor",
+                "Unity.exe"
+            )
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Unity", "Hub", "Editor", version, "Editor", "Unity");
-    if (!File.Exists(unity)) throw Tool.Fail($"No Unity {version} at {unity}", 2);
+    if (!File.Exists(unity))
+        throw Tool.Fail($"No Unity {version} at {unity}", 2);
 
     // Output goes to the log only. Its pipes are this tool's, so the editor's helper processes, which outlive it,
     // can't hold a caller's output open.
@@ -221,9 +278,11 @@ int InBatchMode()
         // Exited before any result line (a crash, a license problem, another editor on the project, a method that
         // called Exit).
         code = editor.ExitCode == 0 ? 1 : editor.ExitCode;
-        Console.Error.WriteLine(ReadLog().Contains("another Unity instance")
-            ? "A Unity editor has the project open; close it, or make it reachable through the Unity CLI."
-            : $"Unity exited without a result line (log: {log})");
+        Console.Error.WriteLine(
+            ReadLog().Contains("another Unity instance")
+                ? "A Unity editor has the project open; close it, or make it reachable through the Unity CLI."
+                : $"Unity exited without a result line (log: {log})"
+        );
     }
     Console.WriteLine($"Unity: exit {code} (log: {log})");
     return code.Value;
@@ -232,9 +291,14 @@ int InBatchMode()
 // The exit code the run's last line means, once the log has one.
 int? Result()
 {
-    var line = Regex.Match(ReadLog(), @"Test run completed\. Exiting with code (\d+)|Build Finished, Result: \w+|Batchmode quit successfully invoked|Aborting batchmode|Scripts have compiler errors");
-    if (!line.Success) return null;
-    if (line.Groups[1].Success) return int.Parse(line.Groups[1].Value);
+    var line = Regex.Match(
+        ReadLog(),
+        @"Test run completed\. Exiting with code (\d+)|Build Finished, Result: \w+|Batchmode quit successfully invoked|Aborting batchmode|Scripts have compiler errors"
+    );
+    if (!line.Success)
+        return null;
+    if (line.Groups[1].Success)
+        return int.Parse(line.Groups[1].Value);
     return line.Value is "Build Finished, Result: Success" or "Batchmode quit successfully invoked" ? 0 : 1;
 }
 
@@ -246,5 +310,8 @@ string ReadLog()
         using var stream = new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         return new StreamReader(stream).ReadToEnd();
     }
-    catch (IOException) { return ""; }
+    catch (IOException)
+    {
+        return "";
+    }
 }

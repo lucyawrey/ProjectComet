@@ -23,8 +23,22 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
         var checker = new TicketChecker([TicketKeys.PublicKey(Keys.Public)], ServerId, new ShiftedClock(TimeSpan.FromSeconds(-1)));
         _repository = new(_db, new CharacterRepositoryOptions { ServerId = ServerId, SaveInterval = TimeSpan.FromHours(1) });
         _joins = new(checker, _repository, TimeSpan.FromSeconds(10), NullLogger.Instance);
-        _db.Add(new Character { Id = 100, AccountId = 1, Name = "Alice" });
-        _db.Add(new Character { Id = 200, AccountId = 2, Name = "Bob" });
+        _db.Add(
+            new Character
+            {
+                Id = 100,
+                AccountId = 1,
+                Name = "Alice",
+            }
+        );
+        _db.Add(
+            new Character
+            {
+                Id = 200,
+                AccountId = 2,
+                Name = "Bob",
+            }
+        );
     }
 
     public async ValueTask DisposeAsync() => await _repository.DisposeAsync();
@@ -59,8 +73,15 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
         await UntilAsync(() => _host.Events.Count == 5);
 
         Assert.Equal(
-            ["failed garbage BadTicket", "failed missing NoCharacter", "failed other server WrongServer", "failed reuse UsedTicket", "joined first Alice v1"],
-            _host.Events.Order());
+            [
+                "failed garbage BadTicket",
+                "failed missing NoCharacter",
+                "failed other server WrongServer",
+                "failed reuse UsedTicket",
+                "joined first Alice v1",
+            ],
+            _host.Events.Order()
+        );
     }
 
     [Fact]
@@ -154,7 +175,10 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
         // Never started: the repository's writer isn't running, so the claim can't finish before the deadline.
         var joins = new JoinedCharacters<Client, Character>(
             new TicketChecker([TicketKeys.PublicKey(Keys.Public)], ServerId, new ShiftedClock(TimeSpan.FromSeconds(-1))),
-            _repository, TimeSpan.FromMilliseconds(100), NullLogger.Instance);
+            _repository,
+            TimeSpan.FromMilliseconds(100),
+            NullLogger.Instance
+        );
         joins.Begin(new Client("a"), _issuer.Issue(1, 100, ServerId));
 
         var deadline = DateTime.UtcNow.AddSeconds(5);

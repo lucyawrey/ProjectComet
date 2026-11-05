@@ -25,12 +25,16 @@ namespace Comet.ZoneFiles
 
         /// <summary>Decimal places written for positions, sizes and scales: millimeters.</summary>
         private const int LengthDecimals = 3;
+
         /// <summary>Decimal places written for angles: hundredths of a degree.</summary>
         private const int AngleDecimals = 2;
+
         /// <summary>Decimal places written for times in seconds: milliseconds.</summary>
         private const int TimeDecimals = 3;
+
         /// <summary>Decimal places written for sign background opacities: hundredths.</summary>
         private const int OpacityDecimals = 2;
+
         /// <summary>Decimal places written for sign font sizes: tenths of a pixel.</summary>
         private const int FontSizeDecimals = 1;
 
@@ -118,7 +122,12 @@ namespace Comet.ZoneFiles
                     WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "height"), Bytes(s => HeightmapFormat.Write(s, tile.Heights)), written);
                     if (tile.Underside is not null)
                     {
-                        WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "under.height"), Bytes(s => HeightmapFormat.Write(s, tile.Underside)), written);
+                        WriteIfChanged(
+                            folder,
+                            TileFile(chunk.Coord, tile.Piece, "under.height"),
+                            Bytes(s => HeightmapFormat.Write(s, tile.Underside)),
+                            written
+                        );
                     }
 
                     if (tile.Colors is not null)
@@ -128,7 +137,12 @@ namespace Comet.ZoneFiles
 
                     if (tile.UndersideColors is not null)
                     {
-                        WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "under.color"), Bytes(s => ColorMapFormat.Write(s, tile.UndersideColors)), written);
+                        WriteIfChanged(
+                            folder,
+                            TileFile(chunk.Coord, tile.Piece, "under.color"),
+                            Bytes(s => ColorMapFormat.Write(s, tile.UndersideColors)),
+                            written
+                        );
                     }
                 }
             }
@@ -151,55 +165,63 @@ namespace Comet.ZoneFiles
                 zone.KillHeight = toml.Float(table, "", "kill_height");
             }
 
-            zone.Pieces = toml.Tables(table, "piece").Select(t =>
-            {
-                toml.CheckKeys(t.Table, t.Path, "name", "skirt_depth", "rim_skirts", "hole_skirts", "ground_color", "under_color");
-                return new TerrainPiece
+            zone.Pieces = toml.Tables(table, "piece")
+                .Select(t =>
                 {
-                    Name = toml.String(t.Table, t.Path, "name"),
-                    SkirtDepth = toml.Float(t.Table, t.Path, "skirt_depth"),
-                    RimSkirts = toml.Bool(t.Table, t.Path, "rim_skirts", true),
-                    HoleSkirts = toml.Bool(t.Table, t.Path, "hole_skirts", true),
-                    GroundColor = t.Table.TryGetValue("ground_color", out var ground) ? Color(toml, ground, $"{t.Path}.ground_color") : null,
-                    UnderColor = t.Table.TryGetValue("under_color", out var under) ? Color(toml, under, $"{t.Path}.under_color") : null,
-                };
-            }).ToArray();
-            zone.Borders = toml.Tables(table, "border").Select(t =>
-            {
-                toml.CheckKeys(t.Table, t.Path, "chunk", "side", "zone");
-                var (x, z) = toml.Pair(t.Table, t.Path, "chunk");
-                return new ZoneBorder
+                    toml.CheckKeys(t.Table, t.Path, "name", "skirt_depth", "rim_skirts", "hole_skirts", "ground_color", "under_color");
+                    return new TerrainPiece
+                    {
+                        Name = toml.String(t.Table, t.Path, "name"),
+                        SkirtDepth = toml.Float(t.Table, t.Path, "skirt_depth"),
+                        RimSkirts = toml.Bool(t.Table, t.Path, "rim_skirts", true),
+                        HoleSkirts = toml.Bool(t.Table, t.Path, "hole_skirts", true),
+                        GroundColor = t.Table.TryGetValue("ground_color", out var ground) ? Color(toml, ground, $"{t.Path}.ground_color") : null,
+                        UnderColor = t.Table.TryGetValue("under_color", out var under) ? Color(toml, under, $"{t.Path}.under_color") : null,
+                    };
+                })
+                .ToArray();
+            zone.Borders = toml.Tables(table, "border")
+                .Select(t =>
                 {
-                    Chunk = new ChunkCoord(x, z),
-                    Side = toml.Enum<ChunkSide>(t.Table, t.Path, "side"),
-                    Zone = toml.String(t.Table, t.Path, "zone"),
-                };
-            }).ToArray();
-            zone.Entrances = toml.Tables(table, "entrance").Select(t =>
-            {
-                toml.CheckKeys(t.Table, t.Path, "name", "position", "yaw", "size", "to_zone", "to_entrance");
-                return new ZoneEntrance
+                    toml.CheckKeys(t.Table, t.Path, "chunk", "side", "zone");
+                    var (x, z) = toml.Pair(t.Table, t.Path, "chunk");
+                    return new ZoneBorder
+                    {
+                        Chunk = new ChunkCoord(x, z),
+                        Side = toml.Enum<ChunkSide>(t.Table, t.Path, "side"),
+                        Zone = toml.String(t.Table, t.Path, "zone"),
+                    };
+                })
+                .ToArray();
+            zone.Entrances = toml.Tables(table, "entrance")
+                .Select(t =>
                 {
-                    Name = toml.String(t.Table, t.Path, "name"),
-                    Position = toml.Vector(t.Table, t.Path, "position"),
-                    Yaw = toml.Float(t.Table, t.Path, "yaw", 0),
-                    Size = toml.Vector(t.Table, t.Path, "size"),
-                    ToZone = toml.String(t.Table, t.Path, "to_zone"),
-                    ToEntrance = toml.String(t.Table, t.Path, "to_entrance"),
-                };
-            }).ToArray();
-            zone.TransitionRooms = toml.Tables(table, "transition_room").Select(t =>
-            {
-                toml.CheckKeys(t.Table, t.Path, "name", "position", "yaw", "size", "entrance");
-                return new TransitionRoom
+                    toml.CheckKeys(t.Table, t.Path, "name", "position", "yaw", "size", "to_zone", "to_entrance");
+                    return new ZoneEntrance
+                    {
+                        Name = toml.String(t.Table, t.Path, "name"),
+                        Position = toml.Vector(t.Table, t.Path, "position"),
+                        Yaw = toml.Float(t.Table, t.Path, "yaw", 0),
+                        Size = toml.Vector(t.Table, t.Path, "size"),
+                        ToZone = toml.String(t.Table, t.Path, "to_zone"),
+                        ToEntrance = toml.String(t.Table, t.Path, "to_entrance"),
+                    };
+                })
+                .ToArray();
+            zone.TransitionRooms = toml.Tables(table, "transition_room")
+                .Select(t =>
                 {
-                    Name = toml.String(t.Table, t.Path, "name"),
-                    Position = toml.Vector(t.Table, t.Path, "position"),
-                    Yaw = toml.Float(t.Table, t.Path, "yaw", 0),
-                    Size = toml.Vector(t.Table, t.Path, "size"),
-                    Entrance = toml.String(t.Table, t.Path, "entrance"),
-                };
-            }).ToArray();
+                    toml.CheckKeys(t.Table, t.Path, "name", "position", "yaw", "size", "entrance");
+                    return new TransitionRoom
+                    {
+                        Name = toml.String(t.Table, t.Path, "name"),
+                        Position = toml.Vector(t.Table, t.Path, "position"),
+                        Yaw = toml.Float(t.Table, t.Path, "yaw", 0),
+                        Size = toml.Vector(t.Table, t.Path, "size"),
+                        Entrance = toml.String(t.Table, t.Path, "entrance"),
+                    };
+                })
+                .ToArray();
         }
 
         private static ZoneChunk? ReadChunk(string folder, ChunkCoord coord, string file, List<ZoneFileError> errors)
@@ -233,68 +255,92 @@ namespace Comet.ZoneFiles
                 }
 
                 tile.Heights = heights;
-                tile.Underside = ReadTileFile(folder, TileFile(coord, tile.Piece, "under.height"), HeightmapFormat.Read, required: false, errors, tileFiles);
+                tile.Underside = ReadTileFile(
+                    folder,
+                    TileFile(coord, tile.Piece, "under.height"),
+                    HeightmapFormat.Read,
+                    required: false,
+                    errors,
+                    tileFiles
+                );
                 tile.Colors = ReadTileFile(folder, TileFile(coord, tile.Piece, "color"), ColorMapFormat.Read, required: false, errors, tileFiles);
-                tile.UndersideColors = ReadTileFile(folder, TileFile(coord, tile.Piece, "under.color"), ColorMapFormat.Read, required: false, errors, tileFiles);
+                tile.UndersideColors = ReadTileFile(
+                    folder,
+                    TileFile(coord, tile.Piece, "under.color"),
+                    ColorMapFormat.Read,
+                    required: false,
+                    errors,
+                    tileFiles
+                );
                 tiles.Add(tile);
             }
 
             chunk.Tiles = tiles.ToArray();
             chunk.Placements = toml.Tables(table, "placement").Select(p => ReadPlacement(toml, p.Table, p.Path)).ToArray();
-            chunk.Spawns = toml.Tables(table, "spawn").Select(s =>
-            {
-                toml.CheckKeys(s.Table, s.Path, VolumeKeys.Concat(new[] { "id", "facing" }).ToArray());
-                return new SpawnPoint
+            chunk.Spawns = toml.Tables(table, "spawn")
+                .Select(s =>
                 {
-                    Id = toml.String(s.Table, s.Path, "id"),
-                    Volume = ReadVolume(toml, s.Table, s.Path),
-                    Facing = toml.Enum<SpawnFacing>(s.Table, s.Path, "facing", SpawnFacing.Direction),
-                };
-            }).ToArray();
-            chunk.Teleporters = toml.Tables(table, "teleporter").Select(t =>
-            {
-                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "facing", "target", "charge_color" }).ToArray());
-                return new Teleporter
-                {
-                    Id = toml.String(t.Table, t.Path, "id"),
-                    Volume = ReadVolume(toml, t.Table, t.Path),
-                    Facing = toml.Enum<SpawnFacing>(t.Table, t.Path, "facing", SpawnFacing.Direction),
-                    Target = toml.String(t.Table, t.Path, "target"),
-                    ChargeColor = t.Table.TryGetValue("charge_color", out var color) ? Color(toml, color, $"{t.Path}.charge_color") : null,
-                };
-            }).ToArray();
-            chunk.Triggers = toml.Tables(table, "trigger").Select(t =>
-            {
-                toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "charge_color", "effect" }).ToArray());
-                return new Trigger
-                {
-                    Id = toml.String(t.Table, t.Path, "id"),
-                    Volume = ReadVolume(toml, t.Table, t.Path),
-                    ChargeColor = t.Table.TryGetValue("charge_color", out var color) ? Color(toml, color, $"{t.Path}.charge_color") : null,
-                    Effects = toml.Tables(t.Table, "effect").Select(e =>
+                    toml.CheckKeys(s.Table, s.Path, VolumeKeys.Concat(new[] { "id", "facing" }).ToArray());
+                    return new SpawnPoint
                     {
-                        var path = $"{t.Path}.{e.Path}";
-                        toml.CheckKeys(e.Table, path, "toggle_tag", "revert_seconds");
-                        return new ToggleEffect
-                        {
-                            Tag = toml.String(e.Table, path, "toggle_tag"),
-                            RevertSeconds = toml.Float(e.Table, path, "revert_seconds", 0),
-                        };
-                    }).ToArray(),
-                };
-            }).ToArray();
-            chunk.Signs = toml.Tables(table, "sign").Select(t => ReadSign(toml, t.Table, t.Path, "position")).ToArray();
-            chunk.Volumes = toml.Tables(table, "volume").Select(v =>
-            {
-                toml.CheckKeys(v.Table, v.Path, "kind", "position", "rotation", "size");
-                return new CollisionVolume
+                        Id = toml.String(s.Table, s.Path, "id"),
+                        Volume = ReadVolume(toml, s.Table, s.Path),
+                        Facing = toml.Enum<SpawnFacing>(s.Table, s.Path, "facing", SpawnFacing.Direction),
+                    };
+                })
+                .ToArray();
+            chunk.Teleporters = toml.Tables(table, "teleporter")
+                .Select(t =>
                 {
-                    Kind = toml.Enum<VolumeKind>(v.Table, v.Path, "kind"),
-                    Position = toml.Vector(v.Table, v.Path, "position"),
-                    Rotation = toml.Vector(v.Table, v.Path, "rotation", Vector3.Zero),
-                    Size = toml.Vector(v.Table, v.Path, "size"),
-                };
-            }).ToArray();
+                    toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "facing", "target", "charge_color" }).ToArray());
+                    return new Teleporter
+                    {
+                        Id = toml.String(t.Table, t.Path, "id"),
+                        Volume = ReadVolume(toml, t.Table, t.Path),
+                        Facing = toml.Enum<SpawnFacing>(t.Table, t.Path, "facing", SpawnFacing.Direction),
+                        Target = toml.String(t.Table, t.Path, "target"),
+                        ChargeColor = t.Table.TryGetValue("charge_color", out var color) ? Color(toml, color, $"{t.Path}.charge_color") : null,
+                    };
+                })
+                .ToArray();
+            chunk.Triggers = toml.Tables(table, "trigger")
+                .Select(t =>
+                {
+                    toml.CheckKeys(t.Table, t.Path, VolumeKeys.Concat(new[] { "id", "charge_color", "effect" }).ToArray());
+                    return new Trigger
+                    {
+                        Id = toml.String(t.Table, t.Path, "id"),
+                        Volume = ReadVolume(toml, t.Table, t.Path),
+                        ChargeColor = t.Table.TryGetValue("charge_color", out var color) ? Color(toml, color, $"{t.Path}.charge_color") : null,
+                        Effects = toml.Tables(t.Table, "effect")
+                            .Select(e =>
+                            {
+                                var path = $"{t.Path}.{e.Path}";
+                                toml.CheckKeys(e.Table, path, "toggle_tag", "revert_seconds");
+                                return new ToggleEffect
+                                {
+                                    Tag = toml.String(e.Table, path, "toggle_tag"),
+                                    RevertSeconds = toml.Float(e.Table, path, "revert_seconds", 0),
+                                };
+                            })
+                            .ToArray(),
+                    };
+                })
+                .ToArray();
+            chunk.Signs = toml.Tables(table, "sign").Select(t => ReadSign(toml, t.Table, t.Path, "position")).ToArray();
+            chunk.Volumes = toml.Tables(table, "volume")
+                .Select(v =>
+                {
+                    toml.CheckKeys(v.Table, v.Path, "kind", "position", "rotation", "size");
+                    return new CollisionVolume
+                    {
+                        Kind = toml.Enum<VolumeKind>(v.Table, v.Path, "kind"),
+                        Position = toml.Vector(v.Table, v.Path, "position"),
+                        Rotation = toml.Vector(v.Table, v.Path, "rotation", Vector3.Zero),
+                        Size = toml.Vector(v.Table, v.Path, "size"),
+                    };
+                })
+                .ToArray();
 
             // Tile files in the chunk folder that no tile reads are probably a piece renamed by hand: say so rather than
             // silently ignoring them. Other files there aren't the zone's.
@@ -314,7 +360,14 @@ namespace Comet.ZoneFiles
             return chunk;
         }
 
-        private static T? ReadTileFile<T>(string folder, string file, Func<Stream, T> read, bool required, List<ZoneFileError> errors, HashSet<string> seen)
+        private static T? ReadTileFile<T>(
+            string folder,
+            string file,
+            Func<Stream, T> read,
+            bool required,
+            List<ZoneFileError> errors,
+            HashSet<string> seen
+        )
             where T : class
         {
             var path = Path.Combine(folder, file);
@@ -344,7 +397,27 @@ namespace Comet.ZoneFiles
         /// <summary>A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of prop, primitive or group, and its transform.</summary>
         internal static Placement ReadPlacement(ZoneToml toml, TomlTable table, string path)
         {
-            toml.CheckKeys(table, path, "prop", "primitive", "group", "sides", "bevel", "steps", "opening", "thickness", "blockout", "off", "tag", "role", "position", "rotation", "scale", "color", "colors");
+            toml.CheckKeys(
+                table,
+                path,
+                "prop",
+                "primitive",
+                "group",
+                "sides",
+                "bevel",
+                "steps",
+                "opening",
+                "thickness",
+                "blockout",
+                "off",
+                "tag",
+                "role",
+                "position",
+                "rotation",
+                "scale",
+                "color",
+                "colors"
+            );
             if (new[] { "prop", "primitive", "group" }.Count(table.ContainsKey) != 1)
             {
                 toml.Error(path, "a placement places one of: a prop, a primitive or a group.");
@@ -472,8 +545,18 @@ namespace Comet.ZoneFiles
         // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
         internal static string HexColors(string text)
         {
-            text = Regex.Replace(text, @"^((?:ground_|under_|charge_|text_|background_)?color = )(\d+)$", m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}", RegexOptions.Multiline);
-            return Regex.Replace(text, @"^colors = \{.*\}$", line => Regex.Replace(line.Value, @"= (\d+)", m => $"= 0x{long.Parse(m.Groups[1].Value):X6}"), RegexOptions.Multiline);
+            text = Regex.Replace(
+                text,
+                @"^((?:ground_|under_|charge_|text_|background_)?color = )(\d+)$",
+                m => $"{m.Groups[1].Value}0x{long.Parse(m.Groups[2].Value):X6}",
+                RegexOptions.Multiline
+            );
+            return Regex.Replace(
+                text,
+                @"^colors = \{.*\}$",
+                line => Regex.Replace(line.Value, @"= (\d+)", m => $"= 0x{long.Parse(m.Groups[1].Value):X6}"),
+                RegexOptions.Multiline
+            );
         }
 
         private static TomlTable ZoneTable(Zone zone)
@@ -489,50 +572,70 @@ namespace Comet.ZoneFiles
                 table["kill_height"] = ZoneToml.Round(killHeight, LengthDecimals);
             }
 
-            AddTables(table, "piece", zone.Pieces, p =>
-            {
-                var piece = new TomlTable
+            AddTables(
+                table,
+                "piece",
+                zone.Pieces,
+                p =>
                 {
-                    ["name"] = p.Name,
-                    ["skirt_depth"] = ZoneToml.Round(p.SkirtDepth, LengthDecimals),
-                    ["rim_skirts"] = p.RimSkirts,
-                    ["hole_skirts"] = p.HoleSkirts,
-                };
-                if (p.GroundColor is { } ground)
-                {
-                    piece["ground_color"] = (long)ground;
-                }
+                    var piece = new TomlTable
+                    {
+                        ["name"] = p.Name,
+                        ["skirt_depth"] = ZoneToml.Round(p.SkirtDepth, LengthDecimals),
+                        ["rim_skirts"] = p.RimSkirts,
+                        ["hole_skirts"] = p.HoleSkirts,
+                    };
+                    if (p.GroundColor is { } ground)
+                    {
+                        piece["ground_color"] = (long)ground;
+                    }
 
-                if (p.UnderColor is { } under)
-                {
-                    piece["under_color"] = (long)under;
-                }
+                    if (p.UnderColor is { } under)
+                    {
+                        piece["under_color"] = (long)under;
+                    }
 
-                return piece;
-            });
-            AddTables(table, "border", zone.Borders, b => new TomlTable
-            {
-                ["chunk"] = new TomlArray { (long)b.Chunk.X, (long)b.Chunk.Z },
-                ["side"] = ZoneToml.SnakeCase(b.Side.ToString()),
-                ["zone"] = b.Zone,
-            });
-            AddTables(table, "entrance", zone.Entrances, e => new TomlTable
-            {
-                ["name"] = e.Name,
-                ["position"] = ZoneToml.Array3(e.Position, LengthDecimals),
-                ["yaw"] = ZoneToml.Round(e.Yaw, AngleDecimals),
-                ["size"] = ZoneToml.Array3(e.Size, LengthDecimals),
-                ["to_zone"] = e.ToZone,
-                ["to_entrance"] = e.ToEntrance,
-            });
-            AddTables(table, "transition_room", zone.TransitionRooms, r => new TomlTable
-            {
-                ["name"] = r.Name,
-                ["position"] = ZoneToml.Array3(r.Position, LengthDecimals),
-                ["yaw"] = ZoneToml.Round(r.Yaw, AngleDecimals),
-                ["size"] = ZoneToml.Array3(r.Size, LengthDecimals),
-                ["entrance"] = r.Entrance,
-            });
+                    return piece;
+                }
+            );
+            AddTables(
+                table,
+                "border",
+                zone.Borders,
+                b => new TomlTable
+                {
+                    ["chunk"] = new TomlArray { (long)b.Chunk.X, (long)b.Chunk.Z },
+                    ["side"] = ZoneToml.SnakeCase(b.Side.ToString()),
+                    ["zone"] = b.Zone,
+                }
+            );
+            AddTables(
+                table,
+                "entrance",
+                zone.Entrances,
+                e => new TomlTable
+                {
+                    ["name"] = e.Name,
+                    ["position"] = ZoneToml.Array3(e.Position, LengthDecimals),
+                    ["yaw"] = ZoneToml.Round(e.Yaw, AngleDecimals),
+                    ["size"] = ZoneToml.Array3(e.Size, LengthDecimals),
+                    ["to_zone"] = e.ToZone,
+                    ["to_entrance"] = e.ToEntrance,
+                }
+            );
+            AddTables(
+                table,
+                "transition_room",
+                zone.TransitionRooms,
+                r => new TomlTable
+                {
+                    ["name"] = r.Name,
+                    ["position"] = ZoneToml.Array3(r.Position, LengthDecimals),
+                    ["yaw"] = ZoneToml.Round(r.Yaw, AngleDecimals),
+                    ["size"] = ZoneToml.Array3(r.Size, LengthDecimals),
+                    ["entrance"] = r.Entrance,
+                }
+            );
             return table;
         }
 
@@ -590,7 +693,11 @@ namespace Comet.ZoneFiles
 
             if (primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0)
             {
-                placement["opening"] = new TomlArray { ZoneToml.Round(primitive.OpeningWidth, LengthDecimals), ZoneToml.Round(primitive.OpeningHeight, LengthDecimals) };
+                placement["opening"] = new TomlArray
+                {
+                    ZoneToml.Round(primitive.OpeningWidth, LengthDecimals),
+                    ZoneToml.Round(primitive.OpeningHeight, LengthDecimals),
+                };
             }
 
             if (primitive.Thickness != 0)
@@ -602,70 +709,100 @@ namespace Comet.ZoneFiles
         private static TomlTable ChunkTable(ZoneChunk chunk)
         {
             var table = new TomlTable();
-            AddTables(table, "tile", chunk.Tiles, t => new TomlTable
-            {
-                ["piece"] = t.Piece,
-                ["origin"] = new TomlArray { (long)t.OriginX, (long)t.OriginZ },
-            });
+            AddTables(
+                table,
+                "tile",
+                chunk.Tiles,
+                t => new TomlTable
+                {
+                    ["piece"] = t.Piece,
+                    ["origin"] = new TomlArray { (long)t.OriginX, (long)t.OriginZ },
+                }
+            );
             AddTables(table, "placement", chunk.Placements, PlacementTable);
-            AddTables(table, "spawn", chunk.Spawns, s =>
-            {
-                var spawn = new TomlTable { ["id"] = s.Id };
-                WriteVolume(spawn, s.Volume);
-                spawn["facing"] = ZoneToml.SnakeCase(s.Facing.ToString());
-                return WriteSubtables(spawn, s.Volume);
-            });
-            AddTables(table, "teleporter", chunk.Teleporters, t =>
-            {
-                var teleporter = new TomlTable { ["id"] = t.Id };
-                WriteVolume(teleporter, t.Volume);
-                teleporter["facing"] = ZoneToml.SnakeCase(t.Facing.ToString());
-                teleporter["target"] = t.Target;
-                if (t.ChargeColor is { } color)
+            AddTables(
+                table,
+                "spawn",
+                chunk.Spawns,
+                s =>
                 {
-                    teleporter["charge_color"] = (long)color;
+                    var spawn = new TomlTable { ["id"] = s.Id };
+                    WriteVolume(spawn, s.Volume);
+                    spawn["facing"] = ZoneToml.SnakeCase(s.Facing.ToString());
+                    return WriteSubtables(spawn, s.Volume);
                 }
-
-                return WriteSubtables(teleporter, t.Volume);
-            });
-            AddTables(table, "sign", chunk.Signs, t => SignTable(t, "position"));
-            AddTables(table, "trigger", chunk.Triggers, t =>
-            {
-                var trigger = new TomlTable { ["id"] = t.Id };
-                WriteVolume(trigger, t.Volume);
-                if (t.ChargeColor is { } color)
+            );
+            AddTables(
+                table,
+                "teleporter",
+                chunk.Teleporters,
+                t =>
                 {
-                    trigger["charge_color"] = (long)color;
-                }
-
-                WriteSubtables(trigger, t.Volume);
-                AddTables(trigger, "effect", t.Effects, e =>
-                {
-                    var effect = new TomlTable { ["toggle_tag"] = e.Tag };
-                    if (e.RevertSeconds != 0)
+                    var teleporter = new TomlTable { ["id"] = t.Id };
+                    WriteVolume(teleporter, t.Volume);
+                    teleporter["facing"] = ZoneToml.SnakeCase(t.Facing.ToString());
+                    teleporter["target"] = t.Target;
+                    if (t.ChargeColor is { } color)
                     {
-                        effect["revert_seconds"] = ZoneToml.Round(e.RevertSeconds, TimeDecimals);
+                        teleporter["charge_color"] = (long)color;
                     }
 
-                    return effect;
-                });
-                return trigger;
-            });
-            AddTables(table, "volume", chunk.Volumes, v =>
-            {
-                var volume = new TomlTable
-                {
-                    ["kind"] = ZoneToml.SnakeCase(v.Kind.ToString()),
-                    ["position"] = ZoneToml.Array3(v.Position, LengthDecimals),
-                };
-                if (!IsZero(v.Rotation, AngleDecimals))
-                {
-                    volume["rotation"] = ZoneToml.Array3(v.Rotation, AngleDecimals);
+                    return WriteSubtables(teleporter, t.Volume);
                 }
+            );
+            AddTables(table, "sign", chunk.Signs, t => SignTable(t, "position"));
+            AddTables(
+                table,
+                "trigger",
+                chunk.Triggers,
+                t =>
+                {
+                    var trigger = new TomlTable { ["id"] = t.Id };
+                    WriteVolume(trigger, t.Volume);
+                    if (t.ChargeColor is { } color)
+                    {
+                        trigger["charge_color"] = (long)color;
+                    }
 
-                volume["size"] = ZoneToml.Array3(v.Size, LengthDecimals);
-                return volume;
-            });
+                    WriteSubtables(trigger, t.Volume);
+                    AddTables(
+                        trigger,
+                        "effect",
+                        t.Effects,
+                        e =>
+                        {
+                            var effect = new TomlTable { ["toggle_tag"] = e.Tag };
+                            if (e.RevertSeconds != 0)
+                            {
+                                effect["revert_seconds"] = ZoneToml.Round(e.RevertSeconds, TimeDecimals);
+                            }
+
+                            return effect;
+                        }
+                    );
+                    return trigger;
+                }
+            );
+            AddTables(
+                table,
+                "volume",
+                chunk.Volumes,
+                v =>
+                {
+                    var volume = new TomlTable
+                    {
+                        ["kind"] = ZoneToml.SnakeCase(v.Kind.ToString()),
+                        ["position"] = ZoneToml.Array3(v.Position, LengthDecimals),
+                    };
+                    if (!IsZero(v.Rotation, AngleDecimals))
+                    {
+                        volume["rotation"] = ZoneToml.Array3(v.Rotation, AngleDecimals);
+                    }
+
+                    volume["size"] = ZoneToml.Array3(v.Size, LengthDecimals);
+                    return volume;
+                }
+            );
             return table;
         }
 
@@ -675,7 +812,22 @@ namespace Comet.ZoneFiles
         // A sign's table: standalone ones have a position; a trigger's has an offset from its volume's bottom center.
         private static Sign ReadSign(ZoneToml toml, TomlTable table, string path, string positionKey)
         {
-            toml.CheckKeys(table, path, positionKey, "text", "text_color", "background", "background_color", "background_opacity", "show_distance", "screen_sized", "font_size", "text_height", "arrow", "off");
+            toml.CheckKeys(
+                table,
+                path,
+                positionKey,
+                "text",
+                "text_color",
+                "background",
+                "background_color",
+                "background_opacity",
+                "show_distance",
+                "screen_sized",
+                "font_size",
+                "text_height",
+                "arrow",
+                "off"
+            );
             return new Sign
             {
                 Position = toml.Vector(table, path, positionKey),
@@ -859,7 +1011,8 @@ namespace Comet.ZoneFiles
             File.WriteAllBytes(path, bytes);
         }
 
-        private static bool IsTileFile(string path) => path.EndsWith(".height", StringComparison.Ordinal) || path.EndsWith(".color", StringComparison.Ordinal);
+        private static bool IsTileFile(string path) =>
+            path.EndsWith(".height", StringComparison.Ordinal) || path.EndsWith(".color", StringComparison.Ordinal);
 
         // Removes the chunk and tile files a save didn't write (deleted chunks and tiles) from the chunk folders (x_z,
         // the files directly in them), and chunk folders left empty. Anything else in chunks/ isn't the zone's, so it's

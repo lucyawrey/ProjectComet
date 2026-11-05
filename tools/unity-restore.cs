@@ -16,17 +16,23 @@ using System.Text.RegularExpressions;
 
 args = Tool.Arguments(args);
 
-if (args.FirstOrDefault() is "-h" or "--help") Tool.Usage();
+if (args.FirstOrDefault() is "-h" or "--help")
+    Tool.Usage();
 var project = Path.GetFullPath(Path.Combine(Tool.Repo, args.FirstOrDefault() ?? "shapeland/ShapeLand.Unity"));
 if (!File.Exists(Path.Combine(project, "Assets", "packages.config")))
     throw Tool.Fail($"No Assets/packages.config in {project}", 2);
 
-var restore = Tool.Info("dotnet", ["dnx", "-y", "NuGetForUnity.Cli@4.5.0", "--", "restore", project],
-    env: new Dictionary<string, string?> { ["DOTNET_ROLL_FORWARD"] = "Major" });
-if (Tool.Run(restore) != 0) throw Tool.Fail("The NuGet restore failed.");
+var restore = Tool.Info(
+    "dotnet",
+    ["dnx", "-y", "NuGetForUnity.Cli@4.5.0", "--", "restore", project],
+    env: new Dictionary<string, string?> { ["DOTNET_ROLL_FORWARD"] = "Major" }
+);
+if (Tool.Run(restore) != 0)
+    throw Tool.Fail("The NuGet restore failed.");
 
 var packages = Path.Combine(project, "Assets", "Packages");
-int analyzers = 0, editorOnly = 0;
+int analyzers = 0,
+    editorOnly = 0;
 foreach (var dll in Directory.EnumerateFiles(packages, "*.dll", SearchOption.AllDirectories))
 {
     var isTomlyn = Path.GetRelativePath(packages, dll).StartsWith("Tomlyn.");
@@ -39,7 +45,8 @@ foreach (var dll in Directory.EnumerateFiles(packages, "*.dll", SearchOption.All
     else if (isTomlyn)
     {
         WriteMeta(dll + ".meta", analyzer: false, editor: !isAnalyzer, keepGuidOnly: false);
-        if (!isAnalyzer) editorOnly++;
+        if (!isAnalyzer)
+            editorOnly++;
     }
 }
 
@@ -53,9 +60,12 @@ Console.WriteLine($"Restored {project}; rewrote {analyzers} analyzer .meta file(
 static void WriteMeta(string meta, bool analyzer, bool editor, bool keepGuidOnly)
 {
     var existing = File.Exists(meta) ? Regex.Match(File.ReadAllText(meta), @"^guid: *(\S+)", RegexOptions.Multiline) : null;
-    if (keepGuidOnly && existing is not { Success: true }) throw Tool.Fail($"No GUID in {meta}");
+    if (keepGuidOnly && existing is not { Success: true })
+        throw Tool.Fail($"No GUID in {meta}");
     var guid = existing is { Success: true } ? existing.Groups[1].Value : Guid.NewGuid().ToString("N");
-    File.WriteAllText(meta, $"""
+    File.WriteAllText(
+        meta,
+        $"""
         fileFormatVersion: 2
         guid: {guid}
         {(analyzer ? "labels:\n- RoslynAnalyzer\n" : "")}PluginImporter:
@@ -80,5 +90,6 @@ static void WriteMeta(string meta, bool analyzer, bool editor, bool keepGuidOnly
           assetBundleName:
           assetBundleVariant:
 
-        """.ReplaceLineEndings("\n"));
+        """.ReplaceLineEndings("\n")
+    );
 }

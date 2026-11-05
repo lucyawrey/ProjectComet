@@ -21,11 +21,14 @@ namespace ShapeLand.Client
 
         // The sight line starts a little in front of the camera (one brushing a wall still sees) and stops short of
         // the sign (one on a wall or post isn't hidden by it), in meters.
-        private const float CameraGap = 0.1f, SignGap = 0.3f;
+        private const float CameraGap = 0.1f,
+            SignGap = 0.3f;
 
         // World-sized signs are laid out at a screen-sized sign's default font size, then scaled as a whole (padding
         // and arrow too) to their text height at their distance. The arrow's height is the USS's .sign-arrow's.
-        private const float WorldLayoutFontSize = 13, ArrowHeight = 7, MaxWorldScale = 20;
+        private const float WorldLayoutFontSize = 13,
+            ArrowHeight = 7,
+            MaxWorldScale = 20;
 
         private readonly List<Shown> _signs = new List<Shown>();
         private readonly HashSet<int> _walls = new HashSet<int>();

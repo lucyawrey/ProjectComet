@@ -23,7 +23,18 @@ namespace Comet.Unity.Editor
             var hidden = new List<string> { "m_Script" };
             if (targets.Cast<ZonePlacement>().Any(p => !p.isPrimitive || p.IsGroup))
             {
-                hidden.AddRange(new[] { nameof(ZonePlacement.kind), nameof(ZonePlacement.size), nameof(ZonePlacement.sides), nameof(ZonePlacement.bevel), nameof(ZonePlacement.steps), nameof(ZonePlacement.opening), nameof(ZonePlacement.thickness) });
+                hidden.AddRange(
+                    new[]
+                    {
+                        nameof(ZonePlacement.kind),
+                        nameof(ZonePlacement.size),
+                        nameof(ZonePlacement.sides),
+                        nameof(ZonePlacement.bevel),
+                        nameof(ZonePlacement.steps),
+                        nameof(ZonePlacement.opening),
+                        nameof(ZonePlacement.thickness),
+                    }
+                );
             }
 
             if (targets.Cast<ZonePlacement>().All(p => !p.IsGroup))
@@ -56,7 +67,9 @@ namespace Comet.Unity.Editor
             EditorGUI.showMixedValue = own.hasMultipleDifferentValues || color.hasMultipleDifferentValues;
             var (picked, changed, reset) = ColorFields.WithReset(
                 new UnityEngine.GUIContent("Color", "The placement's color. Reset: its prop's, else the game's (Comet Settings)."),
-                placement.ownColor ? placement.color : placement.DefaultColor, own.boolValue || own.hasMultipleDifferentValues);
+                placement.ownColor ? placement.color : placement.DefaultColor,
+                own.boolValue || own.hasMultipleDifferentValues
+            );
             EditorGUI.showMixedValue = false;
             if (changed)
             {
@@ -95,10 +108,17 @@ namespace Comet.Unity.Editor
 
             if (placed.isPrimitive)
             {
-                var ids = settings.props.Entries.Select(e => e.id).Where(k => !string.IsNullOrEmpty(k)).OrderBy(k => k, System.StringComparer.Ordinal).ToList();
+                var ids = settings
+                    .props.Entries.Select(e => e.id)
+                    .Where(k => !string.IsNullOrEmpty(k))
+                    .OrderBy(k => k, System.StringComparer.Ordinal)
+                    .ToList();
                 using (new EditorGUI.DisabledScope(ids.Count == 0))
                 {
-                    var label = new GUIContent("Swap for prop…", ids.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands.");
+                    var label = new GUIContent(
+                        "Swap for prop…",
+                        ids.Count == 0 ? "The game has no props yet." : "Replace it with a prop scaled to its size, standing where it stands."
+                    );
                     if (GUILayout.Button(label))
                     {
                         var menu = new GenericMenu();
@@ -111,7 +131,10 @@ namespace Comet.Unity.Editor
                     }
                 }
             }
-            else if (settings.props.TryGet(placed.prop, out _) && GUILayout.Button(new GUIContent("Swap for box", "Replace it with a box filling its bounds, standing where it stands.")))
+            else if (
+                settings.props.TryGet(placed.prop, out _)
+                && GUILayout.Button(new GUIContent("Swap for box", "Replace it with a box filling its bounds, standing where it stands."))
+            )
             {
                 ZoneSwap.ForBox(placed, settings);
                 GUIUtility.ExitGUI();
@@ -136,15 +159,25 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField(new GUIContent("Colors by role", "Recolors this copy's parts that play each role. Give a group's parts roles in the group itself."), EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(
+                new GUIContent("Colors by role", "Recolors this copy's parts that play each role. Give a group's parts roles in the group itself."),
+                EditorStyles.boldLabel
+            );
             foreach (var role in roles.Concat(copy.roleColors.Select(c => c.role).Where(r => !roles.Contains(r))).ToList())
             {
                 var index = copy.roleColors.FindIndex(c => c.role == role);
                 var own = index >= 0;
                 var part = parts.FirstOrDefault(p => p.Role == role);
-                var groupColor = part?.Color is { } rgb ? PlacedColors.FromRgb(rgb) : settings != null ? settings.placedColor : Color.gray;
+                var groupColor =
+                    part?.Color is { } rgb ? PlacedColors.FromRgb(rgb)
+                    : settings != null ? settings.placedColor
+                    : Color.gray;
                 var label = roles.Contains(role) ? role : $"{role} (not in {copy.group})";
-                var (picked, changed, reset) = ColorFields.WithReset(new GUIContent(label, $"The color of the parts playing {role}. Reset: the group's own."), own ? copy.roleColors[index].color : groupColor, own);
+                var (picked, changed, reset) = ColorFields.WithReset(
+                    new GUIContent(label, $"The color of the parts playing {role}. Reset: the group's own."),
+                    own ? copy.roleColors[index].color : groupColor,
+                    own
+                );
                 if (changed)
                 {
                     Undo.RecordObject(copy, $"Color {role}");
@@ -183,7 +216,10 @@ namespace Comet.Unity.Editor
 
             if (copy.EditingInPlace)
             {
-                EditorGUILayout.HelpBox($"Editing {copy.group} in place: its parts are placed under this copy. Save the group to change every copy.", MessageType.Info);
+                EditorGUILayout.HelpBox(
+                    $"Editing {copy.group} in place: its parts are placed under this copy. Save the group to change every copy.",
+                    MessageType.Info
+                );
                 EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button("Save group"))
                 {
@@ -201,7 +237,10 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            EditorGUILayout.HelpBox("A copy looks like its group. Edit the group to change every copy; unpack this one to change it alone.", MessageType.None);
+            EditorGUILayout.HelpBox(
+                "A copy looks like its group. Edit the group to change every copy; unpack this one to change it alone.",
+                MessageType.None
+            );
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Edit in place"))
             {

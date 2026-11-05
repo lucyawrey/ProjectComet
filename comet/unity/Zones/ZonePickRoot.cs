@@ -10,7 +10,5 @@ namespace Comet.Unity
     [SelectionBase]
     [DisallowMultipleComponent]
     [AddComponentMenu("")]
-    public sealed class ZonePickRoot : MonoBehaviour
-    {
-    }
+    public sealed class ZonePickRoot : MonoBehaviour { }
 }

@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>Exe</OutputType>
@@ -23,5 +22,4 @@
     <ProjectReference Include="..\..\src\ShapeLand.Data\ShapeLand.Data.csproj" />
     <ProjectReference Include="..\..\src\ShapeLand.Data.Accounts\ShapeLand.Data.Accounts.csproj" />
   </ItemGroup>
-
 </Project>

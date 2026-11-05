@@ -18,8 +18,7 @@ public static class TicketKeys
     }
 
     /// <summary>A key's ID, from its public key.</summary>
-    public static string KeyId(ECDsa key) =>
-        Convert.ToHexStringLower(SHA256.HashData(key.ExportSubjectPublicKeyInfo())[..8]);
+    public static string KeyId(ECDsa key) => Convert.ToHexStringLower(SHA256.HashData(key.ExportSubjectPublicKeyInfo())[..8]);
 
     /// <summary>Loads a private key from PEM text, for signing.</summary>
     public static ECDsaSecurityKey PrivateKey(string pem) => Load(pem, needsPrivate: true);

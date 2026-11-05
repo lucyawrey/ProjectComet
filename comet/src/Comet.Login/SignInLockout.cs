@@ -15,8 +15,7 @@ public sealed class SignInLockout(IOptions<LoginOptions> options, TimeProvider c
     private readonly ConcurrentDictionary<(long Account, string Address), Entry> _entries = new();
 
     /// <summary>Whether the pair is locked out now.</summary>
-    public bool IsLocked(long accountId, string address) =>
-        _entries.TryGetValue((accountId, address), out var entry) && entry.LockedUntil > Now;
+    public bool IsLocked(long accountId, string address) => _entries.TryGetValue((accountId, address), out var entry) && entry.LockedUntil > Now;
 
     public void Failed(long accountId, string address)
     {
@@ -25,7 +24,8 @@ public sealed class SignInLockout(IOptions<LoginOptions> options, TimeProvider c
         _entries.AddOrUpdate(
             (accountId, address),
             _ => Next(new Entry(0, now, DateTime.MinValue), now, settings),
-            (_, entry) => Next(entry, now, settings));
+            (_, entry) => Next(entry, now, settings)
+        );
 
         if (_entries.Count > PruneAbove)
         {
@@ -52,9 +52,7 @@ public sealed class SignInLockout(IOptions<LoginOptions> options, TimeProvider c
         }
 
         var failures = entry.Failures + 1;
-        return failures >= settings.LockoutFailures
-            ? new Entry(0, now, now + settings.LockoutDuration)
-            : entry with { Failures = failures };
+        return failures >= settings.LockoutFailures ? new Entry(0, now, now + settings.LockoutDuration) : entry with { Failures = failures };
     }
 
     private sealed record Entry(int Failures, DateTime Since, DateTime LockedUntil);

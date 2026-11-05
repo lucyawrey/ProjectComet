@@ -46,23 +46,25 @@ public static class Tool
             dirs.AddRange(["/usr/local/bin", "/opt/homebrew/bin", "/Applications/Docker.app/Contents/Resources/bin"]);
         var extensions = IsWindows ? (Environment.GetEnvironmentVariable("PATHEXT") ?? ".EXE;.CMD;.BAT").Split(';') : [""];
         foreach (var dir in dirs.Where(d => d != ""))
-            foreach (var extension in extensions)
-            {
-                var path = Path.Combine(dir, program + extension.ToLowerInvariant());
-                if (File.Exists(path)) return path;
-            }
+        foreach (var extension in extensions)
+        {
+            var path = Path.Combine(dir, program + extension.ToLowerInvariant());
+            if (File.Exists(path))
+                return path;
+        }
         return program;
     }
 
     public static bool Has(string program) => Find(program) != program;
 
-    public static ProcessStartInfo Info(string program, IEnumerable<string> args, string? folder = null,
-        IDictionary<string, string?>? env = null)
+    public static ProcessStartInfo Info(string program, IEnumerable<string> args, string? folder = null, IDictionary<string, string?>? env = null)
     {
         var info = new ProcessStartInfo(Find(program)) { WorkingDirectory = folder ?? Environment.CurrentDirectory };
-        foreach (var arg in args) info.ArgumentList.Add(arg);
+        foreach (var arg in args)
+            info.ArgumentList.Add(arg);
         if (env != null)
-            foreach (var (key, value) in env) info.Environment[key] = value;
+            foreach (var (key, value) in env)
+                info.Environment[key] = value;
         return info;
     }
 
@@ -77,8 +79,7 @@ public static class Tool
     }
 
     // Runs a program and returns its exit code and output (stderr goes to this terminal unless asked for too).
-    public static (int Code, string Output) Capture(string program, params string[] args) =>
-        Capture(Info(program, args));
+    public static (int Code, string Output) Capture(string program, params string[] args) => Capture(Info(program, args));
 
     public static (int Code, string Output) Capture(ProcessStartInfo info, bool withErrors = false)
     {
@@ -97,7 +98,8 @@ public static class Tool
     public static string Output(string program, params string[] args)
     {
         var (code, text) = Capture(program, args);
-        if (code != 0) throw Fail($"Failed: {program} {string.Join(' ', args)}");
+        if (code != 0)
+            throw Fail($"Failed: {program} {string.Join(' ', args)}");
         return text.Trim();
     }
 
@@ -107,7 +109,8 @@ public static class Tool
     public static void Quietly(ProcessStartInfo info)
     {
         var (code, text) = Capture(info, withErrors: true);
-        if (code == 0) return;
+        if (code == 0)
+            return;
         Console.Error.WriteLine(text.TrimEnd());
         throw Fail($"Failed: {Path.GetFileName(info.FileName)} {string.Join(' ', info.ArgumentList)}");
     }
@@ -126,9 +129,13 @@ public static class Tool
     {
         try
         {
-            if (process.HasExited) return;
-            if (!IsWindows && Capture(Info("kill", ["-TERM", process.Id.ToString()]), withErrors: true).Code == 0
-                && process.WaitForExit(waitMilliseconds))
+            if (process.HasExited)
+                return;
+            if (
+                !IsWindows
+                && Capture(Info("kill", ["-TERM", process.Id.ToString()]), withErrors: true).Code == 0
+                && process.WaitForExit(waitMilliseconds)
+            )
                 return;
             process.Kill(entireProcessTree: true);
             process.WaitForExit(5000);
@@ -147,11 +154,16 @@ public static class Tool
         try
         {
             using var response = Http.GetAsync(url).GetAwaiter().GetResult();
-            if (!success) return true;
-            if (!response.IsSuccessStatusCode) return false;
+            if (!success)
+                return true;
+            if (!response.IsSuccessStatusCode)
+                return false;
             return body == null || response.Content.ReadAsStringAsync().GetAwaiter().GetResult() == body;
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException) { return false; }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            return false;
+        }
     }
 
     // Polls until the check passes, up to the given number of tries.
@@ -159,7 +171,8 @@ public static class Tool
     {
         for (var i = 0; i < tries; i++)
         {
-            if (check()) return true;
+            if (check())
+                return true;
             Thread.Sleep(delay);
         }
         return false;
@@ -169,8 +182,10 @@ public static class Tool
     {
         try
         {
-            if (IsWindows) Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            else Capture(IsMac ? "open" : "xdg-open", url);
+            if (IsWindows)
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            else
+                Capture(IsMac ? "open" : "xdg-open", url);
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception) { }
     }
@@ -188,12 +203,17 @@ public static class Tool
             {
                 AppDomain.CurrentDomain.ProcessExit += (_, _) => RunStops();
                 foreach (var (signal, code) in new[] { (PosixSignal.SIGINT, 130), (PosixSignal.SIGTERM, 143), (PosixSignal.SIGHUP, 129) })
-                    signals.Add(PosixSignalRegistration.Create(signal, context =>
-                    {
-                        context.Cancel = true;
-                        RunStops();
-                        Environment.Exit(code);
-                    }));
+                    signals.Add(
+                        PosixSignalRegistration.Create(
+                            signal,
+                            context =>
+                            {
+                                context.Cancel = true;
+                                RunStops();
+                                Environment.Exit(code);
+                            }
+                        )
+                    );
             }
             stops.Add(stop);
         }
@@ -209,8 +229,14 @@ public static class Tool
         }
         for (var i = toRun.Length - 1; i >= 0; i--)
         {
-            try { toRun[i](); }
-            catch (Exception e) { Console.Error.WriteLine($"While stopping: {e.Message}"); }
+            try
+            {
+                toRun[i]();
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"While stopping: {e.Message}");
+            }
         }
     }
 
@@ -221,12 +247,11 @@ public static class Tool
         public bool More => next < args.Length;
         public string Peek => args[next];
         public string[] Rest => args[next..];
+
         public string Take() => args[next++];
 
-        public string Value(string option) =>
-            More ? Take() : throw Fail($"{option} needs a value (see --help)", 2);
+        public string Value(string option) => More ? Take() : throw Fail($"{option} needs a value (see --help)", 2);
 
-        public int Number(string option) =>
-            int.TryParse(Value(option), out var n) && n >= 0 ? n : throw Fail($"{option} takes a whole number", 2);
+        public int Number(string option) => int.TryParse(Value(option), out var n) && n >= 0 ? n : throw Fail($"{option} takes a whole number", 2);
     }
 }

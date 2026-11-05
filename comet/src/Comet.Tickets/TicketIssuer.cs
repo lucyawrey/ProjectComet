@@ -19,20 +19,21 @@ public sealed class TicketIssuer(ECDsaSecurityKey privateKey, TimeProvider clock
     public string Issue(long accountId, long characterId, int serverId)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-        return _handler.CreateToken(new SecurityTokenDescriptor
-        {
-            Issuer = TicketClaims.Issuer,
-            Audience = serverId.ToString(),
-            Subject = new ClaimsIdentity(
-            [
-                new Claim(JwtRegisteredClaimNames.Sub, accountId.ToString()),
-                new Claim(TicketClaims.Character, characterId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-            ]),
-            IssuedAt = now,
-            NotBefore = now,
-            Expires = now + Lifetime,
-            SigningCredentials = _credentials,
-        });
+        return _handler.CreateToken(
+            new SecurityTokenDescriptor
+            {
+                Issuer = TicketClaims.Issuer,
+                Audience = serverId.ToString(),
+                Subject = new ClaimsIdentity([
+                    new Claim(JwtRegisteredClaimNames.Sub, accountId.ToString()),
+                    new Claim(TicketClaims.Character, characterId.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+                ]),
+                IssuedAt = now,
+                NotBefore = now,
+                Expires = now + Lifetime,
+                SigningCredentials = _credentials,
+            }
+        );
     }
 }

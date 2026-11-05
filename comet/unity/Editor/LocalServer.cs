@@ -37,6 +37,7 @@ namespace Comet.Unity.Editor
         public const string LoginLogFile = "Logs/login-server.log";
 
         private const string Menu = "Comet/Server/";
+
         // Editor preferences are shared by every project, so each key names this one by its folder.
         private static readonly string Prefix = $"Comet.LocalServer.{ContentHash.Of(System.Text.Encoding.UTF8.GetBytes(ContentBuild.ProjectRoot))}.";
         private static readonly string StartWithPlayKey = Prefix + "StartWithPlayMode";
@@ -44,6 +45,7 @@ namespace Comet.Unity.Editor
         private static readonly string LanKey = Prefix + "Lan";
         private static readonly string BotsKey = Prefix + "Bots";
         private static readonly string JoinOutsideKey = Prefix + "JoinOutsideServer";
+
         // The progress item of a build under way, kept in the editor session so a script reload can pick it up.
         private static readonly string BuildingKey = Prefix + "Building";
         private const string StateFile = "Library/CometLocalServer.json";
@@ -123,7 +125,13 @@ namespace Comet.Unity.Editor
         /// <summary>The options the next start uses.</summary>
         public static Options Chosen
         {
-            get => new Options { Web = EditorPrefs.GetBool(WebKey, false), Lan = EditorPrefs.GetBool(LanKey, false), Bots = EditorPrefs.GetInt(BotsKey, 0) };
+            get =>
+                new Options
+                {
+                    Web = EditorPrefs.GetBool(WebKey, false),
+                    Lan = EditorPrefs.GetBool(LanKey, false),
+                    Bots = EditorPrefs.GetInt(BotsKey, 0),
+                };
             set
             {
                 EditorPrefs.SetBool(WebKey, value.Web);
@@ -151,7 +159,14 @@ namespace Comet.Unity.Editor
 
         /// <summary>The options the running server started with, or null if the editor's server isn't running.</summary>
         public static Options? RunningWith =>
-            Read() is { } state && Alive(state.pid, state.startTicks) ? new Options { Web = state.web, Lan = state.lan, Bots = state.bots } : (Options?)null;
+            Read() is { } state && Alive(state.pid, state.startTicks)
+                ? new Options
+                {
+                    Web = state.web,
+                    Lan = state.lan,
+                    Bots = state.bots,
+                }
+                : (Options?)null;
 
         /// <summary>Whether a game server answers <c>/health</c> on the settings' port now (the editor's own or another).</summary>
         public static bool Answers(CometSettings settings)
@@ -171,13 +186,17 @@ namespace Comet.Unity.Editor
         {
             try
             {
-                return NetworkInterface.GetAllNetworkInterfaces()
+                return NetworkInterface
+                    .GetAllNetworkInterfaces()
                     .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
                     .Select(n => n.GetIPProperties())
-                    .Where(p => p.GatewayAddresses.Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any)))
+                    .Where(p =>
+                        p.GatewayAddresses.Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any))
+                    )
                     .SelectMany(p => p.UnicastAddresses)
                     .Select(a => a.Address)
-                    .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a))?.ToString();
+                    .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a))
+                    ?.ToString();
             }
             catch (NetworkInformationException)
             {
@@ -327,7 +346,9 @@ namespace Comet.Unity.Editor
             }
             else if (JoinOutsideServer && Answers(settings) && PlayedContent(settings) is { } played && played != hash)
             {
-                Debug.LogWarning($"The game server on port {settings.serverPort} was started outside the editor and plays older content; restart it to play the new content.");
+                Debug.LogWarning(
+                    $"The game server on port {settings.serverPort} was started outside the editor and plays older content; restart it to play the new content."
+                );
             }
         }
 
@@ -336,7 +357,9 @@ namespace Comet.Unity.Editor
         {
             if (PlayedContent(settings) is { } played && ContentHashNow() is { } ours && played != ours)
             {
-                Debug.LogWarning($"Using the game server on port {settings.serverPort}, started outside the editor; it plays different content than the editor has, so restart it to play the new content.");
+                Debug.LogWarning(
+                    $"Using the game server on port {settings.serverPort}, started outside the editor; it plays different content than the editor has, so restart it to play the new content."
+                );
             }
             else
             {
@@ -427,11 +450,14 @@ namespace Comet.Unity.Editor
             var databaseTool = accounts ? ContentBuild.ProjectPath(settings.databaseTool) : "";
             var port = settings.serverPort; // names the database, so the characters stay whichever port it runs on
             var progress = Progress.Start("Local game server", buildBots ? "Building the servers and bots" : "Building the servers");
-            var building = Task.Run(() => (
-                buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
-                buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null),
-                buildLogin ? Build(dotnet, root, loginProject) : new Built(accounts ? login : "", null), // none without accounts, whatever ran last
-                accounts ? Database(dotnet, databaseTool, root, CheckoutRoot(root), port) : new Built("", null)));
+            var building = Task.Run(() =>
+                (
+                    buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
+                    buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null),
+                    buildLogin ? Build(dotnet, root, loginProject) : new Built(accounts ? login : "", null), // none without accounts, whatever ran last
+                    accounts ? Database(dotnet, databaseTool, root, CheckoutRoot(root), port) : new Built("", null)
+                )
+            );
             _building = building;
             SessionState.SetInt(BuildingKey, progress);
             var stops = _stops;
@@ -475,7 +501,16 @@ namespace Comet.Unity.Editor
                     return; // stopped, or started elsewhere, meanwhile
                 }
 
-                Launch(settings, options, server.Program!, botsBuilt.Error == null ? botsBuilt.Program ?? "" : "", loginBuilt.Program ?? "", database.Program ?? "", serverPort, loginPort);
+                Launch(
+                    settings,
+                    options,
+                    server.Program!,
+                    botsBuilt.Error == null ? botsBuilt.Program ?? "" : "",
+                    loginBuilt.Program ?? "",
+                    database.Program ?? "",
+                    serverPort,
+                    loginPort
+                );
             }
 
             EditorApplication.update += Poll;
@@ -484,7 +519,16 @@ namespace Comet.Unity.Editor
 
         // Starts the built server with options (and the Login server first, when there's one, on the database given),
         // then waits for it to answer in the background; false (with the reason in the Console) if it couldn't start.
-        private static bool Launch(CometSettings settings, Options options, string program, string bots, string login, string database, int port, int loginPort)
+        private static bool Launch(
+            CometSettings settings,
+            Options options,
+            string program,
+            string bots,
+            string login,
+            string database,
+            int port,
+            int loginPort
+        )
         {
             var content = ContentHashNow();
             if (content == null)
@@ -494,11 +538,16 @@ namespace Comet.Unity.Editor
 
             if (options.Bots > 0 && (bots.Length == 0 || !File.Exists(bots)))
             {
-                Debug.LogWarning(string.IsNullOrEmpty(settings.botsProject) ? "The Comet settings name no bots project, so no bots start." : "Starting the server without bots.");
+                Debug.LogWarning(
+                    string.IsNullOrEmpty(settings.botsProject)
+                        ? "The Comet settings name no bots project, so no bots start."
+                        : "Starting the server without bots."
+                );
                 options.Bots = 0;
             }
 
-            var arguments = $"\"{program}\" --urls http://{(options.Lan ? "0.0.0.0" : "localhost")}:{port} \"--Comet:LogFile={ContentBuild.ProjectPath(LogFile)}\"";
+            var arguments =
+                $"\"{program}\" --urls http://{(options.Lan ? "0.0.0.0" : "localhost")}:{port} \"--Comet:LogFile={ContentBuild.ProjectPath(LogFile)}\"";
             if (options.Web)
             {
                 if (WebBuild(settings) is { } web)
@@ -537,21 +586,25 @@ namespace Comet.Unity.Editor
             if (login.Length > 0)
             {
                 var host = options.Lan && LanAddress() is { } lan ? lan : "localhost";
-                arguments += " " + settings.serverAccountArguments
-                    .Replace("{database}", database).Replace("{login}", $"http://{host}:{loginPort}");
+                arguments += " " + settings.serverAccountArguments.Replace("{database}", database).Replace("{login}", $"http://{host}:{loginPort}");
                 var loginLog = ContentBuild.ProjectPath(LoginLogFile);
                 File.WriteAllText(loginLog, "");
-                var loginArguments = $"\"{login}\" --urls http://{(options.Lan ? "0.0.0.0" : "localhost")}:{loginPort} \"--Comet:LogFile={loginLog}\" " +
-                    settings.loginArguments.Replace("{database}", database).Replace("{game}", $"ws://{host}:{port}/ws")
+                var loginArguments =
+                    $"\"{login}\" --urls http://{(options.Lan ? "0.0.0.0" : "localhost")}:{loginPort} \"--Comet:LogFile={loginLog}\" "
+                    + settings
+                        .loginArguments.Replace("{database}", database)
+                        .Replace("{game}", $"ws://{host}:{port}/ws")
                         .Replace("{page}", $"http://{host}:{port}");
                 try
                 {
-                    using var loginProcess = Process.Start(new ProcessStartInfo(ContentBuild.Dotnet(), loginArguments)
-                    {
-                        WorkingDirectory = ContentBuild.ProjectRoot,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    })!;
+                    using var loginProcess = Process.Start(
+                        new ProcessStartInfo(ContentBuild.Dotnet(), loginArguments)
+                        {
+                            WorkingDirectory = ContentBuild.ProjectRoot,
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                        }
+                    )!;
                     loginPid = loginProcess.Id;
                     loginStartTicks = loginProcess.StartTime.ToUniversalTime().Ticks;
                 }
@@ -572,24 +625,26 @@ namespace Comet.Unity.Editor
             try
             {
                 using var process = Process.Start(start)!;
-                Write(new State
-                {
-                    pid = process.Id,
-                    startTicks = process.StartTime.ToUniversalTime().Ticks,
-                    content = content,
-                    program = program,
-                    botsProgram = bots,
-                    loginPid = loginPid,
-                    loginStartTicks = loginStartTicks,
-                    loginProgram = login,
-                    waiting = true,
-                    dev = dev,
-                    port = port,
-                    loginPort = loginPort,
-                    web = options.Web,
-                    lan = options.Lan,
-                    bots = options.Bots,
-                });
+                Write(
+                    new State
+                    {
+                        pid = process.Id,
+                        startTicks = process.StartTime.ToUniversalTime().Ticks,
+                        content = content,
+                        program = program,
+                        botsProgram = bots,
+                        loginPid = loginPid,
+                        loginStartTicks = loginStartTicks,
+                        loginProgram = login,
+                        waiting = true,
+                        dev = dev,
+                        port = port,
+                        loginPort = loginPort,
+                        web = options.Web,
+                        lan = options.Lan,
+                        bots = options.Bots,
+                    }
+                );
             }
             catch (Exception e)
             {
@@ -640,7 +695,8 @@ namespace Comet.Unity.Editor
                 using var process = Process.GetProcessById(state.pid);
                 process.WaitForExit(5000);
             }
-            catch (Exception e) when (e is AggregateException or ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            catch (Exception e)
+                when (e is AggregateException or ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
             {
                 // Gone already, or not answering: Kill sees to it.
             }
@@ -691,7 +747,10 @@ namespace Comet.Unity.Editor
             // Into its own artifacts folder, so it never fights another build of the same project over files (play-mode
             // tests build the game server too, as do the dev scripts and dotnet test).
             var artifacts = Path.Combine(root, "artifacts", "editor-server");
-            var start = new ProcessStartInfo(dotnet, $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath --artifacts-path \"{artifacts}\"")
+            var start = new ProcessStartInfo(
+                dotnet,
+                $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath --artifacts-path \"{artifacts}\""
+            )
             {
                 WorkingDirectory = root,
                 UseShellExecute = false,
@@ -799,13 +858,17 @@ namespace Comet.Unity.Editor
                                 Stop(quiet: true);
                                 if (!Start(settings, build: false, answers: false))
                                 {
-                                    Debug.LogError("The local game server didn't restart for the new content: start it again (Comet › Server › Start).");
+                                    Debug.LogError(
+                                        "The local game server didn't restart for the new content: start it again (Comet › Server › Start)."
+                                    );
                                 }
 
                                 return;
                             }
 
-                            Debug.LogWarning("The content changed while the local game server started, so it plays the older content until play mode next starts.");
+                            Debug.LogWarning(
+                                "The content changed while the local game server started, so it plays the older content until play mode next starts."
+                            );
                         }
 
                         state.waiting = false;
@@ -850,12 +913,17 @@ namespace Comet.Unity.Editor
             }
 
             // Without accounts the bots join by name, if the game has a way for them to.
-            var template = state.dev ? settings.botsDevArguments : state.loginPort > 0 ? settings.botsArguments : "";
+            var template =
+                state.dev ? settings.botsDevArguments
+                : state.loginPort > 0 ? settings.botsArguments
+                : "";
             if (string.IsNullOrEmpty(template))
             {
-                Debug.LogWarning(state.dev
-                    ? "The bots need accounts here: the Comet settings name no Bots Dev Arguments, so no bots start without Use Accounts."
-                    : "The bots need a Login server, so no bots start: turn on Comet › Server › Use Accounts.");
+                Debug.LogWarning(
+                    state.dev
+                        ? "The bots need accounts here: the Comet settings name no Bots Dev Arguments, so no bots start without Use Accounts."
+                        : "The bots need a Login server, so no bots start: turn on Comet › Server › Use Accounts."
+                );
                 state.bots = 0;
                 return;
             }
@@ -866,12 +934,14 @@ namespace Comet.Unity.Editor
                 .Replace("{count}", state.bots.ToString());
             try
             {
-                using var process = Process.Start(new ProcessStartInfo(ContentBuild.Dotnet(), $"\"{state.botsProgram}\" {arguments}")
-                {
-                    WorkingDirectory = ContentBuild.ProjectRoot,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                })!;
+                using var process = Process.Start(
+                    new ProcessStartInfo(ContentBuild.Dotnet(), $"\"{state.botsProgram}\" {arguments}")
+                    {
+                        WorkingDirectory = ContentBuild.ProjectRoot,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    }
+                )!;
                 state.botsPid = process.Id;
                 state.botsStartTicks = process.StartTime.ToUniversalTime().Ticks;
             }
@@ -958,7 +1028,12 @@ namespace Comet.Unity.Editor
         {
             try
             {
-                using var stream = new FileStream(ContentBuild.ProjectPath(LogFile), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var stream = new FileStream(
+                    ContentBuild.ProjectPath(LogFile),
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete
+                );
                 var lines = new StreamReader(stream).ReadToEnd().Split('\n');
                 return string.Join("\n", lines.Skip(Math.Max(0, lines.Length - 15)));
             }

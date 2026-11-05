@@ -42,15 +42,15 @@ public sealed class CometUserStore(CometAccountContext db) : IUserPasswordStore<
         throw new NotSupportedException("Accounts are deleted by setting deleted_at (AccountActions), never through Identity.");
 
     public Task<Account?> FindByIdAsync(string userId, CancellationToken cancellationToken) =>
-        long.TryParse(userId, out var id)
-            ? db.Accounts.SingleOrDefaultAsync(a => a.Id == id, cancellationToken)
-            : Task.FromResult<Account?>(null);
+        long.TryParse(userId, out var id) ? db.Accounts.SingleOrDefaultAsync(a => a.Id == id, cancellationToken) : Task.FromResult<Account?>(null);
 
     public Task<Account?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) =>
         db.Accounts.SingleOrDefaultAsync(a => a.NormalizedUserName == normalizedUserName, cancellationToken);
 
     public Task<string> GetUserIdAsync(Account user, CancellationToken cancellationToken) => Task.FromResult(user.Id.ToString());
+
     public Task<string?> GetUserNameAsync(Account user, CancellationToken cancellationToken) => Task.FromResult(user.UserName);
+
     public Task<string?> GetNormalizedUserNameAsync(Account user, CancellationToken cancellationToken) => Task.FromResult(user.NormalizedUserName);
 
     public Task SetUserNameAsync(Account user, string? userName, CancellationToken cancellationToken)
@@ -72,6 +72,7 @@ public sealed class CometUserStore(CometAccountContext db) : IUserPasswordStore<
     }
 
     public Task<string?> GetPasswordHashAsync(Account user, CancellationToken cancellationToken) => Task.FromResult(user.PasswordHash);
+
     public Task<bool> HasPasswordAsync(Account user, CancellationToken cancellationToken) => Task.FromResult(user.PasswordHash != null);
 
     public Task SetSecurityStampAsync(Account user, string stamp, CancellationToken cancellationToken)
@@ -82,7 +83,5 @@ public sealed class CometUserStore(CometAccountContext db) : IUserPasswordStore<
 
     public Task<string?> GetSecurityStampAsync(Account user, CancellationToken cancellationToken) => Task.FromResult(user.SecurityStamp);
 
-    public void Dispose()
-    {
-    }
+    public void Dispose() { }
 }

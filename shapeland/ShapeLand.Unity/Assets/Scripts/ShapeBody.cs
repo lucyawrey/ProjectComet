@@ -86,7 +86,14 @@ namespace ShapeLand.Client
             part.layer = gameObject.layer;
             part.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = part.AddComponent<MeshRenderer>();
-            var added = new Part { Renderer = renderer, Role = role, Own = own, Template = material, FadeTemplate = fadeMaterial };
+            var added = new Part
+            {
+                Renderer = renderer,
+                Role = role,
+                Own = own,
+                Template = material,
+                FadeTemplate = fadeMaterial,
+            };
             _parts.Add(added);
             Draw(added, material);
         }
@@ -98,7 +105,10 @@ namespace ShapeLand.Client
             _bodyColor = GameView.Color(bodyColor);
             foreach (var part in _parts)
             {
-                var color = part.Role == "body" ? GameView.Color(bodyColor) : part.Role == "eyes" ? GameView.Color(eyeColor) : part.Own;
+                var color =
+                    part.Role == "body" ? GameView.Color(bodyColor)
+                    : part.Role == "eyes" ? GameView.Color(eyeColor)
+                    : part.Own;
                 part.Opaque = new Material(part.Template) { color = color };
                 Draw(part, part.Opaque);
                 part.Renderer.enabled = true;

@@ -93,11 +93,13 @@ namespace ShapeLand.Client.Tests
             _connection = Database("fresh", _database);
 
             // The Login server first: it migrates the database and makes the keys the game server reads.
-            _login = Run($"artifacts/bin/ShapeLand.LoginServer/debug/ShapeLand.LoginServer.dll --urls http://127.0.0.1:{_loginPort} " +
-                $"\"--Login:ConnectionString={_connection}\" \"--Login:SigningKeyFile={Path.Combine(_keys, "login.pem")}\" " +
-                $"\"--Login:PublicKeysFolder={Path.Combine(_keys, "public")}\" --Login:CreateSigningKey=true " +
-                "--Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 " +
-                $"--ShapeLand:GameServer:Address=ws://127.0.0.1:{_port}/ws {_loginArguments}");
+            _login = Run(
+                $"artifacts/bin/ShapeLand.LoginServer/debug/ShapeLand.LoginServer.dll --urls http://127.0.0.1:{_loginPort} "
+                    + $"\"--Login:ConnectionString={_connection}\" \"--Login:SigningKeyFile={Path.Combine(_keys, "login.pem")}\" "
+                    + $"\"--Login:PublicKeysFolder={Path.Combine(_keys, "public")}\" --Login:CreateSigningKey=true "
+                    + "--Login:RateLimits:ExemptAddresses:0=127.0.0.1 --Login:RateLimits:ExemptAddresses:1=::1 "
+                    + $"--ShapeLand:GameServer:Address=ws://127.0.0.1:{_port}/ws {_loginArguments}"
+            );
             yield return WaitFor(() => _login.HasExited || Accepts(_loginPort), 30);
             Assert.That(!_login.HasExited && Accepts(_loginPort), "The Login server didn't start.");
             yield return Launch();
@@ -111,7 +113,9 @@ namespace ShapeLand.Client.Tests
             var characters = _accounts
                 ? $"\"--ShapeLand:ConnectionString={_connection}\" \"--ShapeLand:TicketKeysFolder={Path.Combine(_keys, "public")}\""
                 : $"--ShapeLand:DevJoins=true \"--ShapeLand:DevCharactersFile={Path.Combine(_keys, "dev-characters.json")}\"";
-            _process = Run($"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port} --ShapeLand:StartSpawn {StartSpawn} {characters}");
+            _process = Run(
+                $"artifacts/bin/ShapeLand.GameServer/debug/ShapeLand.GameServer.dll --urls http://127.0.0.1:{_port} --ShapeLand:StartSpawn {StartSpawn} {characters}"
+            );
             var listening = false;
             var deadline = Time.realtimeSinceStartup + 30;
             while (!listening && !_process.HasExited && Time.realtimeSinceStartup < deadline)
@@ -164,7 +168,9 @@ namespace ShapeLand.Client.Tests
                 Assert.That(build.ExitCode, Is.EqualTo(0), "The bots didn't build.");
             }
 
-            _bots = Run($"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --login http://{Address} --tokens \"{Path.Combine(_keys, "bots")}\" --count {count} --seconds {seconds} --chat");
+            _bots = Run(
+                $"artifacts/bin/ShapeLand.Bots/debug/ShapeLand.Bots.dll --login http://{Address} --tokens \"{Path.Combine(_keys, "bots")}\" --count {count} --seconds {seconds} --chat"
+            );
         }
 
         /// <summary>Kills the game server, as if it crashed; its connections close.</summary>
@@ -192,12 +198,14 @@ namespace ShapeLand.Client.Tests
         // Runs tools/comet-postgres.cs, returning what it prints (a connection string, for database and fresh).
         private static string Database(string command, string name)
         {
-            using var process = Process.Start(new ProcessStartInfo("dotnet", $"run --file \"{Path.Combine(RepoRoot, "tools", "comet-postgres.cs")}\" -- {command} {name}")
-            {
-                WorkingDirectory = RepoRoot,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-            });
+            using var process = Process.Start(
+                new ProcessStartInfo("dotnet", $"run --file \"{Path.Combine(RepoRoot, "tools", "comet-postgres.cs")}\" -- {command} {name}")
+                {
+                    WorkingDirectory = RepoRoot,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                }
+            );
             Assert.That(process, Is.Not.Null, "Couldn't run tools/comet-postgres.cs.");
             var output = process.StandardOutput.ReadToEnd().Trim();
             process.WaitForExit();
@@ -240,11 +248,7 @@ namespace ShapeLand.Client.Tests
 
         private static Process Run(string arguments)
         {
-            var process = Process.Start(new ProcessStartInfo("dotnet", arguments)
-            {
-                WorkingDirectory = RepoRoot,
-                UseShellExecute = false,
-            });
+            var process = Process.Start(new ProcessStartInfo("dotnet", arguments) { WorkingDirectory = RepoRoot, UseShellExecute = false });
             Assert.That(process, Is.Not.Null, "Couldn't start dotnet.");
             return process;
         }

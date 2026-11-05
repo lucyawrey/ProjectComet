@@ -187,8 +187,11 @@ namespace ShapeLand.Client
         private bool ClickedOutside()
         {
             var pointer = Pointer.current;
-            if (pointer == null || _box.panel == null
-                || !(pointer.press.wasPressedThisFrame || Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame))
+            if (
+                pointer == null
+                || _box.panel == null
+                || !(pointer.press.wasPressedThisFrame || Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+            )
             {
                 return false;
             }
@@ -207,11 +210,12 @@ namespace ShapeLand.Client
             _log.RegisterCallback<GeometryChangedEvent>(OnLogResized);
             _log.contentContainer.RegisterCallback<GeometryChangedEvent>(OnLogResized);
             _log.schedule.Execute(() =>
-            {
-                _log.UnregisterCallback<GeometryChangedEvent>(OnLogResized);
-                _log.contentContainer.UnregisterCallback<GeometryChangedEvent>(OnLogResized);
-                ShowNewest();
-            }).StartingIn(100);
+                {
+                    _log.UnregisterCallback<GeometryChangedEvent>(OnLogResized);
+                    _log.contentContainer.UnregisterCallback<GeometryChangedEvent>(OnLogResized);
+                    ShowNewest();
+                })
+                .StartingIn(100);
         }
 
         private void OnLogResized(GeometryChangedEvent _) => ShowNewest();
@@ -284,11 +288,20 @@ namespace ShapeLand.Client
             line.AddToClassList("chat-line");
             if (known)
             {
-                line.Add(new ShapeIcon(_hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]), GameView.Color(_hud.Join.Content.ColorRgb(speaker.Color))));
+                line.Add(
+                    new ShapeIcon(
+                        _hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]),
+                        GameView.Color(_hud.Join.Content.ColorRgb(speaker.Color))
+                    )
+                );
             }
 
             // Chat is server-wide: a speaker in another zone isn't in view, but the line names them.
-            var name = new Label(!string.IsNullOrEmpty(message.Name) ? message.Name : known ? speaker.Name : strings.Get("chat.someone"));
+            var name = new Label(
+                !string.IsNullOrEmpty(message.Name) ? message.Name
+                : known ? speaker.Name
+                : strings.Get("chat.someone")
+            );
             name.AddToClassList("chat-name");
             var text = new Label(message.Text) { enableRichText = false }; // what players type is shown as typed, never markup
             text.AddToClassList("chat-text");

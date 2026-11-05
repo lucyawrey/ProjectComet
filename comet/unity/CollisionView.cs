@@ -21,9 +21,11 @@ namespace Comet.Unity
         // fill the view with the grid; cliffs, skirts and piece edges still show.
         private const float TerrainCrease = 20;
 
-        [SerializeField] private Shader shader = null!;
+        [SerializeField]
+        private Shader shader = null!;
 
         private readonly List<(int Mesh, GameObject Lines)> _meshes = new List<(int, GameObject)>();
+
         // Volumes and terrain: lines that never turn off.
         private readonly List<GameObject> _fixed = new List<GameObject>();
         private readonly List<(Matrix4x4 Matrix, Color Color, float Until)> _markers = new List<(Matrix4x4, Color, float)>();
@@ -104,7 +106,9 @@ namespace Comet.Unity
         /// The editor's gizmos draw these too.
         /// </summary>
         public static Vector3[] VolumeEdges(PrimitiveKind kind, Vector3 size, PolygonBudget budget) =>
-            ToUnity(FeatureEdges.Of(PrimitiveMesher.Build(new Primitive { Kind = kind }, new System.Numerics.Vector3(size.x, size.y, size.z), budget)));
+            ToUnity(
+                FeatureEdges.Of(PrimitiveMesher.Build(new Primitive { Kind = kind }, new System.Numerics.Vector3(size.x, size.y, size.z), budget))
+            );
 
         /// <summary>
         /// The line showing which way a volume of <paramref name="size"/> faces, standing on the origin: from its

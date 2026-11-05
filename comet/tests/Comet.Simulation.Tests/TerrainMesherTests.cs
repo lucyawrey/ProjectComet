@@ -5,27 +5,52 @@ namespace Comet.Simulation.Tests;
 
 public class TerrainMesherTests
 {
-    private const uint Grass = 0x55aa33, Earth = 0x775533;
+    private const uint Grass = 0x55aa33,
+        Earth = 0x775533;
 
     // A piece of flat ground at `height` meters: `samples` rows of text, '#' for ground and '.' for a hole, row 0 at
     // world sample z = 0, all in chunk (0, 0) unless split.
-    private static Zone Piece(float height, bool rim, bool holes, params string[] samples) => Zone(
-        new TerrainPiece { Name = "main", SkirtDepth = height + 4, RimSkirts = rim, HoleSkirts = holes },
-        Tile("main", 0, 0, 0, 0, height, samples));
+    private static Zone Piece(float height, bool rim, bool holes, params string[] samples) =>
+        Zone(
+            new TerrainPiece
+            {
+                Name = "main",
+                SkirtDepth = height + 4,
+                RimSkirts = rim,
+                HoleSkirts = holes,
+            },
+            Tile("main", 0, 0, 0, 0, height, samples)
+        );
 
     private static Zone Zone(TerrainPiece piece, params (ChunkCoord Chunk, TerrainTile Tile)[] tiles) => Zone([piece], tiles);
 
-    private static Zone Zone(TerrainPiece[] pieces, params (ChunkCoord Chunk, TerrainTile Tile)[] tiles) => new()
-    {
-        Id = "zone.test",
-        Pieces = pieces,
-        Chunks = tiles.GroupBy(t => t.Chunk).Select(g => new ZoneChunk { Coord = g.Key, Tiles = g.Select(t => t.Tile).ToArray() }).ToArray(),
-    };
+    private static Zone Zone(TerrainPiece[] pieces, params (ChunkCoord Chunk, TerrainTile Tile)[] tiles) =>
+        new()
+        {
+            Id = "zone.test",
+            Pieces = pieces,
+            Chunks = tiles.GroupBy(t => t.Chunk).Select(g => new ZoneChunk { Coord = g.Key, Tiles = g.Select(t => t.Tile).ToArray() }).ToArray(),
+        };
 
-    private static (ChunkCoord, TerrainTile) Tile(string piece, int chunkX, int chunkZ, int originX, int originZ, float height, params string[] samples)
+    private static (ChunkCoord, TerrainTile) Tile(
+        string piece,
+        int chunkX,
+        int chunkZ,
+        int originX,
+        int originZ,
+        float height,
+        params string[] samples
+    )
     {
-        int sizeX = samples[0].Length, sizeZ = samples.Length;
-        var map = new Heightmap { SizeX = sizeX, SizeZ = sizeZ, Scale = 0.25f, Offset = -100 };
+        int sizeX = samples[0].Length,
+            sizeZ = samples.Length;
+        var map = new Heightmap
+        {
+            SizeX = sizeX,
+            SizeZ = sizeZ,
+            Scale = 0.25f,
+            Offset = -100,
+        };
         map.Samples = new ushort[sizeX * sizeZ];
         for (var z = 0; z < sizeZ; z++)
         {
@@ -35,13 +60,24 @@ public class TerrainMesherTests
             }
         }
 
-        return (new ChunkCoord(chunkX, chunkZ), new TerrainTile { Piece = piece, OriginX = originX, OriginZ = originZ, Heights = map });
+        return (
+            new ChunkCoord(chunkX, chunkZ),
+            new TerrainTile
+            {
+                Piece = piece,
+                OriginX = originX,
+                OriginZ = originZ,
+                Heights = map,
+            }
+        );
     }
 
     private static Dictionary<ChunkCoord, TerrainMesh> Mesh(Zone zone) => TerrainMesher.Build(new ZoneTerrain(zone), Grass, Earth);
 
     private static IEnumerable<(Vector3 A, Vector3 B, Vector3 C, uint Color)> Triangles(TerrainMesh mesh) =>
-        Enumerable.Range(0, mesh.TriangleCount).Select(i => (mesh.Positions[3 * i], mesh.Positions[3 * i + 1], mesh.Positions[3 * i + 2], mesh.Colors[3 * i]));
+        Enumerable
+            .Range(0, mesh.TriangleCount)
+            .Select(i => (mesh.Positions[3 * i], mesh.Positions[3 * i + 1], mesh.Positions[3 * i + 2], mesh.Colors[3 * i]));
 
     // Unity's normal for a clockwise triangle.
     private static Vector3 Normal((Vector3 A, Vector3 B, Vector3 C, uint) t) => Vector3.Normalize(Vector3.Cross(t.B - t.A, t.C - t.A));
@@ -84,8 +120,20 @@ public class TerrainMesherTests
         const uint Moss = 0x336633;
         var zone = Piece(2, rim: true, holes: true, "##", "##");
         var tile = zone.Chunks[0].Tiles[0];
-        tile.Underside = new Heightmap { SizeX = 2, SizeZ = 2, Scale = 0.25f, Offset = -100, Samples = Enumerable.Repeat((ushort)(96 / 0.25f), 4).ToArray() };
-        tile.UndersideColors = new ColorMap { SizeX = 2, SizeZ = 2, Colors = [Moss, Moss, Moss, Moss] };
+        tile.Underside = new Heightmap
+        {
+            SizeX = 2,
+            SizeZ = 2,
+            Scale = 0.25f,
+            Offset = -100,
+            Samples = Enumerable.Repeat((ushort)(96 / 0.25f), 4).ToArray(),
+        };
+        tile.UndersideColors = new ColorMap
+        {
+            SizeX = 2,
+            SizeZ = 2,
+            Colors = [Moss, Moss, Moss, Moss],
+        };
 
         var triangles = Triangles(Mesh(zone)[new ChunkCoord(0, 0)]).ToList();
 
@@ -130,9 +178,16 @@ public class TerrainMesherTests
     {
         // Two tiles meeting at world x = 0: chunk -1's last column is chunk 0's first.
         var zone = Zone(
-            new TerrainPiece { Name = "main", SkirtDepth = 6, RimSkirts = false, HoleSkirts = true },
+            new TerrainPiece
+            {
+                Name = "main",
+                SkirtDepth = 6,
+                RimSkirts = false,
+                HoleSkirts = true,
+            },
             Tile("main", -1, 0, 62, 0, 2, "###", "###"),
-            Tile("main", 0, 0, 0, 0, 2, "###", "###"));
+            Tile("main", 0, 0, 0, 0, 2, "###", "###")
+        );
 
         var meshes = Mesh(zone);
 
@@ -149,9 +204,16 @@ public class TerrainMesherTests
     {
         // A hole on chunk 0's side of the border, so walls are part of what has to match.
         var zone = Zone(
-            new TerrainPiece { Name = "main", SkirtDepth = 6, RimSkirts = true, HoleSkirts = true },
+            new TerrainPiece
+            {
+                Name = "main",
+                SkirtDepth = 6,
+                RimSkirts = true,
+                HoleSkirts = true,
+            },
             Tile("main", -1, 0, 62, 0, 2, "###", "###", "###"),
-            Tile("main", 0, 0, 0, 0, 2, "###", "#.#", "###"));
+            Tile("main", 0, 0, 0, 0, 2, "###", "#.#", "###")
+        );
         var all = Mesh(zone);
 
         var some = TerrainMesher.Build(new ZoneTerrain(zone), Grass, Earth, new HashSet<ChunkCoord> { new(0, 0) });
@@ -166,7 +228,14 @@ public class TerrainMesherTests
     {
         var zone = Piece(2, rim: true, holes: true, "##", "##");
         var tile = zone.Chunks[0].Tiles[0];
-        tile.Underside = new Heightmap { SizeX = 2, SizeZ = 2, Scale = 0.25f, Offset = -100, Samples = [(ushort)(90 / 0.25f), (ushort)(90 / 0.25f), (ushort)(90 / 0.25f), (ushort)(90 / 0.25f)] };
+        tile.Underside = new Heightmap
+        {
+            SizeX = 2,
+            SizeZ = 2,
+            Scale = 0.25f,
+            Offset = -100,
+            Samples = [(ushort)(90 / 0.25f), (ushort)(90 / 0.25f), (ushort)(90 / 0.25f), (ushort)(90 / 0.25f)],
+        };
 
         var lowest = Mesh(zone)[new ChunkCoord(0, 0)].Positions.Min(p => p.Y);
 
@@ -178,9 +247,23 @@ public class TerrainMesherTests
     {
         // A small plateau piece standing on main ground at 0 m; its bottom is far below, but its walls stop on the ground.
         var zone = Zone(
-            [new TerrainPiece { Name = "main", RimSkirts = false, HoleSkirts = false }, new TerrainPiece { Name = "plateau", SkirtDepth = 23, RimSkirts = true }],
+            [
+                new TerrainPiece
+                {
+                    Name = "main",
+                    RimSkirts = false,
+                    HoleSkirts = false,
+                },
+                new TerrainPiece
+                {
+                    Name = "plateau",
+                    SkirtDepth = 23,
+                    RimSkirts = true,
+                },
+            ],
             Tile("main", 0, 0, 0, 0, 0, "#####", "#####", "#####", "#####", "#####"),
-            Tile("plateau", 0, 0, 1, 1, 3, "###", "###", "###"));
+            Tile("plateau", 0, 0, 1, 1, 3, "###", "###", "###")
+        );
 
         var walls = Triangles(Mesh(zone)[new ChunkCoord(0, 0)]).Where(t => MathF.Abs(Normal(t).Y) < 0.01f).ToList();
 
@@ -192,7 +275,12 @@ public class TerrainMesherTests
     public void PaintedColorsColorTheGround()
     {
         var zone = Piece(2, rim: false, holes: false, "##", "##");
-        zone.Chunks[0].Tiles[0].Colors = new ColorMap { SizeX = 2, SizeZ = 2, Colors = [0x111111, 0x222222, 0x333333, 0x444444] };
+        zone.Chunks[0].Tiles[0].Colors = new ColorMap
+        {
+            SizeX = 2,
+            SizeZ = 2,
+            Colors = [0x111111, 0x222222, 0x333333, 0x444444],
+        };
 
         var mesh = Mesh(zone)[new ChunkCoord(0, 0)];
 

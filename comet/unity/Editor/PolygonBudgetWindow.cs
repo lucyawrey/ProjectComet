@@ -27,7 +27,12 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUI.BeginChangeCheck();
-            var facet = EditorGUILayout.Slider(new GUIContent("Facet length (m)", "About how long each side of a round primitive is."), settings.facetLength, 0.05f, 4);
+            var facet = EditorGUILayout.Slider(
+                new GUIContent("Facet length (m)", "About how long each side of a round primitive is."),
+                settings.facetLength,
+                0.05f,
+                4
+            );
             var min = EditorGUILayout.IntSlider(new GUIContent("Fewest sides", "However small a round primitive is."), settings.minSides, 3, 64);
             var max = EditorGUILayout.IntSlider(new GUIContent("Most sides", "However large a round primitive is."), settings.maxSides, 3, 256);
             if (EditorGUI.EndChangeCheck())
@@ -43,18 +48,28 @@ namespace Comet.Unity.Editor
             var budget = settings.Budget;
             int Around(float diameter) => budget.Sides(Mathf.PI * diameter);
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Sides around", $"0.5 m: {Around(0.5f)}   1 m: {Around(1)}   2 m: {Around(2)}   5 m: {Around(5)}   10 m: {Around(10)}");
+            EditorGUILayout.LabelField(
+                "Sides around",
+                $"0.5 m: {Around(0.5f)}   1 m: {Around(1)}   2 m: {Around(2)}   5 m: {Around(5)}   10 m: {Around(10)}"
+            );
 
             EditorGUILayout.Space();
             using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(settings.budgetFile)))
             {
-                if (GUILayout.Button(string.IsNullOrEmpty(settings.budgetFile) ? "Save (the Comet Settings name no budget file)" : $"Save to {settings.budgetFile}"))
+                if (
+                    GUILayout.Button(
+                        string.IsNullOrEmpty(settings.budgetFile) ? "Save (the Comet Settings name no budget file)" : $"Save to {settings.budgetFile}"
+                    )
+                )
                 {
                     Save(settings);
                 }
             }
 
-            EditorGUILayout.HelpBox("Changes show on the opened zone's primitives at once. Save writes them to the game's settings; until then, the next content build puts the saved values back.", MessageType.None);
+            EditorGUILayout.HelpBox(
+                "Changes show on the opened zone's primitives at once. Save writes them to the game's settings; until then, the next content build puts the saved values back.",
+                MessageType.None
+            );
         }
 
         // Rewrites the budget's three values in the settings file's table, keeping the rest of the file (and its comments) as it is.

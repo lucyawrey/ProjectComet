@@ -9,7 +9,9 @@ public sealed class LoginClientEndToEndTests(PostgresContainer postgres)
     private sealed class Tokens : ITokenStore
     {
         public string? Saved { get; set; }
+
         public string? Load() => Saved;
+
         public void Save(string? token) => Saved = token;
     }
 

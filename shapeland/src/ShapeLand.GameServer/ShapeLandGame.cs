@@ -35,9 +35,11 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     private readonly ConnectionRegistry registry;
     private readonly ILogger<ShapeLandGame> logger;
     private readonly Dictionary<int, ZoneState> _zones = [];
+
     // Every spawn point and teleporter, with its zone, for going there from any zone.
     private readonly Dictionary<int, (ZoneState Zone, SpawnPoint Spawn)> _spawns = [];
     private readonly Dictionary<string, (ZoneState Zone, Teleporter Teleporter)> _teleporters = [];
+
     // Where every new player starts instead of their shape's spawn (ShapeLand:StartSpawn), if set.
     private readonly (ZoneState Zone, SpawnPoint Spawn)? _startSpawn;
     private readonly MovementTolerances _tolerances = new();
@@ -52,8 +54,14 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     /// The game of <paramref name="content"/>'s zones, saving characters through <paramref name="repository"/>; an
     /// unknown <paramref name="startSpawn"/> (a spawn point's key, or empty for none) stops it, listing the spawn points.
     /// </summary>
-    public ShapeLandGame(ShapeLandContent content, string startSpawn, ConnectionRegistry registry,
-        Comet.Tickets.TicketChecker? tickets, ICharacterRepository<ShapeLandCharacter> repository, ILogger<ShapeLandGame> logger)
+    public ShapeLandGame(
+        ShapeLandContent content,
+        string startSpawn,
+        ConnectionRegistry registry,
+        Comet.Tickets.TicketChecker? tickets,
+        ICharacterRepository<ShapeLandCharacter> repository,
+        ILogger<ShapeLandGame> logger
+    )
     {
         this.content = content;
         this.registry = registry;
@@ -80,7 +88,9 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
             _startSpawn = _spawns.Values.FirstOrDefault(s => s.Spawn.Id == startSpawn);
             if (_startSpawn?.Spawn is null)
             {
-                throw new InvalidOperationException($"ShapeLand:StartSpawn: there's no spawn point '{startSpawn}'; spawn points: {string.Join(", ", _spawns.Values.Select(s => s.Spawn.Id).Order())}.");
+                throw new InvalidOperationException(
+                    $"ShapeLand:StartSpawn: there's no spawn point '{startSpawn}'; spawn points: {string.Join(", ", _spawns.Values.Select(s => s.Spawn.Id).Order())}."
+                );
             }
         }
     }
@@ -101,9 +111,16 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         var options = ShapeLandProtocol.Options;
         Input? input = messageId switch
         {
-            MessageIds.PositionReport => new Input(connection, InputKind.Report) { Report = FrameReader.Decode<PositionReport>(payload, options), ClientTick = clientTick },
+            MessageIds.PositionReport => new Input(connection, InputKind.Report)
+            {
+                Report = FrameReader.Decode<PositionReport>(payload, options),
+                ClientTick = clientTick,
+            },
             ShapeLandMessageIds.JoinRequest => new Input(connection, InputKind.Join) { Join = FrameReader.Decode<JoinRequest>(payload, options) },
-            ShapeLandMessageIds.DevJoinRequest => new Input(connection, InputKind.DevJoin) { DevJoin = FrameReader.Decode<DevJoinRequest>(payload, options) },
+            ShapeLandMessageIds.DevJoinRequest => new Input(connection, InputKind.DevJoin)
+            {
+                DevJoin = FrameReader.Decode<DevJoinRequest>(payload, options),
+            },
             ShapeLandMessageIds.LookChange => new Input(connection, InputKind.Look) { Look = FrameReader.Decode<LookChange>(payload, options) },
             ShapeLandMessageIds.NameChanged => new Input(connection, InputKind.NameChanged),
             ShapeLandMessageIds.ChatSend => new Input(connection, InputKind.Chat) { Chat = FrameReader.Decode<ChatSend>(payload, options) },
@@ -126,8 +143,11 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _tick = tick;
         while (_inbox.TryDequeue(out var input))
         {
-            if (input.Kind != InputKind.Connected && input.Kind != InputKind.Disconnected
-                && (!_players.TryGetValue(input.Connection, out var from) || from.Dropped))
+            if (
+                input.Kind != InputKind.Connected
+                && input.Kind != InputKind.Disconnected
+                && (!_players.TryGetValue(input.Connection, out var from) || from.Dropped)
+            )
             {
                 continue; // a dropped player's inputs, until its connection closes
             }
@@ -182,8 +202,11 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                 Claim(player, seconds);
                 Teleport(player, tick, seconds);
             }
-            else if (player.Dropped ? tick >= player.CloseAtTick
-                : !player.Joining && tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate)
+            else if (
+                player.Dropped
+                    ? tick >= player.CloseAtTick
+                    : !player.Joining && tick - player.ConnectedTick > ShapeLandRules.JoinDeadlineSeconds * ShapeLandRules.TickRate
+            )
             {
                 player.Connection.Disconnect();
             }
@@ -191,13 +214,17 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
         foreach (var zone in _zones.Values)
         {
-            zone.Tick(tick, seconds, (tag, flipped) =>
-            {
-                foreach (var player in zone.Players)
+            zone.Tick(
+                tick,
+                seconds,
+                (tag, flipped) =>
                 {
-                    player.Connection.SendEvent(ShapeLandMessageIds.PlacementsFlipped, new PlacementsFlipped { Tag = tag, Flipped = flipped });
+                    foreach (var player in zone.Players)
+                    {
+                        player.Connection.SendEvent(ShapeLandMessageIds.PlacementsFlipped, new PlacementsFlipped { Tag = tag, Flipped = flipped });
+                    }
                 }
-            });
+            );
         }
 
         foreach (var mover in _players.Values)
@@ -389,8 +416,12 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         Vector3 feet;
         float facing;
         var atSpawn = false;
-        if (_startSpawn == null && saved is { } spot && _zones.TryGetValue(spot.Zone, out var savedZone)
-            && Fits(savedZone, new Vector3(spot.X, spot.Y, spot.Z)))
+        if (
+            _startSpawn == null
+            && saved is { } spot
+            && _zones.TryGetValue(spot.Zone, out var savedZone)
+            && Fits(savedZone, new Vector3(spot.X, spot.Y, spot.Z))
+        )
         {
             zone = savedZone;
             feet = new Vector3(spot.X, spot.Y, spot.Z);
@@ -399,7 +430,13 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         else
         {
             zone = shapeSpawn.Zone;
-            (feet, facing) = Comet.Simulation.Triggers.Arrive(shapeSpawn.Spawn.Volume, shapeSpawn.Spawn.Facing, zone.World, content.Movement, _random);
+            (feet, facing) = Comet.Simulation.Triggers.Arrive(
+                shapeSpawn.Spawn.Volume,
+                shapeSpawn.Spawn.Facing,
+                zone.World,
+                content.Movement,
+                _random
+            );
             atSpawn = true;
         }
 
@@ -409,7 +446,15 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         player.PlacedByServer(tick); // the others learn of them from the spawn, not a state
 
         var connection = player.Connection;
-        connection.SendEvent(MessageIds.Welcome, new Welcome { EntityId = player.EntityId, TickRate = ShapeLandRules.TickRate, Zone = zone.Zone.Number });
+        connection.SendEvent(
+            MessageIds.Welcome,
+            new Welcome
+            {
+                EntityId = player.EntityId,
+                TickRate = ShapeLandRules.TickRate,
+                Zone = zone.Zone.Number,
+            }
+        );
         connection.SendEvent(ShapeLandMessageIds.ZoneEntered, new ZoneEntered { Zone = zone.Zone.Number, Flipped = zone.Flipped.ToArray() });
         connection.SendEvent(ShapeLandMessageIds.PlayerSpawn, player.Spawn());
         connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = player.SpawnPoint.Number });
@@ -526,8 +571,8 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
     }
 
-    private static CharacterPosition PositionOf(Player player) => new(
-        player.Zone.Zone.Number, player.Validator.Position.X, player.Validator.Position.Y, player.Validator.Position.Z, player.Validator.Facing);
+    private static CharacterPosition PositionOf(Player player) =>
+        new(player.Zone.Zone.Number, player.Validator.Position.X, player.Validator.Position.Y, player.Validator.Position.Z, player.Validator.Facing);
 
     private void SavePosition(Player player) => _joins.SaveStatus(player.Connection, PositionOf(player));
 
@@ -565,7 +610,13 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                 {
                     logger.LogWarning(
                         "Movement violation by {Name}: {Verdict} at ({X:F1}, {Y:F1}, {Z:F1}), {Count} so far",
-                        player.Name, verdict, report.X, report.Y, report.Z, player.Validator.Violations);
+                        player.Name,
+                        verdict,
+                        report.X,
+                        report.Y,
+                        report.Z,
+                        player.Validator.Violations
+                    );
                 }
 
                 player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick, verdict));
@@ -731,7 +782,12 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
 
         // Not logged: ShapeLand's chat keeps nothing.
-        var message = new ChatMessage { EntityId = player.EntityId, Text = text, Name = player.Name };
+        var message = new ChatMessage
+        {
+            EntityId = player.EntityId,
+            Text = text,
+            Name = player.Name,
+        };
         foreach (var listener in _players.Values)
         {
             if (listener.Joined)
@@ -754,15 +810,27 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
         logger.LogInformation(
             "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server, {Clamped} of {Stamps} stamps clamped",
-            player.Name, _players.Values.Count(p => p.Joined), player.Validator.Violations, player.ServerFalls, player.Stamp.Clamped, player.Stamp.Broadcasts);
+            player.Name,
+            _players.Values.Count(p => p.Joined),
+            player.Validator.Violations,
+            player.ServerFalls,
+            player.Stamp.Clamped,
+            player.Stamp.Broadcasts
+        );
 
         // For tuning the tolerances (MovementTolerances): how much of each this player needed.
         var headroom = player.Validator.Headroom;
-        var bursts = string.Join(" ", MovementHeadroom.SpeedFactors.Select((factor, i) =>
-            FormattableString.Invariant($"x{factor:0.00}={headroom.BurstSecondsNeeded(i):0.000}")));
+        var bursts = string.Join(
+            " ",
+            MovementHeadroom.SpeedFactors.Select((factor, i) => FormattableString.Invariant($"x{factor:0.00}={headroom.BurstSecondsNeeded(i):0.000}"))
+        );
         logger.LogInformation(
             "{Name} headroom: burst seconds {Bursts}; rise over apex {Rise} m; air slack {AirSlack} s",
-            player.Name, bursts, headroom.MaxRiseOverApex.ToString("0.000", CultureInfo.InvariantCulture), headroom.MaxAirSlack.ToString("0.000", CultureInfo.InvariantCulture));
+            player.Name,
+            bursts,
+            headroom.MaxRiseOverApex.ToString("0.000", CultureInfo.InvariantCulture),
+            headroom.MaxAirSlack.ToString("0.000", CultureInfo.InvariantCulture)
+        );
     }
 
     private enum InputKind

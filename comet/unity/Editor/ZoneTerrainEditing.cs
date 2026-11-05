@@ -20,7 +20,9 @@ namespace Comet.Unity.Editor
         private const float NewScale = 1f / 256;
         private const float NewOffset = -64f;
 
-        private static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(MessagePack.Resolvers.StandardResolver.Instance);
+        private static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(
+            MessagePack.Resolvers.StandardResolver.Instance
+        );
         private static readonly Dictionary<ZoneEditing, ZoneTerrainEditing> Open = new Dictionary<ZoneEditing, ZoneTerrainEditing>();
 
         private ZoneTerrainEditing(ZoneEditing editing)
@@ -78,58 +80,102 @@ namespace Comet.Unity.Editor
         /// holding the sample is changed (chunks repeat their shared edges); one is made if none holds it.
         /// </summary>
         public void SetHeight(string piece, int x, int z, float? height) =>
-            ForEachTile(piece, x, z, create: height != null, (tile, tx, tz) => tile.Heights.Samples[tz * tile.Heights.SizeX + tx] = Sample(tile.Heights, height));
+            ForEachTile(
+                piece,
+                x,
+                z,
+                create: height != null,
+                (tile, tx, tz) => tile.Heights.Samples[tz * tile.Heights.SizeX + tx] = Sample(tile.Heights, height)
+            );
 
         /// <summary>Sets the underside height at a world sample, starting an underside map at the piece's bottom where there's none.</summary>
-        public void SetUnderside(string piece, int x, int z, float height) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>
-        {
-            tile.Underside ??= Filled(tile.Heights.SizeX, tile.Heights.SizeZ, Terrain[piece].BottomHeight);
-            tile.Underside.Samples[tz * tile.Underside.SizeX + tx] = Sample(tile.Underside, height);
-        });
+        public void SetUnderside(string piece, int x, int z, float height) =>
+            ForEachTile(
+                piece,
+                x,
+                z,
+                create: false,
+                (tile, tx, tz) =>
+                {
+                    tile.Underside ??= Filled(tile.Heights.SizeX, tile.Heights.SizeZ, Terrain[piece].BottomHeight);
+                    tile.Underside.Samples[tz * tile.Underside.SizeX + tx] = Sample(tile.Underside, height);
+                }
+            );
 
         /// <summary>The underside height at a world sample: its underside map, else the piece's bottom.</summary>
         public float UndersideAt(string piece, int x, int z) =>
             Terrain[piece].TryGetUnderside(x, z, out var under) ? under : Terrain[piece].BottomHeight;
 
         /// <summary>Paints a world sample's color (0xRRGGBB), starting a color map of <paramref name="ground"/> where there's none.</summary>
-        public void SetColor(string piece, int x, int z, uint color, uint ground) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>
-        {
-            tile.Colors ??= new ColorMap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Colors = Enumerable.Repeat(ground, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray() };
-            tile.Colors.Colors[tz * tile.Colors.SizeX + tx] = color;
-        });
+        public void SetColor(string piece, int x, int z, uint color, uint ground) =>
+            ForEachTile(
+                piece,
+                x,
+                z,
+                create: false,
+                (tile, tx, tz) =>
+                {
+                    tile.Colors ??= new ColorMap
+                    {
+                        SizeX = tile.Heights.SizeX,
+                        SizeZ = tile.Heights.SizeZ,
+                        Colors = Enumerable.Repeat(ground, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray(),
+                    };
+                    tile.Colors.Colors[tz * tile.Colors.SizeX + tx] = color;
+                }
+            );
 
         /// <summary>
         /// Gives a world sample the piece's default colors (<paramref name="ground"/> and <paramref name="skirt"/>) in
         /// the color maps its tiles have, so new ground starts unpainted. Tiles grown to their whole chunk for editing
         /// have no colors past their old edge (zero, which is black).
         /// </summary>
-        public void ResetColors(string piece, int x, int z, uint ground, uint skirt) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>
-        {
-            if (tile.Colors is { } colors)
-            {
-                colors.Colors[tz * colors.SizeX + tx] = ground;
-            }
+        public void ResetColors(string piece, int x, int z, uint ground, uint skirt) =>
+            ForEachTile(
+                piece,
+                x,
+                z,
+                create: false,
+                (tile, tx, tz) =>
+                {
+                    if (tile.Colors is { } colors)
+                    {
+                        colors.Colors[tz * colors.SizeX + tx] = ground;
+                    }
 
-            if (tile.UndersideColors is { } underColors)
-            {
-                underColors.Colors[tz * underColors.SizeX + tx] = skirt;
-            }
-        });
+                    if (tile.UndersideColors is { } underColors)
+                    {
+                        underColors.Colors[tz * underColors.SizeX + tx] = skirt;
+                    }
+                }
+            );
 
         /// <summary>
         /// Paints a world sample's underside color (0xRRGGBB), where the piece has an underside map, starting a map
         /// of <paramref name="skirt"/> where there's none.
         /// </summary>
-        public void SetUndersideColor(string piece, int x, int z, uint color, uint skirt) => ForEachTile(piece, x, z, create: false, (tile, tx, tz) =>
-        {
-            if (tile.Underside is null)
-            {
-                return;
-            }
+        public void SetUndersideColor(string piece, int x, int z, uint color, uint skirt) =>
+            ForEachTile(
+                piece,
+                x,
+                z,
+                create: false,
+                (tile, tx, tz) =>
+                {
+                    if (tile.Underside is null)
+                    {
+                        return;
+                    }
 
-            tile.UndersideColors ??= new ColorMap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Colors = Enumerable.Repeat(skirt, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray() };
-            tile.UndersideColors.Colors[tz * tile.UndersideColors.SizeX + tx] = color;
-        });
+                    tile.UndersideColors ??= new ColorMap
+                    {
+                        SizeX = tile.Heights.SizeX,
+                        SizeZ = tile.Heights.SizeZ,
+                        Colors = Enumerable.Repeat(skirt, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray(),
+                    };
+                    tile.UndersideColors.Colors[tz * tile.UndersideColors.SizeX + tx] = color;
+                }
+            );
 
         /// <summary>
         /// Recolors the piece's painted maps where they hold its old default colors, so changing a piece's top or
@@ -220,7 +266,8 @@ namespace Comet.Unity.Editor
                                 map.Offset + map.Samples[i] * map.Scale,
                                 tile.Underside is { } under ? under.Offset + under.Samples[i] * under.Scale : seen.Under,
                                 tile.Colors?.Colors[i] ?? seen.Color,
-                                (tile.Underside != null ? tile.UndersideColors?.Colors[i] : null) ?? seen.UnderColor);
+                                (tile.Underside != null ? tile.UndersideColors?.Colors[i] : null) ?? seen.UnderColor
+                            );
                         }
                     }
                 }
@@ -315,7 +362,10 @@ namespace Comet.Unity.Editor
                 foreach (var tile in chunk.Tiles)
                 {
                     var map = tile.Heights;
-                    int minX = int.MaxValue, minZ = int.MaxValue, maxX = -1, maxZ = -1;
+                    int minX = int.MaxValue,
+                        minZ = int.MaxValue,
+                        maxX = -1,
+                        maxZ = -1;
                     for (var z = 0; z < map.SizeZ; z++)
                     {
                         for (var x = 0; x < map.SizeX; x++)
@@ -342,16 +392,18 @@ namespace Comet.Unity.Editor
                         continue;
                     }
 
-                    kept.Add(new TerrainTile
-                    {
-                        Piece = tile.Piece,
-                        OriginX = tile.OriginX + minX,
-                        OriginZ = tile.OriginZ + minZ,
-                        Heights = Cut(map, minX, minZ, maxX, maxZ),
-                        Underside = tile.Underside is { } under ? Cut(under, minX, minZ, maxX, maxZ) : null,
-                        Colors = tile.Colors is { } colors ? Cut(colors, minX, minZ, maxX, maxZ) : null,
-                        UndersideColors = tile.UndersideColors is { } underColors ? Cut(underColors, minX, minZ, maxX, maxZ) : null,
-                    });
+                    kept.Add(
+                        new TerrainTile
+                        {
+                            Piece = tile.Piece,
+                            OriginX = tile.OriginX + minX,
+                            OriginZ = tile.OriginZ + minZ,
+                            Heights = Cut(map, minX, minZ, maxX, maxZ),
+                            Underside = tile.Underside is { } under ? Cut(under, minX, minZ, maxX, maxZ) : null,
+                            Colors = tile.Colors is { } colors ? Cut(colors, minX, minZ, maxX, maxZ) : null,
+                            UndersideColors = tile.UndersideColors is { } underColors ? Cut(underColors, minX, minZ, maxX, maxZ) : null,
+                        }
+                    );
                 }
 
                 chunk.Tiles = kept.ToArray();
@@ -362,10 +414,42 @@ namespace Comet.Unity.Editor
         private static TerrainTile Expand(TerrainTile tile)
         {
             const int size = ZoneGrid.ChunkSamples;
-            var heights = new Heightmap { SizeX = size, SizeZ = size, Scale = tile.Heights.Scale, Offset = tile.Heights.Offset, Samples = new ushort[size * size] };
-            var under = tile.Underside is { } u ? new Heightmap { SizeX = size, SizeZ = size, Scale = u.Scale, Offset = u.Offset, Samples = new ushort[size * size] } : null;
-            var colors = tile.Colors != null ? new ColorMap { SizeX = size, SizeZ = size, Colors = new uint[size * size] } : null;
-            var underColors = tile.UndersideColors != null ? new ColorMap { SizeX = size, SizeZ = size, Colors = new uint[size * size] } : null;
+            var heights = new Heightmap
+            {
+                SizeX = size,
+                SizeZ = size,
+                Scale = tile.Heights.Scale,
+                Offset = tile.Heights.Offset,
+                Samples = new ushort[size * size],
+            };
+            var under = tile.Underside is { } u
+                ? new Heightmap
+                {
+                    SizeX = size,
+                    SizeZ = size,
+                    Scale = u.Scale,
+                    Offset = u.Offset,
+                    Samples = new ushort[size * size],
+                }
+                : null;
+            var colors =
+                tile.Colors != null
+                    ? new ColorMap
+                    {
+                        SizeX = size,
+                        SizeZ = size,
+                        Colors = new uint[size * size],
+                    }
+                    : null;
+            var underColors =
+                tile.UndersideColors != null
+                    ? new ColorMap
+                    {
+                        SizeX = size,
+                        SizeZ = size,
+                        Colors = new uint[size * size],
+                    }
+                    : null;
             for (var z = 0; z < tile.Heights.SizeZ; z++)
             {
                 for (var x = 0; x < tile.Heights.SizeX; x++)
@@ -389,7 +473,14 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            return new TerrainTile { Piece = tile.Piece, Heights = heights, Underside = under, Colors = colors, UndersideColors = underColors };
+            return new TerrainTile
+            {
+                Piece = tile.Piece,
+                Heights = heights,
+                Underside = under,
+                Colors = colors,
+                UndersideColors = underColors,
+            };
         }
 
         // Runs `change` on every tile of the piece holding world sample (x, z), making one for its own chunk if
@@ -435,7 +526,14 @@ namespace Comet.Unity.Editor
                 var tile = new TerrainTile
                 {
                     Piece = piece,
-                    Heights = new Heightmap { SizeX = size, SizeZ = size, Scale = like?.Scale ?? NewScale, Offset = like?.Offset ?? NewOffset, Samples = new ushort[size * size] },
+                    Heights = new Heightmap
+                    {
+                        SizeX = size,
+                        SizeZ = size,
+                        Scale = like?.Scale ?? NewScale,
+                        Offset = like?.Offset ?? NewOffset,
+                        Samples = new ushort[size * size],
+                    },
                 };
                 // Its edges repeat its neighbors' (chunks share their edge samples), so it starts with theirs.
                 var whole = Terrain[piece];
@@ -458,20 +556,32 @@ namespace Comet.Unity.Editor
         }
 
         // A height in meters as one of the map's samples, kept off the hole value and within range.
-        private static ushort Sample(Heightmap map, float? height) => height is { } h
-            ? (ushort)Mathf.Clamp(Mathf.Round((h - map.Offset) / map.Scale), 1, ushort.MaxValue)
-            : Heightmap.Hole;
+        private static ushort Sample(Heightmap map, float? height) =>
+            height is { } h ? (ushort)Mathf.Clamp(Mathf.Round((h - map.Offset) / map.Scale), 1, ushort.MaxValue) : Heightmap.Hole;
 
         private static Heightmap Filled(int sizeX, int sizeZ, float height)
         {
-            var map = new Heightmap { SizeX = sizeX, SizeZ = sizeZ, Scale = NewScale, Offset = NewOffset, Samples = new ushort[sizeX * sizeZ] };
+            var map = new Heightmap
+            {
+                SizeX = sizeX,
+                SizeZ = sizeZ,
+                Scale = NewScale,
+                Offset = NewOffset,
+                Samples = new ushort[sizeX * sizeZ],
+            };
             Array.Fill(map.Samples, Sample(map, height));
             return map;
         }
 
         private static Heightmap Cut(Heightmap map, int minX, int minZ, int maxX, int maxZ)
         {
-            var cut = new Heightmap { SizeX = maxX - minX + 1, SizeZ = maxZ - minZ + 1, Scale = map.Scale, Offset = map.Offset };
+            var cut = new Heightmap
+            {
+                SizeX = maxX - minX + 1,
+                SizeZ = maxZ - minZ + 1,
+                Scale = map.Scale,
+                Offset = map.Offset,
+            };
             cut.Samples = new ushort[cut.SizeX * cut.SizeZ];
             for (var z = 0; z < cut.SizeZ; z++)
             {

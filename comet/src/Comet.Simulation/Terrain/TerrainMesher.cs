@@ -70,6 +70,7 @@ namespace Comet.Simulation
             private readonly uint _underColor;
             private readonly Dictionary<ChunkCoord, TerrainMesh> _meshes;
             private readonly ISet<ChunkCoord>? _only;
+
             // The cells looked at: the piece's extent plus a margin of one empty cell on every side.
             private readonly int _minX;
             private readonly int _minZ;
@@ -77,6 +78,7 @@ namespace Comet.Simulation
             private readonly int _depth;
             private readonly bool[] _ground;
             private readonly bool[] _outside;
+
             // Per sample over those cells' corners ((_width + 1) by (_depth + 1)): the ground height (NaN where there's
             // none), the bottom (the underside, else the flat bottom), and the ground and underside colors.
             private readonly float[] _top;
@@ -84,7 +86,14 @@ namespace Comet.Simulation
             private readonly uint[] _color;
             private readonly uint[] _under;
 
-            public PieceMesher(ZoneTerrain terrain, ZoneTerrain.Piece piece, uint groundColor, uint underColor, Dictionary<ChunkCoord, TerrainMesh> meshes, ISet<ChunkCoord>? only)
+            public PieceMesher(
+                ZoneTerrain terrain,
+                ZoneTerrain.Piece piece,
+                uint groundColor,
+                uint underColor,
+                Dictionary<ChunkCoord, TerrainMesh> meshes,
+                ISet<ChunkCoord>? only
+            )
             {
                 _terrain = terrain;
                 _piece = piece;
@@ -182,14 +191,22 @@ namespace Comet.Simulation
 
             private int Sample((int X, int Z) sample) => Sample(sample.X, sample.Z);
 
-            private static ((int X, int Z) A, (int X, int Z) B, (int X, int Z) C) Corners(int cx, int cz, int half) => half == 0
-                ? ((cx, cz), (cx, cz + 1), (cx + 1, cz))
-                : ((cx + 1, cz), (cx, cz + 1), (cx + 1, cz + 1));
+            private static ((int X, int Z) A, (int X, int Z) B, (int X, int Z) C) Corners(int cx, int cz, int half) =>
+                half == 0 ? ((cx, cz), (cx, cz + 1), (cx + 1, cz)) : ((cx + 1, cz), (cx, cz + 1), (cx + 1, cz + 1));
 
             // The triangle across edge `edge` of a triangle: edges a-b, b-c and c-a in Corners' order.
-            private static (int X, int Z, int Half) Neighbor(int cx, int cz, int half, int edge) => half == 0
-                ? edge == 0 ? (cx - 1, cz, 1) : edge == 1 ? (cx, cz, 1) : (cx, cz - 1, 1)
-                : edge == 0 ? (cx, cz, 0) : edge == 1 ? (cx, cz + 1, 0) : (cx + 1, cz, 0);
+            private static (int X, int Z, int Half) Neighbor(int cx, int cz, int half, int edge) =>
+                half == 0
+                    ? edge == 0
+                        ? (cx - 1, cz, 1)
+                        : edge == 1
+                            ? (cx, cz, 1)
+                            : (cx, cz - 1, 1)
+                    : edge == 0
+                        ? (cx, cz, 0)
+                        : edge == 1
+                            ? (cx, cz + 1, 0)
+                            : (cx + 1, cz, 0);
 
             // Flood-fills the empty triangles reachable from the margin: they're past the piece's outer edge, and the
             // empty triangles left over are holes.
@@ -197,7 +214,8 @@ namespace Comet.Simulation
             private void MarkOutside()
             {
                 var queue = new int[_ground.Length];
-                int head = 0, tail = 0;
+                int head = 0,
+                    tail = 0;
                 for (var cz = 0; cz < _depth; cz++)
                 {
                     for (var cx = 0; cx < _width; cx++)
@@ -214,7 +232,8 @@ namespace Comet.Simulation
                 {
                     var index = queue[head++];
                     var cell = index >> 1;
-                    int cx = cell % _width, cz = cell / _width;
+                    int cx = cell % _width,
+                        cz = cell / _width;
                     if ((index & 1) == 0)
                     {
                         // Half 0's neighbors (as Neighbor gives them): half 1 of the cells west and south, and of its own.
@@ -284,7 +303,10 @@ namespace Comet.Simulation
                     }
 
                     // Edge p-q, with the triangle's third corner inside.
-                    var (p, q, inner) = edge == 0 ? (a, b, c) : edge == 1 ? (b, c, a) : (c, a, b);
+                    var (p, q, inner) =
+                        edge == 0 ? (a, b, c)
+                        : edge == 1 ? (b, c, a)
+                        : (c, a, b);
                     AddWall(mesh, origin, p, q, inner);
                 }
             }
@@ -292,8 +314,10 @@ namespace Comet.Simulation
             // A wall down from edge p-q, facing away from the triangle's third corner.
             private void AddWall(TerrainMesh mesh, Vector3 origin, (int X, int Z) p, (int X, int Z) q, (int X, int Z) inner)
             {
-                Vector3 pTop = Top(p), qTop = Top(q);
-                Vector3 pBottom = WallBottom(p, pTop.Y), qBottom = WallBottom(q, qTop.Y);
+                Vector3 pTop = Top(p),
+                    qTop = Top(q);
+                Vector3 pBottom = WallBottom(p, pTop.Y),
+                    qBottom = WallBottom(q, qTop.Y);
                 if (pBottom.Y >= pTop.Y && qBottom.Y >= qTop.Y)
                 {
                     return;
@@ -305,7 +329,8 @@ namespace Comet.Simulation
                 qTop -= origin;
                 pBottom -= origin;
                 qBottom -= origin;
-                uint pColor = _under[Sample(p)], qColor = _under[Sample(q)];
+                uint pColor = _under[Sample(p)],
+                    qColor = _under[Sample(q)];
                 if (Vector3.Dot(new Vector3(normal.X, 0, normal.Z), new Vector3(outward.X, 0, outward.Z)) >= 0)
                 {
                     mesh.Add(pTop, qTop, qBottom, pColor, qColor, qColor);

@@ -27,7 +27,11 @@ namespace ShapeLand.Client.Tests
 
         // A web build's Login server: the one its page's config.js names, unless ?login= says otherwise.
         [TestCase("https://shapeland.example.org/", "https://server.shapeland.example.org", "https://server.shapeland.example.org")]
-        [TestCase("https://shapeland.example.org/?login=http%3A%2F%2Flocalhost%3A5090", "https://server.shapeland.example.org", "http://localhost:5090")]
+        [TestCase(
+            "https://shapeland.example.org/?login=http%3A%2F%2Flocalhost%3A5090",
+            "https://server.shapeland.example.org",
+            "http://localhost:5090"
+        )]
         [TestCase("http://localhost:5080/", null, "localhost:5090")]
         public void WebBuildsUseTheLoginServerTheirPageNames(string page, string pageLogin, string expected)
         {
@@ -194,7 +198,10 @@ namespace ShapeLand.Client.Tests
             // A flat 3×3-sample piece without skirts: Unity's recalculated normals must agree with the mesher's winding.
             var zone = new Comet.Content.Zone
             {
-                Pieces = new[] { new Comet.Content.TerrainPiece { Name = "main", RimSkirts = false } },
+                Pieces = new[]
+                {
+                    new Comet.Content.TerrainPiece { Name = "main", RimSkirts = false },
+                },
                 Chunks = new[]
                 {
                     new Comet.Content.ZoneChunk
@@ -204,7 +211,14 @@ namespace ShapeLand.Client.Tests
                             new Comet.Content.TerrainTile
                             {
                                 Piece = "main",
-                                Heights = new Comet.Content.Heightmap { SizeX = 3, SizeZ = 3, Scale = 1, Offset = 0, Samples = Enumerable.Repeat((ushort)2, 9).ToArray() },
+                                Heights = new Comet.Content.Heightmap
+                                {
+                                    SizeX = 3,
+                                    SizeZ = 3,
+                                    Scale = 1,
+                                    Offset = 0,
+                                    Samples = Enumerable.Repeat((ushort)2, 9).ToArray(),
+                                },
                             },
                         },
                     },
@@ -258,10 +272,13 @@ namespace ShapeLand.Client.Tests
 
             var groups = string.Join("|", content.Strings.Entries.Keys.Select(k => k.Split('.')[0]).Distinct());
             var used = new Regex($"(?:\"#?|data-(?:text|label|title)=\")((?:{groups})\\.[a-z0-9_.]+)\"");
-            var files = Directory.GetFiles("Assets/Scripts", "*.cs")
+            var files = Directory
+                .GetFiles("Assets/Scripts", "*.cs")
                 .Concat(Directory.GetFiles("Assets/UI", "*.uxml"))
                 .Concat(new[] { "Assets/WebGLTemplates/ShapeLand/index.html" });
-            var keys = files.SelectMany(file => used.Matches(File.ReadAllText(file)).Cast<Match>().Select(m => (File: file, Key: m.Groups[1].Value))).ToList();
+            var keys = files
+                .SelectMany(file => used.Matches(File.ReadAllText(file)).Cast<Match>().Select(m => (File: file, Key: m.Groups[1].Value)))
+                .ToList();
 
             Assert.That(keys.Count, Is.GreaterThan(20), "The keys weren't found; has the markup changed?");
             Assert.That(keys.Where(k => !content.Strings.Contains(k.Key)).Select(k => $"{k.File}: {k.Key}"), Is.Empty);
@@ -272,7 +289,17 @@ namespace ShapeLand.Client.Tests
         {
             var content = TestGameServer.LoadContent();
             Material Load(string name) => AssetDatabase.LoadAssetAtPath<Material>($"Assets/Materials/{name}.mat");
-            return GameView.BuildShape(content, content.Shapes[id], 0xFFFFFF, 0x000000, null, Load("Shape"), Load("Eyes"), Load("ShapeFade"), Load("EyesFade"));
+            return GameView.BuildShape(
+                content,
+                content.Shapes[id],
+                0xFFFFFF,
+                0x000000,
+                null,
+                Load("Shape"),
+                Load("Eyes"),
+                Load("ShapeFade"),
+                Load("EyesFade")
+            );
         }
     }
 }

@@ -25,12 +25,31 @@ internal static class TestWorlds
         }
 
         map.Samples[12 * 17 + 12] = Heightmap.Hole;
-        var tiles = new List<TerrainTile> { new() { Piece = "main", Heights = map } };
-        var pieces = new List<TerrainPiece> { new() { Name = "main", SkirtDepth = 6, RimSkirts = false } };
+        var tiles = new List<TerrainTile>
+        {
+            new() { Piece = "main", Heights = map },
+        };
+        var pieces = new List<TerrainPiece>
+        {
+            new()
+            {
+                Name = "main",
+                SkirtDepth = 6,
+                RimSkirts = false,
+            },
+        };
         foreach (var (piece, height, bottom, fromX, fromZ, size) in more)
         {
             pieces.Add(new TerrainPiece { Name = piece, SkirtDepth = height - bottom });
-            tiles.Add(new TerrainTile { Piece = piece, OriginX = fromX, OriginZ = fromZ, Heights = Flat(size, height) });
+            tiles.Add(
+                new TerrainTile
+                {
+                    Piece = piece,
+                    OriginX = fromX,
+                    OriginZ = fromZ,
+                    Heights = Flat(size, height),
+                }
+            );
         }
 
         return new Zone
@@ -45,14 +64,15 @@ internal static class TestWorlds
     public static CollisionMesh Block(float x, float z, float baseY, Vector3 size) =>
         CollisionMesh.Box(new Vector3(x - size.X / 2, baseY, z - size.Z / 2), new Vector3(x + size.X / 2, baseY + size.Y, z + size.Z / 2));
 
-    private static Heightmap Flat(int size, float height) => new()
-    {
-        SizeX = size,
-        SizeZ = size,
-        Scale = 0.01f,
-        Offset = -50,
-        Samples = Enumerable.Repeat(Sample(height), size * size).ToArray(),
-    };
+    private static Heightmap Flat(int size, float height) =>
+        new()
+        {
+            SizeX = size,
+            SizeZ = size,
+            Scale = 0.01f,
+            Offset = -50,
+            Samples = Enumerable.Repeat(Sample(height), size * size).ToArray(),
+        };
 
     private static ushort Sample(float height) => (ushort)MathF.Round((height + 50) / 0.01f);
 }

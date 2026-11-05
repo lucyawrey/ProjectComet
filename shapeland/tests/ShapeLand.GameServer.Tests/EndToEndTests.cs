@@ -1,5 +1,5 @@
-using System.Numerics;
 using System.Net.WebSockets;
+using System.Numerics;
 using Comet.Content;
 using Comet.Data.Characters;
 using Comet.Protocol;
@@ -10,8 +10,8 @@ using Comet.Tickets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using ShapeLand.Bots;
-using ShapeLand.Data;
 using ShapeLand.ContentBuild;
+using ShapeLand.Data;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -59,15 +59,22 @@ public sealed class EndToEndTests : IAsyncLifetime
     // shape's spawn), with its own node number.
     private async Task<(WebApplication Server, Uri Url)> StartServer(string? startSpawn, int serverId = ServerId)
     {
-        var server = ShapeLandServer.Build([], builder =>
-        {
-            builder.Configuration["ShapeLand:ContentFile"] = _contentFile;
-            builder.Configuration["ShapeLand:StartSpawn"] = startSpawn;
-            builder.Configuration["Urls"] = "http://127.0.0.1:0";
-            builder.Services.AddSingleton<ICharacterRepository<ShapeLandCharacter>>(
-                new InMemoryCharacterRepository<ShapeLandCharacter>(_db, new CharacterRepositoryOptions { ServerId = serverId, SaveInterval = SaveInterval }));
-            builder.Services.AddSingleton(new TicketChecker([TicketKeys.PublicKey(Keys.Public)], serverId, TimeProvider.System));
-        });
+        var server = ShapeLandServer.Build(
+            [],
+            builder =>
+            {
+                builder.Configuration["ShapeLand:ContentFile"] = _contentFile;
+                builder.Configuration["ShapeLand:StartSpawn"] = startSpawn;
+                builder.Configuration["Urls"] = "http://127.0.0.1:0";
+                builder.Services.AddSingleton<ICharacterRepository<ShapeLandCharacter>>(
+                    new InMemoryCharacterRepository<ShapeLandCharacter>(
+                        _db,
+                        new CharacterRepositoryOptions { ServerId = serverId, SaveInterval = SaveInterval }
+                    )
+                );
+                builder.Services.AddSingleton(new TicketChecker([TicketKeys.PublicKey(Keys.Public)], serverId, TimeProvider.System));
+            }
+        );
         await server.StartAsync(TestContext.Current.CancellationToken);
         return (server, new Uri(server.Urls.First().Replace("http://", "ws://") + "/ws"));
     }
@@ -96,11 +103,17 @@ public sealed class EndToEndTests : IAsyncLifetime
         if (!_characters.TryGetValue(name, out var id))
         {
             id = Interlocked.Increment(ref _nextId);
-            _db.Add(new ShapeLandCharacter
-            {
-                Id = id, AccountId = id + 1_000_000, Name = name,
-                Shape = _content.Shapes.All[shape].Number, Color = _content.Colors.All[color].Number, EyeColor = _content.Colors.All[color].Number,
-            });
+            _db.Add(
+                new ShapeLandCharacter
+                {
+                    Id = id,
+                    AccountId = id + 1_000_000,
+                    Name = name,
+                    Shape = _content.Shapes.All[shape].Number,
+                    Color = _content.Colors.All[color].Number,
+                    EyeColor = _content.Colors.All[color].Number,
+                }
+            );
             _characters[name] = id;
         }
 
@@ -127,18 +140,24 @@ public sealed class EndToEndTests : IAsyncLifetime
 
         await Task.WhenAll(honest.Append(cheater).Select(bot => bot.RunAsync(stop.Token)));
 
-        Assert.All(honest.Append(cheater), bot =>
-        {
-            Assert.False(bot.Failed, $"{bot.Name} failed");
-            Assert.True(bot.Joined, $"{bot.Name} didn't join");
-            Assert.Equal(3, bot.SeenPlayers.Count);
-            Assert.True(bot.StatesReceived > 30, $"{bot.Name} got only {bot.StatesReceived} position updates");
-        });
-        Assert.All(honest, bot =>
-        {
-            Assert.Equal(0, bot.SnapBacks);
-            Assert.True(bot.ChatsReceived >= honest.Sum(b => b.ChatsSent) - 1, $"{bot.Name} heard {bot.ChatsReceived} chat lines");
-        });
+        Assert.All(
+            honest.Append(cheater),
+            bot =>
+            {
+                Assert.False(bot.Failed, $"{bot.Name} failed");
+                Assert.True(bot.Joined, $"{bot.Name} didn't join");
+                Assert.Equal(3, bot.SeenPlayers.Count);
+                Assert.True(bot.StatesReceived > 30, $"{bot.Name} got only {bot.StatesReceived} position updates");
+            }
+        );
+        Assert.All(
+            honest,
+            bot =>
+            {
+                Assert.Equal(0, bot.SnapBacks);
+                Assert.True(bot.ChatsReceived >= honest.Sum(b => b.ChatsSent) - 1, $"{bot.Name} heard {bot.ChatsReceived} chat lines");
+            }
+        );
         Assert.True(cheater.SnapBacks > 0, "the cheater was never snapped back");
     }
 
@@ -162,7 +181,10 @@ public sealed class EndToEndTests : IAsyncLifetime
     {
         using var client = new RawClient();
         await client.ConnectAsync(_url);
-        await client.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint });
+        await client.SendAsync(
+            ShapeLandMessageIds.JoinRequest,
+            new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint }
+        );
         Assert.Equal(JoinRejection.BadTicket, (await client.NextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected)).Reason);
 
         using var other = new RawClient();
@@ -187,12 +209,33 @@ public sealed class EndToEndTests : IAsyncLifetime
         await JoinAsync(bea, "Bea");
         var adaId = (await bea.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn)).EntityId;
 
-        await ada.SendAsync(ShapeLandMessageIds.LookChange, new LookChange { Shape = _content.Shapes.All[0].Number, Color = 999, EyeColor = _content.Colors.All[0].Number });
+        await ada.SendAsync(
+            ShapeLandMessageIds.LookChange,
+            new LookChange
+            {
+                Shape = _content.Shapes.All[0].Number,
+                Color = 999,
+                EyeColor = _content.Colors.All[0].Number,
+            }
+        );
         Assert.Equal(LookRejection.UnavailableColor, (await ada.NextAsync<LookRejected>(ShapeLandMessageIds.LookRejected)).Reason);
-        await ada.SendAsync(ShapeLandMessageIds.LookChange, new LookChange { Shape = 999, Color = _content.Colors.All[0].Number, EyeColor = _content.Colors.All[0].Number });
+        await ada.SendAsync(
+            ShapeLandMessageIds.LookChange,
+            new LookChange
+            {
+                Shape = 999,
+                Color = _content.Colors.All[0].Number,
+                EyeColor = _content.Colors.All[0].Number,
+            }
+        );
         Assert.Equal(LookRejection.UnknownShape, (await ada.NextAsync<LookRejected>(ShapeLandMessageIds.LookRejected)).Reason);
 
-        var change = new LookChange { Shape = _content.Shapes.All[1].Number, Color = _content.Colors.All[2].Number, EyeColor = _content.Colors.All[3].Number };
+        var change = new LookChange
+        {
+            Shape = _content.Shapes.All[1].Number,
+            Color = _content.Colors.All[2].Number,
+            EyeColor = _content.Colors.All[3].Number,
+        };
         await ada.SendAsync(ShapeLandMessageIds.LookChange, change);
         Assert.Equal(CorrectionReason.SnapBack, (await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection)).Reason);
         foreach (var client in new[] { ada, bea })
@@ -201,8 +244,7 @@ public sealed class EndToEndTests : IAsyncLifetime
             do
             {
                 spawn = await client.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
-            }
-            while (spawn.EntityId != adaId || spawn.Shape != change.Shape); // Ada first sees Bea arrive
+            } while (spawn.EntityId != adaId || spawn.Shape != change.Shape); // Ada first sees Bea arrive
 
             Assert.Equal((change.Color, change.EyeColor), (spawn.Color, spawn.EyeColor));
             Assert.Equal(at, new Vector3(spawn.X, spawn.Y, spawn.Z));
@@ -228,8 +270,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         do
         {
             spawn = await bea.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
-        }
-        while (spawn.EntityId != adaId);
+        } while (spawn.EntityId != adaId);
 
         Assert.Equal("Adelaide", spawn.Name);
     }
@@ -249,51 +290,60 @@ public sealed class EndToEndTests : IAsyncLifetime
     [Fact]
     public async Task ReturningPlayersComeBackWhereTheyLeft()
     {
-        await WithServer(null, async url =>
-        {
-            Vector3 left;
-            using (var ada = new RawClient())
+        await WithServer(
+            null,
+            async url =>
             {
-                await ada.ConnectAsync(url);
-                await ada.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
-                var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
-                var (zone, _) = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]);
-                var start = new Vector3(joined.X, joined.Y, joined.Z);
-                left = await ada.WalkAsync(ShapeLandWorld.Create(_content, zone), start, start + new Vector3(3, 0, 0), sequence: 0);
-            }
+                Vector3 left;
+                using (var ada = new RawClient())
+                {
+                    await ada.ConnectAsync(url);
+                    await ada.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
+                    var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+                    var (zone, _) = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]);
+                    var start = new Vector3(joined.X, joined.Y, joined.Z);
+                    left = await ada.WalkAsync(ShapeLandWorld.Create(_content, zone), start, start + new Vector3(3, 0, 0), sequence: 0);
+                }
 
-            // The final save goes out as the connection closes.
-            var deadline = DateTime.UtcNow.AddSeconds(5);
-            while (_db.Owner(Character("Ada")) is { Held: true } && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(20, TestContext.Current.CancellationToken);
-            }
+                // The final save goes out as the connection closes.
+                var deadline = DateTime.UtcNow.AddSeconds(5);
+                while (_db.Owner(Character("Ada")) is { Held: true } && DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(20, TestContext.Current.CancellationToken);
+                }
 
-            using var again = new RawClient();
-            await again.ConnectAsync(url);
-            await again.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
-            var back = await again.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
-            Assert.True(Vector3.Distance(left, new Vector3(back.X, back.Y, back.Z)) < 0.01f, $"left at {left}, back at ({back.X}, {back.Y}, {back.Z})");
-        });
+                using var again = new RawClient();
+                await again.ConnectAsync(url);
+                await again.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
+                var back = await again.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+                Assert.True(
+                    Vector3.Distance(left, new Vector3(back.X, back.Y, back.Z)) < 0.01f,
+                    $"left at {left}, back at ({back.X}, {back.Y}, {back.Z})"
+                );
+            }
+        );
     }
 
     [Fact]
     public async Task ASavedSpotThatNoLongerFitsFallsBackToTheShapesSpawn()
     {
-        await WithServer(null, async url =>
-        {
-            var id = Character("Ada");
-            _db.SetPosition(id, new CharacterPosition(9999, 1, 2, 3, 0)); // a zone that's gone
+        await WithServer(
+            null,
+            async url =>
+            {
+                var id = Character("Ada");
+                _db.SetPosition(id, new CharacterPosition(9999, 1, 2, 3, 0)); // a zone that's gone
 
-            using var ada = new RawClient();
-            await ada.ConnectAsync(url);
-            await ada.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
+                using var ada = new RawClient();
+                await ada.ConnectAsync(url);
+                await ada.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
 
-            var (zone, home) = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]);
-            Assert.Equal(zone.Number, (await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Zone);
-            var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
-            Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(joined.X, joined.Y, joined.Z)));
-        });
+                var (zone, home) = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]);
+                Assert.Equal(zone.Number, (await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Zone);
+                var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+                Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(joined.X, joined.Y, joined.Z)));
+            }
+        );
     }
 
     [Fact]
@@ -323,24 +373,27 @@ public sealed class EndToEndTests : IAsyncLifetime
     [Fact]
     public async Task PlayersStartAtTheirShapesSpawnAndCanReturnToIt()
     {
-        await WithServer(null, async url =>
-        {
-            using var ada = new RawClient();
-            await ada.ConnectAsync(url);
-            var shape = _content.Shapes.All[0];
-            await ada.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
+        await WithServer(
+            null,
+            async url =>
+            {
+                using var ada = new RawClient();
+                await ada.ConnectAsync(url);
+                var shape = _content.Shapes.All[0];
+                await ada.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
 
-            var (zone, home) = ShapeLandWorld.StartOf(_content, shape);
-            Assert.Equal(zone.Number, (await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Zone);
-            var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
-            Assert.Equal(home.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
-            Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(joined.X, joined.Y, joined.Z)));
+                var (zone, home) = ShapeLandWorld.StartOf(_content, shape);
+                Assert.Equal(zone.Number, (await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Zone);
+                var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
+                Assert.Equal(home.Number, (await ada.NextAsync<SpawnSet>(ShapeLandMessageIds.SpawnSet)).Spawn);
+                Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(joined.X, joined.Y, joined.Z)));
 
-            await ada.SendAsync(ShapeLandMessageIds.ReturnToSpawn, new ReturnToSpawn());
-            var back = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
-            Assert.Equal(CorrectionReason.Respawn, back.Reason);
-            Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(back.X, back.Y, back.Z)));
-        });
+                await ada.SendAsync(ShapeLandMessageIds.ReturnToSpawn, new ReturnToSpawn());
+                var back = await ada.NextAsync<PositionCorrection>(MessageIds.PositionCorrection);
+                Assert.Equal(CorrectionReason.Respawn, back.Reason);
+                Assert.True(Comet.Simulation.Triggers.Inside(home.Volume, new Vector3(back.X, back.Y, back.Z)));
+            }
+        );
     }
 
     [Fact]
@@ -446,8 +499,7 @@ public sealed class EndToEndTests : IAsyncLifetime
 
     private SpawnPoint Spawn(string key) => ShapeLandWorld.FindSpawn(_content, key)!.Value.Spawn;
 
-    private Teleporter Teleporter(string key) =>
-        _content.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Single(t => t.Id == key);
+    private Teleporter Teleporter(string key) => _content.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Single(t => t.Id == key);
 
     private Vector3 PlateCenter() =>
         _content.Zones[TestsZone].Chunks.SelectMany(c => c.Triggers).Single(t => t.Id == "trigger.tests.plate").Volume.Position;
@@ -528,9 +580,16 @@ public sealed class EndToEndTests : IAsyncLifetime
         /// Walks from <paramref name="from"/> to <paramref name="to"/> at 5 m/s over the ground of <paramref name="world"/>,
         /// reporting every 50 ms as a client would, echoing correction <paramref name="sequence"/>; where it ended.
         /// </summary>
-        public async Task<Vector3> WalkAsync(Comet.Simulation.CollisionWorld world, Vector3 from, Vector3 to, uint sequence, ISet<int>? passThrough = null)
+        public async Task<Vector3> WalkAsync(
+            Comet.Simulation.CollisionWorld world,
+            Vector3 from,
+            Vector3 to,
+            uint sequence,
+            ISet<int>? passThrough = null
+        )
         {
-            const float speed = 5, step = 0.05f;
+            const float speed = 5,
+                step = 0.05f;
             var across = new Vector2(to.X - from.X, to.Z - from.Z);
             var steps = Math.Max(1, (int)MathF.Ceiling(across.Length() / (speed * step)));
             var velocity = across.Length() > 0 ? Vector2.Normalize(across) * speed : Vector2.Zero;
@@ -541,11 +600,19 @@ public sealed class EndToEndTests : IAsyncLifetime
                 world.TryGetGround(new Vector3(flat.X, at.Y + 1, flat.Y), 0.4f, at.Y + 1, out var ground, 0, passThrough);
                 at = new Vector3(flat.X, ground, flat.Y);
                 var moving = i < steps ? velocity : Vector2.Zero;
-                await SendAsync(MessageIds.PositionReport, new PositionReport
-                {
-                    X = at.X, Y = at.Y, Z = at.Z, VelocityX = moving.X, VelocityZ = moving.Y,
-                    Facing = MathF.Atan2(velocity.X, velocity.Y), CorrectionSequence = sequence,
-                });
+                await SendAsync(
+                    MessageIds.PositionReport,
+                    new PositionReport
+                    {
+                        X = at.X,
+                        Y = at.Y,
+                        Z = at.Z,
+                        VelocityX = moving.X,
+                        VelocityZ = moving.Y,
+                        Facing = MathF.Atan2(velocity.X, velocity.Y),
+                        CorrectionSequence = sequence,
+                    }
+                );
                 await Task.Delay(TimeSpan.FromSeconds(step), TestContext.Current.CancellationToken);
             }
 
@@ -596,24 +663,30 @@ public sealed class EndToEndTests : IAsyncLifetime
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(_url, TestContext.Current.CancellationToken);
         var buffer = new byte[64 * 1024];
-        var receiving = Task.Run(async () =>
-        {
-            while (true)
+        var receiving = Task.Run(
+            async () =>
             {
-                var result = await socket.ReceiveAsync(buffer, TestContext.Current.CancellationToken);
-                if (result.MessageType == WebSocketMessageType.Close)
+                while (true)
                 {
-                    await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, TestContext.Current.CancellationToken);
-                    return result.CloseStatus;
+                    var result = await socket.ReceiveAsync(buffer, TestContext.Current.CancellationToken);
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, TestContext.Current.CancellationToken);
+                        return result.CloseStatus;
+                    }
                 }
-            }
-        }, TestContext.Current.CancellationToken);
+            },
+            TestContext.Current.CancellationToken
+        );
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         await _server.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"stopping took {stopwatch.Elapsed}");
-        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, await receiving.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken));
+        Assert.Equal(
+            WebSocketCloseStatus.EndpointUnavailable,
+            await receiving.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]
@@ -755,7 +828,10 @@ public sealed class EndToEndTests : IAsyncLifetime
         await client.ConnectAsync(_url);
         for (var i = 0; i < 5; i++)
         {
-            await client.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint });
+            await client.SendAsync(
+                ShapeLandMessageIds.JoinRequest,
+                new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint }
+            );
             Assert.Equal(JoinRejection.BadTicket, (await client.NextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected)).Reason);
         }
 
@@ -764,7 +840,10 @@ public sealed class EndToEndTests : IAsyncLifetime
         {
             for (var i = 0; i < 5; i++)
             {
-                await client.SendAsync(ShapeLandMessageIds.JoinRequest, new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint });
+                await client.SendAsync(
+                    ShapeLandMessageIds.JoinRequest,
+                    new JoinRequest { Ticket = "not a ticket", ContentFingerprint = _content.Fingerprint }
+                );
             }
         }
         catch (WebSocketException)

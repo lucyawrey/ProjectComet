@@ -27,26 +27,47 @@ namespace ShapeLand.Client
         public const int PreviewLayer = 31;
 
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
-        [SerializeField] private Material terrainMaterial;
+        [SerializeField]
+        private Material terrainMaterial;
+
         [Tooltip("The material placed objects are drawn with (their models' own are ignored).")]
-        [SerializeField] private Material blockMaterial;
+        [SerializeField]
+        private Material blockMaterial;
+
         [Tooltip("The material blockout placements are drawn with (Comet/Blockout: a grid over their color).")]
-        [SerializeField] private Material blockoutMaterial;
+        [SerializeField]
+        private Material blockoutMaterial;
+
         [Tooltip("The models for prop ids, kept up to date by the editor from the content.")]
-        [SerializeField] private PropLibrary props;
+        [SerializeField]
+        private PropLibrary props;
+
         [Tooltip("Players' shapes: their looks' parts other than eyes, colored per part.")]
-        [SerializeField] private Material shapeMaterial;
+        [SerializeField]
+        private Material shapeMaterial;
+
         [Tooltip("Players' eyes (parts with the role eyes).")]
-        [SerializeField] private Material eyesMaterial;
+        [SerializeField]
+        private Material eyesMaterial;
+
         [Tooltip("The transparent material a shape's parts fade with; its color is set from each part's.")]
-        [SerializeField] private Material shapeFadeMaterial;
+        [SerializeField]
+        private Material shapeFadeMaterial;
+
         [Tooltip("The transparent material eyes fade with.")]
-        [SerializeField] private Material eyesFadeMaterial;
+        [SerializeField]
+        private Material eyesFadeMaterial;
+
         [Tooltip("Marks where the player's own shape is in sight, before its silhouette draws (Comet's Silhouette shader).")]
-        [SerializeField] private Material shapeMaskMaterial;
+        [SerializeField]
+        private Material shapeMaskMaterial;
+
         [Tooltip("The player's own shape where blocks, props or terrain hide it; its color is set from the body's, its alpha is the opacity.")]
-        [SerializeField] private Material shapeSilhouetteMaterial;
-        [SerializeField] private OrbitCamera orbitCamera;
+        [SerializeField]
+        private Material shapeSilhouetteMaterial;
+
+        [SerializeField]
+        private OrbitCamera orbitCamera;
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, OtherFade> _otherFades = new Dictionary<uint, OtherFade>();
@@ -64,10 +85,13 @@ namespace ShapeLand.Client
             public Vector3 Last;
             public Vector3 Held;
         }
+
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
+
         // The drawn zone's pads, and its tagged placements by tag (with whether each starts off), for flipping.
         private readonly List<Pad> _pads = new List<Pad>();
         private readonly Dictionary<string, List<(GameObject Thing, bool StartsOff)>> _tagged = new Dictionary<string, List<(GameObject, bool)>>();
+
         // The player standing in spawn points, teleporters and triggers, timed as the server times them, to draw pads charging.
         private readonly TriggerCharge _spawnCharge = new TriggerCharge();
         private readonly TriggerCharge _teleportCharge = new TriggerCharge();
@@ -126,7 +150,8 @@ namespace ShapeLand.Client
         /// <summary>A player's drawn shape (this one's too), or null.</summary>
         public ShapeBody ShapeOf(uint entityId) =>
             Player != null && entityId == _join.Session?.EntityId ? _playerShape
-            : _others.TryGetValue(entityId, out var other) ? other : null;
+            : _others.TryGetValue(entityId, out var other) ? other
+            : null;
 
         private void Awake()
         {
@@ -299,7 +324,11 @@ namespace ShapeLand.Client
                 {
                     if (placement.Primitive != null && placement.Tag == null && !placement.Blockout)
                     {
-                        primitives.Add(PrimitiveMesher.For(placement, content.Settings.Primitives), placement.Matrix() * toChunk, placement.Color ?? content.Settings.World.PlacedColor);
+                        primitives.Add(
+                            PrimitiveMesher.For(placement, content.Settings.Primitives),
+                            placement.Matrix() * toChunk,
+                            placement.Color ?? content.Settings.World.PlacedColor
+                        );
                         continue;
                     }
 
@@ -342,7 +371,8 @@ namespace ShapeLand.Client
 
             // Behind the join screen, the camera circles the picked shape's start here, else another shape's or another
             // spawn point.
-            var shown = (_showcased != null && _triggers.TryGetSpawn(_showcased.Spawn, out var picked) ? picked : null)
+            var shown =
+                (_showcased != null && _triggers.TryGetSpawn(_showcased.Spawn, out var picked) ? picked : null)
                 ?? content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
                 ?? _triggers.Spawns.FirstOrDefault();
             orbitCamera.Showcase(shown != null ? Vectors.ToUnity(ShapeLandWorld.Center(shown, _world)) : Vector3.zero);
@@ -397,7 +427,12 @@ namespace ShapeLand.Client
         // find and color it.
         private GameObject PlacePrimitive(Placement placement, Transform parent)
         {
-            var thing = AddMesh(placement.Tag ?? "Blockout", PrimitiveMeshes.For(placement, _content.Settings.Primitives), MaterialFor(placement), parent);
+            var thing = AddMesh(
+                placement.Tag ?? "Blockout",
+                PrimitiveMeshes.For(placement, _content.Settings.Primitives),
+                MaterialFor(placement),
+                parent
+            );
             var rotation = placement.Rotation;
             thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
             PlacedColors.Apply(thing, Color(placement.Color ?? _content.Settings.World.PlacedColor));
@@ -501,7 +536,8 @@ namespace ShapeLand.Client
                 else if (pad.Owner is Teleporter teleporter)
                 {
                     // Lit from firing until the player has faded out of it, and the target from arriving until they step off.
-                    var charge = teleporter == _sending && Player != null && Player.Departing ? 1
+                    var charge =
+                        teleporter == _sending && Player != null && Player.Departing ? 1
                         : _teleportCharge.Inside != teleporter ? 0
                         : _teleportCharge.Fired ? 1
                         : _teleportCharge.Progress(now);
@@ -510,7 +546,10 @@ namespace ShapeLand.Client
                 }
                 else if (pad.Owner is Trigger trigger)
                 {
-                    var charge = _triggerCharge.Inside != trigger ? 0 : _triggerCharge.Fired ? 1 : _triggerCharge.Progress(now);
+                    var charge =
+                        _triggerCharge.Inside != trigger ? 0
+                        : _triggerCharge.Fired ? 1
+                        : _triggerCharge.Progress(now);
                     var to = Color(trigger.ChargeColor ?? _content.Settings.Triggers.ChargeColor);
                     color = Charging(pad.Color, to, charge, trigger.Volume.StandSeconds);
                 }
@@ -576,10 +615,26 @@ namespace ShapeLand.Client
             if (Player == null)
             {
                 Player = new GameObject().AddComponent<LocalPlayer>();
-                Player.Begin(_join.Session, _world, _join.Content.Movement, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
+                Player.Begin(
+                    _join.Session,
+                    _world,
+                    _join.Content.Movement,
+                    shape,
+                    new Vector3(spawn.X, spawn.Y, spawn.Z),
+                    spawn.Facing,
+                    orbitCamera,
+                    _controls
+                );
                 orbitCamera.Follow(Player.transform, _controls, _world);
                 _join.Session.Corrected += OnCorrected;
-                OnCorrected(new PositionCorrection { X = spawn.X, Y = spawn.Y, Z = spawn.Z }); // joining on a spawn doesn't claim it
+                OnCorrected(
+                    new PositionCorrection
+                    {
+                        X = spawn.X,
+                        Y = spawn.Y,
+                        Z = spawn.Z,
+                    }
+                ); // joining on a spawn doesn't claim it
             }
             else
             {
@@ -597,7 +652,12 @@ namespace ShapeLand.Client
         // shows its cyan placeholder on the first fade.)
         private void WarmUpFades()
         {
-            _warmUpMesh ??= new Mesh { name = "Fade warm-up", vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f }, triangles = new[] { 0, 1, 2 } };
+            _warmUpMesh ??= new Mesh
+            {
+                name = "Fade warm-up",
+                vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f },
+                triangles = new[] { 0, 1, 2 },
+            };
             var place = Matrix4x4.Translate(Camera.transform.position + Camera.transform.forward * (Camera.nearClipPlane * 2));
             foreach (var material in new[] { shapeFadeMaterial, eyesFadeMaterial, shapeMaskMaterial, shapeSilhouetteMaterial })
             {
@@ -623,7 +683,12 @@ namespace ShapeLand.Client
             }
 
             _spawns[spawn.EntityId] = spawn;
-            var other = BuildShape(_join.Content.Shapes[spawn.Shape], _join.Content.ColorRgb(spawn.Color), _join.Content.ColorRgb(spawn.EyeColor), transform);
+            var other = BuildShape(
+                _join.Content.Shapes[spawn.Shape],
+                _join.Content.ColorRgb(spawn.Color),
+                _join.Content.ColorRgb(spawn.EyeColor),
+                transform
+            );
             other.name = $"{spawn.Name} ({spawn.EntityId})";
             var position = new Vector3(spawn.X, spawn.Y, spawn.Z);
             other.transform.SetPositionAndRotation(position, Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
@@ -686,8 +751,17 @@ namespace ShapeLand.Client
             BuildShape(_content, shape, color, eyeColor, parent, shapeMaterial, eyesMaterial, shapeFadeMaterial, eyesFadeMaterial);
 
         /// <summary><see cref="BuildShape(Shape, uint, uint, Transform)"/> with its content and materials given, as tests build shapes.</summary>
-        public static ShapeBody BuildShape(ShapeLandContent content, Shape shape, uint color, uint eyeColor, Transform parent,
-            Material shapeMaterial, Material eyesMaterial, Material shapeFadeMaterial, Material eyesFadeMaterial)
+        public static ShapeBody BuildShape(
+            ShapeLandContent content,
+            Shape shape,
+            uint color,
+            uint eyeColor,
+            Transform parent,
+            Material shapeMaterial,
+            Material eyesMaterial,
+            Material shapeFadeMaterial,
+            Material eyesFadeMaterial
+        )
         {
             var drawn = ShapeBody.Create(shape.DisplayName, parent, shape.Scale, shape.Hover);
             foreach (var part in Groups.Expand(new Placement { Group = shape.Look }, id => content.Groups.TryGet(id, out var group) ? group : null))
@@ -699,8 +773,15 @@ namespace ShapeLand.Client
 
                 var r = part.Rotation;
                 var eyes = part.Role == "eyes";
-                drawn.AddPart(PrimitiveMeshes.For(part, content.Settings.Primitives), Vectors.ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), part.Role,
-                    Color(part.Color ?? content.Settings.World.PlacedColor), eyes ? eyesMaterial : shapeMaterial, eyes ? eyesFadeMaterial : shapeFadeMaterial);
+                drawn.AddPart(
+                    PrimitiveMeshes.For(part, content.Settings.Primitives),
+                    Vectors.ToUnity(part.Position),
+                    Quaternion.Euler(r.X, r.Y, r.Z),
+                    part.Role,
+                    Color(part.Color ?? content.Settings.World.PlacedColor),
+                    eyes ? eyesMaterial : shapeMaterial,
+                    eyes ? eyesFadeMaterial : shapeFadeMaterial
+                );
             }
 
             drawn.SetColors(color, eyeColor);

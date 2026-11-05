@@ -45,7 +45,8 @@ internal static class BotLooks
 /// name, a random 4-character suffix is added.
 /// </summary>
 /// <remarks><paramref name="serverOverride"/> replaces the ticket's game server address, where the bots reach it by another name (in Docker).</remarks>
-public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFolder, ShapeLandContent content, int seed, Uri? serverOverride = null) : IBotAccount
+public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFolder, ShapeLandContent content, int seed, Uri? serverOverride = null)
+    : IBotAccount
 {
     private const int SuffixLength = 4;
     private const int Attempts = 5;
@@ -80,7 +81,8 @@ public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFo
                 return (null, created.Error);
             }
 
-            tryName = name + new string(Enumerable.Range(0, SuffixLength).Select(_ => SuffixCharacters[_random.Next(SuffixCharacters.Length)]).ToArray());
+            tryName =
+                name + new string(Enumerable.Range(0, SuffixLength).Select(_ => SuffixCharacters[_random.Next(SuffixCharacters.Length)]).ToArray());
         }
 
         return (null, LoginErrors.NameTaken);

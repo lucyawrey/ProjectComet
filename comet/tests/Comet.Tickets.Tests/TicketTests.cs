@@ -11,6 +11,7 @@ public class TicketTests
     private sealed class Clock(DateTimeOffset now) : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = now;
+
         public override DateTimeOffset GetUtcNow() => Now;
     }
 
@@ -18,6 +19,7 @@ public class TicketTests
     private readonly Clock _clock = new(new DateTimeOffset(2026, 11, 1, 12, 0, 0, TimeSpan.Zero));
 
     private TicketIssuer Issuer() => new(TicketKeys.PrivateKey(Keys.Private), _clock);
+
     private TicketChecker Checker(int serverId = 7) => new([TicketKeys.PublicKey(Keys.Public)], serverId, _clock);
 
     [Fact]
@@ -133,14 +135,15 @@ public class TicketTests
         Assert.NotEqual(TicketKeys.PublicKey(Keys.Public).KeyId, TicketKeys.PublicKey(TicketKeys.Create().PublicPem).KeyId);
     }
 
-    private SecurityTokenDescriptor Descriptor(SigningCredentials? credentials) => new()
-    {
-        Issuer = "comet-login",
-        Audience = "7",
-        Subject = new ClaimsIdentity([new Claim("sub", "1"), new Claim("chr", "2"), new Claim("jti", Guid.NewGuid().ToString("N"))]),
-        IssuedAt = _clock.Now.UtcDateTime,
-        NotBefore = _clock.Now.UtcDateTime,
-        Expires = _clock.Now.UtcDateTime.AddSeconds(60),
-        SigningCredentials = credentials,
-    };
+    private SecurityTokenDescriptor Descriptor(SigningCredentials? credentials) =>
+        new()
+        {
+            Issuer = "comet-login",
+            Audience = "7",
+            Subject = new ClaimsIdentity([new Claim("sub", "1"), new Claim("chr", "2"), new Claim("jti", Guid.NewGuid().ToString("N"))]),
+            IssuedAt = _clock.Now.UtcDateTime,
+            NotBefore = _clock.Now.UtcDateTime,
+            Expires = _clock.Now.UtcDateTime.AddSeconds(60),
+            SigningCredentials = credentials,
+        };
 }

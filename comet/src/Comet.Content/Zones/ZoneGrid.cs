@@ -38,7 +38,8 @@ namespace Comet.Content
             var q = Quaternion.Normalize(rotation);
             var sinX = Math.Clamp(2 * (q.W * q.X - q.Y * q.Z), -1f, 1f);
             var x = MathF.Asin(sinX);
-            float y, z;
+            float y,
+                z;
             if (MathF.Abs(sinX) > 0.99999f)
             {
                 // Facing straight up or down, Y and Z turn about the same axis: it's all in Y.

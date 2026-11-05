@@ -7,19 +7,28 @@ namespace Comet.ZoneFiles.Tests;
 public class GroupTests
 {
     private static Placement Box(Vector3 position, Vector3 size, Vector3 rotation = default, uint? color = null) =>
-        new() { Primitive = new Primitive { Kind = PrimitiveKind.Box }, Position = position, Rotation = rotation, Scale = size, Color = color };
+        new()
+        {
+            Primitive = new Primitive { Kind = PrimitiveKind.Box },
+            Position = position,
+            Rotation = rotation,
+            Scale = size,
+            Color = color,
+        };
 
-    private static Group Tree() => new()
-    {
-        Id = "group.tree",
-        Parts =
-        [
-            Box(Vector3.Zero, new Vector3(0.4f, 2, 0.4f), color: 0x7A5C3E),
-            Box(new Vector3(1, 2, 0), new Vector3(2, 1, 2), new Vector3(0, 0, 30), 0x43A047),
-        ],
-    };
+    private static Group Tree() =>
+        new()
+        {
+            Id = "group.tree",
+            Parts =
+            [
+                Box(Vector3.Zero, new Vector3(0.4f, 2, 0.4f), color: 0x7A5C3E),
+                Box(new Vector3(1, 2, 0), new Vector3(2, 1, 2), new Vector3(0, 0, 30), 0x43A047),
+            ],
+        };
 
-    private static float Angle(Quaternion a, Quaternion b) => 2 * MathF.Acos(Math.Min(1, MathF.Abs(Quaternion.Dot(Quaternion.Normalize(a), Quaternion.Normalize(b))))) * 180 / MathF.PI;
+    private static float Angle(Quaternion a, Quaternion b) =>
+        2 * MathF.Acos(Math.Min(1, MathF.Abs(Quaternion.Dot(Quaternion.Normalize(a), Quaternion.Normalize(b))))) * 180 / MathF.PI;
 
     [Theory]
     [InlineData(0, 0, 0)]
@@ -38,7 +47,13 @@ public class GroupTests
     public void CopiesPlaceTheirPartsByTheirTransform()
     {
         var tree = Tree();
-        var copy = new Placement { Group = "group.tree", Position = new Vector3(10, 1, 5), Rotation = new Vector3(0, 90, 0), Scale = new Vector3(2, 2, 2) };
+        var copy = new Placement
+        {
+            Group = "group.tree",
+            Position = new Vector3(10, 1, 5),
+            Rotation = new Vector3(0, 90, 0),
+            Scale = new Vector3(2, 2, 2),
+        };
 
         var parts = Groups.Expand(copy, key => key == tree.Id ? tree : null);
 
@@ -46,10 +61,21 @@ public class GroupTests
         foreach (var (part, original) in parts.Zip(tree.Parts))
         {
             // Each part lands where the copy's matrix puts it, turned by both rotations.
-            var expected = Vector3.Transform(original.Position, Matrix4x4.CreateScale(2) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(copy.Rotation)) * Matrix4x4.CreateTranslation(copy.Position));
+            var expected = Vector3.Transform(
+                original.Position,
+                Matrix4x4.CreateScale(2)
+                    * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(copy.Rotation))
+                    * Matrix4x4.CreateTranslation(copy.Position)
+            );
             Assert.True(Vector3.Distance(expected, part.Position) < 1e-4f, $"{part.Position} vs {expected}");
-            Assert.True(Angle(ZoneGrid.Rotation(part.Rotation), ZoneGrid.Rotation(original.Rotation) * Quaternion.Identity * ZoneGrid.Rotation(copy.Rotation)) < 0.05f
-                || Angle(ZoneGrid.Rotation(part.Rotation), Quaternion.Concatenate(ZoneGrid.Rotation(original.Rotation), ZoneGrid.Rotation(copy.Rotation))) < 0.05f);
+            Assert.True(
+                Angle(ZoneGrid.Rotation(part.Rotation), ZoneGrid.Rotation(original.Rotation) * Quaternion.Identity * ZoneGrid.Rotation(copy.Rotation))
+                    < 0.05f
+                    || Angle(
+                        ZoneGrid.Rotation(part.Rotation),
+                        Quaternion.Concatenate(ZoneGrid.Rotation(original.Rotation), ZoneGrid.Rotation(copy.Rotation))
+                    ) < 0.05f
+            );
             Assert.Equal(original.Scale * 2, part.Scale);
             Assert.Equal(original.Color, part.Color);
             Assert.Null(part.Group);
@@ -66,11 +92,31 @@ public class GroupTests
         var grove = new Group
         {
             Id = "group.grove",
-            Parts = [new Placement { Group = "group.tree", Position = new Vector3(-3, 0, 0) }, new Placement { Group = "group.tree", Position = new Vector3(3, 0, 0), Rotation = new Vector3(0, 45, 0) }],
+            Parts =
+            [
+                new Placement { Group = "group.tree", Position = new Vector3(-3, 0, 0) },
+                new Placement
+                {
+                    Group = "group.tree",
+                    Position = new Vector3(3, 0, 0),
+                    Rotation = new Vector3(0, 45, 0),
+                },
+            ],
         };
-        Group? Find(string key) => key == tree.Id ? tree : key == grove.Id ? grove : null;
+        Group? Find(string key) =>
+            key == tree.Id ? tree
+            : key == grove.Id ? grove
+            : null;
 
-        var parts = Groups.Expand(new Placement { Group = "group.grove", Position = new Vector3(0, 0, 20), Blockout = true }, Find);
+        var parts = Groups.Expand(
+            new Placement
+            {
+                Group = "group.grove",
+                Position = new Vector3(0, 0, 20),
+                Blockout = true,
+            },
+            Find
+        );
 
         Assert.Equal(4, parts.Count);
         Assert.All(parts, p => Assert.True(p.Blockout));
@@ -88,13 +134,27 @@ public class GroupTests
             Id = "group.grove",
             Parts =
             [
-                new Placement { Group = "group.tree", Colors = new() { ["leaves"] = 0xFFAA00, ["trunk"] = 0x333333 } },
+                new Placement
+                {
+                    Group = "group.tree",
+                    Colors = new() { ["leaves"] = 0xFFAA00, ["trunk"] = 0x333333 },
+                },
                 new Placement { Group = "group.tree", Position = new Vector3(3, 0, 0) },
             ],
         };
-        Group? Find(string key) => key == tree.Id ? tree : key == grove.Id ? grove : null;
+        Group? Find(string key) =>
+            key == tree.Id ? tree
+            : key == grove.Id ? grove
+            : null;
 
-        var parts = Groups.Expand(new Placement { Group = "group.grove", Colors = new() { ["leaves"] = 0x00FF00 } }, Find);
+        var parts = Groups.Expand(
+            new Placement
+            {
+                Group = "group.grove",
+                Colors = new() { ["leaves"] = 0x00FF00 },
+            },
+            Find
+        );
 
         // The outer copy's leaves win over the inner copy's; the inner copy's trunk stays; the second tree only takes the leaves.
         Assert.Equal([0x333333u, 0x00FF00u, 0x7A5C3Eu, 0x00FF00u], parts.Select(p => p.Color!.Value));
@@ -108,7 +168,18 @@ public class GroupTests
         var zone = new Zone
         {
             Id = "zone.test",
-            Chunks = [new ZoneChunk { Coord = new ChunkCoord(0, 0), Placements = [new Placement { Group = "group.tree", Position = new Vector3(63.5f, 0, 10) }, Box(new Vector3(5, 0, 5), Vector3.One)] }],
+            Chunks =
+            [
+                new ZoneChunk
+                {
+                    Coord = new ChunkCoord(0, 0),
+                    Placements =
+                    [
+                        new Placement { Group = "group.tree", Position = new Vector3(63.5f, 0, 10) },
+                        Box(new Vector3(5, 0, 5), Vector3.One),
+                    ],
+                },
+            ],
         };
 
         Groups.Expand(zone, key => key == tree.Id ? tree : null);
@@ -125,7 +196,17 @@ public class GroupTests
         using var folder = new TempFolder();
         var tree = Tree();
         tree.Parts[0].Role = "trunk";
-        tree.Parts = [.. tree.Parts, new Placement { Group = "group.rock", Position = new Vector3(0, 0, 2), Scale = new Vector3(0.5f, 0.5f, 0.5f), Colors = new() { ["moss"] = 0x2F5D3A, ["face"] = 0x8A8F99 } }];
+        tree.Parts =
+        [
+            .. tree.Parts,
+            new Placement
+            {
+                Group = "group.rock",
+                Position = new Vector3(0, 0, 2),
+                Scale = new Vector3(0.5f, 0.5f, 0.5f),
+                Colors = new() { ["moss"] = 0x2F5D3A, ["face"] = 0x8A8F99 },
+            },
+        ];
         GroupFile.Write(folder.PathOf("tree.toml"), tree);
 
         var errors = new List<ZoneFileError>();
@@ -150,7 +231,17 @@ public class GroupTests
     public void AGroupInsideItselfStopsThere()
     {
         // Three copies of itself would expand to 3^16 parts if only the depth limit stopped it.
-        var loop = new Group { Id = "group.loop", Parts = [new Placement { Group = "group.loop" }, new Placement { Group = "group.loop" }, new Placement { Group = "group.loop" }, Box(Vector3.Zero, Vector3.One)] };
+        var loop = new Group
+        {
+            Id = "group.loop",
+            Parts =
+            [
+                new Placement { Group = "group.loop" },
+                new Placement { Group = "group.loop" },
+                new Placement { Group = "group.loop" },
+                Box(Vector3.Zero, Vector3.One),
+            ],
+        };
 
         Assert.Single(Groups.Expand(new Placement { Group = "group.loop" }, key => key == loop.Id ? loop : null));
     }
@@ -160,12 +251,19 @@ public class GroupTests
     {
         var a = new Group { Id = "group.a", Parts = [new Placement { Group = "group.b" }, Box(Vector3.Zero, Vector3.One)] };
         a.Parts[1].Tag = "door";
-        var b = new Group { Id = "group.b", Parts = [new Placement { Group = "group.a", Scale = new Vector3(1, 2, 1) }, new Placement { Prop = "prop.missing" }] };
+        var b = new Group
+        {
+            Id = "group.b",
+            Parts = [new Placement { Group = "group.a", Scale = new Vector3(1, 2, 1) }, new Placement { Prop = "prop.missing" }],
+        };
         var empty = new Group { Id = "group.empty" };
         var bad = new Group { Id = "group.bad", Parts = [new Placement { Group = "group.nowhere" }, Box(Vector3.Zero, Vector3.One)] };
         bad.Parts[1].Role = "Not A Role";
 
-        var errors = ZoneValidation.CheckGroups([(a, "a.toml"), (b, "b.toml"), (empty, "empty.toml"), (bad, "bad.toml")], _ => null).Select(e => e.ToString()).ToList();
+        var errors = ZoneValidation
+            .CheckGroups([(a, "a.toml"), (b, "b.toml"), (empty, "empty.toml"), (bad, "bad.toml")], _ => null)
+            .Select(e => e.ToString())
+            .ToList();
 
         Assert.Contains(errors, e => e.Contains("a.toml") && e.Contains("a group's parts have no tag"));
         Assert.Contains(errors, e => e.Contains("b.toml") && e.Contains("a group scales evenly"));
@@ -180,10 +278,21 @@ public class GroupTests
     public void ANamedCopyNamesItsPartsAndStartsThemOff()
     {
         var tree = Tree();
-        var parts = Groups.Expand(new Placement { Group = tree.Id, Tag = "gate", Off = true }, key => key == tree.Id ? tree : null);
+        var parts = Groups.Expand(
+            new Placement
+            {
+                Group = tree.Id,
+                Tag = "gate",
+                Off = true,
+            },
+            key => key == tree.Id ? tree : null
+        );
 
         Assert.All(parts, p => Assert.Equal(("gate", true), (p.Tag, p.Off)));
-        Assert.All(Groups.Expand(new Placement { Group = tree.Id }, key => key == tree.Id ? tree : null), p => Assert.Equal((null, false), (p.Tag, p.Off)));
+        Assert.All(
+            Groups.Expand(new Placement { Group = tree.Id }, key => key == tree.Id ? tree : null),
+            p => Assert.Equal((null, false), (p.Tag, p.Off))
+        );
     }
 
     [Fact]
@@ -194,13 +303,24 @@ public class GroupTests
         var at = zone.Chunks[0].Placements[0].Position;
         zone.Chunks[0].Placements =
         [
-            new Placement { Group = "group.tree", Position = at, Scale = new Vector3(1, 2, 1), Color = 0xFF0000, Tag = "tree" },
+            new Placement
+            {
+                Group = "group.tree",
+                Position = at,
+                Scale = new Vector3(1, 2, 1),
+                Color = 0xFF0000,
+                Tag = "tree",
+            },
             new Placement { Group = "group.nowhere", Position = at },
             Box(at, Vector3.One),
         ];
         zone.Chunks[0].Placements[2].Role = "body";
 
-        var errors = ZoneValidation.Check(zone).Concat(ZoneValidation.CheckPlacements(zone, _ => null, key => key == tree.Id ? tree : null)).Select(e => e.ToString()).ToList();
+        var errors = ZoneValidation
+            .Check(zone)
+            .Concat(ZoneValidation.CheckPlacements(zone, _ => null, key => key == tree.Id ? tree : null))
+            .Select(e => e.ToString())
+            .ToList();
 
         Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("scales evenly"));
         Assert.Contains(errors, e => e.Contains("group.tree") && e.Contains("no color of their own"));
@@ -218,15 +338,40 @@ public class GroupTests
         var at = zone.Chunks[0].Placements[0].Position;
         zone.Chunks[0].Placements =
         [
-            new Placement { Group = "group.tree", Position = at, Colors = new() { ["leaves"] = 0xFF0000 } },
-            new Placement { Group = "group.tree", Position = at, Colors = new() { ["bark"] = 0xFF0000 } },
+            new Placement
+            {
+                Group = "group.tree",
+                Position = at,
+                Colors = new() { ["leaves"] = 0xFF0000 },
+            },
+            new Placement
+            {
+                Group = "group.tree",
+                Position = at,
+                Colors = new() { ["bark"] = 0xFF0000 },
+            },
             Box(at, Vector3.One),
         ];
         zone.Chunks[0].Placements[2].Colors = new() { ["leaves"] = 0xFF0000 };
-        var grove = new Group { Id = "group.grove", Parts = [new Placement { Group = "group.tree", Colors = new() { ["roots"] = 0 } }] };
+        var grove = new Group
+        {
+            Id = "group.grove",
+            Parts =
+            [
+                new Placement
+                {
+                    Group = "group.tree",
+                    Colors = new() { ["roots"] = 0 },
+                },
+            ],
+        };
 
-        var errors = ZoneValidation.Check(zone).Concat(ZoneValidation.CheckPlacements(zone, _ => null, key => key == tree.Id ? tree : null))
-            .Concat(ZoneValidation.CheckGroups([(tree, "tree.toml"), (grove, "grove.toml")], _ => null)).Select(e => e.ToString()).ToList();
+        var errors = ZoneValidation
+            .Check(zone)
+            .Concat(ZoneValidation.CheckPlacements(zone, _ => null, key => key == tree.Id ? tree : null))
+            .Concat(ZoneValidation.CheckGroups([(tree, "tree.toml"), (grove, "grove.toml")], _ => null))
+            .Select(e => e.ToString())
+            .ToList();
 
         Assert.Single(errors, e => e.Contains("colors has 'bark', which none of group.tree's parts plays (leaves)"));
         Assert.Contains(errors, e => e.Contains("only a group's copies have colors by role"));

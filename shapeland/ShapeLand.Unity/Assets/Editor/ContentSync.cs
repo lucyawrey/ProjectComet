@@ -53,15 +53,29 @@ namespace ShapeLand.Client.Editor
             var ground = GameView.Color(game.World.GroundColor);
             var under = GameView.Color(game.World.UnderColor);
             var placed = GameView.Color(game.World.PlacedColor);
-            if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
-                && settings.spawnPad == game.Spawns.Pad && settings.spawnPadSize.y == game.Spawns.PadHeight
-                && settings.spawnPadColor == GameView.Color(game.Spawns.UnsetColor) && settings.spawnStandSeconds == game.Spawns.StandSeconds
-                && settings.teleporterPad == game.Teleporters.Pad && settings.teleporterPadSize.y == game.Teleporters.PadHeight
-                && settings.teleporterPadColor == GameView.Color(game.Teleporters.PadColor) && settings.teleporterStandSeconds == game.Teleporters.StandSeconds
-                && settings.teleporterChargeColor == GameView.Color(game.Teleporters.ChargeColor) && settings.triggerChargeColor == GameView.Color(game.Triggers.ChargeColor)
-                && settings.triggerStandSeconds == game.Triggers.StandSeconds && settings.spawnVolumeHeight == game.Spawns.VolumeHeight
-                && settings.teleporterVolumeHeight == game.Teleporters.VolumeHeight && settings.triggerVolumeHeight == game.Triggers.VolumeHeight
-                && settings.facetLength == game.Primitives.FacetLength && settings.minSides == game.Primitives.MinSides && settings.maxSides == game.Primitives.MaxSides)
+            if (
+                settings.groundColor == ground
+                && settings.underColor == under
+                && settings.placedColor == placed
+                && settings.bodyHeight == game.Movement.BodyHeight
+                && settings.spawnPad == game.Spawns.Pad
+                && settings.spawnPadSize.y == game.Spawns.PadHeight
+                && settings.spawnPadColor == GameView.Color(game.Spawns.UnsetColor)
+                && settings.spawnStandSeconds == game.Spawns.StandSeconds
+                && settings.teleporterPad == game.Teleporters.Pad
+                && settings.teleporterPadSize.y == game.Teleporters.PadHeight
+                && settings.teleporterPadColor == GameView.Color(game.Teleporters.PadColor)
+                && settings.teleporterStandSeconds == game.Teleporters.StandSeconds
+                && settings.teleporterChargeColor == GameView.Color(game.Teleporters.ChargeColor)
+                && settings.triggerChargeColor == GameView.Color(game.Triggers.ChargeColor)
+                && settings.triggerStandSeconds == game.Triggers.StandSeconds
+                && settings.spawnVolumeHeight == game.Spawns.VolumeHeight
+                && settings.teleporterVolumeHeight == game.Teleporters.VolumeHeight
+                && settings.triggerVolumeHeight == game.Triggers.VolumeHeight
+                && settings.facetLength == game.Primitives.FacetLength
+                && settings.minSides == game.Primitives.MinSides
+                && settings.maxSides == game.Primitives.MaxSides
+            )
             {
                 return;
             }
@@ -114,27 +128,29 @@ namespace ShapeLand.Client.Editor
                 AssetDatabase.CreateAsset(library, LibraryPath);
             }
 
-            var entries = content.Props.All.Select(prop =>
-            {
-                var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + prop.Model);
-                if (model == null)
+            var entries = content
+                .Props.All.Select(prop =>
                 {
-                    Debug.LogWarning($"{prop.Id}'s model Assets/{prop.Model} isn't in the project.");
-                }
+                    var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + prop.Model);
+                    if (model == null)
+                    {
+                        Debug.LogWarning($"{prop.Id}'s model Assets/{prop.Model} isn't in the project.");
+                    }
 
-                var min = new Vector3(prop.BoundsMin.X, prop.BoundsMin.Y, prop.BoundsMin.Z);
-                var max = new Vector3(prop.BoundsMax.X, prop.BoundsMax.Y, prop.BoundsMax.Z);
-                return new PropLibrary.Entry
-                {
-                    id = prop.Id,
-                    displayName = prop.DisplayName ?? "",
-                    model = model,
-                    uniformScale = prop.UniformScale,
-                    bounds = new Bounds((min + max) / 2, max - min),
-                    hasColor = prop.Color != null,
-                    color = prop.Color is { } color ? PlacedColors.FromRgb(color) : default,
-                };
-            }).ToList();
+                    var min = new Vector3(prop.BoundsMin.X, prop.BoundsMin.Y, prop.BoundsMin.Z);
+                    var max = new Vector3(prop.BoundsMax.X, prop.BoundsMax.Y, prop.BoundsMax.Z);
+                    return new PropLibrary.Entry
+                    {
+                        id = prop.Id,
+                        displayName = prop.DisplayName ?? "",
+                        model = model,
+                        uniformScale = prop.UniformScale,
+                        bounds = new Bounds((min + max) / 2, max - min),
+                        hasColor = prop.Color != null,
+                        color = prop.Color is { } color ? PlacedColors.FromRgb(color) : default,
+                    };
+                })
+                .ToList();
             if (entries.SequenceEqual(library.Entries))
             {
                 return;

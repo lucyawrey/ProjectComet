@@ -77,6 +77,7 @@ namespace Comet.ZoneFiles
         }
 
         /// <summary>The file a group with an id is kept in, relative to the groups folder: <c>group.tree</c> in <c>tree.toml</c>.</summary>
-        public static string FileFor(string key) => (key.StartsWith("group.", StringComparison.Ordinal) ? key.Substring("group.".Length) : key) + ".toml";
+        public static string FileFor(string key) =>
+            (key.StartsWith("group.", StringComparison.Ordinal) ? key.Substring("group.".Length) : key) + ".toml";
     }
 }

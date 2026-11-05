@@ -34,10 +34,12 @@ public sealed class ShapeLandLoginRules(ShapeLandContent content, GameServerAddr
             return null;
         }
 
-        if (look == null
+        if (
+            look == null
             || !content.Shapes.TryGet(look.Shape, out _)
             || !content.Colors.TryGet(look.Color, out _)
-            || !content.Colors.TryGet(look.EyeColor, out _))
+            || !content.Colors.TryGet(look.EyeColor, out _)
+        )
         {
             return null;
         }
@@ -53,13 +55,14 @@ public sealed class ShapeLandLoginRules(ShapeLandContent content, GameServerAddr
         };
     }
 
-    public object Describe(ShapeLandCharacter character) => new CharacterView
-    {
-        Name = character.Name,
-        Shape = character.Shape,
-        Color = character.Color,
-        EyeColor = character.EyeColor,
-    };
+    public object Describe(ShapeLandCharacter character) =>
+        new CharacterView
+        {
+            Name = character.Name,
+            Shape = character.Shape,
+            Color = character.Color,
+            EyeColor = character.EyeColor,
+        };
 
     public GameServerAddress ServerFor(ShapeLandCharacter character) => gameServer;
 }

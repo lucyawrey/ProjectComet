@@ -44,7 +44,13 @@ namespace Comet.Simulation
                     }
                     else
                     {
-                        edges[key] = new Edge { A = a, B = b, Normal = normal, Count = 1 };
+                        edges[key] = new Edge
+                        {
+                            A = a,
+                            B = b,
+                            Normal = normal,
+                            Count = 1,
+                        };
                     }
                 }
             }

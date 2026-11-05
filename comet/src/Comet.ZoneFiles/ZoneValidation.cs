@@ -4,8 +4,8 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Comet.Content;
-using Group = Comet.Content.Group;
 using Comet.Simulation;
+using Group = Comet.Content.Group;
 
 namespace Comet.ZoneFiles
 {
@@ -26,7 +26,10 @@ namespace Comet.ZoneFiles
 
         /// <summary>Whether <paramref name="id"/> is <c>{kind}.zone.name</c>, as spawn, teleporter and trigger ids are.</summary>
         public static bool IsZonedId(string id, string kind) =>
-            id.StartsWith(kind + ".", StringComparison.Ordinal) && id.Substring(kind.Length + 1).Split('.') is { Length: 2 } parts && IsName(parts[0]) && IsName(parts[1]);
+            id.StartsWith(kind + ".", StringComparison.Ordinal)
+            && id.Substring(kind.Length + 1).Split('.') is { Length: 2 } parts
+            && IsName(parts[0])
+            && IsName(parts[1]);
 
         /// <summary>The zone named in a <c>{kind}.zone.name</c> id, as a zone id (<c>zone.zone</c>).</summary>
         public static string ZoneOf(string id) => "zone." + id.Split('.')[1];
@@ -100,7 +103,10 @@ namespace Comet.ZoneFiles
                 {
                     if (!PlacementTag.IsMatch(placement.Tag!))
                     {
-                        Error(ZoneFolder.ChunkFile(chunk.Coord), $"placement of {Placed(placement)}: '{placement.Tag}' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.");
+                        Error(
+                            ZoneFolder.ChunkFile(chunk.Coord),
+                            $"placement of {Placed(placement)}: '{placement.Tag}' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter."
+                        );
                     }
 
                     placementTags.Add(placement.Tag!);
@@ -131,7 +137,10 @@ namespace Comet.ZoneFiles
                     CheckTrigger(teleporter.Id, "teleporter", teleporter.Volume, chunk.Coord, zoneName, idFiles, file, Error);
                     if (!IsZonedId(teleporter.Target, "teleporter"))
                     {
-                        Error(file, $"{teleporter.Id}: target '{teleporter.Target}' isn't a teleporter id: use 'teleporter.', the zone's name, '.' and a name.");
+                        Error(
+                            file,
+                            $"{teleporter.Id}: target '{teleporter.Target}' isn't a teleporter id: use 'teleporter.', the zone's name, '.' and a name."
+                        );
                     }
                     else if (teleporter.Target == teleporter.Id)
                     {
@@ -200,10 +209,23 @@ namespace Comet.ZoneFiles
                         continue;
                     }
 
-                    CheckRoleColors(copy, $"placement of {id} at {Text(copy.Position)}", file, findGroup, (f, m) => errors.Add(new ZoneFileError(f, m)));
+                    CheckRoleColors(
+                        copy,
+                        $"placement of {id} at {Text(copy.Position)}",
+                        file,
+                        findGroup,
+                        (f, m) => errors.Add(new ZoneFileError(f, m))
+                    );
                     foreach (var part in Groups.Expand(copy, findGroup))
                     {
-                        CheckReach(part, ChunkCoord.Containing(part.Position), $"placement of {id} at {Text(copy.Position)}, its part {Placed(part)} at {Text(part.Position)}", file, findProp, errors);
+                        CheckReach(
+                            part,
+                            ChunkCoord.Containing(part.Position),
+                            $"placement of {id} at {Text(copy.Position)}, its part {Placed(part)} at {Text(part.Position)}",
+                            file,
+                            findProp,
+                            errors
+                        );
                     }
                 }
             }
@@ -248,8 +270,14 @@ namespace Comet.ZoneFiles
                     {
                         Error(file, $"{what}: there's no group '{inner}'.");
                     }
-                    else if (part.Primitive is null && part.Group is null && IsId(part.Prop, "prop") && findProp(part.Prop) is { } prop
-                        && prop.UniformScale && !Even(part.Scale))
+                    else if (
+                        part.Primitive is null
+                        && part.Group is null
+                        && IsId(part.Prop, "prop")
+                        && findProp(part.Prop) is { } prop
+                        && prop.UniformScale
+                        && !Even(part.Scale)
+                    )
                     {
                         Error(file, $"{what}: {prop.Id} only scales evenly, the same on every axis.");
                     }
@@ -317,11 +345,21 @@ namespace Comet.ZoneFiles
                 {
                     if (placement.Blockout)
                     {
-                        found.Add(new ZoneFileError(ZoneFolder.ChunkFile(chunk.Coord), $"{Placed(placement)} at {Text(placement.Position)} is blockout; replace or finish it before a release."));
+                        found.Add(
+                            new ZoneFileError(
+                                ZoneFolder.ChunkFile(chunk.Coord),
+                                $"{Placed(placement)} at {Text(placement.Position)} is blockout; replace or finish it before a release."
+                            )
+                        );
                     }
                     else if (placement.Group is { } id && Groups.Expand(placement, findGroup).Count(p => p.Blockout) is var parts and > 0)
                     {
-                        found.Add(new ZoneFileError(ZoneFolder.ChunkFile(chunk.Coord), $"{id} at {Text(placement.Position)} has {parts} blockout {(parts == 1 ? "part" : "parts")}; replace or finish them before a release."));
+                        found.Add(
+                            new ZoneFileError(
+                                ZoneFolder.ChunkFile(chunk.Coord),
+                                $"{id} at {Text(placement.Position)} has {parts} blockout {(parts == 1 ? "part" : "parts")}; replace or finish them before a release."
+                            )
+                        );
                     }
                 }
             }
@@ -330,7 +368,14 @@ namespace Comet.ZoneFiles
         }
 
         // A placement's reach: its bounds once placed stay within the ring of chunks around `chunk`.
-        private static void CheckReach(Placement placement, ChunkCoord chunk, string what, string file, Func<string, Prop?> findProp, List<ZoneFileError> errors)
+        private static void CheckReach(
+            Placement placement,
+            ChunkCoord chunk,
+            string what,
+            string file,
+            Func<string, Prop?> findProp,
+            List<ZoneFileError> errors
+        )
         {
             {
                 {
@@ -362,7 +407,12 @@ namespace Comet.ZoneFiles
                     var reachMax = new Vector3((chunk.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Z + 2) * ZoneGrid.ChunkSize);
                     if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
                     {
-                        errors.Add(new ZoneFileError(file, $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."));
+                        errors.Add(
+                            new ZoneFileError(
+                                file,
+                                $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."
+                            )
+                        );
                     }
                 }
             }
@@ -379,9 +429,12 @@ namespace Comet.ZoneFiles
             var roles = Groups.Roles(group, findGroup);
             foreach (var role in colors.Keys.Where(r => !roles.Contains(r)))
             {
-                error(file, roles.Count == 0
-                    ? $"{what}: colors has '{role}', but {group}'s parts play no roles."
-                    : $"{what}: colors has '{role}', which none of {group}'s parts plays ({string.Join(", ", roles)}).");
+                error(
+                    file,
+                    roles.Count == 0
+                        ? $"{what}: colors has '{role}', but {group}'s parts play no roles."
+                        : $"{what}: colors has '{role}', which none of {group}'s parts plays ({string.Join(", ", roles)})."
+                );
             }
         }
 
@@ -414,7 +467,10 @@ namespace Comet.ZoneFiles
 
                 if (placement.Color != null)
                 {
-                    error(file, $"{what}: a group's copies have no color of their own; set colors by role (colors = {{ role = 0x… }}) or change the group's parts.");
+                    error(
+                        file,
+                        $"{what}: a group's copies have no color of their own; set colors by role (colors = {{ role = 0x… }}) or change the group's parts."
+                    );
                 }
             }
             else if (!IsId(placement.Prop, "prop"))
@@ -439,7 +495,12 @@ namespace Comet.ZoneFiles
 
             if (placement.Role is { } role && (!inGroup || !IsName(role)))
             {
-                error(file, inGroup ? $"{what}: '{role}' isn't a valid role: use lowercase letters, digits and underscores." : $"{what}: only a group's parts have a role.");
+                error(
+                    file,
+                    inGroup
+                        ? $"{what}: '{role}' isn't a valid role: use lowercase letters, digits and underscores."
+                        : $"{what}: only a group's parts have a role."
+                );
             }
 
             if (placement.Colors is { } colors && placement.Group is null)
@@ -474,8 +535,10 @@ namespace Comet.ZoneFiles
                 error(file, $"{what}: only stairs have steps, from 1 to {Primitive.MaxSteps}.");
             }
 
-            if ((primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0) &&
-                (kind != PrimitiveKind.Doorway || primitive.OpeningWidth < 0 || primitive.OpeningHeight < 0))
+            if (
+                (primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0)
+                && (kind != PrimitiveKind.Doorway || primitive.OpeningWidth < 0 || primitive.OpeningHeight < 0)
+            )
             {
                 error(file, $"{what}: only doorways have an opening, and it can't be negative.");
             }
@@ -493,10 +556,14 @@ namespace Comet.ZoneFiles
             var max = new Vector3(float.MinValue);
             for (var corner = 0; corner < 8; corner++)
             {
-                var point = Vector3.Transform(new Vector3(
-                    (corner & 1) == 0 ? boundsMin.X : boundsMax.X,
-                    (corner & 2) == 0 ? boundsMin.Y : boundsMax.Y,
-                    (corner & 4) == 0 ? boundsMin.Z : boundsMax.Z), matrix);
+                var point = Vector3.Transform(
+                    new Vector3(
+                        (corner & 1) == 0 ? boundsMin.X : boundsMax.X,
+                        (corner & 2) == 0 ? boundsMin.Y : boundsMax.Y,
+                        (corner & 4) == 0 ? boundsMin.Z : boundsMax.Z
+                    ),
+                    matrix
+                );
                 min = Vector3.Min(min, point);
                 max = Vector3.Max(max, point);
             }
@@ -537,20 +604,33 @@ namespace Comet.ZoneFiles
                 }
 
                 var heights = tile.Heights;
-                if (tile.OriginX < 0 || tile.OriginZ < 0
-                    || tile.OriginX + heights.SizeX > ZoneGrid.ChunkSamples || tile.OriginZ + heights.SizeZ > ZoneGrid.ChunkSamples)
+                if (
+                    tile.OriginX < 0
+                    || tile.OriginZ < 0
+                    || tile.OriginX + heights.SizeX > ZoneGrid.ChunkSamples
+                    || tile.OriginZ + heights.SizeZ > ZoneGrid.ChunkSamples
+                )
                 {
-                    error(file, $"tile {tile.Piece}: {heights.SizeX}×{heights.SizeZ} samples from [{tile.OriginX}, {tile.OriginZ}] reach past the chunk's {ZoneGrid.ChunkSamples}×{ZoneGrid.ChunkSamples}.");
+                    error(
+                        file,
+                        $"tile {tile.Piece}: {heights.SizeX}×{heights.SizeZ} samples from [{tile.OriginX}, {tile.OriginZ}] reach past the chunk's {ZoneGrid.ChunkSamples}×{ZoneGrid.ChunkSamples}."
+                    );
                 }
 
                 if (tile.Underside is { } under && (under.SizeX != heights.SizeX || under.SizeZ != heights.SizeZ))
                 {
-                    error(file, $"tile {tile.Piece}: the underside is {under.SizeX}×{under.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}.");
+                    error(
+                        file,
+                        $"tile {tile.Piece}: the underside is {under.SizeX}×{under.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}."
+                    );
                 }
 
                 if (tile.Colors is { } colors && (colors.SizeX != heights.SizeX || colors.SizeZ != heights.SizeZ))
                 {
-                    error(file, $"tile {tile.Piece}: the colors are {colors.SizeX}×{colors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}.");
+                    error(
+                        file,
+                        $"tile {tile.Piece}: the colors are {colors.SizeX}×{colors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}."
+                    );
                 }
 
                 if (tile.UndersideColors is { } underColors)
@@ -561,7 +641,10 @@ namespace Comet.ZoneFiles
                     }
                     else if (underColors.SizeX != heights.SizeX || underColors.SizeZ != heights.SizeZ)
                     {
-                        error(file, $"tile {tile.Piece}: the underside colors are {underColors.SizeX}×{underColors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}.");
+                        error(
+                            file,
+                            $"tile {tile.Piece}: the underside colors are {underColors.SizeX}×{underColors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}."
+                        );
                     }
                 }
             }
@@ -571,9 +654,7 @@ namespace Comet.ZoneFiles
         // both cover a sample, they must agree on whether it's ground and, within half a height step, how high.
         private static void CheckSharedEdges(Zone zone, Action<string, string> error)
         {
-            var tiles = zone.Chunks
-                .SelectMany(c => c.Tiles.Select(t => (Chunk: c.Coord, Tile: t)))
-                .GroupBy(t => t.Tile.Piece);
+            var tiles = zone.Chunks.SelectMany(c => c.Tiles.Select(t => (Chunk: c.Coord, Tile: t))).GroupBy(t => t.Tile.Piece);
             foreach (var piece in tiles)
             {
                 var list = piece.ToList();
@@ -590,8 +671,12 @@ namespace Comet.ZoneFiles
                         var mismatch = FirstMismatch(a.Chunk, a.Tile, b.Chunk, b.Tile);
                         if (mismatch is { } at)
                         {
-                            var (first, second) = string.CompareOrdinal(a.Chunk.ToString(), b.Chunk.ToString()) < 0 ? (a.Chunk, b.Chunk) : (b.Chunk, a.Chunk);
-                            error(ZoneFolder.ChunkFile(first), $"tile {piece.Key}: the terrain doesn't match chunk {second}'s where they meet (world sample [{at.X}, {at.Z}]).");
+                            var (first, second) =
+                                string.CompareOrdinal(a.Chunk.ToString(), b.Chunk.ToString()) < 0 ? (a.Chunk, b.Chunk) : (b.Chunk, a.Chunk);
+                            error(
+                                ZoneFolder.ChunkFile(first),
+                                $"tile {piece.Key}: the terrain doesn't match chunk {second}'s where they meet (world sample [{at.X}, {at.Z}])."
+                            );
                         }
                     }
                 }
@@ -601,10 +686,14 @@ namespace Comet.ZoneFiles
         private static (int X, int Z)? FirstMismatch(ChunkCoord chunkA, TerrainTile a, ChunkCoord chunkB, TerrainTile b)
         {
             // Both tiles in world sample coordinates (a chunk's first sample is at chunk × ChunkSize).
-            int ax = chunkA.X * ZoneGrid.ChunkSize + a.OriginX, az = chunkA.Z * ZoneGrid.ChunkSize + a.OriginZ;
-            int bx = chunkB.X * ZoneGrid.ChunkSize + b.OriginX, bz = chunkB.Z * ZoneGrid.ChunkSize + b.OriginZ;
-            int minX = Math.Max(ax, bx), maxX = Math.Min(ax + a.Heights.SizeX, bx + b.Heights.SizeX) - 1;
-            int minZ = Math.Max(az, bz), maxZ = Math.Min(az + a.Heights.SizeZ, bz + b.Heights.SizeZ) - 1;
+            int ax = chunkA.X * ZoneGrid.ChunkSize + a.OriginX,
+                az = chunkA.Z * ZoneGrid.ChunkSize + a.OriginZ;
+            int bx = chunkB.X * ZoneGrid.ChunkSize + b.OriginX,
+                bz = chunkB.Z * ZoneGrid.ChunkSize + b.OriginZ;
+            int minX = Math.Max(ax, bx),
+                maxX = Math.Min(ax + a.Heights.SizeX, bx + b.Heights.SizeX) - 1;
+            int minZ = Math.Max(az, bz),
+                maxZ = Math.Min(az + a.Heights.SizeZ, bz + b.Heights.SizeZ) - 1;
             var tolerance = Math.Min(a.Heights.Scale, b.Heights.Scale) / 2;
             for (var z = minZ; z <= maxZ; z++)
             {
@@ -626,7 +715,10 @@ namespace Comet.ZoneFiles
         {
             if (!ChunkCoord.Containing(position).Equals(chunk))
             {
-                error(file, $"{what} at {Text(position)} is in chunk {ChunkCoord.Containing(position)}: objects belong to the chunk holding their pivot.");
+                error(
+                    file,
+                    $"{what} at {Text(position)} is in chunk {ChunkCoord.Containing(position)}: objects belong to the chunk holding their pivot."
+                );
             }
         }
 
@@ -672,7 +764,16 @@ namespace Comet.ZoneFiles
         }
 
         // A spawn point's, teleporter's or trigger's id, volume, pad and sign.
-        private static void CheckTrigger(string id, string kind, TriggerVolume volume, ChunkCoord chunk, string zoneName, Dictionary<string, string> idFiles, string file, Action<string, string> error)
+        private static void CheckTrigger(
+            string id,
+            string kind,
+            TriggerVolume volume,
+            ChunkCoord chunk,
+            string zoneName,
+            Dictionary<string, string> idFiles,
+            string file,
+            Action<string, string> error
+        )
         {
             if (!IsZonedId(id, kind) || id.Split('.')[1] != zoneName)
             {

@@ -21,11 +21,7 @@ namespace Comet.Unity
 
         public Task<LoginHttpResponse> SendAsync(string method, string path, string? json, string? bearerToken)
         {
-            var request = new UnityWebRequest(_baseUrl + path, method)
-            {
-                downloadHandler = new DownloadHandlerBuffer(),
-                timeout = TimeoutSeconds,
-            };
+            var request = new UnityWebRequest(_baseUrl + path, method) { downloadHandler = new DownloadHandlerBuffer(), timeout = TimeoutSeconds };
             if (json != null)
             {
                 request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));

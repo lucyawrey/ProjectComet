@@ -17,7 +17,8 @@ namespace Comet.Content
     public sealed class StringTable
     {
         /// <summary>The text by key.</summary>
-        [Key(0)] public Dictionary<string, string> Entries { get; set; } = new Dictionary<string, string>();
+        [Key(0)]
+        public Dictionary<string, string> Entries { get; set; } = new Dictionary<string, string>();
 
         /// <summary>True if there's text for <paramref name="key"/>.</summary>
         public bool Contains(string key) => Entries.ContainsKey(key);
@@ -47,8 +48,10 @@ namespace Comet.Content
         }
 
         /// <summary>The text for <paramref name="key"/> (its variant's version, if any) with no placeholders filled in, or <c>[key]</c>.</summary>
-        public string Raw(string key) => _variant != null && Entries.TryGetValue($"{key}_{_variant}", out var variant) ? variant
-            : Entries.TryGetValue(key, out var text) ? text : $"[{key}]";
+        public string Raw(string key) =>
+            _variant != null && Entries.TryGetValue($"{key}_{_variant}", out var variant) ? variant
+            : Entries.TryGetValue(key, out var text) ? text
+            : $"[{key}]";
 
         /// <summary>The text for <paramref name="key"/> with the shared values filled in, or <c>[key]</c> if there's none.</summary>
         public string Get(string key) => Format(key);

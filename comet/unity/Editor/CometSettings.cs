@@ -24,7 +24,9 @@ namespace Comet.Unity.Editor
         [Tooltip("The game's groups folder, relative to the Unity project (each group is a .toml file in it).")]
         public string groupsFolder = "../content/groups";
 
-        [Tooltip("Where opened zones keep their working scenes, relative to the Unity project: a folder the game's .gitignore ignores, since the zone's files are what's kept.")]
+        [Tooltip(
+            "Where opened zones keep their working scenes, relative to the Unity project: a folder the game's .gitignore ignores, since the zone's files are what's kept."
+        )]
         public string scenesFolder = "Assets/ZoneEditing";
 
         [Tooltip("The scene play mode always starts in, whatever scene is open: the game's own, which loads its zones from content.")]
@@ -103,10 +105,18 @@ namespace Comet.Unity.Editor
         [Tooltip("The colors the place tool offers to place things in, beside its color picker.")]
         public System.Collections.Generic.List<Color> swatches = new System.Collections.Generic.List<Color>
         {
-            new Color32(0xf2, 0xf2, 0xf2, 0xff), new Color32(0x9e, 0x9e, 0x9e, 0xff), new Color32(0x4a, 0x4a, 0x4a, 0xff),
-            new Color32(0x9e, 0x8c, 0x7a, 0xff), new Color32(0x7a, 0x5c, 0x3e, 0xff), new Color32(0xe5, 0x39, 0x35, 0xff),
-            new Color32(0xfb, 0x8c, 0x00, 0xff), new Color32(0xfd, 0xd8, 0x35, 0xff), new Color32(0x43, 0xa0, 0x47, 0xff),
-            new Color32(0x1e, 0x88, 0xe5, 0xff), new Color32(0x8e, 0x24, 0xaa, 0xff), new Color32(0xec, 0x40, 0x7a, 0xff),
+            new Color32(0xf2, 0xf2, 0xf2, 0xff),
+            new Color32(0x9e, 0x9e, 0x9e, 0xff),
+            new Color32(0x4a, 0x4a, 0x4a, 0xff),
+            new Color32(0x9e, 0x8c, 0x7a, 0xff),
+            new Color32(0x7a, 0x5c, 0x3e, 0xff),
+            new Color32(0xe5, 0x39, 0x35, 0xff),
+            new Color32(0xfb, 0x8c, 0x00, 0xff),
+            new Color32(0xfd, 0xd8, 0x35, 0xff),
+            new Color32(0x43, 0xa0, 0x47, 0xff),
+            new Color32(0x1e, 0x88, 0xe5, 0xff),
+            new Color32(0x8e, 0x24, 0xaa, 0xff),
+            new Color32(0xec, 0x40, 0x7a, 0xff),
         };
 
         [Header("Local game server (Comet › Server)")]
@@ -114,7 +124,8 @@ namespace Comet.Unity.Editor
         public string serverProject = "";
 
         [Tooltip("The port the local game server listens on; the game's client joins localhost at this port.")]
-        [Min(1)] public int serverPort = 5080;
+        [Min(1)]
+        public int serverPort = 5080;
 
         [Tooltip("More command-line arguments for the local game server, such as --ShapeLand:Zone=zone.tests.")]
         public string serverArguments = "";
@@ -134,36 +145,50 @@ namespace Comet.Unity.Editor
         [Tooltip("The bots' arguments: {url} is the game server's WebSocket URL, {login} the Login server's URL and {count} how many to start.")]
         public string botsArguments = "--url {url} --count {count}";
 
-        [Tooltip("The bots' arguments without accounts (the game server taking joins by name): {url} is the game server's WebSocket URL, {count} the number of bots. Empty: no bots without accounts.")]
+        [Tooltip(
+            "The bots' arguments without accounts (the game server taking joins by name): {url} is the game server's WebSocket URL, {count} the number of bots. Empty: no bots without accounts."
+        )]
         public string botsDevArguments = "";
 
         [Tooltip("The Login server project, relative to the Unity project, started beside the game server; empty: none.")]
         public string loginProject = "";
 
         [Tooltip("The port the local Login server listens on.")]
-        [Min(1)] public int loginPort = 5090;
+        [Min(1)]
+        public int loginPort = 5090;
 
-        [Tooltip("More arguments for the Login server: {database} is the connection string, {game} the game server's WebSocket URL, {page} the local page's origin.")]
+        [Tooltip(
+            "More arguments for the Login server: {database} is the connection string, {game} the game server's WebSocket URL, {page} the local page's origin."
+        )]
         public string loginArguments = "";
 
-        [Tooltip("More arguments for the game server when there's a Login server: {database} is the connection string, {login} the Login server's URL.")]
+        [Tooltip(
+            "More arguments for the game server when there's a Login server: {database} is the connection string, {login} the Login server's URL."
+        )]
         public string serverAccountArguments = "";
 
-        [Tooltip("More arguments for the game server without accounts (Comet › Server › Use Accounts off): {characters} is the file it keeps the characters in.")]
+        [Tooltip(
+            "More arguments for the game server without accounts (Comet › Server › Use Accounts off): {characters} is the file it keeps the characters in."
+        )]
         public string serverDevArguments = "";
 
-        [Tooltip("The tool that starts the development database and gives a database's connection string (Comet's tools/comet-postgres.cs, run with dotnet), relative to the Unity project.")]
+        [Tooltip(
+            "The tool that starts the development database and gives a database's connection string (Comet's tools/comet-postgres.cs, run with dotnet), relative to the Unity project."
+        )]
         public string databaseTool = "";
 
         [Header("Polygon budget (Comet › Zones › Polygon Budget)")]
         [Tooltip("About how long each side of a round primitive is, in meters.")]
-        [Min(0.01f)] public float facetLength = 0.5f;
+        [Min(0.01f)]
+        public float facetLength = 0.5f;
 
         [Tooltip("The fewest sides a round primitive has.")]
-        [Min(3)] public int minSides = 6;
+        [Min(3)]
+        public int minSides = 6;
 
         [Tooltip("The most sides a round primitive has.")]
-        [Min(3)] public int maxSides = 48;
+        [Min(3)]
+        public int maxSides = 48;
 
         [Tooltip("The game's settings file holding the budget, relative to the Unity project, where the budget window saves it.")]
         public string budgetFile = "";
@@ -172,7 +197,13 @@ namespace Comet.Unity.Editor
         public string budgetTable = "primitives";
 
         /// <summary>The polygon budget these settings hold.</summary>
-        public PolygonBudget Budget => new PolygonBudget { FacetLength = facetLength, MinSides = minSides, MaxSides = Mathf.Max(minSides, maxSides) };
+        public PolygonBudget Budget =>
+            new PolygonBudget
+            {
+                FacetLength = facetLength,
+                MinSides = minSides,
+                MaxSides = Mathf.Max(minSides, maxSides),
+            };
 
         private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
 
@@ -200,7 +231,11 @@ namespace Comet.Unity.Editor
             {
                 if (!quiet)
                 {
-                    EditorUtility.DisplayDialog("No Comet settings", "This project has no Comet Settings asset. Make one with Create › Comet › Settings.", "OK");
+                    EditorUtility.DisplayDialog(
+                        "No Comet settings",
+                        "This project has no Comet Settings asset. Make one with Create › Comet › Settings.",
+                        "OK"
+                    );
                 }
 
                 return null;

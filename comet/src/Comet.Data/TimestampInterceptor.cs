@@ -17,7 +17,10 @@ public sealed class TimestampInterceptor(TimeProvider clock) : SaveChangesInterc
     }
 
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
-        DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        DbContextEventData eventData,
+        InterceptionResult<int> result,
+        CancellationToken cancellationToken = default
+    )
     {
         Stamp(eventData.Context);
         return ValueTask.FromResult(result);

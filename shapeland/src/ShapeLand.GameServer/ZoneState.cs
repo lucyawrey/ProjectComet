@@ -12,8 +12,10 @@ namespace ShapeLand.GameServer;
 internal sealed class ZoneState
 {
     private readonly Dictionary<Trigger, TriggerCharge> _charges = [];
+
     // The tick each flipped tag with a revert time flips back.
     private readonly Dictionary<string, uint> _reverts = [];
+
     // Scratch for the tags due to flip back this tick.
     private readonly List<string> _due = [];
 

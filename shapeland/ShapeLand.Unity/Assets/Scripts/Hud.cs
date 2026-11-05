@@ -21,9 +21,14 @@ namespace ShapeLand.Client
     [RequireComponent(typeof(UIDocument))]
     public sealed class Hud : MonoBehaviour
     {
-        [SerializeField] private JoinClient join;
-        [SerializeField] private GameView view;
-        [SerializeField] private JoinScreen card;
+        [SerializeField]
+        private JoinClient join;
+
+        [SerializeField]
+        private GameView view;
+
+        [SerializeField]
+        private JoinScreen card;
 
         private VisualElement _root;
         private Chat _chat;
@@ -37,13 +42,16 @@ namespace ShapeLand.Client
         private VisualElement _lookButton;
         private VisualElement _menuButton;
         private bool _menuTipSeen;
+
         // Chat that was open when the look card came up, and what was typed in it: it reopens once the card closes.
         private bool _reopenChat;
         private string _chatDraft;
+
         // The overlay's parts kept inside the screen's safe area, and the insets they have now.
         private VisualElement[] _safe;
         private VisualElement[] _centeredSafe;
         private Vector4 _insets = new Vector4(-1, -1, -1, -1);
+
         // The screen and overlay sizes the safe area was last applied for: it's asked for again only when they change.
         private Vector4 _safeFor;
 
@@ -101,11 +109,18 @@ namespace ShapeLand.Client
             ((Button)_menuButton).clicked += ToggleMenu;
             _root.EnableInClassList("phone", WebPage.IsPhone);
             // The other buttons close the look card first.
-            tree.Q<Button>("return-button").clicked += () => { CloseLook(); ReturnToSpawn(); };
-            tree.Q<Button>("chat-button").clicked += () => { CloseLook(); _chat.Toggle(); };
+            tree.Q<Button>("return-button").clicked += () =>
+            {
+                CloseLook();
+                ReturnToSpawn();
+            };
+            tree.Q<Button>("chat-button").clicked += () =>
+            {
+                CloseLook();
+                _chat.Toggle();
+            };
             _menuTipSeen = GameSettings.MenuTipSeen;
-            tree.Query(className: "hud-tip").ForEach(tip =>
-                tip.parent.RegisterCallback<PointerEnterEvent>(_ => MarkMenuTipSeen()));
+            tree.Query(className: "hud-tip").ForEach(tip => tip.parent.RegisterCallback<PointerEnterEvent>(_ => MarkMenuTipSeen()));
             // The join card is its own document on the same panel settings, so the same insets fit it.
             var cardSafe = card.GetComponent<UIDocument>().rootVisualElement.Q("card-safe");
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };

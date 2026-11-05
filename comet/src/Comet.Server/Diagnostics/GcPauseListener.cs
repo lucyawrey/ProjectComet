@@ -47,7 +47,8 @@ public sealed class GcPauseListener : EventListener
                     Payload(eventData, "Count"),
                     (int)Payload(eventData, "Depth"),
                     (GcReason)Payload(eventData, "Reason"),
-                    (GcType)Payload(eventData, "Type"));
+                    (GcType)Payload(eventData, "Type")
+                );
                 // A background collection starts in the same pause as an ephemeral one; keep the deeper.
                 if (!_startedInPause || _collection is not { } previous || collection.Generation > previous.Generation)
                 {
@@ -61,18 +62,12 @@ public sealed class GcPauseListener : EventListener
                     Payload(eventData, "GenerationSize1"),
                     Payload(eventData, "GenerationSize2"),
                     Payload(eventData, "GenerationSize3"),
-                    Payload(eventData, "TotalPromotedSize0")
-                        + Payload(eventData, "TotalPromotedSize1")
-                        + Payload(eventData, "TotalPromotedSize2"));
+                    Payload(eventData, "TotalPromotedSize0") + Payload(eventData, "TotalPromotedSize1") + Payload(eventData, "TotalPromotedSize2")
+                );
                 break;
             case GCRestartEEEnd when _suspendStart is { } start:
                 _suspendStart = null;
-                PauseRecorded?.Invoke(new GcPause(
-                    eventData.TimeStamp,
-                    eventData.TimeStamp - start,
-                    _collection,
-                    _startedInPause,
-                    _heapStats));
+                PauseRecorded?.Invoke(new GcPause(eventData.TimeStamp, eventData.TimeStamp - start, _collection, _startedInPause, _heapStats));
                 break;
         }
     }
@@ -89,12 +84,7 @@ public sealed class GcPauseListener : EventListener
 /// <see cref="StartedInPause"/> is false, the latest one before it (such as the background
 /// collection whose later phase this pause belongs to).
 /// </summary>
-public readonly record struct GcPause(
-    DateTime End,
-    TimeSpan Duration,
-    GcCollection? Collection,
-    bool StartedInPause,
-    GcHeapStats? HeapStats);
+public readonly record struct GcPause(DateTime End, TimeSpan Duration, GcCollection? Collection, bool StartedInPause, GcHeapStats? HeapStats);
 
 /// <summary>A collection as GCStart reports it: its number, the generation collected, why and how.</summary>
 public readonly record struct GcCollection(ulong Number, int Generation, GcReason Reason, GcType Type);

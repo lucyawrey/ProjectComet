@@ -24,7 +24,8 @@ namespace Comet.Unity
 
         // Past this many meshes, the ones nothing shows are destroyed (the zone editor makes one per size tried), except
         // the most recently asked for, which a caller may still be collecting.
-        private const int PruneAbove = 2048, KeepRecent = 512;
+        private const int PruneAbove = 2048,
+            KeepRecent = 512;
         private const string NamePrefix = "Primitive ";
 
         private sealed class Entry
@@ -187,7 +188,8 @@ namespace Comet.Unity
             var p = placement.Primitive!;
             var size = placement.Scale;
             return FormattableString.Invariant(
-                $"{NamePrefix}{p.Kind} {size.X:0.##}×{size.Y:0.##}×{size.Z:0.##} ({size.X:R} {size.Y:R} {size.Z:R} {p.Sides} {p.Bevel:R} {p.Steps} {p.OpeningWidth:R} {p.OpeningHeight:R} {p.Thickness:R} {budget.FacetLength:R} {budget.MinSides} {budget.MaxSides})");
+                $"{NamePrefix}{p.Kind} {size.X:0.##}×{size.Y:0.##}×{size.Z:0.##} ({size.X:R} {size.Y:R} {size.Z:R} {p.Sides} {p.Bevel:R} {p.Steps} {p.OpeningWidth:R} {p.OpeningHeight:R} {p.Thickness:R} {budget.FacetLength:R} {budget.MinSides} {budget.MaxSides})"
+            );
         }
     }
 }

@@ -41,7 +41,13 @@ public sealed partial class TestRules : ILoginRules<TestCharacter>
 
     public TestCharacter? CreateCharacter(long characterId, long accountId, string username, JsonElement request) =>
         request.ValueKind == JsonValueKind.Object && request.TryGetProperty("look", out var look) && look.GetInt32() is >= 0 and < 10
-            ? new TestCharacter { Id = characterId, AccountId = accountId, Name = username, Look = look.GetInt32() }
+            ? new TestCharacter
+            {
+                Id = characterId,
+                AccountId = accountId,
+                Name = username,
+                Look = look.GetInt32(),
+            }
             : null;
 
     public object Describe(TestCharacter character) => new TestView { Name = character.Name, Look = character.Look };
@@ -140,12 +146,15 @@ public sealed class LoginHost : IAsyncDisposable
         });
 
         var app = builder.Build();
-        app.Use((http, next) =>
-        {
-            http.Connection.RemoteIpAddress = IPAddress.Parse(
-                http.Request.Headers.TryGetValue(ClientAddressHeader, out var address) ? address.ToString() : "127.0.0.1");
-            return next(http);
-        });
+        app.Use(
+            (http, next) =>
+            {
+                http.Connection.RemoteIpAddress = IPAddress.Parse(
+                    http.Request.Headers.TryGetValue(ClientAddressHeader, out var address) ? address.ToString() : "127.0.0.1"
+                );
+                return next(http);
+            }
+        );
         app.MapCometLogin<TestCharacter>();
         await app.StartAsync();
         return new LoginHost(app, keys, clock, connection);

@@ -12,8 +12,11 @@ namespace Comet.Data.Characters;
 /// from <paramref name="createContext"/>. Hand-written SQL is in <see cref="CharacterRepositorySql"/>.
 /// </summary>
 public sealed class CharacterRepository<TCharacter, TContext>(
-    Func<TContext> createContext, CharacterRepositoryOptions options, TimeProvider clock, ILogger logger)
-    : QueuedCharacterRepository<TCharacter>(options, clock, logger)
+    Func<TContext> createContext,
+    CharacterRepositoryOptions options,
+    TimeProvider clock,
+    ILogger logger
+) : QueuedCharacterRepository<TCharacter>(options, clock, logger)
     where TCharacter : Character
     where TContext : CometRegionContext<TCharacter>
 {
@@ -53,8 +56,8 @@ public sealed class CharacterRepository<TCharacter, TContext>(
 
         await using var context = createContext();
         var now = Now;
-        var released = await context.CharacterOwners
-            .Where(o => o.ServerId == Options.ServerId && o.ReleasedAt == null)
+        var released = await context
+            .CharacterOwners.Where(o => o.ServerId == Options.ServerId && o.ReleasedAt == null)
             .ExecuteUpdateAsync(set => set.SetProperty(o => o.ReleasedAt, now).SetProperty(o => o.UpdatedAt, now), cancellationToken);
         if (released > 0)
         {
@@ -84,8 +87,7 @@ public sealed class CharacterRepository<TCharacter, TContext>(
         return new(ClaimOutcome.Claimed, character, position, version);
     }
 
-    protected override async Task<IReadOnlySet<long>> SaveStatusesCoreAsync(
-        IReadOnlyList<StatusSave> saves, CancellationToken cancellationToken)
+    protected override async Task<IReadOnlySet<long>> SaveStatusesCoreAsync(IReadOnlyList<StatusSave> saves, CancellationToken cancellationToken)
     {
         await using var db = createContext();
         await db.Database.OpenConnectionAsync(cancellationToken);
@@ -105,8 +107,7 @@ public sealed class CharacterRepository<TCharacter, TContext>(
         var entry = db.Attach(character);
         foreach (var property in entry.Properties)
         {
-            property.IsModified = property.Metadata.PropertyInfo?.DeclaringType != typeof(Character)
-                && !property.Metadata.IsPrimaryKey();
+            property.IsModified = property.Metadata.PropertyInfo?.DeclaringType != typeof(Character) && !property.Metadata.IsPrimaryKey();
         }
 
         character.UpdatedAt = Now;
@@ -116,8 +117,7 @@ public sealed class CharacterRepository<TCharacter, TContext>(
         return true;
     }
 
-    protected override async Task LeaveCoreAsync(
-        long characterId, long version, CharacterPosition? position, CancellationToken cancellationToken)
+    protected override async Task LeaveCoreAsync(long characterId, long version, CharacterPosition? position, CancellationToken cancellationToken)
     {
         await using var db = createContext();
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -132,33 +132,39 @@ public sealed class CharacterRepository<TCharacter, TContext>(
         }
 
         var now = Now;
-        await db.CharacterOwners
-            .Where(o => o.CharacterId == characterId)
+        await db
+            .CharacterOwners.Where(o => o.CharacterId == characterId)
             .ExecuteUpdateAsync(set => set.SetProperty(o => o.ReleasedAt, now).SetProperty(o => o.UpdatedAt, now), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
-    protected override async Task<IReadOnlySet<long>> CheckHeldCoreAsync(
-        IReadOnlyList<HeldCharacter> held, CancellationToken cancellationToken)
+    protected override async Task<IReadOnlySet<long>> CheckHeldCoreAsync(IReadOnlyList<HeldCharacter> held, CancellationToken cancellationToken)
     {
         await using var db = createContext();
         var ids = held.Select(h => h.CharacterId).ToArray();
-        var owners = await db.CharacterOwners.AsNoTracking()
+        var owners = await db
+            .CharacterOwners.AsNoTracking()
             .Where(o => ids.Contains(o.CharacterId))
-            .Select(o => new { o.CharacterId, o.ServerId, o.Version, o.ReleasedAt })
+            .Select(o => new
+            {
+                o.CharacterId,
+                o.ServerId,
+                o.Version,
+                o.ReleasedAt,
+            })
             .ToDictionaryAsync(o => o.CharacterId, cancellationToken);
 
-        var still = held
-            .Where(h => owners.TryGetValue(h.CharacterId, out var o)
-                && o.ServerId == Options.ServerId && o.Version == h.Version && o.ReleasedAt == null)
+        var still = held.Where(h =>
+                owners.TryGetValue(h.CharacterId, out var o) && o.ServerId == Options.ServerId && o.Version == h.Version && o.ReleasedAt == null
+            )
             .Select(h => h.CharacterId)
             .ToHashSet();
 
         // The held rows' updated_at works as a heartbeat (the guest cleanup counts it as activity).
         var stillIds = still.ToArray();
         var now = Now;
-        await db.CharacterOwners
-            .Where(o => stillIds.Contains(o.CharacterId))
+        await db
+            .CharacterOwners.Where(o => stillIds.Contains(o.CharacterId))
             .ExecuteUpdateAsync(set => set.SetProperty(o => o.UpdatedAt, now), cancellationToken);
         return still;
     }
@@ -166,7 +172,8 @@ public sealed class CharacterRepository<TCharacter, TContext>(
     public override async Task<string?> LoadNameAsync(long characterId, CancellationToken cancellationToken)
     {
         await using var db = createContext();
-        return await db.Characters.AsNoTracking()
+        return await db
+            .Characters.AsNoTracking()
             .Where(c => c.Id == characterId && c.DeletedAt == null)
             .Select(c => c.Name)
             .SingleOrDefaultAsync(cancellationToken);
@@ -176,8 +183,10 @@ public sealed class CharacterRepository<TCharacter, TContext>(
     {
         for (var e = exception; e != null; e = e.InnerException)
         {
-            if (e is NpgsqlException { IsTransient: true } or TimeoutException or SocketException
-                || e is PostgresException { SqlState: PostgresErrorCodes.CannotConnectNow or PostgresErrorCodes.AdminShutdown })
+            if (
+                e is NpgsqlException { IsTransient: true } or TimeoutException or SocketException
+                || e is PostgresException { SqlState: PostgresErrorCodes.CannotConnectNow or PostgresErrorCodes.AdminShutdown }
+            )
             {
                 return true;
             }
@@ -188,8 +197,7 @@ public sealed class CharacterRepository<TCharacter, TContext>(
 
     private DateTime Now => Clock.GetUtcNow().UtcDateTime;
 
-    private async Task<IReadOnlySet<long>> SaveStatusesAsync(
-        TContext db, IReadOnlyList<StatusSave> saves, CancellationToken cancellationToken)
+    private async Task<IReadOnlySet<long>> SaveStatusesAsync(TContext db, IReadOnlyList<StatusSave> saves, CancellationToken cancellationToken)
     {
         await using var command = Command(db, CharacterRepositorySql.SaveStatuses);
         command.Parameters.AddWithValue("characters", saves.Select(s => s.CharacterId).ToArray());
@@ -226,6 +234,5 @@ public sealed class CharacterRepository<TCharacter, TContext>(
 
     // A command on the context's connection, in its transaction if it has one.
     private static NpgsqlCommand Command(TContext db, string sql) =>
-        new(sql, (NpgsqlConnection)db.Database.GetDbConnection(),
-            (NpgsqlTransaction?)db.Database.CurrentTransaction?.GetDbTransaction());
+        new(sql, (NpgsqlConnection)db.Database.GetDbConnection(), (NpgsqlTransaction?)db.Database.CurrentTransaction?.GetDbTransaction());
 }

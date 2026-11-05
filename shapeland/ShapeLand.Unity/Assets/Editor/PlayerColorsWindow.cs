@@ -22,7 +22,8 @@ namespace ShapeLand.Client.Editor
         private const string SettingsFile = "../content/settings/game.toml";
 
         private const int PerLine = 10; // as on the look card (.swatches in ShapeLand.uss)
-        private const float Swatch = 26, Gap = 6;
+        private const float Swatch = 26,
+            Gap = 6;
 
         private static readonly Regex Entry = new(@"^\s*([a-z][a-z0-9_]*)\s*=\s*0x([0-9A-Fa-f]{6})\s*(?:#.*)?$");
         private static readonly Regex Key = new("^[a-z][a-z0-9_]*$");
@@ -34,9 +35,14 @@ namespace ShapeLand.Client.Editor
             public string name = "";
         }
 
-        [SerializeField] private List<PlayerColor> colors = new();
-        [SerializeField] private bool loaded;
-        [SerializeField] private bool changed;
+        [SerializeField]
+        private List<PlayerColor> colors = new();
+
+        [SerializeField]
+        private bool loaded;
+
+        [SerializeField]
+        private bool changed;
 
         private ReorderableList _list;
         private Vector2 _scroll;
@@ -69,7 +75,10 @@ namespace ShapeLand.Client.Editor
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Reload") && (!changed || EditorUtility.DisplayDialog("Player colors", "Drop the unsaved changes?", "Drop", "Keep")))
+                if (
+                    GUILayout.Button("Reload")
+                    && (!changed || EditorUtility.DisplayDialog("Player colors", "Drop the unsaved changes?", "Drop", "Keep"))
+                )
                 {
                     Load();
                 }
@@ -83,7 +92,10 @@ namespace ShapeLand.Client.Editor
                 }
             }
 
-            EditorGUILayout.HelpBox($"{colors.Count} colors, for both body and eyes. Each needs a key (lowercase letters, digits and _): saved characters keep colors by the key's number, so renaming one makes it a new color. Save writes them to {SettingsFile}, keeping the rest of the file.", MessageType.None);
+            EditorGUILayout.HelpBox(
+                $"{colors.Count} colors, for both body and eyes. Each needs a key (lowercase letters, digits and _): saved characters keep colors by the key's number, so renaming one makes it a new color. Save writes them to {SettingsFile}, keeping the rest of the file.",
+                MessageType.None
+            );
         }
 
         private ReorderableList MakeList()
@@ -212,7 +224,11 @@ namespace ShapeLand.Client.Editor
             var keys = colors.Select(c => c.name.Trim()).ToList();
             if (keys.FirstOrDefault(k => !Key.IsMatch(k)) is { } bad)
             {
-                EditorUtility.DisplayDialog("Player colors", $"\"{bad}\" isn't a key: use a lowercase letter, then lowercase letters, digits and _.", "OK");
+                EditorUtility.DisplayDialog(
+                    "Player colors",
+                    $"\"{bad}\" isn't a key: use a lowercase letter, then lowercase letters, digits and _.",
+                    "OK"
+                );
                 return;
             }
 

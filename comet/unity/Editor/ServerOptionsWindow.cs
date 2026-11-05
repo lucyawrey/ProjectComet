@@ -84,7 +84,8 @@ namespace Comet.Unity.Editor
             else if (running is { } with)
             {
                 var scheme = with.Web ? "http://" : "";
-                var lines = $"Running on port {port}, started by the editor{(with.Bots > 0 ? $", with {with.Bots} bots" : "")}.\nThis computer: {scheme}localhost:{port}";
+                var lines =
+                    $"Running on port {port}, started by the editor{(with.Bots > 0 ? $", with {with.Bots} bots" : "")}.\nThis computer: {scheme}localhost:{port}";
                 var shared = with.Lan && LocalServer.LanAddress() is { } lan ? $"{scheme}{lan}:{port}" : null;
                 if (with.Lan && shared == null)
                 {
@@ -104,7 +105,10 @@ namespace Comet.Unity.Editor
             }
             else if (_answers)
             {
-                EditorGUILayout.HelpBox($"A game server started outside the editor is running on port {port}. Play mode uses it; the editor doesn't stop or restart it.", MessageType.Info);
+                EditorGUILayout.HelpBox(
+                    $"A game server started outside the editor is running on port {port}. Play mode uses it; the editor doesn't stop or restart it.",
+                    MessageType.Info
+                );
             }
             else
             {
@@ -180,15 +184,32 @@ namespace Comet.Unity.Editor
             EditorGUILayout.LabelField("Options (yours, on this computer)", EditorStyles.boldLabel);
             var options = LocalServer.Chosen;
             EditorGUI.BeginChangeCheck();
-            options.Web = EditorGUILayout.Toggle(new GUIContent("Serve the web build", "Serve the last web build, so a browser can play: open the page at the server's address."), options.Web);
-            options.Lan = EditorGUILayout.Toggle(new GUIContent("Open to the network", "Listen on every network interface, so others on this local network can join (a firewall may ask first)."), options.Lan);
-            options.Bots = EditorGUILayout.IntSlider(new GUIContent("Bots", "How many bots join once the server is up."), options.Bots, 0, LocalServer.MaxBots);
+            options.Web = EditorGUILayout.Toggle(
+                new GUIContent("Serve the web build", "Serve the last web build, so a browser can play: open the page at the server's address."),
+                options.Web
+            );
+            options.Lan = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Open to the network",
+                    "Listen on every network interface, so others on this local network can join (a firewall may ask first)."
+                ),
+                options.Lan
+            );
+            options.Bots = EditorGUILayout.IntSlider(
+                new GUIContent("Bots", "How many bots join once the server is up."),
+                options.Bots,
+                0,
+                LocalServer.MaxBots
+            );
             if (EditorGUI.EndChangeCheck())
             {
                 LocalServer.Chosen = options;
             }
 
-            LocalServer.StartWithPlayMode = EditorGUILayout.Toggle(new GUIContent("Start with play mode", "Entering play mode starts the server if none is running on the port."), LocalServer.StartWithPlayMode);
+            LocalServer.StartWithPlayMode = EditorGUILayout.Toggle(
+                new GUIContent("Start with play mode", "Entering play mode starts the server if none is running on the port."),
+                LocalServer.StartWithPlayMode
+            );
         }
 
         private void WebBuildGUI(CometSettings settings)
@@ -203,13 +224,19 @@ namespace Comet.Unity.Editor
             EditorGUILayout.LabelField(_webBuiltAt is { } at ? $"Made {Ago(at)}." : "None yet.");
             if (_newerSource != null)
             {
-                EditorGUILayout.HelpBox($"The game changed since ({_newerSource}): make a new web build to play it in a browser. Content changes need none: the server copies the content in.", MessageType.Warning);
+                EditorGUILayout.HelpBox(
+                    $"The game changed since ({_newerSource}): make a new web build to play it in a browser. Content changes need none: the server copies the content in.",
+                    MessageType.Warning
+                );
             }
 
             var onWeb = EditorUserBuildSettings.activeBuildTarget == BuildTarget.WebGL;
             if (!onWeb)
             {
-                EditorGUILayout.HelpBox($"The editor is on {EditorUserBuildSettings.activeBuildTarget}; the web build needs the Web platform. Switching reimports the project, which takes a while.", MessageType.None);
+                EditorGUILayout.HelpBox(
+                    $"The editor is on {EditorUserBuildSettings.activeBuildTarget}; the web build needs the Web platform. Switching reimports the project, which takes a while.",
+                    MessageType.None
+                );
             }
 
             EditorGUILayout.BeginHorizontal();
@@ -224,8 +251,15 @@ namespace Comet.Unity.Editor
 
             using (new EditorGUI.DisabledScope(onWeb || settings.webBuildProfile == null))
             {
-                if (GUILayout.Button("Switch to Web…")
-                    && EditorUtility.DisplayDialog("Switch to Web", "Switch the editor to the Web platform? Unity reimports the project's assets for it, which can take several minutes.", "Switch", "Cancel"))
+                if (
+                    GUILayout.Button("Switch to Web…")
+                    && EditorUtility.DisplayDialog(
+                        "Switch to Web",
+                        "Switch the editor to the Web platform? Unity reimports the project's assets for it, which can take several minutes.",
+                        "Switch",
+                        "Cancel"
+                    )
+                )
                 {
                     BuildProfile.SetActiveBuildProfile(settings.webBuildProfile);
                     GUIUtility.ExitGUI();
@@ -240,12 +274,14 @@ namespace Comet.Unity.Editor
         private void MakeWebBuild(CometSettings settings)
         {
             var folder = ContentBuild.ProjectPath(settings.webBuildFolder);
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerWithProfileOptions
-            {
-                buildProfile = settings.webBuildProfile,
-                locationPathName = folder,
-                options = BuildOptions.None,
-            });
+            var report = BuildPipeline.BuildPlayer(
+                new BuildPlayerWithProfileOptions
+                {
+                    buildProfile = settings.webBuildProfile,
+                    locationPathName = folder,
+                    options = BuildOptions.None,
+                }
+            );
             if (report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
             {
                 File.SetLastWriteTimeUtc(Path.Combine(folder, "index.html"), DateTime.UtcNow);
@@ -274,17 +310,24 @@ namespace Comet.Unity.Editor
             _webBuiltAt = page;
             var root = ContentBuild.ProjectRoot;
             var scenes = ContentBuild.ProjectPath(settings.scenesFolder) + Path.DirectorySeparatorChar;
-            var folders = new[] { "Assets", "Packages", "ProjectSettings" }.Select(f => Path.Combine(root, f))
-                .Concat(UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages()
-                    .Where(p => p.source == UnityEditor.PackageManager.PackageSource.Local)
-                    .Select(p => p.resolvedPath));
+            var folders = new[] { "Assets", "Packages", "ProjectSettings" }
+                .Select(f => Path.Combine(root, f))
+                .Concat(
+                    UnityEditor
+                        .PackageManager.PackageInfo.GetAllRegisteredPackages()
+                        .Where(p => p.source == UnityEditor.PackageManager.PackageSource.Local)
+                        .Select(p => p.resolvedPath)
+                );
             foreach (var folder in folders.Where(Directory.Exists))
             {
-                var newer = Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
-                    .FirstOrDefault(f => !f.EndsWith(".meta", StringComparison.Ordinal)
+                var newer = Directory
+                    .EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+                    .FirstOrDefault(f =>
+                        !f.EndsWith(".meta", StringComparison.Ordinal)
                         && !f.Contains($"{Path.DirectorySeparatorChar}StreamingAssets{Path.DirectorySeparatorChar}")
                         && !f.StartsWith(scenes, StringComparison.Ordinal)
-                        && File.GetLastWriteTimeUtc(f) > page);
+                        && File.GetLastWriteTimeUtc(f) > page
+                    );
                 if (newer != null)
                 {
                     _newerSource = Path.GetRelativePath(root, newer);

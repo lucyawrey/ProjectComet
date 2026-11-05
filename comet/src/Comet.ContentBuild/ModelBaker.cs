@@ -25,10 +25,7 @@ public static class ModelBaker
             throw new ContentException($"Can't read the model {path}: {e.Message}", e);
         }
 
-        var meshes = (model.DefaultScene?.VisualChildren ?? Enumerable.Empty<Node>())
-            .SelectMany(Descendants)
-            .Where(n => n.Mesh is not null)
-            .ToList();
+        var meshes = (model.DefaultScene?.VisualChildren ?? Enumerable.Empty<Node>()).SelectMany(Descendants).Where(n => n.Mesh is not null).ToList();
         if (meshes.Count == 0)
         {
             throw new ContentException($"The model {path} has no meshes.");

@@ -21,7 +21,9 @@ namespace Comet.Unity.Editor
     /// </summary>
     public static class ZoneEditor
     {
-        internal static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(MessagePack.Resolvers.StandardResolver.Instance);
+        internal static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(
+            MessagePack.Resolvers.StandardResolver.Instance
+        );
 
         [MenuItem("Comet/Zones/Open…", priority = 1)]
         public static void OpenMenu()
@@ -50,7 +52,11 @@ namespace Comet.Unity.Editor
         private static string RecentKey => "Comet.Zones.Recent." + ProjectRoot;
 
         internal static List<string> Recent() =>
-            EditorPrefs.GetString(RecentKey, "").Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(f => Directory.Exists(ProjectPath(f))).ToList();
+            EditorPrefs
+                .GetString(RecentKey, "")
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Where(f => Directory.Exists(ProjectPath(f)))
+                .ToList();
 
         private static void Remember(string folder)
         {
@@ -105,7 +111,14 @@ namespace Comet.Unity.Editor
             }
 
             var what = editing.IsGroup ? editing.groupId : Path.GetFileName(editing.folder);
-            if (!EditorUtility.DisplayDialog("Discard changes", $"Discard every change to {what} since it was last saved, and read it again from its files? This can't be undone.", "Discard", "Keep"))
+            if (
+                !EditorUtility.DisplayDialog(
+                    "Discard changes",
+                    $"Discard every change to {what} since it was last saved, and read it again from its files? This can't be undone.",
+                    "Discard",
+                    "Keep"
+                )
+            )
             {
                 return;
             }
@@ -187,7 +200,9 @@ namespace Comet.Unity.Editor
             if (!editing.HasZoneData)
             {
                 // A working scene saved by an older editor, which kept the zone data another way.
-                Debug.LogError($"This scene has no zone data to save; open the zone again (Comet › Zones › Open…). Its files in {editing.folder} are unchanged.");
+                Debug.LogError(
+                    $"This scene has no zone data to save; open the zone again (Comet › Zones › Open…). Its files in {editing.folder} are unchanged."
+                );
                 return false;
             }
 
@@ -247,7 +262,11 @@ namespace Comet.Unity.Editor
 
             // A copy being edited in place is saved as the copy; its parts go to its group only when that's saved.
             // Pads are saved inside their spawn points, teleporters and triggers.
-            foreach (var placed in editing.GetComponentsInChildren<ZonePlacement>(true).Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null))
+            foreach (
+                var placed in editing
+                    .GetComponentsInChildren<ZonePlacement>(true)
+                    .Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null)
+            )
             {
                 var chunk = ChunkAt(ToNumerics(placed.transform.position));
                 chunk.Placements = chunk.Placements.Append(PlacementOf(placed)).ToArray();
@@ -256,42 +275,66 @@ namespace Comet.Unity.Editor
             foreach (var spawn in editing.GetComponentsInChildren<ZoneSpawn>(true))
             {
                 var chunk = ChunkAt(ToNumerics(spawn.transform.position));
-                chunk.Spawns = chunk.Spawns.Append(new SpawnPoint { Id = spawn.id, Volume = VolumeOf(spawn), Facing = (SpawnFacing)spawn.facing }).ToArray();
+                chunk.Spawns = chunk
+                    .Spawns.Append(
+                        new SpawnPoint
+                        {
+                            Id = spawn.id,
+                            Volume = VolumeOf(spawn),
+                            Facing = (SpawnFacing)spawn.facing,
+                        }
+                    )
+                    .ToArray();
             }
 
             foreach (var teleporter in editing.GetComponentsInChildren<ZoneTeleporter>(true))
             {
                 var chunk = ChunkAt(ToNumerics(teleporter.transform.position));
-                chunk.Teleporters = chunk.Teleporters.Append(new Teleporter
-                {
-                    Id = teleporter.id, Volume = VolumeOf(teleporter), Facing = (SpawnFacing)teleporter.facing, Target = teleporter.target,
-                    ChargeColor = OwnChargeColor(teleporter.chargeColor, settings?.teleporterChargeColor),
-                }).ToArray();
+                chunk.Teleporters = chunk
+                    .Teleporters.Append(
+                        new Teleporter
+                        {
+                            Id = teleporter.id,
+                            Volume = VolumeOf(teleporter),
+                            Facing = (SpawnFacing)teleporter.facing,
+                            Target = teleporter.target,
+                            ChargeColor = OwnChargeColor(teleporter.chargeColor, settings?.teleporterChargeColor),
+                        }
+                    )
+                    .ToArray();
             }
 
             foreach (var trigger in editing.GetComponentsInChildren<ZoneToggleTrigger>(true))
             {
                 var chunk = ChunkAt(ToNumerics(trigger.transform.position));
-                chunk.Triggers = chunk.Triggers.Append(new Trigger
-                {
-                    Id = trigger.id,
-                    Volume = VolumeOf(trigger),
-                    Effects = trigger.effects.Select(e => new ToggleEffect { Tag = e.toggleTag, RevertSeconds = e.revertSeconds }).ToArray(),
-                    ChargeColor = OwnChargeColor(trigger.chargeColor, settings?.triggerChargeColor),
-                }).ToArray();
+                chunk.Triggers = chunk
+                    .Triggers.Append(
+                        new Trigger
+                        {
+                            Id = trigger.id,
+                            Volume = VolumeOf(trigger),
+                            Effects = trigger.effects.Select(e => new ToggleEffect { Tag = e.toggleTag, RevertSeconds = e.revertSeconds }).ToArray(),
+                            ChargeColor = OwnChargeColor(trigger.chargeColor, settings?.triggerChargeColor),
+                        }
+                    )
+                    .ToArray();
             }
 
             foreach (var volume in editing.GetComponentsInChildren<ZoneVolume>(true))
             {
                 var t = volume.transform;
                 var chunk = ChunkAt(ToNumerics(t.position));
-                chunk.Volumes = chunk.Volumes.Append(new CollisionVolume
-                {
-                    Kind = (VolumeKind)volume.kind,
-                    Position = ToNumerics(t.position),
-                    Rotation = Angles(t.rotation.eulerAngles),
-                    Size = ToNumerics(volume.size),
-                }).ToArray();
+                chunk.Volumes = chunk
+                    .Volumes.Append(
+                        new CollisionVolume
+                        {
+                            Kind = (VolumeKind)volume.kind,
+                            Position = ToNumerics(t.position),
+                            Rotation = Angles(t.rotation.eulerAngles),
+                            Size = ToNumerics(volume.size),
+                        }
+                    )
+                    .ToArray();
             }
 
             foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true).Where(s => !IsTriggerSign(s)))
@@ -304,9 +347,19 @@ namespace Comet.Unity.Editor
             ZoneTerrainEditing.Crop(zone);
 
             // A chunk left with nothing in it is no longer part of the zone.
-            zone.Chunks = chunks.Values
-                .Where(c => c.Tiles.Length + c.Placements.Length + c.Spawns.Length + c.Teleporters.Length + c.Triggers.Length + c.Volumes.Length + c.Signs.Length > 0)
-                .OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z)
+            zone.Chunks = chunks
+                .Values.Where(c =>
+                    c.Tiles.Length
+                        + c.Placements.Length
+                        + c.Spawns.Length
+                        + c.Teleporters.Length
+                        + c.Triggers.Length
+                        + c.Volumes.Length
+                        + c.Signs.Length
+                    > 0
+                )
+                .OrderBy(c => c.Coord.X)
+                .ThenBy(c => c.Coord.Z)
                 .ToArray();
             return zone;
         }
@@ -440,13 +493,16 @@ namespace Comet.Unity.Editor
                 foreach (var trigger in chunk.Triggers)
                 {
                     var component = CreateTrigger<ZoneToggleTrigger>(root, trigger.Id, trigger.Volume, settings);
-                    component.effects = trigger.Effects.Select(e => new ZoneToggleTrigger.Effect { toggleTag = e.Tag, revertSeconds = e.RevertSeconds }).ToList();
+                    component.effects = trigger
+                        .Effects.Select(e => new ZoneToggleTrigger.Effect { toggleTag = e.Tag, revertSeconds = e.RevertSeconds })
+                        .ToList();
                     component.chargeColor = trigger.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.triggerChargeColor;
                 }
 
                 foreach (var sign in chunk.Signs)
                 {
-                    var component = Child(root.Find(SignsFolder) ?? Child(root, SignsFolder), SignName(sign.Text)).gameObject.AddComponent<ZoneSign>();
+                    var component = Child(root.Find(SignsFolder) ?? Child(root, SignsFolder), SignName(sign.Text))
+                        .gameObject.AddComponent<ZoneSign>();
                     component.transform.position = ToUnity(sign.Position);
                     Fill(component, sign);
                 }
@@ -473,21 +529,22 @@ namespace Comet.Unity.Editor
         }
 
         // A sign as the scene has it, at the given position.
-        private static Sign SignOf(ZoneSign sign, System.Numerics.Vector3 position) => new Sign
-        {
-            Position = position,
-            Text = sign.text.Replace("\r\n", "\n"),
-            TextColor = PlacedColors.ToRgb(sign.textColor),
-            Background = sign.background,
-            BackgroundColor = PlacedColors.ToRgb(sign.backgroundColor),
-            BackgroundOpacity = sign.backgroundOpacity,
-            ShowDistance = sign.showDistance,
-            ScreenSized = sign.screenSized,
-            FontSize = sign.fontSize,
-            TextHeight = sign.textHeight,
-            Arrow = sign.arrow,
-            Off = !sign.gameObject.activeSelf,
-        };
+        private static Sign SignOf(ZoneSign sign, System.Numerics.Vector3 position) =>
+            new Sign
+            {
+                Position = position,
+                Text = sign.text.Replace("\r\n", "\n"),
+                TextColor = PlacedColors.ToRgb(sign.textColor),
+                Background = sign.background,
+                BackgroundColor = PlacedColors.ToRgb(sign.backgroundColor),
+                BackgroundOpacity = sign.backgroundOpacity,
+                ShowDistance = sign.showDistance,
+                ScreenSized = sign.screenSized,
+                FontSize = sign.fontSize,
+                TextHeight = sign.textHeight,
+                Arrow = sign.arrow,
+                Off = !sign.gameObject.activeSelf,
+            };
 
         // A sign object's fields from a zone file's sign (its position is set by the caller).
         private static void Fill(ZoneSign component, Sign sign)
@@ -534,8 +591,11 @@ namespace Comet.Unity.Editor
         }
 
         // The folder objects each kind of trigger goes under.
-        private static string TriggersFolder<T>() where T : ZoneTrigger =>
-            typeof(T) == typeof(ZoneSpawn) ? "Spawns" : typeof(T) == typeof(ZoneTeleporter) ? "Teleporters" : "Triggers";
+        private static string TriggersFolder<T>()
+            where T : ZoneTrigger =>
+            typeof(T) == typeof(ZoneSpawn) ? "Spawns"
+            : typeof(T) == typeof(ZoneTeleporter) ? "Teleporters"
+            : "Triggers";
 
         // A spawn point's, teleporter's or trigger's object, with its volume and its pad.
         private static T CreateTrigger<T>(Transform root, string id, TriggerVolume volume, CometSettings settings)
@@ -575,7 +635,8 @@ namespace Comet.Unity.Editor
         /// </summary>
         internal static GameObject CreatePlaced(Placement placement, Transform parent, CometSettings settings, Color? defaultColor = null)
         {
-            var thing = placement.Primitive is { } primitive ? CreatePrimitive(primitive, ToUnity(placement.Scale), settings, parent)
+            var thing =
+                placement.Primitive is { } primitive ? CreatePrimitive(primitive, ToUnity(placement.Scale), settings, parent)
                 : placement.Group is { } group ? ZoneGroups.CreateCopy(group, parent)
                 : Instantiate(placement.Prop, settings, parent);
             var r = placement.Rotation;
@@ -590,8 +651,12 @@ namespace Comet.Unity.Editor
             marker.placementTag = placement.Tag ?? "";
             marker.blockout = placement.Blockout;
             marker.role = placement.Role ?? "";
-            marker.roleColors = placement.Colors?.OrderBy(c => c.Key, System.StringComparer.Ordinal)
-                .Select(c => new ZonePlacement.RoleColor { role = c.Key, color = PlacedColors.FromRgb(c.Value) }).ToList() ?? new List<ZonePlacement.RoleColor>();
+            marker.roleColors =
+                placement
+                    .Colors?.OrderBy(c => c.Key, System.StringComparer.Ordinal)
+                    .Select(c => new ZonePlacement.RoleColor { role = c.Key, color = PlacedColors.FromRgb(c.Value) })
+                    .ToList()
+                ?? new List<ZonePlacement.RoleColor>();
             SetColors(marker, settings, placement.Color, defaultColor);
             // An object turned off (unchecked) is a placement that starts off.
             thing.SetActive(!placement.Off);
@@ -607,7 +672,10 @@ namespace Comet.Unity.Editor
             var t = placed.transform;
             var position = relativeTo != null ? relativeTo.InverseTransformPoint(t.position) : t.position;
             var rotation = relativeTo != null ? Quaternion.Inverse(relativeTo.rotation) * t.rotation : t.rotation;
-            var lossy = relativeTo != null ? Vector3.Scale(t.lossyScale, new Vector3(1 / relativeTo.lossyScale.x, 1 / relativeTo.lossyScale.y, 1 / relativeTo.lossyScale.z)) : t.lossyScale;
+            var lossy =
+                relativeTo != null
+                    ? Vector3.Scale(t.lossyScale, new Vector3(1 / relativeTo.lossyScale.x, 1 / relativeTo.lossyScale.y, 1 / relativeTo.lossyScale.z))
+                    : t.lossyScale;
             return new Placement
             {
                 Prop = placed.isPrimitive || placed.IsGroup ? "" : placed.prop,
@@ -621,7 +689,10 @@ namespace Comet.Unity.Editor
                 Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),
                 Color = placed.ownColor && !placed.IsGroup ? PlacedColors.ToRgb(placed.color) : (uint?)null,
                 // Only a group's parts have a role: one unpacked into a zone drops it.
-                Role = !string.IsNullOrEmpty(placed.role) && (relativeTo != null || placed.GetComponentInParent<ZoneEditing>(true) is { IsGroup: true }) ? placed.role : null,
+                Role =
+                    !string.IsNullOrEmpty(placed.role) && (relativeTo != null || placed.GetComponentInParent<ZoneEditing>(true) is { IsGroup: true })
+                        ? placed.role
+                        : null,
                 Colors = placed.IsGroup && placed.roleColors.Count > 0 ? RoleColors(placed) : null,
             };
         }
@@ -641,7 +712,10 @@ namespace Comet.Unity.Editor
         // A placement's colors: its prop's, from the library (or defaultColor, for a pad), and its own if it has one.
         internal static void SetColors(ZonePlacement placement, CometSettings settings, uint? own, Color? defaultColor = null)
         {
-            Color? prop = !placement.isPrimitive && settings.props != null && settings.props.TryGet(placement.prop, out var entry) && entry.hasColor ? entry.color : null;
+            Color? prop =
+                !placement.isPrimitive && settings.props != null && settings.props.TryGet(placement.prop, out var entry) && entry.hasColor
+                    ? entry.color
+                    : null;
             placement.ownColor = own != null;
             if (own is { } rgb)
             {
@@ -655,16 +729,28 @@ namespace Comet.Unity.Editor
         public static PrimitiveKind? PrimitiveNamed(string name) => PrimitiveKinds.Named(name);
 
         /// <summary>A newly placed primitive of <paramref name="kind"/>: its values and the size it starts at.</summary>
-        public static (Primitive Primitive, Vector3 Size) Starting(PrimitiveKind kind) => kind switch
-        {
-            PrimitiveKind.Wedge => (new Primitive { Kind = kind }, new Vector3(2, 1, 2)),
-            PrimitiveKind.Stairs => (new Primitive { Kind = kind }, new Vector3(2, 1, 1.5f)),
-            PrimitiveKind.Wall => (new Primitive { Kind = kind }, new Vector3(4, 3, 0.3f)),
-            PrimitiveKind.Doorway => (new Primitive { Kind = kind, OpeningWidth = 1.2f, OpeningHeight = 2.2f }, new Vector3(4, 3, 0.3f)),
-            PrimitiveKind.Arch => (new Primitive { Kind = kind, Thickness = 0.4f }, new Vector3(3, 3, 0.4f)),
-            PrimitiveKind.Tetrahedron or PrimitiveKind.Octahedron or PrimitiveKind.Dodecahedron or PrimitiveKind.Icosahedron => (new Primitive { Kind = kind }, Vector3.one),
-            _ => (new Primitive { Kind = kind }, new Vector3(2, 2, 2)),
-        };
+        public static (Primitive Primitive, Vector3 Size) Starting(PrimitiveKind kind) =>
+            kind switch
+            {
+                PrimitiveKind.Wedge => (new Primitive { Kind = kind }, new Vector3(2, 1, 2)),
+                PrimitiveKind.Stairs => (new Primitive { Kind = kind }, new Vector3(2, 1, 1.5f)),
+                PrimitiveKind.Wall => (new Primitive { Kind = kind }, new Vector3(4, 3, 0.3f)),
+                PrimitiveKind.Doorway => (
+                    new Primitive
+                    {
+                        Kind = kind,
+                        OpeningWidth = 1.2f,
+                        OpeningHeight = 2.2f,
+                    },
+                    new Vector3(4, 3, 0.3f)
+                ),
+                PrimitiveKind.Arch => (new Primitive { Kind = kind, Thickness = 0.4f }, new Vector3(3, 3, 0.4f)),
+                PrimitiveKind.Tetrahedron or PrimitiveKind.Octahedron or PrimitiveKind.Dodecahedron or PrimitiveKind.Icosahedron => (
+                    new Primitive { Kind = kind },
+                    Vector3.one
+                ),
+                _ => (new Primitive { Kind = kind }, new Vector3(2, 2, 2)),
+            };
 
         // A primitive's object: its mesh built at its size, drawn in the placed objects' material, with a collider for
         // surface snapping. Its placement component is added here, since the mesh comes from it.
@@ -675,7 +761,8 @@ namespace Comet.Unity.Editor
             thing.transform.SetParent(parent, false);
             thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, name);
             thing.AddComponent<MeshFilter>();
-            thing.AddComponent<MeshRenderer>().sharedMaterial = settings.placedMaterial != null ? settings.placedMaterial : AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat");
+            thing.AddComponent<MeshRenderer>().sharedMaterial =
+                settings.placedMaterial != null ? settings.placedMaterial : AssetDatabase.GetBuiltinExtraResource<Material>("Default-Material.mat");
             thing.AddComponent<MeshCollider>();
             var placement = thing.AddComponent<ZonePlacement>();
             placement.isPrimitive = true;
@@ -757,8 +844,10 @@ namespace Comet.Unity.Editor
         public static GameObject Place(ZoneEditing editing, string placeable, Vector3 position, CometSettings settings, Color? color = null)
         {
             // While a group is edited in place, what's placed goes into it.
-            var parent = ZoneGroups.InPlace is { } inPlace && inPlace.GetComponentInParent<ZoneEditing>(true) == editing ? inPlace.transform
-                : editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
+            var parent =
+                ZoneGroups.InPlace is { } inPlace && inPlace.GetComponentInParent<ZoneEditing>(true) == editing
+                    ? inPlace.transform
+                    : editing.transform.Find("Placed") ?? Child(editing.transform, "Placed");
             GameObject thing;
             ZonePlacement placement;
             if (PrimitiveNamed(placeable) is { } kind)
@@ -805,7 +894,12 @@ namespace Comet.Unity.Editor
             var (padKind, padSize, standSeconds, height) = trigger switch
             {
                 ZoneSpawn => (settings.spawnPad, settings.spawnPadSize, settings.spawnStandSeconds, settings.spawnVolumeHeight),
-                ZoneTeleporter => (settings.teleporterPad, settings.teleporterPadSize, settings.teleporterStandSeconds, settings.teleporterVolumeHeight),
+                ZoneTeleporter => (
+                    settings.teleporterPad,
+                    settings.teleporterPadSize,
+                    settings.teleporterStandSeconds,
+                    settings.teleporterVolumeHeight
+                ),
                 _ => ("", Vector3.zero, settings.triggerStandSeconds, settings.triggerVolumeHeight),
             };
             trigger.standSeconds = standSeconds;
@@ -827,13 +921,18 @@ namespace Comet.Unity.Editor
             if (PrimitiveNamed(padKind) is { } kind)
             {
                 var (primitive, _) = Starting(kind);
-                var pad = CreatePlaced(new Placement
-                {
-                    Primitive = primitive,
-                    Position = ToNumerics(position - Vector3.up * (padSize.y / 2)),
-                    Scale = ToNumerics(padSize),
-                    Color = trigger is ZoneTeleporter ? PlacedColors.ToRgb(settings.teleporterPadColor) : (uint?)null,
-                }, point, settings, PadColor(trigger, settings));
+                var pad = CreatePlaced(
+                    new Placement
+                    {
+                        Primitive = primitive,
+                        Position = ToNumerics(position - Vector3.up * (padSize.y / 2)),
+                        Scale = ToNumerics(padSize),
+                        Color = trigger is ZoneTeleporter ? PlacedColors.ToRgb(settings.teleporterPadColor) : (uint?)null,
+                    },
+                    point,
+                    settings,
+                    PadColor(trigger, settings)
+                );
                 pad.name = $"{id} pad";
                 Undo.RegisterCreatedObjectUndo(pad, $"Add {id}");
                 FitToPad(trigger);
@@ -862,9 +961,10 @@ namespace Comet.Unity.Editor
             trigger.transform.SetPositionAndRotation(position + Vector3.up * size.y, Quaternion.Euler(0, rotation.eulerAngles.y, 0));
             padTransform.SetPositionAndRotation(position, rotation);
             trigger.size = new Vector3(size.x, trigger.size.y, size.z);
-            trigger.volume = pad.isPrimitive && pad.kind is PrimitiveKind.Cylinder or PrimitiveKind.Cone or PrimitiveKind.Sphere
-                ? ZoneTrigger.VolumeKind.Cylinder
-                : ZoneTrigger.VolumeKind.Box;
+            trigger.volume =
+                pad.isPrimitive && pad.kind is PrimitiveKind.Cylinder or PrimitiveKind.Cone or PrimitiveKind.Sphere
+                    ? ZoneTrigger.VolumeKind.Cylinder
+                    : ZoneTrigger.VolumeKind.Box;
         }
 
         internal static void Report(string title, List<ZoneFileError> errors)
@@ -883,7 +983,9 @@ namespace Comet.Unity.Editor
         {
             var settings = CometSettings.Find(quiet: true);
             var terrain = editing.transform.Find(TerrainName);
-            var drawn = terrain != null && terrain.Cast<Transform>().All(c => c.GetComponent<MeshFilter>() is { } f && f.sharedMesh != null && f.sharedMesh.vertexCount > 0);
+            var drawn =
+                terrain != null
+                && terrain.Cast<Transform>().All(c => c.GetComponent<MeshFilter>() is { } f && f.sharedMesh != null && f.sharedMesh.vertexCount > 0);
             if (settings == null || !editing.HasZoneData || drawn)
             {
                 return;
@@ -919,7 +1021,9 @@ namespace Comet.Unity.Editor
         private static float Angle(float degrees)
         {
             degrees %= 360;
-            return degrees > 180 ? degrees - 360 : degrees <= -180 ? degrees + 360 : degrees;
+            return degrees > 180 ? degrees - 360
+                : degrees <= -180 ? degrees + 360
+                : degrees;
         }
 
         private static uint Rgb(Color color)

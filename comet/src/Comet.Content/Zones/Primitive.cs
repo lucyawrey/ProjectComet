@@ -95,35 +95,47 @@ namespace Comet.Content
     [MessagePackObject]
     public sealed class Primitive
     {
-        [Key(0)] public PrimitiveKind Kind { get; set; }
+        [Key(0)]
+        public PrimitiveKind Kind { get; set; }
 
         /// <summary>
         /// A fixed number of sides for a round kind (a cylinder, cone or sphere around Y, or an arch's curve), or null to
         /// take them from the polygon budget.
         /// </summary>
-        [Key(1)] public int? Sides { get; set; }
+        [Key(1)]
+        public int? Sides { get; set; }
 
         /// <summary>A box's bevel: how far its edges are cut back, in meters (0 for sharp edges).</summary>
-        [Key(2)] public float Bevel { get; set; }
+        [Key(2)]
+        public float Bevel { get; set; }
 
         /// <summary>A stairway's number of steps, or 0 for steps about 0.25 m high (at most <see cref="MaxSteps"/>).</summary>
-        [Key(3)] public int Steps { get; set; }
+        [Key(3)]
+        public int Steps { get; set; }
 
         /// <summary>The most steps a stairway has, set or not.</summary>
         public const int MaxSteps = 256;
 
         /// <summary>A doorway's opening: its width and its height, in meters.</summary>
-        [Key(4)] public float OpeningWidth { get; set; }
+        [Key(4)]
+        public float OpeningWidth { get; set; }
 
-        [Key(5)] public float OpeningHeight { get; set; }
+        [Key(5)]
+        public float OpeningHeight { get; set; }
 
         /// <summary>An arch's thickness: how wide its legs and band are, in meters.</summary>
-        [Key(6)] public float Thickness { get; set; }
+        [Key(6)]
+        public float Thickness { get; set; }
 
         /// <summary>Whether two primitives build the same mesh at the same size.</summary>
         public bool SameAs(Primitive other) =>
-            Kind == other.Kind && Sides == other.Sides && Bevel == other.Bevel && Steps == other.Steps &&
-            OpeningWidth == other.OpeningWidth && OpeningHeight == other.OpeningHeight && Thickness == other.Thickness;
+            Kind == other.Kind
+            && Sides == other.Sides
+            && Bevel == other.Bevel
+            && Steps == other.Steps
+            && OpeningWidth == other.OpeningWidth
+            && OpeningHeight == other.OpeningHeight
+            && Thickness == other.Thickness;
     }
 
     /// <summary>
@@ -134,13 +146,16 @@ namespace Comet.Content
     public sealed class PolygonBudget
     {
         /// <summary>About how long each facet is around a round primitive, in meters.</summary>
-        [Key(0)] public float FacetLength { get; set; } = 0.5f;
+        [Key(0)]
+        public float FacetLength { get; set; } = 0.5f;
 
         /// <summary>The fewest sides a round primitive has, however small.</summary>
-        [Key(1)] public int MinSides { get; set; } = 6;
+        [Key(1)]
+        public int MinSides { get; set; } = 6;
 
         /// <summary>The most sides a round primitive has, however large.</summary>
-        [Key(2)] public int MaxSides { get; set; } = 48;
+        [Key(2)]
+        public int MaxSides { get; set; } = 48;
 
         /// <summary>The sides of a circle of <paramref name="circumference"/> meters.</summary>
         public int Sides(float circumference)

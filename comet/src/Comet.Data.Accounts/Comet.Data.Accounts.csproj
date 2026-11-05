@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <!-- The account database: only the Login server references this, so game servers never take Identity. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -13,5 +12,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Comet.Data\Comet.Data.csproj" />
   </ItemGroup>
-
 </Project>

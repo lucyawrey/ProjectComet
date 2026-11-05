@@ -19,8 +19,10 @@ namespace Comet.Client
     {
         /// <summary>How many recent pongs are kept to pick the fastest from.</summary>
         public const int SampleCount = 10;
+
         /// <summary>How much faster or slower than real time the estimates may run while catching up (0.05 is 5%).</summary>
         public const double MaxSlew = 0.05;
+
         /// <summary>Off by more than this, in seconds, the estimates jump instead of slewing.</summary>
         public const double JumpSeconds = 0.25;
 

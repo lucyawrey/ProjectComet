@@ -12,6 +12,7 @@ namespace Comet.Content
     {
         /// <summary>The header's length in bytes, before the samples.</summary>
         public const int HeaderSize = 18;
+
         /// <summary>The format version this code reads and writes.</summary>
         public const ushort Version = 1;
 
