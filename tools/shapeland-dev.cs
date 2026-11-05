@@ -138,7 +138,7 @@ var contentChecked = DateTime.UtcNow;
 Console.WriteLine("== Content");
 BuildContent();
 
-string? webRoot = serveWeb ? web : null; // without a page, the editor copies the new content into the project itself
+var webRoot = serveWeb ? web : null; // without a page, the editor copies the new content into the project itself
 var page = Path.Combine(web, "index.html");
 if (serveWeb && build && (rebuild || Stale()))
 {
@@ -277,7 +277,7 @@ bool Stale()
     return sources
         .Where(Directory.Exists)
         .SelectMany(d => Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories))
-        .Any(f => !f.EndsWith(".meta") && !f.Contains(streaming) && File.GetLastWriteTimeUtc(f) > built);
+        .Any(f => !f.EndsWith(".meta", StringComparison.Ordinal) && !f.Contains(streaming) && File.GetLastWriteTimeUtc(f) > built);
 }
 
 bool ContentChangedSince(DateTime time)

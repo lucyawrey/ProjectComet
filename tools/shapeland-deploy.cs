@@ -373,7 +373,7 @@ void Package()
         var entry = new PaxTarEntry(TarEntryType.RegularFile, "./" + name)
         {
             Mode =
-                programs.Any(p => name == $"{p.Folder}/{p.Project}") || name.EndsWith(".so")
+                programs.Any(p => name == $"{p.Folder}/{p.Project}") || name.EndsWith(".so", StringComparison.Ordinal)
                     ? (UnixFileMode)0b111_101_101
                     : (UnixFileMode)0b110_100_100,
             DataStream = File.OpenRead(path),

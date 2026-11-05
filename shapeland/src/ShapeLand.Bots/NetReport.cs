@@ -10,6 +10,8 @@ namespace ShapeLand.Bots;
 /// </summary>
 public sealed class NetReport
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
     /// <summary>The <c>--meta</c> pairs the run was given, such as the commit and network profile.</summary>
     public required Dictionary<string, string> Meta { get; init; }
 
@@ -217,7 +219,7 @@ public sealed class NetReport
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
+        File.WriteAllText(path, JsonSerializer.Serialize(this, Json));
     }
 
     private static double Percentile(IEnumerable<double> values, double fraction)

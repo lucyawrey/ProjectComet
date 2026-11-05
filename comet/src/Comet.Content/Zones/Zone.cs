@@ -29,23 +29,23 @@ namespace Comet.Content
 
         /// <summary>The terrain pieces, with their zone-wide settings; tiles in chunks refer to them by name.</summary>
         [Key(3)]
-        public TerrainPiece[] Pieces { get; set; } = new TerrainPiece[0];
+        public TerrainPiece[] Pieces { get; set; } = Array.Empty<TerrainPiece>();
 
         /// <summary>The chunk edges where this zone meets a neighbor.</summary>
         [Key(4)]
-        public ZoneBorder[] Borders { get; set; } = new ZoneBorder[0];
+        public ZoneBorder[] Borders { get; set; } = Array.Empty<ZoneBorder>();
 
         /// <summary>Doorways into other zones, such as a dungeon's mouth.</summary>
         [Key(5)]
-        public ZoneEntrance[] Entrances { get; set; } = new ZoneEntrance[0];
+        public ZoneEntrance[] Entrances { get; set; } = Array.Empty<ZoneEntrance>();
 
         /// <summary>Loading rooms: areas a party gathers in before an entrance closes behind them.</summary>
         [Key(6)]
-        public TransitionRoom[] TransitionRooms { get; set; } = new TransitionRoom[0];
+        public TransitionRoom[] TransitionRooms { get; set; } = Array.Empty<TransitionRoom>();
 
         /// <summary>The chunks the zone owns, each with its terrain tiles, placements, spawns and volumes.</summary>
         [Key(7)]
-        public ZoneChunk[] Chunks { get; set; } = new ZoneChunk[0];
+        public ZoneChunk[] Chunks { get; set; } = Array.Empty<ZoneChunk>();
 
         /// <summary>
         /// This zone's own height below which a fall is out of the world, in meters, for a zone high in the sky or deep
@@ -71,6 +71,10 @@ namespace Comet.Content
 
         [Key(1)]
         public int Z { get; }
+
+        public static bool operator ==(ChunkCoord a, ChunkCoord b) => a.Equals(b);
+
+        public static bool operator !=(ChunkCoord a, ChunkCoord b) => !a.Equals(b);
 
         /// <summary>The chunk holding a world position (edges belong to the chunk on their high side).</summary>
         public static ChunkCoord Containing(Vector3 position) =>
@@ -126,25 +130,25 @@ namespace Comet.Content
         public ChunkCoord Coord { get; set; }
 
         [Key(1)]
-        public TerrainTile[] Tiles { get; set; } = new TerrainTile[0];
+        public TerrainTile[] Tiles { get; set; } = Array.Empty<TerrainTile>();
 
         [Key(2)]
-        public Placement[] Placements { get; set; } = new Placement[0];
+        public Placement[] Placements { get; set; } = Array.Empty<Placement>();
 
         [Key(3)]
-        public SpawnPoint[] Spawns { get; set; } = new SpawnPoint[0];
+        public SpawnPoint[] Spawns { get; set; } = Array.Empty<SpawnPoint>();
 
         [Key(4)]
-        public CollisionVolume[] Volumes { get; set; } = new CollisionVolume[0];
+        public CollisionVolume[] Volumes { get; set; } = Array.Empty<CollisionVolume>();
 
         [Key(5)]
-        public Teleporter[] Teleporters { get; set; } = new Teleporter[0];
+        public Teleporter[] Teleporters { get; set; } = Array.Empty<Teleporter>();
 
         [Key(6)]
-        public Trigger[] Triggers { get; set; } = new Trigger[0];
+        public Trigger[] Triggers { get; set; } = Array.Empty<Trigger>();
 
         [Key(7)]
-        public Sign[] Signs { get; set; } = new Sign[0];
+        public Sign[] Signs { get; set; } = Array.Empty<Sign>();
 
         /// <summary>Every sign in the chunk with the world point it's shown over: its own signs, then those on its spawns, teleporters and triggers.</summary>
         public IEnumerable<(Vector3 Point, Sign Sign)> AllSigns()
@@ -409,7 +413,7 @@ namespace Comet.Content
         public TriggerVolume Volume { get; set; } = new TriggerVolume();
 
         [Key(3)]
-        public ToggleEffect[] Effects { get; set; } = new ToggleEffect[0];
+        public ToggleEffect[] Effects { get; set; } = Array.Empty<ToggleEffect>();
 
         /// <summary>The color its pad turns toward while a player stands in it, as 0xRRGGBB, or null to leave it to the game.</summary>
         [Key(4)]

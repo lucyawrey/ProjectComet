@@ -49,7 +49,7 @@ public sealed class ContentValidation
             ?.Items.Select(item => item.KeyValue)
             .FirstOrDefault(kv => kv is not null && ContentBuilder.KeyText(kv.Key!) == key);
 
-        SyntaxNode? at =
+        var at =
             (inTable ?? dotted ?? inInline)?.Value
             ?? (SyntaxNode?)_document.Tables.FirstOrDefault(t => ContentBuilder.KeyText(t.Name!) == table)?.Name
             ?? inline?.Key;

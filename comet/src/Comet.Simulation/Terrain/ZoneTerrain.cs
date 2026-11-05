@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Comet.Content;
 
@@ -48,7 +49,7 @@ namespace Comet.Simulation
 
             // The same tiles in a grid over the chunks they span, since every sample lookup finds its tile: index
             // (z - _gridMinZ) * _gridWidth + (x - _gridMinX), null where a chunk has no tile.
-            private TerrainTile?[] _grid = new TerrainTile?[0];
+            private TerrainTile?[] _grid = Array.Empty<TerrainTile?>();
             private int _gridMinX;
             private int _gridMinZ;
             private int _gridWidth;

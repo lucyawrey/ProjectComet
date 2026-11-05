@@ -156,7 +156,7 @@ namespace Comet.Simulation
                     for (var cx = 0; cx < _width; cx++)
                     {
                         var s = cz * row + cx;
-                        bool corner = !float.IsNaN(_top[s + 1]) && !float.IsNaN(_top[s + row]);
+                        var corner = !float.IsNaN(_top[s + 1]) && !float.IsNaN(_top[s + row]);
                         var cell = (cz * _width + cx) * 2;
                         _ground[cell] = corner && !float.IsNaN(_top[s]);
                         _ground[cell + 1] = corner && !float.IsNaN(_top[s + row + 1]);

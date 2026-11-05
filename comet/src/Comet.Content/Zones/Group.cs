@@ -23,7 +23,7 @@ namespace Comet.Content
 
         /// <summary>The group's parts, placed relative to its pivot.</summary>
         [Key(2)]
-        public Placement[] Parts { get; set; } = new Placement[0];
+        public Placement[] Parts { get; set; } = Array.Empty<Placement>();
 
         /// <summary>The name the zone editor shows for it; null shows its id without the <c>group.</c> prefix.</summary>
         [Key(3)]

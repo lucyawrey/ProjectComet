@@ -17,5 +17,5 @@ namespace Comet.Content
     }
 
     [GeneratedMessagePackResolver]
-    internal partial class ContentResolver { }
+    internal sealed partial class ContentResolver { }
 }
