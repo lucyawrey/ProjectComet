@@ -18,6 +18,12 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Formatting
+        if: runner.os == 'Linux'
+        run: |
+          dotnet tool restore
+          dotnet csharpier check .
+
       # Some tests read the compiled content (artifacts/content/), as the servers do.
       - name: Content
         run: dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build
@@ -41,7 +47,7 @@ jobs:
       - name: Tools
         if: runner.os == 'Linux'
         run: |
-          for tool in comet-postgres unity-batch unity-restore shapeland-dev shapeland-netrun shapeland-deploy; do
+          for tool in check comet-postgres unity-batch unity-restore shapeland-dev shapeland-netrun shapeland-deploy; do
             tools/run "$tool" --help > /dev/null
           done
           test "$(tools/run comet-postgres name '/a b/My Checkout' 5080)" = shapeland_my_checkout_5080
@@ -50,7 +56,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          for %%t in (comet-postgres unity-batch unity-restore shapeland-dev shapeland-netrun shapeland-deploy) do (
+          for %%t in (check comet-postgres unity-batch unity-restore shapeland-dev shapeland-netrun shapeland-deploy) do (
             call tools\run %%t --help > nul || exit /b 1
           )
           for /f %%n in ('tools\run comet-postgres name "C:\a b\My Checkout" 5080') do set name=%%n

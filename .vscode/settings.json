@@ -1,3 +1,11 @@
 {
-    "dotnet.defaultSolution": "ProjectComet.slnx"
+    "dotnet.defaultSolution": "ProjectComet.slnx",
+    "[csharp]": {
+        "editor.defaultFormatter": "csharpier.csharpier-vscode",
+        "editor.formatOnSave": true
+    },
+    "[xml]": {
+        "editor.defaultFormatter": "csharpier.csharpier-vscode",
+        "editor.formatOnSave": true
+    }
 }
