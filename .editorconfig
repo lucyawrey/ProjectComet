@@ -76,7 +76,7 @@ dotnet_naming_style.underscore_camel.capitalization = camel_case
 dotnet_naming_style.camel.capitalization = camel_case
 dotnet_naming_style.pascal.capitalization = pascal_case
 
-# Analyzers (AnalysisMode Recommended), with the rules that don't fit turned off
+# Analyzers (AnalysisLevel 10.0-recommended, pinned so a newer SDK adds no rules), with the rules that don't fit turned off
 # MessagePack and Unity serialize public fields.
 dotnet_diagnostic.CA1051.severity = none
 # Log calls are off the hot paths; LoggerMessage methods would add code for no measured gain.
@@ -111,6 +111,13 @@ dotnet_diagnostic.CA1822.severity = none
 # File-based apps have no namespace, and their top-level constants are settings, named like fields.
 dotnet_diagnostic.CA1050.severity = none
 dotnet_naming_symbols.constants.applicable_kinds = field, local
+
+[{comet/unity,shapeland/ShapeLand.Unity}/**.cs]
+# Unity compiles these without the analyzers, and its serialized fields are named in scenes and prefabs.
+dotnet_diagnostic.IDE1006.severity = none
+
+[shapeland/ShapeLand.Unity/Assets/Scripts/ShapeLandControls.cs]
+generated_code = true
 
 [**/Migrations/**]
 generated_code = true

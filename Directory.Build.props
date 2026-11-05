@@ -7,6 +7,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AnalysisMode>Recommended</AnalysisMode>
+    <AnalysisLevel>10.0-recommended</AnalysisLevel>
   </PropertyGroup>
 </Project>
