@@ -73,7 +73,7 @@ position = [-148.392, 4.22, -14.086]
 size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
-target = "teleporter.hub.cube"
+target = "teleporter.hub.cubehome"
 charge_color = 0xFFFFFF
 
 [teleporter.pad]

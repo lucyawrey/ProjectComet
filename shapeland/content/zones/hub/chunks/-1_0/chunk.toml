@@ -25,21 +25,8 @@ prop = "prop.strange_shape"
 position = [-13.385, 5.87, 14.62]
 color = 0x9E8C7A
 
-[[spawn]]
-id = "spawn.hub.diamond"
-volume = "cylinder"
-position = [-47.603, 1.602, 2.426]
-size = [4.0, 1.0, 4.0]
-stand_seconds = 2.0
-facing = "direction"
-
-[spawn.pad]
-primitive = "cylinder"
-position = [-47.603, 1.202, 2.426]
-scale = [4.0, 0.4, 4.0]
-
 [[teleporter]]
-id = "teleporter.hub.cube"
+id = "teleporter.hub.cubehome"
 volume = "box"
 position = [-2.91, 8.931, 43.32]
 size = [2.0, 1.0, 2.0]
@@ -57,6 +44,32 @@ color = 0xB39DDB
 [teleporter.sign]
 offset = [0.0, 1.5, 0.0]
 text = "Theatre"
+text_color = 0xFFFFFF
+background = true
+background_color = 0x12161E
+background_opacity = 0.75
+show_distance = 45.0
+text_height = 0.3
+arrow = true
+
+[[teleporter]]
+id = "teleporter.hub.main"
+volume = "box"
+position = [-50.586, 1.6, 2.526]
+size = [2.0, 1.0, 2.0]
+stand_seconds = 1.0
+facing = "direction"
+target = "teleporter.hub.pancake"
+
+[teleporter.pad]
+primitive = "box"
+position = [-50.586, 1.2, 2.526]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB
+
+[teleporter.sign]
+offset = [0.0, 1.5, 0.0]
+text = "New World"
 text_color = 0xFFFFFF
 background = true
 background_color = 0x12161E
