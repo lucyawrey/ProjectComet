@@ -4,17 +4,18 @@ using System.Text;
 namespace Comet.Content
 {
     /// <summary>
-    /// The raw heightmap file: the magic <c>CHGT</c>, a format version, the grid size in samples, the height scale and
-    /// offset, then little-endian uint16 samples row by row, with 0 meaning no ground (<see cref="Heightmap.Hole"/>). Converting to or from a plain <c>.r16</c> file means
-    /// stripping or adding the 18-byte header.
+    /// The raw heightmap file: the magic <c>CHGT</c>, a format version and the grid size in samples, then
+    /// little-endian uint16 samples row by row, with 0 meaning no ground (<see cref="Heightmap.Hole"/>). The zone gives
+    /// the samples their height in meters (<see cref="Heightmap.Offset"/>). Converting to or from a plain <c>.r16</c>
+    /// file means stripping or adding the 10-byte header.
     /// </summary>
     public static class HeightmapFormat
     {
         /// <summary>The header's length in bytes, before the samples.</summary>
-        public const int HeaderSize = 18;
+        public const int HeaderSize = 10;
 
         /// <summary>The format version this code reads and writes.</summary>
-        public const ushort Version = 1;
+        public const ushort Version = 2;
 
         private static readonly byte[] Magic = Encoding.ASCII.GetBytes("CHGT");
 
@@ -36,21 +37,10 @@ namespace Comet.Content
                     throw new ContentException($"Unsupported heightmap version {version} (expected {Version}).");
                 }
 
-                var map = new Heightmap
-                {
-                    SizeX = reader.ReadUInt16(),
-                    SizeZ = reader.ReadUInt16(),
-                    Scale = reader.ReadSingle(),
-                    Offset = reader.ReadSingle(),
-                };
+                var map = new Heightmap { SizeX = reader.ReadUInt16(), SizeZ = reader.ReadUInt16() };
                 if (map.SizeX < 2 || map.SizeZ < 2)
                 {
                     throw new ContentException($"Heightmap is {map.SizeX}×{map.SizeZ} samples; it needs at least 2×2.");
-                }
-
-                if (!float.IsFinite(map.Scale) || map.Scale <= 0 || !float.IsFinite(map.Offset))
-                {
-                    throw new ContentException($"Heightmap's scale ({map.Scale}) must be a positive number and its offset ({map.Offset}) a number.");
                 }
 
                 // Up to 65535 × 65535 samples overflows an int; and a header claiming more than the file holds
@@ -98,8 +88,6 @@ namespace Comet.Content
             writer.Write(Version);
             writer.Write((ushort)map.SizeX);
             writer.Write((ushort)map.SizeZ);
-            writer.Write(map.Scale);
-            writer.Write(map.Offset);
             foreach (var sample in map.Samples)
             {
                 writer.Write(sample);
