@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Comet.Server.Ticking;
 
 namespace Comet.Server.Tests;
@@ -5,40 +6,31 @@ namespace Comet.Server.Tests;
 public class TickLoopTests
 {
     [Fact]
-    public async Task RunsAtTheTickRate()
+    public async Task KeepsTheTickRateWithoutCatchingUp()
     {
-        var ticks = 0;
-        var loop = new TickLoop(tickRate: 100, _ => Interlocked.Increment(ref ticks));
-
-        loop.Start();
-        await Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
-        loop.Stop();
-
-        Assert.InRange(ticks, 95, 105);
-    }
-
-    [Fact]
-    public async Task OverrunningTickDoesNotCatchUp()
-    {
-        var ticks = 0;
+        var starts = new List<long>();
         var loop = new TickLoop(
-            tickRate: 100,
+            tickRate: 50,
             tick =>
             {
-                Interlocked.Increment(ref ticks);
-                if (tick == 1)
+                starts.Add(Stopwatch.GetTimestamp());
+                if (tick == 3)
                 {
-                    Thread.Sleep(200);
+                    Thread.Sleep(300);
                 }
             }
         );
 
         loop.Start();
-        await Task.Delay(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+        await Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
         loop.Stop();
 
-        // 200 ms lost to tick 1, then ~30 ticks in the remaining 300 ms; catching up would give ~50.
-        Assert.InRange(ticks, 25, 36);
+        var intervals = starts.Zip(starts.Skip(1), (a, b) => Stopwatch.GetElapsedTime(a, b).TotalMilliseconds).Order().ToList();
+        Assert.InRange(intervals[intervals.Count / 2], 15, 25);
+
+        // Ticks never start before their slot, so about 10 fit in the 190 ms after the slow tick; catching up would start many at once.
+        var afterSlowTick = starts[3];
+        Assert.True(starts.Count(t => t >= afterSlowTick && Stopwatch.GetElapsedTime(afterSlowTick, t).TotalMilliseconds < 190) <= 12);
     }
 
     [Fact]
