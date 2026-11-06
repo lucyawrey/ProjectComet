@@ -74,6 +74,31 @@ public class ZoneFolderTests
     }
 
     [Fact]
+    public void AZoneMaySetItsOwnHeightBase()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        var tile = sample.Chunks[0].Tiles[0];
+        tile.Underside = Zones.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
+        var plain = RoundTrip(sample, folder, out _);
+        Assert.DoesNotContain("height_base", File.ReadAllText(folder.PathOf("zone.toml")));
+
+        sample.HeightBase = -400;
+        var zone = RoundTrip(sample, folder, out var errors);
+
+        Assert.Empty(errors);
+        Assert.Contains("height_base = -400.0", File.ReadAllText(folder.PathOf("zone.toml")));
+        var (was, read) = (plain.Chunks[0].Tiles[0], zone.Chunks[0].Tiles[0]);
+        Assert.Equal(was.Heights.Samples, read.Heights.Samples);
+        Assert.True(was.Heights.TryGetHeight(0, 0, out var before));
+        Assert.True(read.Heights.TryGetHeight(0, 0, out var after));
+        Assert.Equal(before - 300, after, 3);
+        Assert.True(was.Underside!.TryGetHeight(0, 0, out var underBefore));
+        Assert.True(read.Underside!.TryGetHeight(0, 0, out var underAfter));
+        Assert.Equal(underBefore - 300, underAfter, 3);
+    }
+
+    [Fact]
     public void WritesReadableChunkFiles()
     {
         using var folder = new TempFolder();
@@ -173,14 +198,7 @@ public class ZoneFolderTests
         zone.Pieces[0].GroundColor = 0x739e4d;
         var tile = zone.Chunks[1].Tiles[0];
         var size = tile.Heights.SizeX * tile.Heights.SizeZ;
-        tile.Underside = new Heightmap
-        {
-            SizeX = tile.Heights.SizeX,
-            SizeZ = tile.Heights.SizeZ,
-            Scale = 0.25f,
-            Offset = -100,
-            Samples = Enumerable.Repeat((ushort)360, size).ToArray(),
-        };
+        tile.Underside = Zones.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
         tile.UndersideColors = new ColorMap
         {
             SizeX = tile.Heights.SizeX,

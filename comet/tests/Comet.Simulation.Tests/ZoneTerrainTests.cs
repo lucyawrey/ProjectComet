@@ -10,15 +10,13 @@ public class ZoneTerrainTests
         {
             SizeX = sizeX,
             SizeZ = sizeZ,
-            Scale = 0.01f,
-            Offset = -50,
             Samples = new ushort[sizeX * sizeZ],
         };
         for (var z = 0; z < sizeZ; z++)
         {
             for (var x = 0; x < sizeX; x++)
             {
-                map.Samples[z * sizeX + x] = height(x, z) is { } h ? (ushort)MathF.Round((h + 50) / 0.01f) : Heightmap.Hole;
+                map.Samples[z * sizeX + x] = height(x, z) is { } h ? map.ToSample(h) : Heightmap.Hole;
             }
         }
 

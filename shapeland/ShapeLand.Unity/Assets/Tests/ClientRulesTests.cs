@@ -215,8 +215,6 @@ namespace ShapeLand.Client.Tests
                                 {
                                     SizeX = 3,
                                     SizeZ = 3,
-                                    Scale = 1,
-                                    Offset = 0,
                                     Samples = Enumerable.Repeat((ushort)2, 9).ToArray(),
                                 },
                             },

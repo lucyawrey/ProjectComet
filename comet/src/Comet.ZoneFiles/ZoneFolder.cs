@@ -94,7 +94,7 @@ namespace Comet.ZoneFiles
                         continue;
                     }
 
-                    var chunk = ReadChunk(folder, new ChunkCoord(x, z), file, errors);
+                    var chunk = ReadChunk(folder, new ChunkCoord(x, z), file, zone.HeightBase, errors);
                     if (chunk is not null)
                     {
                         chunks.Add(chunk);
@@ -152,7 +152,7 @@ namespace Comet.ZoneFiles
 
         private static void ReadZone(Zone zone, TomlTable table, ZoneToml toml)
         {
-            toml.CheckKeys(table, "", "id", "world_anchor", "kill_height", "piece", "border", "entrance", "transition_room");
+            toml.CheckKeys(table, "", "id", "world_anchor", "kill_height", "height_base", "piece", "border", "entrance", "transition_room");
             zone.Id = toml.String(table, "", "id");
             if (table.ContainsKey("world_anchor"))
             {
@@ -164,6 +164,8 @@ namespace Comet.ZoneFiles
             {
                 zone.KillHeight = toml.Float(table, "", "kill_height");
             }
+
+            zone.HeightBase = toml.Float(table, "", "height_base", Zone.DefaultHeightBase);
 
             zone.Pieces = toml.Tables(table, "piece")
                 .Select(t =>
@@ -224,7 +226,7 @@ namespace Comet.ZoneFiles
                 .ToArray();
         }
 
-        private static ZoneChunk? ReadChunk(string folder, ChunkCoord coord, string file, List<ZoneFileError> errors)
+        private static ZoneChunk? ReadChunk(string folder, ChunkCoord coord, string file, float heightBase, List<ZoneFileError> errors)
         {
             var toml = new ZoneToml(file, errors);
             var table = toml.Parse(File.ReadAllText(Path.Combine(folder, file)));
@@ -254,6 +256,7 @@ namespace Comet.ZoneFiles
                     continue;
                 }
 
+                heights.Offset = heightBase;
                 tile.Heights = heights;
                 tile.Underside = ReadTileFile(
                     folder,
@@ -263,6 +266,10 @@ namespace Comet.ZoneFiles
                     errors,
                     tileFiles
                 );
+                if (tile.Underside is not null)
+                {
+                    tile.Underside.Offset = heightBase;
+                }
                 tile.Colors = ReadTileFile(folder, TileFile(coord, tile.Piece, "color"), ColorMapFormat.Read, required: false, errors, tileFiles);
                 tile.UndersideColors = ReadTileFile(
                     folder,
@@ -570,6 +577,11 @@ namespace Comet.ZoneFiles
             if (zone.KillHeight is { } killHeight)
             {
                 table["kill_height"] = ZoneToml.Round(killHeight, LengthDecimals);
+            }
+
+            if (zone.HeightBase != Zone.DefaultHeightBase)
+            {
+                table["height_base"] = ZoneToml.Round(zone.HeightBase, LengthDecimals);
             }
 
             AddTables(

@@ -16,10 +16,6 @@ namespace Comet.Unity.Editor
     /// </summary>
     public sealed class ZoneTerrainEditing
     {
-        // Height range of new tiles: about 4 mm steps from -64 m to 192 m, as the test terrain uses.
-        private const float NewScale = 1f / 256;
-        private const float NewOffset = -64f;
-
         private static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(
             MessagePack.Resolvers.StandardResolver.Instance
         );
@@ -97,7 +93,7 @@ namespace Comet.Unity.Editor
                 create: false,
                 (tile, tx, tz) =>
                 {
-                    tile.Underside ??= Filled(tile.Heights.SizeX, tile.Heights.SizeZ, Terrain[piece].BottomHeight);
+                    tile.Underside ??= Filled(tile.Heights, Terrain[piece].BottomHeight);
                     tile.Underside.Samples[tz * tile.Underside.SizeX + tx] = Sample(tile.Underside, height);
                 }
             );
@@ -263,8 +259,8 @@ namespace Comet.Unity.Editor
                             // Where tiles share a sample, one may have a map the other lacks: keep what either has.
                             samples.TryGetValue(key, out var seen);
                             samples[key] = (
-                                map.Offset + map.Samples[i] * map.Scale,
-                                tile.Underside is { } under ? under.Offset + under.Samples[i] * under.Scale : seen.Under,
+                                map.Offset + map.Samples[i] * Heightmap.Scale,
+                                tile.Underside is { } under ? under.Offset + under.Samples[i] * Heightmap.Scale : seen.Under,
                                 tile.Colors?.Colors[i] ?? seen.Color,
                                 (tile.Underside != null ? tile.UndersideColors?.Colors[i] : null) ?? seen.UnderColor
                             );
@@ -418,7 +414,6 @@ namespace Comet.Unity.Editor
             {
                 SizeX = size,
                 SizeZ = size,
-                Scale = tile.Heights.Scale,
                 Offset = tile.Heights.Offset,
                 Samples = new ushort[size * size],
             };
@@ -427,7 +422,6 @@ namespace Comet.Unity.Editor
                 {
                     SizeX = size,
                     SizeZ = size,
-                    Scale = u.Scale,
                     Offset = u.Offset,
                     Samples = new ushort[size * size],
                 }
@@ -521,7 +515,6 @@ namespace Comet.Unity.Editor
                     Zone.Chunks = Zone.Chunks.Append(chunk).ToArray();
                 }
 
-                var like = Zone.Chunks.SelectMany(c => c.Tiles).FirstOrDefault(t => t.Piece == piece)?.Heights;
                 const int size = ZoneGrid.ChunkSamples;
                 var tile = new TerrainTile
                 {
@@ -530,8 +523,7 @@ namespace Comet.Unity.Editor
                     {
                         SizeX = size,
                         SizeZ = size,
-                        Scale = like?.Scale ?? NewScale,
-                        Offset = like?.Offset ?? NewOffset,
+                        Offset = Zone.HeightBase,
                         Samples = new ushort[size * size],
                     },
                 };
@@ -556,18 +548,16 @@ namespace Comet.Unity.Editor
         }
 
         // A height in meters as one of the map's samples, kept off the hole value and within range.
-        private static ushort Sample(Heightmap map, float? height) =>
-            height is { } h ? (ushort)Mathf.Clamp(Mathf.Round((h - map.Offset) / map.Scale), 1, ushort.MaxValue) : Heightmap.Hole;
+        private static ushort Sample(Heightmap map, float? height) => height is { } h ? map.ToSample(h) : Heightmap.Hole;
 
-        private static Heightmap Filled(int sizeX, int sizeZ, float height)
+        private static Heightmap Filled(Heightmap like, float height)
         {
             var map = new Heightmap
             {
-                SizeX = sizeX,
-                SizeZ = sizeZ,
-                Scale = NewScale,
-                Offset = NewOffset,
-                Samples = new ushort[sizeX * sizeZ],
+                SizeX = like.SizeX,
+                SizeZ = like.SizeZ,
+                Offset = like.Offset,
+                Samples = new ushort[like.SizeX * like.SizeZ],
             };
             Array.Fill(map.Samples, Sample(map, height));
             return map;
@@ -579,7 +569,6 @@ namespace Comet.Unity.Editor
             {
                 SizeX = maxX - minX + 1,
                 SizeZ = maxZ - minZ + 1,
-                Scale = map.Scale,
                 Offset = map.Offset,
             };
             cut.Samples = new ushort[cut.SizeX * cut.SizeZ];

@@ -9,13 +9,11 @@ public class HeightmapFormatTests
         {
             SizeX = 3,
             SizeZ = 2,
-            Scale = 0.5f,
-            Offset = -10f,
             Samples = [0, 1, 2, 3, 4, 65535],
         };
 
     [Fact]
-    public void RoundTripsWithAn18ByteHeader()
+    public void RoundTripsWithA10ByteHeader()
     {
         var stream = new MemoryStream();
         HeightmapFormat.Write(stream, Sample());
@@ -24,21 +22,24 @@ public class HeightmapFormatTests
         Assert.Equal("CHGT"u8.ToArray(), stream.ToArray()[..4]);
         stream.Position = 0;
         var map = HeightmapFormat.Read(stream);
-        Assert.Equal((3, 2, 0.5f, -10f), (map.SizeX, map.SizeZ, map.Scale, map.Offset));
+        Assert.Equal((3, 2), (map.SizeX, map.SizeZ));
         Assert.Equal(Sample().Samples, map.Samples);
     }
 
     [Fact]
-    public void HeightsUseScaleAndOffset()
+    public void HeightsAreCentimetersAboveTheOffset()
     {
         var map = Sample();
+        map.Offset = -10;
 
         Assert.True(map.TryGetHeight(1, 0, out var low));
-        Assert.Equal(-9.5f, low);
+        Assert.Equal(-9.99f, low, 3);
         Assert.True(map.TryGetHeight(1, 1, out var mid));
-        Assert.Equal(-8f, mid);
+        Assert.Equal(-9.96f, mid, 3);
         Assert.True(map.TryGetHeight(2, 1, out var high));
-        Assert.Equal(-10f + 65535 * 0.5f, high);
+        Assert.Equal(645.35f, high, 3);
+        Assert.Equal((ushort)1000, map.ToSample(0));
+        Assert.Equal(ushort.MaxValue, map.ToSample(1000));
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public class HeightmapFormatTests
         Assert.Contains("bytes after", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream([.. bytes, 0]))).Message);
     }
 
-    // The header after the magic and version: sizes at 6 and 8, scale at 10, offset at 14.
+    // The header after the magic: the version at 4, sizes at 6 and 8.
     private static byte[] WithHeader(Action<byte[]> change)
     {
         var stream = new MemoryStream();
@@ -92,14 +93,14 @@ public class HeightmapFormatTests
         Assert.Contains("truncated", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream(bytes))).Message);
     }
 
-    [Theory]
-    [InlineData(10, float.NaN)]
-    [InlineData(10, 0f)]
-    [InlineData(14, float.PositiveInfinity)]
-    public void ScaleAndOffsetMustBeNumbers(int at, float value)
+    [Fact]
+    public void OldVersionsAreRejected()
     {
-        var bytes = WithHeader(b => BitConverter.TryWriteBytes(b.AsSpan(at), value));
+        var bytes = WithHeader(b => BitConverter.TryWriteBytes(b.AsSpan(4), (ushort)1));
 
-        Assert.Contains("scale", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream(bytes))).Message);
+        Assert.Contains(
+            "Unsupported heightmap version 1",
+            Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream(bytes))).Message
+        );
     }
 }

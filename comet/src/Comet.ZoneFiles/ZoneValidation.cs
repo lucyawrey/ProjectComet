@@ -119,7 +119,7 @@ namespace Comet.ZoneFiles
             foreach (var chunk in zone.Chunks)
             {
                 var file = ZoneFolder.ChunkFile(chunk.Coord);
-                CheckTiles(chunk, pieces, file, Error);
+                CheckTiles(chunk, zone.HeightBase, pieces, file, Error);
                 foreach (var placement in chunk.Placements)
                 {
                     var what = $"placement of {Placed(placement)}";
@@ -587,7 +587,7 @@ namespace Comet.ZoneFiles
             }
         }
 
-        private static void CheckTiles(ZoneChunk chunk, HashSet<string> pieces, string file, Action<string, string> error)
+        private static void CheckTiles(ZoneChunk chunk, float heightBase, HashSet<string> pieces, string file, Action<string, string> error)
         {
             var seen = new HashSet<string>();
             foreach (var tile in chunk.Tiles)
@@ -615,6 +615,11 @@ namespace Comet.ZoneFiles
                         file,
                         $"tile {tile.Piece}: {heights.SizeX}×{heights.SizeZ} samples from [{tile.OriginX}, {tile.OriginZ}] reach past the chunk's {ZoneGrid.ChunkSamples}×{ZoneGrid.ChunkSamples}."
                     );
+                }
+
+                if (heights.Offset != heightBase || (tile.Underside?.Offset is { } bottom && bottom != heightBase))
+                {
+                    error(file, $"tile {tile.Piece}: its height offset isn't the zone's height_base ({heightBase}).");
                 }
 
                 if (tile.Underside is { } under && (under.SizeX != heights.SizeX || under.SizeZ != heights.SizeZ))
@@ -694,7 +699,7 @@ namespace Comet.ZoneFiles
                 maxX = Math.Min(ax + a.Heights.SizeX, bx + b.Heights.SizeX) - 1;
             int minZ = Math.Max(az, bz),
                 maxZ = Math.Min(az + a.Heights.SizeZ, bz + b.Heights.SizeZ) - 1;
-            var tolerance = Math.Min(a.Heights.Scale, b.Heights.Scale) / 2;
+            var tolerance = Heightmap.Scale / 2;
             for (var z = minZ; z <= maxZ; z++)
             {
                 for (var x = minX; x <= maxX; x++)

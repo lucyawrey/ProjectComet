@@ -44,19 +44,13 @@ public class TerrainMesherTests
     {
         int sizeX = samples[0].Length,
             sizeZ = samples.Length;
-        var map = new Heightmap
-        {
-            SizeX = sizeX,
-            SizeZ = sizeZ,
-            Scale = 0.25f,
-            Offset = -100,
-        };
+        var map = new Heightmap { SizeX = sizeX, SizeZ = sizeZ };
         map.Samples = new ushort[sizeX * sizeZ];
         for (var z = 0; z < sizeZ; z++)
         {
             for (var x = 0; x < sizeX; x++)
             {
-                map.Samples[z * sizeX + x] = samples[z][x] == '#' ? (ushort)((height + 100) / 0.25f) : Heightmap.Hole;
+                map.Samples[z * sizeX + x] = samples[z][x] == '#' ? map.ToSample(height) : Heightmap.Hole;
             }
         }
 
@@ -120,14 +114,7 @@ public class TerrainMesherTests
         const uint moss = 0x336633;
         var zone = Piece(2, rim: true, holes: true, "##", "##");
         var tile = zone.Chunks[0].Tiles[0];
-        tile.Underside = new Heightmap
-        {
-            SizeX = 2,
-            SizeZ = 2,
-            Scale = 0.25f,
-            Offset = -100,
-            Samples = Enumerable.Repeat((ushort)(96 / 0.25f), 4).ToArray(),
-        };
+        tile.Underside = TestWorlds.Flat(2, -4);
         tile.UndersideColors = new ColorMap
         {
             SizeX = 2,
@@ -228,14 +215,7 @@ public class TerrainMesherTests
     {
         var zone = Piece(2, rim: true, holes: true, "##", "##");
         var tile = zone.Chunks[0].Tiles[0];
-        tile.Underside = new Heightmap
-        {
-            SizeX = 2,
-            SizeZ = 2,
-            Scale = 0.25f,
-            Offset = -100,
-            Samples = [(ushort)(90 / 0.25f), (ushort)(90 / 0.25f), (ushort)(90 / 0.25f), (ushort)(90 / 0.25f)],
-        };
+        tile.Underside = TestWorlds.Flat(2, -10);
 
         var lowest = Mesh(zone)[new ChunkCoord(0, 0)].Positions.Min(p => p.Y);
 

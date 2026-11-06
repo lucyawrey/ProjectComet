@@ -39,6 +39,16 @@ public class ZoneValidationTests
     }
 
     [Fact]
+    public void TilesUseTheZonesHeightBase()
+    {
+        var zone = Zones.Sample();
+        zone.HeightBase = -400;
+
+        Assert.All(Errors(zone), e => Assert.Contains("isn't the zone's height_base (-400)", e));
+        Assert.Equal(zone.Chunks.Sum(c => c.Tiles.Length), Errors(zone).Count());
+    }
+
+    [Fact]
     public void TilesNeedAKnownPieceAndMustFitTheirChunk()
     {
         var zone = Zones.Sample();

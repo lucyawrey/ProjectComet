@@ -149,7 +149,7 @@ namespace Comet.Simulation
                     {
                         if (map.Samples[i] != Heightmap.Hole)
                         {
-                            lowest = System.Math.Min(lowest, map.Offset + map.Samples[i] * map.Scale);
+                            lowest = System.Math.Min(lowest, map.Offset + map.Samples[i] * Heightmap.Scale);
                         }
                     }
                 }

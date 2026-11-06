@@ -53,6 +53,16 @@ namespace Comet.Content
         /// </summary>
         [Key(8)]
         public float? KillHeight { get; set; }
+
+        /// <summary>The height base when a zone sets none.</summary>
+        public const float DefaultHeightBase = -100f;
+
+        /// <summary>
+        /// The height in meters of terrain sample value 0 in this zone, so its ground covers this plus 0.01 m up to this
+        /// plus 655.35 m (<see cref="Heightmap.Scale"/>). A deep zone can move it down.
+        /// </summary>
+        [Key(9)]
+        public float HeightBase { get; set; } = DefaultHeightBase;
     }
 
     /// <summary>A chunk's position on the grid (<see cref="ZoneGrid"/>).</summary>
