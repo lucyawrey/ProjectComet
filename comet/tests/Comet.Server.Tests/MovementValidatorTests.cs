@@ -17,14 +17,8 @@ public class MovementValidatorTests
     public MovementValidatorTests()
     {
         // Flat ground at 0 over 32 m, with a 2 m cube at (20, 20) and a hole around (28, 28).
-        var map = new Heightmap
-        {
-            SizeX = 33,
-            SizeZ = 33,
-            Scale = 1,
-            Offset = -1,
-            Samples = Enumerable.Repeat((ushort)1, 33 * 33).ToArray(),
-        };
+        var map = new Heightmap { SizeX = 33, SizeZ = 33 };
+        map.Samples = Enumerable.Repeat(map.ToSample(0), 33 * 33).ToArray();
         map.Samples[28 * 33 + 28] = Heightmap.Hole;
         var zone = new Zone
         {

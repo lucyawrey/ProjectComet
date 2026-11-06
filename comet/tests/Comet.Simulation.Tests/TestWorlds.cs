@@ -20,8 +20,8 @@ internal static class TestWorlds
         var map = Flat(17, 1);
         for (var z = 0; z < 17; z++)
         {
-            map.Samples[z * 17 + 15] = Sample(1.5f);
-            map.Samples[z * 17 + 16] = Sample(2);
+            map.Samples[z * 17 + 15] = map.ToSample(1.5f);
+            map.Samples[z * 17 + 16] = map.ToSample(2);
         }
 
         map.Samples[12 * 17 + 12] = Heightmap.Hole;
@@ -64,15 +64,11 @@ internal static class TestWorlds
     public static CollisionMesh Block(float x, float z, float baseY, Vector3 size) =>
         CollisionMesh.Box(new Vector3(x - size.X / 2, baseY, z - size.Z / 2), new Vector3(x + size.X / 2, baseY + size.Y, z + size.Z / 2));
 
-    private static Heightmap Flat(int size, float height) =>
-        new()
-        {
-            SizeX = size,
-            SizeZ = size,
-            Scale = 0.01f,
-            Offset = -50,
-            Samples = Enumerable.Repeat(Sample(height), size * size).ToArray(),
-        };
-
-    private static ushort Sample(float height) => (ushort)MathF.Round((height + 50) / 0.01f);
+    /// <summary>A square heightmap at one height everywhere.</summary>
+    public static Heightmap Flat(int size, float height)
+    {
+        var map = new Heightmap { SizeX = size, SizeZ = size };
+        map.Samples = Enumerable.Repeat(map.ToSample(height), size * size).ToArray();
+        return map;
+    }
 }

@@ -7,15 +7,12 @@ namespace Comet.ZoneFiles.Tests;
 internal static class Zones
 {
     /// <summary>A flat tile of <paramref name="sizeX"/> by <paramref name="sizeZ"/> samples at <paramref name="height"/> meters.</summary>
-    public static Heightmap Flat(int sizeX, int sizeZ, float height) =>
-        new()
-        {
-            SizeX = sizeX,
-            SizeZ = sizeZ,
-            Scale = 0.25f,
-            Offset = -100f,
-            Samples = Enumerable.Repeat((ushort)((height + 100f) / 0.25f), sizeX * sizeZ).ToArray(),
-        };
+    public static Heightmap Flat(int sizeX, int sizeZ, float height)
+    {
+        var map = new Heightmap { SizeX = sizeX, SizeZ = sizeZ };
+        map.Samples = Enumerable.Repeat(map.ToSample(height), sizeX * sizeZ).ToArray();
+        return map;
+    }
 
     /// <summary>
     /// A zone of two chunks side by side along X, with one piece whose tiles meet on the shared edge, a tagged placement,

@@ -11,8 +11,6 @@ namespace ShapeLand.ContentBuild.Tests;
 /// </summary>
 public static class TestTerrain
 {
-    public const float Scale = 1f / 256; // about 4 mm steps
-    public const float Offset = -64f; // heights from -64 m to 192 m
     public const float Radius = 28f; // the disc's edge, in meters from the chunk's center
 
     /// <summary>The test zone's id.</summary>
@@ -33,12 +31,18 @@ public static class TestTerrain
                 toZ = cz < 0 ? 0 : radiusSamples;
             int sizeX = toX - fromX + 1,
                 sizeZ = toZ - fromZ + 1;
-            var samples = new ushort[sizeX * sizeZ];
+            var heights = new Heightmap
+            {
+                SizeX = sizeX,
+                SizeZ = sizeZ,
+                Samples = new ushort[sizeX * sizeZ],
+            };
             for (var z = 0; z < sizeZ; z++)
             {
                 for (var x = 0; x < sizeX; x++)
                 {
-                    samples[z * sizeX + x] = SampleAt((fromX + x) * ZoneGrid.SampleSpacing, (fromZ + z) * ZoneGrid.SampleSpacing, seed);
+                    var height = HeightAt((fromX + x) * ZoneGrid.SampleSpacing, (fromZ + z) * ZoneGrid.SampleSpacing, seed);
+                    heights.Samples[z * sizeX + x] = height is { } h ? heights.ToSample(h) : Heightmap.Hole;
                 }
             }
 
@@ -53,14 +57,7 @@ public static class TestTerrain
                             Piece = "island",
                             OriginX = fromX - cx * ZoneGrid.ChunkSize,
                             OriginZ = fromZ - cz * ZoneGrid.ChunkSize,
-                            Heights = new Heightmap
-                            {
-                                SizeX = sizeX,
-                                SizeZ = sizeZ,
-                                Scale = Scale,
-                                Offset = Offset,
-                                Samples = samples,
-                            },
+                            Heights = heights,
                         },
                     ],
                 }
@@ -137,20 +134,19 @@ public static class TestTerrain
         return zone;
     }
 
-    // The island's sample at world (x, z) in meters, with the same hills as the old map (whose noise ran over
+    // The island's height at world (x, z) in meters, or null past its edge, with the same hills as the old map (whose noise ran over
     // samples 2 m apart, so world meters / 24 matches its x / 12).
-    private static ushort SampleAt(float x, float z, int seed)
+    private static float? HeightAt(float x, float z, int seed)
     {
         if (MathF.Sqrt(x * x + z * z) > Radius)
         {
-            return Heightmap.Hole;
+            return null;
         }
 
         // The old map's sample 0 was at -32 m.
         float nx = (x + 32) / 24f,
             nz = (z + 32) / 24f;
-        var height = 4f + 3f * Noise(seed, nx, nz) + 1f * Noise(seed + 1, (x + 32) / 10f, (z + 32) / 10f);
-        return (ushort)Math.Clamp(MathF.Round((height - Offset) / Scale), 1, ushort.MaxValue);
+        return 4f + 3f * Noise(seed, nx, nz) + 1f * Noise(seed + 1, (x + 32) / 10f, (z + 32) / 10f);
     }
 
     // Smooth value noise in -1..1 from a hash of lattice points (not System.Random, whose sequence may change).
