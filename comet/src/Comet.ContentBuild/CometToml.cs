@@ -7,4 +7,4 @@ namespace Comet.ContentBuild;
 /// <summary>Tomlyn's source-generated metadata for Comet's own content types.</summary>
 [TomlSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [TomlSerializable(typeof(Prop))]
-internal partial class CometToml : TomlSerializerContext { }
+internal sealed partial class CometToml : TomlSerializerContext { }

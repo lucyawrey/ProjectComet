@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Comet.Protocol.Login;
@@ -41,7 +40,7 @@ namespace Comet.Client.Login
         void Save(string? token);
     }
 
-    /// <summary>A Login server call's result: the value, or an error code (<see cref="LoginErrors"/> or <see cref="LoginClient.Unreachable"/>).</summary>
+    /// <summary>A Login server call's result: the value, or an error code (<see cref="LoginErrors"/> or <see cref="LoginClient{TCharacter}.Unreachable"/>).</summary>
     public readonly struct LoginResult<T>
     {
         public LoginResult(T value)

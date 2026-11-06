@@ -45,4 +45,4 @@ public sealed class Part
 
 [TomlSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [TomlSerializable(typeof(Widget))]
-internal partial class TestToml : TomlSerializerContext { }
+internal sealed partial class TestToml : TomlSerializerContext { }

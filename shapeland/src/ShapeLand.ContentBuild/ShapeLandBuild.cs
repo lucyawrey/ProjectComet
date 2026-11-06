@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 using Comet.Content;
 using Comet.ContentBuild;
 using ShapeLand.Shared.Content;
-using ShapeLand.Shared.World;
 using Tomlyn.Serialization;
 
 namespace ShapeLand.ContentBuild;
@@ -278,4 +277,4 @@ public static class ShapeLandBuild
 [TomlSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [TomlSerializable(typeof(Shape))]
 [TomlSerializable(typeof(GameSettings))]
-internal partial class ShapeLandToml : TomlSerializerContext { }
+internal sealed partial class ShapeLandToml : TomlSerializerContext { }

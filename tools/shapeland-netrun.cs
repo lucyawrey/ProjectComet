@@ -274,7 +274,7 @@ if (far > 0)
     Quiet("wait", "shapeland-netrun-far");
     Console.WriteLine($"\n== The far players' own view ({profile} plus {farNet})");
     var farLog = Tool.Capture(Tool.Info("docker", ["logs", "shapeland-netrun-far"]), withErrors: true).Output.Split('\n');
-    foreach (var line in farLog.SkipWhile(l => !l.StartsWith("Network results")).Where(l => !l.Contains("Results in")))
+    foreach (var line in farLog.SkipWhile(l => !l.StartsWith("Network results", StringComparison.Ordinal)).Where(l => !l.Contains("Results in")))
         Console.WriteLine(line);
     Quiet("cp", "shapeland-netrun-far:/tmp/results.json", Path.Combine(runs, name + ".far.json"));
     Console.WriteLine($"  Results in {Path.Combine(runs, name + ".far.json")}");
@@ -293,7 +293,7 @@ static void Summarize(string[] log)
         farFalls = 0;
     bool left = false,
         farSeen = false;
-    foreach (Match m in log.Select(l => Regex.Match(l, @"(\S+) left \(.*?\); (\d+) movement violations, (\d+) falls finished")).Where(m => m.Success))
+    foreach (var m in log.Select(l => Regex.Match(l, @"(\S+) left \(.*?\); (\d+) movement violations, (\d+) falls finished")).Where(m => m.Success))
     {
         left = true;
         var (player, violations, falls) = (m.Groups[1].Value, int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value));
@@ -322,7 +322,7 @@ static void Summarize(string[] log)
     double? rise = null,
         air = null;
     foreach (
-        Match m in log.Select(l => Regex.Match(l, @"(\S+) headroom: burst seconds (.*?); rise over apex (\S+) m; air slack (\S+) s"))
+        var m in log.Select(l => Regex.Match(l, @"(\S+) headroom: burst seconds (.*?); rise over apex (\S+) m; air slack (\S+) s"))
             .Where(m => m.Success)
     )
     {

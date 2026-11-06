@@ -266,8 +266,8 @@ namespace Comet.Simulation
                 step == 0 ? float.PositiveInfinity : ((cell + (step > 0 ? 1 : 0)) * CellSize - start) / delta;
             float crossX = NextEdge(from.X, line.X, x, stepX),
                 crossZ = NextEdge(from.Z, line.Z, z, stepZ);
-            float cellX = stepX == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.X);
-            float cellZ = stepZ == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.Z);
+            var cellX = stepX == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.X);
+            var cellZ = stepZ == 0 ? float.PositiveInfinity : CellSize / MathF.Abs(line.Z);
             for (var cells = Math.Abs(endX - x) + Math.Abs(endZ - z); cells >= 0; cells--)
             {
                 if (_cells.TryGetValue((x, z), out var list))
@@ -708,7 +708,7 @@ namespace Comet.Simulation
 
             var center = Flat(feet);
             var r2 = r * r;
-            int sign = 0;
+            var sign = 0;
             var inside = true;
             for (var i = 0; i < polygon.Count; i++)
             {

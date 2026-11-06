@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -136,28 +137,28 @@ namespace ShapeLand.Shared.Content
         internal sealed class ContentFile
         {
             [Key(0)]
-            public Shape[] Shapes { get; set; } = new Shape[0];
+            public Shape[] Shapes { get; set; } = Array.Empty<Shape>();
 
             [Key(2)]
             public StringTable Strings { get; set; } = new StringTable();
 
             [Key(3)]
-            public Zone[] Zones { get; set; } = new Zone[0];
+            public Zone[] Zones { get; set; } = Array.Empty<Zone>();
 
             [Key(4)]
-            public Prop[] Props { get; set; } = new Prop[0];
+            public Prop[] Props { get; set; } = Array.Empty<Prop>();
 
             [Key(5)]
             public GameSettings Settings { get; set; } = new GameSettings();
 
             [Key(6)]
-            public Group[] Groups { get; set; } = new Group[0];
+            public Group[] Groups { get; set; } = Array.Empty<Group>();
 
             [Key(7)]
-            public PlayerColor[] Colors { get; set; } = new PlayerColor[0];
+            public PlayerColor[] Colors { get; set; } = Array.Empty<PlayerColor>();
         }
     }
 
     [GeneratedMessagePackResolver]
-    internal partial class ShapeLandResolver { }
+    internal sealed partial class ShapeLandResolver { }
 }

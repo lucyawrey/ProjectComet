@@ -1,4 +1,3 @@
-using System.Net.WebSockets;
 using Comet.Server.Connections;
 using Comet.Server.Ticking;
 using Microsoft.AspNetCore.Builder;

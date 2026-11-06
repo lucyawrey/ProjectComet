@@ -1,3 +1,4 @@
+using System;
 using MessagePack;
 
 namespace Comet.Content
@@ -19,7 +20,7 @@ namespace Comet.Content
 
         /// <summary><see cref="SizeX"/> × <see cref="SizeZ"/> colors as 0xRRGGBB, row by row along Z.</summary>
         [Key(2)]
-        public uint[] Colors { get; set; } = new uint[0];
+        public uint[] Colors { get; set; } = Array.Empty<uint>();
 
         /// <summary>The color at column <paramref name="x"/>, row <paramref name="z"/>, as 0xRRGGBB.</summary>
         public uint this[int x, int z] => Colors[z * SizeX + x];

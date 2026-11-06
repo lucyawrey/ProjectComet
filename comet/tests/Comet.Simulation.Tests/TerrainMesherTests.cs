@@ -102,22 +102,22 @@ public class TerrainMesherTests
     [Fact]
     public void APiecesOwnColorsReplaceTheGames()
     {
-        const uint Stone = 0x888888;
-        const uint Sand = 0xd8c690;
+        const uint stone = 0x888888;
+        const uint sand = 0xd8c690;
         var zone = Piece(2, rim: true, holes: true, "###", "###", "###");
-        zone.Pieces[0].UnderColor = Stone;
-        zone.Pieces[0].GroundColor = Sand;
+        zone.Pieces[0].UnderColor = stone;
+        zone.Pieces[0].GroundColor = sand;
 
         var triangles = Triangles(Mesh(zone)[new ChunkCoord(0, 0)]).ToList();
 
-        Assert.All(triangles.Where(t => t.A.Y < 2 || t.B.Y < 2 || t.C.Y < 2), t => Assert.Equal(Stone, t.Color));
-        Assert.All(triangles.Where(t => t.A.Y == 2 && t.B.Y == 2 && t.C.Y == 2), t => Assert.Equal(Sand, t.Color));
+        Assert.All(triangles.Where(t => t.A.Y < 2 || t.B.Y < 2 || t.C.Y < 2), t => Assert.Equal(stone, t.Color));
+        Assert.All(triangles.Where(t => t.A.Y == 2 && t.B.Y == 2 && t.C.Y == 2), t => Assert.Equal(sand, t.Color));
     }
 
     [Fact]
     public void UndersideColorsPaintTheBottomAndTheWallsAboveIt()
     {
-        const uint Moss = 0x336633;
+        const uint moss = 0x336633;
         var zone = Piece(2, rim: true, holes: true, "##", "##");
         var tile = zone.Chunks[0].Tiles[0];
         tile.Underside = new Heightmap
@@ -132,14 +132,14 @@ public class TerrainMesherTests
         {
             SizeX = 2,
             SizeZ = 2,
-            Colors = [Moss, Moss, Moss, Moss],
+            Colors = [moss, moss, moss, moss],
         };
 
         var triangles = Triangles(Mesh(zone)[new ChunkCoord(0, 0)]).ToList();
 
         var below = triangles.Where(t => t.A.Y < 2 || t.B.Y < 2 || t.C.Y < 2).ToList();
         Assert.NotEmpty(below);
-        Assert.All(below, t => Assert.Equal(Moss, t.Color));
+        Assert.All(below, t => Assert.Equal(moss, t.Color));
     }
 
     [Fact]

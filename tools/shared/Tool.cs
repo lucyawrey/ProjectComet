@@ -21,7 +21,7 @@ public static class Tool
     // The comment block at the top of the running tool, without the comment marks.
     public static void Usage(int exitCode = 0)
     {
-        foreach (var line in File.ReadLines(Self).TakeWhile(l => l.StartsWith("//")))
+        foreach (var line in File.ReadLines(Self).TakeWhile(l => l.StartsWith("//", StringComparison.Ordinal)))
         {
             var text = line.Length > 2 && line[2] == ' ' ? line[3..] : line[2..];
             Console.WriteLine(IsWindows ? text.Replace("tools/run ", "tools\\run ") : text);
@@ -34,7 +34,7 @@ public static class Tool
         Console.Error.WriteLine(message);
         RunStops();
         Environment.Exit(exitCode);
-        return new(); // never reached; lets callers write `throw Tool.Fail(...)`
+        return new InvalidOperationException(); // never reached; lets callers write `throw Tool.Fail(...)`
     }
 
     // Where a program is: on PATH (with Windows' extensions, so npm's .cmd shims are found), or in the places a Mac
@@ -192,18 +192,18 @@ public static class Tool
 
     // Cleanup that runs once, last added first, when the tool ends: normally, on an error, on Ctrl+C, or when it's
     // told to stop (a kill, or closing the terminal).
-    static readonly List<Action> stops = [];
-    static readonly List<PosixSignalRegistration> signals = [];
+    static readonly List<Action> Stops = [];
+    static readonly List<PosixSignalRegistration> Signals = [];
 
     public static void OnStop(Action stop)
     {
-        lock (stops)
+        lock (Stops)
         {
-            if (signals.Count == 0)
+            if (Signals.Count == 0)
             {
                 AppDomain.CurrentDomain.ProcessExit += (_, _) => RunStops();
                 foreach (var (signal, code) in new[] { (PosixSignal.SIGINT, 130), (PosixSignal.SIGTERM, 143), (PosixSignal.SIGHUP, 129) })
-                    signals.Add(
+                    Signals.Add(
                         PosixSignalRegistration.Create(
                             signal,
                             context =>
@@ -215,17 +215,17 @@ public static class Tool
                         )
                     );
             }
-            stops.Add(stop);
+            Stops.Add(stop);
         }
     }
 
     public static void RunStops()
     {
         Action[] toRun;
-        lock (stops)
+        lock (Stops)
         {
-            toRun = [.. stops];
-            stops.Clear();
+            toRun = [.. Stops];
+            Stops.Clear();
         }
         for (var i = toRun.Length - 1; i >= 0; i--)
         {
@@ -243,12 +243,12 @@ public static class Tool
     // Reads command-line options one at a time.
     public sealed class Args(string[] args)
     {
-        int next;
-        public bool More => next < args.Length;
-        public string Peek => args[next];
-        public string[] Rest => args[next..];
+        int _next;
+        public bool More => _next < args.Length;
+        public string Peek => args[_next];
+        public string[] Rest => args[_next..];
 
-        public string Take() => args[next++];
+        public string Take() => args[_next++];
 
         public string Value(string option) => More ? Take() : throw Fail($"{option} needs a value (see --help)", 2);
 

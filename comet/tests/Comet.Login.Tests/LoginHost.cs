@@ -7,7 +7,6 @@ using Comet.Data.Accounts;
 using Comet.Data.Characters;
 using Comet.Protocol.Login;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;

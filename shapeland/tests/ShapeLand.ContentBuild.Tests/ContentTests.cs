@@ -1,7 +1,6 @@
 using Comet.Content;
 using Comet.Simulation;
 using MessagePack;
-using ShapeLand.ContentBuild;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.World;
 
@@ -199,7 +198,7 @@ public class ContentTests
             var file = Path.Combine(root, relativeFile);
             var key = line[..line.IndexOf(' ')];
             var lines = File.ReadAllLines(file).ToList();
-            var at = lines.FindIndex(l => l.StartsWith(key + " "));
+            var at = lines.FindIndex(l => l.StartsWith(key + " ", StringComparison.Ordinal));
             if (at >= 0)
             {
                 lines[at] = line;

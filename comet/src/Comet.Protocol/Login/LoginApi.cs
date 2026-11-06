@@ -3,7 +3,7 @@ namespace Comet.Protocol.Login
     /// <summary>
     /// The Login server's HTTP interface: JSON (camelCase) under <c>/api/</c>. Signed-in calls send the session token
     /// as <c>Authorization: Bearer &lt;token&gt;</c>. Errors are Problem Details (RFC 9457) whose <c>code</c> is one of
-    /// <see cref="LoginErrors"/>. The game's own character data (<typeparamref name="TCharacter"/> below) is the
+    /// <see cref="LoginErrors"/>. The game's own character data (<c>TCharacter</c> below) is the
     /// game's type.
     /// </summary>
     public static class LoginPaths

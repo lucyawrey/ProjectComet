@@ -46,7 +46,7 @@ namespace Comet.ZoneFiles
             foreach (var line in lines)
             {
                 var previousBlank = text.Length == 0 || (text.Length >= 2 && text[text.Length - 1] == '\n' && text[text.Length - 2] == '\n');
-                if (line.StartsWith("[", StringComparison.Ordinal) && !previousBlank)
+                if (line.StartsWith('[') && !previousBlank)
                 {
                     text.Append('\n');
                 }

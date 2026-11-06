@@ -24,5 +24,5 @@ namespace Comet.Protocol
     }
 
     [GeneratedMessagePackResolver]
-    internal partial class ProtocolResolver { }
+    internal sealed partial class ProtocolResolver { }
 }

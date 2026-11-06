@@ -84,8 +84,8 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
         }
 
         await PrepareAsync(cancellationToken);
-        _writer = Task.Run(WriteAsync);
-        _timer = Task.Run(TickAsync);
+        _writer = Task.Run(WriteAsync, CancellationToken.None);
+        _timer = Task.Run(TickAsync, CancellationToken.None);
     }
 
     public async Task<CharacterClaim<TCharacter>> ClaimAsync(long characterId, CancellationToken cancellationToken)

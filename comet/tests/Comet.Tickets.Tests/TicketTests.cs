@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using System.Text;
-using Comet.Tickets;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 

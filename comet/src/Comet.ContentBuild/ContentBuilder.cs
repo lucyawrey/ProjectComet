@@ -5,7 +5,6 @@ using Comet.Content;
 using Comet.ZoneFiles;
 using Tomlyn;
 using Tomlyn.Parsing;
-using Tomlyn.Serialization;
 using Tomlyn.Syntax;
 using Group = Comet.Content.Group;
 
@@ -187,7 +186,7 @@ public sealed class ContentBuilder
         return new ContentBuildResult(errors, warnings, types, strings, zones, groups, keyNumbers);
     }
 
-    private List<Group> ReadGroups(string folder, Dictionary<string, Prop> props, List<ContentError> errors)
+    private static List<Group> ReadGroups(string folder, Dictionary<string, Prop> props, List<ContentError> errors)
     {
         var groupErrors = new List<ZoneFileError>();
         var groups = GroupFile.ReadFolder(folder, groupErrors);
@@ -198,7 +197,7 @@ public sealed class ContentBuilder
         return groups.Select(g => g.Group).GroupBy(g => g.Id).Select(same => same.First()).ToList();
     }
 
-    private List<Zone> ReadZones(
+    private static List<Zone> ReadZones(
         string folder,
         Dictionary<string, Prop> props,
         Dictionary<string, Group> groups,
@@ -300,7 +299,7 @@ public sealed class ContentBuilder
     public IReadOnlyDictionary<string, JsonNode> Schemas() => _types.ToDictionary(t => t.Kind, t => t.Schema());
 
     /// <summary><paramref name="path"/> as errors show it: relative to the working folder when it's inside it.</summary>
-    internal string DisplayPath(string path)
+    internal static string DisplayPath(string path)
     {
         var relative = Path.GetRelativePath(Environment.CurrentDirectory, path);
         return relative.StartsWith("..", StringComparison.Ordinal) ? path : relative;
@@ -380,7 +379,7 @@ public sealed class ContentBuilder
             var files = Directory.EnumerateFiles(folder, "*.toml", SearchOption.AllDirectories).Order(StringComparer.Ordinal);
             foreach (var path in files)
             {
-                var file = builder.DisplayPath(path);
+                var file = DisplayPath(path);
                 var text = File.ReadAllText(path);
                 var document = SyntaxParser.Parse(text, file, validate: true);
                 if (document.HasErrors)

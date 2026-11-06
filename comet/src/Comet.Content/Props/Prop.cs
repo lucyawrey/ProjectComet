@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using System.Text.Json.Serialization;
 using MessagePack;
@@ -39,7 +40,7 @@ namespace Comet.Content
         /// </summary>
         [JsonIgnore]
         [Key(4)]
-        public Vector3[] Collision { get; set; } = new Vector3[0];
+        public Vector3[] Collision { get; set; } = Array.Empty<Vector3>();
 
         /// <summary>The low corner of the box around all the model's meshes, in its own space.</summary>
         [JsonIgnore]

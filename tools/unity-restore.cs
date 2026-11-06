@@ -35,7 +35,7 @@ int analyzers = 0,
     editorOnly = 0;
 foreach (var dll in Directory.EnumerateFiles(packages, "*.dll", SearchOption.AllDirectories))
 {
-    var isTomlyn = Path.GetRelativePath(packages, dll).StartsWith("Tomlyn.");
+    var isTomlyn = Path.GetRelativePath(packages, dll).StartsWith("Tomlyn.", StringComparison.Ordinal);
     var isAnalyzer = dll.Split(Path.DirectorySeparatorChar).Contains("analyzers");
     if (isAnalyzer && !isTomlyn)
     {

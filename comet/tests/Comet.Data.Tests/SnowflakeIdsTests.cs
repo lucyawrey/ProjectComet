@@ -1,5 +1,3 @@
-using Comet.Data;
-
 namespace Comet.Data.Tests;
 
 public class SnowflakeIdsTests

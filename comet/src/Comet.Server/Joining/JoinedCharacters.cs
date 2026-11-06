@@ -42,7 +42,7 @@ public interface IJoinHost<TConnection, TCharacter>
 
     /// <summary>
     /// Takes the connection out of the world and drops it, because a newer join (<paramref name="replaced"/>) or the
-    /// database (<paramref name="refused"/>: a ban, a deletion, or another server's claim) took its character.
+    /// database (when it is false: a ban, a deletion, or another server's claim) took its character.
     /// Returns where it was, for its final save (null when refused, since the save would be refused too).
     /// </summary>
     CharacterPosition? Dropped(TConnection connection, bool replaced);

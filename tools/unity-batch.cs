@@ -21,7 +21,6 @@
 // (tests passed), 2 tests failed, 1 if it failed or gave no result, 124 on the time limit. Runs tools/run unity-restore
 // first when the project's NuGet packages were never restored or packages.config changed since.
 #:project shared/Tools.Shared.csproj
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -217,7 +216,7 @@ int InEditor()
 
 int InBatchMode()
 {
-    string[] unityArgs = job switch
+    var unityArgs = job switch
     {
         // -build alone goes on to open the project once the build is done.
         "build" => ["-activeBuildProfile", asset, "-build", output, "-quit"],
