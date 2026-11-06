@@ -528,7 +528,9 @@ void Page()
     {
         Console.WriteLine("== Building the web page (Unity, a few minutes)");
         // Never a fast dev build (tools/run shapeland-dev): a marker it left behind would make this one uncompressed.
-        File.Delete(Path.Combine(Tool.Repo, "shapeland", "ShapeLand.Unity", "Library", "ShapeLand", "fast-web-build"));
+        var marker = Path.Combine(Tool.Repo, "shapeland", "ShapeLand.Unity", "Library", "ShapeLand", "fast-web-build");
+        if (File.Exists(marker))
+            File.Delete(marker);
         if (Tool.RunTool("unity-batch", "build", "Web", web) != 0)
             throw Tool.Fail("The Unity web build failed.");
     }
