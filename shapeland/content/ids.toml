@@ -60,6 +60,9 @@ theatre = 11
 "tests.start" = 18
 "hub_old.cubehome" = 19
 "hub_old.plains" = 20
+"main.cube" = 21
+"main.diamond" = 22
+"main.pyramid" = 23
 
 [teleporter]
 "tests.east" = 1
@@ -74,6 +77,8 @@ theatre = 11
 "hub_old.cubehome" = 10
 "hub_old.fields" = 11
 "hub_old.main" = 12
+"hub_old.entry" = 13
+"main.hub_old" = 14
 
 [trigger]
 "tests.plate" = 1
@@ -83,3 +88,4 @@ theatre = 11
 hub_old = 1
 tests = 2
 tests_far = 3
+main = 4

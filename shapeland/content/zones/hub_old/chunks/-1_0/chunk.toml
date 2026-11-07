@@ -59,7 +59,7 @@ position = [-50.586, 1.6, 2.526]
 size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
-target = "teleporter.hub_old.pancake"
+target = "teleporter.main.hub_old"
 
 [teleporter.pad]
 primitive = "box"
