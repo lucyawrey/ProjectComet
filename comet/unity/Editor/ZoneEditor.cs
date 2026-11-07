@@ -161,14 +161,14 @@ namespace Comet.Unity.Editor
         // if the pick was canceled or refused (saying why).
         private static string? PickNewZoneFolder(string title, CometSettings settings)
         {
-            var zones = Path.TrimEndingDirectorySeparator(ProjectPath(settings.zonesFolder));
+            var zones = ProjectPath(settings.zonesFolder).TrimEnd('/', '\\');
             var picked = EditorUtility.SaveFolderPanel(title, zones, "");
             if (string.IsNullOrEmpty(picked))
             {
                 return null;
             }
 
-            picked = Path.TrimEndingDirectorySeparator(Path.GetFullPath(picked));
+            picked = Path.GetFullPath(picked).TrimEnd('/', '\\');
             var name = Path.GetFileName(picked);
             var problem =
                 Path.GetDirectoryName(picked) != zones ? $"Zones go directly in {settings.zonesFolder}."
