@@ -135,7 +135,8 @@ namespace Comet.ZoneFiles
                 foreach (var teleporter in chunk.Teleporters)
                 {
                     CheckTrigger(teleporter.Id, "teleporter", teleporter.Volume, chunk.Coord, zoneName, idFiles, file, Error);
-                    if (!IsZonedId(teleporter.Target, "teleporter"))
+                    // An empty target is a teleporter not linked yet, which the content build warns about.
+                    if (teleporter.Target != "" && !IsZonedId(teleporter.Target, "teleporter"))
                     {
                         Error(
                             file,

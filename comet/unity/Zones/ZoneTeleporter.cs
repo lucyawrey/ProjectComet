@@ -9,7 +9,7 @@ namespace Comet.Unity
         public FacingMode facing;
 
         [Tooltip("The teleporter it sends players to, in any zone (teleporter.cave.to_meadow).")]
-        public string target = "teleporter.";
+        public string target = "";
 
         [Tooltip("The color its pad turns toward while a player stands in it.")]
         public Color chargeColor = Color.white;
