@@ -29,13 +29,13 @@ namespace Comet.Unity.Editor
         public static void NewMenu()
         {
             var settings = CometSettings.Find(quiet: false);
-            if (settings == null || !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (settings == null)
             {
                 return;
             }
 
             var folder = PickNewZoneFolder("New zone", settings);
-            if (folder != null)
+            if (folder != null && EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
                 ZoneFolder.Write(folder, new Zone { Id = "zone." + Path.GetFileName(folder) });
                 Open(folder, settings);
@@ -169,10 +169,15 @@ namespace Comet.Unity.Editor
             }
 
             picked = Path.GetFullPath(picked).TrimEnd('/', '\\');
+            if (!string.Equals(Path.GetDirectoryName(picked), zones, PathComparison))
+            {
+                EditorUtility.DisplayDialog(title, $"Zones go directly in {settings.zonesFolder}.", "OK");
+                return null;
+            }
+
             var name = Path.GetFileName(picked);
             var problem =
-                Path.GetDirectoryName(picked) != zones ? $"Zones go directly in {settings.zonesFolder}."
-                : !ZoneValidation.IsName(name) ? $"'{name}' isn't a zone name: use lowercase letters, digits and underscores, starting with a letter."
+                !ZoneValidation.IsName(name) ? $"'{name}' isn't a zone name: use lowercase letters, digits and underscores, starting with a letter."
                 : Directory.Exists(picked) && Directory.EnumerateFileSystemEntries(picked).Any() ? $"{name} already has files in it."
                 : null;
             if (problem == null)
@@ -185,6 +190,10 @@ namespace Comet.Unity.Editor
             EditorUtility.DisplayDialog(title, problem, "OK");
             return null;
         }
+
+        // Windows and macOS file systems ignore case by default.
+        private static readonly StringComparison PathComparison =
+            Application.platform == RuntimePlatform.LinuxEditor ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
         private static void RemoveIfEmpty(string folder)
         {
