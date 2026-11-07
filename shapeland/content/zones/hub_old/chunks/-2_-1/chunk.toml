@@ -3,13 +3,13 @@ piece = "island"
 origin = [0, 26]
 
 [[teleporter]]
-id = "teleporter.hub.pancake"
+id = "teleporter.hub_old.pancake"
 volume = "box"
 position = [-64.784, 10.86, -56.315]
 size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
-target = "teleporter.hub.fields"
+target = "teleporter.hub_old.fields"
 charge_color = 0xFFFFFF
 
 [teleporter.pad]

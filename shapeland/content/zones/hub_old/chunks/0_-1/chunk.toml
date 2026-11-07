@@ -38,7 +38,7 @@ position = [4.11, 4.35, -36.37]
 scale = [18.231, 1.14, 18.231]
 
 [[spawn]]
-id = "spawn.hub.cube"
+id = "spawn.hub_old.cube"
 volume = "cylinder"
 position = [0.733, 5.61, -36.403]
 size = [4.0, 1.0, 4.0]
@@ -51,7 +51,7 @@ position = [0.733, 5.21, -36.403]
 scale = [4.0, 0.4, 4.0]
 
 [[spawn]]
-id = "spawn.hub.diamond"
+id = "spawn.hub_old.diamond"
 volume = "cylinder"
 position = [6.281, 5.61, -36.475]
 size = [4.0, 1.0, 4.0]
@@ -64,7 +64,7 @@ position = [6.281, 5.21, -36.475]
 scale = [4.0, 0.4, 4.0]
 
 [[spawn]]
-id = "spawn.hub.pyramid"
+id = "spawn.hub_old.pyramid"
 volume = "cylinder"
 position = [10.433, 5.61, -32.644]
 size = [4.0, 1.0, 4.0]

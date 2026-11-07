@@ -26,13 +26,13 @@ position = [-13.385, 5.87, 14.62]
 color = 0x9E8C7A
 
 [[teleporter]]
-id = "teleporter.hub.cubehome"
+id = "teleporter.hub_old.cubehome"
 volume = "box"
 position = [-2.91, 8.931, 43.32]
 size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
-target = "teleporter.hub.theatre"
+target = "teleporter.hub_old.theatre"
 charge_color = 0xFFFFFF
 
 [teleporter.pad]
@@ -53,13 +53,13 @@ text_height = 0.3
 arrow = true
 
 [[teleporter]]
-id = "teleporter.hub.main"
+id = "teleporter.hub_old.main"
 volume = "box"
 position = [-50.586, 1.6, 2.526]
 size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
-target = "teleporter.hub.pancake"
+target = "teleporter.hub_old.pancake"
 
 [teleporter.pad]
 primitive = "box"
