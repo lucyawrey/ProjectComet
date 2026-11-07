@@ -44,13 +44,13 @@ public class ZoneBuildTests
             Volume = new TriggerVolume { Position = new Vector3(x, 0, 4), Size = new Vector3(2, 2, 2) },
         };
 
-    private static ContentBuildResult Build(ContentFolder folder) =>
+    private static ContentBuildResult Build(ContentFolder folder, bool release = false) =>
         new ContentBuilder(folder.Root)
             .Add("widget", "widgets", TestToml.Default.Widget)
             .AddProps(Path.Combine(folder.Root, "models"))
             .AddGroups()
             .AddZones()
-            .Build();
+            .Build(release: release);
 
     // A zone with one placement, and a 1 m plate prop (its model spans x -1..0, z 0..1 in Unity's space).
     private static void WritePlacement(ContentFolder folder, Placement placement, bool uniformScale = false)
@@ -123,18 +123,23 @@ public class ZoneBuildTests
         Assert.StartsWith("'zone.meadow' is already used by", Assert.Single(Build(folder).Errors).Message);
     }
 
-    [Fact]
-    public void TeleportersTargetATeleporterInAnyZone()
+    [Theory]
+    [InlineData("", "teleporter.meadow.to_cave: no target yet, so it goes nowhere.")]
+    [InlineData(
+        "teleporter.cave.to_meadow",
+        "teleporter.meadow.to_cave: there's no teleporter 'teleporter.cave.to_meadow' to target yet, so it goes nowhere."
+    )]
+    public void ATeleporterNotLinkedYetWarnsButFailsARelease(string target, string message)
     {
         using var folder = new ContentFolder();
         var meadow = Zone("zone.meadow");
-        meadow.Chunks[0].Teleporters = [Teleporter("teleporter.meadow.to_cave", "teleporter.cave.to_meadow", 8)];
+        meadow.Chunks[0].Teleporters = [Teleporter("teleporter.meadow.to_cave", target, 8)];
         ZoneFolder.Write(Path.Combine(folder.Root, "zones", "meadow"), meadow);
 
-        Assert.Equal(
-            "teleporter.meadow.to_cave: there's no teleporter 'teleporter.cave.to_meadow' to target.",
-            Assert.Single(Build(folder).Errors).Message
-        );
+        var dev = Build(folder);
+        Assert.Empty(dev.Errors);
+        Assert.Equal(message, Assert.Single(dev.Warnings).Message);
+        Assert.Equal(message, Assert.Single(Build(folder, release: true).Errors).Message);
     }
 
     [Fact]

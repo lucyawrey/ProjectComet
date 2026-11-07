@@ -101,6 +101,9 @@ namespace ShapeLand.Client
         private Teleporter _sending;
         private MaterialPropertyBlock _padColor;
         private Triggers _triggers;
+
+        // Every teleporter in the content, so one whose target isn't there yet doesn't charge: the server won't send it.
+        private HashSet<string> _teleporterIds;
         private ShapeLandContent _content;
         private Shape _showcased;
         private JoinClient _join;
@@ -301,6 +304,7 @@ namespace ShapeLand.Client
             var zone = _join.Zone;
             _world = _join.World;
             _triggers = new Triggers(zone);
+            _teleporterIds = content.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Select(t => t.Id).ToHashSet();
             _drawnZone = new GameObject(zone.Id).transform;
             _drawnZone.SetParent(transform, false);
             var terrain = new GameObject("Terrain").transform;
@@ -492,7 +496,7 @@ namespace ShapeLand.Client
             {
                 var feet = Player.Motor.Position;
                 var spawn = _triggers.SpawnAt(feet);
-                var teleporter = _triggers.TeleporterAt(feet);
+                var teleporter = _triggers.TeleporterAt(feet) is { } at && _teleporterIds.Contains(at.Target) ? at : null;
                 var trigger = _triggers.All.FirstOrDefault(t => Triggers.Inside(t.Volume, feet));
                 _spawnCharge.Step(spawn, spawn?.Volume, now);
                 _triggerCharge.Step(trigger, trigger?.Volume, now);

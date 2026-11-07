@@ -1,0 +1,57 @@
+[[tile]]
+piece = "piece"
+origin = [6, 0]
+
+[[spawn]]
+id = "spawn.main.cube"
+volume = "cylinder"
+position = [-46.447, 4.2, 8.133]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
+primitive = "cylinder"
+position = [-46.447, 3.8, 8.133]
+scale = [4.0, 0.4, 4.0]
+
+[[spawn]]
+id = "spawn.main.pyramid"
+volume = "cylinder"
+position = [-53.604, 4.2, 4.498]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
+primitive = "cylinder"
+position = [-53.604, 3.8, 4.498]
+scale = [4.0, 0.4, 4.0]
+
+[[spawn]]
+id = "spawn.main.diamond"
+volume = "cylinder"
+position = [-52.748, 4.2, 11.626]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
+primitive = "cylinder"
+position = [-52.748, 3.8, 11.626]
+scale = [4.0, 0.4, 4.0]
+
+[[teleporter]]
+id = "teleporter.main.hub_old"
+volume = "box"
+position = [-55.673, 4.2, 8.514]
+size = [2.0, 1.0, 2.0]
+stand_seconds = 1.0
+facing = "direction"
+target = "teleporter.hub_old.main"
+
+[teleporter.pad]
+primitive = "box"
+position = [-55.673, 3.8, 8.514]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB
