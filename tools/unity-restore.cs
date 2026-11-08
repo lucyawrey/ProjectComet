@@ -12,6 +12,7 @@
 // Packages only the editor uses (Tomlyn, for the zone files) are also set to load in the editor only, so they stay
 // out of player builds, and their analyzers are left off: nothing in Unity uses Tomlyn's source generator.
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 using System.Text.RegularExpressions;
 
 args = Tool.Arguments(args);

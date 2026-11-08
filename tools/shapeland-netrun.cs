@@ -25,6 +25,7 @@
 // The bots run on this machine and reach the server through its published port, as a browser does, unless
 // --bots-net is given. Results go to artifacts/netruns/<time>-<profile>.json, with the server's log beside it.
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 using System.Globalization;
 using System.Text.RegularExpressions;
 

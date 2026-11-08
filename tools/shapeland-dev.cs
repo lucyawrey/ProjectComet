@@ -37,6 +37,7 @@
 // With the Unity editor open on the project, the web build runs in it (tools/run unity-batch); it must be on the Web
 // profile. ShapeLand only: Crystal's page comes from the Login server.
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;

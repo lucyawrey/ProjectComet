@@ -3,6 +3,7 @@
 //
 //   tools/run check
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 
 using System.Text.RegularExpressions;
 
