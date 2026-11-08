@@ -2,6 +2,7 @@ using Comet.Content;
 using Comet.Protocol.Messages;
 using Comet.Server.Connections;
 using Comet.Server.Movement;
+using Comet.Server.Ticking;
 using Comet.Simulation;
 using ShapeLand.Data;
 using ShapeLand.Shared.Content;
@@ -39,15 +40,15 @@ internal sealed class Player(Connection connection, int tickRate)
     /// <summary>Checks the player's position reports; made on joining.</summary>
     public MovementValidator Validator { get; set; } = null!;
 
-    public TickLimiter ChatLimiter { get; } = TickLimiter.Chat(tickRate);
+    public TickLimiter ChatLimiter { get; } = RateLimits.Chat(tickRate);
 
-    public TickLimiter JoinLimiter { get; } = TickLimiter.Join(tickRate);
+    public TickLimiter JoinLimiter { get; } = RateLimits.Join(tickRate);
 
-    public TickLimiter LookLimiter { get; } = TickLimiter.Look(tickRate);
+    public TickLimiter LookLimiter { get; } = RateLimits.Look(tickRate);
 
-    public TickLimiter RenameLimiter { get; } = TickLimiter.Rename(tickRate);
+    public TickLimiter RenameLimiter { get; } = RateLimits.Rename(tickRate);
 
-    public TickLimiter ReturnLimiter { get; } = TickLimiter.Return(tickRate);
+    public TickLimiter ReturnLimiter { get; } = RateLimits.Return(tickRate);
 
     /// <summary>Where the player goes on falling out of the world or returning; for the session only.</summary>
     public SpawnPoint SpawnPoint { get; set; } = null!;

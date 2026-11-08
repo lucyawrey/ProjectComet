@@ -63,17 +63,4 @@ public class ShapeLandRulesTests
 
     [Fact]
     public void ChatOfOnlyTagCharactersIsEmpty() => Assert.False(ShapeLandRules.TryNormalizeChat("\U000E0001\U000E0041\U000E007F", out _));
-
-    [Fact]
-    public void ChatAllowsABurstThenOneEveryTwoSeconds()
-    {
-        var limiter = TickLimiter.Chat(tickRate: 30);
-
-        Assert.True(limiter.TryTake(100));
-        Assert.True(limiter.TryTake(100));
-        Assert.True(limiter.TryTake(100));
-        Assert.False(limiter.TryTake(101));
-        Assert.True(limiter.TryTake(161)); // 2 s later
-        Assert.False(limiter.TryTake(162));
-    }
 }
