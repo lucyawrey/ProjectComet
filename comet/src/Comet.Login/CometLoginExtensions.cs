@@ -17,16 +17,12 @@ using Microsoft.Extensions.Options;
 
 namespace Comet.Login;
 
-/// <summary>Hosting <c>Comet.Login</c> in a game's Login server.</summary>
 public static class CometLoginExtensions
 {
     private const string CorsPolicy = "comet-login";
 
     /// <summary>
-    /// Adds the Login server's services: the game's two contexts and rules, Identity (through
-    /// <see cref="CometUserStore"/>), ticket signing, rate limits, CORS, startup migrations and the cleanup job. The
-    /// settings come from the <c>Login</c> configuration section; <paramref name="configure"/> sets the game's policy
-    /// on top.
+    /// Settings come from the <c>Login</c> configuration section; <paramref name="configure"/> overrides them.
     /// </summary>
     public static WebApplicationBuilder AddCometLogin<TAccounts, TRegion, TCharacter, TRules>(
         this WebApplicationBuilder builder,
@@ -98,7 +94,6 @@ public static class CometLoginExtensions
         return builder;
     }
 
-    /// <summary>Adds the middleware (forwarded headers, CORS, rate limits) and maps the endpoints.</summary>
     public static WebApplication MapCometLogin<TCharacter>(this WebApplication app)
         where TCharacter : Character
     {

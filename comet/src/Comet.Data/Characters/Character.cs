@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Comet.Data.Characters;
 
 /// <summary>
-/// A character: who it is and whose. A game adds its own columns by deriving its character class from this one;
-/// only the game's class is mapped (<see cref="CometRegionContext{TCharacter}"/>), so the table holds both.
+/// A game adds its own columns by deriving from this; only the game's class is mapped
+/// (<see cref="CometRegionContext{TCharacter}"/>).
 /// </summary>
 public class Character : ITimestamped
 {
@@ -25,11 +25,9 @@ public class Character : ITimestamped
     /// <summary>Set when the character is deleted; the row is purged after the game's hold.</summary>
     public DateTime? DeletedAt { get; set; }
 
-    // Not stored: computed from the columns above.
-
     [NotMapped]
     public bool IsDeleted => DeletedAt != null;
 
-    /// <summary>A shallow copy (the repository's, so a queued save doesn't share the game's object).</summary>
+    /// <summary>A shallow copy, so a queued save doesn't share the game's object.</summary>
     internal Character Copy() => (Character)MemberwiseClone();
 }

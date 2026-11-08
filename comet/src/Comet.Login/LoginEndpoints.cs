@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Comet.Login;
 
-/// <summary>The Login server's endpoints (<see cref="LoginPaths"/>).</summary>
 internal static class LoginEndpoints
 {
     public const string SignInPolicy = "sign-in";
@@ -126,7 +125,7 @@ internal static class LoginEndpoints
     public static IResult Problem(LoginError error) =>
         Results.Problem(statusCode: error.Status, title: error.Code, extensions: new Dictionary<string, object?> { ["code"] = error.Code });
 
-    /// <summary>The client's address (after the forwarded-headers middleware, so a trusted proxy's client).</summary>
+    /// <summary>Use after the forwarded-headers middleware, so a trusted proxy's client is seen.</summary>
     public static string Address(HttpContext http) => http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     private static IResult Session((string? Token, LoginError? Error) result) =>

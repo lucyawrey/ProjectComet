@@ -3,9 +3,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Comet.Data.Characters;
 
 /// <summary>
-/// The region database (the <c>region</c> schema): characters, their status and ownership. The Login server and the
-/// game servers use it. A game subclasses it with its own character class, <typeparamref name="TCharacter"/> (which
-/// adds the game's columns to the <c>character</c> table), and owns the migrations.
+/// The <c>region</c> schema, shared by the Login server and the game servers. A game subclasses it with its own
+/// <typeparamref name="TCharacter"/> and owns the migrations.
 /// </summary>
 public abstract class CometRegionContext<TCharacter>(DbContextOptions options) : DbContext(options)
     where TCharacter : Character
@@ -20,8 +19,7 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
         // In public, which every connection searches: Npgsql writes column collations without a schema.
         modelBuilder.HasCollation("public", CometRegion.CaseInsensitive, locale: "und-u-ks-level2", provider: "icu", deterministic: false);
 
-        // Only the game's class is an entity: Comet's Character is its unmapped base, so there's no hierarchy, no
-        // discriminator, and the game's columns are NOT NULL where their types are.
+        // Comet's Character is an unmapped base: no hierarchy or discriminator, and the game's columns are NOT NULL.
         modelBuilder.Ignore<Character>();
         modelBuilder.Entity<TCharacter>(character =>
         {
@@ -48,7 +46,6 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
     }
 }
 
-/// <summary>Names shared by every game's region context.</summary>
 public static class CometRegion
 {
     public const string Schema = "region";
@@ -57,6 +54,5 @@ public static class CometRegion
     public const string CharacterStatusTable = "character_status";
     public const string CharacterOwnerTable = "character_owner";
 
-    /// <summary>A case-insensitive ICU collation, for names unique ignoring case.</summary>
     public const string CaseInsensitive = "case_insensitive";
 }

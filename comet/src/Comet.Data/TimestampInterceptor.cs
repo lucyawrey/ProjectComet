@@ -4,9 +4,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Comet.Data;
 
 /// <summary>
-/// Sets <see cref="ITimestamped.CreatedAt"/> and <see cref="ITimestamped.UpdatedAt"/> on added rows, and
-/// <see cref="ITimestamped.UpdatedAt"/> on changed ones, as they're saved. Bulk updates (<c>ExecuteUpdate</c>) skip
-/// it and set <c>UpdatedAt</c> themselves.
+/// Stamps <see cref="ITimestamped"/> rows on save. Bulk updates (<c>ExecuteUpdate</c>) skip it and set
+/// <c>UpdatedAt</c> themselves.
 /// </summary>
 public sealed class TimestampInterceptor(TimeProvider clock) : SaveChangesInterceptor
 {

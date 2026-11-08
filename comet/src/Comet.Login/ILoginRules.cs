@@ -3,7 +3,6 @@ using Comet.Data.Characters;
 
 namespace Comet.Login;
 
-/// <summary>The game's rules for the Login server: what Comet leaves to each game.</summary>
 public interface ILoginRules<TCharacter>
     where TCharacter : Character
 {
@@ -11,15 +10,13 @@ public interface ILoginRules<TCharacter>
     string? CheckName(string name);
 
     /// <summary>
-    /// Makes a new guest's character from the game's part of the request, or returns null if the request isn't
-    /// allowed. The character's name is the game's choice.
+    /// Makes a new guest's character from the game's part of the request, or null if it isn't allowed.
     /// </summary>
     TCharacter? CreateCharacter(long characterId, long accountId, string username, JsonElement request);
 
-    /// <summary>What the client gets about its character (serialized as JSON).</summary>
+    /// <summary>Serialized as JSON for the client.</summary>
     object Describe(TCharacter character);
 
-    /// <summary>The game server a character plays on.</summary>
     GameServerAddress ServerFor(TCharacter character);
 
     /// <summary>Renaming the account renames its live characters too.</summary>
@@ -29,5 +26,5 @@ public interface ILoginRules<TCharacter>
     bool CharactersDeletedWithAccount { get; }
 }
 
-/// <summary>A game server: its node number (tickets name it) and the WebSocket address clients connect to.</summary>
+/// <summary><c>ServerId</c> is the node number that tickets name.</summary>
 public sealed record GameServerAddress(int ServerId, string Address);

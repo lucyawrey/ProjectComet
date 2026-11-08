@@ -5,14 +5,12 @@ using Microsoft.IdentityModel.Tokens;
 namespace Comet.Tickets;
 
 /// <summary>
-/// Checks join tickets for one game server: the signature (ES256 only, from a known key), the issuer, that it's for
-/// this server, that it hasn't expired, and that it hasn't been used here before. Used tickets are remembered in
-/// memory, so a ticket issued before this checker was made (before the server started) is refused as expired: it
-/// may have been used on the server's previous run. Thread-safe.
+/// Checks that a join ticket is signed, for this server, unexpired and unused. Used tickets are kept in memory only,
+/// so a ticket issued before the checker was made is refused as expired: it may have been used on a previous run.
+/// Thread-safe.
 /// </summary>
 public sealed class TicketChecker
 {
-    /// <summary>How far the Login server's and this server's clocks may disagree.</summary>
     public static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(5);
 
     private readonly int _serverId;
@@ -92,7 +90,6 @@ public sealed class TicketChecker
         return (new JoinTicket(jwt.Id, account, character, _serverId, jwt.ValidTo), null);
     }
 
-    // Forgets used tickets once they've expired anyway, at most every few seconds.
     private void Prune(DateTime now)
     {
         if (now < _nextPrune)

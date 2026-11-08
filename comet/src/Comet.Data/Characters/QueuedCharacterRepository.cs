@@ -3,16 +3,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Comet.Data.Characters;
 
-/// <summary>A queued status save: the character, the owner version it was made under, and where it is.</summary>
 public readonly record struct StatusSave(long CharacterId, long Version, CharacterPosition Position);
 
-/// <summary>A character this server believes it holds, under <see cref="Version"/>.</summary>
 public readonly record struct HeldCharacter(long CharacterId, long Version);
 
 /// <summary>
-/// The save queue behind every <see cref="ICharacterRepository{TCharacter}"/>: one writer task runs claims, look
-/// saves, leaves and each interval's batch in the order they came, retrying with backoff while the database is
-/// unreachable. A backend (PostgreSQL, or in memory for tests) supplies the single operations.
+/// One writer task runs claims, saves and leaves in the order they came, retrying with backoff while the database is
+/// unreachable. A backend supplies the single operations.
 /// </summary>
 public abstract class QueuedCharacterRepository<TCharacter> : ICharacterRepository<TCharacter>
     where TCharacter : Character
@@ -53,10 +50,9 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
     // Backend operations. Each runs on the writer's thread, one at a time, and may throw; IsTransient decides
     // whether the writer retries.
 
-    /// <summary>Waits until the database is ready, then releases every character held under this server's ID.</summary>
     protected abstract Task PrepareAsync(CancellationToken cancellationToken);
 
-    /// <summary>Claims and loads a character (<see cref="ClaimOutcome.Claimed"/> or <see cref="ClaimOutcome.NotFound"/>).</summary>
+    /// <summary>Returns <see cref="ClaimOutcome.Claimed"/> or <see cref="ClaimOutcome.NotFound"/>.</summary>
     protected abstract Task<CharacterClaim<TCharacter>> ClaimCoreAsync(long characterId, CancellationToken cancellationToken);
 
     /// <summary>Writes the saves whose version still holds, returning the characters whose saves applied.</summary>

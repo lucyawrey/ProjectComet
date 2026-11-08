@@ -12,16 +12,11 @@ using Npgsql;
 
 namespace Comet.Login;
 
-/// <summary>A refusal: the HTTP status and the stable code (<see cref="LoginErrors"/>).</summary>
 public sealed record LoginError(int Status, string Code);
 
-/// <summary>A signed-in request's account and session.</summary>
 public sealed record SignedIn(Account Account, Session Session);
 
-/// <summary>
-/// The account flows behind the Login server's endpoints: guests, signing in, sessions, passwords, recovery codes,
-/// renaming and join tickets. One per request (scoped).
-/// </summary>
+/// <summary>Scoped: one per request.</summary>
 public sealed class LoginAccounts<TCharacter>(
     CometAccountContext db,
     RegionContexts<TCharacter> regions,
@@ -118,7 +113,7 @@ public sealed class LoginAccounts<TCharacter>(
         return await StartSessionAsync(account, restore, revokeOthers: false, cancellationToken);
     }
 
-    /// <summary>Signs in with a recovery code, which works even while passwords are locked out, and revokes every other session.</summary>
+    /// <summary>Works even while passwords are locked out, and revokes every other session.</summary>
     public async Task<(string? Token, LoginError? Error)> SignInWithCodeAsync(string typed, bool restore, CancellationToken cancellationToken)
     {
         var code = RecoveryCodes.Normalize(typed);
@@ -132,7 +127,7 @@ public sealed class LoginAccounts<TCharacter>(
         return await StartSessionAsync(account, restore, revokeOthers: true, cancellationToken);
     }
 
-    /// <summary>The signed-in session for a request's bearer token, moving its expiry forward (at most once an hour).</summary>
+    /// <summary>Moves the session's expiry forward, at most once an hour.</summary>
     public async Task<(SignedIn? SignedIn, LoginError? Error)> AuthenticateAsync(HttpContext http, CancellationToken cancellationToken)
     {
         var header = http.Request.Headers.Authorization.ToString();
@@ -197,8 +192,7 @@ public sealed class LoginAccounts<TCharacter>(
     }
 
     /// <summary>
-    /// Sets the password: a guest's first one claims the account; changing it needs a recent sign-in. Either way the
-    /// account's other sessions are revoked.
+    /// A guest's first password claims the account; changing it needs a recent sign-in. Other sessions are revoked.
     /// </summary>
     public async Task<LoginError?> SetPasswordAsync(SignedIn signedIn, string password, CancellationToken cancellationToken)
     {
@@ -230,7 +224,7 @@ public sealed class LoginAccounts<TCharacter>(
         return null;
     }
 
-    /// <summary>Makes the account's recovery code, voiding the old one. Needs a claimed account and a recent sign-in.</summary>
+    /// <summary>Voids the old code. Needs a claimed account and a recent sign-in.</summary>
     public async Task<(string? Code, LoginError? Error)> MakeRecoveryCodeAsync(SignedIn signedIn, CancellationToken cancellationToken)
     {
         if (signedIn.Account.IsGuest)
@@ -250,10 +244,11 @@ public sealed class LoginAccounts<TCharacter>(
         return (code, null);
     }
 
-    /// <summary>Revokes the session. A guest has no way back in, so signing out deletes it and frees its name at once.</summary>
+    /// <summary>A guest has no way back in, so signing out deletes it and frees its name at once.</summary>
     public async Task SignOutAsync(SignedIn signedIn, CancellationToken cancellationToken)
     {
-        // One transaction for a guest: its sessions go with it, so a failure can't leave it unreachable but holding its name.
+        // One transaction for a guest: its sessions go with it, so a failure can't leave it unreachable but holding
+        // its name.
         if (signedIn.Account.IsGuest && await actions.DeleteAsync(signedIn.Account.Id, onlyGuest: true, cancellationToken))
         {
             await actions.PurgeAsync(cancellationToken);
@@ -264,7 +259,7 @@ public sealed class LoginAccounts<TCharacter>(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>Renames the account (and its live characters, if the game's names follow the username). The old name is free at once.</summary>
+    /// <summary>The old name is free at once.</summary>
     public async Task<LoginError?> RenameAsync(SignedIn signedIn, string name, CancellationToken cancellationToken)
     {
         if (rules.CheckName(name) is { } invalid)
@@ -304,7 +299,6 @@ public sealed class LoginAccounts<TCharacter>(
         }
     }
 
-    /// <summary>A join ticket for the account's character, and the game server it's for.</summary>
     public async Task<(TicketResponse? Ticket, LoginError? Error)> TicketAsync(SignedIn signedIn, CancellationToken cancellationToken)
     {
         var character = await CharacterOfAsync(signedIn.Account.Id, cancellationToken);

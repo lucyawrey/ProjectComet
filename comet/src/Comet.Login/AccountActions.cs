@@ -9,9 +9,8 @@ using Microsoft.Extensions.Options;
 namespace Comet.Login;
 
 /// <summary>
-/// What happens to accounts outside a player's own requests: banning, deleting, restoring, the guest cleanup and the
-/// purge. Bans and deletions kick a player who's online by adding one to their characters' owner versions, so the
-/// game server drops them at its next save or version check, without ever reading account data.
+/// Bans and deletions kick an online player by adding one to their characters' owner versions, so the game server
+/// drops them at its next save or version check without ever reading account data.
 /// </summary>
 public sealed class AccountActions<TCharacter>(
     IServiceScopeFactory scopes,
@@ -29,8 +28,8 @@ public sealed class AccountActions<TCharacter>(
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     /// <summary>
-    /// Bans the account: it can't sign in or get tickets, and a player online is kicked now and again just after the
-    /// ticket lifetime, catching a join with a ticket issued before the ban. The second kick is scheduled in memory.
+    /// Kicks an online player now and again just after the ticket lifetime, catching a join with a ticket issued
+    /// before the ban. The second kick is scheduled in memory.
     /// </summary>
     public async Task BanAsync(long accountId, CancellationToken cancellationToken)
     {
@@ -64,9 +63,8 @@ public sealed class AccountActions<TCharacter>(
     }
 
     /// <summary>
-    /// Deletes the account: its sessions go, its username stays held until the purge, and (if the game says so) its
-    /// characters are deleted with it. A player online is kicked. With <paramref name="onlyGuest"/>, an account claimed
-    /// meanwhile is left alone; returns whether it was deleted.
+    /// The username stays held until the purge. With <paramref name="onlyGuest"/>, an account claimed meanwhile is left
+    /// alone; returns whether it was deleted.
     /// </summary>
     public async Task<bool> DeleteAsync(long accountId, bool onlyGuest, CancellationToken cancellationToken)
     {
@@ -98,7 +96,7 @@ public sealed class AccountActions<TCharacter>(
     }
 
     /// <summary>
-    /// Restores a deleted account in <paramref name="db"/>'s open transaction, with the characters deleted with it.
+    /// Runs in <paramref name="db"/>'s open transaction.
     /// </summary>
     public async Task RestoreAsync(CometAccountContext db, Account account, CancellationToken cancellationToken)
     {
@@ -116,7 +114,6 @@ public sealed class AccountActions<TCharacter>(
         }
     }
 
-    /// <summary>Adds one to the owner version of each of the account's characters, so a game server holding one drops it.</summary>
     public async Task KickAsync(long accountId, CancellationToken cancellationToken)
     {
         await using var region = regions.Create();
@@ -124,8 +121,7 @@ public sealed class AccountActions<TCharacter>(
     }
 
     /// <summary>
-    /// Deletes unclaimed guests idle for <see cref="LoginOptions.GuestIdle"/>: no session use, no status save and no
-    /// owner heartbeat in that time. Returns how many.
+    /// Idle means no session use, status save or owner heartbeat for <see cref="LoginOptions.GuestIdle"/>.
     /// </summary>
     public async Task<int> CleanUpGuestsAsync(CancellationToken cancellationToken)
     {
@@ -178,9 +174,7 @@ public sealed class AccountActions<TCharacter>(
     }
 
     /// <summary>
-    /// Removes accounts and characters deleted longer ago than their holds, and deleted guests with their characters
-    /// at once (a guest can't sign in to restore itself, so the hold would only keep its name taken). Returns how many
-    /// of each.
+    /// Deleted guests go at once: a guest can't sign in to restore itself, so the hold would only keep its name taken.
     /// </summary>
     public async Task<(int Accounts, int Characters)> PurgeAsync(CancellationToken cancellationToken)
     {

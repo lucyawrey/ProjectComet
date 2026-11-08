@@ -5,8 +5,8 @@ using System.Text;
 namespace Comet.Login;
 
 /// <summary>
-/// Session tokens: 32 random bytes in base64url with a <c>cs_</c> prefix, so secret scanners and logs can tell them
-/// apart. Only their SHA-256 is stored; a token this random can't be guessed however fast the hash.
+/// 32 random bytes with a <c>cs_</c> prefix, so secret scanners and logs can tell them apart. Only the SHA-256 is
+/// stored; a token this random can't be guessed however fast the hash.
 /// </summary>
 public static class SessionTokens
 {
@@ -18,9 +18,8 @@ public static class SessionTokens
 }
 
 /// <summary>
-/// Recovery codes: 26 characters of Crockford's base32 (no I, L, O or U), about 130 bits from a cryptographic random
-/// generator, shown in groups of four. Reading one ignores dashes, spaces and case, and takes I and L as 1 and O as
-/// 0. Only the SHA-256 of the plain code is stored, looked up through a unique index.
+/// 26 characters of Crockford's base32 (about 130 bits), shown in groups of four. Reading one ignores dashes, spaces
+/// and case, and takes I and L as 1 and O as 0. Only the SHA-256 is stored, looked up through a unique index.
 /// </summary>
 public static class RecoveryCodes
 {
@@ -28,7 +27,6 @@ public static class RecoveryCodes
     private const string Alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
     private const int GroupSize = 4;
 
-    /// <summary>A new code, grouped for showing (<c>ABCD-EFGH-…</c>).</summary>
     public static string New()
     {
         var code = RandomNumberGenerator.GetString(Alphabet, Length);
@@ -63,6 +61,5 @@ public static class RecoveryCodes
         return code.Length == Length ? code.ToString() : null;
     }
 
-    /// <summary>The stored hash of a plain (normalized) code.</summary>
     public static byte[] Hash(string normalized) => SHA256.HashData(Encoding.ASCII.GetBytes(normalized));
 }

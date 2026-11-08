@@ -1,10 +1,8 @@
 namespace Comet.Data;
 
 /// <summary>
-/// Makes Snowflake-style 64-bit row IDs: 42 bits of milliseconds since <see cref="Epoch"/> (about 139 years), 10 bits
-/// of node number (one per server process, from config) and 11 bits of sequence (2,048 IDs per millisecond per node).
-/// The sign bit stays 0, so IDs fit PostgreSQL's <c>bigint</c>. IDs from one generator only grow; IDs from different
-/// nodes never collide. Thread-safe.
+/// Snowflake-style 64-bit row IDs: 42 bits of milliseconds since <see cref="Epoch"/>, 10 of node number (one per
+/// server process) and 11 of sequence. The sign bit stays 0 to fit <c>bigint</c>. Thread-safe.
 /// </summary>
 public sealed class SnowflakeIds
 {
@@ -58,7 +56,7 @@ public sealed class SnowflakeIds
                 _sequence = (_sequence + 1) & MaxSequence;
                 if (_sequence == 0)
                 {
-                    time = WaitUntil(_lastTime + 1); // this millisecond is used up
+                    time = WaitUntil(_lastTime + 1);
                 }
             }
             else
@@ -71,10 +69,8 @@ public sealed class SnowflakeIds
         }
     }
 
-    /// <summary>When an ID was made, to the millisecond.</summary>
     public static DateTimeOffset TimeOf(long id) => Epoch.AddMilliseconds(id >> (NodeBits + SequenceBits));
 
-    /// <summary>The node that made an ID.</summary>
     public static int NodeOf(long id) => (int)((id >> SequenceBits) & MaxNode);
 
     private long Now()

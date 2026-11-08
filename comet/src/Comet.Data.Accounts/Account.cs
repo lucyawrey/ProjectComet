@@ -4,10 +4,8 @@ using Microsoft.AspNetCore.Identity;
 namespace Comet.Data.Accounts;
 
 /// <summary>
-/// A player's or staff member's account: ASP.NET Core Identity's user, keyed by a Snowflake ID, with Comet's own
-/// columns. Identity's email, phone and two-factor columns aren't stored (<see cref="CometAccountContext"/>).
-/// Identity's own properties (<c>Id</c>, <c>UserName</c>) are on its base class, so they can't be marked
-/// <c>required</c>: set them when making an account.
+/// Identity's own properties (<c>Id</c>, <c>UserName</c>) can't be marked <c>required</c> here: set them when making
+/// an account.
 /// </summary>
 public class Account : IdentityUser<long>, ITimestamped
 {
@@ -33,13 +31,10 @@ public class Account : IdentityUser<long>, ITimestamped
     /// </summary>
     public DateTime? DeletedAt { get; set; }
 
-    // Not stored: computed from the columns above.
-
-    /// <summary>Whether the account is deleted and waiting for the purge. Deletion isn't a <see cref="Status"/>, so a ban survives it.</summary>
+    /// <summary>Deletion isn't a <see cref="Status"/>, so a ban survives it.</summary>
     [NotMapped]
     public bool IsDeleted => DeletedAt != null;
 
-    /// <summary>A guest: no password set yet (<see cref="ClaimedAt"/> is null).</summary>
     [NotMapped]
     public bool IsGuest => ClaimedAt == null;
 

@@ -5,13 +5,12 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Comet.Login;
 
-/// <summary>Makes the game's region context, on its own connection or sharing the account context's.</summary>
 public abstract class RegionContexts<TCharacter>(string connectionString, TimeProvider clock)
     where TCharacter : Character
 {
     public CometRegionContext<TCharacter> Create() => Create(options => options.UseCometRegion(connectionString, clock));
 
-    /// <summary>A region context in <paramref name="accounts"/>' open transaction, so one commit covers both schemas.</summary>
+    /// <summary>Joins <paramref name="accounts"/>' open transaction, so one commit covers both schemas.</summary>
     public async Task<CometRegionContext<TCharacter>> JoinAsync(DbContext accounts, CancellationToken cancellationToken)
     {
         var transaction =

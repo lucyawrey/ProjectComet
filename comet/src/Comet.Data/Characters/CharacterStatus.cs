@@ -1,6 +1,6 @@
 namespace Comet.Data.Characters;
 
-/// <summary>Where a character is, saved periodically and on leaving. No row until the first save.</summary>
+/// <summary>No row until the first save.</summary>
 public class CharacterStatus : ITimestamped
 {
     public required long CharacterId { get; set; }
