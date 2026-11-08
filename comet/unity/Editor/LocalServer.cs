@@ -15,25 +15,14 @@ using Debug = UnityEngine.Debug;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Runs the game server (the Comet settings' server project) on this computer, so play mode and local playtests
-    /// need no terminal. With a Login project in the settings, it also starts the development database (the settings'
-    /// database script, with a database for this checkout and port) and the Login server beside the game server. With Start with Play Mode on (each person's own choice, on by default), entering play mode
-    /// starts it unless a game server already answers <c>/health</c> on the port: one started elsewhere (a script) is
-    /// used as it is and never restarted or stopped from here. The editor's own server keeps running between plays,
-    /// restarts when the content changes, and stops when the editor quits. Each person's <see cref="Options"/> can also
-    /// serve the last web build, open it to the local network, and start bots (Comet › Server › Options…). It logs
-    /// to <see cref="LogFile"/>. Which server it is (pids, start times, content) is kept in <c>Library/</c>, so the
-    /// editor finds it again after a script reload, or after a restart if it crashed. Builds run in the background
-    /// (Unity's progress bar, bottom right), so the editor and play mode carry on; play mode can't connect until the
-    /// server answers.
+    /// Runs the game server on this computer, so play mode and local playtests need no terminal. One already answering
+    /// <c>/health</c> on the port (started elsewhere) is used as it is and never restarted or stopped from here.
     /// </summary>
     [InitializeOnLoad]
     public static partial class LocalServer
     {
-        /// <summary>The server's log, relative to the Unity project.</summary>
         public const string LogFile = "Logs/game-server.log";
 
-        /// <summary>The Login server's log, relative to the Unity project.</summary>
         public const string LoginLogFile = "Logs/login-server.log";
 
         private const string Menu = "Comet/Server/";
@@ -60,7 +49,7 @@ namespace Comet.Unity.Editor
             ContentBuild.Copied += OnContentCopied;
             EditorApplication.delayCall += SharePort;
 
-            // A start that was still waiting for the server to answer when the scripts reloaded (entering play mode does).
+            // A start still waiting for the server to answer when scripts reloaded (entering play mode does).
             if (Read() is { waiting: true } state && Alive(state.pid, state.startTicks))
             {
                 Wait();
@@ -85,20 +74,16 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>What the editor's server runs with: each person's own choices, kept in the editor's preferences.</summary>
         public struct Options
         {
-            /// <summary>Serve the last web build from the server, so a browser can play.</summary>
             public bool Web;
 
             /// <summary>Listen on every network interface, so others on the local network can join.</summary>
             public bool Lan;
 
-            /// <summary>How many bots to start once the server answers.</summary>
             public int Bots;
         }
 
-        /// <summary>Whether entering play mode starts the server if none is running; on by default.</summary>
         public static bool StartWithPlayMode
         {
             get => EditorPrefs.GetBool(StartWithPlayKey, true);
@@ -106,9 +91,8 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Whether play mode joins a game server started outside the editor that answers on the settings' port (Comet ›
-        /// Server › Join Outside Server, off by default). Off, the editor always starts its own, on the next free port
-        /// when that one is taken.
+        /// Whether play mode joins a game server started outside the editor on the settings' port (off by default).
+        /// Off, the editor always starts its own, on the next free port when that one is taken.
         /// </summary>
         public static bool JoinOutsideServer
         {
@@ -116,13 +100,12 @@ namespace Comet.Unity.Editor
             set => EditorPrefs.SetBool(JoinOutsideKey, value);
         }
 
-        /// <summary>The port the editor's own server runs (or is starting) on; the settings' port when it isn't running.</summary>
+        /// <summary>The settings' port when the editor's own server isn't running.</summary>
         public static int Port(CometSettings settings) =>
             Read() is { } state && Alive(state.pid, state.startTicks) ? state.port
             : _building != null ? LocalServerPort.InEditor ?? settings.serverPort
             : settings.serverPort;
 
-        /// <summary>The options the next start uses.</summary>
         public static Options Chosen
         {
             get =>
@@ -140,16 +123,12 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>The most bots the editor starts.</summary>
         public const int MaxBots = 50;
 
-        /// <summary>Whether the editor's own server is running.</summary>
         public static bool Running => Read() is { } state && Alive(state.pid, state.startTicks);
 
-        /// <summary>Whether it's still starting: building, or launched and not yet answering.</summary>
         public static bool Starting => _building != null || (Read() is { waiting: true } state && Alive(state.pid, state.startTicks));
 
-        /// <summary>Whether a start is building the server (or bots) in the background.</summary>
         public static bool Building => _building != null;
 
         // The server (and bots) being built in the background for a start, or null; and a count of stops, so a stop
@@ -157,7 +136,6 @@ namespace Comet.Unity.Editor
         private static Task<(Built Server, Built Bots, Built Login, Built Database)>? _building;
         private static int _stops;
 
-        /// <summary>The options the running server started with, or null if the editor's server isn't running.</summary>
         public static Options? RunningWith =>
             Read() is { } state && Alive(state.pid, state.startTicks)
                 ? new Options
@@ -168,7 +146,6 @@ namespace Comet.Unity.Editor
                 }
                 : (Options?)null;
 
-        /// <summary>Whether a game server answers <c>/health</c> on the settings' port now (the editor's own or another).</summary>
         public static bool Answers(CometSettings settings)
         {
             try
@@ -181,7 +158,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>This computer's address on the local network (the interface with a gateway), or null if it has none.</summary>
         public static string? LanAddress()
         {
             try
@@ -254,8 +230,8 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Off, the editor's server runs alone, keeping characters in a file, and play mode joins it by name; on, the
-        /// Login server and PostgreSQL (in Docker) run too. Changing it stops the server, so the next start matches.
+        /// Off, the editor's server runs alone, keeping characters in a file; on, the Login server and PostgreSQL
+        /// (in Docker) run too. Changing it stops the server, so the next start matches.
         /// </summary>
         public static bool UseAccounts
         {
@@ -293,10 +269,8 @@ namespace Comet.Unity.Editor
             return !EditorApplication.isPlaying;
         }
 
-        // Whether the editor's server runs with the Login server: Use Accounts is on and the game has one.
         private static bool WithAccounts(CometSettings settings) => LocalServerPort.UseAccounts && !string.IsNullOrEmpty(settings.loginProject);
 
-        /// <summary>Stops the editor's server and starts it again with the chosen options, building it first.</summary>
         public static void Restart()
         {
             if (Settings() is { } settings)
@@ -306,7 +280,7 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Entering play mode: use the editor's own server if it's running (restarting it if the content changed), or with
+        // Entering play mode: use the editor's own server if it's running (restarted if content changed), or with
         // Join Outside Server one that answers on the port; else start the editor's own.
         private static void OnPlayModeChanged(PlayModeStateChange change)
         {
@@ -365,7 +339,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Says which outside server play mode joins, and whether it plays other content than the editor has.
         private static void UseOutside(CometSettings settings)
         {
             if (PlayedContent(settings) is { } played && ContentHashNow() is { } ours && played != ours)
@@ -412,10 +385,9 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Starts the server with the chosen options, building it (and the bots, if any) first when
-        /// <paramref name="build"/> or when it never was, then waits for it to answer in the background and starts the
-        /// bots. False (with the reason in the Console) if it couldn't start. <paramref name="answers"/> passes on
-        /// whether a server answered on the port just now, to save asking again.
+        /// Builds the server (and the bots) first when <paramref name="build"/> or when it never was, then waits in the
+        /// background for it to answer. False (with the reason in the Console) if it couldn't start.
+        /// <paramref name="answers"/> says whether a server answered on the port just now, to save asking again.
         /// </summary>
         public static bool Start(CometSettings settings, bool build, bool? answers = null)
         {
@@ -546,7 +518,7 @@ namespace Comet.Unity.Editor
             );
         }
 
-        /// <summary>Stops the editor's own server and its bots, if it's running; never a server started elsewhere.</summary>
+        /// <summary>Never stops a server started elsewhere.</summary>
         public static void Stop(bool quiet)
         {
             _stops++;
@@ -592,7 +564,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>The web build folder (a full path), if it has a page; null otherwise.</summary>
         public static string? WebBuild(CometSettings settings)
         {
             if (string.IsNullOrEmpty(settings.webBuildFolder))
@@ -604,7 +575,7 @@ namespace Comet.Unity.Editor
             return File.Exists(Path.Combine(folder, "index.html")) ? folder : null;
         }
 
-        // The web build loads its content from its own StreamingAssets, so a content change needs only a copy, not a new build.
+        // The web build loads content from its own StreamingAssets, so a content change needs only a copy.
         private static void CopyContentInto(string web)
         {
             if (ContentBuild.Source is not { } source || !File.Exists(source))
@@ -617,8 +588,6 @@ namespace Comet.Unity.Editor
             File.Copy(source, target, overwrite: true);
         }
 
-        // Waits in the background for the server just started to answer (then starts its bots), or to stop (saying
-        // why, from its log).
         private static void Wait()
         {
             var settings = Settings();
@@ -698,7 +667,6 @@ namespace Comet.Unity.Editor
             EditorApplication.update += Poll;
         }
 
-        // Where people reach it: this computer, and others on the network with LAN on; the page with the web build.
         private static string Describe(State state, CometSettings settings)
         {
             var scheme = state.web ? "http://" : "";
@@ -760,7 +728,6 @@ namespace Comet.Unity.Editor
             public string contentHash = "";
         }
 
-        // The content hash the server on the port says it plays (its /info), or null if it doesn't say.
         private static string? PlayedContent(CometSettings settings)
         {
             try
@@ -775,20 +742,19 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // The checkout (the folder holding .git, a folder in the main checkout and a file in a worktree) that holds
-        // the Unity project, which names its database as tools/run shapeland-dev does; the Unity project's own folder is
-        // named the same in every checkout.
+        // The checkout (the folder holding .git: a folder in the main checkout, a file in a worktree) that holds
+        // the Unity project, which names its database as tools/run shapeland-dev does; the Unity project's own folder
+        // is named the same in every checkout.
         private static string CheckoutRoot(string projectRoot) => LocalServerPort.CheckoutRoot(projectRoot);
 
-        // The built content's hash now, or null if there's none.
         private static string? ContentHashNow() =>
             ContentBuild.Source is { } source && File.Exists(source) ? ContentHash.Of(File.ReadAllBytes(source)) : null;
 
         private static CometSettings? Settings() =>
             CometSettings.Find(quiet: true) is { } settings && !string.IsNullOrEmpty(settings.serverProject) ? settings : null;
 
-        // Tells play mode which ports to join (LocalServerPort): the editor's own server's while it runs or builds, else
-        // the settings' ones.
+        // Tells play mode which ports to join (LocalServerPort): the editor's own server's while it runs or
+        // builds, else the settings' ones.
         private static void SharePort()
         {
             if (Settings() is not { } settings || _building != null)
@@ -812,7 +778,6 @@ namespace Comet.Unity.Editor
             SessionState.SetInt(LocalServerPort.LoginKey, loginPort);
         }
 
-        // The last lines of the server's log.
         private static string Tail()
         {
             try

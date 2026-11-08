@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>A trigger in a zone opened in the editor: standing in it flips the placements its effects name. Clicking its pad selects it first.</summary>
+    /// <summary>Standing in it flips the placements its effects name.</summary>
     public sealed class ZoneToggleTrigger : ZoneTrigger
     {
         [Serializable]

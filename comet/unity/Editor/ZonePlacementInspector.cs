@@ -6,10 +6,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// A placement's Inspector: its fields, and its color as one field with a reset button (<see cref="ColorFields"/>).
-    /// (With one primitive selected, the scale tool is <see cref="PrimitiveSizeTool"/>.)
-    /// </summary>
     [CustomEditor(typeof(ZonePlacement))]
     [CanEditMultipleObjects]
     internal sealed class ZonePlacementInspector : UnityEditor.Editor
@@ -19,7 +15,6 @@ namespace Comet.Unity.Editor
             serializedObject.Update();
             var placement = (ZonePlacement)target;
 
-            // Only what this kind of placement uses: a primitive's values for primitives, no color for group copies.
             var hidden = new List<string> { "m_Script" };
             if (targets.Cast<ZonePlacement>().Any(p => !p.isPrimitive || p.IsGroup))
             {
@@ -46,7 +41,6 @@ namespace Comet.Unity.Editor
                 hidden.AddRange(new[] { nameof(ZonePlacement.prop), nameof(ZonePlacement.isPrimitive) });
             }
 
-            // Only a group's parts have a role: in a group's own scene, or under a copy edited in place.
             if (targets.Cast<ZonePlacement>().Any(p => p.IsLoose && p.GetComponentInParent<ZoneEditing>(true) is not { IsGroup: true }))
             {
                 hidden.Add(nameof(ZonePlacement.role));
@@ -97,7 +91,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Swapping in place, as blockout becomes a finished level: a primitive for a prop, a prop for a box.
         private static void SwapButtons(ZonePlacement placed)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -141,8 +134,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A copy's colors by role: a row for each role its group's parts play, showing the group's own color until
-        // set; reset goes back to it. Roles the group no longer has are listed for removal.
         private static void RoleColors(ZonePlacement copy)
         {
             if (copy.EditingInPlace || ZoneGroups.Find(copy.group) is null)
@@ -205,7 +196,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A copy's own actions: edit its group (here, in place, or in a scene of its own), or unpack it into loose placements.
         private static void GroupButtons(ZonePlacement copy)
         {
             var settings = CometSettings.Find(quiet: true);

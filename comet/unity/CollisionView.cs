@@ -101,8 +101,7 @@ namespace Comet.Unity
         }
 
         /// <summary>
-        /// The lines of a volume of <paramref name="kind"/> and <paramref name="size"/> standing on the origin, as
-        /// pairs of points: the shape players are checked against, cut as finely as <paramref name="budget"/> says.
+        /// The lines (pairs of points) of a volume on the origin, cut as finely as <paramref name="budget"/> says.
         /// The editor's gizmos draw these too.
         /// </summary>
         public static Vector3[] VolumeEdges(PrimitiveKind kind, Vector3 size, PolygonBudget budget) =>
@@ -120,7 +119,6 @@ namespace Comet.Unity
             return new[] { from, from + Vector3.forward * Mathf.Max(size.z / 2, 1) };
         }
 
-        /// <summary>Draws a body this frame: an upright cylinder standing on <paramref name="feet"/>, seen through everything.</summary>
         public void DrawBody(Vector3 feet, float radius, float height, Color color)
         {
             if (_shown)
@@ -129,7 +127,7 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>Draws a body at <paramref name="feet"/> for the next <paramref name="seconds"/>, fading out.</summary>
+        /// <summary>Draws a body for the next <paramref name="seconds"/>, fading out.</summary>
         public void Mark(Vector3 feet, float radius, float height, Color color, float seconds) =>
             _markers.Add((Matrix4x4.TRS(feet, Quaternion.identity, new Vector3(radius, height, radius)), color, Time.unscaledTime + seconds));
 

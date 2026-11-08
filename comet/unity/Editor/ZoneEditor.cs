@@ -14,11 +14,8 @@ using static Comet.Unity.Conversions;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Opens a zone into a working scene named after it and saves it back to its files (Comet › Zones, or saving the
-    /// scene: <see cref="ZoneEditorScenes"/>). The scene is never the source of truth: the zone's files are, and the
-    /// scene file sits in an ignored folder. Terrain shows as preview meshes; placed props, spawns and volumes are
-    /// objects to move with Unity's own tools, and on saving each belongs to the chunk holding its pivot. A spawn
-    /// point's, teleporter's or trigger's pad is a child of it, so they move together, and is saved inside it.
+    /// Opens a zone into a working scene named after it and saves it back to its files; the files, not the scene,
+    /// are the source of truth. On saving, each placed object goes to the chunk holding its pivot.
     /// </summary>
     public static partial class ZoneEditor
     {
@@ -26,7 +23,6 @@ namespace Comet.Unity.Editor
             MessagePack.Resolvers.StandardResolver.Instance
         );
 
-        /// <summary>Opens the zone in <paramref name="folder"/> into a new scene; false (with the reasons logged) if its files have errors.</summary>
         public static bool Open(string folder, CometSettings settings)
         {
             if (EditorApplication.isPlaying)
@@ -54,7 +50,6 @@ namespace Comet.Unity.Editor
             editing.folder = RelativeToProject(folder);
             Build(root.transform, zone, settings);
 
-            // Keep everything but the objects, which the scene holds now.
             foreach (var chunk in zone.Chunks)
             {
                 chunk.Placements = new Placement[0];
@@ -67,7 +62,7 @@ namespace Comet.Unity.Editor
 
             editing.ZoneData = MessagePackSerializer.Serialize(zone, Serializer);
 
-            // Saved at once into the ignored scenes folder, so the scene has the zone's name and Unity's Save saves the zone.
+            // Saved at once into the ignored scenes folder, so the scene has the zone's name and Save saves the zone.
             Directory.CreateDirectory(ProjectPath(settings.scenesFolder));
             ZoneEditorScenes.Quiet = true;
             try
@@ -84,7 +79,6 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        /// <summary>Writes an opened zone back to its files; false (with the reasons logged) if it doesn't validate.</summary>
         public static bool Save(ZoneEditing editing)
         {
             if (!editing.HasZoneData)
@@ -116,7 +110,6 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        // Writes a zone to its folder; false (with the reasons logged) if it doesn't validate.
         private static bool Write(Zone zone, string folder)
         {
             var errors = ZoneValidation.Check(zone);
@@ -137,16 +130,13 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        /// <summary>
-        /// Adds a sign to a spawn point, teleporter or trigger, saved with it: over the middle of its volume's top,
-        /// with a new sign's defaults and its arrow on.
-        /// </summary>
+        /// <summary>Adds a sign saved with the trigger, over the middle of its volume's top.</summary>
         public static ZoneSign AddSign(ZoneTrigger trigger)
         {
             var sign = Child(trigger.transform, $"{trigger.id} sign").gameObject.AddComponent<ZoneSign>();
             sign.transform.localPosition = Vector3.up * (trigger.size.y + TriggerSignLift);
             sign.text = "Sign";
-            sign.arrow = true; // pointing down at its trigger
+            sign.arrow = true;
             Undo.RegisterCreatedObjectUndo(sign.gameObject, "Add Sign");
             return sign;
         }
@@ -154,7 +144,6 @@ namespace Comet.Unity.Editor
         // How far above a trigger's volume a sign added to it goes, in meters.
         private const float TriggerSignLift = 0.5f;
 
-        /// <summary>Adds a sign at <paramref name="position"/> in an opened zone, with a new sign's defaults.</summary>
         public static ZoneSign AddSign(ZoneEditing editing, Vector3 position)
         {
             var parent = editing.transform.Find(SignsFolder) ?? Child(editing.transform, SignsFolder);
@@ -183,9 +172,8 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Places a prop (by id), a primitive (by kind, <c>box</c>) or a group (by id) at <paramref name="position"/> in an opened
-        /// zone: a prop as a linked model with its placement marker, a primitive at its starting size. With a
-        /// <paramref name="color"/>, the placement has it as its own.
+        /// Places a prop (by id), a primitive (by kind, <c>box</c>) or a group (by id). With <paramref name="color"/>,
+        /// the placement has it as its own.
         /// </summary>
         public static GameObject Place(ZoneEditing editing, string placeable, Vector3 position, CometSettings settings, Color? color = null)
         {
@@ -224,9 +212,8 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Adds a spawn point, teleporter or trigger (<typeparamref name="T"/>) standing at <paramref name="position"/>
-        /// in an opened zone, with the settings' defaults for its kind: a pad (none for triggers), flattened and sunk
-        /// halfway into the ground, with the volume fitted on its top.
+        /// Adds a spawn point, teleporter or trigger with the settings' defaults for its kind: a pad (none for
+        /// triggers), flattened and sunk halfway into the ground, with the volume fitted on its top.
         /// </summary>
         public static T AddTrigger<T>(ZoneEditing editing, string id, Vector3 position, CometSettings settings)
             where T : ZoneTrigger
@@ -288,8 +275,8 @@ namespace Comet.Unity.Editor
         }
 
         /// <summary>
-        /// Fits a trigger's volume to its pad: standing on the pad's top, as wide and deep as the pad and turned with
-        /// it, its height kept; round pads get a cylinder, the rest a box. The pad stays where it is.
+        /// Fits a trigger's volume to its pad: on the pad's top, as wide and deep as the pad and turned with it, its
+        /// height kept; round pads get a cylinder, the rest a box.
         /// </summary>
         public static void FitToPad(ZoneTrigger trigger)
         {
@@ -324,7 +311,7 @@ namespace Comet.Unity.Editor
             EditorUtility.DisplayDialog(title, errors.Count > 8 ? $"{shown}\n…and {errors.Count - 8} more (see the Console)." : shown, "OK");
         }
 
-        /// <summary>Draws an opened zone's terrain preview again if it or a chunk's mesh is missing (they aren't saved with the scene).</summary>
+        /// <summary>Meshes aren't saved with the scene, so this draws the preview again if one is missing.</summary>
         public static void RedrawIfMissing(ZoneEditing editing)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -341,7 +328,6 @@ namespace Comet.Unity.Editor
             RebuildTerrain(editing, MessagePackSerializer.Deserialize<Zone>(editing.ZoneData, Serializer), settings);
         }
 
-        // Scale in world space; the same as localScale under an unscaled, unrotated parent.
         private static void SetWorldScale(Transform t, Vector3 scale)
         {
             var parent = t.parent != null ? t.parent.lossyScale : Vector3.one;

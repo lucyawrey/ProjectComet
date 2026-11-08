@@ -7,8 +7,8 @@ using UnityEngine.Networking;
 namespace Comet.Unity
 {
     /// <summary>
-    /// The Login server over <see cref="UnityWebRequest"/>, which works in web builds (the browser's fetch) as well as on
-    /// desktop. Await it on Unity's main thread.
+    /// The Login server over <see cref="UnityWebRequest"/>, which works in web builds (browser fetch) and on desktop.
+    /// Await it on Unity's main thread.
     /// </summary>
     public sealed class UnityLoginTransport : ILoginTransport
     {
@@ -16,7 +16,6 @@ namespace Comet.Unity
 
         private readonly string _baseUrl;
 
-        /// <param name="baseUrl">The Login server, such as <c>https://server.example.com</c> (paths start with /api/).</param>
         public UnityLoginTransport(string baseUrl) => _baseUrl = baseUrl.TrimEnd('/');
 
         public Task<LoginHttpResponse> SendAsync(string method, string path, string? json, string? bearerToken)
@@ -45,9 +44,7 @@ namespace Comet.Unity
         }
     }
 
-    /// <summary>
-    /// Keeps the session token in PlayerPrefs: IndexedDB in a web build, the usual per-user settings store on desktop.
-    /// </summary>
+    /// <summary>Keeps the session token in PlayerPrefs, which a web build keeps in IndexedDB.</summary>
     public sealed class PlayerPrefsTokenStore : ITokenStore
     {
         private readonly string _key;

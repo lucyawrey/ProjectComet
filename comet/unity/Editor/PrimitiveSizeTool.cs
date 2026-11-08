@@ -7,9 +7,8 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// The tool context while zone placements are selected: Unity's own tools, except that scaling one primitive
-    /// edits its size rather than its transform's scale, so its facets follow the polygon budget as it's dragged.
-    /// Made the active context whenever a placement is selected.
+    /// The tool context while zone placements are selected: Unity's own tools, except that scaling one primitive edits
+    /// its size rather than its transform's scale, so its facets follow the polygon budget as it's dragged.
     /// </summary>
     [EditorToolContext("Zone", typeof(ZonePlacement))]
     internal sealed class ZoneToolContext : EditorToolContext
@@ -61,8 +60,7 @@ namespace Comet.Unity.Editor
     }
 
     /// <summary>
-    /// The Zone context's scale tool: one selected primitive is resized by its size (along its own axes); anything
-    /// else scales as with Unity's tool, each object's scale multiplied by the handle's.
+    /// The Zone context's scale tool: one selected primitive is resized by its size; anything else scales as Unity's.
     /// </summary>
     [EditorTool("Zone Scale", typeof(ZonePlacement), typeof(ZoneToolContext))]
     internal sealed class ZoneScaleTool : EditorTool
@@ -111,7 +109,6 @@ namespace Comet.Unity.Editor
                 _resizing = true;
             }
 
-            // Back to the shared mesh, and its collider, once the drag ends.
             if (_resizing && GUIUtility.hotControl == 0)
             {
                 _resizing = false;
@@ -119,7 +116,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // As Unity's scale tool: one handle at the active object, each selected object's scale multiplied by it.
         private void ScaleSelection()
         {
             var transforms = Selection.transforms;

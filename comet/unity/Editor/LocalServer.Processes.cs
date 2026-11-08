@@ -10,8 +10,7 @@ namespace Comet.Unity.Editor
 {
     public static partial class LocalServer
     {
-        // Starts the built server with options (and the Login server first, when there's one, on the database given),
-        // then waits for it to answer in the background; false (with the reason in the Console) if it couldn't start.
+        // False (with the reason in the Console) if it couldn't start.
         private static bool Launch(
             CometSettings settings,
             Options options,
@@ -88,8 +87,7 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        // The game server's command line, without the Login server's part; turns off bots and the web build when
-        // there are none to start.
+        // Without the Login server's part; turns off bots and the web build when there are none to start.
         private static string ServerArguments(
             CometSettings settings,
             ref Options options,
@@ -143,7 +141,6 @@ namespace Comet.Unity.Editor
             return arguments;
         }
 
-        // Starts the Login server, for the game server on port; false (with the reason in the Console) if it couldn't start.
         private static bool TryStartLogin(
             CometSettings settings,
             Options options,
@@ -187,7 +184,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A build's program, or why there's none.
         private readonly struct Built
         {
             public Built(string? program, string? error)
@@ -201,7 +197,7 @@ namespace Comet.Unity.Editor
             public string? Error { get; }
         }
 
-        // Builds a project with dotnet (run off the main thread: no Unity calls), returning the program built or the build's output.
+        // Runs off the main thread, so no Unity calls.
         private static Built Build(string dotnet, string root, string project)
         {
             // Into its own artifacts folder, so it never fights another build of the same project over files (play-mode
@@ -235,14 +231,14 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Starts the development database (the settings' script, run off the main thread) with a database for this
-        // checkout and port, returning its connection string as the "program", or the script's output as the error.
-        // The tool is a C# file app; the -- keeps dotnet from reading its arguments as its own.
+        // The connection string comes back as the "program". The tool is a C# file app; the -- keeps dotnet from
+        // reading its arguments as its own.
         private static Built Database(string dotnet, string tool, string root, string checkout, int port)
         {
             string Run(string arguments, out int exitCode)
             {
-                var start = new ProcessStartInfo(dotnet, $"run --file \"{tool}\" -- {arguments}") // the short form fails in the Unity folder, which holds several projects, on older SDKs
+                // The short form fails on older SDKs in the Unity folder, which holds several projects.
+                var start = new ProcessStartInfo(dotnet, $"run --file \"{tool}\" -- {arguments}")
                 {
                     WorkingDirectory = root,
                     UseShellExecute = false,
@@ -349,7 +345,6 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        // Whether a process is still the one the editor started.
         private static bool Alive(int pid, long startTicks)
         {
             if (pid <= 0)

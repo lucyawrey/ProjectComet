@@ -10,10 +10,8 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// The Scene view's place tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Place
-    /// Tool): pick a primitive, a prop, or a new spawn point, teleporter, trigger or sign in its panel, then click in
-    /// the scene to place it on whatever is under the mouse. Placed objects are moved, turned and scaled with Unity's
-    /// own tools; spawn points, teleporters, triggers and signs are edited in the Inspector.
+    /// The Scene view's place tool for a zone opened in the editor: pick a primitive, a prop, or a new spawn point,
+    /// teleporter, trigger or sign in its panel, then click in the scene to place it under the mouse.
     /// </summary>
     [EditorTool("Zone Place")]
     public sealed class ZonePlaceTool : EditorTool
@@ -21,7 +19,7 @@ namespace Comet.Unity.Editor
         [SerializeField]
         private string placeable = "";
 
-        // The kind of thing to add (spawn, teleporter, trigger or sign), or empty to place placeables; and its id (none for signs).
+        // The kind to add (spawn, teleporter, trigger or sign), or empty for a placeable; and its id (none for signs).
         [SerializeField]
         private string adding = "";
 
@@ -40,7 +38,6 @@ namespace Comet.Unity.Editor
         private GUIContent? _icon;
         private Vector3? _hover;
 
-        /// <summary>The tool's one instance, for its panel.</summary>
         internal static ZonePlaceTool? Instance { get; private set; }
 
         [MenuItem("Comet/Zones/Place Tool", priority = 21)]
@@ -74,7 +71,6 @@ namespace Comet.Unity.Editor
             _thumbnails.Clear();
         }
 
-        // A model's meshes, in its own space, without its collision objects.
         private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(GameObject model, Vector3 scale) =>
             model
                 .GetComponentsInChildren<MeshFilter>()
@@ -82,7 +78,6 @@ namespace Comet.Unity.Editor
                 .Select(f => (f.sharedMesh, Matrix4x4.Scale(scale) * model.transform.worldToLocalMatrix * f.transform.localToWorldMatrix))
                 .ToList();
 
-        // What a placeable name (a prop id or a primitive's kind) draws at a scale, or nothing if it has no model.
         private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(string placeable, CometSettings settings, Vector3? size = null)
         {
             if (ZoneEditor.PrimitiveNamed(placeable) is { } kind)
@@ -111,7 +106,7 @@ namespace Comet.Unity.Editor
         private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix)> parts, Material material, Color color, int size) =>
             Thumbnail(key, parts.Select(p => (p.Mesh, p.Matrix, color)).ToList(), material, color, size);
 
-        // A picture of meshes each in its own color; cached by key and `color` (the picked one, for what follows it).
+        // Cached by key and `color` (the picked one, for what follows it).
         private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix, Color Color)> parts, Material material, Color color, int size)
         {
             if (_thumbnails.TryGetValue((key, color), out var cached) && cached != null)
@@ -182,7 +177,6 @@ namespace Comet.Unity.Editor
 
         private static ZoneEditing Editing => FindAnyObjectByType<ZoneEditing>();
 
-        /// <summary>The tool's panel in the Scene view.</summary>
         internal void PanelGui(float width)
         {
             var editing = Editing;
@@ -220,7 +214,6 @@ namespace Comet.Unity.Editor
             );
             EditorGUILayout.Space();
 
-            // As many buttons to a row as the panel's width fits.
             var perRow = Mathf.Max(1, (int)(width / (ButtonSize + 4)));
             var budget = settings.Budget;
             var budgetKey = $"{budget.FacetLength}/{budget.MinSides}/{budget.MaxSides}";
@@ -279,7 +272,6 @@ namespace Comet.Unity.Editor
             EditorGUILayout.Space();
         }
 
-        // The primitives, props and groups to place, as picture buttons.
         private void CatalogGui(ZoneEditing editing, CometSettings settings, int perRow, string budgetKey)
         {
             EditorGUILayout.LabelField("Primitives", EditorStyles.boldLabel);
@@ -365,7 +357,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Editing or deleting the picked group, and saving the selection as a new one.
         private void GroupActionsGui(ZoneEditing editing, CometSettings settings)
         {
             if (adding.Length == 0 && placeable.StartsWith("group.", StringComparison.Ordinal) && ZoneGroups.Find(placeable) != null)
@@ -451,8 +442,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A button for a new spawn point, teleporter, trigger or sign. Spawn points' and teleporters' pictures are their
-        // new pads, flattened, in their colors.
         private void Adder(
             ZoneEditing editing,
             CometSettings settings,
@@ -479,14 +468,12 @@ namespace Comet.Unity.Editor
             if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(ButtonSize), GUILayout.Height(ButtonSize)) != picked)
             {
                 adding = picked ? "" : kind;
-                // The id starts as the kind and the zone, keeping a name already typed.
                 var prefix = $"{kind}.{ZoneName(editing)}.";
                 var typed = addingId.Split('.') is { Length: 3 } parts ? parts[2] : "";
                 addingId = prefix + typed;
             }
         }
 
-        // The color things are placed in: the settings' swatches, and a picker for any other.
         private void ColorRow(CometSettings settings)
         {
             EditorGUILayout.LabelField("Color", EditorStyles.boldLabel);
@@ -652,7 +639,6 @@ namespace Comet.Unity.Editor
             return best;
         }
 
-        // Where the ray first meets any terrain piece's ground: marching a quarter meter at a time, then narrowing in.
         private static Vector3? TerrainHit(ZoneEditing editing, Ray ray)
         {
             var pieces = ZoneTerrainEditing.For(editing).Terrain.Pieces;
@@ -690,10 +676,6 @@ namespace Comet.Unity.Editor
         }
     }
 
-    /// <summary>
-    /// The place tool's panel, shown in the Scene view while the tool is picked. Drag its edge to resize it; its
-    /// contents scroll when they don't fit.
-    /// </summary>
     [Overlay(typeof(SceneView), "comet-zone-place", "Zone Place")]
     internal sealed class ZonePlacePanel : IMGUIOverlay, ITransientOverlay
     {
@@ -713,7 +695,6 @@ namespace Comet.Unity.Editor
 
         public override void OnGUI()
         {
-            // The overlay's size less its title bar and margins.
             var width = Mathf.Max(minSize.x, size.x) - 12;
             _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Width(width), GUILayout.Height(Mathf.Max(minSize.y, size.y) - 34));
             ZonePlaceTool.Instance?.PanelGui(width - 20);

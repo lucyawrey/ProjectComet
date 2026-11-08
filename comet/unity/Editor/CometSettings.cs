@@ -6,8 +6,7 @@ namespace Comet.Unity.Editor
 {
     /// <summary>
     /// A game's settings for Comet's editor tools: how to build its content, where its zones are and how to draw them.
-    /// Each game's Unity project has one (Create › Comet › Settings); the tools find it. A game may fill some in from
-    /// its content.
+    /// Each game's Unity project has one (Create › Comet › Settings).
     /// </summary>
     [CreateAssetMenu(menuName = "Comet/Settings")]
     public sealed class CometSettings : ScriptableObject
@@ -196,7 +195,6 @@ namespace Comet.Unity.Editor
         [Tooltip("The table in that file holding the budget's facet_length, min_sides and max_sides.")]
         public string budgetTable = "primitives";
 
-        /// <summary>The polygon budget these settings hold.</summary>
         public PolygonBudget Budget =>
             new PolygonBudget
             {
@@ -218,7 +216,7 @@ namespace Comet.Unity.Editor
             CollisionColors.Find = () => Find(quiet: true)?.collisionColors;
         }
 
-        /// <summary>The project's settings, or null (with a dialog unless <paramref name="quiet"/>) if it has none.</summary>
+        /// <summary>Null (with a dialog unless <paramref name="quiet"/>) if the project has none.</summary>
         public static CometSettings? Find(bool quiet)
         {
             if (_found != null)

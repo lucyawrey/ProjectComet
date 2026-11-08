@@ -3,9 +3,8 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// The root of a zone opened in the editor (Comet › Zones › Open), or of a group being edited: which folder or file
-    /// it came from, and the parts of the zone not shown as objects under it (terrain, borders, entrances, transition rooms), kept with the scene so they
-    /// survive script reloads. The editor builds and saves it; games never use it.
+    /// The root of a zone or group opened in the editor. Holds the zone's parts not shown as objects (terrain, borders,
+    /// entrances, transition rooms), kept with the scene so they survive script reloads.
     /// </summary>
     public sealed class ZoneEditing : MonoBehaviour
     {
@@ -15,7 +14,6 @@ namespace Comet.Unity
         [Tooltip("The group being edited (group.tree), or empty for a zone. A group's scene has no terrain, and its pivot is the scene's origin.")]
         public string groupId = "";
 
-        /// <summary>Whether this scene edits a group rather than a zone.</summary>
         public bool IsGroup => !string.IsNullOrEmpty(groupId);
 
         // Kept as base64 text, not a byte array: Unity's undo compares arrays element by element when their length
@@ -23,7 +21,7 @@ namespace Comet.Unity
         [SerializeField, HideInInspector]
         private string zoneData = "";
 
-        /// <summary>The zone's stored parts, serialized. Set it after <c>Undo.RecordObject</c> to make an undo step.</summary>
+        /// <summary>Set it after <c>Undo.RecordObject</c> to make an undo step.</summary>
         public byte[] ZoneData
         {
             get => System.Convert.FromBase64String(zoneData);
@@ -32,7 +30,6 @@ namespace Comet.Unity
 
         public bool HasZoneData => zoneData.Length > 0;
 
-        // A group's pivot: where its copies are placed from.
         private void OnDrawGizmos()
         {
             if (IsGroup)

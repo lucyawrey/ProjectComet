@@ -10,7 +10,6 @@ namespace Comet.Unity.Editor
 {
     public static partial class ZoneEditor
     {
-        /// <summary>The zone as the scene has it now: its stored parts plus the objects under <paramref name="editing"/>.</summary>
         public static Zone Gather(ZoneEditing editing)
         {
             var zone = MessagePackSerializer.Deserialize<Zone>(editing.ZoneData, Serializer);
@@ -119,7 +118,6 @@ namespace Comet.Unity.Editor
             // Tiles are kept whole-chunk while editing; the files keep only their ground.
             ZoneTerrainEditing.Crop(zone);
 
-            // A chunk left with nothing in it is no longer part of the zone.
             zone.Chunks = chunks
                 .Values.Where(c =>
                     c.Tiles.Length
@@ -137,7 +135,6 @@ namespace Comet.Unity.Editor
             return zone;
         }
 
-        // A trigger's volume as the scene has it: standing on its object, turned by its Y rotation, with its pad.
         private static TriggerVolume VolumeOf(ZoneTrigger trigger)
         {
             var t = trigger.transform;
@@ -157,11 +154,9 @@ namespace Comet.Unity.Editor
             };
         }
 
-        // Whether a sign is saved with a trigger (a direct child of one) rather than on its own.
         private static bool IsTriggerSign(ZoneSign sign) =>
             sign.transform.parent != null && sign.transform.parent.GetComponent<ZoneTrigger>() is { } trigger && trigger.Sign == sign;
 
-        // A sign as the scene has it, at the given position.
         private static Sign SignOf(ZoneSign sign, System.Numerics.Vector3 position) =>
             new Sign
             {
@@ -180,8 +175,7 @@ namespace Comet.Unity.Editor
             };
 
         /// <summary>
-        /// A placement as the object <paramref name="placed"/> has it now: at its world transform, or relative to
-        /// <paramref name="relativeTo"/> (a copy whose group's parts are being saved).
+        /// Relative to <paramref name="relativeTo"/> (a copy whose group's parts are being saved), not the world.
         /// </summary>
         internal static Placement PlacementOf(ZonePlacement placed, Transform? relativeTo = null)
         {
@@ -213,7 +207,6 @@ namespace Comet.Unity.Editor
             };
         }
 
-        // A copy's colors by role, each role once.
         private static Dictionary<string, uint> RoleColors(ZonePlacement copy)
         {
             var colors = new Dictionary<string, uint>();

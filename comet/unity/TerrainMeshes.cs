@@ -5,12 +5,11 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// Unity meshes for terrain chunks from <see cref="TerrainMesher"/>, which builds them from the same data the server
-    /// collides with, so what's drawn is what's stood on. For the game and the zone editor alike.
+    /// Unity meshes for terrain chunks, built from the same data the server collides with, so what is drawn is
+    /// what is stood on.
     /// </summary>
     public static class TerrainMeshes
     {
-        /// <summary>A terrain chunk's mesh, flat-shaded, with its colors as vertex colors (for the Comet/Vertex Color Lit shader).</summary>
         public static Mesh Build(string name, TerrainMesh terrain)
         {
             var mesh = new Mesh { name = name };
@@ -18,7 +17,6 @@ namespace Comet.Unity
             return mesh;
         }
 
-        /// <summary>Replaces <paramref name="mesh"/>'s contents with <paramref name="terrain"/> (the zone editor redrawing a chunk).</summary>
         public static void Fill(Mesh mesh, TerrainMesh terrain)
         {
             var vertices = new List<Vector3>(terrain.Positions.Count);

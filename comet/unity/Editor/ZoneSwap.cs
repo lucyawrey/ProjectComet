@@ -4,13 +4,11 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Swaps a placement in place, as a level goes from blockout to finished: a primitive for a prop, scaled to the
-    /// primitive's size and standing where it stood (bottom center on its pivot), or a prop for a box the size of
-    /// its bounds. Position, rotation, name and color carry over; a prop swapped in is no longer blockout. Undoable.
+    /// Swaps a placement in place, as a level goes from blockout to finished: a primitive for a prop, or a prop for a
+    /// box the size of its bounds. Position, rotation, name and color carry over. Undoable.
     /// </summary>
     internal static class ZoneSwap
     {
-        /// <summary>Replaces the primitive <paramref name="placed"/> with the prop <paramref name="id"/>.</summary>
         public static GameObject? ForProp(ZonePlacement placed, string id, CometSettings settings)
         {
             if (!placed.isPrimitive || placed.IsGroup || settings.props == null || !settings.props.TryGet(id, out var entry))
@@ -38,7 +36,6 @@ namespace Comet.Unity.Editor
             return Replace(placed, placement, settings, $"Swap for {id}");
         }
 
-        /// <summary>Replaces the prop <paramref name="placed"/> with a box filling its bounds.</summary>
         public static GameObject? ForBox(ZonePlacement placed, CometSettings settings)
         {
             if (placed.isPrimitive || placed.IsGroup || settings.props == null || !settings.props.TryGet(placed.prop, out var entry))

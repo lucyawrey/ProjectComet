@@ -10,9 +10,8 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// A zone's terrain while it's being edited: each piece's tiles grown to whole chunks, so brushes can reach
-    /// anywhere in a chunk the piece touches, and written back to the scene's copy of the zone after each stroke
-    /// (one undo step). Saving crops the tiles back to their ground (<see cref="Crop"/>).
+    /// A zone's terrain while it's being edited: each piece's tiles are grown to whole chunks so brushes reach anywhere
+    /// in them, and written back to the scene's copy after each stroke. Saving crops them (<see cref="Crop"/>).
     /// </summary>
     public sealed class ZoneTerrainEditing
     {
@@ -35,12 +34,11 @@ namespace Comet.Unity.Editor
 
         public ZoneEditing Editing { get; }
 
-        /// <summary>The zone with expanded tiles. Changes go through <see cref="SetHeight"/> and the like, then <see cref="Commit"/>.</summary>
+        /// <summary>Change it through <see cref="SetHeight"/> and the like, then <see cref="Commit"/>.</summary>
         public Zone Zone { get; }
 
         public ZoneTerrain Terrain { get; private set; }
 
-        /// <summary>The terrain being edited for a zone opened in the editor, made on first use.</summary>
         public static ZoneTerrainEditing For(ZoneEditing editing)
         {
             if (!Open.TryGetValue(editing, out var terrain) || terrain.Editing == null)
@@ -52,10 +50,8 @@ namespace Comet.Unity.Editor
             return terrain;
         }
 
-        /// <summary>Forgets the edited copies, so they're read again from the scene (after an undo, say).</summary>
         public static void Forget() => Open.Clear();
 
-        /// <summary>Writes the edited terrain into the scene's copy of the zone as one undo step, and redraws it.</summary>
         public void Commit(string undoName, CometSettings settings)
         {
             Undo.RecordObject(Editing, undoName);
@@ -65,10 +61,8 @@ namespace Comet.Unity.Editor
             ZoneEditor.RebuildTerrain(Editing, Zone, settings);
         }
 
-        /// <summary>Rebuilds the piece index after pieces or tiles were added or removed.</summary>
         public void Reindex() => Terrain = new ZoneTerrain(Zone);
 
-        /// <summary>The ground height at a world sample of <paramref name="piece"/>, if it has ground there.</summary>
         public bool TryGetHeight(string piece, int x, int z, out float height) => Terrain[piece].TryGetHeight(x, z, out height);
 
         /// <summary>
@@ -84,7 +78,7 @@ namespace Comet.Unity.Editor
                 (tile, tx, tz) => tile.Heights.Samples[tz * tile.Heights.SizeX + tx] = Sample(tile.Heights, height)
             );
 
-        /// <summary>Sets the underside height at a world sample, starting an underside map at the piece's bottom where there's none.</summary>
+        /// <summary>Starts an underside map at the piece's bottom where there's none.</summary>
         public void SetUnderside(string piece, int x, int z, float height) =>
             ForEachTile(
                 piece,
@@ -98,11 +92,10 @@ namespace Comet.Unity.Editor
                 }
             );
 
-        /// <summary>The underside height at a world sample: its underside map, else the piece's bottom.</summary>
         public float UndersideAt(string piece, int x, int z) =>
             Terrain[piece].TryGetUnderside(x, z, out var under) ? under : Terrain[piece].BottomHeight;
 
-        /// <summary>Paints a world sample's color (0xRRGGBB), starting a color map of <paramref name="ground"/> where there's none.</summary>
+        /// <summary>Starts a color map of <paramref name="ground"/> where there's none; color is 0xRRGGBB.</summary>
         public void SetColor(string piece, int x, int z, uint color, uint ground) =>
             ForEachTile(
                 piece,
@@ -122,9 +115,8 @@ namespace Comet.Unity.Editor
             );
 
         /// <summary>
-        /// Gives a world sample the piece's default colors (<paramref name="ground"/> and <paramref name="skirt"/>) in
-        /// the color maps its tiles have, so new ground starts unpainted. Tiles grown to their whole chunk for editing
-        /// have no colors past their old edge (zero, which is black).
+        /// Gives a world sample the piece's default colors (ground and skirt) in the color maps its tiles have.
+        /// Tiles grown to their whole chunk have no colors past their old edge (zero: black).
         /// </summary>
         public void ResetColors(string piece, int x, int z, uint ground, uint skirt) =>
             ForEachTile(
@@ -200,10 +192,8 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>Whether any of the piece's tiles has an underside map.</summary>
         public bool HasUnderside(string piece) => Zone.Chunks.SelectMany(c => c.Tiles).Any(t => t.Piece == piece && t.Underside != null);
 
-        /// <summary>Removes the piece's underside maps and their colors, so its skirts end at its flat bottom again.</summary>
         public void ClearUnderside(string piece)
         {
             foreach (var tile in Zone.Chunks.SelectMany(c => c.Tiles).Where(t => t.Piece == piece))
@@ -215,7 +205,6 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>Adds a piece, flat at <paramref name="height"/> over a square of <paramref name="size"/> samples around <paramref name="center"/>.</summary>
         public void AddPiece(TerrainPiece settings, (int X, int Z) center, int size, float height)
         {
             Zone.Pieces = Zone.Pieces.Append(settings).ToArray();
@@ -303,7 +292,6 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>Removes a piece and all its tiles.</summary>
         public void RemovePiece(string name)
         {
             Zone.Pieces = Zone.Pieces.Where(p => p.Name != name).ToArray();
@@ -406,7 +394,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A tile grown to its whole chunk, with holes where it had no samples.
         private static TerrainTile Expand(TerrainTile tile)
         {
             const int size = ZoneGrid.ChunkSamples;

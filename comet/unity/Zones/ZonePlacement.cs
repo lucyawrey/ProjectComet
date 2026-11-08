@@ -5,13 +5,8 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// A prop, a primitive or a group copy placed in a zone opened in the editor (or in a group being edited): the
-    /// object's transform is the placement's. A primitive's mesh is built at its size: the scale tool edits
-    /// <see cref="size"/>, and any other scale is folded into it once a resize ends. A group copy's parts are drawn
-    /// under it by the editor (<see cref="GroupDrawer"/>), unsaved, and clicking one selects the copy (a prop or copy
-    /// carries a <see cref="ZonePickRoot"/> for that).
-    /// Turning the object off (its checkbox) makes a placement that starts off: hidden and not solid in the game
-    /// until a trigger flips it on by its tag.
+    /// A prop, primitive or group copy placed in a zone or group opened in the editor; the object's transform is the
+    /// placement's. A primitive's mesh is built at its size: the scale tool edits size, other scales fold into it.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
@@ -64,8 +59,8 @@ namespace Comet.Unity
         [Min(0)]
         public float thickness;
 
-        // Drawn by the editor's inspector as one color field with a reset button: editing it gives the placement its
-        // own color, resetting goes back to the default (its prop's, else the game's).
+        // Editing the color gives the placement its own; resetting goes back to the default
+        // (its prop's, else the game's).
         [HideInInspector]
         public bool ownColor;
 
@@ -75,7 +70,6 @@ namespace Comet.Unity
         [SerializeField, HideInInspector]
         private Color defaultColor = Color.gray;
 
-        /// <summary>A role a group copy recolors, and its color.</summary>
         [System.Serializable]
         public struct RoleColor
         {
@@ -83,27 +77,24 @@ namespace Comet.Unity
             public Color color;
         }
 
-        // A group copy's colors by role, drawn by the editor's inspector: its parts with these roles take them.
         [HideInInspector]
         public List<RoleColor> roleColors = new List<RoleColor>();
 
-        /// <summary>How finely round primitives are cut while editing: the game's, set by the editor (Comet › Zones › Polygon Budget).</summary>
+        /// <summary>The game's polygon budget; set by the editor.</summary>
         public static PolygonBudget Budget { get; set; } = new PolygonBudget();
 
-        /// <summary>The material placed objects are drawn in, by whether they're blockout (null: leave it); set by the editor.</summary>
+        /// <summary>The material for blockout or not placed objects (null: leave it); set by the editor.</summary>
         public static System.Func<bool, Material?>? MaterialFor { get; set; }
 
         /// <summary>Draws a group copy's parts under it; set by the editor, which reads the groups.</summary>
         public static System.Action<ZonePlacement>? GroupDrawer { get; set; }
 
-        /// <summary>Whether this is a group copy.</summary>
         public bool IsGroup => !string.IsNullOrEmpty(group);
 
         // Set while a copy's group is edited in place: its parts are then real placements under it, not a preview.
         [SerializeField, HideInInspector]
         private bool editingInPlace;
 
-        /// <summary>Whether this copy's group is being edited in place (its parts are placements under it).</summary>
         public bool EditingInPlace
         {
             get => editingInPlace;
@@ -114,10 +105,8 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>Whether this is placed in the zone itself, not a part of a copy whose group is being edited in place.</summary>
         public bool IsLoose => transform.parent == null || transform.parent.GetComponentInParent<ZonePlacement>(true) == null;
 
-        /// <summary>The primitive placed, or null for a prop.</summary>
         public Primitive? Primitive =>
             isPrimitive
                 ? new Primitive
@@ -135,7 +124,6 @@ namespace Comet.Unity
         // The mesh shown while a resize is dragged: refilled at each size rather than cached, then dropped.
         private Mesh? _dragMesh;
 
-        /// <summary>Shows the mesh at its size while a resize is dragged, without keeping a mesh for every size passed.</summary>
         public void PreviewResize()
         {
             if (!isPrimitive || !TryGetComponent<MeshFilter>(out var filter))
@@ -159,7 +147,7 @@ namespace Comet.Unity
             filter.sharedMesh = _dragMesh;
         }
 
-        /// <summary>Builds a primitive's mesh again at its size (the mesh isn't saved with the scene).</summary>
+        /// <summary>The mesh isn't saved with the scene, so this builds it again.</summary>
         public void Rebuild()
         {
             if (!isPrimitive || this == null)
@@ -196,10 +184,8 @@ namespace Comet.Unity
 
         private void OnDestroy() => DropDragMesh();
 
-        /// <summary>The color it's drawn in without its own.</summary>
         public Color DefaultColor => defaultColor;
 
-        /// <summary>Sets the default: its prop's color, else the game's.</summary>
         public void SetDefaultColor(Color value)
         {
             defaultColor = value;
@@ -212,8 +198,7 @@ namespace Comet.Unity
         }
 
         /// <summary>
-        /// Draws the object in its color (property blocks aren't saved with the scene), in the blockout material if
-        /// it's blockout; a group copy's parts are drawn by the editor.
+        /// Property blocks aren't saved with the scene, so the color is applied again; the editor draws a copy's parts.
         /// </summary>
         public void ApplyColor()
         {

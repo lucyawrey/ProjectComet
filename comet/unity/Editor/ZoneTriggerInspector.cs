@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// A spawn point's, teleporter's or trigger's Inspector: its fields, then buttons to fit its volume to its pad after
-    /// the pad is moved or resized, or to give it a pad if it has none, and to add or select its sign.
-    /// </summary>
     [CustomEditor(typeof(ZoneTrigger), true)]
     internal sealed class ZoneTriggerInspector : UnityEditor.Editor
     {
@@ -59,7 +55,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A flat box (a cylinder under a round volume) under the volume, sunk halfway into the ground there.
         private static void AddPad(ZoneTrigger trigger)
         {
             var settings = CometSettings.Find(quiet: true);

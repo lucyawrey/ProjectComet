@@ -7,13 +7,11 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// Unity meshes for primitives from <see cref="PrimitiveMesher"/>, which builds them from the same values the server
-    /// collides with. For the game and the zone editor alike: one mesh per primitive while editing, and placed
-    /// primitives combined into one vertex-colored mesh per chunk in the game, so a large zone stays a few draw calls.
+    /// Unity meshes for primitives from <see cref="PrimitiveMesher"/>, built from the values the server collides with.
+    /// In the game, placed primitives are combined into one mesh per chunk, so a large zone stays a few draw calls.
     /// </summary>
     public static class PrimitiveMeshes
     {
-        // Meshes by name, which spells out the primitive, size and budget each is built for.
         private static Dictionary<string, Entry>? _meshes;
 
         // Meshes an earlier domain built (a reload empties the dictionary but keeps them, as they're DontSave): not
@@ -22,8 +20,8 @@ namespace Comet.Unity
         private static int _uses;
         private static int _pruneAbove = PruneAbove;
 
-        // Past this many meshes, the ones nothing shows are destroyed (the zone editor makes one per size tried), except
-        // the most recently asked for, which a caller may still be collecting.
+        // Past this many meshes, the ones nothing shows are destroyed (the zone editor makes one per size tried),
+        // except the most recently asked for, which a caller may still be collecting.
         private const int PruneAbove = 2048,
             KeepRecent = 512;
         private const string NamePrefix = "Primitive ";
@@ -34,7 +32,6 @@ namespace Comet.Unity
             public int Used;
         }
 
-        /// <summary>A primitive placement's own mesh, flat-shaded, shared by every placement of the same primitive and size.</summary>
         public static Mesh For(Placement placement, PolygonBudget budget)
         {
             var meshes = _meshes ??= FirstUse();
@@ -58,7 +55,6 @@ namespace Comet.Unity
             return entry.Mesh;
         }
 
-        // An empty dictionary, with the meshes an earlier domain built as strays, the ones nothing shows destroyed now.
         private static Dictionary<string, Entry> FirstUse()
         {
             foreach (var mesh in Resources.FindObjectsOfTypeAll<Mesh>())
@@ -78,7 +74,6 @@ namespace Comet.Unity
             return new Dictionary<string, Entry>();
         }
 
-        // The meshes some mesh filter or collider uses.
         private static HashSet<Mesh> Shown()
         {
             var shown = new HashSet<Mesh>();
@@ -95,7 +90,7 @@ namespace Comet.Unity
             return shown;
         }
 
-        // Destroys mesh unless it's shown; true if it's gone.
+        // True if the mesh is gone; one that is still shown is kept.
         private static bool Destroy(Mesh mesh, HashSet<Mesh> shown)
         {
             if (mesh == null)
@@ -120,7 +115,6 @@ namespace Comet.Unity
             return true;
         }
 
-        // Destroys the strays and meshes nothing shows, except those asked for lately.
         private static void Prune(Dictionary<string, Entry> meshes)
         {
             var shown = Shown();
@@ -136,7 +130,6 @@ namespace Comet.Unity
             _pruneAbove = Math.Max(PruneAbove, meshes.Count * 2);
         }
 
-        /// <summary>Collects placed primitives into one mesh, each in its own color as vertex colors (for the Comet/Vertex Color Lit shader).</summary>
         public sealed class Builder
         {
             private readonly List<Vector3> _vertices = new List<Vector3>();
@@ -144,7 +137,6 @@ namespace Comet.Unity
 
             public int VertexCount => _vertices.Count;
 
-            /// <summary>Adds triangles placed by <paramref name="transform"/>, relative to the mesh's origin, in a 0xRRGGBB color.</summary>
             public void Add(IReadOnlyList<System.Numerics.Vector3> triangles, System.Numerics.Matrix4x4 transform, uint rgb)
             {
                 var color = new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
@@ -162,7 +154,6 @@ namespace Comet.Unity
                 }
             }
 
-            /// <summary>Replaces <paramref name="mesh"/>'s contents with what's been added.</summary>
             public void Fill(Mesh mesh)
             {
                 // Every triangle has its own corners, so the recalculated normals are flat: one per face.

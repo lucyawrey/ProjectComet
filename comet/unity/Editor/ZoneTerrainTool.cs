@@ -10,10 +10,8 @@ using static Comet.Unity.Conversions;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// The Scene view's terrain tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Terrain
-    /// Tool): pick a piece and a brush in its panel, then paint with the left mouse button. Each stroke is one undo
-    /// step. The panel also makes and deletes pieces, edits their settings, and warns where two pieces' ground is too
-    /// close for a body to fit between.
+    /// The Scene view's terrain tool for a zone opened in the editor: pick a piece and a brush in its panel, then
+    /// paint. Each stroke is one undo step.
     /// </summary>
     [EditorTool("Zone Terrain")]
     public sealed class ZoneTerrainTool : EditorTool
@@ -81,7 +79,6 @@ namespace Comet.Unity.Editor
 
         private GUIContent? _icon;
 
-        /// <summary>The tool's one instance, for its panel.</summary>
         internal static ZoneTerrainTool? Instance { get; private set; }
 
         [MenuItem("Comet/Zones/Terrain Tool", priority = 20)]
@@ -123,7 +120,6 @@ namespace Comet.Unity.Editor
             SceneView.RepaintAll();
         }
 
-        /// <summary>The tool's panel in the Scene view.</summary>
         internal void PanelGui(float width)
         {
             var editing = Editing;
@@ -209,7 +205,6 @@ namespace Comet.Unity.Editor
             EditorGUILayout.EndVertical();
         }
 
-        // The brushes, three to a row; on the underside, Hole and Ground are greyed out.
         private void BrushGrid()
         {
             var brushes = (Brush[])System.Enum.GetValues(typeof(Brush));
@@ -233,7 +228,6 @@ namespace Comet.Unity.Editor
 
         private static bool OnUnderside(Brush b) => b != Brush.Hole && b != Brush.Ground;
 
-        // A piece's own color, or null for the game's: editing the field sets its own, the reset button clears it.
         private static uint? OwnColor(string label, string what, uint? own, Color game)
         {
             var content = new GUIContent(label, $"The color of the piece's {what}. Reset: the game's, from Comet Settings.");
@@ -538,10 +532,8 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Where the mouse ray first enters the selected piece, the solid between its underside and its ground (so it
-        // finds the ground from above and the underside from below), marching along it a quarter meter at a time and
-        // narrowing in on the crossing; else where it meets the height the last stroke started at (for painting
-        // ground where there's none yet).
+        // Where the mouse ray first enters the selected piece (the solid between its underside and ground), marching a
+        // quarter meter at a time; else where it meets the height the last stroke started at, to paint new ground.
         private Vector3? Pick(ZoneTerrainEditing terrain, Ray ray)
         {
             var piece = terrain.Terrain[this.piece];
@@ -587,7 +579,6 @@ namespace Comet.Unity.Editor
             return null;
         }
 
-        // Applies the brush around `center` for `seconds` of painting (one mouse event), with a smooth falloff to the rim.
         private void Paint(ZoneTerrainEditing terrain, Vector3 center, float seconds)
         {
             var spacing = ZoneGrid.SampleSpacing;
@@ -723,7 +714,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // The average of a sample and its neighbors that have ground: of their heights, or on the underside, their undersides.
         private float? Average(ZoneTerrainEditing terrain, int x, int z)
         {
             float sum = 0;
@@ -744,10 +734,6 @@ namespace Comet.Unity.Editor
         }
     }
 
-    /// <summary>
-    /// The terrain tool's panel, shown in the Scene view while the tool is picked. Drag its edge to resize it; its
-    /// contents scroll when they don't fit.
-    /// </summary>
     [Overlay(typeof(SceneView), "comet-zone-terrain", "Zone Terrain")]
     internal sealed class ZoneTerrainPanel : IMGUIOverlay, ITransientOverlay
     {
@@ -767,7 +753,6 @@ namespace Comet.Unity.Editor
 
         public override void OnGUI()
         {
-            // The overlay's size less its title bar and margins.
             var width = Mathf.Max(minSize.x, size.x) - 12;
             _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Width(width), GUILayout.Height(Mathf.Max(minSize.y, size.y) - 34));
             ZoneTerrainTool.Instance?.PanelGui(width - 20);

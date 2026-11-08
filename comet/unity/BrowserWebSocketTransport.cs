@@ -7,9 +7,8 @@ using Comet.Protocol.Framing;
 namespace Comet.Unity
 {
     /// <summary>
-    /// The web transport, on the browser's WebSocket (Plugins/WebGL/CometWebSocket.jslib). The browser receives
-    /// between frames and queues messages in JavaScript; <see cref="TryReceive"/> copies them out, so nothing
-    /// calls into C# from JavaScript.
+    /// The web transport, on the browser's WebSocket (Plugins/WebGL/CometWebSocket.jslib). Messages queue in JavaScript
+    /// and <see cref="TryReceive"/> copies them out, so nothing calls into C# from JavaScript.
     /// </summary>
     public sealed class BrowserWebSocketTransport : IClientTransport
     {
@@ -20,7 +19,6 @@ namespace Comet.Unity
         private string? _error;
         private bool _disposed;
 
-        /// <summary>Starts connecting to <paramref name="url"/>.</summary>
         /// <param name="maxFrameSize">Larger frames from the server close the connection.</param>
         public BrowserWebSocketTransport(Uri url, int maxFrameSize = FrameReader.MaxServerFrameSize)
         {

@@ -5,8 +5,8 @@ using UnityEngine;
 namespace Comet.Unity
 {
     /// <summary>
-    /// The model for each prop id (<c>prop.rock</c>), so the client and the zone editor can place what zones list. A
-    /// game fills it in from its content's prop entries (in ShapeLand, the editor's ContentSync), never by hand.
+    /// The model for each prop id (<c>prop.rock</c>), so the client and the zone editor can place what zones list.
+    /// A game fills it from its content's prop entries, never by hand.
     /// </summary>
     [CreateAssetMenu(menuName = "Comet/Prop Library")]
     public sealed class PropLibrary : ScriptableObject
@@ -40,10 +40,8 @@ namespace Comet.Unity
 
         public IReadOnlyList<Entry> Entries => entries;
 
-        /// <summary>The model for <paramref name="id"/>, or null if the library has none.</summary>
         public GameObject? Model(string id) => TryGet(id, out var entry) ? entry.model : null;
 
-        /// <summary>The entry for <paramref name="id"/>, if the library has one.</summary>
         public bool TryGet(string id, out Entry entry)
         {
             if (_byId == null)
@@ -58,7 +56,6 @@ namespace Comet.Unity
             return _byId.TryGetValue(id, out entry);
         }
 
-        /// <summary>Replaces the entries (the editor's content sync does this).</summary>
         public void SetEntries(IEnumerable<Entry> newEntries)
         {
             entries = new List<Entry>(newEntries);

@@ -11,9 +11,8 @@ namespace Comet.Unity.Editor
     public static partial class ZoneEditor
     {
         /// <summary>
-        /// Redraws a zone's terrain preview from <paramref name="zone"/>'s pieces: only the chunks in
-        /// <paramref name="only"/> (where a brush went), or all of them when it's null. Chunk objects and their meshes
-        /// are reused. A piece's flat bottom follows its lowest ground, so when that moves, every chunk is redrawn.
+        /// Redraws a zone's terrain preview: only the chunks in <paramref name="only"/> (where a brush went), or all if
+        /// null. A piece's flat bottom follows its lowest ground, so when that moves, every chunk is redrawn.
         /// </summary>
         public static void RebuildTerrain(ZoneEditing editing, Zone zone, CometSettings settings, ISet<ChunkCoord>? only = null)
         {
@@ -37,7 +36,6 @@ namespace Comet.Unity.Editor
             DrawnBottoms.AddOrUpdate(editing, bottoms);
             var meshes = TerrainMesher.Build(zoneTerrain, ToRgb(settings.groundColor), ToRgb(settings.underColor), only);
 
-            // Chunks redrawn without terrain go; the rest are refilled, or made.
             var keep = new HashSet<string>(meshes.Keys.Select(ChunkName));
             var redrawn = only?.Select(ChunkName).ToHashSet();
             foreach (var chunk in terrain.Cast<Transform>().ToList())
@@ -143,14 +141,12 @@ namespace Comet.Unity.Editor
 
         private const string SignsFolder = "Signs";
 
-        // A sign's object name: its first line, shortened.
         private static string SignName(string text)
         {
             var line = text.Split('\n')[0].Trim();
             return "Sign " + (line.Length > 24 ? line.Substring(0, 24) + "…" : line);
         }
 
-        // A sign object's fields from a zone file's sign (its position is set by the caller).
         private static void Fill(ZoneSign component, Sign sign)
         {
             component.text = sign.Text;
@@ -166,14 +162,12 @@ namespace Comet.Unity.Editor
             component.gameObject.SetActive(!sign.Off); // turned off (unchecked): kept but not shown in the game
         }
 
-        // The folder objects each kind of trigger goes under.
         private static string TriggersFolder<T>()
             where T : ZoneTrigger =>
             typeof(T) == typeof(ZoneSpawn) ? "Spawns"
             : typeof(T) == typeof(ZoneTeleporter) ? "Teleporters"
             : "Triggers";
 
-        // A spawn point's, teleporter's or trigger's object, with its volume and its pad.
         private static T CreateTrigger<T>(Transform root, string id, TriggerVolume volume, CometSettings settings)
             where T : ZoneTrigger
         {
@@ -202,13 +196,8 @@ namespace Comet.Unity.Editor
             return component;
         }
 
-        // The color a kind's pads are drawn in without their own: spawn pads as the game draws one that isn't the player's.
         private static Color? PadColor(ZoneTrigger trigger, CometSettings settings) => trigger is ZoneSpawn ? settings.spawnPadColor : (Color?)null;
 
-        /// <summary>
-        /// The object for a placement (a prop, a primitive or a group copy) under <paramref name="parent"/>, at the
-        /// placement's world transform, with its marker component.
-        /// </summary>
         internal static GameObject CreatePlaced(Placement placement, Transform parent, CometSettings settings, Color? defaultColor = null)
         {
             var thing =
@@ -239,7 +228,6 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        // A placement's colors: its prop's, from the library (or defaultColor, for a pad), and its own if it has one.
         internal static void SetColors(ZonePlacement placement, CometSettings settings, uint? own, Color? defaultColor = null)
         {
             Color? prop =
@@ -255,10 +243,9 @@ namespace Comet.Unity.Editor
             placement.SetDefaultColor(defaultColor ?? prop ?? settings.placedColor);
         }
 
-        /// <summary>The primitive's kind for a placeable name: a prop id (<c>prop.rock</c>) is null.</summary>
+        /// <summary>Null for a prop id (<c>prop.rock</c>).</summary>
         public static PrimitiveKind? PrimitiveNamed(string name) => PrimitiveKinds.Named(name);
 
-        /// <summary>A newly placed primitive of <paramref name="kind"/>: its values and the size it starts at.</summary>
         public static (Primitive Primitive, Vector3 Size) Starting(PrimitiveKind kind) =>
             kind switch
             {
@@ -282,8 +269,7 @@ namespace Comet.Unity.Editor
                 _ => (new Primitive { Kind = kind }, new Vector3(2, 2, 2)),
             };
 
-        // A primitive's object: its mesh built at its size, drawn in the placed objects' material, with a collider for
-        // surface snapping. Its placement component is added here, since the mesh comes from it.
+        // Its placement component is added here, since the mesh comes from it.
         private static GameObject CreatePrimitive(Primitive primitive, Vector3 size, CometSettings settings, Transform parent)
         {
             var name = PrimitiveKinds.Name(primitive.Kind);
@@ -307,7 +293,7 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        // The prop's model, linked to it, with its collision objects hidden; a stand-in cube if the library has none.
+        // A stand-in cube if the library has none.
         private static GameObject Instantiate(string prop, CometSettings settings, Transform parent)
         {
             var model = settings.props != null ? settings.props.Model(prop) : null;

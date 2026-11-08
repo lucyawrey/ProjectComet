@@ -9,10 +9,8 @@ using UnityEngine.SceneManagement;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Ties the zone editor to Unity's own scene workflow: saving a zone's working scene (File › Save, Ctrl+S) saves
-    /// the zone's files, a zone's terrain preview is drawn again when its scene opens, play mode ends or scripts reload, and play mode
-    /// always starts in the game's own scene (the settings' Play Scene), so it plays the zone from content. A spawn
-    /// point that's duplicated or pasted gets a fresh id, and isn't the default.
+    /// Ties the zone editor to Unity's scene workflow: saving a zone's scene saves its files, and play mode always
+    /// starts in the settings' Play Scene, so it plays the zone from content.
     /// </summary>
     [InitializeOnLoad]
     public static class ZoneEditorScenes
@@ -59,10 +57,9 @@ namespace Comet.Unity.Editor
             };
         }
 
-        /// <summary>While true, saving a scene doesn't save its zone (as when a zone is opened and its scene first saved).</summary>
+        /// <summary>While true, saving a scene doesn't save its zone.</summary>
         internal static bool Quiet { get; set; }
 
-        /// <summary>Makes <paramref name="settings"/>' Play Scene the one play mode starts in.</summary>
         public static void SetPlayScene(CometSettings? settings)
         {
             if (settings != null)
@@ -71,7 +68,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A new spawn point, teleporter or trigger (duplicated or pasted) whose id another already has gets the first free one: key_2, key_3…
         private static void FreshTriggerIds(ref ObjectChangeEventStream stream)
         {
             for (var i = 0; i < stream.length; i++)

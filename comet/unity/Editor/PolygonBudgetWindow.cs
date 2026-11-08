@@ -8,9 +8,8 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Tunes the polygon budget (Comet › Zones › Polygon Budget): changes show at once on every primitive in the opened
-    /// zone, and Save writes them to the game's settings file, so the content build and the game use them too. Until
-    /// saved, the next content build puts the game's values back.
+    /// Tunes the polygon budget: changes show at once on every primitive in the opened zone, and Save writes them to
+    /// the game's settings file. Until saved, the next content build puts the game's values back.
     /// </summary>
     public sealed class PolygonBudgetWindow : EditorWindow
     {
@@ -72,7 +71,7 @@ namespace Comet.Unity.Editor
             );
         }
 
-        // Rewrites the budget's three values in the settings file's table, keeping the rest of the file (and its comments) as it is.
+        // Rewrites only the budget's three values, keeping the rest of the settings file and its comments.
         private static void Save(CometSettings settings)
         {
             var path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Application.dataPath)!, settings.budgetFile));
@@ -142,7 +141,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>Shows <paramref name="settings"/>' budget on every primitive in the open scenes.</summary>
         public static void Preview(CometSettings settings)
         {
             ZonePlacement.Budget = settings.Budget;
@@ -159,7 +157,6 @@ namespace Comet.Unity.Editor
             SceneView.RepaintAll();
         }
 
-        // Folds the scale of every scaled primitive in the open scenes into its size.
         private static void FoldScales()
         {
             foreach (var placement in Object.FindObjectsByType<ZonePlacement>())

@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>A sign in a zone opened in the editor: text shown over the object's position.</summary>
     [DisallowMultipleComponent]
     public sealed class ZoneSign : MonoBehaviour
     {
@@ -71,13 +70,12 @@ namespace Comet.Unity
                 }
             };
 
-        // Its text in its colors, so level editors see it without entering play mode.
         private void DrawLabel(Camera? camera, float alpha)
         {
             var size = screenSized ? fontSize : WorldFontSize(camera);
             if (size < 2)
             {
-                return; // too small to read from here
+                return;
             }
 
             var style = new GUIStyle(UnityEditor.EditorStyles.label)
@@ -96,7 +94,6 @@ namespace Comet.Unity
 #endif
 
 #if UNITY_EDITOR
-        // A world-sized sign's font size in the Scene view's points, as it looks from the scene camera.
         private float WorldFontSize(Camera? camera)
         {
             if (camera == null)

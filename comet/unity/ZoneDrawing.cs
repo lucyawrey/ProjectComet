@@ -7,8 +7,8 @@ using static Comet.Unity.Conversions;
 namespace Comet.Unity
 {
     /// <summary>
-    /// Draws a zone in a game: its terrain, and its placed objects. Primitives without a tag are drawn as one mesh per
-    /// chunk; tagged ones stay apart for game code to find, and blockout ones for their own material.
+    /// Draws a zone in a game: its terrain and placed objects. Untagged, non-blockout primitives are combined into one
+    /// mesh per chunk; the rest stay apart.
     /// </summary>
     public sealed class ZoneDrawing
     {
@@ -21,9 +21,7 @@ namespace Comet.Unity
         private readonly uint _groundColor;
         private readonly uint _underColor;
 
-        /// <param name="placedColor">Placed objects' color where neither they nor their prop set one, as 0xRRGGBB.</param>
-        /// <param name="groundColor">The color of unpainted ground, for terrain pieces without their own.</param>
-        /// <param name="underColor">The color of unpainted undersides (skirt walls and bottoms), for terrain pieces without their own.</param>
+        /// <param name="placedColor">Placed objects' color unless they or their prop set one (0xRRGGBB).</param>
         public ZoneDrawing(
             Material terrain,
             Material placed,
@@ -46,9 +44,8 @@ namespace Comet.Unity
         }
 
         /// <summary>
-        /// Draws <paramref name="zone"/> under <paramref name="parent"/> and returns its object, with the terrain of
-        /// <paramref name="world"/> under "Terrain" and placed objects under <paramref name="placed"/>. Each tagged
-        /// object goes to <paramref name="onTagged"/> as it's drawn.
+        /// Returns the zone's object, with terrain under "Terrain" and placed objects under <paramref name="placed"/>.
+        /// Each tagged object goes to <paramref name="onTagged"/> as it's drawn.
         /// </summary>
         public Transform Draw(Zone zone, CollisionWorld world, Transform parent, Action<Placement, GameObject> onTagged, out Transform placed)
         {
@@ -96,7 +93,6 @@ namespace Comet.Unity
             return drawn;
         }
 
-        /// <summary>A primitive on its own, in the placed objects' material (or blockout's), so game code can find and color it.</summary>
         public GameObject PlacePrimitive(Placement placement, Transform parent)
         {
             var thing = AddMesh(placement.Tag ?? "Blockout", PrimitiveMeshes.For(placement, _budget), MaterialFor(placement), parent);
@@ -106,7 +102,6 @@ namespace Comet.Unity
             return thing;
         }
 
-        // A prop's model where a zone places it, in the placed objects' material; its collision objects are hidden.
         private GameObject? Place(Placement placement, Transform parent)
         {
             var model = _props.Model(placement.Prop);

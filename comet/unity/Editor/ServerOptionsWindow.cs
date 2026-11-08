@@ -8,9 +8,8 @@ using UnityEngine;
 namespace Comet.Unity.Editor
 {
     /// <summary>
-    /// Comet › Server › Options…: the editor's local game server (<see cref="LocalServer"/>) and each person's
-    /// options for it: serving the last web build, opening it to the local network, and bots, so people can playtest
-    /// levels together without a terminal. Makes the web build too, when the editor is on the Web platform.
+    /// Options for the editor's local game server (<see cref="LocalServer"/>): serving the last web build, opening it
+    /// to the local network, and bots. Makes the web build too, when the editor is on the Web platform.
     /// </summary>
     internal sealed class ServerOptionsWindow : EditorWindow
     {
@@ -159,7 +158,6 @@ namespace Comet.Unity.Editor
             EditorGUILayout.EndHorizontal();
         }
 
-        // The address others on the network join, selectable, with a button that copies it.
         private void SharedAddress(string address)
         {
             EditorGUILayout.BeginHorizontal();
@@ -302,8 +300,8 @@ namespace Comet.Unity.Editor
             _webCheckedAt = -WebBuildEvery;
         }
 
-        // When the web build was made, and the first thing it's made from that changed since (as the dev script checks),
-        // leaving out the zone editor's working scenes, which aren't in builds.
+        // When the web build was made, and the first thing it's made from that changed since (as the dev script
+        // checks), leaving out the zone editor's working scenes, which aren't in builds.
         private void CheckWebBuild(CometSettings settings)
         {
             _webBuiltAt = null;

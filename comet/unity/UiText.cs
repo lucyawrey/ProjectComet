@@ -5,13 +5,11 @@ using UnityEngine.UIElements;
 namespace Comet.Unity
 {
     /// <summary>
-    /// Fills a UI Toolkit interface's text from the game's string table: UXML labels and buttons write a key as
-    /// <c>text="#join.title"</c>, and get the text for it here once the content has loaded. Text with a shared
-    /// placeholder (<see cref="StringTable.SetShared"/>, like <c>{username}</c>) is filled in again when its value changes.
+    /// Fills a UI Toolkit interface's text from the string table: UXML text written as <c>text="#join.title"</c>
+    /// is set once the content has loaded, and text with a shared placeholder is refilled when its value changes.
     /// </summary>
     public static class UiText
     {
-        /// <summary>Replaces each <c>#key</c> text under <paramref name="root"/> with its text from <paramref name="strings"/>.</summary>
         public static void Fill(VisualElement root, StringTable strings)
         {
             var withPlaceholders = new List<(TextElement Element, string Key)>();

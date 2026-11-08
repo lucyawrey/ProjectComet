@@ -54,7 +54,7 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Open…", true)]
         private static bool CanOpen() => !EditorApplication.isPlaying;
 
-        // The zones opened lately on this computer, newest first: their folders relative to the project, per project.
+        // Newest first: folders relative to the project, kept per project.
         private const int RecentCount = 8;
         private static string RecentKey => "Comet.Zones.Recent." + ProjectRoot;
 
@@ -80,7 +80,6 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Open Recent…", true)]
         private static bool CanOpenRecent() => !EditorApplication.isPlaying;
 
-        /// <summary>Opens a zone from <see cref="Recent"/>, after offering to save the current scene.</summary>
         internal static void OpenRecent(string folder)
         {
             var settings = CometSettings.Find(quiet: false);
@@ -90,10 +89,8 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>Raised after a zone's files are saved, so a game can rebuild its content from them.</summary>
         public static event Action<ZoneEditing>? Saved;
 
-        // Saving the scene saves its zones too (ZoneEditorScenes).
         [MenuItem("Comet/Zones/Save", priority = 3)]
         public static void SaveMenu()
         {
@@ -144,9 +141,8 @@ namespace Comet.Unity.Editor
         private static bool CanSaveAs() =>
             !EditorApplication.isPlaying && UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() is { IsGroup: false, HasZoneData: true };
 
-        // A folder for a new zone, named in a save-file dialog directly inside the zones folder, new or empty, and named
-        // as a zone is; null if the pick was canceled or refused (saying why). A file dialog, unlike a folder one, lets
-        // the name be typed and creates nothing.
+        // A save-file dialog, unlike a folder one, lets the name be typed and creates nothing. Null if the pick was
+        // canceled or refused (saying why).
         private static string? PickNewZoneFolder(string title, CometSettings settings)
         {
             var zones = ProjectPath(settings.zonesFolder).TrimEnd('/', '\\');
@@ -180,7 +176,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>Drops the opened zone's (or group's) unsaved changes, reading it again from its files.</summary>
         [MenuItem("Comet/Zones/Discard Changes", priority = 5)]
         public static void DiscardMenu()
         {
