@@ -67,14 +67,11 @@ namespace ShapeLand.Client
         private readonly VisualElement _passwordRow;
         private readonly VisualElement _confirmHost;
 
-        // Keys and gamepad: the selected item in the step (or Back above it), and the held direction's repeat.
+        // Keys and gamepad: the selected item in the step (or Back above it).
         private int _selected;
         private bool _onBack;
-        private Vector2 _held;
-        private float _repeatAt;
+        private readonly MenuNavigation _navigation = new();
         private int _shownOnFrame;
-        private const float RepeatDelay = 0.4f,
-            RepeatInterval = 0.1f;
 
         // The step Confirm it's you goes on to once the password checks out.
         private Step _afterConfirm;
@@ -326,7 +323,7 @@ namespace ShapeLand.Client
 
             if (_confirm.Open)
             {
-                var question = Repeat(actions.Navigate.ReadValue<Vector2>());
+                var question = _navigation.StepVertical(actions.Navigate.ReadValue<Vector2>());
                 if (question.y != 0)
                 {
                     Navigating = true;
@@ -347,7 +344,7 @@ namespace ShapeLand.Client
             }
 
             var typing = Typing;
-            var step = Repeat(typing && !fromPad ? TypingArrows() : actions.Navigate.ReadValue<Vector2>());
+            var step = _navigation.StepVertical(typing && !fromPad ? MenuNavigation.TypingArrows() : actions.Navigate.ReadValue<Vector2>());
             var submit = actions.Submit.WasPressedThisFrame() && (!typing || fromPad); // Space and Enter in a field are the field's
             if (!Navigating && step != Vector2Int.zero && !typing)
             {
@@ -514,41 +511,6 @@ namespace ShapeLand.Client
         {
             GUIUtility.systemCopyBuffer = _codeText.text;
             _copy.text = Text("account.copied");
-        }
-
-        // While a field has the keyboard, only Up and Down move on (Left and Right move the caret, letters type).
-        private static Vector2 TypingArrows()
-        {
-            var keyboard = Keyboard.current;
-            return keyboard == null
-                ? Vector2.zero
-                : new Vector2(
-                    0,
-                    keyboard.upArrowKey.isPressed ? 1
-                        : keyboard.downArrowKey.isPressed ? -1
-                        : 0
-                );
-        }
-
-        // A held direction steps once, then repeats after a pause; down is positive.
-        private Vector2Int Repeat(Vector2 value)
-        {
-            var held = new Vector2(0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
-            var now = Time.unscaledTime;
-            if (held != _held)
-            {
-                _held = held;
-                _repeatAt = now + RepeatDelay;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            if (held != Vector2.zero && now >= _repeatAt)
-            {
-                _repeatAt = now + RepeatInterval;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            return Vector2Int.zero;
         }
 
         private void Render()

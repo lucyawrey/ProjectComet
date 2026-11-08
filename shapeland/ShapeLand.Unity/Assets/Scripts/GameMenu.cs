@@ -22,10 +22,8 @@ namespace ShapeLand.Client
             Leave,
         }
 
-        // Steps of the camera speed slider, and how a held direction repeats.
+        // Steps of the camera speed slider.
         private const float SpeedStep = 0.05f;
-        private const float RepeatDelay = 0.4f,
-            RepeatInterval = 0.1f;
         private const float RowHeight = 42;
         private const int ChangeLookEntry = 4;
 
@@ -97,8 +95,7 @@ namespace ShapeLand.Client
         private InputKind _input = (InputKind)(-1); // none yet, so the first update marks the tab in use
         private int _closedOnFrame = -1;
         private int _shownOnFrame = -1;
-        private Vector2 _held;
-        private float _repeatAt;
+        private readonly MenuNavigation _navigation = new();
         private int? _dragPointer;
         private float _shownSpeed = -1;
 
@@ -302,7 +299,7 @@ namespace ShapeLand.Client
                 ShowSettings();
             }
 
-            var step = NavigationStep(actions.Navigate.ReadValue<Vector2>());
+            var step = _navigation.Step(actions.Navigate.ReadValue<Vector2>());
             var pressed =
                 actions.Submit.WasPressedThisFrame()
                 || actions.Back.WasPressedThisFrame()
@@ -345,32 +342,6 @@ namespace ShapeLand.Client
             {
                 ShowTab(NextKind(_tab, -1));
             }
-        }
-
-        // A held direction steps once, then repeats after a pause; down and right are positive.
-        private Vector2Int NavigationStep(Vector2 value)
-        {
-            var held = new Vector2(Mathf.Abs(value.x) > 0.5f ? Mathf.Sign(value.x) : 0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
-            if (held.y != 0)
-            {
-                held.x = 0; // a diagonal moves up or down
-            }
-
-            var now = Time.unscaledTime;
-            if (held != _held)
-            {
-                _held = held;
-                _repeatAt = now + RepeatDelay;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            if (held != Vector2.zero && now >= _repeatAt)
-            {
-                _repeatAt = now + RepeatInterval;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            return Vector2Int.zero;
         }
 
         private void Move(int by)

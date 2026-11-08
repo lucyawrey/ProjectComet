@@ -112,11 +112,8 @@ namespace ShapeLand.Client
 
         // Up from the name row reaches Back, when the card has it (opened from the Esc menu).
         private bool _onBack;
-        private Vector2 _held;
-        private float _repeatAt;
+        private readonly MenuNavigation _navigation = new();
         private int _shownOnFrame;
-        private const float RepeatDelay = 0.4f,
-            RepeatInterval = 0.1f;
 
         // What each shape and color button does, for left and right to pick with.
         private readonly Dictionary<VisualElement, Action> _choose = new();
@@ -1063,20 +1060,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // While a field has the keyboard, only Up and Down move between rows (Left and Right move the caret, letters type).
-        private static Vector2 TypingArrows()
-        {
-            var keyboard = Keyboard.current;
-            return keyboard == null
-                ? Vector2.zero
-                : new Vector2(
-                    0,
-                    keyboard.upArrowKey.isPressed ? 1
-                        : keyboard.downArrowKey.isPressed ? -1
-                        : 0
-                );
-        }
-
         /// <summary>
         /// The card's main button: joins as a new guest with the choices on the card, signs in (the sign-in panel),
         /// plays (a signed-in player), or applies a change of look and name.
@@ -1404,7 +1387,7 @@ namespace ShapeLand.Client
 
             var typing = Typing;
             var fromPad = actions.Navigate.activeControl?.device is Gamepad;
-            var step = Step(typing && !fromPad ? TypingArrows() : actions.Navigate.ReadValue<Vector2>());
+            var step = _navigation.Step(typing && !fromPad ? MenuNavigation.TypingArrows() : actions.Navigate.ReadValue<Vector2>());
             if (!Navigating && step != Vector2Int.zero && !typing)
             {
                 Navigating = true; // the first press only shows where the selection is (leaving a field moves at once)
@@ -1463,7 +1446,7 @@ namespace ShapeLand.Client
         // The sign-out question: up and down choose, Submit picks, Back stays.
         private void NavigateConfirm(ShapeLandControls.MenuActions actions)
         {
-            var step = Step(actions.Navigate.ReadValue<Vector2>());
+            var step = _navigation.Step(actions.Navigate.ReadValue<Vector2>());
             if (step.y != 0)
             {
                 Navigating = true;
@@ -1479,32 +1462,6 @@ namespace ShapeLand.Client
                 Navigating = true;
                 _confirm.Choose();
             }
-        }
-
-        // A held direction steps once, then repeats after a pause; down and right are positive.
-        private Vector2Int Step(Vector2 value)
-        {
-            var held = new Vector2(Mathf.Abs(value.x) > 0.5f ? Mathf.Sign(value.x) : 0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
-            if (held.y != 0)
-            {
-                held.x = 0;
-            }
-
-            var now = Time.unscaledTime;
-            if (held != _held)
-            {
-                _held = held;
-                _repeatAt = now + RepeatDelay;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            if (held != Vector2.zero && now >= _repeatAt)
-            {
-                _repeatAt = now + RepeatInterval;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            return Vector2Int.zero;
         }
 
         private void MoveRow(int by)
