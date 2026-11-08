@@ -121,7 +121,7 @@ namespace ShapeLand.Client
             _controls = controls;
             _motor = new MotorState
             {
-                Position = Vectors.ToNumerics(position),
+                Position = Conversions.ToNumerics(position),
                 Grounded = true,
                 Facing = facing,
             };
@@ -204,7 +204,7 @@ namespace ShapeLand.Client
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
             if (!_fade.Holding)
             {
-                transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+                transform.SetPositionAndRotation(Conversions.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
             }
         }
 

@@ -169,7 +169,7 @@ namespace Comet.Unity.Editor
                 var own = index >= 0;
                 var part = parts.FirstOrDefault(p => p.Role == role);
                 var groupColor =
-                    part?.Color is { } rgb ? PlacedColors.FromRgb(rgb)
+                    part?.Color is { } rgb ? Conversions.FromRgb(rgb)
                     : settings != null ? settings.placedColor
                     : Color.gray;
                 var label = roles.Contains(role) ? role : $"{role} (not in {copy.group})";

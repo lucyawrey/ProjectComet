@@ -76,7 +76,7 @@ namespace Comet.Unity.Editor
                 new Placement
                 {
                     Primitive = primitive,
-                    Position = ZoneEditor.ToNumerics(t.position - Vector3.up * (height / 2)),
+                    Position = Conversions.ToNumerics(t.position - Vector3.up * (height / 2)),
                     Rotation = new System.Numerics.Vector3(0, t.eulerAngles.y, 0),
                     Scale = new System.Numerics.Vector3(trigger.size.x, height, trigger.size.z),
                 },

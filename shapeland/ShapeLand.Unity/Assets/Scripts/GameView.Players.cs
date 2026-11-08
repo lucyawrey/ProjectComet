@@ -180,10 +180,10 @@ namespace ShapeLand.Client
                 var eyes = part.Role == "eyes";
                 drawn.AddPart(
                     PrimitiveMeshes.For(part, content.Settings.Primitives),
-                    Vectors.ToUnity(part.Position),
+                    Conversions.ToUnity(part.Position),
                     Quaternion.Euler(r.X, r.Y, r.Z),
                     part.Role,
-                    Color(part.Color ?? content.Settings.World.PlacedColor),
+                    Conversions.FromRgb(part.Color ?? content.Settings.World.PlacedColor),
                     eyes ? eyesMaterial : shapeMaterial,
                     eyes ? eyesFadeMaterial : shapeFadeMaterial
                 );
@@ -192,8 +192,5 @@ namespace ShapeLand.Client
             drawn.SetColors(color, eyeColor);
             return drawn;
         }
-
-        /// <summary>A 0xRRGGBB color as Unity's.</summary>
-        public static Color Color(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
     }
 }

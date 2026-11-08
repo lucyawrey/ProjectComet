@@ -7,6 +7,7 @@ using MessagePack;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using static Comet.Unity.Conversions;
 using Group = Comet.Content.Group;
 
 namespace Comet.Unity.Editor
@@ -129,7 +130,7 @@ namespace Comet.Unity.Editor
 
         // A part's color: its own, else its prop's, else the game's.
         private static Color PartColor(Placement part, CometSettings settings) =>
-            part.Color is { } own ? PlacedColors.FromRgb(own)
+            part.Color is { } own ? Conversions.FromRgb(own)
             : part.Primitive == null && settings.props != null && settings.props.TryGet(part.Prop, out var entry) && entry.hasColor ? entry.color
             : settings.placedColor;
 
@@ -710,9 +711,5 @@ namespace Comet.Unity.Editor
         }
 
         private static float Round(float value) => Mathf.Round(value * 1000) / 1000;
-
-        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
-
-        private static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
     }
 }

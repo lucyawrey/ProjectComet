@@ -465,7 +465,7 @@ namespace ShapeLand.Client
                 var button = new Button(Choose) { userData = shape };
                 _choose[button] = Choose;
                 button.AddToClassList("shape-button");
-                button.Add(new ShapeIcon(content.BodyKind(shape), GameView.Color(content.ColorRgb(_color))));
+                button.Add(new ShapeIcon(content.BodyKind(shape), Conversions.FromRgb(content.ColorRgb(_color))));
                 button.Add(new Label(shape.DisplayName));
                 _shapes.Add(button);
             }

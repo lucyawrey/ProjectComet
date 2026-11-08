@@ -7,16 +7,6 @@ namespace Comet.Unity
     {
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
-        /// <summary>A 0xRRGGBB color as Unity's.</summary>
-        public static Color FromRgb(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
-
-        /// <summary>A Unity color as 0xRRGGBB.</summary>
-        public static uint ToRgb(Color color)
-        {
-            Color32 c = color;
-            return (uint)(c.r << 16 | c.g << 8 | c.b);
-        }
-
         /// <summary>Colors the visible renderers of a placed prop, or with null, puts back its material's color.</summary>
         public static void Apply(GameObject thing, Color? color)
         {

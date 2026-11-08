@@ -82,16 +82,16 @@ namespace Comet.Unity
         /// </summary>
         public void AddVolume(TriggerVolume volume, PolygonBudget budget, Color color, bool facing = false)
         {
-            var edges = VolumeEdges(volume.Kind, ToUnity(volume.Size), budget);
+            var edges = VolumeEdges(volume.Kind, Conversions.ToUnity(volume.Size), budget);
             if (facing)
             {
                 var shape = edges;
                 edges = new Vector3[shape.Length + 2];
                 shape.CopyTo(edges, 0);
-                FacingEdge(ToUnity(volume.Size)).CopyTo(edges, shape.Length);
+                FacingEdge(Conversions.ToUnity(volume.Size)).CopyTo(edges, shape.Length);
             }
 
-            var place = Matrix4x4.TRS(ToUnity(volume.Position), Quaternion.Euler(0, volume.Yaw, 0), Vector3.one);
+            var place = Matrix4x4.TRS(Conversions.ToUnity(volume.Position), Quaternion.Euler(0, volume.Yaw, 0), Vector3.one);
             for (var i = 0; i < edges.Length; i++)
             {
                 edges[i] = place.MultiplyPoint3x4(edges[i]);
@@ -187,14 +187,12 @@ namespace Comet.Unity
         private static readonly int Opacity = Shader.PropertyToID("_Opacity");
         private static readonly int Tint = Shader.PropertyToID("_Color");
 
-        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
-
         private static Vector3[] ToUnity(System.Numerics.Vector3[] points)
         {
             var converted = new Vector3[points.Length];
             for (var i = 0; i < points.Length; i++)
             {
-                converted[i] = ToUnity(points[i]);
+                converted[i] = Conversions.ToUnity(points[i]);
             }
 
             return converted;

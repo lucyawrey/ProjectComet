@@ -2,6 +2,7 @@ using System;
 using Comet.Content;
 using Comet.Simulation;
 using UnityEngine;
+using static Comet.Unity.Conversions;
 
 namespace Comet.Unity
 {
@@ -101,7 +102,7 @@ namespace Comet.Unity
             var thing = AddMesh(placement.Tag ?? "Blockout", PrimitiveMeshes.For(placement, _budget), MaterialFor(placement), parent);
             var rotation = placement.Rotation;
             thing.transform.SetLocalPositionAndRotation(ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
-            PlacedColors.Apply(thing, PlacedColors.FromRgb(placement.Color ?? _placedColor));
+            PlacedColors.Apply(thing, Conversions.FromRgb(placement.Color ?? _placedColor));
             return thing;
         }
 
@@ -123,9 +124,9 @@ namespace Comet.Unity
             PlacedProps.HideCollision(thing);
             PlacedProps.SetMaterial(thing, MaterialFor(placement));
 
-            var own = placement.Color is { } rgb ? PlacedColors.FromRgb(rgb) : (Color?)null;
+            var own = placement.Color is { } rgb ? Conversions.FromRgb(rgb) : (Color?)null;
             var prop = _props.TryGet(placement.Prop, out var entry) && entry.hasColor ? entry.color : (Color?)null;
-            PlacedColors.Apply(thing, own ?? prop ?? PlacedColors.FromRgb(_placedColor));
+            PlacedColors.Apply(thing, own ?? prop ?? Conversions.FromRgb(_placedColor));
             return thing;
         }
 
@@ -139,7 +140,5 @@ namespace Comet.Unity
             thing.AddComponent<MeshRenderer>().sharedMaterial = material;
             return thing;
         }
-
-        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
     }
 }

@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Comet.Simulation;
+using Comet.Unity;
 using NUnit.Framework;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.World;
@@ -249,8 +250,8 @@ namespace ShapeLand.Client.Tests
 
             var forward = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitZ, comet);
             var right = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitX, comet);
-            Assert.That(Vector3.Distance(Vectors.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
-            Assert.That(Vector3.Distance(Vectors.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Conversions.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Conversions.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
         }
 
         [Test]

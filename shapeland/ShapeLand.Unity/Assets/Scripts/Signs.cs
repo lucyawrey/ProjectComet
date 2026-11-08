@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Comet.Content;
+using Comet.Unity;
 using ShapeLand.Shared.World;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -73,10 +74,10 @@ namespace ShapeLand.Client
                     var panel = new VisualElement { pickingMode = PickingMode.Ignore };
                     panel.AddToClassList("sign");
                     var text = new Label(sign.Text) { pickingMode = PickingMode.Ignore, enableRichText = false };
-                    text.style.color = GameView.Color(sign.TextColor);
+                    text.style.color = Conversions.FromRgb(sign.TextColor);
                     text.style.fontSize = sign.ScreenSized ? sign.FontSize : WorldLayoutFontSize;
                     panel.Add(text);
-                    var back = GameView.Color(sign.BackgroundColor);
+                    var back = Conversions.FromRgb(sign.BackgroundColor);
                     back.a = sign.Background ? sign.BackgroundOpacity : 0;
                     panel.style.backgroundColor = back;
                     if (sign.Arrow && sign.Background)
@@ -180,7 +181,11 @@ namespace ShapeLand.Client
             }
 
             var along = line / length;
-            return !_hud.Join.World.IsLineBlocked(Vectors.ToNumerics(eye + along * CameraGap), Vectors.ToNumerics(point - along * SignGap), _walls);
+            return !_hud.Join.World.IsLineBlocked(
+                Conversions.ToNumerics(eye + along * CameraGap),
+                Conversions.ToNumerics(point - along * SignGap),
+                _walls
+            );
         }
 
         private sealed class Shown
@@ -188,7 +193,7 @@ namespace ShapeLand.Client
             public Shown(Sign sign, System.Numerics.Vector3 point, VisualElement panel)
             {
                 Sign = sign;
-                Point = Vectors.ToUnity(point);
+                Point = Conversions.ToUnity(point);
                 Panel = panel;
             }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Comet.Client;
+using Comet.Unity;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
 using UnityEngine;
@@ -291,7 +292,7 @@ namespace ShapeLand.Client
                 line.Add(
                     new ShapeIcon(
                         _hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]),
-                        GameView.Color(_hud.Join.Content.ColorRgb(speaker.Color))
+                        Conversions.FromRgb(_hud.Join.Content.ColorRgb(speaker.Color))
                     )
                 );
             }

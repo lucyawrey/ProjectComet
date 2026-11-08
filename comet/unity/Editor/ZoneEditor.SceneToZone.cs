@@ -4,6 +4,7 @@ using Comet.Content;
 using Comet.Simulation;
 using MessagePack;
 using UnityEngine;
+using static Comet.Unity.Conversions;
 
 namespace Comet.Unity.Editor
 {
@@ -19,7 +20,7 @@ namespace Comet.Unity.Editor
             // A charge color is saved only when it isn't the game's default for its kind, so a later change to the
             // default reaches the rest.
             uint? OwnChargeColor(Color color, Color? fallback) =>
-                fallback is { } usual && PlacedColors.ToRgb(color) == PlacedColors.ToRgb(usual) ? null : PlacedColors.ToRgb(color);
+                fallback is { } usual && Conversions.ToRgb(color) == Conversions.ToRgb(usual) ? null : Conversions.ToRgb(color);
             ZoneChunk ChunkAt(System.Numerics.Vector3 position)
             {
                 var coord = ChunkCoord.Containing(position);
@@ -166,9 +167,9 @@ namespace Comet.Unity.Editor
             {
                 Position = position,
                 Text = sign.text.Replace("\r\n", "\n"),
-                TextColor = PlacedColors.ToRgb(sign.textColor),
+                TextColor = Conversions.ToRgb(sign.textColor),
                 Background = sign.background,
-                BackgroundColor = PlacedColors.ToRgb(sign.backgroundColor),
+                BackgroundColor = Conversions.ToRgb(sign.backgroundColor),
                 BackgroundOpacity = sign.backgroundOpacity,
                 ShowDistance = sign.showDistance,
                 ScreenSized = sign.screenSized,
@@ -202,7 +203,7 @@ namespace Comet.Unity.Editor
                 Position = ToNumerics(position),
                 Rotation = Angles(rotation.eulerAngles),
                 Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),
-                Color = placed.ownColor && !placed.IsGroup ? PlacedColors.ToRgb(placed.color) : (uint?)null,
+                Color = placed.ownColor && !placed.IsGroup ? Conversions.ToRgb(placed.color) : (uint?)null,
                 // Only a group's parts have a role: one unpacked into a zone drops it.
                 Role =
                     !string.IsNullOrEmpty(placed.role) && (relativeTo != null || placed.GetComponentInParent<ZoneEditing>(true) is { IsGroup: true })
@@ -218,7 +219,7 @@ namespace Comet.Unity.Editor
             var colors = new Dictionary<string, uint>();
             foreach (var c in copy.roleColors.Where(c => !string.IsNullOrEmpty(c.role)))
             {
-                colors[c.role] = PlacedColors.ToRgb(c.color);
+                colors[c.role] = Conversions.ToRgb(c.color);
             }
 
             return colors;

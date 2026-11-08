@@ -4,6 +4,7 @@ using Comet.Content;
 using Comet.Simulation;
 using UnityEditor;
 using UnityEngine;
+using static Comet.Unity.Conversions;
 
 namespace Comet.Unity.Editor
 {
@@ -34,7 +35,7 @@ namespace Comet.Unity.Editor
             }
 
             DrawnBottoms.AddOrUpdate(editing, bottoms);
-            var meshes = TerrainMesher.Build(zoneTerrain, Rgb(settings.groundColor), Rgb(settings.underColor), only);
+            var meshes = TerrainMesher.Build(zoneTerrain, ToRgb(settings.groundColor), ToRgb(settings.underColor), only);
 
             // Chunks redrawn without terrain go; the rest are refilled, or made.
             var keep = new HashSet<string>(meshes.Keys.Select(ChunkName));
@@ -108,7 +109,7 @@ namespace Comet.Unity.Editor
                     var component = CreateTrigger<ZoneTeleporter>(root, teleporter.Id, teleporter.Volume, settings);
                     component.facing = (ZoneTrigger.FacingMode)teleporter.Facing;
                     component.target = teleporter.Target;
-                    component.chargeColor = teleporter.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.teleporterChargeColor;
+                    component.chargeColor = teleporter.ChargeColor is { } color ? Conversions.FromRgb(color) : settings.teleporterChargeColor;
                 }
 
                 foreach (var trigger in chunk.Triggers)
@@ -117,7 +118,7 @@ namespace Comet.Unity.Editor
                     component.effects = trigger
                         .Effects.Select(e => new ZoneToggleTrigger.Effect { toggleTag = e.Tag, revertSeconds = e.RevertSeconds })
                         .ToList();
-                    component.chargeColor = trigger.ChargeColor is { } color ? PlacedColors.FromRgb(color) : settings.triggerChargeColor;
+                    component.chargeColor = trigger.ChargeColor is { } color ? Conversions.FromRgb(color) : settings.triggerChargeColor;
                 }
 
                 foreach (var sign in chunk.Signs)
@@ -153,9 +154,9 @@ namespace Comet.Unity.Editor
         private static void Fill(ZoneSign component, Sign sign)
         {
             component.text = sign.Text;
-            component.textColor = PlacedColors.FromRgb(sign.TextColor);
+            component.textColor = Conversions.FromRgb(sign.TextColor);
             component.background = sign.Background;
-            component.backgroundColor = PlacedColors.FromRgb(sign.BackgroundColor);
+            component.backgroundColor = Conversions.FromRgb(sign.BackgroundColor);
             component.backgroundOpacity = sign.BackgroundOpacity;
             component.showDistance = sign.ShowDistance;
             component.screenSized = sign.ScreenSized;
@@ -229,7 +230,7 @@ namespace Comet.Unity.Editor
             marker.roleColors =
                 placement
                     .Colors?.OrderBy(c => c.Key, System.StringComparer.Ordinal)
-                    .Select(c => new ZonePlacement.RoleColor { role = c.Key, color = PlacedColors.FromRgb(c.Value) })
+                    .Select(c => new ZonePlacement.RoleColor { role = c.Key, color = Conversions.FromRgb(c.Value) })
                     .ToList()
                 ?? new List<ZonePlacement.RoleColor>();
             SetColors(marker, settings, placement.Color, defaultColor);
@@ -248,7 +249,7 @@ namespace Comet.Unity.Editor
             placement.ownColor = own != null;
             if (own is { } rgb)
             {
-                placement.color = PlacedColors.FromRgb(rgb);
+                placement.color = Conversions.FromRgb(rgb);
             }
 
             placement.SetDefaultColor(defaultColor ?? prop ?? settings.placedColor);

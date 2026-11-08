@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using Comet.Content;
+using Comet.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -35,7 +36,7 @@ namespace ShapeLand.Client.Tests
                     {
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(ahead),
+                            Position = Conversions.ToNumerics(ahead),
                             Text = "Near",
                             Background = true,
                             BackgroundColor = 0x12161E,
@@ -46,32 +47,32 @@ namespace ShapeLand.Client.Tests
                         },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(ahead + right),
+                            Position = Conversions.ToNumerics(ahead + right),
                             Text = "Plain",
                             TextColor = 0xFFEE00,
                             Arrow = true,
                         },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(ahead - right),
+                            Position = Conversions.ToNumerics(ahead - right),
                             Text = "Far",
                             ShowDistance = 2,
                         },
-                        new Sign { Position = Vectors.ToNumerics(feet + Vector3.down * 3), Text = "Buried" },
+                        new Sign { Position = Conversions.ToNumerics(feet + Vector3.down * 3), Text = "Buried" },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(worldNear),
+                            Position = Conversions.ToNumerics(worldNear),
                             Text = "World",
                             TextHeight = 0.3f,
                         },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(worldFar),
+                            Position = Conversions.ToNumerics(worldFar),
                             Text = "World far",
                             TextHeight = 0.3f,
                         },
-                        new Sign { Position = Vectors.ToNumerics(behindDoor), Text = "Behind door" },
-                        new Sign { Position = Vectors.ToNumerics(onDoor), Text = "On door" },
+                        new Sign { Position = Conversions.ToNumerics(behindDoor), Text = "Behind door" },
+                        new Sign { Position = Conversions.ToNumerics(onDoor), Text = "On door" },
                     }
                 )
                 .ToArray();
@@ -98,7 +99,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(Showing("On door"), Is.True, "A sign on a wall's face is hidden by it.");
             Assert.That(Of("Near").resolvedStyle.backgroundColor.a, Is.EqualTo(0.75f).Within(0.01f));
             Assert.That(Of("Plain").resolvedStyle.backgroundColor.a, Is.EqualTo(0f), "A sign without a background has one.");
-            Assert.That(Of("Plain").Q<Label>().resolvedStyle.color, Is.EqualTo(GameView.Color(0xFFEE00)));
+            Assert.That(Of("Plain").Q<Label>().resolvedStyle.color, Is.EqualTo(Conversions.FromRgb(0xFFEE00)));
             Assert.That(Of("Near").Q<Label>().resolvedStyle.fontSize, Is.EqualTo(20f));
             Assert.That(Of("Near").Q(className: "sign-arrow"), Is.Not.Null, "The sign has no arrow.");
             Assert.That(Of("Plain").Q(className: "sign-arrow"), Is.Null, "A sign without a background has an arrow.");

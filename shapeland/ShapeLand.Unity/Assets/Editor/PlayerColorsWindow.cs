@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Comet.Unity;
 using Comet.Unity.Editor;
 using UnityEditor;
 using UnityEditorInternal;
@@ -205,7 +206,7 @@ namespace ShapeLand.Client.Editor
                 if (match.Success)
                 {
                     var rgb = uint.Parse(match.Groups[2].Value, NumberStyles.HexNumber);
-                    colors.Add(new PlayerColor { color = GameView.Color(rgb), name = match.Groups[1].Value });
+                    colors.Add(new PlayerColor { color = Conversions.FromRgb(rgb), name = match.Groups[1].Value });
                 }
             }
         }

@@ -211,7 +211,7 @@ namespace ShapeLand.Client
                 {
                     var shape = other.Value;
                     var track = _otherFades[other.Key];
-                    var position = Vectors.ToUnity(pose.Position);
+                    var position = Conversions.ToUnity(pose.Position);
                     if (Vector3.Distance(position, track.Last) > session.Entities.TeleportSpeed * seconds + 1)
                     {
                         if (!track.Fade.Holding)
@@ -355,7 +355,7 @@ namespace ShapeLand.Client
                 (_showcased != null && _triggers.TryGetSpawn(_showcased.Spawn, out var picked) ? picked : null)
                 ?? content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
                 ?? _triggers.Spawns.FirstOrDefault();
-            orbitCamera.Showcase(shown != null ? Vectors.ToUnity(Triggers.Center(shown, _world)) : Vector3.zero);
+            orbitCamera.Showcase(shown != null ? Conversions.ToUnity(Triggers.Center(shown, _world)) : Vector3.zero);
         }
 
         /// <summary>
@@ -367,7 +367,7 @@ namespace ShapeLand.Client
             _showcased = shape;
             if (_triggers != null && _triggers.TryGetSpawn(shape.Spawn, out var start))
             {
-                orbitCamera.Showcase(Vectors.ToUnity(Triggers.Center(start, _world)), glide);
+                orbitCamera.Showcase(Conversions.ToUnity(Triggers.Center(start, _world)), glide);
             }
         }
 

@@ -2,6 +2,7 @@ using System.Linq;
 using Comet.Content;
 using Comet.Protocol.Messages;
 using Comet.Simulation;
+using Comet.Unity;
 using UnityEngine;
 
 namespace ShapeLand.Client
@@ -18,7 +19,10 @@ namespace ShapeLand.Client
 
             var thing = _drawing.PlacePrimitive(pad, parent);
             thing.name = id;
-            var color = owner is SpawnPoint ? Color(_content.Settings.Spawns.UnsetColor) : Color(pad.Color ?? _content.Settings.World.PlacedColor);
+            var color =
+                owner is SpawnPoint
+                    ? Conversions.FromRgb(_content.Settings.Spawns.UnsetColor)
+                    : Conversions.FromRgb(pad.Color ?? _content.Settings.World.PlacedColor);
             _pads.Add(new Pad(owner, thing.GetComponentsInChildren<Renderer>(), color));
         }
 
@@ -53,7 +57,10 @@ namespace ShapeLand.Client
             _padColor ??= new MaterialPropertyBlock();
             var now = Time.time;
             var own = Player != null ? _join.SpawnNumber : null;
-            var body = Player != null && _join.Spawn is { } me ? Color(_content.ColorRgb(me.Color)) : Color(_content.Settings.Spawns.UnsetColor);
+            var body =
+                Player != null && _join.Spawn is { } me
+                    ? Conversions.FromRgb(_content.ColorRgb(me.Color))
+                    : Conversions.FromRgb(_content.Settings.Spawns.UnsetColor);
             if (Player != null)
             {
                 var feet = Player.Motor.Position;
@@ -107,7 +114,7 @@ namespace ShapeLand.Client
                         : _teleportCharge.Inside != teleporter ? 0
                         : _teleportCharge.Fired ? 1
                         : _teleportCharge.Progress(now);
-                    var to = Color(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
+                    var to = Conversions.FromRgb(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
                     color = Charging(pad.Color, to, charge, teleporter.Volume.StandSeconds);
                 }
                 else if (pad.Owner is Trigger trigger)
@@ -116,7 +123,7 @@ namespace ShapeLand.Client
                         _triggerCharge.Inside != trigger ? 0
                         : _triggerCharge.Fired ? 1
                         : _triggerCharge.Progress(now);
-                    var to = Color(trigger.ChargeColor ?? _content.Settings.Triggers.ChargeColor);
+                    var to = Conversions.FromRgb(trigger.ChargeColor ?? _content.Settings.Triggers.ChargeColor);
                     color = Charging(pad.Color, to, charge, trigger.Volume.StandSeconds);
                 }
                 else

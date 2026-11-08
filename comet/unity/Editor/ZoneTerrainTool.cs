@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.EditorTools;
 using UnityEditor.Overlays;
 using UnityEngine;
+using static Comet.Unity.Conversions;
 
 namespace Comet.Unity.Editor
 {
@@ -236,9 +237,9 @@ namespace Comet.Unity.Editor
         private static uint? OwnColor(string label, string what, uint? own, Color game)
         {
             var content = new GUIContent(label, $"The color of the piece's {what}. Reset: the game's, from Comet Settings.");
-            var (color, changed, reset) = ColorFields.WithReset(content, ToColor(own ?? Rgb(game)), own != null);
+            var (color, changed, reset) = ColorFields.WithReset(content, FromRgb(own ?? ToRgb(game)), own != null);
             return reset ? null
-                : changed ? Rgb(color)
+                : changed ? ToRgb(color)
                 : own;
         }
 
@@ -280,8 +281,8 @@ namespace Comet.Unity.Editor
                 settings.SkirtDepth = depth;
                 settings.RimSkirts = rim;
                 settings.HoleSkirts = holes;
-                uint Ground() => settings.GroundColor ?? Rgb(_settings!.groundColor);
-                uint Under() => settings.UnderColor ?? Rgb(_settings!.underColor);
+                uint Ground() => settings.GroundColor ?? ToRgb(_settings!.groundColor);
+                uint Under() => settings.UnderColor ?? ToRgb(_settings!.underColor);
                 var (oldGround, oldUnder) = (Ground(), Under());
                 settings.GroundColor = ground;
                 settings.UnderColor = under;
@@ -406,8 +407,8 @@ namespace Comet.Unity.Editor
                 dx,
                 dz,
                 move.y,
-                settings.GroundColor ?? Rgb(_settings!.groundColor),
-                settings.UnderColor ?? Rgb(_settings!.underColor)
+                settings.GroundColor ?? ToRgb(_settings!.groundColor),
+                settings.UnderColor ?? ToRgb(_settings!.underColor)
             );
             terrain.Commit($"Move piece {piece}", _settings!);
             Undo.CollapseUndoOperations(group);
@@ -663,12 +664,12 @@ namespace Comet.Unity.Editor
                             piece,
                             x,
                             z,
-                            pieceSettings.GroundColor ?? Rgb(_settings!.groundColor),
-                            pieceSettings.UnderColor ?? Rgb(_settings!.underColor)
+                            pieceSettings.GroundColor ?? ToRgb(_settings!.groundColor),
+                            pieceSettings.UnderColor ?? ToRgb(_settings!.underColor)
                         );
                         break;
                     case Brush.Color when has:
-                        terrain.SetColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.GroundColor ?? Rgb(_settings!.groundColor));
+                        terrain.SetColor(piece, x, z, ToRgb(paint), terrain.Terrain[piece].Settings.GroundColor ?? ToRgb(_settings!.groundColor));
                         break;
                 }
             }
@@ -717,7 +718,7 @@ namespace Comet.Unity.Editor
                     terrain.SetUnderside(piece, x, z, Mathf.Min(height, Mathf.Lerp(under, _flattenHeight, Mathf.Clamp01(strength * amount * 3))));
                     break;
                 case Brush.Color:
-                    terrain.SetUndersideColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.UnderColor ?? Rgb(_settings!.underColor));
+                    terrain.SetUndersideColor(piece, x, z, ToRgb(paint), terrain.Terrain[piece].Settings.UnderColor ?? ToRgb(_settings!.underColor));
                     break;
             }
         }
@@ -741,14 +742,6 @@ namespace Comet.Unity.Editor
 
             return count > 0 ? sum / count : (float?)null;
         }
-
-        private static uint Rgb(Color color)
-        {
-            Color32 c = color;
-            return (uint)(c.r << 16 | c.g << 8 | c.b);
-        }
-
-        private static Color ToColor(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
     }
 
     /// <summary>

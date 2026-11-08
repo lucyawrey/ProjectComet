@@ -20,7 +20,7 @@ namespace Comet.Unity.Editor
 
             // The prop's bounds take the primitive's size: evenly, if the prop only scales evenly.
             var placement = ZoneEditor.PlacementOf(placed);
-            var size = ZoneEditor.ToUnity(placement.Scale);
+            var size = Conversions.ToUnity(placement.Scale);
             var bounds = entry.bounds.size;
             var scale = new Vector3(Ratio(size.x, bounds.x), Ratio(size.y, bounds.y), Ratio(size.z, bounds.z));
             if (entry.uniformScale)
@@ -33,8 +33,8 @@ namespace Comet.Unity.Editor
             placement.Primitive = null;
             placement.Prop = id;
             placement.Blockout = false;
-            placement.Scale = ZoneEditor.ToNumerics(scale);
-            placement.Position = ZoneEditor.ToNumerics(placed.transform.position - rotation * Vector3.Scale(scale, bottom));
+            placement.Scale = Conversions.ToNumerics(scale);
+            placement.Position = Conversions.ToNumerics(placed.transform.position - rotation * Vector3.Scale(scale, bottom));
             return Replace(placed, placement, settings, $"Swap for {id}");
         }
 
@@ -47,17 +47,17 @@ namespace Comet.Unity.Editor
             }
 
             var placement = ZoneEditor.PlacementOf(placed);
-            var scale = ZoneEditor.ToUnity(placement.Scale);
+            var scale = Conversions.ToUnity(placement.Scale);
             var rotation = placed.transform.rotation;
             var bottom = new Vector3(entry.bounds.center.x, entry.bounds.min.y, entry.bounds.center.z);
             var size = Vector3.Scale(scale, entry.bounds.size);
-            placement.Position = ZoneEditor.ToNumerics(placed.transform.position + rotation * Vector3.Scale(scale, bottom));
+            placement.Position = Conversions.ToNumerics(placed.transform.position + rotation * Vector3.Scale(scale, bottom));
             placement.Prop = "";
             placement.Primitive = new Comet.Content.Primitive { Kind = Comet.Content.PrimitiveKind.Box };
-            placement.Scale = ZoneEditor.ToNumerics(new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z)));
+            placement.Scale = Conversions.ToNumerics(new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z)));
 
             // It keeps looking the color it was: its own, else its prop's.
-            placement.Color ??= entry.hasColor ? PlacedColors.ToRgb(entry.color) : (uint?)null;
+            placement.Color ??= entry.hasColor ? Conversions.ToRgb(entry.color) : (uint?)null;
             return Replace(placed, placement, settings, "Swap for box");
         }
 

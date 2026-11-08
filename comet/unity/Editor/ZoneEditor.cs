@@ -9,6 +9,7 @@ using MessagePack;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using static Comet.Unity.Conversions;
 
 namespace Comet.Unity.Editor
 {
@@ -217,7 +218,7 @@ namespace Comet.Unity.Editor
             }
 
             thing.transform.position = position;
-            SetColors(placement, settings, color is { } c ? PlacedColors.ToRgb(c) : (uint?)null);
+            SetColors(placement, settings, color is { } c ? Conversions.ToRgb(c) : (uint?)null);
             Undo.RegisterCreatedObjectUndo(thing, $"Place {placeable}");
             return thing;
         }
@@ -272,7 +273,7 @@ namespace Comet.Unity.Editor
                         Primitive = primitive,
                         Position = ToNumerics(position - Vector3.up * (padSize.y / 2)),
                         Scale = ToNumerics(padSize),
-                        Color = trigger is ZoneTeleporter ? PlacedColors.ToRgb(settings.teleporterPadColor) : (uint?)null,
+                        Color = trigger is ZoneTeleporter ? Conversions.ToRgb(settings.teleporterPadColor) : (uint?)null,
                     },
                     point,
                     settings,
@@ -370,15 +371,5 @@ namespace Comet.Unity.Editor
                 : degrees <= -180 ? degrees + 360
                 : degrees;
         }
-
-        private static uint Rgb(Color color)
-        {
-            Color32 c = color;
-            return (uint)(c.r << 16 | c.g << 8 | c.b);
-        }
-
-        internal static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
-
-        internal static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
     }
 }

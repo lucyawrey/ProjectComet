@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Comet.Unity;
 using ShapeLand.Shared.Content;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -33,7 +34,7 @@ namespace ShapeLand.Client
                 swatch.AddToClassList("swatch");
                 var fill = new VisualElement { pickingMode = PickingMode.Ignore };
                 fill.AddToClassList("swatch-fill");
-                fill.style.backgroundColor = GameView.Color(entry.Rgb);
+                fill.style.backgroundColor = Conversions.FromRgb(entry.Rgb);
                 swatch.Add(fill);
                 row.Add(swatch);
             }
@@ -45,7 +46,7 @@ namespace ShapeLand.Client
             foreach (var button in _shapes.Children())
             {
                 button.EnableInClassList("on", button.userData == _shape);
-                button.Q<ShapeIcon>().Set(_content.BodyKind((Shape)button.userData), GameView.Color(_content.ColorRgb(_color)));
+                button.Q<ShapeIcon>().Set(_content.BodyKind((Shape)button.userData), Conversions.FromRgb(_content.ColorRgb(_color)));
             }
 
             MarkSwatch(_colors, _color);

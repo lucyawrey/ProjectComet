@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Comet.Unity;
 using UnityEngine;
 
 namespace ShapeLand.Client
@@ -102,12 +103,12 @@ namespace ShapeLand.Client
         public void SetColors(uint bodyColor, uint eyeColor)
         {
             FreeMaterials();
-            _bodyColor = GameView.Color(bodyColor);
+            _bodyColor = Conversions.FromRgb(bodyColor);
             foreach (var part in _parts)
             {
                 var color =
-                    part.Role == "body" ? GameView.Color(bodyColor)
-                    : part.Role == "eyes" ? GameView.Color(eyeColor)
+                    part.Role == "body" ? Conversions.FromRgb(bodyColor)
+                    : part.Role == "eyes" ? Conversions.FromRgb(eyeColor)
                     : part.Own;
                 part.Opaque = new Material(part.Template) { color = color };
                 Draw(part, part.Opaque);
