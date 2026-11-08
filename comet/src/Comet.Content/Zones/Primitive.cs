@@ -3,8 +3,7 @@ using MessagePack;
 namespace Comet.Content
 {
     /// <summary>
-    /// The shapes Comet builds in code, for blocking out levels and for simple geometry. Each stands on its pivot (the
-    /// bottom center) and at a placement scale of 1 fits a 1 m box, so a placement's scale is its size in meters.
+    /// The shapes Comet builds in code. Each stands on its pivot (bottom center) and at scale 1 fits a 1 m box, so scale is size in meters.
     /// </summary>
     public enum PrimitiveKind
     {
@@ -16,7 +15,7 @@ namespace Comet.Content
         /// <summary>Round around Y; sides from the polygon budget unless fixed.</summary>
         Cylinder,
 
-        /// <summary>Round around Y, to a point at the top; sides from the polygon budget unless fixed (4 sides make a square pyramid).</summary>
+        /// <summary>Round around Y, to a point at the top; sides from the polygon budget unless fixed (4 make a square pyramid).</summary>
         Cone,
 
         /// <summary>Sides and rings from the polygon budget unless fixed.</summary>
@@ -31,14 +30,10 @@ namespace Comet.Content
         /// <summary>A wall (its face toward -Z) with a door-shaped opening at the bottom center.</summary>
         Doorway,
 
-        /// <summary>
-        /// A rounded band on two legs, its face toward -Z: round outside as well as inside, as thick as its thickness. The
-        /// curve's sides come from the polygon budget.
-        /// </summary>
+        /// <summary>A rounded band on two legs, its face toward -Z, round outside and inside; sides from the polygon budget.</summary>
         Arch,
 
-        // The regular solids other than the cube (a box), each standing as a player's shape does. At a scale of 1 each
-        // holds as much as a 1 m cube, so they look about the same size; a uniform scale keeps them regular.
+        // // At scale 1 each regular solid holds as much as a 1 m cube; a uniform scale keeps them regular.
 
         /// <summary>A regular tetrahedron standing on a face, with a corner at the back and a face toward +Z.</summary>
         Tetrahedron,
@@ -53,13 +48,13 @@ namespace Comet.Content
         Icosahedron,
     }
 
-    /// <summary>Primitive kinds by the names zone files and the editor use for them (<c>box</c>, <c>wedge</c>…).</summary>
+    /// <summary>Primitive kinds by the names zone files and the editor use (<c>box</c>, <c>wedge</c>).</summary>
     public static class PrimitiveKinds
     {
         /// <summary>Every kind, in order.</summary>
         public static readonly PrimitiveKind[] All = (PrimitiveKind[])System.Enum.GetValues(typeof(PrimitiveKind));
 
-        /// <summary><paramref name="kind"/>'s name: its enum name in snake case.</summary>
+        /// <summary>The kind's name: its enum name in snake case.</summary>
         public static string Name(PrimitiveKind kind)
         {
             var text = new System.Text.StringBuilder();
@@ -98,10 +93,7 @@ namespace Comet.Content
         [Key(0)]
         public PrimitiveKind Kind { get; set; }
 
-        /// <summary>
-        /// A fixed number of sides for a round kind (a cylinder, cone or sphere around Y, or an arch's curve), or null to
-        /// take them from the polygon budget.
-        /// </summary>
+        /// <summary>A fixed number of sides for a round kind (including an arch's curve), or null for the polygon budget's.</summary>
         [Key(1)]
         public int? Sides { get; set; }
 
@@ -116,26 +108,23 @@ namespace Comet.Content
         /// <summary>The most steps a stairway has, set or not.</summary>
         public const int MaxSteps = 256;
 
-        /// <summary>A doorway's opening: its width and its height, in meters.</summary>
+        /// <summary>A doorway's opening width and height, in meters.</summary>
         [Key(4)]
         public float OpeningWidth { get; set; }
 
         [Key(5)]
         public float OpeningHeight { get; set; }
 
-        /// <summary>An arch's thickness: how wide its legs and band are, in meters.</summary>
+        /// <summary>An arch's thickness (its legs and band), in meters.</summary>
         [Key(6)]
         public float Thickness { get; set; }
     }
 
-    /// <summary>
-    /// How finely round primitives are cut, the same for all of a game's primitives so large and small ones look
-    /// equally faceted: sides are about <see cref="FacetLength"/> long, within the limits.
-    /// </summary>
+    /// <summary>How finely round primitives are cut, the same for all so large and small ones look equally faceted.</summary>
     [MessagePackObject]
     public sealed class PolygonBudget
     {
-        /// <summary>About how long each facet is around a round primitive, in meters.</summary>
+        /// <summary>About how long each facet is, in meters.</summary>
         [Key(0)]
         public float FacetLength { get; set; } = 0.5f;
 

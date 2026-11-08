@@ -7,8 +7,8 @@ using MessagePack;
 namespace Comet.Content
 {
     /// <summary>
-    /// A zone: its terrain pieces, borders, entrances and transition rooms, and the chunks it owns. Authored as a
-    /// folder of files (a zone TOML, a TOML per chunk and binary tiles), compiled whole into the content file.
+    /// A zone: its terrain pieces, borders, entrances, transition rooms and chunks, authored as a folder of
+    /// files and compiled whole into the content file.
     /// </summary>
     [MessagePackObject]
     public sealed class Zone : IContentEntry
@@ -21,8 +21,8 @@ namespace Comet.Content
         public string Id { get; set; } = "";
 
         /// <summary>
-        /// For a zone on its own local grid (a dungeon), the region chunk its chunk (0, 0) sits on, so its scenery can
-        /// show in the open world's distant LODs; null for open zones, which are on the region grid already.
+        /// For a zone on its own local grid (a dungeon), the region chunk its chunk (0, 0) sits on, so its
+        /// scenery shows in distant LODs; null for open zones.
         /// </summary>
         [Key(2)]
         public ChunkCoord? WorldAnchor { get; set; }
@@ -43,14 +43,11 @@ namespace Comet.Content
         [Key(6)]
         public TransitionRoom[] TransitionRooms { get; set; } = Array.Empty<TransitionRoom>();
 
-        /// <summary>The chunks the zone owns, each with its terrain tiles, placements, spawns and volumes.</summary>
+        /// <summary>The chunks the zone owns.</summary>
         [Key(7)]
         public ZoneChunk[] Chunks { get; set; } = Array.Empty<ZoneChunk>();
 
-        /// <summary>
-        /// This zone's own height below which a fall is out of the world, in meters, for a zone high in the sky or deep
-        /// below; null uses the game's.
-        /// </summary>
+        /// <summary>This zone's own height in meters below which a fall is out of the world; null uses the game's.</summary>
         [Key(8)]
         public float? KillHeight { get; set; }
 
@@ -58,8 +55,7 @@ namespace Comet.Content
         public const float DefaultHeightBase = -100f;
 
         /// <summary>
-        /// The height in meters of terrain sample value 0 in this zone, so its ground covers this plus 0.01 m up to this
-        /// plus 655.35 m (<see cref="Heightmap.Scale"/>). A deep zone can move it down.
+        /// The height in meters of terrain sample value 0, so ground covers this + 0.01 m up to this + 655.35 m (<see cref="Heightmap.Scale"/>).
         /// </summary>
         [Key(9)]
         public float HeightBase { get; set; } = DefaultHeightBase;
@@ -160,7 +156,10 @@ namespace Comet.Content
         [Key(7)]
         public Sign[] Signs { get; set; } = Array.Empty<Sign>();
 
-        /// <summary>Every sign in the chunk with the world point it's shown over: its own signs, then those on its spawns, teleporters and triggers.</summary>
+        /// <summary>
+        /// Every sign in the chunk with the world point it's shown over: its own signs, then those on its
+        /// spawns, teleporters and triggers.
+        /// </summary>
         public IEnumerable<(Vector3 Point, Sign Sign)> AllSigns()
         {
             foreach (var sign in Signs.Where(s => !s.Off))
@@ -179,8 +178,7 @@ namespace Comet.Content
     }
 
     /// <summary>
-    /// A terrain piece's part of one chunk: a heightmap whose sample (0, 0) sits at sample
-    /// (<see cref="OriginX"/>, <see cref="OriginZ"/>) of the chunk, with an optional underside and colors on the same grid.
+    /// A terrain piece's part of one chunk: a heightmap whose sample (0, 0) sits at chunk sample (<see cref="OriginX"/>, <see cref="OriginZ"/>).
     /// </summary>
     [MessagePackObject]
     public sealed class TerrainTile
@@ -193,7 +191,6 @@ namespace Comet.Content
         [Key(1)]
         public int OriginX { get; set; }
 
-        /// <summary>The chunk sample row of the tile's first row.</summary>
         [Key(2)]
         public int OriginZ { get; set; }
 
@@ -205,7 +202,6 @@ namespace Comet.Content
         [Key(4)]
         public Heightmap? Underside { get; set; }
 
-        /// <summary>Painted colors, if any.</summary>
         [Key(5)]
         public ColorMap? Colors { get; set; }
 
@@ -215,9 +211,8 @@ namespace Comet.Content
     }
 
     /// <summary>
-    /// A prop, a primitive or a group placed in a chunk (or a part of a group): free position and full rotation,
-    /// with uniform or non-uniform scale (a group's copies scale evenly). A primitive's scale is its size in meters, and
-    /// its mesh is built at that size (<see cref="Matrix"/>). The content build expands groups into their parts.
+    /// A prop, primitive or group placed in a chunk (or a group's part). A primitive's scale is its size in
+    /// meters, and its mesh is built at that size.
     /// </summary>
     [MessagePackObject]
     public sealed class Placement
@@ -237,10 +232,7 @@ namespace Comet.Content
         [Key(3)]
         public Vector3 Scale { get; set; } = Vector3.One;
 
-        /// <summary>
-        /// An optional tag for triggers' toggle effects (and game code) to find this placement by; several placements
-        /// may share one, to toggle together. Null for most.
-        /// </summary>
+        /// <summary>A tag for triggers' toggle effects to find this placement by; several may share one, to toggle together. Null for most.</summary>
         [Key(4)]
         public string? Tag { get; set; }
 
@@ -260,16 +252,13 @@ namespace Comet.Content
         [Key(8)]
         public string? Group { get; set; }
 
-        /// <summary>
-        /// A group part's role (<c>body</c>, <c>eyes</c>), for game code to find or color the parts that play it; null
-        /// for most, and only parts of groups have one.
-        /// </summary>
+        /// <summary>A group part's role (<c>body</c>, <c>eyes</c>), for game code to find or color the parts that play it; null for most.</summary>
         [Key(9)]
         public string? Role { get; set; }
 
         /// <summary>
-        /// A group copy's colors by role, as 0xRRGGBB: its parts with a listed role, however deeply nested, take that
-        /// color in place of their own (an outer copy's color wins); null for most.
+        /// A group copy's colors by role (0xRRGGBB): parts with a listed role, however deeply nested, take
+        /// it in place of their own; an outer copy's wins. Null for most.
         /// </summary>
         [Key(10)]
         public Dictionary<string, uint>? Colors { get; set; }
@@ -279,8 +268,8 @@ namespace Comet.Content
         public bool Off { get; set; }
 
         /// <summary>
-        /// The placement's transform from its mesh's space to the world: for a prop, scale, then rotation, then
-        /// position; for a primitive, whose mesh is built at its size, rotation then position.
+        /// The transform from mesh space to the world: prop scale, rotation, position; primitive (built at
+        /// size) rotation, position.
         /// </summary>
         public Matrix4x4 Matrix() =>
             (Primitive is null ? Matrix4x4.CreateScale(Scale) : Matrix4x4.Identity)
@@ -310,9 +299,8 @@ namespace Comet.Content
     }
 
     /// <summary>
-    /// What spawn points, teleporters and triggers share: an invisible volume that fires when a player's feet have
-    /// been inside it for its stand time, and an optional solid pad drawn under it. Which kinds the volume can be:
-    /// <see cref="PrimitiveKind.Box"/>, <see cref="PrimitiveKind.Cylinder"/> or <see cref="PrimitiveKind.Sphere"/>.
+    /// What spawn points, teleporters and triggers share: an invisible box, cylinder or sphere that fires once a player's feet have
+    /// been inside for its stand time, with an optional solid pad under it.
     /// </summary>
     [MessagePackObject]
     public sealed class TriggerVolume
@@ -357,10 +345,7 @@ namespace Comet.Content
         }
     }
 
-    /// <summary>
-    /// A place players arrive: a random spot in its volume's footprint, on the ground under it. Its id names its
-    /// zone (<c>spawn.meadow.gate</c>). When spawns are used and how players claim them is game policy.
-    /// </summary>
+    /// <summary>A place players arrive: a random spot in its volume's footprint. Its id names its zone (<c>spawn.meadow.gate</c>).</summary>
     [MessagePackObject]
     public sealed class SpawnPoint : IContentEntry
     {
@@ -379,8 +364,8 @@ namespace Comet.Content
     }
 
     /// <summary>
-    /// A pad that sends players to another teleporter, in this zone or another, arriving as at a spawn point. Its id
-    /// names its zone (<c>teleporter.meadow.to_cave</c>).
+    /// A pad that sends players to another teleporter, arriving as at a spawn point. Its id names its zone
+    /// (<c>teleporter.meadow.to_cave</c>).
     /// </summary>
     [MessagePackObject]
     public sealed class Teleporter : IContentEntry
@@ -448,10 +433,7 @@ namespace Comet.Content
         public const float MinTextHeight = 0.05f,
             MaxTextHeight = 5;
 
-        /// <summary>
-        /// The point the text is shown over, in world meters; it lies in its chunk. A trigger's sign has it from its
-        /// volume's bottom center instead (<see cref="TriggerVolume.Sign"/>).
-        /// </summary>
+        /// <summary>The point the text is shown over, in world meters; a trigger's sign is placed from its volume's bottom center instead.</summary>
         [Key(0)]
         public Vector3 Position { get; set; }
 
@@ -479,14 +461,14 @@ namespace Comet.Content
         [Key(6)]
         public float FontSize { get; set; } = 13;
 
-        /// <summary>Whether the panel has a little arrow under it pointing at the point, as speech bubbles do; only with <see cref="Background"/>.</summary>
+        /// <summary>
+        /// Whether the panel has a little arrow under it pointing at the point, as speech bubbles do; only
+        /// with <see cref="Background"/>.
+        /// </summary>
         [Key(7)]
         public bool Arrow { get; set; }
 
-        /// <summary>
-        /// Whether it's one size on screen at any distance (<see cref="FontSize"/>), like a name tag, rather than sized
-        /// in the world (<see cref="TextHeight"/>), smaller further away.
-        /// </summary>
+        /// <summary>Whether it's one size on screen at any distance (like a name tag) rather than sized in the world.</summary>
         [Key(8)]
         public bool ScreenSized { get; set; }
 
@@ -507,7 +489,6 @@ namespace Comet.Content
     [MessagePackObject]
     public sealed class ToggleEffect
     {
-        /// <summary>The placements' tag.</summary>
         [Key(0)]
         public string Tag { get; set; } = "";
 
@@ -591,7 +572,6 @@ namespace Comet.Content
         [Key(3)]
         public Vector3 Size { get; set; }
 
-        /// <summary>The zone it leads to.</summary>
         [Key(4)]
         public string ToZone { get; set; } = "";
 

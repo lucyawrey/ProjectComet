@@ -4,12 +4,11 @@ using System.Security.Cryptography;
 namespace Comet.Content
 {
     /// <summary>
-    /// A short fingerprint of a content file, so tools can tell whether a running server plays the same content they
-    /// have (a game server's <c>/info</c> names it).
+    /// A short fingerprint of a content file, so tools can tell whether a server plays the same content.
     /// </summary>
     public static class ContentHash
     {
-        /// <summary>The first 16 hex digits of the file's SHA-256, lowercase.</summary>
+        /// <summary>The first 16 hex digits of the SHA-256, lowercase.</summary>
         public static string Of(byte[] contentFile)
         {
             using var sha = SHA256.Create();

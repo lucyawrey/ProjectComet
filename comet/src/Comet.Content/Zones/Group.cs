@@ -7,9 +7,8 @@ using MessagePack;
 namespace Comet.Content
 {
     /// <summary>
-    /// A saved set of parts (primitives, props and other groups), placed as one: every copy looks like the group, so
-    /// editing it changes them all. Parts are placements relative to the group's pivot. The content build expands each
-    /// copy into its parts (<see cref="Groups.Expand(Zone, Func{string, Group?})"/>).
+    /// A saved set of parts placed as one: editing it changes every copy. Parts are placements relative to the
+    /// group's pivot; the content build expands each copy into its parts.
     /// </summary>
     [MessagePackObject]
     public sealed class Group : IContentEntry
@@ -21,24 +20,22 @@ namespace Comet.Content
         [Key(1)]
         public string Id { get; set; } = "";
 
-        /// <summary>The group's parts, placed relative to its pivot.</summary>
         [Key(2)]
         public Placement[] Parts { get; set; } = Array.Empty<Placement>();
 
-        /// <summary>The name the zone editor shows for it; null shows its id without the <c>group.</c> prefix.</summary>
+        /// <summary>The name the zone editor shows; null shows its id without the <c>group.</c> prefix.</summary>
         [Key(3)]
         public string? DisplayName { get; set; }
     }
 
-    /// <summary>Expands group copies into the placements they stand for.</summary>
     public static class Groups
     {
-        /// <summary>How deeply groups may nest; deeper nesting places nothing past it, and validation reports it.</summary>
+        /// <summary>How deeply groups may nest; deeper nesting places nothing, and validation reports it.</summary>
         public const int MaxDepth = 16;
 
         /// <summary>
-        /// The placements a copy of a group stands for, in its zone's space, with nested groups expanded. An unknown
-        /// group, or a group inside itself, places nothing (validation reports both).
+        /// The placements a copy stands for, in its zone's space, nested groups expanded. An unknown group,
+        /// or one inside itself, places nothing.
         /// </summary>
         public static List<Placement> Expand(Placement copy, Func<string, Group?> find)
         {
@@ -48,8 +45,8 @@ namespace Comet.Content
         }
 
         /// <summary>
-        /// Replaces every group copy in <paramref name="zone"/> with its parts, each in the chunk holding its pivot
-        /// (made if the zone has none there). Changes the zone in place.
+        /// Replaces every group copy in <paramref name="zone"/> with its parts, each in the chunk holding
+        /// its pivot (made if none). Changes the zone in place.
         /// </summary>
         public static void Expand(Zone zone, Func<string, Group?> find)
         {
@@ -80,10 +77,8 @@ namespace Comet.Content
         }
 
         /// <summary>
-        /// <paramref name="group"/>'s parts placed by a copy's transform (turned by its rotation, scaled by its even
-        /// scale, then moved to it), one level only: nested groups stay copies. The copy's colors by role recolor the
-        /// parts with those roles and pass down to nested copies, over their own. A named copy names all its parts (so a
-        /// door built as a group toggles as one), and a copy that starts off starts all its parts off.
+        /// <paramref name="group"/>'s parts placed by a copy's transform, one level only (nested groups stay copies). The copy's colors by role, name
+        /// and off state pass down to its parts, its colors over their own.
         /// </summary>
         public static List<Placement> Place(Placement copy, Group group)
         {
@@ -112,7 +107,7 @@ namespace Comet.Content
         public static SortedSet<string> Roles(string group, Func<string, Group?> find) =>
             new(Expand(new Placement { Group = group }, find).Select(p => p.Role).OfType<string>());
 
-        // Colors by role with the outer ones winning, or null for none.
+        // // Colors by role with the outer ones winning, or null for none.
         private static Dictionary<string, uint>? Over(Dictionary<string, uint>? outer, Dictionary<string, uint>? inner)
         {
             if (outer is null || inner is null)
@@ -129,7 +124,7 @@ namespace Comet.Content
             return colors;
         }
 
-        // Expands one copy; outer holds the groups it's inside, so a group inside itself stops there.
+        // // outer holds the groups it's inside, so a group inside itself stops there.
         private static void Add(Placement copy, Func<string, Group?> find, List<Placement> into, HashSet<string> outer)
         {
             if (outer.Count >= MaxDepth || copy.Group is null || outer.Contains(copy.Group) || find(copy.Group) is not { } group)

@@ -4,17 +4,14 @@ using System.Text;
 namespace Comet.Content
 {
     /// <summary>
-    /// The raw heightmap file: the magic <c>CHGT</c>, a format version and the grid size in samples, then
-    /// little-endian uint16 samples row by row, with 0 meaning no ground (<see cref="Heightmap.Hole"/>). The zone gives
-    /// the samples their height in meters (<see cref="Heightmap.Offset"/>). Converting to or from a plain <c>.r16</c>
-    /// file means stripping or adding the 10-byte header.
+    /// The raw heightmap file: magic <c>CHGT</c>, version, grid size, then little-endian uint16 samples.
+    /// A plain <c>.r16</c> file differs only by the 10-byte header.
     /// </summary>
     public static class HeightmapFormat
     {
-        /// <summary>The header's length in bytes, before the samples.</summary>
+        /// <summary>The header's length in bytes.</summary>
         public const int HeaderSize = 10;
 
-        /// <summary>The format version this code reads and writes.</summary>
         public const ushort Version = 2;
 
         private static readonly byte[] Magic = Encoding.ASCII.GetBytes("CHGT");
@@ -43,8 +40,7 @@ namespace Comet.Content
                     throw new ContentException($"Heightmap is {map.SizeX}×{map.SizeZ} samples; it needs at least 2×2.");
                 }
 
-                // Up to 65535 × 65535 samples overflows an int; and a header claiming more than the file holds
-                // shouldn't allocate for it.
+                // An int overflows at 65535 × 65535 samples, and a header claiming more than the file holds mustn't allocate.
                 var count = (long)map.SizeX * map.SizeZ;
                 if (count > int.MaxValue || (stream.CanSeek && stream.Length - stream.Position < 2 * count))
                 {
@@ -70,7 +66,6 @@ namespace Comet.Content
             }
         }
 
-        /// <summary>Writes <paramref name="map"/> as a heightmap file.</summary>
         public static void Write(Stream stream, Heightmap map)
         {
             if (map.SizeX < 2 || map.SizeZ < 2 || map.SizeX > ushort.MaxValue || map.SizeZ > ushort.MaxValue)

@@ -5,18 +5,16 @@ using System.Numerics;
 namespace Comet.Simulation
 {
     /// <summary>
-    /// The edges of a triangle mesh worth drawing as a wireframe: where the surface bends or ends. Edges inside a flat
-    /// face (a box side's diagonal) are left out, so the wireframe shows the shape rather than how it was cut up.
+    /// The edges of a triangle mesh worth drawing as a wireframe: where the surface bends or ends, not flat-face diagonals.
     /// </summary>
     public static class FeatureEdges
     {
-        // Corners closer than this, in meters, count as one, so seams between triangles that don't share
-        // vertices exactly (placed meshes, baked collision) still pair up.
+        // Corners closer than this, in meters, count as one, so seams between meshes with unshared vertices still pair up.
         private const float Weld = 0.001f;
 
         /// <summary>
-        /// The edges of <paramref name="triangles"/> (three corners each) as pairs of points: those with one
-        /// triangle, or whose triangles meet at more than <paramref name="creaseDegrees"/>.
+        /// The edges of <paramref name="triangles"/> as point pairs: those with one triangle, or whose
+        /// triangles meet at more than <paramref name="creaseDegrees"/>.
         /// </summary>
         public static Vector3[] Of(IReadOnlyList<Vector3> triangles, float creaseDegrees = 1)
         {

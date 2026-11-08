@@ -5,50 +5,40 @@ using System.Numerics;
 namespace Comet.Simulation
 {
     /// <summary>
-    /// What players stand on and bump into: a zone's terrain pieces (heightmaps, possibly stacked), solid triangle
-    /// meshes (placed props and volumes), and a kill height below which a player has fallen out of the world. Terrain
-    /// collides as its triangles (<see cref="TerrainMesher"/>'s, skirts included), added as meshes of their own after
-    /// the given ones, so one set of checks covers everything.
-    /// Players are upright cylinders: <c>radius</c> round the feet's center, <c>bodyHeight</c> tall, with a flat base.
-    /// Tagged meshes can be flipped off and on (<see cref="SetFlipped"/>), and queries can pass through a player's own set of
-    /// meshes (<see cref="PassThrough"/>). The same on client and server; safe to query from several threads at once,
-    /// with turning meshes on and off from one thread (bots each take <see cref="WithOwnFlips"/> of a shared world).
+    /// What players stand on and bump into: terrain (as its triangles, after the given meshes) and solid triangle meshes, with a kill height.
+    /// Safe to query from several threads while one thread flips meshes; bots take <see cref="WithOwnFlips"/> of a shared world.
     /// </summary>
     public sealed class CollisionWorld
     {
-        // Triangles go into square cells of the ground plane, so a query looks only at those near it.
+        // // Triangles go into square cells of the ground plane, so a query looks only at those near it.
         private const float CellSize = 4f;
         private const float Epsilon = 0.001f;
 
-        // How far below a clear body IsWedged looks for what holds it up: more than TryRest's millimeter.
+        // // How far below a clear body IsWedged looks for support: more than TryRest's millimeter.
         private const float WedgeDepth = 0.01f;
 
-        // How far past touching a push-out goes, so the body ends clear rather than exactly against the surface.
+        // // So the body ends clear rather than exactly against the surface.
         private const float PushMargin = 0.002f;
 
         private readonly List<CollisionMesh> _meshes;
 
-        // Triangles at most the steepest walkable slope (their normal at least this upright) can be stood on.
         private readonly float _walkableNormalY;
 
-        // Which meshes are terrain: not closed, so never "inside", and not obstacles for the camera.
+        // // Terrain meshes aren't closed, so are never "inside", and aren't obstacles for the camera.
         private readonly bool[] _terrain;
         private readonly Vector3[] _corners;
         private readonly Vector3[] _normals;
 
-        // Each triangle's lowest cell on each axis: a query spanning several cells looks at a triangle only in the
-        // first of them it's listed in, so it isn't looked at twice.
+        // // Each triangle's lowest cell on each axis: a query spanning several cells looks at it only in the first it's listed in.
         private readonly (int X, int Z)[] _firstCells;
 
-        // Which mesh each triangle belongs to.
         private readonly int[] _meshOf;
         private readonly Dictionary<(int X, int Z), List<int>> _cells = new Dictionary<(int X, int Z), List<int>>();
         private readonly Dictionary<string, List<int>> _tagged = new Dictionary<string, List<int>>();
 
-        // Which meshes are off, replaced whole on a change so queries on other threads see one state or the other.
+        // // Replaced whole on a change so queries on other threads see one state or the other.
         private volatile bool[] _off;
 
-        // Scratch space for clipping triangles to footprints, per thread.
         [ThreadStatic]
         private static List<Vector3>? _polygon;
 
@@ -58,7 +48,10 @@ namespace Comet.Simulation
         [ThreadStatic]
         private static Dictionary<int, int>? _crossings;
 
-        /// <summary>A world of <paramref name="terrain"/> (if any) and <paramref name="meshes"/>, where falling below <paramref name="killHeight"/> meters is out of the world.</summary>
+        /// <summary>
+        /// A world of <paramref name="terrain"/> (if any) and <paramref name="meshes"/>; falling below
+        /// <paramref name="killHeight"/> meters is out of the world.
+        /// </summary>
         public CollisionWorld(ZoneTerrain? terrain, IEnumerable<CollisionMesh> meshes, float killHeight, float maxSlope = 60)
         {
             Terrain = terrain;
@@ -138,7 +131,6 @@ namespace Comet.Simulation
             }
         }
 
-        // A copy sharing everything but which meshes are off, which starts as the meshes do.
         private CollisionWorld(CollisionWorld shared)
         {
             Terrain = shared.Terrain;
@@ -160,30 +152,23 @@ namespace Comet.Simulation
         }
 
         /// <summary>
-        /// This world with its own flips, starting as its meshes do: for one player's view of a world many share (a
-        /// bot's), so their flips don't race. Shares the terrain and meshes, so it costs little.
+        /// This world with its own flips, for one player's view of a shared world (a bot's) so flips don't
+        /// race; shares the terrain and meshes.
         /// </summary>
         public CollisionWorld WithOwnFlips() => new CollisionWorld(this);
 
-        /// <summary>The terrain, or null for a world of meshes only.</summary>
         public ZoneTerrain? Terrain { get; }
 
-        /// <summary>The meshes given, then the terrain's (one per chunk, <see cref="CollisionMesh.TerrainKind"/>).</summary>
+        /// <summary>The meshes given, then the terrain's (<see cref="CollisionMesh.TerrainKind"/>).</summary>
         public IReadOnlyList<CollisionMesh> Meshes => _meshes;
 
-        /// <summary>Below this height a player has fallen out of the world.</summary>
         public float KillHeight { get; }
 
-        /// <summary>The meshes tagged <paramref name="tag"/>, by index in <see cref="Meshes"/>; none for an unknown tag.</summary>
         public IReadOnlyList<int> MeshesTagged(string tag) => _tagged.TryGetValue(tag, out var list) ? list : (IReadOnlyList<int>)Array.Empty<int>();
 
-        /// <summary>Whether mesh <paramref name="mesh"/> is solid now.</summary>
         public bool IsOn(int mesh) => !_off[mesh];
 
-        /// <summary>
-        /// Flips the meshes tagged <paramref name="tag"/> from how they start (<paramref name="flipped"/>), or back:
-        /// each one that starts on turns off, and each one that starts off turns on.
-        /// </summary>
+        /// <summary>Flips the meshes tagged <paramref name="tag"/> from how they start (<paramref name="flipped"/>), or back.</summary>
         public void SetFlipped(string tag, bool flipped)
         {
             var off = (bool[])_off.Clone();
@@ -195,15 +180,14 @@ namespace Comet.Simulation
             _off = off;
         }
 
-        /// <summary>Whether a body standing at <paramref name="feet"/> overlaps mesh <paramref name="mesh"/>, on or off: touches a triangle of it, or is wholly inside it.</summary>
+        /// <summary>Whether a body at <paramref name="feet"/> overlaps mesh <paramref name="mesh"/>, on or off.</summary>
         public bool Overlaps(int mesh, Vector3 feet, float radius, float bodyHeight) =>
             TouchesMesh(feet, radius, bodyHeight, null, only: mesh) || IsInsideMesh(feet + new Vector3(0, bodyHeight / 2, 0), null, only: mesh);
 
         /// <summary>
-        /// The highest ground under a body that is at or below <paramref name="maxY"/>: the highest point of a walkable
-        /// triangle within its footprint (terrain allowed up to <paramref name="terrainClimb"/> higher, for slopes),
-        /// skipping meshes that are off or in <paramref name="passThrough"/>. A radius of 0 asks about the point under
-        /// the feet. False if there is none (over a hole, past the edge).
+        /// The highest ground under a body at or below <paramref name="maxY"/>, terrain allowed <paramref
+        /// name="terrainClimb"/> higher for slopes; radius 0 asks about the point under the feet. False
+        /// over a hole or past the edge.
         /// </summary>
         public bool TryGetGround(Vector3 feet, float radius, float maxY, out float height, float terrainClimb = 0, ISet<int>? passThrough = null)
         {
@@ -245,24 +229,22 @@ namespace Comet.Simulation
         }
 
         /// <summary>
-        /// The highest ground under a position at or below it (terrain, or a mesh's top under the shared body), or
-        /// null over a hole or past the edge: for dead-reckoning other players (Comet.Client's RemoteEntities).
+        /// The highest ground under a position at or below it, or null over a hole or past the edge; for
+        /// dead-reckoning other players.
         /// </summary>
         public Func<Vector3, float?> GroundHeight(MovementRules rules) =>
             feet => TryGetGround(feet, rules.BodyRadius, feet.Y, out var height) ? height : null;
 
         /// <summary>
-        /// Whether the line from <paramref name="from"/> to <paramref name="to"/> passes into a mesh or the terrain:
-        /// crosses the front of a triangle, skipping meshes that are off or in <paramref name="passThrough"/>. Backs
-        /// don't count, so a line from inside a mesh sees out of it.
+        /// Whether the line from <paramref name="from"/> to <paramref name="to"/> crosses the front of a
+        /// triangle; backs don't count, so a line from inside a mesh sees out.
         /// </summary>
         public bool IsLineBlocked(Vector3 from, Vector3 to, ISet<int>? passThrough = null)
         {
             var off = _off;
             var line = to - from;
 
-            // The cells the line crosses on the ground plane, in order (a grid walk); a triangle in several of them may
-            // be tested more than once, which is harmless for a yes or no.
+            // // A grid walk; a triangle in several cells may be tested more than once, which is harmless for a yes or no.
             int x = Cell(from.X),
                 z = Cell(from.Z),
                 endX = Cell(to.X),
@@ -303,7 +285,6 @@ namespace Comet.Simulation
             return false;
         }
 
-        // Whether from + s·line, for s in [0, 1], crosses triangle t (Möller–Trumbore).
         private bool CrossesTriangle(int t, Vector3 from, Vector3 line)
         {
             var (a, b, c) = (_corners[3 * t], _corners[3 * t + 1], _corners[3 * t + 2]);
@@ -335,7 +316,6 @@ namespace Comet.Simulation
             return along >= 0 && along <= 1;
         }
 
-        /// <summary>The highest terrain at a point, among the pieces with ground there at or below <paramref name="maxY"/>.</summary>
         public bool TryGetTerrainHeight(float x, float z, float maxY, out float height)
         {
             var found = false;
@@ -357,11 +337,7 @@ namespace Comet.Simulation
             return found;
         }
 
-        /// <summary>
-        /// Whether a body standing at <paramref name="feet"/> overlaps something solid: touches a triangle of a mesh or
-        /// the terrain, or is wholly inside a mesh or a terrain piece, skipping meshes that are off or in
-        /// <paramref name="passThrough"/>.
-        /// </summary>
+        /// <summary>Whether a body at <paramref name="feet"/> touches a triangle or is wholly inside a mesh or terrain piece.</summary>
         public bool IsBlocked(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
             var middle = feet + new Vector3(0, bodyHeight / 2, 0);
@@ -369,9 +345,9 @@ namespace Comet.Simulation
         }
 
         /// <summary>
-        /// Whether a clear body at <paramref name="feet"/> is held up without walkable ground: a little lower it would
-        /// overlap something no sideways push gets it out of, as in a V of steep faces narrower than the body. It
-        /// stands there; a lone steep face still slides it off.
+        /// Whether a clear body is held up without walkable ground: a little lower it would overlap
+        /// something no sideways push gets it out of (a V of steep faces). A lone steep face still slides
+        /// it off.
         /// </summary>
         public bool IsWedged(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
@@ -382,8 +358,9 @@ namespace Comet.Simulation
         }
 
         /// <summary>
-        /// The lowest height between <paramref name="feet"/> (blocked) and <paramref name="clearY"/> (clear) where the
-        /// body fits, to within a millimeter: where a fall into a wedge stops. False if it isn't clear at <paramref name="clearY"/> either.
+        /// The lowest height between <paramref name="feet"/> (blocked) and <paramref name="clearY"/>
+        /// (clear) where the body fits, to within a millimeter; false if it isn't clear at <paramref
+        /// name="clearY"/>.
         /// </summary>
         public bool TryRest(ref Vector3 feet, float clearY, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
@@ -412,10 +389,8 @@ namespace Comet.Simulation
         }
 
         /// <summary>
-        /// Moves a body that touches something sideways out of it, the deepest overlap first, a few times over: for
-        /// bodies that end up against a steep surface (landing beside a cone or a terrain slope), which no sideways
-        /// move would otherwise get out of. Only sideways, and at most a body's width in all; false, with
-        /// <paramref name="feet"/> unchanged, if the body isn't clear after that.
+        /// Pushes a body sideways out of what it touches, deepest first, at most a body's width in all;
+        /// false, with <paramref name="feet"/> unchanged, if it isn't clear after that.
         /// </summary>
         public bool TryPushOut(ref Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
@@ -445,7 +420,6 @@ namespace Comet.Simulation
             return true;
         }
 
-        // The longest of the sideways moves that would each take the body just clear of one triangle it touches.
         private Vector2 DeepestPush(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough)
         {
             var off = _off;
@@ -478,8 +452,9 @@ namespace Comet.Simulation
                             continue;
                         }
 
-                        // Away from the triangle's surface, seen from above; level ones (floors, ceilings) can't be
-                        // left sideways. Far enough that every point of the cut triangle is a radius behind the body.
+                        // // Away from the triangle's surface, seen from above (level ones
+                        // can't be left sideways), far enough that the whole cut triangle is
+                        // a radius behind the body.
                         var away = Flat(_normals[t]);
                         if (away.LengthSquared() < 0.01f)
                         {
@@ -505,8 +480,7 @@ namespace Comet.Simulation
             return deepest;
         }
 
-        // Whether the body touches a mesh's triangle: any solid one not passed through, or only mesh only (on or off).
-        // A hair smaller than the body, so resting on a surface or against a wall isn't touching it.
+        // // A hair smaller than the body, so resting on a surface or against a wall isn't touching it.
         private bool TouchesMesh(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough, int only = -1)
         {
             var off = _off;
@@ -543,8 +517,7 @@ namespace Comet.Simulation
             return false;
         }
 
-        // Whether a point is inside a closed mesh: a ray straight up from it crosses that mesh's surface an odd number
-        // of times. Nudged off the grid a little, so the ray doesn't run exactly along an edge two triangles share.
+        // // A ray straight up crosses the surface an odd number of times; nudged off the grid so it doesn't run along a shared edge.
         private bool IsInsideMesh(Vector3 point, ISet<int>? passThrough, int only = -1)
         {
             var off = _off;
@@ -580,7 +553,6 @@ namespace Comet.Simulation
             return false;
         }
 
-        // Whether a triangle lies over the point (seen from above) and above it.
         private static bool CrossesAbove(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
         {
             var d1 = (p.X - b.X) * (a.Z - b.Z) - (a.X - b.X) * (p.Z - b.Z);
@@ -591,7 +563,7 @@ namespace Comet.Simulation
                 return false;
             }
 
-            // The triangle's height over the point, from its plane; a vertical triangle (no area seen from above) isn't crossed.
+            // // A vertical triangle (no area seen from above) isn't crossed.
             var normal = Vector3.Cross(b - a, c - a);
             if (MathF.Abs(normal.Y) < 1e-8f)
             {
@@ -628,23 +600,20 @@ namespace Comet.Simulation
             return false;
         }
 
-        // Whether a query skips triangle t: its mesh is off, or the player passes through it.
         private bool Skip(int t, bool[] off, ISet<int>? passThrough) =>
             off[_meshOf[t]] || (passThrough != null && passThrough.Count > 0 && passThrough.Contains(_meshOf[t]));
 
         private static int Cell(float coordinate) => (int)MathF.Floor(coordinate / CellSize);
 
-        // Whether cell (x, z) is the first cell of a query starting at (fromX, fromZ) that lists the triangle.
         private bool FirstLook(int triangle, int x, int z, int fromX, int fromZ)
         {
             var (firstX, firstZ) = _firstCells[triangle];
             return x == Math.Max(firstX, fromX) && z == Math.Max(firstZ, fromZ);
         }
 
-        // The highest point of triangle t within the circle of radius r round the feet, seen from above (the point
-        // under the feet for r = 0); minus infinity if they don't meet. Height is linear over a triangle, so its highest
-        // point in the overlap lies on the overlap's edge: a corner inside the circle, where an edge enters or leaves the
-        // circle, or the circle's uphill point if it's over the triangle. Only for walkable triangles (not vertical).
+        // // Height is linear over a triangle, so its highest point in the overlap is on the overlap's edge:
+        // a corner in the circle, an edge's crossing, or the circle's uphill point. Minus infinity if they
+        // don't meet.
         private float HighestInCircle(int t, Vector3 feet, float r)
         {
             var a = _corners[3 * t];
@@ -667,7 +636,6 @@ namespace Comet.Simulation
                     top = MathF.Max(top, p.Y);
                 }
 
-                // Where the edge p + s(q - p) crosses the circle: |f + s d|² = r² seen from above.
                 var d = Flat(q - p);
                 var f = Flat(p - feet);
                 var dd = d.LengthSquared();
@@ -692,7 +660,7 @@ namespace Comet.Simulation
                 }
             }
 
-            // Uphill on the plane, seen from above; level ground has none, and the feet's own point stands in for it.
+            // // Level ground has no uphill; the feet's own point stands in.
             var uphill = new Vector2(-normal.X, -normal.Z);
             var point = uphill.LengthSquared() > 1e-12f ? Flat(feet) + Vector2.Normalize(uphill) * r : Flat(feet);
             var spot = new Vector3(point.X, 0, point.Y);
@@ -704,8 +672,6 @@ namespace Comet.Simulation
             return top;
         }
 
-        // Whether triangle t, between heights bottom and top, comes within r of the vertical line through the feet:
-        // the triangle clipped to that height range, then the distance to its outline seen from above.
         private bool TriangleTouchesCylinder(int t, Vector3 feet, float r, float bottom, float top, List<Vector3> polygon, List<Vector3> scratch)
         {
             if (!ClipToHeights(t, bottom, top, polygon, scratch))
@@ -726,8 +692,7 @@ namespace Comet.Simulation
                     return true;
                 }
 
-                // The center is inside the outline if it's on the same side of every edge; an outline with no area
-                // seen from above (a wall) has no inside.
+                // // An outline with no area seen from above (a wall) has no inside.
                 if ((q - p).LengthSquared() < 1e-12f)
                 {
                     continue; // a corner repeated by the clipping
@@ -749,7 +714,6 @@ namespace Comet.Simulation
             return inside;
         }
 
-        // Triangle t cut to the heights from bottom to top, into polygon; false if nothing is left.
         private bool ClipToHeights(int t, float bottom, float top, List<Vector3> polygon, List<Vector3> scratch)
         {
             var a = _corners[3 * t];
@@ -769,7 +733,6 @@ namespace Comet.Simulation
             return polygon.Count > 0;
         }
 
-        // Clips a convex polygon to one side of a level plane.
         private static void ClipY(List<Vector3> polygon, List<Vector3> scratch, float plane, bool keepAbove)
         {
             scratch.Clear();
@@ -806,7 +769,7 @@ namespace Comet.Simulation
             return Vector2.DistanceSquared(point, p + s * d);
         }
 
-        // Whether a triangle lies over the point, seen from above (edges included).
+        // Edges count as over.
         private static bool Over(Vector3 point, Vector3 a, Vector3 b, Vector3 c)
         {
             var d1 = (point.X - b.X) * (a.Z - b.Z) - (a.X - b.X) * (point.Z - b.Z);
@@ -815,7 +778,6 @@ namespace Comet.Simulation
             return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
         }
 
-        // The height at (x, z) of the plane through a with this normal (not vertical).
         private static float HeightOn(Vector3 normal, Vector3 a, float x, float z) => a.Y - (normal.X * (x - a.X) + normal.Z * (z - a.Z)) / normal.Y;
     }
 }

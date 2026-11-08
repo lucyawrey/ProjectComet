@@ -6,10 +6,7 @@ using Comet.Content;
 namespace Comet.Simulation
 {
     /// <summary>
-    /// A zone's spawn points, teleporters and triggers, found by id, by number or by where a player stands; whether
-    /// feet are inside a trigger volume; and arriving at one: a random spot in its footprint on the ground under it,
-    /// facing as it says. <see cref="TriggerCharge"/> times standing in one; what each kind does when it fires is game
-    /// policy.
+    /// A zone's spawn points, teleporters and triggers, found by id, number or where a player stands, and arriving at one.
     /// </summary>
     public sealed class Triggers
     {
@@ -17,8 +14,8 @@ namespace Comet.Simulation
         public const int Tries = 8;
 
         /// <summary>
-        /// How far below a box's or cylinder's bottom feet still count as inside, in meters: a volume usually stands
-        /// on its pad's top, and feet standing there can come out a hair lower in floating point.
+        /// How far below a box's or cylinder's bottom feet still count as inside, in meters: feet on a
+        /// pad's top can come out a hair lower in floating point.
         /// </summary>
         public const float BottomSlack = 0.05f;
 
@@ -28,7 +25,6 @@ namespace Comet.Simulation
         private readonly List<Teleporter> _teleporters = new List<Teleporter>();
         private readonly List<Trigger> _triggers = new List<Trigger>();
 
-        /// <summary>The spawn points, teleporters and triggers of <paramref name="zone"/>.</summary>
         public Triggers(Zone zone)
         {
             foreach (var chunk in zone.Chunks)
@@ -49,14 +45,13 @@ namespace Comet.Simulation
 
         public IReadOnlyList<Teleporter> Teleporters => _teleporters;
 
-        /// <summary>The triggers with toggle effects.</summary>
         public IReadOnlyList<Trigger> All => _triggers;
 
         public bool TryGetSpawn(string key, out SpawnPoint spawn) => _spawnsByKey.TryGetValue(key, out spawn!);
 
         public bool TryGetSpawn(int number, out SpawnPoint spawn) => _spawnsByNumber.TryGetValue(number, out spawn!);
 
-        /// <summary>The spawn point whose volume <paramref name="feet"/> are in, or null (the first, if volumes overlap).</summary>
+        /// <summary>The spawn point whose volume <paramref name="feet"/> are in, or null (the first if volumes overlap).</summary>
         public SpawnPoint? SpawnAt(Vector3 feet)
         {
             foreach (var spawn in _spawns)
@@ -70,7 +65,7 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>The teleporter whose volume <paramref name="feet"/> are in, or null (the first, if volumes overlap).</summary>
+        /// <summary>The teleporter whose volume <paramref name="feet"/> are in, or null (the first if volumes overlap).</summary>
         public Teleporter? TeleporterAt(Vector3 feet)
         {
             foreach (var teleporter in _teleporters)
@@ -84,7 +79,7 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>The spawn point with id <paramref name="id"/> and its zone, or null if none of <paramref name="zones"/> has it.</summary>
+        /// <summary>The spawn point with id <paramref name="id"/> and its zone, or null.</summary>
         public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(IEnumerable<Zone> zones, string id)
         {
             foreach (var zone in zones)
@@ -104,7 +99,7 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>The ground in the middle of a spawn point's volume (for a camera to look at), or its bottom if there's none.</summary>
+        /// <summary>The ground in the middle of a spawn point's volume, or its bottom if there's none.</summary>
         public static Vector3 Center(SpawnPoint spawn, CollisionWorld world)
         {
             var volume = spawn.Volume;
@@ -115,8 +110,8 @@ namespace Comet.Simulation
         }
 
         /// <summary>
-        /// Whether <paramref name="feet"/> are inside <paramref name="volume"/>: a box or an upright cylinder from its
-        /// bottom (less <see cref="BottomSlack"/>) to its top, or a sphere (an ellipsoid for an uneven size) filling its size.
+        /// Whether <paramref name="feet"/> are inside <paramref name="volume"/>: a sphere (ellipsoid if
+        /// uneven) filling its size, else from its bottom (less <see cref="BottomSlack"/>) to its top.
         /// </summary>
         public static bool Inside(TriggerVolume volume, Vector3 feet)
         {
@@ -140,10 +135,9 @@ namespace Comet.Simulation
         }
 
         /// <summary>
-        /// Where a player arrives in <paramref name="volume"/> and which way they face (radians, 0 facing +Z, as
-        /// <see cref="MotorState.Facing"/>): a random spot in its footprint (an ellipse for round kinds, else a
-        /// rectangle) kept a body's radius in from its edge where it's wide enough, standing on ground between a step below its bottom and its top, with nothing in the way; else
-        /// its center on the ground there, else its bottom center.
+        /// Where a player arrives in <paramref name="volume"/> and which way they face (radians, 0 facing
+        /// +Z): a random free spot on the ground in its footprint, else its center on the ground there,
+        /// else its bottom center.
         /// </summary>
         public static (Vector3 Feet, float Facing) Arrive(
             TriggerVolume volume,
@@ -195,7 +189,6 @@ namespace Comet.Simulation
             }
         }
 
-        // A uniformly random point of the volume's footprint, at its bottom, kept margin in from its edge.
         private static Vector3 RandomSpot(TriggerVolume volume, float margin, Random random)
         {
             var half = Vector3.Max(volume.Size / 2 - new Vector3(margin), Vector3.Zero);
@@ -218,7 +211,6 @@ namespace Comet.Simulation
             return ToWorld(volume, new Vector3(x, 0, z));
         }
 
-        // A world point in the volume's own space: from its bottom center, turned back by its yaw.
         private static Vector3 ToLocal(TriggerVolume volume, Vector3 point)
         {
             var d = point - volume.Position;

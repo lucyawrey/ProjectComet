@@ -4,15 +4,13 @@ using System.Text;
 namespace Comet.Content
 {
     /// <summary>
-    /// The raw color map file: the magic <c>CCOL</c>, a format version, the grid size in samples, then one color
-    /// per sample as three bytes (red, green, blue), row by row along Z.
+    /// The raw color map file: magic <c>CCOL</c>, version, grid size, then three bytes (red, green, blue) per sample.
     /// </summary>
     public static class ColorMapFormat
     {
-        /// <summary>The header's length in bytes, before the colors.</summary>
+        /// <summary>The header's length in bytes.</summary>
         public const int HeaderSize = 10;
 
-        /// <summary>The format version this code reads and writes.</summary>
         public const ushort Version = 1;
 
         private static readonly byte[] Magic = Encoding.ASCII.GetBytes("CCOL");
@@ -72,7 +70,6 @@ namespace Comet.Content
             }
         }
 
-        /// <summary>Writes <paramref name="map"/> as a color map file.</summary>
         public static void Write(Stream stream, ColorMap map)
         {
             if (map.SizeX < 1 || map.SizeZ < 1 || map.SizeX > ushort.MaxValue || map.SizeZ > ushort.MaxValue)

@@ -3,11 +3,8 @@ using Comet.Content;
 namespace Comet.Simulation
 {
     /// <summary>
-    /// Times standing in trigger volumes, for one player (their spawn claims or teleporters) or for one trigger
-    /// shared by everyone in it: fires once whoever it times has been inside for the volume's stand time, then again
-    /// only after stepping out (<see cref="Rearm.StepOff"/>) or every stand time while still inside
-    /// (<see cref="Rearm.Repeat"/>). The server decides with it; the client times its own player with it too, to
-    /// draw a pad charging.
+    /// Times standing in trigger volumes, for one player or for one trigger shared by everyone in it.
+    /// The server decides with it; the client times its own player too, to draw a pad charging.
     /// </summary>
     public sealed class TriggerCharge
     {
@@ -17,9 +14,8 @@ namespace Comet.Simulation
         private bool _fired;
 
         /// <summary>
-        /// Takes what's being stood in now (<paramref name="inside"/>, with its <paramref name="volume"/>; null for
-        /// nothing) at <paramref name="seconds"/>, and returns whether it fires now. Stepping into something else
-        /// starts over.
+        /// Takes what's stood in now (null for nothing) at <paramref name="seconds"/> and returns whether
+        /// it fires; stepping into something else starts over.
         /// </summary>
         public bool Step(object? inside, TriggerVolume? volume, float seconds)
         {
@@ -48,10 +44,7 @@ namespace Comet.Simulation
             return true;
         }
 
-        /// <summary>
-        /// Counts the player as already inside <paramref name="inside"/> and fired, so it doesn't fire until they've
-        /// stepped out and in again: for arriving on a teleporter.
-        /// </summary>
+        /// <summary>Counts the player as already inside and fired, so it waits for a step off (for arriving on a teleporter).</summary>
         public void Arrived(object inside, TriggerVolume volume)
         {
             _inside = inside;
@@ -59,17 +52,13 @@ namespace Comet.Simulation
             _fired = true;
         }
 
-        /// <summary>Forgets what was stood in (after the player went somewhere else).</summary>
         public void Clear()
         {
             _inside = null;
             _volume = null;
         }
 
-        /// <summary>
-        /// How far it is toward firing at <paramref name="seconds"/>, from 0 (just stepped in, or fired and waiting
-        /// for a step off) to 1; 0 when standing in nothing.
-        /// </summary>
+        /// <summary>How far toward firing at <paramref name="seconds"/>, 0 to 1; 0 when standing in nothing.</summary>
         public float Progress(float seconds)
         {
             if (_inside == null || _volume == null || _fired)
@@ -80,10 +69,9 @@ namespace Comet.Simulation
             return _volume.StandSeconds <= 0 ? 1 : System.Math.Min(1, (seconds - _since) / _volume.StandSeconds);
         }
 
-        /// <summary>What's being stood in, or null.</summary>
         public object? Inside => _inside;
 
-        /// <summary>Whether it has fired for what's being stood in (or that was arrived on), and waits for a step off.</summary>
+        /// <summary>Whether it has fired for what's stood in and waits for a step off.</summary>
         public bool Fired => _inside != null && _fired;
     }
 }

@@ -5,16 +5,14 @@ using Comet.Content;
 namespace Comet.Simulation
 {
     /// <summary>
-    /// A zone's terrain pieces, each seen whole across its chunk tiles: heights by world sample, where sample
-    /// (x, z) sits at world (x, z) × <see cref="ZoneGrid.SampleSpacing"/>. Neighboring tiles repeat their shared
-    /// edge samples (the zone files check they match), so either tile can answer for them.
+    /// A zone's terrain pieces, each seen whole across its chunk tiles, by world sample: sample (x, z) sits at
+    /// world (x, z) × <see cref="ZoneGrid.SampleSpacing"/>.
     /// </summary>
     public sealed class ZoneTerrain
     {
         private readonly Dictionary<string, Piece> _pieces = new Dictionary<string, Piece>();
         private readonly List<Piece> _order = new List<Piece>();
 
-        /// <summary>The terrain of <paramref name="zone"/>.</summary>
         public ZoneTerrain(Zone zone)
         {
             foreach (var settings in zone.Pieces)
@@ -36,19 +34,15 @@ namespace Comet.Simulation
             }
         }
 
-        /// <summary>The pieces, in the zone's order.</summary>
         public IReadOnlyList<Piece> Pieces => _order;
 
-        /// <summary>The piece named <paramref name="name"/>.</summary>
         public Piece this[string name] => _pieces[name];
 
-        /// <summary>One terrain piece, its tiles joined into one grid of world samples.</summary>
         public sealed class Piece
         {
             private readonly Dictionary<ChunkCoord, TerrainTile> _tiles = new Dictionary<ChunkCoord, TerrainTile>();
 
-            // The same tiles in a grid over the chunks they span, since every sample lookup finds its tile: index
-            // (z - _gridMinZ) * _gridWidth + (x - _gridMinX), null where a chunk has no tile.
+            // // The tiles in a grid over the chunks they span, since every sample lookup finds its tile; null where a chunk has none.
             private TerrainTile?[] _grid = Array.Empty<TerrainTile?>();
             private int _gridMinX;
             private int _gridMinZ;
@@ -59,16 +53,13 @@ namespace Comet.Simulation
 
             public TerrainPiece Settings { get; }
 
-            /// <summary>Each chunk's tile of this piece.</summary>
             public IReadOnlyDictionary<ChunkCoord, TerrainTile> Tiles => _tiles;
 
-            /// <summary>The lowest and highest world samples any tile covers, on each axis.</summary>
             public (int MinX, int MinZ, int MaxX, int MaxZ) Extent { get; private set; } = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
 
             /// <summary>
-            /// Every ground height in a block of world samples, as <see cref="TryGetHeight"/> gives them, NaN elsewhere:
-            /// row-major from (<paramref name="minX"/>, <paramref name="minZ"/>), <paramref name="width"/> samples a row.
-            /// Reads each tile once rather than looking up every sample.
+            /// Every ground height in a block of world samples, NaN elsewhere, row-major from
+            /// (<paramref name="minX"/>, <paramref name="minZ"/>); reads each tile once.
             /// </summary>
             internal void ReadHeights(int minX, int minZ, int width, float[] heights)
             {
@@ -119,22 +110,21 @@ namespace Comet.Simulation
                 }
             }
 
-            /// <summary>The ground height at world sample (<paramref name="x"/>, <paramref name="z"/>), or false over a hole or past the piece.</summary>
+            /// <summary>The ground height at a world sample, or false over a hole or past the piece.</summary>
             public bool TryGetHeight(int x, int z, out float height) => TryGet(x, z, underside: false, out height);
 
-            /// <summary>The underside height at a world sample, or false where the piece has no underside map there.</summary>
+            /// <summary>The underside height at a world sample, or false where the piece has no underside map.</summary>
             public bool TryGetUnderside(int x, int z, out float height) => TryGet(x, z, underside: true, out height);
 
             /// <summary>
-            /// The ground height at world position (<paramref name="x"/>, <paramref name="z"/>), interpolated across the
-            /// triangles the mesh draws (see <see cref="TerrainMesher"/> for the diagonal), or false over a hole or past the piece.
+            /// The ground height at a world position, interpolated across the triangles the mesh draws,
+            /// or false over a hole or past the piece.
             /// </summary>
             public bool TryGetHeightAt(float x, float z, out float height) => Interpolate(x, z, underside: false, out height);
 
-            /// <summary>The bottom of the piece under a world position: its underside map where it has one, else its flat bottom.</summary>
+            /// <summary>The bottom of the piece under a world position: its underside map, else its flat bottom.</summary>
             public float BottomAt(float x, float z) => Interpolate(x, z, underside: true, out var under) ? under : BottomHeight;
 
-            /// <summary>The height of the piece's flat bottom: <see cref="TerrainPiece.SkirtDepth"/> below its lowest ground.</summary>
             public float BottomHeight => _bottomHeight ??= LowestGround() - Settings.SkirtDepth;
 
             private float? _bottomHeight;
@@ -172,8 +162,8 @@ namespace Comet.Simulation
             }
 
             /// <summary>
-            /// The painted underside color at a world sample as 0xRRGGBB (for the underside and the skirt walls above
-            /// it), or <paramref name="fallback"/> where nothing is painted.
+            /// The painted underside color (also for the skirt walls) as 0xRRGGBB, or <paramref
+            /// name="fallback"/> where nothing is painted.
             /// </summary>
             public uint UndersideColorAt(int x, int z, uint fallback)
             {
@@ -281,8 +271,7 @@ namespace Comet.Simulation
                 return false;
             }
 
-            // The world sample's place in the tile of candidate chunk `which` (0 to 3): its own chunk, then the chunks
-            // to the west, south and southwest, whose tiles repeat it when it's on their shared edge or corner.
+            // // Candidate chunks 0 to 3 are its own, then west, south and southwest, whose tiles repeat the sample on a shared edge or corner.
             private bool TileAt(int x, int z, int which, out TerrainTile tile, out int tx, out int tz)
             {
                 var chunkX = FloorDiv(x, ZoneGrid.ChunkSize) - (which & 1);

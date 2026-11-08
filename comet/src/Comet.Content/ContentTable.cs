@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Comet.Content
 {
-    /// <summary>Loaded entries of one content type, looked up by id or number. Unknown ids and numbers throw.</summary>
+    /// <summary>Loaded entries of one content type, looked up by id or number; unknown ones throw.</summary>
     public sealed class ContentTable<T>
         where T : class, IContentEntry
     {
@@ -10,7 +10,6 @@ namespace Comet.Content
         private readonly Dictionary<int, T> _byNumber = new Dictionary<int, T>();
         private readonly List<T> _all = new List<T>();
 
-        /// <summary>A table of <paramref name="entries"/>; <paramref name="kind"/> names the type in errors (<c>shape</c>).</summary>
         public ContentTable(string kind, IEnumerable<T> entries)
         {
             Kind = kind;
@@ -32,7 +31,6 @@ namespace Comet.Content
             }
         }
 
-        /// <summary>The content type's registry name (<c>shape</c>).</summary>
         public string Kind { get; }
 
         /// <summary>Every entry, in number order.</summary>
@@ -43,10 +41,8 @@ namespace Comet.Content
         public T this[int number] =>
             _byNumber.TryGetValue(number, out var entry) ? entry : throw new ContentException($"Unknown {Kind} number {number}.");
 
-        /// <summary>The entry with <paramref name="id"/>, if there is one.</summary>
         public bool TryGet(string id, out T entry) => _byId.TryGetValue(id, out entry!);
 
-        /// <summary>The entry with <paramref name="number"/>, if there is one.</summary>
         public bool TryGet(int number, out T entry) => _byNumber.TryGetValue(number, out entry!);
     }
 }
