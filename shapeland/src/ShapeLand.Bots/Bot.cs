@@ -48,14 +48,13 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private readonly Random _random = new(seed);
     private readonly HashSet<uint> _seen = [];
     private readonly HashSet<uint> _cheatersInView = [];
-    private readonly PositionReporter _reporter = new();
+    private readonly OwnMovement _movement = new(StepsPerSecond);
     private readonly FixedStep _fixed = new(StepsPerSecond);
     private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
     private ClientSession _session = null!;
 
     // The bot's own view of its zone's shared world, with the zone's flips as the server last said (WithOwnFlips).
     private CollisionWorld _world = worlds.For(content.Zones.All[0]).WithOwnFlips();
-    private readonly PassThrough _passThrough = new();
     private MotorState _motor;
     private Shape _shape = null!;
     private Vector2 _target;
@@ -254,7 +253,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     private void Step(double now, long stepNumber)
     {
-        const float seconds = 1f / StepsPerSecond;
         _step++;
         var elapsed = _step / (double)StepsPerSecond;
         var position = new Vector2(_motor.Position.X, _motor.Position.Z);
@@ -272,25 +270,21 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
-        PlayerMotor.Step(
-            ref _motor,
-            move,
-            jump,
-            seconds,
-            _shape.MaxSpeed * settings.SpeedCheat,
-            _shape.JumpVelocity * settings.JumpCheat,
-            _world,
-            content.Movement,
-            _passThrough
-        );
-        _passThrough.Prune(_world, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
-        // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
         if (
-            _session.TickOfStep(stepNumber, StepsPerSecond, out var tick)
-            && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond)
+            _movement.Step(
+                _session,
+                stepNumber,
+                ref _motor,
+                move,
+                jump,
+                _shape.MaxSpeed * settings.SpeedCheat,
+                _shape.JumpVelocity * settings.JumpCheat,
+                _world,
+                content.Movement,
+                out var tick
+            )
         )
         {
-            _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
             CountOwnHitch(tick, _motor.Position);
         }
 
@@ -348,7 +342,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 // Before this bot's arrival correction. A fresh copy of the zone's world, with the flips the server says.
                 var entered = FrameReader.Decode<ZoneEntered>(payload, options);
                 _world = worlds.For(content.Zones[entered.Zone]).WithOwnFlips();
-                _passThrough.Clear();
+                _movement.PassThrough.Clear();
                 _session.Entities.GroundHeight = _world.GroundHeight(content.Movement);
                 foreach (var tag in entered.Flipped ?? [])
                 {
@@ -359,7 +353,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             case ShapeLandMessageIds.PlacementsFlipped:
                 var flipped = FrameReader.Decode<PlacementsFlipped>(payload, options);
                 _world.SetFlipped(flipped.Tag, flipped.Flipped);
-                _passThrough.Flipped(_world, flipped.Tag, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
+                _movement.PassThrough.Flipped(_world, flipped.Tag, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
                 break;
             case ShapeLandMessageIds.Dropped:
                 DroppedFor = FrameReader.Decode<Dropped>(payload, options).Reason;
@@ -379,7 +373,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         _motor.Position = new Vector3(correction.X, correction.Y, correction.Z);
         _motor.Velocity = Vector3.Zero;
         _motor.Grounded = false;
-        _reporter.Reset();
+        _movement.Reporter.Reset();
         if (correction.Reason == CorrectionReason.Respawn)
         {
             Respawns++;

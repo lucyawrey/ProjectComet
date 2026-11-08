@@ -5,7 +5,8 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.comet.protocol": "0.1.0"
+        "com.comet.protocol": "0.1.0",
+        "com.comet.simulation": "0.1.0"
       }
     },
     "com.comet.content": {

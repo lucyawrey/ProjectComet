@@ -37,7 +37,7 @@ namespace ShapeLand.Client
         public float TestSpeedScale { get; set; } = 1;
 
         private readonly FixedStep _step = new FixedStep(StepsPerSecond);
-        private readonly PositionReporter _reporter = new PositionReporter();
+        private readonly OwnMovement _movement = new OwnMovement(StepsPerSecond);
         private readonly CorrectionBlend _blend = new CorrectionBlend();
         private ClientSession _session;
         private CollisionWorld _world;
@@ -72,8 +72,7 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>The meshes the player passes through: turned on around them, until they're out (as the server keeps them).</summary>
-        public PassThrough PassThrough { get; } = new PassThrough();
+        public PassThrough PassThrough => _movement.PassThrough;
 
         /// <summary>How many times a teleporter sent the player somewhere.</summary>
         public int Teleports { get; private set; }
@@ -170,18 +169,8 @@ namespace ShapeLand.Client
             {
                 var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
-                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules, PassThrough);
-                PassThrough.Prune(_world, _motor.Position, _rules.BodyRadius, _rules.BodyHeight);
-
+                _movement.Step(_session, stepNumber, ref _motor, move, _jumpQueued, maxSpeed, _shape.JumpVelocity, _world, _rules, out _);
                 _jumpQueued = false;
-                // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.
-                if (
-                    _session.TickOfStep(stepNumber, StepsPerSecond, out var tick)
-                    && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds)
-                )
-                {
-                    _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
-                }
             }
 
             _blend.Advance(Time.unscaledDeltaTime);
@@ -230,7 +219,7 @@ namespace ShapeLand.Client
             _motor.Velocity = System.Numerics.Vector3.Zero;
             _motor.Grounded = false;
             _previous = _motor;
-            _reporter.Reset();
+            _movement.Reporter.Reset();
             if (correction.Reason is CorrectionReason.Respawn or CorrectionReason.Teleport)
             {
                 // Usually faded already (from the fall, or the pad's charge); if not, it fades out now, held where it stood.
