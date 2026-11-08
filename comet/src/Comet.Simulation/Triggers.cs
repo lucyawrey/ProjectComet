@@ -8,7 +8,8 @@ namespace Comet.Simulation
     /// <summary>
     /// A zone's spawn points, teleporters and triggers, found by id, by number or by where a player stands; whether
     /// feet are inside a trigger volume; and arriving at one: a random spot in its footprint on the ground under it,
-    /// facing as it says. How each kind fires (its stand time, re-arming, what it does) is game policy.
+    /// facing as it says. <see cref="TriggerCharge"/> times standing in one; what each kind does when it fires is game
+    /// policy.
     /// </summary>
     public sealed class Triggers
     {

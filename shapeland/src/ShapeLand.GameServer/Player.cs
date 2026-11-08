@@ -2,6 +2,7 @@ using Comet.Content;
 using Comet.Protocol.Messages;
 using Comet.Server.Connections;
 using Comet.Server.Movement;
+using Comet.Simulation;
 using ShapeLand.Data;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;

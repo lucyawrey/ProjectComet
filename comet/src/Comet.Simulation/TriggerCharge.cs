@@ -1,6 +1,6 @@
 using Comet.Content;
 
-namespace ShapeLand.Shared.World
+namespace Comet.Simulation
 {
     /// <summary>
     /// Times standing in trigger volumes, for one player (their spawn claims or teleporters) or for one trigger
