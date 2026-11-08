@@ -213,7 +213,7 @@ namespace Comet.Unity.Editor
             using (new EditorGUI.DisabledScope(EditorApplication.isPlaying))
             {
                 LocalServer.UseAccounts = EditorGUILayout.Toggle(
-                    new GUIContent("Use accounts", "[tooltip: what Use Accounts does, and that changing it stops the server]"),
+                    new GUIContent("Use accounts", "Use the full account system with a login server and backing database running on docker."),
                     LocalServer.UseAccounts
                 );
             }
