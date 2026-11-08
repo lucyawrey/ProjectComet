@@ -1,17 +1,9 @@
 namespace Comet.Server.Movement;
 
 /// <summary>
-/// Stamps a player's entity states with the tick the player sent them at, so the network jitter between that
-/// player and the server doesn't show as wobble on everyone else's screen. The tick comes from the report
-/// frame's header (the client's estimate of the server tick), so it is bounded: no later than the tick the
-/// report arrived, no more than <see cref="MaxLagSeconds"/> before it, and never before the previous stamp.
-/// <para>
-/// States sent to others carry that stamp shifted by the player's smoothed latency (<see cref="Broadcast"/>):
-/// the median of arrival minus stamp over the last <see cref="SmoothingSeconds"/>, approached at no more than
-/// <see cref="SlewRate"/>. The spacing between the player's states stays as they sent it, but their steady
-/// latency no longer counts toward everyone else's interpolation delay; only their jitter and stalls do. A
-/// broadcast stamp may be a little later than the tick its report arrived, by up to the shift.
-/// </para>
+/// Stamps a player's entity states with the tick the player sent them at, so network jitter doesn't show as wobble
+/// on others' screens. The tick comes from the report frame's header, bounded to no later than arrival, within <see
+/// cref="MaxLagSeconds"/> of it, and never before the last stamp.
 /// </summary>
 public sealed class StateStamp
 {
@@ -38,7 +30,6 @@ public sealed class StateStamp
     private long _wholeShift;
     private uint _lastArrival;
 
-    /// <summary>A stamp for one player on a server running <paramref name="tickRate"/> ticks per second.</summary>
     public StateStamp(int tickRate, double maxLagSeconds = MaxLagSeconds)
     {
         _maxLag = (uint)Math.Round(maxLagSeconds * tickRate);
@@ -46,13 +37,16 @@ public sealed class StateStamp
         _lagCounts = new int[2 * _maxLag + 1];
     }
 
-    /// <summary>The last stamp given, the sender's: for checking their movement.</summary>
+    /// <summary>The sender's last stamp, for checking their movement.</summary>
     public uint Last { get; private set; }
 
-    /// <summary>The last stamp for states sent to others: <see cref="Last"/> shifted by the smoothed latency.</summary>
+    /// <summary>
+    /// The stamp for states sent to others: <see cref="Last"/> shifted by the smoothed latency (the median of
+    /// arrival minus stamp over <see cref="SmoothingSeconds"/>, approached at no more than <see
+    /// cref="SlewRate"/>), so only jitter and stalls count toward their interpolation delay.
+    /// </summary>
     public uint Broadcast { get; private set; }
 
-    /// <summary>Broadcast stamps given so far, and how many of them were held back to keep stamps from going backwards.</summary>
     public int Broadcasts { get; private set; }
 
     /// <summary>Broadcast stamps held back to keep them from going backwards.</summary>
@@ -61,22 +55,18 @@ public sealed class StateStamp
     /// <summary>The smoothed latency the broadcast stamps are shifted by, in ticks (0 before the first report).</summary>
     public double Shift => double.IsNaN(_shift) ? 0 : _shift;
 
-    /// <summary>The stamp for a state reported in a frame headed <paramref name="clientTick"/> that arrived at <paramref name="arrivalTick"/>.</summary>
     public uint Stamp(uint clientTick, uint arrivalTick)
     {
         var earliest = Math.Max(arrivalTick > _maxLag ? arrivalTick - _maxLag : 0, Last);
         Last = Math.Clamp(clientTick, Math.Min(earliest, arrivalTick), arrivalTick);
 
-        // The broadcast stamp starts from the sender's own tick, bounded only to within the maximum lag of
-        // arrival either way, not from Last: a report that crosses faster than the client's estimate assumes
-        // (half its best round trip) arrives before its own stamp, and holding it to arrival broke the sender's
-        // spacing, a hitch for everyone drawing them. Nor is it held to arrival afterwards (a report arriving
-        // faster than the median would lose a tick, drawn at double speed as a jump); a stamp a little ahead is
-        // simply drawn when the render tick reaches it.
+        // Starts from the sender's own tick, within the maximum lag of arrival, not from Last: a report can arrive before its own stamp
+        // (the client's estimate assumes half its best round trip), and holding it to arrival broke the sender's spacing, a hitch for
+        // everyone drawing them. Not held to arrival afterwards either: that would lose a tick, drawn as a jump.
         var own = Math.Clamp((long)clientTick, (long)arrivalTick - _maxLag, (long)arrivalTick + _maxLag);
         UpdateShift((int)(arrivalTick - own), arrivalTick);
-        // Stamps are whole ticks, so the shift is too; it changes only once the smoothed shift is well past the
-        // one in use, since rounding a shift that hovers near a half would move every few stamps by a tick.
+        // Stamps are whole ticks, so the shift is too; it changes only once well past the one in use, since a shift
+        // hovering near a half would otherwise move every few stamps.
         if (Math.Abs(_shift - _wholeShift) > ShiftHysteresis)
         {
             _wholeShift = (long)Math.Round(_shift);
@@ -89,7 +79,6 @@ public sealed class StateStamp
         return Last;
     }
 
-    /// <summary>Stamps a position the server set itself (a spawn or respawn) with the server's own tick.</summary>
     public uint StampServer(uint tick)
     {
         Last = Math.Max(Last, tick);

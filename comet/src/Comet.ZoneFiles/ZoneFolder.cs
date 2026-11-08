@@ -43,7 +43,10 @@ namespace Comet.ZoneFiles
         /// <summary>The chunk file's path in the zone folder.</summary>
         public static string ChunkFile(ChunkCoord coord) => $"{ChunksFolder}/{coord}/{ChunkFileName}";
 
-        /// <summary>The path in the zone folder of a tile file: <paramref name="kind"/> is <c>height</c>, <c>under.height</c>, <c>color</c> or <c>under.color</c>.</summary>
+        /// <summary>
+        /// The path in the zone folder of a tile file: <paramref name="kind"/> is <c>height</c>,
+        /// <c>under.height</c>, <c>color</c> or <c>under.color</c>.
+        /// </summary>
         public static string TileFile(ChunkCoord coord, string piece, string kind) => $"{ChunksFolder}/{coord}/{piece}.{kind}";
 
         /// <summary>

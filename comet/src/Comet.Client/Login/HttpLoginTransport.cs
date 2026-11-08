@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Comet.Client.Login
 {
-    /// <summary>The Login server over <see cref="HttpClient"/>, for bots and tools (not the web build, which uses UnityWebRequest).</summary>
+    /// <summary>The Login server over <see cref="HttpClient"/>, for bots and tools (the web build uses UnityWebRequest).</summary>
     public sealed class HttpLoginTransport : ILoginTransport
     {
         private readonly HttpClient _http;

@@ -21,7 +21,10 @@ namespace Comet.Protocol.Framing
             _remaining = messages;
         }
 
-        /// <summary>The tick in the frame's header: the server's tick in frames from the server; in frames from a client, the server tick the client stamps its report with.</summary>
+        /// <summary>
+        /// The tick in the frame's header: the server's tick from the server, the server tick the client
+        /// stamps its report with from a client.
+        /// </summary>
         public uint Tick { get; }
 
         /// <summary>A reader for <paramref name="frame"/>; throws <see cref="ProtocolException"/> if it's too short for its header.</summary>
@@ -35,7 +38,6 @@ namespace Comet.Protocol.Framing
             return new FrameReader(tick, frame.Slice(MessageWriter.TickSize));
         }
 
-        /// <summary>Reads the next message, or returns false at the end of the frame.</summary>
         public bool TryReadNext(out ushort messageId, out ReadOnlyMemory<byte> payload)
         {
             if (_remaining.IsEmpty)
@@ -66,7 +68,6 @@ namespace Comet.Protocol.Framing
             return true;
         }
 
-        /// <param name="payload">A message's payload, from <see cref="TryReadNext"/>.</param>
         /// <param name="options">Serializer options; <see cref="ProtocolSerializer.Options"/> (Comet's messages only) if null.</param>
         public static T Decode<T>(ReadOnlyMemory<byte> payload, MessagePackSerializerOptions? options = null)
         {

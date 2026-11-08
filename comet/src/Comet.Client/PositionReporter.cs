@@ -16,7 +16,6 @@ namespace Comet.Client
         private Vector2 _reportedDirection;
         private double _lastReport = double.NegativeInfinity;
 
-        /// <param name="interval">Seconds between reports while moving.</param>
         /// <param name="sharpTurnDegrees">A change of ground direction at least this large is reported at once.</param>
         public PositionReporter(double interval = 1.0 / 15, float sharpTurnDegrees = 45)
         {

@@ -11,7 +11,6 @@ namespace Comet.Protocol.Framing
         /// <summary>The most bytes a 32-bit value takes.</summary>
         public const int MaxLength = 5;
 
-        /// <summary>How many bytes <paramref name="value"/> takes.</summary>
         public static int SizeOf(uint value)
         {
             var size = 1;
@@ -23,7 +22,6 @@ namespace Comet.Protocol.Framing
             return size;
         }
 
-        /// <summary>Writes <paramref name="value"/> and returns the number of bytes written.</summary>
         public static int Write(Span<byte> destination, uint value)
         {
             var i = 0;
@@ -45,7 +43,7 @@ namespace Comet.Protocol.Framing
                 var b = source[i];
                 if (i == MaxLength - 1 && b > 0x0F)
                 {
-                    break; // more than 32 bits
+                    break;
                 }
                 value |= (uint)(b & 0x7F) << (7 * i);
                 if (b < 0x80)

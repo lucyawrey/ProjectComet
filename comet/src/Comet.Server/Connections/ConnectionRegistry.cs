@@ -5,15 +5,10 @@ using MessagePack;
 
 namespace Comet.Server.Connections;
 
-/// <summary>
-/// The open connections. Reading <see cref="Snapshot"/> is lock-free and allocation-free, for the
-/// tick thread; adding and removing copy the array, which is rare (the number of connections is capped by
-/// <see cref="ConnectionLimits"/>).
-/// </summary>
-/// <param name="serializerOptions">
-/// How connections encode messages: a game with its own messages passes
-/// <see cref="ProtocolSerializer.CreateOptions"/> with its resolver; null means Comet's messages only.
-/// </param>
+/// <summary> The open connections. <see cref="Snapshot"/> is lock-free and allocation-free for the tick thread;
+/// adding and removing copy the array, which is rare (connections are capped by <see cref="ConnectionLimits"/>).
+/// </summary> <param name="serializerOptions">A game with its own messages passes <see
+/// cref="ProtocolSerializer.CreateOptions"/>; null means Comet's only.</param>
 public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerOptions = null)
 {
     private readonly Lock _lock = new();
@@ -22,7 +17,6 @@ public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerO
     private readonly Dictionary<IPAddress, int> _openByAddress = [];
     private int _open;
 
-    /// <summary>How connections encode messages.</summary>
     public MessagePackSerializerOptions SerializerOptions { get; } = serializerOptions ?? ProtocolSerializer.Options;
 
     public Connection[] Snapshot => Volatile.Read(ref _snapshot);
@@ -66,7 +60,6 @@ public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerO
         }
     }
 
-    /// <summary>Uncounts a connection counted by <see cref="TryReserve"/>, once it has closed or was never accepted.</summary>
     internal void Release(IPAddress? address)
     {
         var key = AddressKey(address);

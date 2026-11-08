@@ -10,7 +10,10 @@ namespace Comet.ZoneFiles
 {
     public static partial class ZoneFolder
     {
-        /// <summary>A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of prop, primitive or group, and its transform.</summary>
+        /// <summary>
+        /// A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of prop,
+        /// primitive or group, and its transform.
+        /// </summary>
         internal static Placement ReadPlacement(ZoneToml toml, TomlTable table, string path)
         {
             toml.CheckKeys(

@@ -17,7 +17,10 @@ internal static class StringFile
     private static readonly Regex Braces = new(@"\{[^{}]*\}|[{}]");
     private static readonly Regex Placeholder = new($"^\\{{{ContentBuilder.NamePattern}\\}}$");
 
-    /// <summary>Reads the string file at <paramref name="path"/>, adding problems to <paramref name="errors"/> under the name <paramref name="file"/>.</summary>
+    /// <summary>
+    /// Reads the string file at <paramref name="path"/>, adding problems to <paramref name="errors"/> under the
+    /// name <paramref name="file"/>.
+    /// </summary>
     public static StringTable Read(string path, string file, IReadOnlyCollection<string>? placeholders, List<ContentError> errors)
     {
         var table = new StringTable();

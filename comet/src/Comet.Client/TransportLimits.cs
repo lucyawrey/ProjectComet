@@ -1,6 +1,5 @@
 namespace Comet.Client
 {
-    /// <summary>Limits every client transport keeps.</summary>
     public static class TransportLimits
     {
         /// <summary>How long connecting may take before it fails, in seconds.</summary>

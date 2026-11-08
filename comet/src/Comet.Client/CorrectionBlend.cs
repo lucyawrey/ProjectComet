@@ -4,16 +4,14 @@ using System.Numerics;
 namespace Comet.Client
 {
     /// <summary>
-    /// Smooths a snap-back for the player's own shape. The simulation moves to the corrected position at once,
-    /// so its next reports pass the server's checks; only the drawn position lags, by an offset that eases to
-    /// zero over <see cref="Duration"/>. A respawn isn't blended (the client fades instead).
+    /// Smooths a snap-back for the player's own shape. The simulation moves to the corrected position at once so its reports pass the
+    /// server's checks; only the drawn position lags, easing to zero over <see cref="Duration"/>. A respawn isn't blended.
     /// </summary>
     public sealed class CorrectionBlend
     {
         private Vector3 _start;
         private double _elapsed;
 
-        /// <param name="duration">How long the drawn position takes to catch up, in seconds.</param>
         public CorrectionBlend(double duration = 0.15)
         {
             if (duration <= 0)
@@ -51,7 +49,6 @@ namespace Comet.Client
             Offset = Vector3.Zero;
         }
 
-        /// <summary>Moves the easing on by <paramref name="seconds"/>, shrinking <see cref="Offset"/>.</summary>
         public void Advance(double seconds)
         {
             if (!Active)
@@ -61,7 +58,7 @@ namespace Comet.Client
 
             _elapsed = Math.Min(Duration, _elapsed + Math.Max(0, seconds));
             var t = (float)(_elapsed / Duration);
-            var eased = t * t * (3 - 2 * t); // smoothstep: starts and ends gently
+            var eased = t * t * (3 - 2 * t);
             Offset = _start * (1 - eased);
         }
     }

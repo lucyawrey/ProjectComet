@@ -3,9 +3,8 @@ using MessagePack;
 namespace Comet.Protocol.Messages
 {
     /// <summary>
-    /// Client input: the client's own position, which the server validates.
-    /// Sent about 15 times a second while moving, and not at all while standing still.
-    /// The frame header carries the client's estimate of the server tick.
+    /// Client input: the client's own position, which the server validates. Sent about 15 times a second while moving;
+    /// the frame header carries the client's estimate of the server tick.
     /// </summary>
     [MessagePackObject]
     public struct PositionReport
@@ -92,20 +91,15 @@ namespace Comet.Protocol.Messages
         public uint EntityId;
     }
 
-    /// <summary>Why the server moved a player.</summary>
     public enum CorrectionReason : byte
     {
-        /// <summary>The move broke a movement rule (too fast, too high); the player is put back.</summary>
         SnapBack = 1,
 
-        /// <summary>The player fell below the world and is put back on safe ground.</summary>
         Respawn = 2,
 
-        /// <summary>The player was sent somewhere new by the game (a teleporter).</summary>
         Teleport = 3,
     }
 
-    /// <summary>What a position report's check found.</summary>
     public enum MovementVerdict : byte
     {
         Accepted,
@@ -116,13 +110,11 @@ namespace Comet.Protocol.Messages
         /// <summary>Sent before the client applied the latest correction; ignored.</summary>
         Stale,
 
-        /// <summary>Moved further than the speed budget allows.</summary>
         TooFast,
 
         /// <summary>Higher than gravity allows: above the arc of a jump from the last ground at this point in it.</summary>
         TooHigh,
 
-        /// <summary>The body overlaps something solid: terrain or a placed object.</summary>
         InsideSolid,
 
         /// <summary>Fell below the world's kill height; respawn.</summary>

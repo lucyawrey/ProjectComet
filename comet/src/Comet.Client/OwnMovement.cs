@@ -25,10 +25,10 @@ namespace Comet.Client
         public PositionReporter Reporter { get; } = new PositionReporter();
 
         /// <summary>
-        /// Moves <paramref name="motor"/> by step <paramref name="stepNumber"/> (counted on the server's clock), drops
-        /// the meshes the player is now out of, and reports the new state to <paramref name="session"/> when the step
-        /// falls on a server tick and <see cref="Reporter"/> wants it. Returns whether it reported, at
-        /// <paramref name="tick"/>.
+        /// Moves <paramref name="motor"/> by step <paramref name="stepNumber"/> (counted on the server's
+        /// clock), and reports the new state to <paramref name="session"/> if the step falls on a server
+        /// tick and <see cref="Reporter"/> wants it. Returns whether it reported, at <paramref
+        /// name="tick"/>.
         /// </summary>
         public bool Step(
             ClientSession session,

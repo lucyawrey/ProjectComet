@@ -33,7 +33,10 @@ namespace Comet.ZoneFiles
             };
         }
 
-        /// <summary>Every group in <paramref name="folder"/> (its <c>*.toml</c> files, in subfolders too), each with its file relative to the folder.</summary>
+        /// <summary>
+        /// Every group in <paramref name="folder"/> (its <c>*.toml</c> files, in subfolders too), each with
+        /// its file relative to the folder.
+        /// </summary>
         public static List<(Group Group, string File)> ReadFolder(string folder, List<ZoneFileError> errors)
         {
             var groups = new List<(Group, string)>();

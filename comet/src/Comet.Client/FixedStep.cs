@@ -3,11 +3,9 @@ using System;
 namespace Comet.Client
 {
     /// <summary>
-    /// Paces a fixed-rate simulation from a variable frame clock: each frame says how many whole steps are due,
-    /// and how far the frame sits between the last step and the next one (for drawing between them). Steps fall
-    /// on a grid, step n at n / <see cref="StepsPerSecond"/> seconds, so a simulation driven by the server-tick
-    /// estimate (<see cref="ClientSession.ServerSeconds"/>) steps exactly on server ticks
-    /// (<see cref="ClientSession.TickOfStep"/>).
+    /// Paces a fixed-rate simulation from a variable frame clock: how many whole steps are due, and how far the
+    /// frame sits between steps. Step n is at n / <see cref="StepsPerSecond"/> seconds, so a simulation driven
+    /// by <see cref="ClientSession.ServerSeconds"/> steps exactly on server ticks.
     /// </summary>
     public sealed class FixedStep
     {
@@ -15,8 +13,8 @@ namespace Comet.Client
         private long _lastStep;
         private double _now;
 
-        /// <param name="stepsPerSecond">The simulation rate.</param>
-        /// <param name="maxSteps">The most steps one frame runs; time beyond that (a long hitch) is dropped, so the simulation slows instead of spiraling.</param>
+        /// <param name="maxSteps">The most steps one frame runs; time beyond that (a long hitch) is
+        /// dropped, so the simulation slows instead of spiraling.</param>
         public FixedStep(int stepsPerSecond, int maxSteps = 15)
         {
             if (stepsPerSecond <= 0)
@@ -29,13 +27,11 @@ namespace Comet.Client
             MaxSteps = maxSteps;
         }
 
-        /// <summary>The simulation rate.</summary>
         public int StepsPerSecond { get; }
 
         /// <summary>How long one step is, in seconds.</summary>
         public double StepSeconds { get; }
 
-        /// <summary>The most steps one frame runs; time beyond that (a long hitch) is dropped.</summary>
         public int MaxSteps { get; }
 
         /// <summary>The number of the last step run (or of the grid point the clock started at).</summary>
@@ -45,9 +41,8 @@ namespace Comet.Client
         public float Alpha => _started ? (float)Math.Min(1, Math.Max(0, _now * StepsPerSecond - _lastStep)) : 0;
 
         /// <summary>
-        /// Advances to <paramref name="now"/> and returns how many steps to run; the last of them is
-        /// <see cref="LastStep"/>. The first call starts the clock and runs none. Time going backwards runs nothing
-        /// until it passes the last step again.
+        /// Advances to <paramref name="now"/> and returns how many steps to run, the last being <see cref="LastStep"/>. The first call starts the
+        /// clock and runs none; time going backwards runs nothing until it passes the last step again.
         /// </summary>
         public int Advance(double now)
         {

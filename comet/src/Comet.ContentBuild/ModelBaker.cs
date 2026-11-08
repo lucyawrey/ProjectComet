@@ -12,7 +12,10 @@ namespace Comet.ContentBuild;
 /// </summary>
 public static class ModelBaker
 {
-    /// <summary>Fills in <paramref name="prop"/>'s collision and bounds from the model at <paramref name="path"/>; throws <see cref="ContentException"/> if it can't.</summary>
+    /// <summary>
+    /// Fills in <paramref name="prop"/>'s collision and bounds from the model at <paramref name="path"/>;
+    /// throws <see cref="ContentException"/> if it can't.
+    /// </summary>
     public static void Bake(Prop prop, string path)
     {
         ModelRoot model;

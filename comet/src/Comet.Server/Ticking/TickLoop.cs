@@ -3,16 +3,13 @@ using System.Diagnostics;
 namespace Comet.Server.Ticking;
 
 /// <summary>How one tick went, reported after it runs.</summary>
-/// <param name="Tick">The tick number.</param>
 /// <param name="Lateness">How long after its scheduled time the tick started.</param>
 /// <param name="Work">How long the tick's work took.</param>
 public readonly record struct TickTiming(uint Tick, TimeSpan Lateness, TimeSpan Work);
 
 /// <summary>
-/// Runs the simulation at a fixed rate on a dedicated thread. Between ticks it sleeps until
-/// shortly before the deadline, then spins, so ticks start on time; the operating system often
-/// wakes sleeping threads late. A tick that overruns its budget delays the next one rather than
-/// being followed by catch-up ticks.
+/// Runs the simulation at a fixed rate on a dedicated thread: sleeps until shortly before each deadline, then spins
+/// (the OS often wakes sleeping threads late). A tick that overruns delays the next one; there are no catch-up ticks.
 /// </summary>
 public sealed class TickLoop
 {
@@ -23,7 +20,6 @@ public sealed class TickLoop
     private volatile bool _stopping;
     private uint _tick;
 
-    /// <summary>A loop calling <paramref name="onTick"/> with each tick number, <paramref name="tickRate"/> times a second, once started.</summary>
     public TickLoop(int tickRate, Action<uint> onTick)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tickRate);
@@ -41,7 +37,6 @@ public sealed class TickLoop
     /// <summary>Ticks per second.</summary>
     public int TickRate { get; }
 
-    /// <summary>The time between tick starts.</summary>
     public TimeSpan Period { get; }
 
     /// <summary>The last tick started. Safe to read from any thread.</summary>
@@ -51,13 +46,11 @@ public sealed class TickLoop
     public event Action<TickTiming>? TickCompleted;
 
     /// <summary>
-    /// Called on the tick thread if a tick throws, with the tick and the exception; the loop has stopped. The game's
-    /// state can't be trusted after that, so the server should log it and stop (fail fast, but with the error
-    /// logged). With no handler, the exception ends the process.
+    /// Called on the tick thread if a tick throws; the loop has stopped and the game's state can't be trusted, so the server
+    /// should log and stop. With no handler, the exception ends the process.
     /// </summary>
     public event Action<uint, Exception>? Failed;
 
-    /// <summary>Starts the tick thread.</summary>
     public void Start() => _thread.Start();
 
     /// <summary>Stops after the current tick, waiting for it unless called from the tick thread itself.</summary>

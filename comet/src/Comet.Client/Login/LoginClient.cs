@@ -40,7 +40,10 @@ namespace Comet.Client.Login
         void Save(string? token);
     }
 
-    /// <summary>A Login server call's result: the value, or an error code (<see cref="LoginErrors"/> or <see cref="LoginClient{TCharacter}.Unreachable"/>).</summary>
+    /// <summary>
+    /// A Login server call's result: the value, or an error code (<see cref="LoginErrors"/> or <see
+    /// cref="LoginClient{TCharacter}.Unreachable"/>).
+    /// </summary>
     public readonly struct LoginResult<T>
     {
         public LoginResult(T value)
@@ -86,7 +89,6 @@ namespace Comet.Client.Login
 
         public bool SignedIn => Token != null;
 
-        /// <summary>Makes a guest account with its first character, from the game's new-character data.</summary>
         public Task<LoginResult<bool>> CreateGuestAsync<TNewCharacter>(string name, TNewCharacter character) =>
             StartSessionAsync(LoginPaths.Guest, new GuestRequest<TNewCharacter> { Name = name, Character = character });
 
@@ -154,7 +156,6 @@ namespace Comet.Client.Login
             _tokens.Save(null);
         }
 
-        /// <summary>The error code for a request that got no answer.</summary>
         public const string Unreachable = "unreachable";
 
         private async Task<LoginResult<bool>> StartSessionAsync(string path, object request)

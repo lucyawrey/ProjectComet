@@ -14,9 +14,8 @@ public static class CometServerExtensions
     private static readonly ConnectionLimits DefaultLimits = new();
 
     /// <summary>
-    /// Accepts game connections at <paramref name="pattern"/>. Needs <c>UseWebSockets()</c>, and a
-    /// <see cref="ConnectionRegistry"/>, <see cref="IConnectionHandler"/> and <see cref="TickLoop"/> in services,
-    /// and optionally <see cref="ConnectionLimits"/>. Connections over the limits are refused (503).
+    /// Accepts game connections at <paramref name="pattern"/>. Needs <c>UseWebSockets()</c> and a <see cref="ConnectionRegistry"/>,
+    /// <see cref="IConnectionHandler"/> and <see cref="TickLoop"/> (optionally <see cref="ConnectionLimits"/>) in services. Over the limits: 503.
     /// </summary>
     public static IEndpointConventionBuilder MapCometWebSocket(this IEndpointRouteBuilder endpoints, string pattern) =>
         endpoints.Map(

@@ -1,13 +1,11 @@
 namespace Comet.Server.Movement;
 
 /// <summary>
-/// How much of the movement tolerances one player's reports have actually needed, for tuning them
-/// (<see cref="MovementTolerances"/>). Measured against exact rules, not the current tolerances, so it shows how far
-/// they could tighten before this player would have been snapped back.
+/// How much of the movement tolerances (<see cref="MovementTolerances"/>) one player's reports needed, for tuning them. Measured against
+/// exact rules, so it shows how far they could tighten before this player would have been snapped back.
 /// </summary>
 public sealed class MovementHeadroom
 {
-    /// <summary>The speed factors the burst need is measured for.</summary>
     public static readonly float[] SpeedFactors = [1.0f, 1.05f, 1.1f, 1.15f, 1.2f];
 
     // Per speed factor: the running shortfall of a distance budget earned at that speed (a token bucket's deficit),
@@ -31,7 +29,6 @@ public sealed class MovementHeadroom
     /// </summary>
     public float BurstSecondsNeeded(int factorIndex) => _maxSpeed[factorIndex] > 0 ? _maxDeficit[factorIndex] / _maxSpeed[factorIndex] : 0;
 
-    /// <summary>Records one accepted move: <paramref name="distance"/> meters in <paramref name="elapsedSeconds"/>, against <paramref name="maxSpeed"/>.</summary>
     internal void AddMove(float distance, float elapsedSeconds, float maxSpeed)
     {
         for (var i = 0; i < SpeedFactors.Length; i++)
@@ -43,7 +40,6 @@ public sealed class MovementHeadroom
         }
     }
 
-    /// <param name="rise">Height above the last ground.</param>
     /// <param name="airSeconds">Time since the last ground, by the report's stamp.</param>
     internal void AddHeight(float rise, float airSeconds, float jumpVelocity, float gravity)
     {
@@ -51,7 +47,6 @@ public sealed class MovementHeadroom
         MaxRiseOverApex = MathF.Max(MaxRiseOverApex, rise - apex);
         if (rise > 0 && rise <= apex)
         {
-            // On an exact jump's way down, this height is reached this long after the apex.
             var falling = MathF.Sqrt(2 * (apex - rise) / gravity);
             MaxAirSlack = MathF.Max(MaxAirSlack, airSeconds - jumpVelocity / gravity - falling);
         }

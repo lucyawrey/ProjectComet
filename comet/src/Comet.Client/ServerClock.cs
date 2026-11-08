@@ -8,16 +8,12 @@ namespace Comet.Client
     /// arriving now (half a round trip behind), which interpolation draws behind.
     /// </summary>
     /// <remarks>
-    /// Each pong gives a sample: the frame carrying it was stamped with the server's current tick, so on
-    /// arrival the server is about half a round trip past it. The sample with the lowest round trip among the
-    /// last <see cref="SampleCount"/> is trusted, since it waited in the fewest queues. The estimates slew
-    /// toward it (running at most <see cref="MaxSlew"/> fast or slow) so whatever is drawn from them doesn't
-    /// stutter, and jump only when they're off by more than <see cref="JumpSeconds"/>. Times are in seconds
-    /// on the caller's clock, which only has to be monotonic.
+    /// The lowest round trip among the last <see cref="SampleCount"/> pongs is trusted (it waited in the fewest queues); the server is
+    /// about half a round trip past its frame's stamp. Estimates slew toward it (at most <see cref="MaxSlew"/>) so drawing doesn't stutter,
+    /// and jump past <see cref="JumpSeconds"/>. Times are seconds on the caller's monotonic clock.
     /// </remarks>
     public sealed class ServerClock
     {
-        /// <summary>How many recent pongs are kept to pick the fastest from.</summary>
         public const int SampleCount = 10;
 
         /// <summary>How much faster or slower than real time the estimates may run while catching up (0.05 is 5%).</summary>
@@ -35,7 +31,6 @@ namespace Comet.Client
         private double _lastAdvance;
         private bool _started;
 
-        /// <summary>A clock for a server running <paramref name="tickRate"/> ticks per second.</summary>
         public ServerClock(int tickRate)
         {
             if (tickRate <= 0)
@@ -46,7 +41,6 @@ namespace Comet.Client
             TickRate = tickRate;
         }
 
-        /// <summary>The server's ticks per second.</summary>
         public int TickRate { get; }
 
         /// <summary>True once a pong has arrived; before that the estimate comes from frame headers alone.</summary>
@@ -77,7 +71,6 @@ namespace Comet.Client
             _serverOffset = _receiveOffset = _serverTarget = _receiveTarget = Center(tick) - now * TickRate;
         }
 
-        /// <summary>A pong arrived in a frame stamped <paramref name="tick"/>, answering a ping sent at <paramref name="sentAt"/>.</summary>
         public void OnPong(uint tick, double sentAt, double now)
         {
             var roundTrip = Math.Max(0, now - sentAt);
@@ -106,7 +99,6 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>Moves the estimates toward the trusted sample. Call once per update.</summary>
         public void Advance(double now)
         {
             var elapsed = Math.Max(0, now - _lastAdvance);
@@ -133,14 +125,12 @@ namespace Comet.Client
 
         private readonly struct Sample
         {
-            /// <summary>One pong: its round trip, in seconds, and the receive offset it implies.</summary>
             public Sample(double roundTrip, double arrivalOffset)
             {
                 RoundTrip = roundTrip;
                 ArrivalOffset = arrivalOffset;
             }
 
-            /// <summary>The ping's round trip, in seconds.</summary>
             public double RoundTrip { get; }
 
             /// <summary>The receive-tick offset this sample implies: the frame's tick against its arrival time.</summary>

@@ -8,9 +8,8 @@ namespace Comet.Server;
 public static class WebBuild
 {
     /// <summary>
-    /// The page's Content Security Policy: scripts only from the page's own site (Unity's loader adds blob: scripts
-    /// and needs 'wasm-unsafe-eval'), fonts from Google Fonts, and connections to the page's own server and the Login
-    /// server at <paramref name="loginUrl"/>.
+    /// The page's Content Security Policy: scripts only from its own site (Unity's loader needs blob: and 'wasm-unsafe-eval'),
+    /// connections to its own server and the Login server at <paramref name="loginUrl"/>.
     /// </summary>
     public static string PagePolicy(string loginUrl)
     {
@@ -21,10 +20,8 @@ public static class WebBuild
     }
 
     /// <summary>
-    /// Serves the Unity web build in <paramref name="webRoot"/> at the root, for development. The build is
-    /// Brotli-compressed with the decompression fallback (files named .unityweb): browsers that accept br get
-    /// Content-Encoding: br and decompress natively; the rest (Firefox over plain HTTP) get the bytes as they are,
-    /// and Unity's loader unpacks them.
+    /// Serves the Unity web build in <paramref name="webRoot"/> at the root, for development. Files named .unityweb are Brotli:
+    /// browsers that accept br decompress natively; the rest (Firefox over plain HTTP) get raw bytes for Unity's loader to unpack.
     /// </summary>
     public static void Serve(WebApplication app, string webRoot)
     {
@@ -44,7 +41,7 @@ public static class WebBuild
                 {
                     if (context.File.Name == "content.bin")
                     {
-                        // Checked on every load, so a page reloaded for new content gets it.
+                        // Checked on every load, so a reload gets new content.
                         context.Context.Response.Headers.CacheControl = "no-cache";
                         return;
                     }

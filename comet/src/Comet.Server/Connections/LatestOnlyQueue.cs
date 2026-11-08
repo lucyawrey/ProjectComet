@@ -1,9 +1,8 @@
 namespace Comet.Server.Connections;
 
 /// <summary>
-/// Pending state messages for one connection, keyed by entity. A newer message for the same key
-/// replaces an unsent older one, so a stalled connection catches up with the latest state instead of
-/// replaying stale updates. Not thread-safe: used from the tick thread only.
+/// Pending state messages for one connection, keyed by entity: a newer message replaces an unsent older one, so a stalled
+/// connection catches up instead of replaying stale updates. Tick thread only.
 /// </summary>
 public sealed class LatestOnlyQueue<T>
     where T : struct
@@ -27,7 +26,6 @@ public sealed class LatestOnlyQueue<T>
         }
     }
 
-    /// <summary>Drops the queued message for <paramref name="key"/>, if any, e.g. when its entity is despawned.</summary>
     public void Remove(uint key)
     {
         if (!_indexByKey.Remove(key, out var index))

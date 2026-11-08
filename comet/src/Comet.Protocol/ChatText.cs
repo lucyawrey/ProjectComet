@@ -9,12 +9,8 @@ namespace Comet.Protocol
         public const int MaxMarksPerCharacter = 3;
 
         /// <summary>
-        /// Cleans a chat line: drops characters that change how text is laid out or read rather than being text
-        /// (control and formatting characters, such as newlines, zero-width characters, bidirectional overrides and
-        /// tag characters; line and paragraph separators; private-use characters and broken surrogate pairs), and
-        /// combining marks past <see cref="MaxMarksPerCharacter"/> on one character, then trims it and checks it's
-        /// not empty and at most <paramref name="maxLength"/> UTF-16 characters. Clients also show chat as plain
-        /// text, never markup.
+        /// Cleans a chat line: drops control, formatting, private-use and unpaired surrogate characters and marks past
+        /// <see cref="MaxMarksPerCharacter"/>, then trims. False if it's empty or over <paramref name="maxLength"/> UTF-16 characters.
         /// </summary>
         public static bool TryNormalize(string? text, int maxLength, out string normalized)
         {
@@ -23,7 +19,6 @@ namespace Comet.Protocol
             var marks = 0;
             for (var i = 0; i < text.Length; i++)
             {
-                // Characters outside the Basic Multilingual Plane are a surrogate pair, checked as one.
                 var length = char.IsSurrogatePair(text, i) ? 2 : 1;
                 switch (char.GetUnicodeCategory(text, i))
                 {

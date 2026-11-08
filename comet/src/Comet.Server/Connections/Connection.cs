@@ -10,27 +10,8 @@ using Comet.Server.Ticking;
 namespace Comet.Server.Connections;
 
 /// <summary>
-/// One client's WebSocket connection.
-/// <para>
-/// Outgoing: each tick, <see cref="Flush"/> builds one frame from the queued events and the
-/// latest-only state queues. At most one tick frame is in flight; if the previous one is still
-/// sending, the flush is skipped and the state keeps being replaced with newer updates. A tick frame
-/// stays under the clients' frame limit: events past <see cref="TickFrameEventBudget"/>, and states
-/// that don't fit, wait for the next tick, in order; states wait while any events do (so a burst of events
-/// pauses everyone's movement for a few ticks; holding back only new entities' states could replace this).
-/// Pings are answered immediately in their own frame, so round trips measure the network
-/// rather than the wait for the next tick.
-/// </para>
-/// <para>
-/// Limits (a client's traffic is never trusted): incoming messages are rate-limited (each frame, or piece of
-/// one, costs at least a message), and a client over the limit is dropped; at most <see cref="MaxPendingImmediate"/> immediate frames wait to send, beyond which pongs are
-/// dropped; a client that stops reading is dropped once its unsent events pass <see cref="MaxPendingEventBytes"/>
-/// or a send has waited <see cref="SendTimeout"/>.
-/// </para>
-/// <para>
-/// Threads: <see cref="SendEvent"/>, <see cref="EntityStates"/> and <see cref="Flush"/> belong to
-/// the tick thread; <see cref="SendImmediate"/> to the connection's receive flow (handler callbacks).
-/// </para>
+/// One client's WebSocket connection. <see cref="SendEvent"/>, <see cref="EntityStates"/> and <see cref="Flush"/> belong to the tick thread;
+/// <see cref="SendImmediate"/> to the connection's receive flow (handler callbacks).
 /// </summary>
 public sealed class Connection
 {
@@ -98,10 +79,8 @@ public sealed class Connection
     /// <summary>A number for this connection, unique while the server runs.</summary>
     public uint Id { get; }
 
-    /// <summary>The game's own data for this connection.</summary>
     public object? Tag { get; set; }
 
-    /// <summary>Whether the last tick frame is still sending (a flush now would be skipped).</summary>
     internal bool TickFrameInFlight => Volatile.Read(ref _tickFrameInFlight) != 0;
 
     /// <summary>Pending entity updates, latest only. Tick thread.</summary>
@@ -130,7 +109,10 @@ public sealed class Connection
         _eventSizes.Enqueue(_events.Length - length);
     }
 
-    /// <summary>Sends a message now, in its own frame. Receive flow only (handler callbacks).</summary>
+    /// <summary>
+    /// Sends a message now, in its own frame, so a ping's round trip measures the network, not the wait for the
+    /// next tick. Receive flow only.
+    /// </summary>
     public void SendImmediate<T>(ushort messageId, in T message)
     {
         if (Interlocked.Increment(ref _pendingImmediate) > MaxPendingImmediate)
@@ -150,7 +132,10 @@ public sealed class Connection
         }
     }
 
-    /// <summary>Builds and sends this tick's frame, unless the previous one is still sending. Tick thread.</summary>
+    /// <summary>
+    /// Builds and sends this tick's frame. If the previous one is still sending, it skips: the states keep
+    /// being replaced with newer ones. Tick thread.
+    /// </summary>
     public void Flush(uint tick)
     {
         if (Interlocked.CompareExchange(ref _tickFrameInFlight, 1, 0) != 0)
@@ -161,7 +146,8 @@ public sealed class Connection
         _tickFrame.BeginFrame(tick);
         AppendEvents();
 
-        // States wait while events do, so an entity's state never arrives before the events about it (its spawn).
+        // States wait while events do, so an entity's state never arrives before the events about it (its spawn);
+        // a burst of events therefore pauses everyone's movement for a few ticks.
         if (_eventSizes.Count == 0)
         {
             EntityStates.Drain(
@@ -184,7 +170,6 @@ public sealed class Connection
         }
     }
 
-    /// <summary>Moves the oldest events, up to <see cref="TickFrameEventBudget"/> bytes, into the tick frame.</summary>
     private void AppendEvents()
     {
         var length = 0;
@@ -222,7 +207,6 @@ public sealed class Connection
         _ = Task.Delay(CloseTimeout).ContinueWith(_ => _socket.Abort(), TaskScheduler.Default);
     }
 
-    /// <summary>Runs the connection until it closes: the handler's callbacks, receiving, and sending in the background.</summary>
     internal async Task RunAsync(CancellationToken cancellationToken)
     {
         // The handler sets up its data before the tick thread can see the connection.
@@ -320,7 +304,6 @@ public sealed class Connection
         }
     }
 
-    /// <summary>Takes one message from the allowance, which refills at <see cref="MaxMessagesPerSecond"/>.</summary>
     private void Charge()
     {
         var now = Stopwatch.GetTimestamp();
@@ -377,7 +360,6 @@ public sealed class Connection
         }
         finally
         {
-            // Return any rented buffers still queued.
             while (_outgoing.Reader.TryRead(out var item))
             {
                 if (item.Rented is not null)

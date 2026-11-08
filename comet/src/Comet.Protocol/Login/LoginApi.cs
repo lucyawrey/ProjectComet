@@ -1,10 +1,8 @@
 namespace Comet.Protocol.Login
 {
     /// <summary>
-    /// The Login server's HTTP interface: JSON (camelCase) under <c>/api/</c>. Signed-in calls send the session token
-    /// as <c>Authorization: Bearer &lt;token&gt;</c>. Errors are Problem Details (RFC 9457) whose <c>code</c> is one of
-    /// <see cref="LoginErrors"/>. The game's own character data (<c>TCharacter</c> below) is the
-    /// game's type.
+    /// The Login server's HTTP interface: JSON (camelCase) under <c>/api/</c>, session token as <c>Authorization: Bearer &lt;token&gt;</c>.
+    /// Errors are Problem Details (RFC 9457) whose <c>code</c> is one of <see cref="LoginErrors"/>.
     /// </summary>
     public static class LoginPaths
     {
@@ -56,7 +54,6 @@ namespace Comet.Protocol.Login
         public const string RateLimited = "rate_limited";
     }
 
-    /// <summary>Makes a guest account and its first character.</summary>
     public sealed class GuestRequest<TCharacter>
     {
         public string Name { get; set; } = "";
@@ -78,7 +75,6 @@ namespace Comet.Protocol.Login
         public string Code { get; set; } = "";
     }
 
-    /// <summary>A new session: the token to keep and send.</summary>
     public sealed class SessionResponse
     {
         public string Token { get; set; } = "";
@@ -100,7 +96,6 @@ namespace Comet.Protocol.Login
         public string Name { get; set; } = "";
     }
 
-    /// <summary>The signed-in account, and its character (if it has one).</summary>
     public sealed class AccountResponse<TCharacter>
     {
         public string Username { get; set; } = "";
@@ -116,7 +111,6 @@ namespace Comet.Protocol.Login
         public TCharacter? Character { get; set; }
     }
 
-    /// <summary>A join ticket and the game server it's for.</summary>
     public sealed class TicketResponse
     {
         public string Ticket { get; set; } = "";

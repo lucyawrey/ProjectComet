@@ -4,10 +4,8 @@ using Comet.Simulation;
 
 namespace Comet.Server.Movement;
 
-/// <summary>What <see cref="MovementValidator.Fall"/> did this tick.</summary>
 public enum FallResult
 {
-    /// <summary>Nothing: the player is on the ground, or still reporting.</summary>
     None,
 
     /// <summary>The server moved a silent airborne player; send their new state.</summary>
@@ -16,17 +14,14 @@ public enum FallResult
     /// <summary>The server's fall landed; send the state, and the client the correction from <see cref="MovementValidator.Landing"/>.</summary>
     Landed,
 
-    /// <summary>The server's fall went below the kill height; respawn.</summary>
     FellOut,
 }
 
 /// <summary>
-/// How lenient the checks are; tuned in the prototype from what honest bots need (<see cref="MovementHeadroom"/>,
-/// logged when each player leaves), about 1.5 to 2 times their worst under the bad network profile.
+/// How lenient the checks are; tuned from what honest bots need under the bad network profile (see <see cref="MovementHeadroom"/>).
 /// </summary>
 public sealed class MovementTolerances
 {
-    /// <summary>Allowed speed as a multiple of the shape's max speed.</summary>
     public float SpeedFactor { get; set; } = 1.1f;
 
     /// <summary>How much unused movement can build up, in seconds at the allowed speed (covers bursts after a stall).</summary>
@@ -35,7 +30,6 @@ public sealed class MovementTolerances
     /// <summary>Extra distance always allowed, in meters (rounding, small corrections).</summary>
     public float DistanceSlack { get; set; } = 0.25f;
 
-    /// <summary>Allowed jump height as a multiple of the shape's jump apex.</summary>
     public float JumpFactor { get; set; } = 1.0f;
 
     /// <summary>
@@ -45,8 +39,8 @@ public sealed class MovementTolerances
     public float AirTimeSlack { get; set; } = 0.2f;
 
     /// <summary>
-    /// Seconds without a report before the server moves an airborne player itself. Longer than a TCP resend
-    /// stall at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't in the prototype's network tuning.
+    /// Seconds without a report before the server moves an airborne player itself. Longer than a TCP resend stall
+    /// at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't.
     /// </summary>
     public float SilenceSeconds { get; set; } = 1.0f;
 
@@ -55,13 +49,8 @@ public sealed class MovementTolerances
 }
 
 /// <summary>
-/// Checks one player's position reports (the client is the authority on its own movement, within these rules). Speed uses a distance budget: each server tick earns max speed × the speed factor, each report
-/// spends the distance it moved, and the budget is capped, so a burst of reports after a stall passes but
-/// banking movement for a dash doesn't. Height follows gravity: in the air, a report must stay under the arc of
-/// a jump from the last ground the player stood on, at that point in time (the report's stamp). The server never
-/// steers, but it knows gravity: a player silent in the air for <see cref="MovementTolerances.SilenceSeconds"/>
-/// is moved down that arc by the server (<see cref="Fall"/>) until they land, and their client is corrected
-/// there; on the ground, silence just means standing still. Used from the tick thread only.
+/// Checks one player's position reports (the client is the authority on its movement, within these rules): a capped distance budget for speed,
+/// the gravity arc from the last ground for height. A player silent in the air is moved down that arc by <see cref="Fall"/>. Tick thread only.
 /// </summary>
 public sealed class MovementValidator
 {
@@ -80,7 +69,6 @@ public sealed class MovementValidator
     private MotorState _fall;
     private Vector2 _fallMove;
 
-    /// <summary>A validator for one player, checking their reports against <paramref name="world"/> and <paramref name="rules"/>, with <paramref name="tolerances"/> for latency.</summary>
     public MovementValidator(CollisionWorld world, MovementRules rules, MovementTolerances tolerances, int tickRate)
     {
         _world = world;
@@ -107,10 +95,8 @@ public sealed class MovementValidator
     /// <summary>Rejected reports so far (not counting stale ones or falls).</summary>
     public int Violations { get; private set; }
 
-    /// <summary>How much of the tolerances this player's accepted reports have needed, for tuning them.</summary>
     public MovementHeadroom Headroom { get; } = new();
 
-    /// <summary>The world the player moves in (changed by <see cref="Teleport"/> to another zone).</summary>
     public CollisionWorld World => _world;
 
     /// <summary>
@@ -119,10 +105,8 @@ public sealed class MovementValidator
     /// </summary>
     public PassThrough PassThrough { get; } = new();
 
-    /// <summary>True while the server is moving the player down a fall, because their client went silent in the air.</summary>
     public bool ServerFalling => _serverFalling;
 
-    /// <summary>Places the player, standing on the ground at <paramref name="position"/>, e.g. at spawn.</summary>
     public void Reset(Vector3 position, float facing, uint tick)
     {
         Position = position;
@@ -139,9 +123,8 @@ public sealed class MovementValidator
     }
 
     /// <summary>
-    /// Checks a report received at server tick <paramref name="tick"/>, accepting it if it passes.
-    /// <paramref name="stamp"/> is when the client sent it (bounded by <see cref="StateStamp"/>), which times the
-    /// gravity arc, so late reports after a stall aren't judged by when they arrived; it defaults to the arrival.
+    /// Checks a report received at server tick <paramref name="tick"/>; accepts it if it passes. <paramref name="stamp"/> is when the
+    /// client sent it (bounded by <see cref="StateStamp"/>), so a late report after a stall isn't judged by its arrival; defaults to arrival.
     /// </summary>
     public MovementVerdict Check(in PositionReport report, uint tick, float maxSpeed, float jumpVelocity, uint? stamp = null)
     {
@@ -216,10 +199,8 @@ public sealed class MovementValidator
     private static float WrapAngle(float radians) => (float)Math.IEEERemainder(radians, 2 * Math.PI);
 
     /// <summary>
-    /// The reported velocity, held to what the rules allow: the server starts silent players' falls from it and
-    /// relays it for others to extrapolate, so it's never trusted as sent. Sideways it's capped at the allowed
-    /// speed; upwards at what's left of a jump at this point in the arc, and downwards at a fall from a jump's top
-    /// since the last ground.
+    /// The reported velocity, held to what the rules allow, since the server starts silent players' falls from it and relays it for
+    /// extrapolation. Sideways capped at the allowed speed, up at what's left of the jump arc, down at a fall from the jump's top.
     /// </summary>
     private Vector3 AllowedVelocity(in PositionReport report, float allowedSpeed, float jumpVelocity, uint tick)
     {
@@ -235,7 +216,6 @@ public sealed class MovementValidator
         return new Vector3(sideways.X, Math.Clamp(report.VelocityY, down, up), sideways.Y);
     }
 
-    // Notes the ground under an accepted position, if it's standing on some; returns whether it is.
     private bool Land(Vector3 position, uint tick)
     {
         var landed =
@@ -258,13 +238,8 @@ public sealed class MovementValidator
         return false;
     }
 
-    // Seconds since the last ground, less the takeoff slack: how far into a jump a moment at tick can be.
     private float AirTime(uint tick) => MathF.Max(0, (tick > _groundTick ? tick - _groundTick : 0) / (float)_tickRate - _tolerances.AirTimeSlack);
 
-    /// <summary>
-    /// How far above the last ground a player can be at <paramref name="tick"/>: a full jump (with the tolerances)
-    /// until it would peak, then falling under gravity from there.
-    /// </summary>
     private float AllowedRise(uint tick, float jumpVelocity)
     {
         var top = _rules.JumpApex(jumpVelocity) * _tolerances.JumpFactor + _rules.MantleHeight + _tolerances.HeightSlack;
@@ -273,10 +248,8 @@ public sealed class MovementValidator
     }
 
     /// <summary>
-    /// Called every server tick. Once an airborne player has been silent for
-    /// <see cref="MovementTolerances.SilenceSeconds"/>, moves them down their fall with the shared movement code:
-    /// from their last reported velocity (its upward part capped by the arc), sideways as if they still held the
-    /// keys, until they land or fall out. Reports sent before the landing correction are ignored meanwhile.
+    /// Called every server tick. Moves an airborne player silent for <see cref="MovementTolerances.SilenceSeconds"/> down their fall with the
+    /// shared movement code, from their last velocity, until they land or fall out. Reports before the landing correction are ignored meanwhile.
     /// </summary>
     public FallResult Fall(uint tick, float maxSpeed, float jumpVelocity)
     {
@@ -318,7 +291,7 @@ public sealed class MovementValidator
         return StepFall(maxSpeed, jumpVelocity) is { } result ? Finish(result, tick) : FallResult.Moved;
     }
 
-    // One server tick of a server fall; null while still in the air.
+    // Null while still in the air.
     private FallResult? StepFall(float maxSpeed, float jumpVelocity)
     {
         PlayerMotor.Step(ref _fall, _fallMove, jump: false, 1f / _tickRate, maxSpeed, jumpVelocity, _world, _rules, PassThrough);
@@ -347,7 +320,6 @@ public sealed class MovementValidator
         return FallResult.Landed;
     }
 
-    /// <summary>The correction after a server fall lands: to where it landed, with the sequence it began.</summary>
     public PositionCorrection Landing() =>
         new()
         {
@@ -360,9 +332,8 @@ public sealed class MovementValidator
         };
 
     /// <summary>
-    /// Moves the player somewhere new (a spawn point, a teleporter) and builds the correction that tells them, as
-    /// <paramref name="reason"/>; with <paramref name="world"/>, into that world (another zone), passing through
-    /// nothing yet. Later reports must echo its sequence.
+    /// Moves the player somewhere new and builds the correction telling them, as <paramref name="reason"/>; with <paramref name="world"/>,
+    /// into that world (another zone). Later reports must echo its sequence.
     /// </summary>
     public PositionCorrection Teleport(
         Vector3 position,
@@ -392,8 +363,8 @@ public sealed class MovementValidator
     }
 
     /// <summary>
-    /// Builds the correction for a rejected report or a fall: back to the last accepted position, or for a fall to
-    /// the last safe ground. Later reports must echo its sequence.
+    /// Builds the correction for a rejected report or a fall: back to the last accepted position, or the last safe ground for a fall.
+    /// Later reports must echo its sequence.
     /// </summary>
     public PositionCorrection Correct(CorrectionReason reason, uint tick, MovementVerdict verdict = MovementVerdict.Accepted)
     {

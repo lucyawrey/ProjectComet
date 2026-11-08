@@ -5,12 +5,12 @@ using Microsoft.Extensions.Logging;
 namespace Comet.Server;
 
 /// <summary>
-/// Logs to a file instead of the console when <c>Comet:LogFile</c> is set: for a server started by a tool (the Unity
-/// editor) that can't keep reading its output, where a console nobody reads would fill up and stall the server.
+/// Logs to a file instead of the console when <c>Comet:LogFile</c> is set, for a server started by a tool (the Unity editor)
+/// that can't keep reading its output: a console nobody reads fills up and stalls the server.
 /// </summary>
 public static class FileLogging
 {
-    /// <summary>Sends the app's logs to <c>Comet:LogFile</c> only, if it's set (appending); otherwise changes nothing.</summary>
+    /// <summary>Sends the app's logs to <c>Comet:LogFile</c> only (appending), if it's set.</summary>
     public static WebApplicationBuilder AddCometLogFile(this WebApplicationBuilder builder)
     {
         var path = builder.Configuration["Comet:LogFile"];
@@ -24,8 +24,8 @@ public static class FileLogging
     }
 
     /// <summary>
-    /// Writes a failure that stopped the server (before its logging, or around it) to <c>Comet:LogFile</c>, if the
-    /// command line sets it, so a tool reading the file sees why the server stopped.
+    /// Writes a failure that stopped the server to <c>Comet:LogFile</c>, if the command line sets it,
+    /// so a tool reading the file sees why.
     /// </summary>
     public static void LogFailure(string[] args, Exception exception)
     {

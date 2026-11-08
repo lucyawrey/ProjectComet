@@ -41,7 +41,10 @@ public sealed class ContentBuildResult
     /// <summary>The zones, in number order, if the game registered a zones folder (<see cref="ContentBuilder.AddZones"/>).</summary>
     public IReadOnlyList<Zone> Zones { get; }
 
-    /// <summary>The groups, in number order, if the game registered a groups folder (<see cref="ContentBuilder.AddGroups"/>); zones hold their copies already expanded.</summary>
+    /// <summary>
+    /// The groups, in number order, if the game registered a groups folder (<see
+    /// cref="ContentBuilder.AddGroups"/>); zones hold their copies already expanded.
+    /// </summary>
     public IReadOnlyList<Group> Groups { get; }
 
     /// <summary>The registry numbers of keys numbered with <see cref="ContentBuilder.AddKeys"/>, by key.</summary>
