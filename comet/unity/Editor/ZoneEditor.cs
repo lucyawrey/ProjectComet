@@ -900,21 +900,20 @@ namespace Comet.Unity.Editor
             // Numbered like Unity's own copies (prop.rock, prop.rock (1), ...); saving ignores names.
             thing.name = "";
             thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, prop);
+            PlacedProps.HideCollision(thing);
+            if (settings.placedMaterial != null)
+            {
+                PlacedProps.SetMaterial(thing, settings.placedMaterial);
+            }
+
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
             {
-                if (renderer.name.EndsWith(Prop.CollisionSuffix, StringComparison.Ordinal))
-                {
-                    renderer.enabled = false;
-                    continue;
-                }
-
-                if (settings.placedMaterial != null)
-                {
-                    renderer.sharedMaterial = settings.placedMaterial;
-                }
-
                 // Lets Unity's surface snapping land other objects on it.
-                if (renderer.TryGetComponent<MeshFilter>(out var filter) && !renderer.TryGetComponent<Collider>(out _))
+                if (
+                    !PlacedProps.IsCollision(renderer)
+                    && renderer.TryGetComponent<MeshFilter>(out var filter)
+                    && !renderer.TryGetComponent<Collider>(out _)
+                )
                 {
                     renderer.gameObject.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
                 }

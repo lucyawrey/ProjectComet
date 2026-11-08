@@ -29,7 +29,7 @@ namespace Comet.Unity
 
             foreach (var renderer in thing.GetComponentsInChildren<Renderer>(true))
             {
-                if (!renderer.name.EndsWith(Comet.Content.Prop.CollisionSuffix, System.StringComparison.Ordinal))
+                if (!PlacedProps.IsCollision(renderer))
                 {
                     renderer.SetPropertyBlock(block);
                 }

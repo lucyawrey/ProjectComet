@@ -78,7 +78,7 @@ namespace Comet.Unity.Editor
         private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(GameObject model, Vector3 scale) =>
             model
                 .GetComponentsInChildren<MeshFilter>()
-                .Where(f => f.sharedMesh != null && !f.name.EndsWith(Prop.CollisionSuffix, StringComparison.Ordinal))
+                .Where(f => f.sharedMesh != null && !PlacedProps.IsCollision(f))
                 .Select(f => (f.sharedMesh, Matrix4x4.Scale(scale) * model.transform.worldToLocalMatrix * f.transform.localToWorldMatrix))
                 .ToList();
 

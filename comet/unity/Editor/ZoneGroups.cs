@@ -112,9 +112,7 @@ namespace Comet.Unity.Editor
                         Matrix4x4.TRS(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z), ToUnity(part.Scale))
                         * model.transform.worldToLocalMatrix;
                     foreach (
-                        var filter in model
-                            .GetComponentsInChildren<MeshFilter>()
-                            .Where(f => f.sharedMesh != null && !f.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal))
+                        var filter in model.GetComponentsInChildren<MeshFilter>().Where(f => f.sharedMesh != null && !PlacedProps.IsCollision(f))
                     )
                     {
                         meshes.Add((filter.sharedMesh, matrix * filter.transform.localToWorldMatrix, color));
@@ -198,11 +196,8 @@ namespace Comet.Unity.Editor
                     thing.transform.SetParent(root, false);
                     thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
                     thing.transform.localScale = ToUnity(part.Scale);
-                    foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
-                    {
-                        renderer.enabled = !renderer.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal);
-                        renderer.sharedMaterial = PlacedMaterial(settings, part.Blockout) ?? material;
-                    }
+                    PlacedProps.HideCollision(thing);
+                    PlacedProps.SetMaterial(thing, PlacedMaterial(settings, part.Blockout) ?? material);
                 }
 
                 PlacedColors.Apply(thing, PartColor(part, settings));

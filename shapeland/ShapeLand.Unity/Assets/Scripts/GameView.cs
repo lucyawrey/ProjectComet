@@ -109,6 +109,7 @@ namespace ShapeLand.Client
         private JoinClient _join;
         private CollisionWorld _world;
         private Transform _drawnZone;
+        private ZoneDrawing _drawing;
         private ShapeLandControls _controls;
         private ShapeBody _playerShape;
 
@@ -238,6 +239,17 @@ namespace ShapeLand.Client
         private void OnContentLoaded(ShapeLandContent content)
         {
             _content = content;
+            var world = content.Settings.World;
+            _drawing = new ZoneDrawing(
+                terrainMaterial,
+                blockMaterial,
+                blockoutMaterial,
+                props,
+                content.Settings.Primitives,
+                world.PlacedColor,
+                world.GroundColor,
+                world.UnderColor
+            );
             DrawZone();
         }
 
@@ -305,50 +317,24 @@ namespace ShapeLand.Client
             _world = _join.World;
             _triggers = new Triggers(zone);
             _teleporterIds = content.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Select(t => t.Id).ToHashSet();
-            _drawnZone = new GameObject(zone.Id).transform;
-            _drawnZone.SetParent(transform, false);
-            var terrain = new GameObject("Terrain").transform;
-            terrain.SetParent(_drawnZone, false);
-            foreach (var chunk in TerrainMesher.Build(_world.Terrain, content.Settings.World.GroundColor, content.Settings.World.UnderColor))
-            {
-                var name = $"Chunk {chunk.Key}";
-                var drawn = AddMesh(name, TerrainMeshes.Build(name, chunk.Value), terrainMaterial, terrain);
-                drawn.transform.localPosition = Vectors.ToUnity(chunk.Key.Origin);
-            }
+            _drawnZone = _drawing.Draw(
+                zone,
+                _world,
+                transform,
+                (placement, thing) =>
+                {
+                    if (!_tagged.TryGetValue(placement.Tag, out var things))
+                    {
+                        _tagged.Add(placement.Tag, things = new List<(GameObject, bool)>());
+                    }
 
-            var placed = new GameObject("Placed").transform;
-            placed.SetParent(_drawnZone, false);
+                    things.Add((thing, placement.Off));
+                    thing.SetActive(placement.Off == _join.Flipped.Contains(placement.Tag));
+                },
+                out var placed
+            );
             foreach (var chunk in zone.Chunks)
             {
-                // Primitives without a tag are drawn as one mesh per chunk; tagged ones stay apart for game code to find,
-                // and blockout ones for their own material.
-                var primitives = new PrimitiveMeshes.Builder();
-                var toChunk = System.Numerics.Matrix4x4.CreateTranslation(-chunk.Coord.Origin);
-                foreach (var placement in chunk.Placements)
-                {
-                    if (placement.Primitive != null && placement.Tag == null && !placement.Blockout)
-                    {
-                        primitives.Add(
-                            PrimitiveMesher.For(placement, content.Settings.Primitives),
-                            placement.Matrix() * toChunk,
-                            placement.Color ?? content.Settings.World.PlacedColor
-                        );
-                        continue;
-                    }
-
-                    var thing = placement.Primitive != null ? PlacePrimitive(placement, placed) : Place(placement, placed);
-                    if (thing != null && placement.Tag != null)
-                    {
-                        if (!_tagged.TryGetValue(placement.Tag, out var things))
-                        {
-                            _tagged.Add(placement.Tag, things = new List<(GameObject, bool)>());
-                        }
-
-                        things.Add((thing, placement.Off));
-                        thing.SetActive(placement.Off == _join.Flipped.Contains(placement.Tag));
-                    }
-                }
-
                 foreach (var spawn in chunk.Spawns)
                 {
                     AddPad(spawn, spawn.Id, spawn.Volume, placed);
@@ -362,14 +348,6 @@ namespace ShapeLand.Client
                 foreach (var trigger in chunk.Triggers)
                 {
                     AddPad(trigger, trigger.Id, trigger.Volume, placed);
-                }
-
-                if (primitives.VertexCount > 0)
-                {
-                    var name = $"Primitives {chunk.Coord}";
-                    var mesh = new Mesh { name = name };
-                    primitives.Fill(mesh);
-                    AddMesh(name, mesh, terrainMaterial, placed).transform.localPosition = Vectors.ToUnity(chunk.Coord.Origin);
                 }
             }
 
@@ -403,7 +381,7 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var thing = PlacePrimitive(pad, parent);
+            var thing = _drawing.PlacePrimitive(pad, parent);
             thing.name = id;
             var color = owner is SpawnPoint ? Color(_content.Settings.Spawns.UnsetColor) : Color(pad.Color ?? _content.Settings.World.PlacedColor);
             _pads.Add(new Pad(owner, thing.GetComponentsInChildren<Renderer>(), color));
@@ -426,57 +404,6 @@ namespace ShapeLand.Client
             /// <summary>Its color at rest (a spawn's while it isn't the player's).</summary>
             public Color Color { get; }
         }
-
-        // A tagged or blockout primitive on its own, in the placed objects' material (or blockout's), so game code can
-        // find and color it.
-        private GameObject PlacePrimitive(Placement placement, Transform parent)
-        {
-            var thing = AddMesh(
-                placement.Tag ?? "Blockout",
-                PrimitiveMeshes.For(placement, _content.Settings.Primitives),
-                MaterialFor(placement),
-                parent
-            );
-            var rotation = placement.Rotation;
-            thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
-            PlacedColors.Apply(thing, Color(placement.Color ?? _content.Settings.World.PlacedColor));
-            return thing;
-        }
-
-        // A prop's model where a zone places it, in the placed objects' material; its collision objects are hidden.
-        private GameObject Place(Placement placement, Transform parent)
-        {
-            var model = props.Model(placement.Prop);
-            if (model == null)
-            {
-                Debug.LogWarning($"No model for {placement.Prop} in the prop library; is the content up to date in the editor?");
-                return null;
-            }
-
-            var thing = Instantiate(model, parent, false);
-            thing.name = placement.Prop;
-            var rotation = placement.Rotation;
-            thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
-            thing.transform.localScale = Vectors.ToUnity(placement.Scale);
-            foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
-            {
-                if (renderer.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal))
-                {
-                    renderer.enabled = false;
-                }
-                else
-                {
-                    renderer.sharedMaterial = MaterialFor(placement);
-                }
-            }
-
-            var own = placement.Color is { } rgb ? PlacedColors.FromRgb(rgb) : (Color?)null;
-            var prop = props.TryGet(placement.Prop, out var entry) && entry.hasColor ? entry.color : (Color?)null;
-            PlacedColors.Apply(thing, own ?? prop ?? Color(_content.Settings.World.PlacedColor));
-            return thing;
-        }
-
-        private Material MaterialFor(Placement placement) => placement.Blockout && blockoutMaterial != null ? blockoutMaterial : blockMaterial;
 
         // The player's own spawn's pad takes their body color, other spawns' a pale color used nowhere else, and
         // other pads their own. A pad the player stands in charges toward firing (Charging): a spawn's toward their
@@ -790,15 +717,6 @@ namespace ShapeLand.Client
 
             drawn.SetColors(color, eyeColor);
             return drawn;
-        }
-
-        private static GameObject AddMesh(string name, Mesh mesh, Material material, Transform parent)
-        {
-            var thing = new GameObject(name);
-            thing.transform.SetParent(parent, false);
-            thing.AddComponent<MeshFilter>().sharedMesh = mesh;
-            thing.AddComponent<MeshRenderer>().sharedMaterial = material;
-            return thing;
         }
 
         /// <summary>A 0xRRGGBB color as Unity's.</summary>

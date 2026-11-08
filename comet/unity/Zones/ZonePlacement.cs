@@ -224,16 +224,7 @@ namespace Comet.Unity
 
             if (MaterialFor?.Invoke(blockout) is { } material)
             {
-                foreach (var renderer in GetComponentsInChildren<Renderer>(true))
-                {
-                    if (
-                        !renderer.name.EndsWith(Comet.Content.Prop.CollisionSuffix, System.StringComparison.Ordinal)
-                        && renderer.sharedMaterial != material
-                    )
-                    {
-                        renderer.sharedMaterial = material;
-                    }
-                }
+                PlacedProps.SetMaterial(gameObject, material);
             }
 
             PlacedColors.Apply(gameObject, ownColor ? color : defaultColor);
