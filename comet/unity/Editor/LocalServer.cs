@@ -253,15 +253,28 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        // Off, the editor's server runs alone, keeping characters in a file, and play mode joins it by name; on, the
-        // Login server and PostgreSQL (in Docker) run too. Flipping it stops the server, so the next start matches.
-        [MenuItem(Menu + "Use Accounts", priority = 61)]
-        private static void ToggleUseAccounts()
+        /// <summary>
+        /// Off, the editor's server runs alone, keeping characters in a file, and play mode joins it by name; on, the
+        /// Login server and PostgreSQL (in Docker) run too. Changing it stops the server, so the next start matches.
+        /// </summary>
+        public static bool UseAccounts
         {
-            EditorPrefs.SetBool(LocalServerPort.UseAccountsKey, !LocalServerPort.UseAccounts);
-            Stop(quiet: false);
-            SharePort();
+            get => LocalServerPort.UseAccounts;
+            set
+            {
+                if (value == LocalServerPort.UseAccounts)
+                {
+                    return;
+                }
+
+                EditorPrefs.SetBool(LocalServerPort.UseAccountsKey, value);
+                Stop(quiet: false);
+                SharePort();
+            }
         }
+
+        [MenuItem(Menu + "Use Accounts", priority = 61)]
+        private static void ToggleUseAccounts() => UseAccounts = !UseAccounts;
 
         [MenuItem(Menu + "Use Accounts", validate = true)]
         private static bool ShowUseAccounts()

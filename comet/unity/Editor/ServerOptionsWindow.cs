@@ -210,6 +210,13 @@ namespace Comet.Unity.Editor
                 new GUIContent("Start with play mode", "Entering play mode starts the server if none is running on the port."),
                 LocalServer.StartWithPlayMode
             );
+            using (new EditorGUI.DisabledScope(EditorApplication.isPlaying))
+            {
+                LocalServer.UseAccounts = EditorGUILayout.Toggle(
+                    new GUIContent("Use accounts", "[tooltip: what Use Accounts does, and that changing it stops the server]"),
+                    LocalServer.UseAccounts
+                );
+            }
         }
 
         private void WebBuildGUI(CometSettings settings)
