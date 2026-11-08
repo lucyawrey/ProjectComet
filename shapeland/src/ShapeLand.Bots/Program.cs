@@ -1,4 +1,5 @@
 using ShapeLand.Bots;
+using ShapeLand.Shared;
 using ShapeLand.Shared.Content;
 
 // ShapeLand bots: honest wanderers plus optional cheaters that slide too fast. Each bot is a guest account on the
@@ -38,14 +39,14 @@ var meta = args.Select((arg, i) => (arg, i))
     .ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : "");
 
 ShapeLandContent content;
-using (var stream = File.OpenRead(contentFile != "" ? contentFile : Path.Combine(FindRepoRoot(), "artifacts", "content", "shapeland", "content.bin")))
+using (var stream = File.OpenRead(contentFile != "" ? contentFile : RepoPaths.DefaultContentFile(".")))
 {
     content = ShapeLandContent.Load(stream);
 }
 
 if (tokens == "")
 {
-    tokens = Path.Combine(FindRepoRoot(), "artifacts", "bot-tokens");
+    tokens = Path.Combine(RepoPaths.Root("."), "artifacts", "bot-tokens");
 }
 
 var dev = args.Contains("--dev");
@@ -142,17 +143,4 @@ string Arg(string name, string fallback)
 {
     var index = Array.IndexOf(args, name);
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : fallback;
-}
-
-static string FindRepoRoot()
-{
-    for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-    {
-        if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-        {
-            return dir.FullName;
-        }
-    }
-
-    throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx).");
 }

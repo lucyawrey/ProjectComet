@@ -1,9 +1,10 @@
 using System.Text.Json;
 using Comet.ContentBuild;
 using ShapeLand.ContentBuild;
+using ShapeLand.Shared;
 
 // ShapeLand's content tool. Paths are fixed relative to the repository, so it runs the same from anywhere.
-var repo = FindRepoRoot();
+var repo = RepoPaths.Root(" above the tool.");
 var content = Path.Combine(repo, "shapeland", "content");
 var output = Path.Combine(repo, "artifacts", "content", "shapeland");
 
@@ -74,17 +75,4 @@ void WriteSchemas()
     }
 
     Console.WriteLine($"Wrote editor schemas to {Path.GetRelativePath(repo, schemas)}.");
-}
-
-static string FindRepoRoot()
-{
-    for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-    {
-        if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-        {
-            return dir.FullName;
-        }
-    }
-
-    throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx) above the tool.");
 }

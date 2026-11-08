@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using ShapeLand.Data;
+using ShapeLand.Shared;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
@@ -73,7 +74,7 @@ public static class ShapeLandServer
         {
             var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
             var folder = string.IsNullOrEmpty(options.TicketKeysFolder)
-                ? Path.Combine(FindRepoRoot(), "artifacts", "keys", "public")
+                ? Path.Combine(RepoPaths.Root("; set ShapeLand:ContentFile."), "artifacts", "keys", "public")
                 : options.TicketKeysFolder;
             var keys = Directory.Exists(folder) ? TicketKeys.PublicKeysIn(folder) : [];
             if (keys.Count == 0)
@@ -279,34 +280,8 @@ public static class ShapeLandServer
 
     private static LoadedContent LoadContent(ShapeLandServerOptions options)
     {
-        var path = options.ContentFile;
-        if (string.IsNullOrEmpty(path))
-        {
-            path = Path.Combine(FindRepoRoot(), "artifacts", "content", "shapeland", "content.bin");
-        }
-
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException(
-                "No compiled content. Run the content build (dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build) or set ShapeLand:ContentFile.",
-                path
-            );
-        }
-
+        var path = RepoPaths.ContentFile(options.ContentFile, "; set ShapeLand:ContentFile.");
         var file = File.ReadAllBytes(path);
         return new LoadedContent(ShapeLandContent.Load(new MemoryStream(file)), ContentHash.Of(file));
-    }
-
-    private static string FindRepoRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx); set ShapeLand:ContentFile.");
     }
 }
