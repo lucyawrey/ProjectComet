@@ -167,7 +167,7 @@ public class TriggersTests
 
         Assert.True(triggers.TryGetSpawn(7, out var spawn));
         Assert.Same(spawn, triggers.SpawnAt(new Vector3(5, 1, 4)));
-        Assert.True(triggers.TryGetTeleporter("teleporter.test.b", out var teleporter));
+        var teleporter = triggers.Teleporters.Single(t => t.Id == "teleporter.test.b");
         Assert.Same(teleporter, triggers.TeleporterAt(new Vector3(10, 2, 4)));
         Assert.Null(triggers.SpawnAt(new Vector3(10, 2, 4)));
         Assert.Null(triggers.TeleporterAt(new Vector3(7, 1, 4)));

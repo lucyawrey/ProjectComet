@@ -70,7 +70,7 @@ public class TerrainMesherTests
 
     private static IEnumerable<(Vector3 A, Vector3 B, Vector3 C, uint Color)> Triangles(TerrainMesh mesh) =>
         Enumerable
-            .Range(0, mesh.TriangleCount)
+            .Range(0, mesh.Positions.Count / 3)
             .Select(i => (mesh.Positions[3 * i], mesh.Positions[3 * i + 1], mesh.Positions[3 * i + 2], mesh.Colors[3 * i]));
 
     // Unity's normal for a clockwise triangle.
@@ -178,8 +178,8 @@ public class TerrainMesherTests
 
         var meshes = Mesh(zone);
 
-        Assert.Equal(4, meshes[new ChunkCoord(-1, 0)].TriangleCount);
-        Assert.Equal(4, meshes[new ChunkCoord(0, 0)].TriangleCount);
+        Assert.Equal(4, meshes[new ChunkCoord(-1, 0)].Positions.Count / 3);
+        Assert.Equal(4, meshes[new ChunkCoord(0, 0)].Positions.Count / 3);
         // Positions are relative to their chunk: chunk -1's tile starts 62 m into it.
         Assert.Equal(62, meshes[new ChunkCoord(-1, 0)].Positions.Min(p => p.X));
         Assert.Equal(64, meshes[new ChunkCoord(-1, 0)].Positions.Max(p => p.X));

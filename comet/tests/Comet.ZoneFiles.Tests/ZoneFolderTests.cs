@@ -281,7 +281,7 @@ public class ZoneFolderTests
         Assert.Empty(errors);
         Assert.Equal("", read.Prop);
         Assert.True(read.Blockout);
-        Assert.True(placement.Primitive.SameAs(read.Primitive!));
+        Assert.Equivalent(placement.Primitive, read.Primitive, strict: true);
         var text = File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml"));
         Assert.Contains("primitive = \"arch\"", text);
         Assert.Contains("thickness = 0.4", text);

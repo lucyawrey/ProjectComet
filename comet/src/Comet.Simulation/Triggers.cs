@@ -24,7 +24,6 @@ namespace Comet.Simulation
 
         private readonly Dictionary<string, SpawnPoint> _spawnsByKey = new Dictionary<string, SpawnPoint>();
         private readonly Dictionary<int, SpawnPoint> _spawnsByNumber = new Dictionary<int, SpawnPoint>();
-        private readonly Dictionary<string, Teleporter> _teleportersByKey = new Dictionary<string, Teleporter>();
         private readonly List<SpawnPoint> _spawns = new List<SpawnPoint>();
         private readonly List<Teleporter> _teleporters = new List<Teleporter>();
         private readonly List<Trigger> _triggers = new List<Trigger>();
@@ -41,12 +40,7 @@ namespace Comet.Simulation
                     _spawns.Add(spawn);
                 }
 
-                foreach (var teleporter in chunk.Teleporters)
-                {
-                    _teleportersByKey[teleporter.Id] = teleporter;
-                    _teleporters.Add(teleporter);
-                }
-
+                _teleporters.AddRange(chunk.Teleporters);
                 _triggers.AddRange(chunk.Triggers);
             }
         }
@@ -61,8 +55,6 @@ namespace Comet.Simulation
         public bool TryGetSpawn(string key, out SpawnPoint spawn) => _spawnsByKey.TryGetValue(key, out spawn!);
 
         public bool TryGetSpawn(int number, out SpawnPoint spawn) => _spawnsByNumber.TryGetValue(number, out spawn!);
-
-        public bool TryGetTeleporter(string key, out Teleporter teleporter) => _teleportersByKey.TryGetValue(key, out teleporter!);
 
         /// <summary>The spawn point whose volume <paramref name="feet"/> are in, or null (the first, if volumes overlap).</summary>
         public SpawnPoint? SpawnAt(Vector3 feet)

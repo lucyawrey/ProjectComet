@@ -126,16 +126,6 @@ namespace Comet.Content
         /// <summary>An arch's thickness: how wide its legs and band are, in meters.</summary>
         [Key(6)]
         public float Thickness { get; set; }
-
-        /// <summary>Whether two primitives build the same mesh at the same size.</summary>
-        public bool SameAs(Primitive other) =>
-            Kind == other.Kind
-            && Sides == other.Sides
-            && Bevel == other.Bevel
-            && Steps == other.Steps
-            && OpeningWidth == other.OpeningWidth
-            && OpeningHeight == other.OpeningHeight
-            && Thickness == other.Thickness;
     }
 
     /// <summary>

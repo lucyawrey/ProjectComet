@@ -29,9 +29,6 @@ namespace Comet.ZoneFiles
             && IsName(parts[0])
             && IsName(parts[1]);
 
-        /// <summary>The zone named in a <c>{kind}.zone.name</c> id, as a zone id (<c>zone.zone</c>).</summary>
-        public static string ZoneOf(string id) => "zone." + id.Split('.')[1];
-
         /// <summary>The kinds a trigger volume can be.</summary>
         public static readonly PrimitiveKind[] VolumeKinds = { PrimitiveKind.Box, PrimitiveKind.Cylinder, PrimitiveKind.Sphere };
 

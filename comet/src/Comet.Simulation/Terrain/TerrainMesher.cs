@@ -14,8 +14,6 @@ namespace Comet.Simulation
         /// <summary>Each corner's color as 0xRRGGBB.</summary>
         public List<uint> Colors { get; } = new List<uint>();
 
-        public int TriangleCount => Positions.Count / 3;
-
         internal void Add(Vector3 a, Vector3 b, Vector3 c, uint colorA, uint colorB, uint colorC)
         {
             Positions.Add(a);
