@@ -89,3 +89,5 @@ hub_old = 1
 tests = 2
 tests_far = 3
 main = 4
+zone = 5
+zone6 = 6

@@ -157,12 +157,13 @@ namespace Comet.Unity.Editor
         private static bool CanSaveAs() =>
             !EditorApplication.isPlaying && UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() is { IsGroup: false, HasZoneData: true };
 
-        // A folder for a new zone, picked directly inside the zones folder, new or empty, and named as a zone is; null
-        // if the pick was canceled or refused (saying why).
+        // A folder for a new zone, named in a save-file dialog directly inside the zones folder, new or empty, and named
+        // as a zone is; null if the pick was canceled or refused (saying why). A file dialog, unlike a folder one, lets
+        // the name be typed and creates nothing.
         private static string? PickNewZoneFolder(string title, CometSettings settings)
         {
             var zones = ProjectPath(settings.zonesFolder).TrimEnd('/', '\\');
-            var picked = EditorUtility.SaveFolderPanel(title, zones, "");
+            var picked = EditorUtility.SaveFilePanel(title, zones, "", "");
             if (string.IsNullOrEmpty(picked))
             {
                 return null;
@@ -180,8 +181,6 @@ namespace Comet.Unity.Editor
                 return picked;
             }
 
-            // The folder dialog can make the folder; left empty in the zones folder, it would fail the content build.
-            RemoveIfEmpty(picked);
             EditorUtility.DisplayDialog(title, problem, "OK");
             return null;
         }
