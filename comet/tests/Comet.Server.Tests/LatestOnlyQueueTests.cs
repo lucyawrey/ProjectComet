@@ -23,8 +23,6 @@ public class LatestOnlyQueueTests
         );
 
         Assert.Equal([11, 20], drained);
-        Assert.Equal(1, queue.TakeReplacedCount());
-        Assert.Equal(0, queue.TakeReplacedCount());
     }
 
     [Fact]
@@ -37,7 +35,6 @@ public class LatestOnlyQueueTests
         queue.Set(key: 1, 12);
 
         Assert.Equal(1, queue.Count);
-        Assert.Equal(0, queue.TakeReplacedCount());
     }
 
     [Fact]
@@ -97,6 +94,5 @@ public class LatestOnlyQueueTests
         );
 
         Assert.Equal([10, 20, 31, 12], drained);
-        Assert.Equal(1, queue.TakeReplacedCount());
     }
 }

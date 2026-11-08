@@ -121,7 +121,6 @@ public sealed class Connection
             _dropped = true;
             _events.Clear();
             _eventSizes.Clear();
-            _registry.Stats.AddSlowClientDropped();
             _socket.Abort();
             return;
         }
@@ -156,13 +155,11 @@ public sealed class Connection
     {
         if (Interlocked.CompareExchange(ref _tickFrameInFlight, 1, 0) != 0)
         {
-            _registry.Stats.AddFlushSkipped();
             return;
         }
 
         _tickFrame.BeginFrame(tick);
         AppendEvents();
-        _registry.Stats.AddStateReplaced(EntityStates.TakeReplacedCount());
 
         // States wait while events do, so an entity's state never arrives before the events about it (its spawn).
         if (_eventSizes.Count == 0)
@@ -241,7 +238,6 @@ public sealed class Connection
         catch (ProtocolException)
         {
             // Don't wait for a misbehaving client to read a close frame.
-            _registry.Stats.AddProtocolError();
             _socket.Abort();
         }
         catch (Exception e) when (e is WebSocketException or OperationCanceledException)
@@ -301,7 +297,6 @@ public sealed class Connection
 
     private void HandleFrame(ReadOnlyMemory<byte> frame)
     {
-        _registry.Stats.AddReceived(frame.Length);
         var reader = FrameReader.Create(frame);
         var first = true;
         while (reader.TryReadNext(out var messageId, out var payload))
@@ -354,7 +349,6 @@ public sealed class Connection
                     timeout.CancelAfter(SendTimeout);
                     await _socket.SendAsync(data, WebSocketMessageType.Binary, endOfMessage: true, timeout.Token);
                     timeout.CancelAfter(Timeout.InfiniteTimeSpan);
-                    _registry.Stats.AddSent(item.Length);
                 }
                 finally
                 {

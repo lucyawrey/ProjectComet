@@ -35,7 +35,6 @@ public static class CometServerExtensions
                 var address = context.Connection.RemoteIpAddress;
                 if (!registry.TryReserve(address, limits))
                 {
-                    registry.Stats.AddConnectionRefused();
                     context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                     return;
                 }

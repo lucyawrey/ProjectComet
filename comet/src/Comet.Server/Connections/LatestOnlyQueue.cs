@@ -10,17 +10,8 @@ public sealed class LatestOnlyQueue<T>
 {
     private readonly Dictionary<uint, int> _indexByKey = [];
     private readonly List<(uint Key, T Value)> _items = [];
-    private int _replaced;
 
     public int Count => _items.Count;
-
-    /// <summary>How many queued messages were replaced by newer ones since the last call.</summary>
-    public int TakeReplacedCount()
-    {
-        var replaced = _replaced;
-        _replaced = 0;
-        return replaced;
-    }
 
     /// <summary>Queues <paramref name="value"/> for <paramref name="key"/>, replacing one still queued for it in place.</summary>
     public void Set(uint key, in T value)
@@ -28,7 +19,6 @@ public sealed class LatestOnlyQueue<T>
         if (_indexByKey.TryGetValue(key, out var index))
         {
             _items[index] = (key, value);
-            _replaced++;
         }
         else
         {

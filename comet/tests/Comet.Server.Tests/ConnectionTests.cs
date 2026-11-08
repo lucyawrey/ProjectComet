@@ -110,7 +110,6 @@ public sealed class ConnectionTests : IAsyncLifetime
         }
 
         await _running.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.Equal(1, _registry.Stats.ProtocolErrors);
     }
 
     private async Task<int> ReceiveFrame(byte[] buffer)

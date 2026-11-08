@@ -22,9 +22,6 @@ public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerO
     private readonly Dictionary<IPAddress, int> _openByAddress = [];
     private int _open;
 
-    /// <summary>Traffic and trouble counts across every connection.</summary>
-    public NetworkStats Stats { get; } = new();
-
     /// <summary>How connections encode messages.</summary>
     public MessagePackSerializerOptions SerializerOptions { get; } = serializerOptions ?? ProtocolSerializer.Options;
 
