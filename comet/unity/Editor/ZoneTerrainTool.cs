@@ -253,6 +253,14 @@ namespace Comet.Unity.Editor
             }
 
             var settings = terrain.Zone.Pieces.First(p => p.Name == piece);
+            SkirtsAndColorsGui(terrain, settings);
+            UndersideGui(terrain);
+            MoveGui(terrain, settings);
+            DeleteGui(terrain);
+        }
+
+        private void SkirtsAndColorsGui(ZoneTerrainEditing terrain, TerrainPiece settings)
+        {
             EditorGUI.BeginChangeCheck();
             var depth = Mathf.Max(
                 0,
@@ -295,7 +303,10 @@ namespace Comet.Unity.Editor
                     _colorUndoGroup = Undo.GetCurrentGroup();
                 }
             }
+        }
 
+        private void UndersideGui(ZoneTerrainEditing terrain)
+        {
             // On once the Underside brushes have painted; turning it off removes the underside and its colors.
             var hasUnderside = terrain.HasUnderside(piece);
             using (new EditorGUI.DisabledScope(!hasUnderside))
@@ -322,7 +333,10 @@ namespace Comet.Unity.Editor
                     terrain.Commit("Remove underside map", _settings!);
                 }
             }
+        }
 
+        private void MoveGui(ZoneTerrainEditing terrain, TerrainPiece settings)
+        {
             EditorGUILayout.Space();
             move = EditorGUILayout.Vector3Field(
                 new GUIContent("Move by (m)", "Sideways (X and Z) in whole meters, the terrain's grid; up and down (Y) by any amount."),
@@ -347,7 +361,10 @@ namespace Comet.Unity.Editor
                     MovePiece(terrain, settings);
                 }
             }
+        }
 
+        private void DeleteGui(ZoneTerrainEditing terrain)
+        {
             EditorGUILayout.Space();
             if (
                 GUILayout.Button($"Delete piece '{piece}'")

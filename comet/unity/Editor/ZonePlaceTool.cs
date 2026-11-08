@@ -202,23 +202,7 @@ namespace Comet.Unity.Editor
             EditorGUILayout.BeginVertical(GUILayout.Width(width));
             if (editing.IsGroup)
             {
-                EditorGUILayout.HelpBox(
-                    $"Editing {editing.groupId}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.",
-                    MessageType.Info
-                );
-                var back = ZoneGroups.ReturnFolder;
-                if (back.Length > 0 && GUILayout.Button($"Back to {System.IO.Path.GetFileName(back)}"))
-                {
-                    EditorApplication.delayCall += () =>
-                    {
-                        if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                        {
-                            ZoneEditor.Open(back, settings);
-                        }
-                    };
-                }
-
-                EditorGUILayout.Space();
+                GroupBanner(editing, settings);
             }
 
             if (color.a == 0)
@@ -237,30 +221,67 @@ namespace Comet.Unity.Editor
             EditorGUILayout.Space();
 
             // As many buttons to a row as the panel's width fits.
-            const int size = 64;
-            var perRow = Mathf.Max(1, (int)(width / (size + 4)));
+            var perRow = Mathf.Max(1, (int)(width / (ButtonSize + 4)));
             var budget = settings.Budget;
             var budgetKey = $"{budget.FacetLength}/{budget.MinSides}/{budget.MaxSides}";
-            void Grid(List<(string Key, string Label, Texture2D? Picture)> items)
-            {
-                for (var i = 0; i < items.Count; i += perRow)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    foreach (var (item, label, picture) in items.Skip(i).Take(perRow))
-                    {
-                        var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, item);
-                        var picked = adding.Length == 0 && placeable == item;
-                        if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) && !picked)
-                        {
-                            placeable = item;
-                            adding = "";
-                        }
-                    }
+            CatalogGui(editing, settings, perRow, budgetKey);
+            GroupActionsGui(editing, settings);
 
-                    EditorGUILayout.EndHorizontal();
-                }
+            // Previews load in the background; keep repainting until they're in.
+            if (AssetPreview.IsLoadingAssetPreviews())
+            {
+                SceneView.RepaintAll();
             }
 
+            if (editing.IsGroup)
+            {
+                EditorGUILayout.HelpBox(
+                    !string.IsNullOrEmpty(placeable)
+                        ? "Click in the scene to place it. Copies of this group show what's saved."
+                        : "Pick a primitive, a prop or a group, then click in the scene to place it.",
+                    MessageType.None
+                );
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            TriggersGui(editing, settings, budgetKey);
+            SignsGui(editing, settings, budgetKey);
+            EditorGUILayout.HelpBox(
+                adding.Length > 0 || !string.IsNullOrEmpty(placeable)
+                    ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
+                    : "Pick a primitive, a prop, a group, or a new spawn point, teleporter, trigger or sign, then click in the scene to place it.",
+                MessageType.None
+            );
+            EditorGUILayout.EndVertical();
+        }
+
+        private const int ButtonSize = 64;
+
+        private static void GroupBanner(ZoneEditing editing, CometSettings settings)
+        {
+            EditorGUILayout.HelpBox(
+                $"Editing {editing.groupId}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.",
+                MessageType.Info
+            );
+            var back = ZoneGroups.ReturnFolder;
+            if (back.Length > 0 && GUILayout.Button($"Back to {System.IO.Path.GetFileName(back)}"))
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                    {
+                        ZoneEditor.Open(back, settings);
+                    }
+                };
+            }
+
+            EditorGUILayout.Space();
+        }
+
+        // The primitives, props and groups to place, as picture buttons.
+        private void CatalogGui(ZoneEditing editing, CometSettings settings, int perRow, string budgetKey)
+        {
             EditorGUILayout.LabelField("Primitives", EditorStyles.boldLabel);
             Grid(
                 PrimitiveKinds
@@ -270,18 +291,19 @@ namespace Comet.Unity.Editor
                             kind,
                             kind,
                             settings.placedMaterial != null
-                                ? Thumbnail($"{kind} {budgetKey}", Parts(kind, settings), settings.placedMaterial, color, size * 2)
+                                ? Thumbnail($"{kind} {budgetKey}", Parts(kind, settings), settings.placedMaterial, color, ButtonSize * 2)
                                 : null
                         )
                     )
-                    .ToList()
+                    .ToList(),
+                perRow
             );
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Props", EditorStyles.boldLabel);
             Grid(
                 settings
-                    .props.Entries.Select(entry =>
+                    .props!.Entries.Select(entry =>
                     {
                         var label =
                             !string.IsNullOrEmpty(entry.displayName) ? entry.displayName
@@ -290,11 +312,12 @@ namespace Comet.Unity.Editor
                         var preview =
                             entry.model == null ? null
                             : settings.placedMaterial != null
-                                ? Thumbnail(entry.id, Parts(entry.model, Vector3.one), settings.placedMaterial, color, size * 2)
+                                ? Thumbnail(entry.id, Parts(entry.model, Vector3.one), settings.placedMaterial, color, ButtonSize * 2)
                             : AssetPreview.GetAssetPreview(entry.model);
                         return (entry.id, label, preview);
                     })
-                    .ToList()
+                    .ToList(),
+                perRow
             );
 
             EditorGUILayout.Space();
@@ -312,13 +335,39 @@ namespace Comet.Unity.Editor
                                     ZoneGroups.Meshes(g.Id, settings),
                                     settings.placedMaterial,
                                     Color.clear,
-                                    size * 2
+                                    ButtonSize * 2
                                 )
                                 : null;
                         return (g.Id, label, picture);
                     })
-                    .ToList()
+                    .ToList(),
+                perRow
             );
+        }
+
+        private void Grid(List<(string Key, string Label, Texture2D? Picture)> items, int perRow)
+        {
+            for (var i = 0; i < items.Count; i += perRow)
+            {
+                EditorGUILayout.BeginHorizontal();
+                foreach (var (item, label, picture) in items.Skip(i).Take(perRow))
+                {
+                    var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, item);
+                    var picked = adding.Length == 0 && placeable == item;
+                    if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(ButtonSize), GUILayout.Height(ButtonSize)) && !picked)
+                    {
+                        placeable = item;
+                        adding = "";
+                    }
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        // Editing or deleting the picked group, and saving the selection as a new one.
+        private void GroupActionsGui(ZoneEditing editing, CometSettings settings)
+        {
             if (adding.Length == 0 && placeable.StartsWith("group.", StringComparison.Ordinal) && ZoneGroups.Find(placeable) != null)
             {
                 EditorGUILayout.BeginHorizontal();
@@ -345,50 +394,25 @@ namespace Comet.Unity.Editor
             }
 
             EditorGUILayout.EndHorizontal();
+        }
 
-            // Previews load in the background; keep repainting until they're in.
-            if (AssetPreview.IsLoadingAssetPreviews())
-            {
-                SceneView.RepaintAll();
-            }
-
-            if (editing.IsGroup)
-            {
-                EditorGUILayout.HelpBox(
-                    !string.IsNullOrEmpty(placeable)
-                        ? "Click in the scene to place it. Copies of this group show what's saved."
-                        : "Pick a primitive, a prop or a group, then click in the scene to place it.",
-                    MessageType.None
-                );
-                EditorGUILayout.EndVertical();
-                return;
-            }
-
+        private void TriggersGui(ZoneEditing editing, CometSettings settings, string budgetKey)
+        {
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Spawn points, teleporters and triggers", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
-            // Spawn points' and teleporters' pictures are their new pads, flattened, in their colors.
-            void Adder(string kind, string label, string pad, Vector3 padSize, Color padColor)
-            {
-                var picture =
-                    settings.placedMaterial != null && !string.IsNullOrEmpty(pad)
-                        ? Thumbnail($"{kind} {pad} {padSize} {budgetKey}", Parts(pad, settings, padSize), settings.placedMaterial, padColor, size * 2)
-                        : null;
-                var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label);
-                var picked = adding == kind;
-                if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) != picked)
-                {
-                    adding = picked ? "" : kind;
-                    // The id starts as the kind and the zone, keeping a name already typed.
-                    var prefix = $"{kind}.{ZoneName(editing)}.";
-                    var typed = addingId.Split('.') is { Length: 3 } parts ? parts[2] : "";
-                    addingId = prefix + typed;
-                }
-            }
-
-            Adder("spawn", "New spawn point", settings.spawnPad, settings.spawnPadSize, settings.spawnPadColor);
-            Adder("teleporter", "New teleporter", settings.teleporterPad, settings.teleporterPadSize, settings.teleporterPadColor);
-            Adder("trigger", "New trigger", "", Vector3.zero, Color.white);
+            Adder(editing, settings, budgetKey, "spawn", "New spawn point", settings.spawnPad, settings.spawnPadSize, settings.spawnPadColor);
+            Adder(
+                editing,
+                settings,
+                budgetKey,
+                "teleporter",
+                "New teleporter",
+                settings.teleporterPad,
+                settings.teleporterPadSize,
+                settings.teleporterPadColor
+            );
+            Adder(editing, settings, budgetKey, "trigger", "New trigger", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
             if (adding.Length > 0 && adding != "sign")
             {
@@ -404,11 +428,14 @@ namespace Comet.Unity.Editor
                     SceneView.lastActiveSceneView?.FrameSelected();
                 }
             }
+        }
 
+        private void SignsGui(ZoneEditing editing, CometSettings settings, string budgetKey)
+        {
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Signs", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
-            Adder("sign", "New sign", "", Vector3.zero, Color.white);
+            Adder(editing, settings, budgetKey, "sign", "New sign", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
             foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
             {
@@ -422,14 +449,41 @@ namespace Comet.Unity.Editor
                     SceneView.lastActiveSceneView?.FrameSelected();
                 }
             }
+        }
 
-            EditorGUILayout.HelpBox(
-                adding.Length > 0 || !string.IsNullOrEmpty(placeable)
-                    ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
-                    : "Pick a primitive, a prop, a group, or a new spawn point, teleporter, trigger or sign, then click in the scene to place it.",
-                MessageType.None
-            );
-            EditorGUILayout.EndVertical();
+        // A button for a new spawn point, teleporter, trigger or sign. Spawn points' and teleporters' pictures are their
+        // new pads, flattened, in their colors.
+        private void Adder(
+            ZoneEditing editing,
+            CometSettings settings,
+            string budgetKey,
+            string kind,
+            string label,
+            string pad,
+            Vector3 padSize,
+            Color padColor
+        )
+        {
+            var picture =
+                settings.placedMaterial != null && !string.IsNullOrEmpty(pad)
+                    ? Thumbnail(
+                        $"{kind} {pad} {padSize} {budgetKey}",
+                        Parts(pad, settings, padSize),
+                        settings.placedMaterial,
+                        padColor,
+                        ButtonSize * 2
+                    )
+                    : null;
+            var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label);
+            var picked = adding == kind;
+            if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(ButtonSize), GUILayout.Height(ButtonSize)) != picked)
+            {
+                adding = picked ? "" : kind;
+                // The id starts as the kind and the zone, keeping a name already typed.
+                var prefix = $"{kind}.{ZoneName(editing)}.";
+                var typed = addingId.Split('.') is { Length: 3 } parts ? parts[2] : "";
+                addingId = prefix + typed;
+            }
         }
 
         // The color things are placed in: the settings' swatches, and a picker for any other.
