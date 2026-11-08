@@ -6,23 +6,16 @@ using Tomlyn.Serialization;
 
 namespace ShapeLand.ContentBuild;
 
-/// <summary>ShapeLand's content types and rules, run through Comet's content build.</summary>
 public static class ShapeLandBuild
 {
-    /// <summary>The test zone's folder, made by the <c>terrain</c> command until ShapeLand's level is built with the editor.</summary>
-    /// <summary>Where prop models are, relative to the content folder: the Unity project's <c>Assets</c>, which imports them too.</summary>
+    /// <summary>Relative to the content folder.</summary>
     public const string ModelRoot = "../ShapeLand.Unity/Assets";
 
     /// <summary>
-    /// The placeholders ShapeLand's code fills in, the only ones its interface text may use: {username} anywhere (the
-    /// client sets it as the player's), the rest only in the messages that get them.
+    /// The only placeholders interface text may use: {username} anywhere, the rest only in the messages that get them.
     /// </summary>
     public static readonly string[] Placeholders = ["username", "address", "speed", "height", "percent", "rule", "api", "width", "time"];
 
-    /// <summary>
-    /// A content build for ShapeLand's content folder at <paramref name="contentRoot"/>, with prop models under
-    /// <paramref name="modelRoot"/> (by default <see cref="ModelRoot"/> from the content folder).
-    /// </summary>
     public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) =>
         new ContentBuilder(contentRoot)
             .Add("shape", "shapes", ShapeLandToml.Default.Shape, ValidateShape)
@@ -34,8 +27,8 @@ public static class ShapeLandBuild
             .AddZones();
 
     /// <summary>
-    /// Checks and compiles the content folder; null content means there were errors. Warnings (blockout placements)
-    /// go into <paramref name="warnings"/>, or with <paramref name="release"/> are errors.
+    /// Warnings (blockout placements) go into <paramref name="warnings"/>, or with <paramref name="release"/> are
+    /// errors.
     /// </summary>
     public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(
         string contentRoot,
@@ -57,15 +50,13 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // Players pick a shape to join, so the game can't run without one (a missing or renamed folder builds
-        // empty otherwise).
+        // A missing or renamed shapes folder builds empty, and players need a shape to join.
         if (result.Entries<Shape>().Count == 0)
         {
             errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, "No shapes: the game needs at least one (shapes/*.toml)."));
             return (null, errors);
         }
 
-        // One set of game-wide values, and the pads it names must be primitive kinds.
         var settings = result.Entries<GameSettings>();
         if (settings.Count != 1)
         {
@@ -89,7 +80,6 @@ public static class ShapeLandBuild
             }
         }
 
-        // Each shape's look is a group with a body for the player's color (errors against the shape's own file, by its key).
         var groups = result.Groups.ToDictionary(g => g.Id);
         foreach (var shape in result.Entries<Shape>())
         {
@@ -126,7 +116,6 @@ public static class ShapeLandBuild
             }
         }
 
-        // Each shape starts at a spawn point, in any zone.
         var spawns = result.Zones.SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).Select(s => s.Id).ToHashSet();
         foreach (var shape in result.Entries<Shape>().Where(s => !spawns.Contains(s.Spawn)))
         {
@@ -145,7 +134,6 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // The player colors in the file's order, which is the order they're shown in.
         var colorNumbers = result.Numbers("color");
         var colors = settings[0]
             .Colors.Select(c => new PlayerColor

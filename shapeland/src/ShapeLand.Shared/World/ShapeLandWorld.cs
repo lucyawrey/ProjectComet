@@ -6,24 +6,16 @@ using ShapeLand.Shared.Content;
 
 namespace ShapeLand.Shared.World
 {
-    /// <summary>
-    /// ShapeLand's world: each zone from content (terrain, placed objects, trigger pads and wall volumes), built the
-    /// same way on client and server. A server plays every zone; each player is in one at a time.
-    /// </summary>
+    /// <summary>Built the same way on client and server.</summary>
     public static class ShapeLandWorld
     {
-        /// <summary>
-        /// Where a player of <paramref name="shape"/> starts: the shape's spawn point, and the zone it's in (the
-        /// content build checks it's in one).
-        /// </summary>
         public static (Zone Zone, SpawnPoint Spawn) StartOf(ShapeLandContent content, Shape shape) =>
             Triggers.FindSpawn(content.Zones.All, shape.Spawn)
             ?? throw new System.InvalidOperationException($"{shape.Id}'s spawn '{shape.Spawn}' isn't in any zone.");
 
         /// <summary>
-        /// Other players moving faster than this (across the ground, or upwards) are drawn jumping rather than
-        /// gliding: half again the fastest shape's top speed or jump speed, so only respawns, snap-backs and speed
-        /// cheats exceed it.
+        /// Others moving faster than this are drawn jumping rather than gliding: half again the fastest shape's top
+        /// speed or jump speed, so only respawns, snap-backs and speed cheats exceed it.
         /// </summary>
         public static float TeleportSpeed(ShapeLandContent content)
         {
@@ -36,12 +28,10 @@ namespace ShapeLand.Shared.World
             return 1.5f * fastest;
         }
 
-        /// <summary>The <see cref="CollisionMesh.Kind"/> of each kind of mesh in a zone's world.</summary>
         public const string PropKind = "prop",
             PrimitiveKind = "primitive",
             WallKind = "wall";
 
-        /// <summary>The world of <paramref name="zone"/>, one of <paramref name="content"/>'s, the same on client and server.</summary>
         public static CollisionWorld Create(ShapeLandContent content, Zone zone)
         {
             var meshes = new List<CollisionMesh>();
@@ -80,7 +70,7 @@ namespace ShapeLand.Shared.World
             return new CollisionWorld(new ZoneTerrain(zone), meshes, zone.KillHeight ?? content.Settings.World.KillHeight, content.Movement.MaxSlope);
         }
 
-        /// <summary>The pads of a chunk's spawn points, teleporters and triggers: solid, and never flipped.</summary>
+        /// <summary>Solid, and never flipped.</summary>
         public static IEnumerable<Placement> Pads(ZoneChunk chunk)
         {
             foreach (var spawn in chunk.Spawns)

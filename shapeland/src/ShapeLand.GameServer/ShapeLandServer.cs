@@ -17,10 +17,8 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.GameServer;
 
-/// <summary>Builds the ShapeLand game server; used by Program and by tests, which run it in-process.</summary>
 public static class ShapeLandServer
 {
-    /// <summary>The server, ready to run; <paramref name="configure"/> can change the builder first (tests set the port and content).</summary>
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
         // Settings load from the build output, so the server can be started from any folder.
@@ -48,7 +46,7 @@ public static class ShapeLandServer
         }
 #endif
 
-        // Characters on PostgreSQL; tests put an in-memory repository and their own ticket keys in first.
+        // Tests put an in-memory repository and their own ticket keys in first.
         builder.Services.TryAddSingleton<ICharacterRepository<ShapeLandCharacter>>(services =>
         {
             var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
@@ -105,15 +103,14 @@ public static class ShapeLandServer
         builder.Services.AddHostedService<GameStartup>();
 
         var app = builder.Build();
-        // Behind a proxy on this machine (Caddy, in the deployed game), the client's address comes from
-        // X-Forwarded-For, so the per-address connection cap counts players, not the proxy. Only a loopback proxy
-        // is trusted (ASP.NET's default), so no client can set the header for itself.
+        // Behind the local Caddy proxy, the client's address comes from X-Forwarded-For, so the per-address connection
+        // cap counts players. Only a loopback proxy is trusted (ASP.NET's default), so no client can set the header.
         app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor });
         var serverOptions = app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
         if (!string.IsNullOrEmpty(serverOptions.WebRoot))
         {
             // The page's Content Security Policy, the same as shapeland/deploy/vercel.json gives the deployed game
-            // (keep them in step), so a page change that breaks it shows up here first.
+            // (keep them in step).
             var policy = WebBuild.PagePolicy(serverOptions.LoginUrl);
             app.Use(
                 async (context, next) =>
@@ -123,7 +120,6 @@ public static class ShapeLandServer
                 }
             );
 
-            // The page's settings, as the deploy writes them: where the Login server is.
             var config = $"window.shapelandLogin = {System.Text.Json.JsonSerializer.Serialize(serverOptions.LoginUrl)};\n";
             app.MapGet(
                 "/config.js",
@@ -148,7 +144,7 @@ public static class ShapeLandServer
         app.UseWebSockets();
         app.MapCometWebSocket("/ws");
 
-        // Whether the server is up, for the web page on another host (it may be served from a CDN): any page may ask.
+        // Any page may ask: the web page may be served from a CDN on another host.
         app.MapGet(
             "/health",
             (HttpContext context) =>
@@ -158,7 +154,6 @@ public static class ShapeLandServer
             }
         );
 
-        // The content's hash, so the editor can tell whether this server plays the content it has; for any page, like /health.
         var contentHash = app.Services.GetRequiredService<LoadedContent>().Hash;
         app.MapGet(
             "/info",
@@ -172,8 +167,8 @@ public static class ShapeLandServer
 #if DEBUG
         if (devJoins)
         {
-            // Lets the editor stop the server the way Ctrl+C does (spots saved, the snapshot written) rather than
-            // killing it, on every platform. Only from this computer.
+            // Stops the server the way Ctrl+C does (spots saved, the snapshot written) rather than killing it, on every
+            // platform. Only from this computer.
             app.MapPost(
                 "/dev/stop",
                 (HttpContext context, IHostApplicationLifetime lifetime) =>
@@ -195,8 +190,8 @@ public static class ShapeLandServer
     }
 
 #if DEBUG
-    // Characters in memory, kept in the snapshot file, with positions saved every few seconds so a server the editor
-    // kills (rather than stops) loses little of where everyone stood.
+    // Positions are saved every few seconds so a server that's killed rather than stopped loses little of where
+    // everyone stood.
     private static void AddDevCharacters(WebApplicationBuilder builder)
     {
         builder.Services.AddSingleton(services =>
@@ -229,9 +224,8 @@ public static class ShapeLandServer
     }
 #endif
 
-    // Before the server takes connections (hosted services start before it listens): waits for the database
-    // (the Login server migrates it, and makes the ticket keys before that), then builds the game and starts the
-    // tick loop. On shutdown: stops the tick loop, saves everyone's spot and releases them, and flushes the saves.
+    // Hosted services start before the server listens. Waits for the database (the Login server migrates it, and
+    // makes the ticket keys before that).
     private sealed class GameStartup(IServiceProvider services, IHostApplicationLifetime lifetime, ILogger<GameStartup> logger) : IHostedService
     {
         private static readonly TimeSpan FlushTimeout = TimeSpan.FromSeconds(10);
@@ -272,10 +266,8 @@ public static class ShapeLandServer
         }
     }
 
-    // /info's answer, written in camelCase ({"contentHash": "…"}).
     private sealed record ServerInfo(string ContentHash);
 
-    // The content played, and its file's hash (Comet.Content.ContentHash).
     private sealed record LoadedContent(ShapeLandContent Content, string Hash);
 
     private static LoadedContent LoadContent(ShapeLandServerOptions options)

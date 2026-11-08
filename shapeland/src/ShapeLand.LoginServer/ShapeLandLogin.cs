@@ -7,15 +7,12 @@ using ShapeLand.Shared.Content;
 
 namespace ShapeLand.LoginServer;
 
-/// <summary>Builds ShapeLand's Login server; used by Program and by tests, which run it in-process.</summary>
 public static class ShapeLandLogin
 {
     private const string Hint = "; set the paths in the configuration.";
 
-    /// <summary>How long an unclaimed guest may sit idle before it's deleted, freeing the name.</summary>
     public static readonly TimeSpan GuestIdle = TimeSpan.FromDays(7);
 
-    /// <summary>How long a deleted account (and its character) is held before the purge.</summary>
     public static readonly TimeSpan DeletedHold = TimeSpan.FromDays(7);
 
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)

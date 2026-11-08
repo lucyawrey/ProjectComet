@@ -10,34 +10,31 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.Bots;
 
-/// <summary>How a bot behaves.</summary>
 public sealed class BotSettings
 {
-    /// <summary>Seconds between chat lines on average; 0 for none.</summary>
+    /// <summary>Average seconds between chat lines; 0 for none.</summary>
     public double ChatEverySeconds { get; set; } = 30;
 
-    /// <summary>Slide this many times faster than the shape allows (1 for an honest bot).</summary>
+    /// <summary>1 is honest.</summary>
     public float SpeedCheat { get; set; } = 1;
 
-    /// <summary>Jump this many times faster than the shape allows (1 for an honest bot); the height goes with its square.</summary>
+    /// <summary>1 is honest; the height goes with the square.</summary>
     public float JumpCheat { get; set; } = 1;
 
-    /// <summary>Stay within this distance of the island's center, in meters.</summary>
+    /// <summary>In meters, from the island's center.</summary>
     public float WanderRadius { get; set; } = 18;
 
-    /// <summary>Seconds after joining before network numbers are recorded (the delay settles first); negative for none.</summary>
+    /// <summary>
+    /// Seconds after joining before network numbers are recorded, once the delay settles; negative for none.
+    /// </summary>
     public double WarmupSeconds { get; set; } = -1;
 }
 
-/// <summary>A bot's network numbers at one moment: seconds since it joined, and milliseconds for the rest.</summary>
+/// <summary>Seconds since the bot joined; the rest in milliseconds.</summary>
 public readonly record struct NetSample(double Seconds, double PingMs, double BestPingMs, double DelayMs, double TargetMs);
 
 /// <summary>
-/// One simulated player: gets a join ticket from its account, joins, wanders the island with the shared player motor, jumps now and then and chats
-/// occasionally. A cheating bot slides faster than its shape allows and should be snapped back. Runs on the
-/// same client session as the Unity client (tick estimate, interpolation buffer, report schedule), so load
-/// tests exercise that code too. Counts what it sees, so tests and the bot program can check the server.
-/// Moves in the zone the server last put it in, its world from <paramref name="worlds"/> (shared by many bots).
+/// One simulated player, on the same client session as the Unity client so load tests exercise that code too.
 /// </summary>
 public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, ZoneWorlds worlds, IBotAccount account)
 {
@@ -53,7 +50,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
     private ClientSession _session = null!;
 
-    // The bot's own view of its zone's shared world, with the zone's flips as the server last said (WithOwnFlips).
     private CollisionWorld _world = worlds.For(content.Zones.All[0]).WithOwnFlips();
     private MotorState _motor;
     private Shape _shape = null!;
@@ -69,63 +65,52 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private (long MoveStates, long Holds, double HeldTicks, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks) _baseline;
     private double _lastRecord;
 
-    /// <summary>The name the bot plays under: its account's, which may have a suffix if the name was taken.</summary>
     public string Name { get; private set; } = name;
 
-    /// <summary>Why the bot couldn't get a join ticket (a Login error code), or null.</summary>
     public string? LoginFailure { get; private set; }
 
-    /// <summary>Why the server dropped the bot after it joined, or null.</summary>
     public DropReason? DroppedFor { get; private set; }
 
     public uint EntityId => _session.EntityId;
 
-    /// <summary>True once the server has spawned the bot.</summary>
     public bool Joined { get; private set; }
 
-    /// <summary>Why the server turned the bot's join down, or null.</summary>
     public JoinRejection? Rejected { get; private set; }
 
-    /// <summary>Other players this bot has seen spawn.</summary>
     public IReadOnlyCollection<uint> SeenPlayers => _seen;
 
     public int StatesReceived => _session.StatesReceived;
 
-    /// <summary>How many times the server moved the bot back (corrections other than respawns).</summary>
+    /// <summary>Corrections other than respawns.</summary>
     public int SnapBacks { get; private set; }
 
-    /// <summary>How many times the bot fell out of the world and was respawned.</summary>
     public int Respawns { get; private set; }
 
-    /// <summary>How many times a teleporter sent the bot somewhere.</summary>
     public int Teleports { get; private set; }
 
-    /// <summary>Chat lines the bot sent, and those it received from others.</summary>
     public int ChatsSent { get; private set; }
 
     public int ChatsReceived { get; private set; }
 
-    /// <summary>How many other players left the bot's view.</summary>
     public int Despawns { get; private set; }
 
-    /// <summary>The connection failed or was lost, rather than being closed by the bot.</summary>
+    /// <summary>Failed or lost, rather than closed by the bot.</summary>
     public bool Failed { get; private set; }
 
-    /// <summary>Network numbers sampled while running, for <c>--results</c>; empty until the warmup is over.</summary>
     public List<NetSample> NetSamples { get; } = [];
 
-    /// <summary>When the bot started, in UTC: its samples' seconds count from here, to match them to timestamped server logs.</summary>
+    /// <summary>UTC. Samples' seconds count from here, to match timestamped server logs.</summary>
     public DateTimeOffset StartedAt { get; private set; }
 
-    /// <summary>Of the others' states received since the warmup, those that continued a move, and the holds among them.</summary>
+    /// <summary>Others' states received since the warmup that continued a move, and the holds among them.</summary>
     public long MoveStates => Joined && _recording ? _session.Entities.MoveStates - _baseline.MoveStates : 0;
 
     public long Holds => Joined && _recording ? _session.Entities.Holds - _baseline.Holds : 0;
 
-    /// <summary>Of the others' moves since the warmup, those drawn as a jump (too far to walk between stamps).</summary>
+    /// <summary>Others' moves since the warmup drawn as a jump (too far to walk between stamps).</summary>
     public long Jumps => Joined && _recording ? _session.Entities.Jumps - _baseline.Jumps : 0;
 
-    /// <summary>This bot's own reports since the warmup, and how many changed speed as a hitch would (real changes).</summary>
+    /// <summary>Own reports since the warmup, and how many changed speed as a hitch would.</summary>
     public long OwnMoves { get; private set; }
 
     public long OwnHitches { get; private set; }
@@ -136,12 +121,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public long VisibleHitches => Overruns + VisibleBlendBacks + Jumps;
 
-    /// <summary>Other players watched since the warmup, in player-seconds, to put visible hitches per player per minute.</summary>
+    /// <summary>In player-seconds, to put visible hitches per player per minute.</summary>
     public double WatchedSeconds { get; private set; }
 
     public long SpeedHitches => Joined && _recording ? _session.Entities.SpeedHitches - _baseline.SpeedHitches : 0;
 
-    /// <summary>How long the holds since the warmup were, in seconds, summed.</summary>
+    /// <summary>Seconds, summed.</summary>
     public double HeldSeconds => Joined && _recording ? (_session.Entities.HeldTicks - _baseline.HeldTicks) / _session.Entities.TickRate : 0;
 
     public async Task RunAsync(CancellationToken stop)
@@ -184,11 +169,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         var clock = Stopwatch.StartNew();
         StartedAt = DateTimeOffset.UtcNow;
         var asked = false;
-        // Wakes twice per step; the steps themselves run on the server's clock (FixedStep), on its ticks.
+        // Wakes twice per step; the steps run on the server's clock (FixedStep), on its ticks.
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.5 / StepsPerSecond));
         try
         {
-            // A refused join ends the bot, as a failed sign-in does, rather than leaving it connected and idle.
+            // A refused join ends the bot rather than leaving it connected and idle.
             while (transport.State != TransportState.Closed && Rejected == null && await timer.WaitForNextTickAsync(stop))
             {
                 var now = clock.Elapsed.TotalSeconds;
@@ -230,7 +215,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                         Step(now, _fixed.LastStep - (steps - 1 - i));
                     }
 
-                    // Draw the others, as a real client would, so the interpolation buffer runs under load.
+                    // As a real client would, so the interpolation buffer runs under load.
                     var renderTick = _session.RenderTick(now);
                     foreach (var id in _session.Entities.Ids)
                     {
@@ -256,7 +241,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         _step++;
         var elapsed = _step / (double)StepsPerSecond;
         var position = new Vector2(_motor.Position.X, _motor.Position.Z);
-        // A new target on arrival, or after 30 s without getting there (stuck behind a block).
+        // Also after 30 s: stuck behind a block.
         if (Vector2.Distance(position, _target) < 1.5f || now - _targetSince > 30)
         {
             _target = RandomPoint();
@@ -309,7 +294,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                     _shape = content.Shapes[spawn.Shape];
                     if (Joined)
                     {
-                        break; // a new look or name, where it stands
+                        break;
                     }
 
                     Joined = true;
@@ -339,7 +324,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
                 break;
             case ShapeLandMessageIds.ZoneEntered:
-                // Before this bot's arrival correction. A fresh copy of the zone's world, with the flips the server says.
+                // Comes before this bot's arrival correction.
                 var entered = FrameReader.Decode<ZoneEntered>(payload, options);
                 _world = worlds.For(content.Zones[entered.Zone]).WithOwnFlips();
                 _movement.PassThrough.Clear();
@@ -388,12 +373,13 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         }
     }
 
-    /// <summary>Whether a player's name is a cheating bot's, as Program names them ("Cheater 01", "Far cheater 01").</summary>
+    /// <summary>
+    /// Whether a player's name is a cheating bot's, as Program names them ("Cheater 01", "Far cheater 01").
+    /// </summary>
     public static bool IsCheaterName(string name) =>
         name.StartsWith("Cheater", StringComparison.Ordinal) || name.Contains("-cheater", StringComparison.Ordinal);
 
-    // The speed-hitch test RemoteEntities applies to others' states, applied to this bot's own reports: what its
-    // real movement does, to compare with what others draw.
+    // Applies RemoteEntities' speed-hitch test to this bot's own reports, to compare with what others draw.
     private void CountOwnHitch(uint tick, Vector3 position)
     {
         if (_recording && _ownReports.Count == 2)
@@ -420,7 +406,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private static float GroundSpeed(Vector3 from, Vector3 to, uint ticks) =>
         ticks == 0 ? 0 : new Vector2(to.X - from.X, to.Z - from.Z).Length() / (ticks / 30f);
 
-    // After the warmup, the network numbers the overlay shows, four times a second.
     private void Record(double now)
     {
         if (settings.WarmupSeconds < 0 || now < _joinedAt + settings.WarmupSeconds)
@@ -445,7 +430,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextSample = now;
         }
 
-        WatchedSeconds += (entities.Count - _cheatersInView.Count) * (now - _lastRecord); // as counted: not cheaters
+        WatchedSeconds += (entities.Count - _cheatersInView.Count) * (now - _lastRecord);
         _lastRecord = now;
         if (now < _nextSample)
         {

@@ -3,12 +3,10 @@ using System.IO;
 
 namespace ShapeLand.Shared
 {
-    /// <summary>Where ShapeLand's programs find their development defaults: in this repository, above the running program.</summary>
     public static class RepoPaths
     {
         /// <summary>
-        /// The repository root (the folder holding ProjectComet.slnx). Without one, throws with <paramref name="hint"/>
-        /// ending the message (what to set instead, from "; set ...", or "." for nothing).
+        /// Looks above the running program. <paramref name="hint"/> ends the error message ("; set ..." or ".").
         /// </summary>
         public static string Root(string hint)
         {
@@ -23,7 +21,6 @@ namespace ShapeLand.Shared
             throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx)" + hint);
         }
 
-        /// <summary>The content file to load: <paramref name="configured"/>, else the content build's output here; it must exist.</summary>
         public static string ContentFile(string? configured, string hint)
         {
             var path = string.IsNullOrEmpty(configured) ? DefaultContentFile(hint) : configured!;

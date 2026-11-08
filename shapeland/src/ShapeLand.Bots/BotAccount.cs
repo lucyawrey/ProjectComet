@@ -5,20 +5,13 @@ using ShapeLand.Shared.Messages;
 
 namespace ShapeLand.Bots;
 
-/// <summary>
-/// How a bot joins: the game server, the name it plays under, and either a join ticket from the Login server or,
-/// without accounts, the look a new character gets (a join by name, <see cref="DevBotAccount"/>).
-/// </summary>
 public sealed record BotJoin(string? Ticket, Uri Server, string Name, NewCharacter? Look = null);
 
-/// <summary>Where a bot gets its join: a real account on the Login server, a name on a server without accounts, or (in tests) a stand-in.</summary>
 public interface IBotAccount
 {
-    /// <summary>Signs in (making the account if need be) and gets a join, or null with the reason in <c>Failure</c>.</summary>
     Task<(BotJoin? Join, string? Failure)> JoinAsync(CancellationToken cancellationToken);
 }
 
-/// <summary>A bot on the Unity editor's own server without accounts: it joins by name, made with a random look if it's new.</summary>
 public sealed class DevBotAccount(string name, Uri server, ShapeLandContent content, int seed) : IBotAccount
 {
     public Task<(BotJoin? Join, string? Failure)> JoinAsync(CancellationToken cancellationToken) =>
@@ -39,12 +32,11 @@ internal static class BotLooks
     }
 }
 
-/// <summary>
-/// A bot's guest account on the Login server, like a player's: made on the first run with a random look, its token
-/// kept in a file so later runs reuse it, and made again if the token is refused. If an older account holds the
-/// name, a random 4-character suffix is added.
-/// </summary>
-/// <remarks><paramref name="serverOverride"/> replaces the ticket's game server address, where the bots reach it by another name (in Docker).</remarks>
+/// <summary>If an older account holds the name, a random 4-character suffix is added.</summary>
+/// <remarks>
+/// <paramref name="serverOverride"/> replaces the ticket's game server address, for bots that reach it by another name
+/// (Docker).
+/// </remarks>
 public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFolder, ShapeLandContent content, int seed, Uri? serverOverride = null)
     : IBotAccount
 {
@@ -65,7 +57,6 @@ public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFo
             return (reused, null);
         }
 
-        // No account yet, or its token was refused: a new guest, with a suffix if an older account holds the name.
         var tryName = name;
         for (var attempt = 0; attempt < Attempts; attempt++)
         {

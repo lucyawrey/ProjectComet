@@ -2,19 +2,13 @@ using ShapeLand.Bots;
 using ShapeLand.Shared;
 using ShapeLand.Shared.Content;
 
-// ShapeLand bots: honest wanderers plus optional cheaters that slide too fast. Each bot is a guest account on the
-// Login server (named like Bot0001), which says which game server to join; its token is kept in --tokens
-// (default artifacts/bot-tokens), so later runs play the same accounts.
-// --server replaces the game server address in the bots' tickets (in Docker, where the server's name differs).
-// --dev joins the Unity editor's own server without accounts instead, by name, at --server (--login and --tokens
-// are ignored).
+// ShapeLand bots: honest wanderers plus optional cheaters. Each bot is a guest account on the Login server, with its
+// token kept in --tokens so later runs play the same accounts.
 //   dotnet run --project shapeland/src/ShapeLand.Bots -- [--dev] [--login http://localhost:5090] [--tokens <folder>] [--server ws://server:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
 //     [--warmup 10] [--results file.json] [--meta key=value ...] [--prefix Bot] [--chat [30]] [--cheat-speed 2.5] [--cheat-jump 1]
-// Cheaters move --cheat-speed times faster than allowed and jump --cheat-jump times faster (small values make subtle
-// cheaters, for tuning the server's tolerances).
-// Bots stay quiet unless --chat is given, optionally with the average seconds between their lines (30).
-// With --warmup or --results, bots record network numbers (as the F3 overlay shows them) after the warmup and
-// print a summary at the end (NetReport); --results also writes them to a file, with each --meta pair in it.
+// --server replaces the game server address in the bots' tickets (Docker). --dev joins the editor's server by name
+// at --server, without accounts. --cheat-speed and --cheat-jump are multipliers; small values make subtle cheaters.
+// --chat is the average seconds between lines. --warmup or --results records network numbers (see NetReport).
 var login = new Uri(Arg("--login", "http://localhost:5090"));
 var tokens = Arg("--tokens", "");
 var serverOverride = Arg("--server", "") is { Length: > 0 } server ? new Uri(server) : null;

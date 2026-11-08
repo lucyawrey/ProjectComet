@@ -4,33 +4,24 @@ using Comet.Client;
 namespace ShapeLand.Bots;
 
 /// <summary>
-/// What a bot run measured under a network profile, for tuning the netcode: a summary printed at the end and, with
-/// <c>--results</c>, a JSON file with the summary, the run's settings and every bot's samples. Network numbers
-/// come from honest bots only, after the warmup; cheaters only show whether they were caught.
+/// Network numbers come from honest bots only, after the warmup; cheaters only show whether they were caught.
 /// </summary>
 public sealed class NetReport
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
-    /// <summary>The <c>--meta</c> pairs the run was given, such as the commit and network profile.</summary>
     public required Dictionary<string, string> Meta { get; init; }
 
-    /// <summary>The run's command-line settings.</summary>
     public required RunSettings Run { get; init; }
 
-    /// <summary>The client's tuning numbers at the time.</summary>
     public required TuningSettings Tuning { get; init; }
 
-    /// <summary>The run's totals, as printed.</summary>
     public required Summary Totals { get; init; }
 
-    /// <summary>Each bot's numbers and samples.</summary>
     public required List<BotResult> Bots { get; init; }
 
-    /// <summary>The run's command-line settings (see <c>tools/run shapeland-netrun</c>).</summary>
     public sealed record RunSettings(string Url, int Bots, int Cheaters, double Seconds, int Seed, double WarmupSeconds);
 
-    /// <summary>The client's tuning numbers this run used; the server's (validation margins) go by the commit in Meta.</summary>
     public sealed record TuningSettings(
         double DelayWindowSeconds,
         double DelayPercentile,
@@ -42,7 +33,6 @@ public sealed class NetReport
         double IdleGapMs
     );
 
-    /// <summary>The totals printed at the end of a run: network numbers from honest bots only, after the warmup.</summary>
     public sealed record Summary(
         int HonestSnapBacks,
         int Respawns,
@@ -70,7 +60,6 @@ public sealed class NetReport
         long VisibleBlendBacks
     );
 
-    /// <summary>One bot's numbers after the warmup, with its samples.</summary>
     public sealed record BotResult(
         string Name,
         bool Cheater,
@@ -92,7 +81,6 @@ public sealed class NetReport
         public long VisibleHitches => Overruns + VisibleBlendBacks + Jumps;
     }
 
-    /// <summary>The report for <paramref name="bots"/>, where <paramref name="cheaters"/> marks which of them cheated.</summary>
     public static NetReport Create(IReadOnlyList<Bot> bots, IReadOnlyList<bool> cheaters, RunSettings run, Dictionary<string, string> meta)
     {
         var results = bots.Select(
@@ -121,7 +109,6 @@ public sealed class NetReport
         var moves = honest.Sum(r => r.MoveStates);
         var holds = honest.Sum(r => r.Holds);
 
-        // How fast the target moves, averaged over every honest bot's consecutive samples.
         var swings = honest
             .SelectMany(r => r.Samples.Zip(r.Samples.Skip(1), (a, b) => Math.Abs(b.TargetMs - a.TargetMs) / (b.Seconds - a.Seconds)))
             .ToList();

@@ -17,16 +17,8 @@ using ShapeLand.Shared.World;
 namespace ShapeLand.GameServer;
 
 /// <summary>
-/// ShapeLand's game: players join with a ticket from the Login server as their saved character, slide and jump, and
-/// chat in one server-wide channel. Where they are is saved as they move (batched) and as they leave; looks as they
-/// change. The
-/// server plays every zone; each player is in one and sees everyone in it (grid interest management comes with the
-/// full load test). Spawn points are claimed and teleporters used per player; triggers flip placements for the whole
-/// zone.
-/// <para>
-/// Connections decode messages on their own receive flows and queue them; the tick thread handles the queue in
-/// order, so all game state belongs to the tick thread.
-/// </para>
+/// ShapeLand's game. Connections decode messages on their own receive flows and queue them; the tick thread handles
+/// the queue in order, so all game state belongs to the tick thread.
 /// </summary>
 public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, ShapeLandCharacter>
 {
@@ -35,11 +27,9 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     private readonly ILogger<ShapeLandGame> _logger;
     private readonly Dictionary<int, ZoneState> _zones = [];
 
-    // Every spawn point and teleporter, with its zone, for going there from any zone.
     private readonly Dictionary<int, (ZoneState Zone, SpawnPoint Spawn)> _spawns = [];
     private readonly Dictionary<string, (ZoneState Zone, Teleporter Teleporter)> _teleporters = [];
 
-    // Where every new player starts instead of their shape's spawn (ShapeLand:StartSpawn), if set.
     private readonly (ZoneState Zone, SpawnPoint Spawn)? _startSpawn;
     private readonly MovementTolerances _tolerances = new();
     private readonly ConcurrentQueue<Input> _inbox = new();
@@ -49,10 +39,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     private readonly ICharacterRepository<ShapeLandCharacter> _repository;
     private uint _tick;
 
-    /// <summary>
-    /// The game of <paramref name="content"/>'s zones, saving characters through <paramref name="repository"/>; an
-    /// unknown <paramref name="startSpawn"/> (a spawn point's key, or empty for none) stops it, listing the spawn points.
-    /// </summary>
     public ShapeLandGame(
         ShapeLandContent content,
         string startSpawn,
@@ -97,11 +83,8 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     public ShapeLandContent Content => _content;
 
 #if DEBUG
-    /// <summary>With joins without accounts (<see cref="ShapeLandServerOptions.DevJoins"/>), the characters they pick from.</summary>
     public DevCharacters? DevCharacters { get; init; }
 #endif
-
-    // Receive flows.
 
     public void OnConnected(Connection connection) => _inbox.Enqueue(new Input(connection, InputKind.Connected));
 
@@ -134,9 +117,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
     public void OnDisconnected(Connection connection) => _inbox.Enqueue(new Input(connection, InputKind.Disconnected));
 
-    // Tick thread.
-
-    /// <summary>Runs one tick on the tick thread: the inputs that arrived since the last, falls and join deadlines, then the states of players who moved, sent to everyone else.</summary>
     public void Tick(uint tick)
     {
         _tick = tick;
@@ -186,11 +166,10 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
             }
         }
 
-        // Finished joins, and players dropped because their character was taken or removed.
         _joins.Update(this);
 
-        // The server knows gravity: players silent in the air fall, so going quiet mid-jump can't be used to hover. Connections that never join are
-        // dropped, so they can't sit holding a place (a join in progress has its own deadline).
+        // Players silent in the air fall, so going quiet mid-jump can't be used to hover. Connections that never join
+        // are dropped so they can't hold a place (a join in progress has its own deadline).
         var seconds = (float)tick / ShapeLandRules.TickRate;
         foreach (var player in _players.Values)
         {
@@ -251,8 +230,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
     }
 
-    // A join hands the ticket to JoinedCharacters, which checks it and loads the character off the tick thread;
-    // the player spawns when it comes back (Joined) on a later tick.
     private void Join(Player player, JoinRequest request, uint tick)
     {
         if (CanJoin(player, request.ContentFingerprint, tick))
@@ -261,8 +238,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
     }
 
-    // A join by name, without a ticket: only a Debug server started with ShapeLand:DevJoins takes it. A name that's
-    // playing is refused before the claim, so a dev join never replaces anyone.
+    // A name that's playing is refused before the claim, so a dev join never replaces anyone.
     private void DevJoin(Player player, DevJoinRequest request, uint tick)
     {
         if (!CanJoin(player, request.ContentFingerprint, tick))
@@ -371,8 +347,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         return position;
     }
 
-    // Puts a newly joined character in the world: where it was saved, or (a missing zone, or a spot that's no longer
-    // in the zone) at its shape's spawn. A shape or color no longer in the content becomes the first one there is.
     private void Spawn(Player player, ShapeLandCharacter character, CharacterPosition? saved, uint tick)
     {
         player.Character = character;
@@ -467,7 +441,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _logger.LogInformation("{Name} joined as a {Shape} ({Players} online)", player.Name, shape.DisplayName, _players.Values.Count(p => p.Joined));
     }
 
-    // A saved spot still fits its zone: in one of its chunks, above the kill height, and not inside anything.
     private bool Fits(ZoneState zone, Vector3 feet)
     {
         if (!float.IsFinite(feet.X) || !float.IsFinite(feet.Y) || !float.IsFinite(feet.Z) || feet.Y <= zone.World.KillHeight)
@@ -480,8 +453,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
             && !zone.World.IsBlocked(feet, _content.Movement.BodyRadius, _content.Movement.BodyHeight);
     }
 
-    // A look change from the Change Shape card: checked against the content, saved, and shown to everyone where the
-    // player stands.
     private void ChangeLook(Player player, LookChange change, uint tick)
     {
         if (!player.Joined)
@@ -516,7 +487,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _logger.LogInformation("{Name} is now a {Shape}", player.Name, shape.DisplayName);
     }
 
-    // The player renamed their account: the name is read from the database off the tick thread, then shown.
     private void ReloadName(Player player, uint tick)
     {
         if (!player.Joined || !player.RenameLimiter.TryTake(tick) || !_joins.TryGet(player.Connection, out var characterId, out _))
@@ -556,8 +526,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _logger.LogInformation("{OldName} is now {Name}", oldName, name);
     }
 
-    // The player stays where they are: a snap-back to there makes the reports still in flight, moved with the old
-    // shape's speed and jump, stale. Then everyone, the player too, gets a fresh spawn with the new look and name.
+    // The snap-back makes the reports still in flight, moved with the old shape's speed and jump, stale.
     private static void Respawn(Player player, uint tick)
     {
         player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick));
@@ -575,10 +544,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
     private void SavePosition(Player player) => _joins.SaveStatus(player.Connection, PositionOf(player));
 
-    /// <summary>
-    /// Saves every player's spot and releases their characters, for shutdown. Call after the tick loop has stopped,
-    /// since it reads the game's state.
-    /// </summary>
+    /// <summary>Call after the tick loop has stopped, since it reads the game's state.</summary>
     public Task LeaveAllAsync() =>
         _joins.LeaveAll(connection => _players.TryGetValue(connection, out var player) && player.Joined ? PositionOf(player) : null);
 
@@ -603,8 +569,8 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                 ToSpawn(player, tick);
                 break;
             default:
-                // Logged for moderation, never banned automatically: the 1st, 10th, 100th… violation, so a
-                // persistent cheater doesn't flood the log.
+                // Never banned automatically. Logged at the 1st, 10th, 100th… violation so a cheater doesn't flood
+                // the log.
                 if (IsPowerOfTen(player.Validator.Violations))
                 {
                     _logger.LogWarning(
@@ -649,7 +615,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
     }
 
-    // To the player's spawn point, telling them, and everyone else seeing them reappear there; it may be in another zone.
     private void ToSpawn(Player player, uint tick)
     {
         var (zone, _) = _spawns[player.SpawnPoint.Number];
@@ -665,8 +630,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
     }
 
-    // Standing in another spawn point for its stand time makes it the player's. Stepping out, or into another,
-    // starts over.
     private void Claim(Player player, float seconds)
     {
         var standingIn = player.Zone.Triggers.SpawnAt(player.Validator.Position);
@@ -680,8 +643,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _logger.LogInformation("{Name}'s spawn is now {Spawn}", player.Name, standingIn.Id);
     }
 
-    // Standing in a teleporter for its stand time sends the player to its target, which doesn't send them on until
-    // they step out and in again.
     private void Teleport(Player player, uint tick, float seconds)
     {
         var standingIn = player.Zone.Triggers.TeleporterAt(player.Validator.Position);
@@ -695,8 +656,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _logger.LogInformation("{Name} took {Teleporter} to {Target}", player.Name, standingIn.Id, target.Teleporter.Id);
     }
 
-    // Moves a player to arrive in a volume, in their zone or another. Into another zone: the player learns the zone,
-    // its old players see them leave, and they and its players see each other arrive.
     private void MoveTo(Player player, ZoneState zone, TriggerVolume volume, SpawnFacing facing, CorrectionReason reason, uint tick)
     {
         var (feet, yaw) = Comet.Simulation.Triggers.Arrive(volume, facing, zone.World, _content.Movement, _random);
@@ -718,7 +677,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _logger.LogInformation("{Name} went to {Zone}", player.Name, zone.Zone.Id);
     }
 
-    // Puts a placed player in a zone: they and the players already there see each other.
     private static void Arrive(Player player, ZoneState zone)
     {
         player.Zone = zone;
@@ -732,7 +690,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         zone.Players.Add(player);
     }
 
-    // Takes a player out of their zone: everyone else there sees them go, and they stop seeing them.
     private static void LeaveZone(Player player)
     {
         var zone = player.Zone;
@@ -747,7 +704,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
     }
 
-    // A placement turned on around the player stops passing through once they're fully out of it.
     private void KeepPassingThrough(Player player) =>
         player.Validator.PassThrough.Prune(player.Zone.World, player.Validator.Position, _content.Movement.BodyRadius, _content.Movement.BodyHeight);
 
@@ -817,7 +773,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
             player.Stamp.Broadcasts
         );
 
-        // For tuning the tolerances (MovementTolerances): how much of each this player needed.
         var headroom = player.Validator.Headroom;
         var bursts = string.Join(
             " ",
@@ -858,12 +813,13 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
         public LookChange Look { get; init; }
 
-        /// <summary>For <see cref="InputKind.NameLoaded"/>: the character and its name, read from the database.</summary>
         public long CharacterId { get; init; }
 
         public string Name { get; init; } = "";
 
-        /// <summary>The report frame's header: the client's estimate of the server tick when it sent the report.</summary>
+        /// <summary>
+        /// The report frame's header: the client's estimate of the server tick when it sent the report.
+        /// </summary>
         public uint ClientTick { get; init; }
     }
 }

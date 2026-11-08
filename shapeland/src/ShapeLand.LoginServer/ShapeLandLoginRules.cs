@@ -8,10 +8,6 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.LoginServer;
 
-/// <summary>
-/// ShapeLand's account rules: the player's name is the username (3–16 letters, digits, '-' and '_'), a new guest
-/// starts with a shape and colors the content allows, and everyone plays on the one game server.
-/// </summary>
 public sealed class ShapeLandLoginRules(ShapeLandContent content, GameServerAddress gameServer) : ILoginRules<ShapeLandCharacter>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

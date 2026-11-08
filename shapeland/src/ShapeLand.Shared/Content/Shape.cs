@@ -4,7 +4,6 @@ using MessagePack;
 
 namespace ShapeLand.Shared.Content
 {
-    /// <summary>A playable shape: how it looks and moves. Read by both client and server, so movement validation uses content.</summary>
     [MessagePackObject]
     public sealed class Shape : IContentEntry
     {
@@ -21,40 +20,34 @@ namespace ShapeLand.Shared.Content
         public string DisplayName { get; set; } = "";
 
         /// <summary>
-        /// The group drawn as the shape (<c>group.shape_cube</c>), standing on its pivot at the player's feet: parts
-        /// with the role <c>body</c> take the player's body color, <c>eyes</c> their eye color, and others keep their own.
+        /// Parts with the role <c>body</c> take the player's body color, <c>eyes</c> their eye color, others keep their
+        /// own.
         /// </summary>
         [JsonRequired]
         [Key(3)]
         public string Look { get; set; } = "";
 
-        /// <summary>Top ground speed, in meters per second.</summary>
+        /// <summary>In meters per second.</summary>
         [JsonRequired]
         [Key(4)]
         public float MaxSpeed { get; set; }
 
-        /// <summary>Upward speed at the start of a jump, in meters per second.</summary>
+        /// <summary>In meters per second.</summary>
         [JsonRequired]
         [Key(5)]
         public float JumpVelocity { get; set; }
 
-        /// <summary>
-        /// How big the shape is drawn, times its look's size (1 is as the group is). Looks only: every shape collides
-        /// as the one shared body in <c>MovementRules</c>.
-        /// </summary>
+        /// <summary>Looks only: every shape collides as the one shared body in <c>MovementRules</c>.</summary>
         [JsonRequired]
         [Key(6)]
         public float Scale { get; set; }
 
-        /// <summary>
-        /// The spawn point (<c>spawn.*</c>) a player of this shape starts at when they join, until they claim another.
-        /// Changing shape later doesn't change a player's spawn.
-        /// </summary>
+        /// <summary>Changing shape later doesn't change a player's spawn.</summary>
         [JsonRequired]
         [Key(7)]
         public string Spawn { get; set; } = "";
 
-        /// <summary>How far above the player's feet the look floats, in meters (before <see cref="Scale"/>); 0 to stand on the ground.</summary>
+        /// <summary>In meters, before <see cref="Scale"/>; 0 to stand on the ground.</summary>
         [Key(8)]
         public float Hover { get; set; }
     }
