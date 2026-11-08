@@ -11,11 +11,10 @@ using Tomlyn.Model;
 namespace Comet.ZoneFiles
 {
     /// <summary>
-    /// A zone's folder: <c>zone.toml</c> (the zone's id, terrain pieces, borders, entrances and transition rooms),
-    /// then a folder per chunk in <c>chunks/</c>, named by its grid position (<c>chunks/0_-1/</c>), holding the chunk's
-    /// <c>chunk.toml</c> and its terrain tiles: <c>&lt;piece&gt;.height</c>, and optionally <c>&lt;piece&gt;.under.height</c>,
-    /// <c>&lt;piece&gt;.color</c> and <c>&lt;piece&gt;.under.color</c> (the underside's colors, only with an underside).
-    /// The zone is its set of chunk folders.
+    /// A zone's folder: <c>zone.toml</c>, then a folder per chunk in <c>chunks/</c>, named by its grid position
+    /// (<c>chunks/0_-1/</c>), holding the chunk's <c>chunk.toml</c> and its terrain tiles: <c>&lt;piece&gt;.height</c>,
+    /// and optionally <c>&lt;piece&gt;.under.height</c>, <c>&lt;piece&gt;.color</c> and
+    /// <c>&lt;piece&gt;.under.color</c> (the underside's colors, only with an underside).
     /// </summary>
     public static partial class ZoneFolder
     {
@@ -23,36 +22,33 @@ namespace Comet.ZoneFiles
         public const string ChunksFolder = "chunks";
         public const string ChunkFileName = "chunk.toml";
 
-        /// <summary>Decimal places written for positions, sizes and scales: millimeters.</summary>
+        /// <summary>Positions, sizes and scales are written to the millimeter.</summary>
         private const int LengthDecimals = 3;
 
-        /// <summary>Decimal places written for angles: hundredths of a degree.</summary>
+        /// <summary>Angles are written to hundredths of a degree.</summary>
         private const int AngleDecimals = 2;
 
-        /// <summary>Decimal places written for times in seconds: milliseconds.</summary>
+        /// <summary>Times are written to the millisecond.</summary>
         private const int TimeDecimals = 3;
 
-        /// <summary>Decimal places written for sign background opacities: hundredths.</summary>
+        /// <summary>Sign background opacities are written to hundredths.</summary>
         private const int OpacityDecimals = 2;
 
-        /// <summary>Decimal places written for sign font sizes: tenths of a pixel.</summary>
+        /// <summary>Sign font sizes are written to tenths of a pixel.</summary>
         private const int FontSizeDecimals = 1;
 
         private static readonly Regex ChunkName = new Regex(@"^(-?\d+)_(-?\d+)$");
 
-        /// <summary>The chunk file's path in the zone folder.</summary>
         public static string ChunkFile(ChunkCoord coord) => $"{ChunksFolder}/{coord}/{ChunkFileName}";
 
         /// <summary>
-        /// The path in the zone folder of a tile file: <paramref name="kind"/> is <c>height</c>,
-        /// <c>under.height</c>, <c>color</c> or <c>under.color</c>.
+        /// <paramref name="kind"/> is <c>height</c>, <c>under.height</c>, <c>color</c> or <c>under.color</c>.
         /// </summary>
         public static string TileFile(ChunkCoord coord, string piece, string kind) => $"{ChunksFolder}/{coord}/{piece}.{kind}";
 
         /// <summary>
-        /// Reads the zone in <paramref name="folder"/>, adding any problems to <paramref name="errors"/>; the zone is
-        /// returned either way, without the parts that failed. Checks the files' form only: <see cref="ZoneValidation"/>
-        /// checks what they mean.
+        /// The zone is returned even with errors, without the parts that failed. Checks the files' form only:
+        /// <see cref="ZoneValidation"/> checks what they mean.
         /// </summary>
         public static Zone Read(string folder, List<ZoneFileError> errors)
         {
@@ -110,8 +106,8 @@ namespace Comet.ZoneFiles
         }
 
         /// <summary>
-        /// Writes <paramref name="zone"/> into <paramref name="folder"/>, removing chunk and tile files it no longer
-        /// has. Files whose content hasn't changed are left untouched, so a save shows only real changes.
+        /// Removes chunk and tile files the zone no longer has. Files whose content hasn't changed are left untouched,
+        /// so a save shows only real changes.
         /// </summary>
         public static void Write(string folder, Zone zone)
         {
@@ -352,8 +348,8 @@ namespace Comet.ZoneFiles
                 })
                 .ToArray();
 
-            // Tile files in the chunk folder that no tile reads are probably a piece renamed by hand: say so rather than
-            // silently ignoring them. Other files there aren't the zone's.
+            // Tile files in the chunk folder that no tile reads are probably a piece renamed by hand: say so rather
+            // than silently ignoring them. Other files there aren't the zone's.
             var tileFolder = Path.Combine(folder, ChunksFolder, coord.ToString());
             if (Directory.Exists(tileFolder))
             {
@@ -629,9 +625,8 @@ namespace Comet.ZoneFiles
         private static bool IsTileFile(string path) =>
             path.EndsWith(".height", StringComparison.Ordinal) || path.EndsWith(".color", StringComparison.Ordinal);
 
-        // Removes the chunk and tile files a save didn't write (deleted chunks and tiles) from the chunk folders (x_z,
-        // the files directly in them), and chunk folders left empty. Anything else in chunks/ isn't the zone's, so it's
-        // left alone.
+        // Removes chunk and tile files a save didn't write, and chunk folders left empty. Anything else in chunks/
+        // isn't the zone's.
         private static void RemoveStale(string folder, HashSet<string> written)
         {
             var chunksPath = Path.Combine(folder, ChunksFolder);

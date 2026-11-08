@@ -11,11 +11,8 @@ namespace Comet.ZoneFiles
     public static partial class ZoneValidation
     {
         /// <summary>
-        /// The problems with <paramref name="zone"/>'s placements given its props and groups (found by id through
-        /// <paramref name="findProp"/> and <paramref name="findGroup"/>, null for an unknown id): unknown props and
-        /// groups, uneven scale on a prop that only scales evenly, and objects reaching past the ring of chunks around
-        /// their pivot's chunk. A group copy's parts are checked where they land, each against its own chunk, as the
-        /// content build places them (<see cref="Groups.Expand(Zone, Func{string, Group?})"/>).
+        /// <paramref name="findProp"/> and <paramref name="findGroup"/> return null for an unknown id. A group copy's
+        /// parts are checked where they land, each against its own chunk, as the content build places them.
         /// </summary>
         public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Prop?> findProp, Func<string, Group?>? findGroup = null)
         {
@@ -61,10 +58,6 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
-        /// <summary>
-        /// The problems with a game's groups, each against its file: ids, parts that fit a group (no names; roles are
-        /// names), unknown props and groups, and groups that contain themselves.
-        /// </summary>
         public static List<ZoneFileError> CheckGroups(IReadOnlyList<(Group Group, string File)> groups, Func<string, Prop?> findProp)
         {
             var errors = new List<ZoneFileError>();
@@ -116,7 +109,6 @@ namespace Comet.ZoneFiles
                 }
             }
 
-            // A group may not contain itself, however deep.
             var visiting = new List<string>();
             var done = new HashSet<string>();
             void Visit(string id)
@@ -161,8 +153,7 @@ namespace Comet.ZoneFiles
         }
 
         /// <summary>
-        /// The zone's blockout placements, each against its chunk file: stand-ins to finish before a release. A group
-        /// copy counts if it or any part it expands to is blockout.
+        /// Stand-ins to finish before a release. A group copy counts if it or any part it expands to is blockout.
         /// </summary>
         public static List<ZoneFileError> Blockout(Zone zone, Func<string, Group?> findGroup)
         {
@@ -246,7 +237,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A group copy's colors by role: each names a role its group's parts play.
         private static void CheckRoleColors(Placement copy, string what, string file, Func<string, Group?> findGroup, Action<string, string> error)
         {
             if (copy.Colors is not { } colors || copy.Group is not { } group)
@@ -266,7 +256,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // What a placement places, for messages: its prop's or group's id, or its primitive's kind.
         private static string Placed(Placement placement) =>
             placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Group ?? placement.Prop;
 
@@ -337,7 +326,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A primitive's values: in range, and only those its kind uses.
         private static void CheckPrimitive(Primitive primitive, string what, string file, Action<string, string> error)
         {
             var kind = primitive.Kind;
@@ -377,7 +365,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // The world box around a mesh's bounds once placed.
         private static (Vector3 Min, Vector3 Max) Bounds(Vector3 boundsMin, Vector3 boundsMax, Matrix4x4 matrix)
         {
             var min = new Vector3(float.MaxValue);

@@ -12,10 +12,8 @@ namespace Comet.ContentBuild;
 
 /// <summary>
 /// Reads a game's content folder: one TOML file per entry, in folders by type. Each file is checked against its
-/// C# type (syntax, unknown keys, missing or mistyped fields, the id's form and uniqueness, then the type's own
-/// validation rules) and, if everything passes, gets its number from the ID registry. Games register their types
-/// and Tomlyn's source-generated metadata for them, then write the compiled file themselves. A game with interface
-/// text also registers its string file (<see cref="AddStrings"/>), and a game with zones their folder (<see cref="AddZones"/>).
+/// C# type and, if everything passes, gets its number from the ID registry. Games register their types with
+/// Tomlyn's source-generated metadata for them.
 /// </summary>
 public sealed class ContentBuilder
 {
@@ -27,10 +25,9 @@ public sealed class ContentBuilder
     private string? _zonesFolder;
     private string? _groupsFolder;
 
-    /// <summary>A builder for the content folder at <paramref name="contentRoot"/>.</summary>
     public ContentBuilder(string contentRoot) => _root = Path.GetFullPath(contentRoot);
 
-    /// <summary>Registers a content type read from <c>{folder}/**/*.toml</c>, with ids of the form <c>{kind}.name</c>.</summary>
+    /// <summary>Reads <c>{folder}/**/*.toml</c>, with ids of the form <c>{kind}.name</c>.</summary>
     public ContentBuilder Add<T>(string kind, string folder, TomlTypeInfo<T> toml, Action<T, ContentValidation>? validate = null)
         where T : class, IContentEntry
     {
@@ -39,9 +36,8 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
-    /// Numbers keys that live inside entries of type <typeparamref name="T"/> (such as the player colors in a
-    /// settings file) under their own registry type <paramref name="kind"/>, so they get permanent numbers like files
-    /// do. Keys are ids of the form <c>{kind}.name</c>; the numbers come back from <see cref="ContentBuildResult.Numbers"/>.
+    /// Numbers keys inside entries of type <typeparamref name="T"/> (such as player colors in a settings file) under
+    /// registry type <paramref name="kind"/>. Keys are ids of the form <c>{kind}.name</c>.
     /// </summary>
     public ContentBuilder AddKeys<T>(string kind, Func<T, IEnumerable<string>> keysOf)
         where T : class, IContentEntry
@@ -51,9 +47,8 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
-    /// Reads interface text from <c>{folder}/en.toml</c> (<see cref="StringFile"/>); the file must exist. Given
-    /// <paramref name="placeholders"/>, the names the game's code fills in, any other placeholder is an error, so a typo
-    /// like <c>{usernme}</c> fails the build instead of showing on screen.
+    /// Reads interface text from <c>{folder}/en.toml</c> (<see cref="StringFile"/>), which must exist. Given
+    /// <paramref name="placeholders"/>, any other placeholder is an error, so a typo fails the build.
     /// </summary>
     public ContentBuilder AddStrings(string folder = "strings", IReadOnlyCollection<string>? placeholders = null)
     {
@@ -64,7 +59,7 @@ public sealed class ContentBuilder
 
     /// <summary>
     /// Reads props (<see cref="Prop"/>) from <c>{folder}/**/*.toml</c>, baking each one's collision and bounds from
-    /// its model, which is found under <paramref name="modelRoot"/>. Zone placements are checked against them.
+    /// its model, found under <paramref name="modelRoot"/>.
     /// </summary>
     public ContentBuilder AddProps(string modelRoot, string folder = "props")
     {
@@ -99,9 +94,8 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
-    /// Reads groups from <c>{folder}/**/*.toml</c> (<see cref="GroupFile"/>), checked by
-    /// <see cref="ZoneValidation.CheckGroups"/> and given registry numbers. Zones place copies of them, which the
-    /// build expands into their parts (<see cref="Groups.Expand(Zone, System.Func{string, Group?})"/>).
+    /// Reads groups from <c>{folder}/**/*.toml</c> (<see cref="GroupFile"/>). Zones place copies of them, which the
+    /// build expands into their parts.
     /// </summary>
     public ContentBuilder AddGroups(string folder = "groups")
     {
@@ -110,8 +104,8 @@ public sealed class ContentBuilder
     }
 
     /// <summary>
-    /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>), checked by
-    /// <see cref="ZoneValidation"/>. Zone, spawn, teleporter and trigger ids get registry numbers like other content.
+    /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>). Zone, spawn,
+    /// teleporter and trigger ids get registry numbers.
     /// </summary>
     public ContentBuilder AddZones(string folder = "zones")
     {
@@ -150,7 +144,6 @@ public sealed class ContentBuilder
         var zones = _zonesFolder is null ? new List<Zone>() : ReadZones(ContentPath(_zonesFolder), props, groupsByKey, errors, warnings);
         if (release)
         {
-            // A release ships no stand-ins.
             errors.AddRange(warnings.Select(w => w with { Warning = false }));
             warnings.Clear();
         }
@@ -243,7 +236,6 @@ public sealed class ContentBuilder
                         .Select(w => new ContentError(DisplayPath(Path.Combine(zoneFolder, w.File)), 1, 1, w.Message, Warning: true))
                 );
 
-                // Group copies become their parts: the game loads plain placements.
                 Groups.Expand(zone, key => groups.TryGetValue(key, out var group) ? group : null);
                 zoneFolders.TryAdd(zone.Id, zoneFile);
                 zones.Add(zone);
@@ -300,10 +292,8 @@ public sealed class ContentBuilder
         zones.Sort((a, b) => a.Number.CompareTo(b.Number));
     }
 
-    /// <summary>A JSON Schema per content type, keyed by kind, for editor autocompletion and checking.</summary>
     public IReadOnlyDictionary<string, JsonNode> Schemas() => _types.ToDictionary(t => t.Kind, t => t.Schema());
 
-    /// <summary><paramref name="path"/> as errors show it: relative to the working folder when it's inside it.</summary>
     internal static string DisplayPath(string path)
     {
         var relative = Path.GetRelativePath(Environment.CurrentDirectory, path);
@@ -312,17 +302,16 @@ public sealed class ContentBuilder
 
     internal string ContentPath(string folder) => Path.Combine(_root, folder);
 
-    /// <summary>An error at a TOML span, with 1-based line and column.</summary>
+    /// <summary>Line and column are 1-based.</summary>
     internal static ContentError ErrorAt(string file, SourceSpan span, string message) =>
         new(file, span.Start.Line + 1, span.Start.Column + 1, message);
 
-    /// <summary>A name in ids and string keys: a lowercase letter, then lowercase letters, digits and underscores.</summary>
+    /// <summary>A lowercase letter, then lowercase letters, digits and underscores.</summary>
     internal const string NamePattern = "[a-z][a-z0-9_]*";
 
     /// <summary>A dotted key as written, without quotes (<c>a."b"</c> is <c>a.b</c>).</summary>
     internal static string KeyText(KeySyntax key) => string.Join('.', KeyParts(key).Select(KeyText));
 
-    /// <summary>The parts of a dotted key, in order.</summary>
     internal static IEnumerable<BareKeyOrStringValueSyntax> KeyParts(KeySyntax key) => new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!));
 
     internal static string KeyText(BareKeyOrStringValueSyntax key) =>
@@ -342,7 +331,6 @@ public sealed class ContentBuilder
         JsonNode Schema();
     }
 
-    /// <summary>One content type's entries after reading, before they get their numbers.</summary>
     internal interface IReadContent
     {
         Type EntryType { get; }

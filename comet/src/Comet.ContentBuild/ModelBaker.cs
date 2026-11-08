@@ -6,16 +6,12 @@ using Prop = Comet.Content.Prop;
 namespace Comet.ContentBuild;
 
 /// <summary>
-/// Reads a prop's <c>.glb</c> model for its collision triangles and bounds, in the space Unity shows it in: glTF is
-/// right-handed and Unity left-handed, and Unity's importer (glTFast) converts by negating X, so this does the same
-/// and reverses each triangle's winding to match.
+/// Reads a prop's <c>.glb</c> for its collision triangles and bounds in Unity's space: glTF is right-handed and Unity
+/// left-handed, so X is negated (as Unity's glTFast importer does) and each triangle's winding reversed.
 /// </summary>
 public static class ModelBaker
 {
-    /// <summary>
-    /// Fills in <paramref name="prop"/>'s collision and bounds from the model at <paramref name="path"/>;
-    /// throws <see cref="ContentException"/> if it can't.
-    /// </summary>
+    /// <summary>Throws <see cref="ContentException"/> if the model can't be read.</summary>
     public static void Bake(Prop prop, string path)
     {
         ModelRoot model;
@@ -49,7 +45,6 @@ public static class ModelBaker
 
     private static IEnumerable<Node> Descendants(Node node) => node.VisualChildren.SelectMany(Descendants).Prepend(node);
 
-    // A node's triangles in the model's space, converted to Unity's: X negated, so the winding reverses too.
     private static IEnumerable<Vector3> Triangles(Node node)
     {
         var world = node.WorldMatrix;

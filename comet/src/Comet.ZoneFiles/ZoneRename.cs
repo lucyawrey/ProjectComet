@@ -3,12 +3,11 @@ using Comet.Content;
 
 namespace Comet.ZoneFiles
 {
-    /// <summary>Gives a zone a new name, for saving it as a copy.</summary>
     public static class ZoneRename
     {
         /// <summary>
-        /// Renames <paramref name="zone"/> to <paramref name="newId"/> (<c>zone.name</c>), with its spawn point,
-        /// teleporter and trigger ids and the teleporter targets inside it. Targets in other zones are left alone.
+        /// Also renames the zone's spawn point, teleporter and trigger ids and the teleporter targets inside it;
+        /// targets in other zones are left alone.
         /// </summary>
         public static void Rename(Zone zone, string newId)
         {

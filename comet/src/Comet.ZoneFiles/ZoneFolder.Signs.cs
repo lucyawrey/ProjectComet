@@ -5,7 +5,7 @@ namespace Comet.ZoneFiles
 {
     public static partial class ZoneFolder
     {
-        // A sign's table: standalone ones have a position; a trigger's has an offset from its volume's bottom center.
+        // Standalone signs have a position; a trigger's has an offset from its volume's bottom center.
         private static Sign ReadSign(ZoneToml toml, TomlTable table, string path, string positionKey)
         {
             toml.CheckKeys(

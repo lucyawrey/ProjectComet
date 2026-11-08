@@ -7,36 +7,28 @@ using Comet.Content;
 
 namespace Comet.ZoneFiles
 {
-    /// <summary>
-    /// Checks what a zone's files mean, after <see cref="ZoneFolder.Read"/> has checked their form: ids and names,
-    /// tiles that name a known piece and fit their chunk, terrain that matches where a piece's tiles meet, objects
-    /// whose pivots are in their own chunk, spawn, teleporter and trigger ids that name their zone, signs' text and
-    /// ranges, and toggle effects that name placements in it. Run by the content build, and by the editor before it
-    /// saves.
-    /// </summary>
+    /// <summary>Checks what a zone's files mean, after <see cref="ZoneFolder.Read"/> has checked their form.</summary>
     public static partial class ZoneValidation
     {
         private static readonly Regex NamePattern = new Regex("^[a-z][a-z0-9_]*$");
         private static readonly Regex PlacementTag = new Regex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$");
 
-        /// <summary>A name in ids and in the zone: a lowercase letter, then lowercase letters, digits and underscores.</summary>
+        /// <summary>A lowercase letter, then lowercase letters, digits and underscores.</summary>
         public static bool IsName(string name) => NamePattern.IsMatch(name);
 
-        /// <summary>Whether <paramref name="id"/> is <c>{kind}.zone.name</c>, as spawn, teleporter and trigger ids are.</summary>
+        /// <summary>Whether <paramref name="id"/> is <c>{kind}.zone.name</c>, as spawn and trigger ids are.</summary>
         public static bool IsZonedId(string id, string kind) =>
             id.StartsWith(kind + ".", StringComparison.Ordinal)
             && id.Substring(kind.Length + 1).Split('.') is { Length: 2 } parts
             && IsName(parts[0])
             && IsName(parts[1]);
 
-        /// <summary>The kinds a trigger volume can be.</summary>
         public static readonly PrimitiveKind[] VolumeKinds = { PrimitiveKind.Box, PrimitiveKind.Cylinder, PrimitiveKind.Sphere };
 
         /// <summary>Whether <paramref name="id"/> is <c>{kind}.name</c>.</summary>
         public static bool IsId(string id, string kind) =>
             id.StartsWith(kind + ".", StringComparison.Ordinal) && IsName(id.Substring(kind.Length + 1));
 
-        /// <summary>The problems in <paramref name="zone"/>, each against the file it's in.</summary>
         public static List<ZoneFileError> Check(Zone zone)
         {
             var errors = new List<ZoneFileError>();

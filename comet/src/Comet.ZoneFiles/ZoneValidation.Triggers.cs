@@ -39,7 +39,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A spawn point's, teleporter's or trigger's id, volume, pad and sign.
         private static void CheckTrigger(
             string id,
             string kind,

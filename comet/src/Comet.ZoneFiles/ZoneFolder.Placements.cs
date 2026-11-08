@@ -10,10 +10,6 @@ namespace Comet.ZoneFiles
 {
     public static partial class ZoneFolder
     {
-        /// <summary>
-        /// A placement's table (a zone's <c>[[placement]]</c> or a group's <c>[[part]]</c>): one of prop,
-        /// primitive or group, and its transform.
-        /// </summary>
         internal static Placement ReadPlacement(ZoneToml toml, TomlTable table, string path)
         {
             toml.CheckKeys(
@@ -82,7 +78,7 @@ namespace Comet.ZoneFiles
             return colors;
         }
 
-        /// <summary>A placement as its table, leaving out the defaults most placements have, to keep the files short.</summary>
+        /// <summary>Leaves out the defaults most placements have, to keep the files short.</summary>
         internal static TomlTable PlacementTable(Placement p)
         {
             var placement = new TomlTable();
@@ -149,7 +145,6 @@ namespace Comet.ZoneFiles
             return placement;
         }
 
-        // A color as 0xRRGGBB (a TOML integer, usually written in hex).
         private static uint? Color(ZoneToml toml, object? value, string path)
         {
             if (value is long number && number >= 0 && number <= 0xFFFFFF)
@@ -178,7 +173,6 @@ namespace Comet.ZoneFiles
             );
         }
 
-        // A placement's primitive and its values, or null if it places a prop or a group.
         private static Primitive? ReadPrimitive(ZoneToml toml, TomlTable table, string path)
         {
             if (!table.ContainsKey("primitive"))

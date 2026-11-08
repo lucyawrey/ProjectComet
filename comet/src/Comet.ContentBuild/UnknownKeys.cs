@@ -9,7 +9,6 @@ namespace Comet.ContentBuild;
 /// </summary>
 internal static class UnknownKeys
 {
-    /// <summary>Each key in <paramref name="document"/> that <paramref name="root"/> has no property for, with a message saying so.</summary>
     public static IEnumerable<(SyntaxNode Node, string Message)> Find(DocumentSyntax document, JsonTypeInfo root)
     {
         var problems = new List<(SyntaxNode, string)>();
@@ -76,7 +75,6 @@ internal static class UnknownKeys
         }
     }
 
-    // Walks a (possibly dotted) key from a type, returning the value's type, or null after recording an unknown key.
     private static JsonTypeInfo? Resolve(KeySyntax key, JsonTypeInfo owner, List<(SyntaxNode, string)> problems)
     {
         var type = owner;

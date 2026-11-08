@@ -6,12 +6,10 @@ namespace Comet.ContentBuild;
 
 /// <summary>
 /// System.Text.Json settings matching how Tomlyn reads content files (snake_case keys, enums by name, unknown keys
-/// disallowed). The unknown-key check and the JSON Schema both read type metadata from here, so they can't disagree
-/// with the reader. Reflection is fine: this runs only in the build tool.
+/// disallowed), so the unknown-key check and the JSON Schema can't disagree with the reader.
 /// </summary>
 public static class ContentJson
 {
-    /// <summary>The settings, shared so their type metadata is built once.</summary>
     public static readonly JsonSerializerOptions Options = CreateOptions();
 
     private static JsonSerializerOptions CreateOptions()
@@ -27,6 +25,5 @@ public static class ContentJson
         return options;
     }
 
-    /// <summary>The TOML key for a C# property name (<c>MaxSpeed</c> → <c>max_speed</c>).</summary>
     public static string KeyFor(string propertyName) => JsonNamingPolicy.SnakeCaseLower.ConvertName(propertyName);
 }

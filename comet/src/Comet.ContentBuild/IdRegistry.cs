@@ -5,9 +5,9 @@ using Tomlyn.Syntax;
 namespace Comet.ContentBuild;
 
 /// <summary>
-/// The committed ID registry (<c>content/ids.toml</c>): one table per content type, mapping each id, by its name
-/// (the id without its type), to a permanent number. New ids get the next number after the type's highest; numbers are never
-/// changed or reused, and entries whose file is gone stay in place (drift checks and retiring come later).
+/// The committed ID registry (<c>content/ids.toml</c>): one table per content type, mapping each name (the id
+/// without its type) to a permanent number. New ids get the next number after the type's highest; numbers are never
+/// changed or reused, and entries whose file is gone stay.
 /// </summary>
 public sealed class IdRegistry
 {
@@ -21,13 +21,11 @@ public sealed class IdRegistry
 
     private IdRegistry(string path) => Path = path;
 
-    /// <summary>The registry file's path.</summary>
     public string Path { get; }
 
-    /// <summary>Whether <see cref="Assign"/> added any numbers since loading.</summary>
     public bool Changed { get; private set; }
 
-    /// <summary>Loads the registry, or starts an empty one if the file doesn't exist yet.</summary>
+    /// <summary>Starts an empty registry if the file doesn't exist yet.</summary>
     public static IdRegistry Load(string path, string displayPath, List<ContentError> errors)
     {
         var registry = new IdRegistry(path);
@@ -96,7 +94,7 @@ public sealed class IdRegistry
         return registry;
     }
 
-    /// <summary>Returns each id's number, adding new ids (in id order) after the type's highest number.</summary>
+    /// <summary>New ids are numbered in id order, after the type's highest number.</summary>
     public IReadOnlyDictionary<string, int> Assign(string kind, IEnumerable<string> ids)
     {
         var numbers = KindTable(kind);
@@ -119,7 +117,7 @@ public sealed class IdRegistry
         return result;
     }
 
-    /// <summary>Writes the registry, each type's entries in number order (so concurrent additions conflict in git).</summary>
+    /// <summary>Writes each type's entries in number order, so concurrent additions conflict in git.</summary>
     public void Save()
     {
         var text = new StringBuilder(Header);

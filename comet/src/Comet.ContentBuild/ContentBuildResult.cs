@@ -2,7 +2,6 @@ using Comet.Content;
 
 namespace Comet.ContentBuild;
 
-/// <summary>The outcome of <see cref="ContentBuilder.Build"/>: every error found, or the checked entries with their numbers.</summary>
 public sealed class ContentBuildResult
 {
     private readonly IReadOnlyList<ContentBuilder.IReadContent> _types;
@@ -27,27 +26,25 @@ public sealed class ContentBuildResult
         Strings = strings;
     }
 
-    /// <summary>Every problem found, with its file, line and column; empty if the build succeeded.</summary>
     public IReadOnlyList<ContentError> Errors { get; }
 
-    /// <summary>What doesn't stop the build but should be dealt with before a release (blockout placements); errors in a release build.</summary>
+    /// <summary>Doesn't stop the build (blockout placements); errors in a release build.</summary>
     public IReadOnlyList<ContentError> Warnings { get; }
 
     public bool Succeeded => Errors.Count == 0;
 
-    /// <summary>The interface text, if the game registered a string file (<see cref="ContentBuilder.AddStrings"/>).</summary>
+    /// <summary>Null unless <see cref="ContentBuilder.AddStrings"/> was called.</summary>
     public StringTable? Strings { get; }
 
-    /// <summary>The zones, in number order, if the game registered a zones folder (<see cref="ContentBuilder.AddZones"/>).</summary>
+    /// <summary>In number order; empty unless <see cref="ContentBuilder.AddZones"/> was called.</summary>
     public IReadOnlyList<Zone> Zones { get; }
 
     /// <summary>
-    /// The groups, in number order, if the game registered a groups folder (<see
-    /// cref="ContentBuilder.AddGroups"/>); zones hold their copies already expanded.
+    /// In number order; empty unless <see cref="ContentBuilder.AddGroups"/> was called. Zones hold their copies
+    /// already expanded.
     /// </summary>
     public IReadOnlyList<Group> Groups { get; }
 
-    /// <summary>The registry numbers of keys numbered with <see cref="ContentBuilder.AddKeys"/>, by key.</summary>
     public IReadOnlyDictionary<string, int> Numbers(string kind)
     {
         if (!Succeeded)
@@ -58,7 +55,7 @@ public sealed class ContentBuildResult
         return _keyNumbers[kind];
     }
 
-    /// <summary>The entries of one registered type, in number order.</summary>
+    /// <summary>In number order.</summary>
     public IReadOnlyList<T> Entries<T>()
         where T : class, IContentEntry
     {

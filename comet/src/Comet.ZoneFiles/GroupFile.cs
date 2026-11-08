@@ -10,11 +10,10 @@ namespace Comet.ZoneFiles
 {
     /// <summary>
     /// A group's file (<c>groups/&lt;name&gt;.toml</c>): its <c>id</c>, then a <c>[[part]]</c> table for each part,
-    /// written like a zone's placements and relative to the group's pivot. Read by the content build and the editor.
+    /// written like a zone's placements and relative to the group's pivot.
     /// </summary>
     public static class GroupFile
     {
-        /// <summary>Reads the group in <paramref name="path"/>; problems go into <paramref name="errors"/> against <paramref name="file"/>.</summary>
         public static Group? Read(string path, string file, List<ZoneFileError> errors)
         {
             var toml = new ZoneToml(file, errors);
@@ -33,10 +32,7 @@ namespace Comet.ZoneFiles
             };
         }
 
-        /// <summary>
-        /// Every group in <paramref name="folder"/> (its <c>*.toml</c> files, in subfolders too), each with
-        /// its file relative to the folder.
-        /// </summary>
+        /// <summary>Includes subfolders; each file is relative to <paramref name="folder"/>.</summary>
         public static List<(Group Group, string File)> ReadFolder(string folder, List<ZoneFileError> errors)
         {
             var groups = new List<(Group, string)>();
@@ -59,7 +55,7 @@ namespace Comet.ZoneFiles
             return groups;
         }
 
-        /// <summary>Writes <paramref name="group"/> to <paramref name="path"/>, leaving the file untouched if it's the same.</summary>
+        /// <summary>Leaves the file untouched if it's the same.</summary>
         public static void Write(string path, Group group)
         {
             var table = new TomlTable { ["id"] = group.Id };
@@ -79,7 +75,7 @@ namespace Comet.ZoneFiles
             File.WriteAllBytes(path, bytes);
         }
 
-        /// <summary>The file a group with an id is kept in, relative to the groups folder: <c>group.tree</c> in <c>tree.toml</c>.</summary>
+        /// <summary>Relative to the groups folder: <c>group.tree</c> is in <c>tree.toml</c>.</summary>
         public static string FileFor(string key) =>
             (key.StartsWith("group.", StringComparison.Ordinal) ? key.Substring("group.".Length) : key) + ".toml";
     }

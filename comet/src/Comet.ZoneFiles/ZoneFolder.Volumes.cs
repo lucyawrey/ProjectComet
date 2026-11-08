@@ -5,7 +5,6 @@ namespace Comet.ZoneFiles
 {
     public static partial class ZoneFolder
     {
-        // The keys every trigger kind's table has: its volume, stand time, re-arm and pad.
         private static readonly string[] VolumeKeys = { "volume", "position", "yaw", "size", "stand_seconds", "rearm", "pad", "sign" };
 
         private static TriggerVolume ReadVolume(ZoneToml toml, TomlTable table, string path)

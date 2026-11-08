@@ -6,10 +6,9 @@ using Tomlyn.Syntax;
 namespace Comet.ContentBuild;
 
 /// <summary>
-/// Reads a string file (<c>strings/en.toml</c>): interface text grouped in TOML tables, each key's text a string,
-/// keyed by its dotted path (<c>[join]</c> then <c>name_taken = "…"</c> is <c>join.name_taken</c>). Key parts are
-/// lowercase letters, digits and underscores; placeholders are <c>{name}</c>, with no other braces, and only the
-/// names the game fills in when it lists them.
+/// Reads a string file (<c>strings/en.toml</c>): text keyed by its dotted path (<c>[join]</c> then
+/// <c>name_taken = "…"</c> is <c>join.name_taken</c>). Key parts are lowercase letters, digits and underscores;
+/// placeholders are <c>{name}</c>, with no other braces, and only the names the game lists.
 /// </summary>
 internal static class StringFile
 {
@@ -17,10 +16,6 @@ internal static class StringFile
     private static readonly Regex Braces = new(@"\{[^{}]*\}|[{}]");
     private static readonly Regex Placeholder = new($"^\\{{{ContentBuilder.NamePattern}\\}}$");
 
-    /// <summary>
-    /// Reads the string file at <paramref name="path"/>, adding problems to <paramref name="errors"/> under the
-    /// name <paramref name="file"/>.
-    /// </summary>
     public static StringTable Read(string path, string file, IReadOnlyCollection<string>? placeholders, List<ContentError> errors)
     {
         var table = new StringTable();
@@ -109,7 +104,6 @@ internal static class StringFile
         table.Entries[key] = value.Value!;
     }
 
-    // A key's dotted path, or null after recording a part that isn't allowed.
     private static string? Key(KeySyntax key, string file, List<ContentError> errors)
     {
         var parts = ContentBuilder.KeyParts(key).ToList();

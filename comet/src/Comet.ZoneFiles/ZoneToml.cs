@@ -24,7 +24,6 @@ namespace Comet.ZoneFiles
             _errors = errors;
         }
 
-        /// <summary>Parses a file's text; null (with an error) if it isn't valid TOML.</summary>
         public TomlTable? Parse(string text)
         {
             try
@@ -38,7 +37,7 @@ namespace Comet.ZoneFiles
             }
         }
 
-        /// <summary>The table as TOML, with one blank line before each table header so the blocks read apart.</summary>
+        /// <summary>One blank line before each table header, so the blocks read apart.</summary>
         public static string Write(TomlTable table)
         {
             var lines = TomlSerializer.Serialize(table, TomlSerializerOptions.Default).Replace("\r\n", "\n").Split('\n');
@@ -64,7 +63,6 @@ namespace Comet.ZoneFiles
 
         public void Error(string path, string message) => Error($"{path}: {message}");
 
-        /// <summary>Reports keys of <paramref name="table"/> outside <paramref name="known"/>.</summary>
         public void CheckKeys(TomlTable table, string path, params string[] known)
         {
             foreach (var pair in table)
@@ -76,7 +74,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        /// <summary>The tables of an array of tables (<c>[[name]]</c>), or none.</summary>
         public IEnumerable<(TomlTable Table, string Path)> Tables(TomlTable table, string key)
         {
             if (!table.TryGetValue(key, out var value))
@@ -154,7 +151,6 @@ namespace Comet.ZoneFiles
             return numbers is null ? fallback ?? Vector3.Zero : new Vector3(numbers[0], numbers[1], numbers[2]);
         }
 
-        /// <summary>A pair of numbers, such as an opening's width and height.</summary>
         public (float A, float B) Pair2(TomlTable table, string path, string key)
         {
             var value = Get(table, path, key, required: true);
@@ -162,7 +158,6 @@ namespace Comet.ZoneFiles
             return numbers is null ? (0, 0) : (numbers[0], numbers[1]);
         }
 
-        /// <summary>A pair of whole numbers, such as a chunk or a sample position.</summary>
         public (int X, int Z) Pair(TomlTable table, string path, string key)
         {
             if (Get(table, path, key, required: true) is TomlArray array && array.Count == 2)
@@ -178,7 +173,6 @@ namespace Comet.ZoneFiles
             return (0, 0);
         }
 
-        /// <summary>An enum value written in snake_case (<c>toward_point</c>).</summary>
         public T Enum<T>(TomlTable table, string path, string key, T? fallback = null)
             where T : struct, System.Enum
         {
@@ -201,7 +195,6 @@ namespace Comet.ZoneFiles
             return fallback ?? default;
         }
 
-        /// <summary><c>TowardPoint</c> as <c>toward_point</c>.</summary>
         public static string SnakeCase(string name)
         {
             var text = new StringBuilder();
@@ -218,7 +211,7 @@ namespace Comet.ZoneFiles
             return text.ToString();
         }
 
-        /// <summary>A float for a file, rounded to <paramref name="decimals"/> places (and never -0).</summary>
+        /// <summary>Rounded to <paramref name="decimals"/> places, and never -0.</summary>
         public static double Round(float value, int decimals)
         {
             var rounded = Math.Round((double)value, decimals);
