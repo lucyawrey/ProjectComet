@@ -557,7 +557,7 @@ namespace ShapeLand.Client
                 ShapeLandProtocol.Options,
                 ShapeLandWorld.TeleportSpeed(_content),
                 _content.Movement.Gravity,
-                ShapeLandWorld.GroundHeight(_content, World)
+                World.GroundHeight(_content.Movement)
             );
             session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
@@ -729,7 +729,7 @@ namespace ShapeLand.Client
                     // Before the player's arrival there: the world is built here, in the same frame, so the
                     // correction that follows lands in it and the player's movement never runs on the old zone.
                     EnterZone(zone, rebuild: true);
-                    Session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(_content, World);
+                    Session.Entities.GroundHeight = World.GroundHeight(_content.Movement);
                     foreach (var tag in entered.Flipped ?? Array.Empty<string>())
                     {
                         Flip(tag, true);

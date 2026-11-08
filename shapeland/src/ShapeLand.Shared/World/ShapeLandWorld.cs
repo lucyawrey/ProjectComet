@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Comet.Content;
@@ -18,44 +17,8 @@ namespace ShapeLand.Shared.World
         /// content build checks it's in one).
         /// </summary>
         public static (Zone Zone, SpawnPoint Spawn) StartOf(ShapeLandContent content, Shape shape) =>
-            FindSpawn(content, shape.Spawn) ?? throw new System.InvalidOperationException($"{shape.Id}'s spawn '{shape.Spawn}' isn't in any zone.");
-
-        /// <summary>The spawn point with id <paramref name="id"/> and its zone, or null if no zone has it.</summary>
-        public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(ShapeLandContent content, string id)
-        {
-            foreach (var zone in content.Zones.All)
-            {
-                foreach (var chunk in zone.Chunks)
-                {
-                    foreach (var spawn in chunk.Spawns)
-                    {
-                        if (spawn.Id == id)
-                        {
-                            return (zone, spawn);
-                        }
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>The ground in the middle of a spawn point's volume (for a camera to look at), or its bottom if there's none.</summary>
-        public static Vector3 Center(SpawnPoint spawn, CollisionWorld world)
-        {
-            var volume = spawn.Volume;
-            var top = volume.Position.Y + volume.Size.Y;
-            return world.TryGetGround(new Vector3(volume.Position.X, top, volume.Position.Z), 0, top, out var ground)
-                ? new Vector3(volume.Position.X, ground, volume.Position.Z)
-                : volume.Position;
-        }
-
-        /// <summary>
-        /// The highest ground under a position at or below it (terrain, or a mesh's top under the shared body), or
-        /// null over a hole or past the edge: for dead-reckoning other players (Comet.Client's RemoteEntities).
-        /// </summary>
-        public static Func<Vector3, float?> GroundHeight(ShapeLandContent content, CollisionWorld world) =>
-            feet => world.TryGetGround(feet, content.Movement.BodyRadius, feet.Y, out var height) ? height : null;
+            Triggers.FindSpawn(content.Zones.All, shape.Spawn)
+            ?? throw new System.InvalidOperationException($"{shape.Id}'s spawn '{shape.Spawn}' isn't in any zone.");
 
         /// <summary>
         /// Other players moving faster than this (across the ground, or upwards) are drawn jumping rather than

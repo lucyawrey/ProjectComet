@@ -245,6 +245,13 @@ namespace Comet.Simulation
         }
 
         /// <summary>
+        /// The highest ground under a position at or below it (terrain, or a mesh's top under the shared body), or
+        /// null over a hole or past the edge: for dead-reckoning other players (Comet.Client's RemoteEntities).
+        /// </summary>
+        public Func<Vector3, float?> GroundHeight(MovementRules rules) =>
+            feet => TryGetGround(feet, rules.BodyRadius, feet.Y, out var height) ? height : null;
+
+        /// <summary>
         /// Whether the line from <paramref name="from"/> to <paramref name="to"/> passes into a mesh or the terrain:
         /// crosses the front of a triangle, skipping meshes that are off or in <paramref name="passThrough"/>. Backs
         /// don't count, so a line from inside a mesh sees out of it.

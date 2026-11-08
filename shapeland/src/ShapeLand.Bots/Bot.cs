@@ -349,7 +349,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 var entered = FrameReader.Decode<ZoneEntered>(payload, options);
                 _world = worlds.For(content.Zones[entered.Zone]).WithOwnFlips();
                 _passThrough.Clear();
-                _session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(content, _world);
+                _session.Entities.GroundHeight = _world.GroundHeight(content.Movement);
                 foreach (var tag in entered.Flipped ?? [])
                 {
                     _world.SetFlipped(tag, true);

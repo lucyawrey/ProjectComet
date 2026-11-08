@@ -6,6 +6,7 @@ using Comet.Protocol;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
 using Comet.Server.Connections;
+using Comet.Simulation;
 using Comet.Tickets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -353,7 +354,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         await ada.ConnectAsync(_url);
         await ada.SendAsync(ShapeLandMessageIds.JoinRequest, JoinAs("Ada"));
 
-        var (zone, start) = ShapeLandWorld.FindSpawn(_content, StartSpawn)!.Value;
+        var (zone, start) = Triggers.FindSpawn(_content.Zones.All, StartSpawn)!.Value;
         Assert.Equal(zone.Number, (await ada.NextAsync<Welcome>(MessageIds.Welcome)).Zone);
         Assert.Equal(zone.Number, (await ada.NextAsync<ZoneEntered>(ShapeLandMessageIds.ZoneEntered)).Zone);
         var joined = await ada.NextAsync<PlayerSpawn>(ShapeLandMessageIds.PlayerSpawn);
@@ -497,7 +498,7 @@ public sealed class EndToEndTests : IAsyncLifetime
         Assert.Null(await ada.TryNextAsync<PositionCorrection>(MessageIds.PositionCorrection, TimeSpan.FromSeconds(0.5)));
     }
 
-    private SpawnPoint Spawn(string key) => ShapeLandWorld.FindSpawn(_content, key)!.Value.Spawn;
+    private SpawnPoint Spawn(string key) => Triggers.FindSpawn(_content.Zones.All, key)!.Value.Spawn;
 
     private Teleporter Teleporter(string key) => _content.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Single(t => t.Id == key);
 

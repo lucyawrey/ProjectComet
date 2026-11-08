@@ -72,13 +72,13 @@ public class ContentTests
         // then walk on off the edge. Change zones/tests only along with them.
         var (content, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
-        var (zone, spawn) = ShapeLandWorld.FindSpawn(content!, "spawn.tests.start")!.Value;
+        var (zone, spawn) = Triggers.FindSpawn(content!.Zones.All, "spawn.tests.start")!.Value;
         Assert.Equal("zone.tests", zone.Id);
         var world = ShapeLandWorld.Create(content!, zone);
         Assert.Equal((SpawnFacing.Direction, 0f), (spawn.Facing, spawn.Volume.Yaw));
         Assert.InRange(spawn.Volume.Size.X, 0, 0.25f);
 
-        var feet = ShapeLandWorld.Center(spawn, world);
+        var feet = Triggers.Center(spawn, world);
         var radius = content!.Movement.BodyRadius;
         for (var ahead = 2; ahead <= 19; ahead++) // past the spawn marker, flat ground at 0 m
         {

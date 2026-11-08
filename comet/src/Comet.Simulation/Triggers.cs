@@ -92,6 +92,36 @@ namespace Comet.Simulation
             return null;
         }
 
+        /// <summary>The spawn point with id <paramref name="id"/> and its zone, or null if none of <paramref name="zones"/> has it.</summary>
+        public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(IEnumerable<Zone> zones, string id)
+        {
+            foreach (var zone in zones)
+            {
+                foreach (var chunk in zone.Chunks)
+                {
+                    foreach (var spawn in chunk.Spawns)
+                    {
+                        if (spawn.Id == id)
+                        {
+                            return (zone, spawn);
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The ground in the middle of a spawn point's volume (for a camera to look at), or its bottom if there's none.</summary>
+        public static Vector3 Center(SpawnPoint spawn, CollisionWorld world)
+        {
+            var volume = spawn.Volume;
+            var top = volume.Position.Y + volume.Size.Y;
+            return world.TryGetGround(new Vector3(volume.Position.X, top, volume.Position.Z), 0, top, out var ground)
+                ? new Vector3(volume.Position.X, ground, volume.Position.Z)
+                : volume.Position;
+        }
+
         /// <summary>
         /// Whether <paramref name="feet"/> are inside <paramref name="volume"/>: a box or an upright cylinder from its
         /// bottom (less <see cref="BottomSlack"/>) to its top, or a sphere (an ellipsoid for an uneven size) filling its size.
