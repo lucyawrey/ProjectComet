@@ -315,6 +315,15 @@ public class ZoneValidationTests
     }
 
     [Fact]
+    public void ATeleporterWithNoTargetYetIsValid()
+    {
+        var zone = Zones.Sample();
+        zone.Chunks[1].Teleporters[0].Target = "";
+
+        Assert.Empty(Errors(zone));
+    }
+
+    [Fact]
     public void ChecksBordersEntrancesAndRooms()
     {
         var zone = Zones.Sample();

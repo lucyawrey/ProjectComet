@@ -25,6 +25,26 @@ namespace Comet.Unity.Editor
             MessagePack.Resolvers.StandardResolver.Instance
         );
 
+        [MenuItem("Comet/Zones/New Zone…", priority = 0)]
+        public static void NewMenu()
+        {
+            var settings = CometSettings.Find(quiet: false);
+            if (settings == null || !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
+            var folder = PickNewZoneFolder("New zone", settings);
+            if (folder != null)
+            {
+                ZoneFolder.Write(folder, new Zone { Id = "zone." + Path.GetFileName(folder) });
+                Open(folder, settings);
+            }
+        }
+
+        [MenuItem("Comet/Zones/New Zone…", true)]
+        private static bool CanNew() => !EditorApplication.isPlaying;
+
         [MenuItem("Comet/Zones/Open…", priority = 1)]
         public static void OpenMenu()
         {
@@ -99,8 +119,82 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Save", true)]
         private static bool CanSave() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
 
+        /// <summary>
+        /// Saves the opened zone into a new folder as a zone named after it, then opens that. The zone's own files
+        /// keep their last save.
+        /// </summary>
+        [MenuItem("Comet/Zones/Save As…", priority = 4)]
+        public static void SaveAsMenu()
+        {
+            var editing = UnityEngine.Object.FindAnyObjectByType<ZoneEditing>();
+            var settings = CometSettings.Find(quiet: false);
+            if (editing == null || settings == null)
+            {
+                return;
+            }
+
+            var folder = PickNewZoneFolder("Save zone as", settings);
+            if (folder == null)
+            {
+                return;
+            }
+
+            var zone = Gather(editing);
+            ZoneRename.Rename(zone, "zone." + Path.GetFileName(folder));
+            if (!Write(zone, folder))
+            {
+                RemoveIfEmpty(folder);
+                return;
+            }
+
+            if (Open(folder, settings))
+            {
+                Saved?.Invoke(UnityEngine.Object.FindAnyObjectByType<ZoneEditing>()!);
+            }
+        }
+
+        [MenuItem("Comet/Zones/Save As…", true)]
+        private static bool CanSaveAs() =>
+            !EditorApplication.isPlaying && UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() is { IsGroup: false, HasZoneData: true };
+
+        // A folder for a new zone, named in a save-file dialog directly inside the zones folder, new or empty, and named
+        // as a zone is; null if the pick was canceled or refused (saying why). A file dialog, unlike a folder one, lets
+        // the name be typed and creates nothing.
+        private static string? PickNewZoneFolder(string title, CometSettings settings)
+        {
+            var zones = ProjectPath(settings.zonesFolder).TrimEnd('/', '\\');
+            var picked = EditorUtility.SaveFilePanel(title, zones, "", "");
+            if (string.IsNullOrEmpty(picked))
+            {
+                return null;
+            }
+
+            picked = Path.GetFullPath(picked).TrimEnd('/', '\\');
+            var name = Path.GetFileName(picked);
+            var problem =
+                Path.GetDirectoryName(picked) != zones ? $"Zones go directly in {settings.zonesFolder}."
+                : !ZoneValidation.IsName(name) ? $"'{name}' isn't a zone name: use lowercase letters, digits and underscores, starting with a letter."
+                : Directory.Exists(picked) && Directory.EnumerateFileSystemEntries(picked).Any() ? $"{name} already has files in it."
+                : null;
+            if (problem == null)
+            {
+                return picked;
+            }
+
+            EditorUtility.DisplayDialog(title, problem, "OK");
+            return null;
+        }
+
+        private static void RemoveIfEmpty(string folder)
+        {
+            if (Directory.Exists(folder) && !Directory.EnumerateFileSystemEntries(folder).Any())
+            {
+                Directory.Delete(folder);
+            }
+        }
+
         /// <summary>Drops the opened zone's (or group's) unsaved changes, reading it again from its files.</summary>
-        [MenuItem("Comet/Zones/Discard Changes", priority = 4)]
+        [MenuItem("Comet/Zones/Discard Changes", priority = 5)]
         public static void DiscardMenu()
         {
             var editing = UnityEngine.Object.FindAnyObjectByType<ZoneEditing>();
@@ -217,7 +311,18 @@ namespace Comet.Unity.Editor
                 return true;
             }
 
-            var zone = Gather(editing);
+            if (!Write(Gather(editing), ProjectPath(editing.folder)))
+            {
+                return false;
+            }
+
+            Saved?.Invoke(editing);
+            return true;
+        }
+
+        // Writes a zone to its folder; false (with the reasons logged) if it doesn't validate.
+        private static bool Write(Zone zone, string folder)
+        {
             var errors = ZoneValidation.Check(zone);
             var library = CometSettings.Find(quiet: true)?.props;
             if (library != null)
@@ -231,9 +336,8 @@ namespace Comet.Unity.Editor
                 return false;
             }
 
-            ZoneFolder.Write(ProjectPath(editing.folder), zone);
-            Debug.Log($"Saved {zone.Id} to {editing.folder}.");
-            Saved?.Invoke(editing);
+            ZoneFolder.Write(folder, zone);
+            Debug.Log($"Saved {zone.Id} to {RelativeToProject(folder)}.");
             return true;
         }
 

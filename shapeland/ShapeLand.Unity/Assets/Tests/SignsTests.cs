@@ -15,6 +15,8 @@ namespace ShapeLand.Client.Tests
         public IEnumerator SignsShowInRangeAndInSight()
         {
             yield return StartGame();
+            // The camera moves to the player in its next LateUpdate after the spawn, and the signs are placed from it.
+            yield return TestGameServer.WaitFor(() => Vector3.Distance(Camera.transform.position, View.Player.transform.position) < 10, 5);
             var eye = Camera.transform.position;
             var ahead = eye + Camera.transform.forward * 4;
             var right = Camera.transform.right * 1.5f;

@@ -250,13 +250,18 @@ public sealed class ContentBuilder
             }
         }
 
-        // Teleporters may target any zone's; ids name their zone, so they're unique across zones already.
+        // Teleporters may target any zone's; ids name their zone, so they're unique across zones already. One not
+        // linked yet only warns, so zones can be linked one side at a time; standing on it does nothing.
         var teleporters = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Select(t => t.Id).ToHashSet();
         foreach (var zone in zones)
         {
             foreach (var teleporter in zone.Chunks.SelectMany(c => c.Teleporters).Where(t => !teleporters.Contains(t.Target)))
             {
-                errors.Add(new ContentError(zoneFolders[zone.Id], 1, 1, $"{teleporter.Id}: there's no teleporter '{teleporter.Target}' to target."));
+                var message =
+                    teleporter.Target == ""
+                        ? $"{teleporter.Id}: no target yet, so it goes nowhere."
+                        : $"{teleporter.Id}: there's no teleporter '{teleporter.Target}' to target yet, so it goes nowhere.";
+                warnings.Add(new ContentError(zoneFolders[zone.Id], 1, 1, message, Warning: true));
             }
         }
 

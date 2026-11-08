@@ -342,7 +342,7 @@ void Package()
         Directory.Delete(output, recursive: true);
     Directory.CreateDirectory(output);
     Console.WriteLine("== Building the game server package");
-    Tool.Quietly("dotnet", "run", "--project", Path.Combine(Tool.Repo, "shapeland", "src", "ShapeLand.ContentBuild"), "--", "build");
+    Tool.Quietly("dotnet", "run", "--project", Path.Combine(Tool.Repo, "shapeland", "src", "ShapeLand.ContentBuild"), "--", "build", "--release");
     var programs = new List<(string Project, string Folder)> { ("ShapeLand.LoginServer", "login"), ("ShapeLand.GameServer", "server") };
     if (bots > 0)
         programs.Add(("ShapeLand.Bots", "bots"));
@@ -537,7 +537,7 @@ void Page()
     if (!File.Exists(Path.Combine(web, "index.html")))
         throw Tool.Fail($"No web build at {web}.");
 
-    Tool.Quietly("dotnet", "run", "--project", Path.Combine(Tool.Repo, "shapeland", "src", "ShapeLand.ContentBuild"), "--", "build");
+    Tool.Quietly("dotnet", "run", "--project", Path.Combine(Tool.Repo, "shapeland", "src", "ShapeLand.ContentBuild"), "--", "build", "--release");
     if (Directory.Exists(output))
         Directory.Delete(output, recursive: true);
     foreach (var path in Directory.EnumerateFiles(web, "*", SearchOption.AllDirectories))

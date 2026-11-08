@@ -298,7 +298,8 @@ int? Result()
         return null;
     if (line.Groups[1].Success)
         return int.Parse(line.Groups[1].Value);
-    return line.Value is "Build Finished, Result: Success" or "Batchmode quit successfully invoked" ? 0 : 1;
+    // A build that throws before starting (such as a missing platform module) still quits successfully.
+    return line.Value == "Build Finished, Result: Success" || (line.Value == "Batchmode quit successfully invoked" && job != "build") ? 0 : 1;
 }
 
 // The editor writes the log as it goes; read it without getting in its way.

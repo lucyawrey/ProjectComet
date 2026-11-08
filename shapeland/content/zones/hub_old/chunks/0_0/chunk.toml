@@ -59,7 +59,7 @@ scale = [20.324, 2.0, 2.0]
 color = 0x4A4D52
 
 [[spawn]]
-id = "spawn.hub.pyramid"
+id = "spawn.hub_old.plains"
 volume = "cylinder"
 position = [8.98, 6.68, 3.83]
 size = [4.0, 1.0, 4.0]
@@ -72,7 +72,7 @@ position = [8.98, 6.28, 3.83]
 scale = [4.0, 0.4, 4.0]
 
 [[spawn]]
-id = "spawn.hub.cube"
+id = "spawn.hub_old.cubehome"
 volume = "cylinder"
 position = [5.0, 8.947, 43.71]
 size = [4.0, 1.0, 4.0]
@@ -85,13 +85,13 @@ position = [5.0, 8.547, 43.71]
 scale = [4.0, 0.4, 4.0]
 
 [[teleporter]]
-id = "teleporter.hub.pyramid"
+id = "teleporter.hub_old.fields"
 volume = "box"
 position = [8.668, 6.669, 8.769]
 size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
-target = "teleporter.hub.pancake"
+target = "teleporter.hub_old.pancake"
 charge_color = 0xFFFFFF
 
 [teleporter.pad]

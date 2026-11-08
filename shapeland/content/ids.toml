@@ -51,30 +51,43 @@ pyramid = 8
 blue = 9
 tests_start = 10
 theatre = 11
-"hub.blue" = 12
-"hub.cube" = 13
-"hub.diamond" = 14
-"hub.pyramid" = 15
-"hub.theatre" = 16
+"hub_old.blue" = 12
+"hub_old.cube" = 13
+"hub_old.diamond" = 14
+"hub_old.pyramid" = 15
+"hub_old.theatre" = 16
 "tests.second" = 17
 "tests.start" = 18
+"hub_old.cubehome" = 19
+"hub_old.plains" = 20
+"main.cube" = 21
+"main.diamond" = 22
+"main.pyramid" = 23
 
 [teleporter]
 "tests.east" = 1
 "tests.to_far" = 2
 "tests.west" = 3
 "tests_far.back" = 4
-"hub.cube" = 5
-"hub.theatre" = 6
-"hub.to_test" = 7
-"hub.pancake" = 8
-"hub.pyramid" = 9
+"hub_old.cube" = 5
+"hub_old.theatre" = 6
+"hub_old.to_test" = 7
+"hub_old.pancake" = 8
+"hub_old.pyramid" = 9
+"hub_old.cubehome" = 10
+"hub_old.fields" = 11
+"hub_old.main" = 12
+"hub_old.entry" = 13
+"main.hub_old" = 14
 
 [trigger]
 "tests.plate" = 1
-"hub.bridge" = 2
+"hub_old.bridge" = 2
 
 [zone]
-hub = 1
+hub_old = 1
 tests = 2
 tests_far = 3
+main = 4
+zone = 5
+zone6 = 6
