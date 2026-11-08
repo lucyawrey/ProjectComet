@@ -26,6 +26,7 @@
 // and its snapshots well under a dollar a month; the page is on Vercel's free plan. When the servers are down, the
 // page says the game isn't open for testing.
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 using System.Formats.Tar;
 using System.IO.Compression;
 using System.Net;
