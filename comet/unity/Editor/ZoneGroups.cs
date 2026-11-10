@@ -119,9 +119,7 @@ namespace Comet.Unity.Editor
             : part.Primitive == null && settings.props != null && settings.props.TryGet(part.Prop, out var entry) && entry.hasColor ? entry.color
             : settings.placedColor;
 
-        public static void Redraw(ZonePlacement copy) => Draw(copy);
-
-        private static void Draw(ZonePlacement copy)
+        public static void Draw(ZonePlacement copy)
         {
             if (copy == null || copy.EditingInPlace)
             {

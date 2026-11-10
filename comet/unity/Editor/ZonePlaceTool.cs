@@ -547,7 +547,7 @@ namespace Comet.Unity.Editor
                     placement.ApplyColor();
                     if (placement.IsGroup)
                     {
-                        ZoneGroups.Redraw(placement);
+                        ZoneGroups.Draw(placement);
                     }
                 }
 
