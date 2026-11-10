@@ -18,8 +18,6 @@ public sealed class BotSettings
 
     public float JumpCheat { get; set; } = 1;
 
-    public float WanderRadius { get; set; } = 18;
-
     public double WarmupSeconds { get; set; } = -1;
 }
 
@@ -74,13 +72,9 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public int Respawns { get; private set; }
 
-    public int Teleports { get; private set; }
-
     public int ChatsSent { get; private set; }
 
     public int ChatsReceived { get; private set; }
-
-    public int Despawns { get; private set; }
 
     public bool Failed { get; private set; }
 
@@ -141,11 +135,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         );
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
-        _session.EntityDespawned += id =>
-        {
-            Despawns++;
-            _cheatersInView.Remove(id);
-        };
+        _session.EntityDespawned += id => _cheatersInView.Remove(id);
 
         var clock = Stopwatch.StartNew();
         StartedAt = DateTimeOffset.UtcNow;
@@ -338,11 +328,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         {
             Respawns++;
         }
-        else if (correction.Reason == CorrectionReason.Teleport)
-        {
-            Teleports++;
-        }
-        else
+        else if (correction.Reason != CorrectionReason.Teleport)
         {
             SnapBacks++;
         }
@@ -424,7 +410,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private Vector2 RandomPoint()
     {
         var angle = _random.NextDouble() * Math.Tau;
-        var distance = settings.WanderRadius * Math.Sqrt(_random.NextDouble());
+        const float wanderRadius = 18;
+        var distance = wanderRadius * Math.Sqrt(_random.NextDouble());
         return new Vector2((float)(Math.Cos(angle) * distance), (float)(Math.Sin(angle) * distance));
     }
 }
