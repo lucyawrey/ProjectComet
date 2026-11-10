@@ -12,13 +12,19 @@ public class ZoneFolderTests
         return ZoneFolder.Read(folder.Root, errors);
     }
 
+    private static Zone RoundTripClean(Zone zone, TempFolder folder)
+    {
+        var read = RoundTrip(zone, folder, out var errors);
+        Assert.Empty(errors);
+        return read;
+    }
+
     [Fact]
     public void RoundTripsAZone()
     {
         using var folder = new TempFolder();
-        var zone = RoundTrip(Zones.Sample(), folder, out var errors);
+        var zone = RoundTripClean(Zones.Sample(), folder);
 
-        Assert.Empty(errors);
         Assert.Empty(ZoneValidation.Check(zone));
         Assert.Equal("zone.meadow", zone.Id);
         var piece = Assert.Single(zone.Pieces);
@@ -67,8 +73,7 @@ public class ZoneFolderTests
         Assert.Null(RoundTrip(sample, folder, out _).KillHeight);
 
         sample.KillHeight = 150;
-        var zone = RoundTrip(sample, folder, out var errors);
-        Assert.Empty(errors);
+        var zone = RoundTripClean(sample, folder);
         Assert.Equal(150f, zone.KillHeight);
         Assert.Contains("kill_height = 150.0", File.ReadAllText(folder.PathOf("zone.toml")));
     }
@@ -84,9 +89,8 @@ public class ZoneFolderTests
         Assert.DoesNotContain("height_base", File.ReadAllText(folder.PathOf("zone.toml")));
 
         sample.HeightBase = -400;
-        var zone = RoundTrip(sample, folder, out var errors);
+        var zone = RoundTripClean(sample, folder);
 
-        Assert.Empty(errors);
         Assert.Contains("height_base = -400.0", File.ReadAllText(folder.PathOf("zone.toml")));
         var (was, read) = (plain.Chunks[0].Tiles[0], zone.Chunks[0].Tiles[0]);
         Assert.Equal(was.Heights.Samples, read.Heights.Samples);
@@ -182,9 +186,8 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements[0].Off = true;
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.True(read.Chunks[0].Placements[0].Off);
         Assert.Contains("off = true", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
@@ -206,9 +209,8 @@ public class ZoneFolderTests
             Colors = Enumerable.Repeat(0x336633u, size).ToArray(),
         };
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.Empty(ZoneValidation.Check(read));
         Assert.Equal(0x7a5c3eu, read.Pieces[0].UnderColor);
         Assert.Equal(0x739e4du, read.Pieces[0].GroundColor);
@@ -225,9 +227,8 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements[0].Color = 0xc04020;
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.Equal(0xc04020u, read.Chunks[0].Placements[0].Color);
         Assert.Contains("color = 0xC04020", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
@@ -276,9 +277,8 @@ public class ZoneFolderTests
         ];
         placement.Blockout = true;
 
-        var read = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+        var read = RoundTripClean(zone, folder).Chunks[0].Placements[0];
 
-        Assert.Empty(errors);
         Assert.Equal("", read.Prop);
         Assert.True(read.Blockout);
         Assert.Equivalent(placement.Primitive, read.Primitive, strict: true);
@@ -313,9 +313,8 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements[0].Tag = "east.gate";
 
-        var placement = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+        var placement = RoundTripClean(zone, folder).Chunks[0].Placements[0];
 
-        Assert.Empty(errors);
         Assert.Equal("east.gate", placement.Tag);
         Assert.Contains("tag = \"east.gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
@@ -499,9 +498,8 @@ public class ZoneFolderTests
                 Off = true,
             },
         ];
-        var zone = RoundTrip(sample, folder, out var errors);
+        var zone = RoundTripClean(sample, folder);
 
-        Assert.Empty(errors);
         Assert.Contains(
             """
             [[sign]]
@@ -551,9 +549,8 @@ public class ZoneFolderTests
             BackgroundColor = 0x202030,
             Arrow = true,
         };
-        var zone = RoundTrip(sample, folder, out var errors);
+        var zone = RoundTripClean(sample, folder);
 
-        Assert.Empty(errors);
         Assert.Contains(
             """
             [spawn.sign]
