@@ -65,7 +65,7 @@ namespace ShapeLand.Client
         {
             if (_confirm.Open)
             {
-                NavigateConfirm(actions);
+                _confirm.Navigate(_navigation, actions, () => Navigating = true);
                 return;
             }
 
@@ -123,26 +123,6 @@ namespace ShapeLand.Client
             else if (actions.Submit.WasPressedThisFrame() && (!typing || actions.Submit.activeControl?.device is Gamepad))
             {
                 SubmitRow(typing);
-            }
-        }
-
-        private void NavigateConfirm(ShapeLandControls.MenuActions actions)
-        {
-            var step = _navigation.Step(actions.Navigate.ReadValue<Vector2>());
-            if (step.y != 0)
-            {
-                Navigating = true;
-                _confirm.Move(step.y);
-            }
-
-            if (actions.Back.WasPressedThisFrame())
-            {
-                _confirm.Cancel();
-            }
-            else if (actions.Submit.WasPressedThisFrame())
-            {
-                Navigating = true;
-                _confirm.Choose();
             }
         }
 

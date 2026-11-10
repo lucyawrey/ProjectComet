@@ -1,4 +1,6 @@
 using System;
+using Comet.Content;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
@@ -8,7 +10,6 @@ namespace ShapeLand.Client
         private readonly VisualElement _overlay;
         private readonly VisualElement _column;
         private readonly VisualElement _host;
-        private Action _cancel;
         private readonly System.Collections.Generic.List<(Button Button, Action Chosen)> _choices = new System.Collections.Generic.List<(
             Button,
             Action
@@ -29,9 +30,8 @@ namespace ShapeLand.Client
 
         public bool Open => !_overlay.ClassListContains("hidden");
 
-        public void Show(string title, string note, Action cancel, params (string Text, bool Risky, Action Chosen)[] choices)
+        public void Show(string title, string note, params (string Text, bool Risky, Action Chosen)[] choices)
         {
-            _cancel = cancel;
             _column.Clear();
             _choices.Clear();
             _column.Add(Label(title, "menu-confirm-title"));
@@ -70,6 +70,49 @@ namespace ShapeLand.Client
             _host.AddToClassList("confirming");
         }
 
+        public void AskToSignOut(StringTable strings, bool guest, Action setPassword, Action signOut)
+        {
+            if (guest)
+            {
+                Show(
+                    strings.Get("account.sign_out_guest_title"),
+                    strings.Get("account.sign_out_guest_note"),
+                    (strings.Get("account.set_password"), false, setPassword),
+                    (strings.Get("account.stay"), false, null),
+                    (strings.Get("account.sign_out"), true, signOut)
+                );
+            }
+            else
+            {
+                Show(
+                    strings.Get("account.sign_out_title"),
+                    strings.Get("account.sign_out_note"),
+                    (strings.Get("account.sign_out"), true, signOut),
+                    (strings.Get("account.stay"), false, null)
+                );
+            }
+        }
+
+        public void Navigate(MenuNavigation navigation, ShapeLandControls.MenuActions actions, Action navigated)
+        {
+            var step = navigation.StepVertical(actions.Navigate.ReadValue<Vector2>());
+            if (step.y != 0)
+            {
+                navigated();
+                Move(step.y);
+            }
+
+            if (actions.Back.WasPressedThisFrame())
+            {
+                Close();
+            }
+            else if (actions.Submit.WasPressedThisFrame())
+            {
+                navigated();
+                Choose();
+            }
+        }
+
         public void Move(int by)
         {
             _selected = Math.Clamp(_selected + by, 0, _choices.Count - 1);
@@ -94,16 +137,8 @@ namespace ShapeLand.Client
             }
         }
 
-        public void Cancel()
-        {
-            var cancel = _cancel;
-            Close();
-            cancel?.Invoke();
-        }
-
         public void Close()
         {
-            _cancel = null;
             _overlay.AddToClassList("hidden");
             _host.RemoveFromClassList("confirming");
         }

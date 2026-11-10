@@ -177,31 +177,7 @@ namespace ShapeLand.Client
             ShowCardAgain(null);
         }
 
-        private void AskToSignOut()
-        {
-            var strings = _content.Strings;
-            if (_join.Account?.Guest ?? true)
-            {
-                _confirm.Show(
-                    strings.Get("account.sign_out_guest_title"),
-                    strings.Get("account.sign_out_guest_note"),
-                    null,
-                    (Text("account.set_password"), false, () => SetSettingPassword(true)),
-                    (Text("account.stay"), false, null),
-                    (Text("account.sign_out"), true, SignOut)
-                );
-            }
-            else
-            {
-                _confirm.Show(
-                    Text("account.sign_out_title"),
-                    Text("account.sign_out_note"),
-                    null,
-                    (Text("account.sign_out"), true, SignOut),
-                    (Text("account.stay"), false, null)
-                );
-            }
-        }
+        private void AskToSignOut() => _confirm.AskToSignOut(_content.Strings, _join.Account?.Guest ?? true, () => SetSettingPassword(true), SignOut);
 
         private async void SignOut() => await _join.SignOutAsync();
 

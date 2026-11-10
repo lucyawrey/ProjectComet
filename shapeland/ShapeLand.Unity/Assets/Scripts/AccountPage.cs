@@ -168,7 +168,7 @@ namespace ShapeLand.Client
         {
             if (_confirm.Open)
             {
-                _confirm.Cancel();
+                _confirm.Close();
                 return;
             }
 
@@ -294,23 +294,7 @@ namespace ShapeLand.Client
 
             if (_confirm.Open)
             {
-                var question = _navigation.StepVertical(actions.Navigate.ReadValue<Vector2>());
-                if (question.y != 0)
-                {
-                    Navigating = true;
-                    _confirm.Move(question.y);
-                }
-
-                if (actions.Back.WasPressedThisFrame())
-                {
-                    _confirm.Cancel();
-                }
-                else if (actions.Submit.WasPressedThisFrame())
-                {
-                    Navigating = true;
-                    _confirm.Choose();
-                }
-
+                _confirm.Navigate(_navigation, actions, () => Navigating = true);
                 return;
             }
 
@@ -684,31 +668,8 @@ namespace ShapeLand.Client
             }
         }
 
-        private void AskToSignOut()
-        {
-            var strings = _hud.Join.Content.Strings;
-            if (_hud.Join.Account?.Guest ?? true)
-            {
-                _confirm.Show(
-                    strings.Get("account.sign_out_guest_title"),
-                    strings.Get("account.sign_out_guest_note"),
-                    null,
-                    (Text("account.set_password"), false, () => ShowStep(Step.Password)),
-                    (Text("account.stay"), false, null),
-                    (Text("account.sign_out"), true, SignOut)
-                );
-            }
-            else
-            {
-                _confirm.Show(
-                    Text("account.sign_out_title"),
-                    Text("account.sign_out_note"),
-                    null,
-                    (Text("account.sign_out"), true, SignOut),
-                    (Text("account.stay"), false, null)
-                );
-            }
-        }
+        private void AskToSignOut() =>
+            _confirm.AskToSignOut(_hud.Join.Content.Strings, _hud.Join.Account?.Guest ?? true, () => ShowStep(Step.Password), SignOut);
 
         private async void SignOut()
         {
