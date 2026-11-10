@@ -285,17 +285,15 @@ namespace ShapeLand.Client
             {
                 _root.RemoveFromClassList("signing-in");
                 SetSignedIn(false);
-            }
-            _root.EnableInClassList("changing", changing);
-            _root.pickingMode = changing ? PickingMode.Ignore : PickingMode.Position;
-            if (changing)
-            {
                 CloseServerField();
             }
-            if (!changing)
+            else
             {
                 _back = null;
             }
+
+            _root.EnableInClassList("changing", changing);
+            _root.pickingMode = changing ? PickingMode.Ignore : PickingMode.Position;
 
             _cancelButton.EnableInClassList("hidden", !changing || _back != null);
             _backButton.EnableInClassList("hidden", _back == null);
@@ -472,6 +470,14 @@ namespace ShapeLand.Client
             FocusName();
         }
 
+        private NewCharacter CardLook() =>
+            new NewCharacter
+            {
+                Shape = _shape.Number,
+                Color = _color,
+                EyeColor = _eyeColor,
+            };
+
         public async void Submit()
         {
             if (!_joinButton.enabledSelf || _content == null || _busy)
@@ -520,15 +526,7 @@ namespace ShapeLand.Client
             SetButton(false, "join.joining");
             if (!JoinClient.Accounts)
             {
-                (_devName, _devLook) = (
-                    name,
-                    new NewCharacter
-                    {
-                        Shape = _shape.Number,
-                        Color = _color,
-                        EyeColor = _eyeColor,
-                    }
-                );
+                (_devName, _devLook) = (name, CardLook());
                 _join.DevJoin(_devName, _devLook);
                 return;
             }
@@ -536,15 +534,7 @@ namespace ShapeLand.Client
 #if !UNITY_WEBGL || UNITY_EDITOR
             _join.UseLoginServer(ServerAddress());
 #endif
-            var error = await _join.CreateGuestAsync(
-                name,
-                new NewCharacter
-                {
-                    Shape = _shape.Number,
-                    Color = _color,
-                    EyeColor = _eyeColor,
-                }
-            );
+            var error = await _join.CreateGuestAsync(name, CardLook());
             if (error == LoginErrors.NameTaken)
             {
                 _takenName = name;
@@ -731,18 +721,7 @@ namespace ShapeLand.Client
             }
 
             var message = LoginMessage(_content.Strings, error);
-            if (Connecting)
-            {
-                FailPop(message);
-            }
-            else if (_join.SignedIn)
-            {
-                ShowSignedIn(message);
-            }
-            else
-            {
-                Retry(message);
-            }
+            ShowFailure(message);
         }
 
         private void OnFailed(JoinFailure failure)
@@ -768,6 +747,11 @@ namespace ShapeLand.Client
                     ("address", JoinClient.Accounts ? _join.LoginAddress : $"localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}")
                 ),
             };
+            ShowFailure(message);
+        }
+
+        private void ShowFailure(string message)
+        {
             if (Connecting)
             {
                 FailPop(message);
