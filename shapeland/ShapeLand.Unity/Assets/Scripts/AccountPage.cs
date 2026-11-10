@@ -308,7 +308,8 @@ namespace ShapeLand.Client
                 return;
             }
 
-            if (submit || actions.Back.WasPressedThisFrame())
+            var back = actions.Back.WasPressedThisFrame();
+            if (submit || back)
             {
                 Navigating = true;
             }
@@ -324,27 +325,17 @@ namespace ShapeLand.Client
                 }
             }
 
-            if (actions.Back.WasPressedThisFrame())
+            if ((back || submit) && typing)
             {
-                if (typing)
-                {
-                    _page.focusController?.focusedElement?.Blur();
-                }
-                else
-                {
-                    Back();
-                }
+                _page.focusController?.focusedElement?.Blur();
+            }
+            else if (back)
+            {
+                Back();
             }
             else if (submit)
             {
-                if (typing)
-                {
-                    _page.focusController?.focusedElement?.Blur();
-                }
-                else
-                {
-                    Activate();
-                }
+                Activate();
             }
         }
 
