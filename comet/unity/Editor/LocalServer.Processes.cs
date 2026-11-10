@@ -44,20 +44,15 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"{arguments} {settings.serverArguments}")
-            {
-                WorkingDirectory = ContentBuild.ProjectRoot,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+            var command = $"{arguments} {settings.serverArguments}";
             try
             {
-                using var process = Process.Start(start)!;
+                var (pid, startTicks) = StartDotnet(command);
                 Write(
                     new State
                     {
-                        pid = process.Id,
-                        startTicks = process.StartTime.ToUniversalTime().Ticks,
+                        pid = pid,
+                        startTicks = startTicks,
                         content = content,
                         program = program,
                         botsProgram = bots,
@@ -76,7 +71,7 @@ namespace Comet.Unity.Editor
             }
             catch (Exception e)
             {
-                Debug.LogError($"Couldn't start the local game server ({start.FileName} {start.Arguments}): {e.Message}");
+                Debug.LogError($"Couldn't start the local game server ({ContentBuild.Dotnet()} {command}): {e.Message}");
                 return false;
             }
 
@@ -157,16 +152,7 @@ namespace Comet.Unity.Editor
                     .Replace("{page}", $"http://{host}:{port}");
             try
             {
-                using var loginProcess = Process.Start(
-                    new ProcessStartInfo(ContentBuild.Dotnet(), loginArguments)
-                    {
-                        WorkingDirectory = ContentBuild.ProjectRoot,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    }
-                )!;
-                pid = loginProcess.Id;
-                startTicks = loginProcess.StartTime.ToUniversalTime().Ticks;
+                (pid, startTicks) = StartDotnet(loginArguments);
                 return true;
             }
             catch (Exception e)
@@ -176,6 +162,19 @@ namespace Comet.Unity.Editor
                 startTicks = 0;
                 return false;
             }
+        }
+
+        private static (int Pid, long StartTicks) StartDotnet(string arguments)
+        {
+            using var process = Process.Start(
+                new ProcessStartInfo(ContentBuild.Dotnet(), arguments)
+                {
+                    WorkingDirectory = ContentBuild.ProjectRoot,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            )!;
+            return (process.Id, process.StartTime.ToUniversalTime().Ticks);
         }
 
         private readonly struct Built

@@ -661,16 +661,7 @@ namespace Comet.Unity.Editor
                 .Replace("{count}", state.bots.ToString());
             try
             {
-                using var process = Process.Start(
-                    new ProcessStartInfo(ContentBuild.Dotnet(), $"\"{state.botsProgram}\" {arguments}")
-                    {
-                        WorkingDirectory = ContentBuild.ProjectRoot,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    }
-                )!;
-                state.botsPid = process.Id;
-                state.botsStartTicks = process.StartTime.ToUniversalTime().Ticks;
+                (state.botsPid, state.botsStartTicks) = StartDotnet($"\"{state.botsProgram}\" {arguments}");
             }
             catch (Exception e)
             {
