@@ -201,18 +201,18 @@ namespace ShapeLand.Client
             _stats = tree.Q("stats");
             _error = tree.Q<Label>("error");
             _joinButton = tree.Q<Button>("join-button");
-            _joinButton.clicked += Submit;
+            OnClick(_joinButton, Submit);
             _cancelButton = tree.Q<Button>("cancel-button");
-            _cancelButton.clicked += Cancel;
+            OnClick(_cancelButton, Cancel);
             _backButton = tree.Q<Button>("look-back");
             _backButton.clicked += Back;
             _serverField = tree.Q("server-field");
             _serverLine = tree.Q("server-line");
             _serverText = tree.Q<Label>("server-text");
             _serverChange = tree.Q<Button>("server-change");
-            _serverChange.clicked += OpenServerField;
+            OnClick(_serverChange, OpenServerField);
             _serverCancel = tree.Q<Button>("server-cancel");
-            _serverCancel.clicked += CancelServerField;
+            OnClick(_serverCancel, CancelServerField);
             _server.RegisterValueChangedCallback(_ => ShowServer());
             _pageName = tree.Q<Label>("page-name");
             _pageBack = tree.Q<Button>("page-back");
@@ -227,9 +227,9 @@ namespace ShapeLand.Client
             _useCode = tree.Q<Button>("sign-in-use-code");
             _useCode.clicked += () => SetWithCode(!_withCode);
             _signInButton = tree.Q<Button>("sign-in-button");
-            _signInButton.clicked += () => SetSigningIn(true);
+            OnClick(_signInButton, () => SetSigningIn(true));
             _signOutButton = tree.Q<Button>("sign-out-button");
-            _signOutButton.clicked += AskToSignOut;
+            OnClick(_signOutButton, AskToSignOut);
             _setPassword = tree.Q<TextField>("set-password-field");
             _setPasswordAgain = tree.Q<TextField>("set-password-again");
             _setPasswordUsername = tree.Q<Label>("set-password-username");
@@ -276,6 +276,12 @@ namespace ShapeLand.Client
             _root.RegisterCallback<PointerMoveEvent>(_ => Navigating = false, TrickleDown.TrickleDown);
             _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             SetChanging(false);
+        }
+
+        private void OnClick(Button button, Action action)
+        {
+            button.clicked += action;
+            _choose[button] = action;
         }
 
         private void SetChanging(bool changing)

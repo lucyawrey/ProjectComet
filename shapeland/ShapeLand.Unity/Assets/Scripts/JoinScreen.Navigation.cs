@@ -279,29 +279,9 @@ namespace ShapeLand.Client
                 {
                     _server.Focus();
                 }
-                else if (item == _joinButton)
+                else
                 {
-                    Submit();
-                }
-                else if (item == _cancelButton)
-                {
-                    Cancel();
-                }
-                else if (item == _signInButton)
-                {
-                    SetSigningIn(true);
-                }
-                else if (item == _signOutButton)
-                {
-                    AskToSignOut();
-                }
-                else if (item == _serverChange)
-                {
-                    OpenServerField();
-                }
-                else if (item == _serverCancel)
-                {
-                    CancelServerField();
+                    _choose[item]();
                 }
             }
             else if (row == _useCode)
