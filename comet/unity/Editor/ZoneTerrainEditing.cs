@@ -94,12 +94,7 @@ namespace Comet.Unity.Editor
                 create: false,
                 (tile, tx, tz) =>
                 {
-                    tile.Colors ??= new ColorMap
-                    {
-                        SizeX = tile.Heights.SizeX,
-                        SizeZ = tile.Heights.SizeZ,
-                        Colors = Enumerable.Repeat(ground, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray(),
-                    };
+                    tile.Colors ??= NewColors(tile.Heights.SizeX, tile.Heights.SizeZ, ground);
                     tile.Colors.Colors[tz * tile.Colors.SizeX + tx] = color;
                 }
             );
@@ -137,12 +132,7 @@ namespace Comet.Unity.Editor
                         return;
                     }
 
-                    tile.UndersideColors ??= new ColorMap
-                    {
-                        SizeX = tile.Heights.SizeX,
-                        SizeZ = tile.Heights.SizeZ,
-                        Colors = Enumerable.Repeat(skirt, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray(),
-                    };
+                    tile.UndersideColors ??= NewColors(tile.Heights.SizeX, tile.Heights.SizeZ, skirt);
                     tile.UndersideColors.Colors[tz * tile.UndersideColors.SizeX + tx] = color;
                 }
             );
@@ -361,40 +351,10 @@ namespace Comet.Unity.Editor
         private static TerrainTile Expand(TerrainTile tile)
         {
             const int size = ZoneGrid.ChunkSamples;
-            var heights = new Heightmap
-            {
-                SizeX = size,
-                SizeZ = size,
-                Offset = tile.Heights.Offset,
-                Samples = new ushort[size * size],
-            };
-            var under = tile.Underside is { } u
-                ? new Heightmap
-                {
-                    SizeX = size,
-                    SizeZ = size,
-                    Offset = u.Offset,
-                    Samples = new ushort[size * size],
-                }
-                : null;
-            var colors =
-                tile.Colors != null
-                    ? new ColorMap
-                    {
-                        SizeX = size,
-                        SizeZ = size,
-                        Colors = new uint[size * size],
-                    }
-                    : null;
-            var underColors =
-                tile.UndersideColors != null
-                    ? new ColorMap
-                    {
-                        SizeX = size,
-                        SizeZ = size,
-                        Colors = new uint[size * size],
-                    }
-                    : null;
+            var heights = NewHeights(size, size, tile.Heights.Offset);
+            var under = tile.Underside is { } u ? NewHeights(size, size, u.Offset) : null;
+            var colors = tile.Colors != null ? NewColors(size, size, 0) : null;
+            var underColors = tile.UndersideColors != null ? NewColors(size, size, 0) : null;
             for (var z = 0; z < tile.Heights.SizeZ; z++)
             {
                 for (var x = 0; x < tile.Heights.SizeX; x++)
@@ -465,17 +425,7 @@ namespace Comet.Unity.Editor
                 }
 
                 const int size = ZoneGrid.ChunkSamples;
-                var tile = new TerrainTile
-                {
-                    Piece = piece,
-                    Heights = new Heightmap
-                    {
-                        SizeX = size,
-                        SizeZ = size,
-                        Offset = Zone.HeightBase,
-                        Samples = new ushort[size * size],
-                    },
-                };
+                var tile = new TerrainTile { Piece = piece, Heights = NewHeights(size, size, Zone.HeightBase) };
                 var whole = Terrain[piece];
                 for (var i = 0; i < size; i++)
                 {
@@ -499,14 +449,29 @@ namespace Comet.Unity.Editor
 
         private static Heightmap Filled(Heightmap like, float height)
         {
-            var map = new Heightmap
-            {
-                SizeX = like.SizeX,
-                SizeZ = like.SizeZ,
-                Offset = like.Offset,
-                Samples = new ushort[like.SizeX * like.SizeZ],
-            };
+            var map = NewHeights(like.SizeX, like.SizeZ, like.Offset);
             Array.Fill(map.Samples, Sample(map, height));
+            return map;
+        }
+
+        private static Heightmap NewHeights(int sizeX, int sizeZ, float offset) =>
+            new Heightmap
+            {
+                SizeX = sizeX,
+                SizeZ = sizeZ,
+                Offset = offset,
+                Samples = new ushort[sizeX * sizeZ],
+            };
+
+        private static ColorMap NewColors(int sizeX, int sizeZ, uint fill)
+        {
+            var map = new ColorMap
+            {
+                SizeX = sizeX,
+                SizeZ = sizeZ,
+                Colors = new uint[sizeX * sizeZ],
+            };
+            Array.Fill(map.Colors, fill);
             return map;
         }
 
