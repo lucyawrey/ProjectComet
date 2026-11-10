@@ -194,27 +194,16 @@ namespace Comet.Unity.Editor
         private static Built Build(string dotnet, string root, string project)
         {
             var artifacts = Path.Combine(root, "artifacts", "editor-server");
-            var start = new ProcessStartInfo(
-                dotnet,
-                $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath --artifacts-path \"{artifacts}\""
-            )
-            {
-                WorkingDirectory = root,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-            };
             try
             {
-                using var process = Process.Start(start)!;
-                var error = process.StandardError.ReadToEndAsync();
-                var output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
-                var program = output.Split('\n').Select(line => line.Trim()).LastOrDefault(line => line.Length > 0);
-                return process.ExitCode != 0 || program == null || !File.Exists(program)
-                    ? new Built(null, output + error.Result)
-                    : new Built(program, null);
+                var output = RunDotnet(
+                    dotnet,
+                    root,
+                    $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath --artifacts-path \"{artifacts}\"",
+                    out var exitCode
+                );
+                var program = exitCode == 0 ? output.Split('\n').Select(line => line.Trim()).LastOrDefault(line => line.Length > 0) : null;
+                return program != null && File.Exists(program) ? new Built(program, null) : new Built(null, output);
             }
             catch (Exception e)
             {
@@ -224,24 +213,8 @@ namespace Comet.Unity.Editor
 
         private static Built Database(string dotnet, string tool, string root, string checkout, int port)
         {
-            string Run(string arguments, out int exitCode)
-            {
-                // The short form fails on older SDKs in the Unity folder, which holds several projects.
-                var start = new ProcessStartInfo(dotnet, $"run --file \"{tool}\" -- {arguments}")
-                {
-                    WorkingDirectory = root,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                };
-                using var process = Process.Start(start)!;
-                var error = process.StandardError.ReadToEndAsync();
-                var output = process.StandardOutput.ReadToEnd().Trim();
-                process.WaitForExit();
-                exitCode = process.ExitCode;
-                return exitCode == 0 ? output : output + error.Result;
-            }
+            // The short form fails on older SDKs in the Unity folder, which holds several projects.
+            string Run(string arguments, out int exitCode) => RunDotnet(dotnet, root, $"run --file \"{tool}\" -- {arguments}", out exitCode);
 
             try
             {
@@ -258,6 +231,24 @@ namespace Comet.Unity.Editor
             {
                 return new Built(null, $"Couldn't run {tool}: {e.Message}");
             }
+        }
+
+        private static string RunDotnet(string dotnet, string root, string arguments, out int exitCode)
+        {
+            var start = new ProcessStartInfo(dotnet, arguments)
+            {
+                WorkingDirectory = root,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            using var process = Process.Start(start)!;
+            var error = process.StandardError.ReadToEndAsync();
+            var output = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+            exitCode = process.ExitCode;
+            return exitCode == 0 ? output : output + error.Result;
         }
 
         private static bool PortInUse(int port)
