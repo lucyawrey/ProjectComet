@@ -408,7 +408,7 @@ namespace Comet.Unity.Editor
                     buildServer ? Build(dotnet, root, serverProject) : new Built(program, null),
                     buildBots ? Build(dotnet, root, botsProject) : new Built(bots, null),
                     buildLogin ? Build(dotnet, root, loginProject) : new Built(accounts ? login : "", null),
-                    accounts ? Database(dotnet, databaseTool, root, CheckoutRoot(root), port) : new Built("", null)
+                    accounts ? Database(dotnet, databaseTool, root, LocalServerPort.CheckoutRoot(root), port) : new Built("", null)
                 )
             );
             _building = building;
@@ -701,11 +701,6 @@ namespace Comet.Unity.Editor
                 return null;
             }
         }
-
-        // Named from the checkout root (the folder holding .git), as tools/run shapeland-dev does:
-        // the Unity project's own folder is the same in every checkout.
-
-        private static string CheckoutRoot(string projectRoot) => LocalServerPort.CheckoutRoot(projectRoot);
 
         private static string? ContentHashNow() =>
             ContentBuild.Source is { } source && File.Exists(source) ? ContentHash.Of(File.ReadAllBytes(source)) : null;

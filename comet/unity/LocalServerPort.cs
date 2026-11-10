@@ -41,6 +41,7 @@ namespace Comet.Unity
                 "dev-characters.json"
             );
 
+        // The folder holding .git, which names things as tools/run shapeland-dev does: the Unity project's own folder is the same in every checkout.
         public static string CheckoutRoot(string folder)
         {
             for (var at = folder; at != null; at = System.IO.Path.GetDirectoryName(at))
