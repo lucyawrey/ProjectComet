@@ -4,10 +4,12 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Comet.Content;
+using Comet.Simulation;
+using Group = Comet.Content.Group;
 
 namespace Comet.ZoneFiles
 {
-    public static partial class ZoneValidation
+    public static class ZoneValidation
     {
         private static readonly Regex NamePattern = new Regex("^[a-z][a-z0-9_]*$");
         private static readonly Regex PlacementTag = new Regex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$");
@@ -165,6 +167,372 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
+        /// <summary><paramref name="findProp"/> and <paramref name="findGroup"/> return null for unknown ids; parts are checked in place.</summary>
+        public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Prop?> findProp, Func<string, Group?>? findGroup = null)
+        {
+            var errors = new List<ZoneFileError>();
+            foreach (var chunk in zone.Chunks)
+            {
+                var file = ZoneFolder.ChunkFile(chunk.Coord);
+                foreach (var copy in chunk.Placements)
+                {
+                    if (copy.Group is not { } id)
+                    {
+                        CheckReach(copy, chunk.Coord, $"placement of {Placed(copy)} at {Text(copy.Position)}", file, findProp, errors);
+                        continue;
+                    }
+
+                    if (findGroup?.Invoke(id) is null)
+                    {
+                        errors.Add(new ZoneFileError(file, $"placement of {id} at {Text(copy.Position)}: there's no group '{id}'."));
+                        continue;
+                    }
+
+                    CheckRoleColors(
+                        copy,
+                        $"placement of {id} at {Text(copy.Position)}",
+                        file,
+                        findGroup,
+                        (f, m) => errors.Add(new ZoneFileError(f, m))
+                    );
+                    foreach (var part in Groups.Expand(copy, findGroup))
+                    {
+                        CheckReach(
+                            part,
+                            ChunkCoord.Containing(part.Position),
+                            $"placement of {id} at {Text(copy.Position)}, its part {Placed(part)} at {Text(part.Position)}",
+                            file,
+                            findProp,
+                            errors
+                        );
+                    }
+                }
+            }
+
+            return errors;
+        }
+
+        public static List<ZoneFileError> CheckGroups(IReadOnlyList<(Group Group, string File)> groups, Func<string, Prop?> findProp)
+        {
+            var errors = new List<ZoneFileError>();
+            void Error(string file, string message) => errors.Add(new ZoneFileError(file, message));
+            var byId = new Dictionary<string, (Group Group, string File)>();
+            foreach (var (group, file) in groups)
+            {
+                if (!IsId(group.Id, "group"))
+                {
+                    Error(file, $"id: '{group.Id}' isn't a valid group id: use 'group.' then lowercase letters, digits and underscores.");
+                }
+                else if (byId.TryGetValue(group.Id, out var first))
+                {
+                    Error(file, $"id: '{group.Id}' is already used by {first.File}.");
+                }
+                else
+                {
+                    byId.Add(group.Id, (group, file));
+                }
+
+                if (group.Parts.Length == 0)
+                {
+                    Error(file, "a group needs at least one part ([[part]]).");
+                }
+
+                foreach (var (part, i) in group.Parts.Select((p, i) => (p, i)))
+                {
+                    var what = $"part {i + 1} ({Placed(part)})";
+                    CheckPlaced(part, what, inGroup: true, file, Error);
+                    if (part.Group is { } inner && IsId(inner, "group") && !groups.Any(g => g.Group.Id == inner))
+                    {
+                        Error(file, $"{what}: there's no group '{inner}'.");
+                    }
+                    else if (
+                        part.Primitive is null
+                        && part.Group is null
+                        && IsId(part.Prop, "prop")
+                        && findProp(part.Prop) is { } prop
+                        && prop.UniformScale
+                        && !Even(part.Scale)
+                    )
+                    {
+                        Error(file, $"{what}: {prop.Id} only scales evenly, the same on every axis.");
+                    }
+                    else if (part.Primitive is null && part.Group is null && IsId(part.Prop, "prop") && findProp(part.Prop) is null)
+                    {
+                        Error(file, $"{what}: there's no prop '{part.Prop}'.");
+                    }
+                }
+            }
+
+            var visiting = new List<string>();
+            var done = new HashSet<string>();
+            void Visit(string id)
+            {
+                if (done.Contains(id) || !byId.TryGetValue(id, out var found))
+                {
+                    return;
+                }
+
+                var at = visiting.IndexOf(id);
+                if (at >= 0)
+                {
+                    Error(found.File, $"{id} contains itself: {string.Join(" > ", visiting.Skip(at))} > {id}.");
+                    return;
+                }
+
+                visiting.Add(id);
+                foreach (var inner in found.Group.Parts.Select(p => p.Group).OfType<string>())
+                {
+                    Visit(inner);
+                }
+
+                visiting.RemoveAt(visiting.Count - 1);
+                done.Add(id);
+            }
+
+            foreach (var id in byId.Keys.OrderBy(k => k, StringComparer.Ordinal))
+            {
+                Visit(id);
+            }
+
+            Group? Find(string id) => byId.TryGetValue(id, out var found) ? found.Group : null;
+            foreach (var (group, file) in groups)
+            {
+                foreach (var (part, i) in group.Parts.Select((p, i) => (p, i)))
+                {
+                    CheckRoleColors(part, $"part {i + 1} ({Placed(part)})", file, Find, Error);
+                }
+            }
+
+            return errors;
+        }
+
+        public static List<ZoneFileError> Blockout(Zone zone, Func<string, Group?> findGroup)
+        {
+            var found = new List<ZoneFileError>();
+            foreach (var chunk in zone.Chunks)
+            {
+                foreach (var placement in chunk.Placements)
+                {
+                    if (placement.Blockout)
+                    {
+                        found.Add(
+                            new ZoneFileError(
+                                ZoneFolder.ChunkFile(chunk.Coord),
+                                $"{Placed(placement)} at {Text(placement.Position)} is blockout; replace or finish it before a release."
+                            )
+                        );
+                    }
+                    else if (placement.Group is { } id && Groups.Expand(placement, findGroup).Count(p => p.Blockout) is var parts and > 0)
+                    {
+                        found.Add(
+                            new ZoneFileError(
+                                ZoneFolder.ChunkFile(chunk.Coord),
+                                $"{id} at {Text(placement.Position)} has {parts} blockout {(parts == 1 ? "part" : "parts")}; replace or finish them before a release."
+                            )
+                        );
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        private static void CheckReach(
+            Placement placement,
+            ChunkCoord chunk,
+            string what,
+            string file,
+            Func<string, Prop?> findProp,
+            List<ZoneFileError> errors
+        )
+        {
+            {
+                {
+                    (Vector3 Min, Vector3 Max) local;
+                    if (placement.Primitive is { } primitive)
+                    {
+                        local = PrimitiveMesher.Bounds(primitive, placement.Scale);
+                    }
+                    else
+                    {
+                        var prop = findProp(placement.Prop);
+                        if (prop is null)
+                        {
+                            errors.Add(new ZoneFileError(file, $"{what}: there's no prop '{placement.Prop}'."));
+                            return;
+                        }
+
+                        var scale = placement.Scale;
+                        if (prop.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
+                        {
+                            errors.Add(new ZoneFileError(file, $"{what}: {prop.Id} only scales evenly, the same on every axis."));
+                        }
+
+                        local = (prop.BoundsMin, prop.BoundsMax);
+                    }
+
+                    var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
+                    var reachMin = new Vector3((chunk.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Z - 1) * ZoneGrid.ChunkSize);
+                    var reachMax = new Vector3((chunk.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Z + 2) * ZoneGrid.ChunkSize);
+                    if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
+                    {
+                        errors.Add(
+                            new ZoneFileError(
+                                file,
+                                $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."
+                            )
+                        );
+                    }
+                }
+            }
+        }
+
+        private static void CheckRoleColors(Placement copy, string what, string file, Func<string, Group?> findGroup, Action<string, string> error)
+        {
+            if (copy.Colors is not { } colors || copy.Group is not { } group)
+            {
+                return;
+            }
+
+            var roles = Groups.Roles(group, findGroup);
+            foreach (var role in colors.Keys.Where(r => !roles.Contains(r)))
+            {
+                error(
+                    file,
+                    roles.Count == 0
+                        ? $"{what}: colors has '{role}', but {group}'s parts play no roles."
+                        : $"{what}: colors has '{role}', which none of {group}'s parts plays ({string.Join(", ", roles)})."
+                );
+            }
+        }
+
+        private static string Placed(Placement placement) =>
+            placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Group ?? placement.Prop;
+
+        private static bool Even(Vector3 scale) => Math.Abs(scale.X - scale.Y) <= 1e-4f && Math.Abs(scale.X - scale.Z) <= 1e-4f;
+
+        private static void CheckPlaced(Placement placement, string what, bool inGroup, string file, Action<string, string> error)
+        {
+            if (placement.Primitive is { } primitive)
+            {
+                CheckPrimitive(primitive, what, file, error);
+            }
+            else if (placement.Group is { } group)
+            {
+                if (!IsId(group, "group"))
+                {
+                    error(file, $"{what}: '{group}' isn't a group id.");
+                }
+
+                if (!Even(placement.Scale))
+                {
+                    error(file, $"{what}: a group scales evenly, the same on every axis.");
+                }
+
+                if (placement.Color != null)
+                {
+                    error(
+                        file,
+                        $"{what}: a group's copies have no color of their own; set colors by role (colors = {{ role = 0x… }}) or change the group's parts."
+                    );
+                }
+            }
+            else if (!IsId(placement.Prop, "prop"))
+            {
+                error(file, $"{what}: '{placement.Prop}' isn't a prop id.");
+            }
+
+            if (placement.Scale.X <= 0 || placement.Scale.Y <= 0 || placement.Scale.Z <= 0)
+            {
+                error(file, $"{what}: scale must be above 0 on every axis.");
+            }
+
+            if (inGroup && placement.Tag != null)
+            {
+                error(file, $"{what}: a group's parts have no tag; give them a role for game code to find them by, or tag the copy.");
+            }
+
+            if (inGroup && placement.Off)
+            {
+                error(file, $"{what}: a group's parts don't start off; set it on the copy.");
+            }
+
+            if (placement.Role is { } role && (!inGroup || !IsName(role)))
+            {
+                error(
+                    file,
+                    inGroup
+                        ? $"{what}: '{role}' isn't a valid role: use lowercase letters, digits and underscores."
+                        : $"{what}: only a group's parts have a role."
+                );
+            }
+
+            if (placement.Colors is { } colors && placement.Group is null)
+            {
+                error(file, $"{what}: only a group's copies have colors by role; give it a color instead.");
+            }
+        }
+
+        private static void CheckPrimitive(Primitive primitive, string what, string file, Action<string, string> error)
+        {
+            var kind = primitive.Kind;
+            if (primitive.Sides is { } sides)
+            {
+                if (kind is not (PrimitiveKind.Cylinder or PrimitiveKind.Cone or PrimitiveKind.Sphere or PrimitiveKind.Arch))
+                {
+                    error(file, $"{what}: only cylinders, cones, spheres and arches have sides.");
+                }
+                else if (sides < 3 || sides > 256)
+                {
+                    error(file, $"{what}: sides must be from 3 to 256.");
+                }
+            }
+
+            if (primitive.Bevel != 0 && (kind != PrimitiveKind.Box || primitive.Bevel < 0))
+            {
+                error(file, $"{what}: only boxes have a bevel, and it can't be negative.");
+            }
+
+            if (primitive.Steps != 0 && (kind != PrimitiveKind.Stairs || primitive.Steps < 0 || primitive.Steps > Primitive.MaxSteps))
+            {
+                error(file, $"{what}: only stairs have steps, from 1 to {Primitive.MaxSteps}.");
+            }
+
+            if (
+                (primitive.OpeningWidth != 0 || primitive.OpeningHeight != 0)
+                && (kind != PrimitiveKind.Doorway || primitive.OpeningWidth < 0 || primitive.OpeningHeight < 0)
+            )
+            {
+                error(file, $"{what}: only doorways have an opening, and it can't be negative.");
+            }
+
+            if (primitive.Thickness != 0 && (kind != PrimitiveKind.Arch || primitive.Thickness < 0))
+            {
+                error(file, $"{what}: only arches have a thickness, and it can't be negative.");
+            }
+        }
+
+        private static (Vector3 Min, Vector3 Max) Bounds(Vector3 boundsMin, Vector3 boundsMax, Matrix4x4 matrix)
+        {
+            var min = new Vector3(float.MaxValue);
+            var max = new Vector3(float.MinValue);
+            for (var corner = 0; corner < 8; corner++)
+            {
+                var point = Vector3.Transform(
+                    new Vector3(
+                        (corner & 1) == 0 ? boundsMin.X : boundsMax.X,
+                        (corner & 2) == 0 ? boundsMin.Y : boundsMax.Y,
+                        (corner & 4) == 0 ? boundsMin.Z : boundsMax.Z
+                    ),
+                    matrix
+                );
+                min = Vector3.Min(min, point);
+                max = Vector3.Max(max, point);
+            }
+
+            return (min, max);
+        }
+
         private static void CheckNames(IEnumerable<string> names, string what, string file, Action<string, string> error)
         {
             var seen = new HashSet<string>();
@@ -179,6 +547,132 @@ namespace Comet.ZoneFiles
                     error(file, $"{what}: '{name}' is used twice.");
                 }
             }
+        }
+
+        private static void CheckTiles(ZoneChunk chunk, float heightBase, HashSet<string> pieces, string file, Action<string, string> error)
+        {
+            var seen = new HashSet<string>();
+            foreach (var tile in chunk.Tiles)
+            {
+                if (!pieces.Contains(tile.Piece))
+                {
+                    error(file, $"tile: there's no piece '{tile.Piece}' in {ZoneFolder.ZoneFile}.");
+                    continue;
+                }
+
+                if (!seen.Add(tile.Piece))
+                {
+                    error(file, $"tile: piece '{tile.Piece}' has two tiles in this chunk.");
+                }
+
+                var heights = tile.Heights;
+                if (
+                    tile.OriginX < 0
+                    || tile.OriginZ < 0
+                    || tile.OriginX + heights.SizeX > ZoneGrid.ChunkSamples
+                    || tile.OriginZ + heights.SizeZ > ZoneGrid.ChunkSamples
+                )
+                {
+                    error(
+                        file,
+                        $"tile {tile.Piece}: {heights.SizeX}×{heights.SizeZ} samples from [{tile.OriginX}, {tile.OriginZ}] reach past the chunk's {ZoneGrid.ChunkSamples}×{ZoneGrid.ChunkSamples}."
+                    );
+                }
+
+                if (heights.Offset != heightBase || (tile.Underside?.Offset is { } bottom && bottom != heightBase))
+                {
+                    error(file, $"tile {tile.Piece}: its height offset isn't the zone's height_base ({heightBase}).");
+                }
+
+                if (tile.Underside is { } under && (under.SizeX != heights.SizeX || under.SizeZ != heights.SizeZ))
+                {
+                    error(
+                        file,
+                        $"tile {tile.Piece}: the underside is {under.SizeX}×{under.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}."
+                    );
+                }
+
+                if (tile.Colors is { } colors && (colors.SizeX != heights.SizeX || colors.SizeZ != heights.SizeZ))
+                {
+                    error(
+                        file,
+                        $"tile {tile.Piece}: the colors are {colors.SizeX}×{colors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}."
+                    );
+                }
+
+                if (tile.UndersideColors is { } underColors)
+                {
+                    if (tile.Underside is null)
+                    {
+                        error(file, $"tile {tile.Piece}: has underside colors but no underside (delete its .under.color file).");
+                    }
+                    else if (underColors.SizeX != heights.SizeX || underColors.SizeZ != heights.SizeZ)
+                    {
+                        error(
+                            file,
+                            $"tile {tile.Piece}: the underside colors are {underColors.SizeX}×{underColors.SizeZ} samples; the heights are {heights.SizeX}×{heights.SizeZ}."
+                        );
+                    }
+                }
+            }
+        }
+
+        private static void CheckSharedEdges(Zone zone, Action<string, string> error)
+        {
+            var tiles = zone.Chunks.SelectMany(c => c.Tiles.Select(t => (Chunk: c.Coord, Tile: t))).GroupBy(t => t.Tile.Piece);
+            foreach (var piece in tiles)
+            {
+                var list = piece.ToList();
+                for (var i = 0; i < list.Count; i++)
+                {
+                    for (var j = i + 1; j < list.Count; j++)
+                    {
+                        var (a, b) = (list[i], list[j]);
+                        if (a.Chunk.Equals(b.Chunk) || Math.Abs(a.Chunk.X - b.Chunk.X) > 1 || Math.Abs(a.Chunk.Z - b.Chunk.Z) > 1)
+                        {
+                            continue;
+                        }
+
+                        var mismatch = FirstMismatch(a.Chunk, a.Tile, b.Chunk, b.Tile);
+                        if (mismatch is { } at)
+                        {
+                            var (first, second) =
+                                string.CompareOrdinal(a.Chunk.ToString(), b.Chunk.ToString()) < 0 ? (a.Chunk, b.Chunk) : (b.Chunk, a.Chunk);
+                            error(
+                                ZoneFolder.ChunkFile(first),
+                                $"tile {piece.Key}: the terrain doesn't match chunk {second}'s where they meet (world sample [{at.X}, {at.Z}])."
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        private static (int X, int Z)? FirstMismatch(ChunkCoord chunkA, TerrainTile a, ChunkCoord chunkB, TerrainTile b)
+        {
+            int ax = chunkA.X * ZoneGrid.ChunkSize + a.OriginX,
+                az = chunkA.Z * ZoneGrid.ChunkSize + a.OriginZ;
+            int bx = chunkB.X * ZoneGrid.ChunkSize + b.OriginX,
+                bz = chunkB.Z * ZoneGrid.ChunkSize + b.OriginZ;
+            int minX = Math.Max(ax, bx),
+                maxX = Math.Min(ax + a.Heights.SizeX, bx + b.Heights.SizeX) - 1;
+            int minZ = Math.Max(az, bz),
+                maxZ = Math.Min(az + a.Heights.SizeZ, bz + b.Heights.SizeZ) - 1;
+            var tolerance = Heightmap.Scale / 2;
+            for (var z = minZ; z <= maxZ; z++)
+            {
+                for (var x = minX; x <= maxX; x++)
+                {
+                    var groundA = a.Heights.TryGetHeight(x - ax, z - az, out var heightA);
+                    var groundB = b.Heights.TryGetHeight(x - bx, z - bz, out var heightB);
+                    if (groundA != groundB || (groundA && Math.Abs(heightA - heightB) > tolerance))
+                    {
+                        return (x, z);
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static void CheckPivot(ChunkCoord chunk, Vector3 position, string what, string file, Action<string, string> error)
@@ -197,6 +691,103 @@ namespace Comet.ZoneFiles
             if (size.X <= 0 || size.Y <= 0 || size.Z <= 0)
             {
                 error(file, $"{what}: size must be above 0 on every axis.");
+            }
+        }
+
+        private static void CheckSign(Sign sign, string what, string file, Action<string, string> error)
+        {
+            if (string.IsNullOrWhiteSpace(sign.Text))
+            {
+                error(file, $"{what}: its text is empty.");
+            }
+            else if (sign.Text.Length > Sign.MaxText)
+            {
+                error(file, $"{what}: its text is {sign.Text.Length} characters long; the most is {Sign.MaxText}.");
+            }
+
+            if (sign.BackgroundOpacity < 0 || sign.BackgroundOpacity > 1)
+            {
+                error(file, $"{what}: background_opacity should be 0 to 1.");
+            }
+
+            if (sign.ShowDistance < 1 || sign.ShowDistance > Sign.MaxShowDistance)
+            {
+                error(file, $"{what}: show_distance should be 1 to {Sign.MaxShowDistance} meters.");
+            }
+
+            if (sign.ScreenSized && (sign.FontSize < Sign.MinFontSize || sign.FontSize > Sign.MaxFontSize))
+            {
+                error(file, $"{what}: font_size should be {Sign.MinFontSize} to {Sign.MaxFontSize}.");
+            }
+
+            if (!sign.ScreenSized && (sign.TextHeight < Sign.MinTextHeight || sign.TextHeight > Sign.MaxTextHeight))
+            {
+                error(file, $"{what}: text_height should be {Sign.MinTextHeight} to {Sign.MaxTextHeight} meters.");
+            }
+        }
+
+        private static void CheckTrigger(
+            string id,
+            string kind,
+            TriggerVolume volume,
+            ChunkCoord chunk,
+            string zoneName,
+            Dictionary<string, string> idFiles,
+            string file,
+            Action<string, string> error
+        )
+        {
+            if (!IsZonedId(id, kind) || id.Split('.')[1] != zoneName)
+            {
+                error(file, $"{kind}: '{id}' isn't a valid {kind} id here: use '{kind}.{zoneName}.' then lowercase letters, digits and underscores.");
+            }
+            else if (idFiles.TryGetValue(id, out var first))
+            {
+                error(file, $"{kind}: '{id}' is already used in {first}.");
+            }
+            else
+            {
+                idFiles.Add(id, file);
+            }
+
+            CheckPivot(chunk, volume.Position, id, file, error);
+            if (Array.IndexOf(VolumeKinds, volume.Kind) < 0)
+            {
+                error(file, $"{id}: a volume is a box, a cylinder or a sphere, not a {ZoneToml.SnakeCase(volume.Kind.ToString())}.");
+            }
+
+            CheckBox(volume.Size, id, file, error);
+            if (volume.StandSeconds < 0)
+            {
+                error(file, $"{id}: stand_seconds can't be negative.");
+            }
+            else if (volume.Rearm == Rearm.Repeat && volume.StandSeconds == 0)
+            {
+                error(file, $"{id}: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.");
+            }
+
+            if (volume.Pad is { } pad)
+            {
+                if (pad.Primitive is null)
+                {
+                    error(file, $"{id}: a pad is a primitive.");
+                }
+                else
+                {
+                    CheckPlaced(pad, $"{id}'s pad", inGroup: false, file, error);
+                }
+
+                if (pad.Tag is not null || pad.Off)
+                {
+                    error(file, $"{id}: a pad can't be tagged or start off; pads aren't toggled.");
+                }
+
+                CheckPivot(chunk, pad.Position, $"{id}'s pad", file, error);
+            }
+
+            if (volume.Sign is { } sign)
+            {
+                CheckSign(sign, $"{id}'s sign", file, error);
             }
         }
 
