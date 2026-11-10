@@ -454,6 +454,42 @@ namespace Comet.Unity.Editor
             return map;
         }
 
+        internal static Vector3? RayEnter(Ray ray, Func<Vector3, bool> inside)
+        {
+            const float step = 0.25f,
+                far = 1000;
+            var previous = ray.origin;
+            var wasInside = inside(previous);
+            for (var t = step; t < far; t += step)
+            {
+                var point = ray.GetPoint(t);
+                var isInside = inside(point);
+                if (isInside && !wasInside)
+                {
+                    var (a, b) = (previous, point);
+                    for (var i = 0; i < 10; i++)
+                    {
+                        var middle = (a + b) / 2;
+                        if (inside(middle))
+                        {
+                            b = middle;
+                        }
+                        else
+                        {
+                            a = middle;
+                        }
+                    }
+
+                    return b;
+                }
+
+                previous = point;
+                wasInside = isInside;
+            }
+
+            return null;
+        }
+
         private static Heightmap NewHeights(int sizeX, int sizeZ, float offset) =>
             new Heightmap
             {

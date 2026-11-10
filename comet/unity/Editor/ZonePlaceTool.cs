@@ -627,37 +627,7 @@ namespace Comet.Unity.Editor
         private static Vector3? TerrainHit(ZoneEditing editing, Ray ray)
         {
             var pieces = ZoneTerrainEditing.For(editing).Terrain.Pieces;
-            bool Below(Vector3 p) => pieces.Any(piece => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground);
-
-            const float step = 0.25f,
-                far = 1000;
-            var previous = ray.origin;
-            for (var t = step; t < far; t += step)
-            {
-                var point = ray.GetPoint(t);
-                if (Below(point))
-                {
-                    var (a, b) = (previous, point);
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var middle = (a + b) / 2;
-                        if (Below(middle))
-                        {
-                            b = middle;
-                        }
-                        else
-                        {
-                            a = middle;
-                        }
-                    }
-
-                    return b;
-                }
-
-                previous = point;
-            }
-
-            return null;
+            return ZoneTerrainEditing.RayEnter(ray, p => pieces.Any(piece => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground));
         }
     }
 

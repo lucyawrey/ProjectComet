@@ -517,35 +517,9 @@ namespace Comet.Unity.Editor
             var piece = terrain.Terrain[this.piece];
             bool Inside(Vector3 p) => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground && p.y >= piece.BottomAt(p.x, p.z);
 
-            const float step = 0.25f,
-                far = 1000;
-            var previous = ray.origin;
-            var wasInside = Inside(previous);
-            for (var t = step; t < far; t += step)
+            if (ZoneTerrainEditing.RayEnter(ray, Inside) is { } hit)
             {
-                var point = ray.GetPoint(t);
-                var inside = Inside(point);
-                if (inside && !wasInside)
-                {
-                    var (a, b) = (previous, point);
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var middle = (a + b) / 2;
-                        if (Inside(middle))
-                        {
-                            b = middle;
-                        }
-                        else
-                        {
-                            a = middle;
-                        }
-                    }
-
-                    return b;
-                }
-
-                previous = point;
-                wasInside = inside;
+                return hit;
             }
 
             if (brush == Brush.Ground && Mathf.Abs(ray.direction.y) > 1e-4f)
