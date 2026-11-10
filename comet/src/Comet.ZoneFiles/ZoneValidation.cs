@@ -346,44 +346,40 @@ namespace Comet.ZoneFiles
             List<ZoneFileError> errors
         )
         {
+            (Vector3 Min, Vector3 Max) local;
+            if (placement.Primitive is { } primitive)
             {
+                local = PrimitiveMesher.Bounds(primitive, placement.Scale);
+            }
+            else
+            {
+                var prop = findProp(placement.Prop);
+                if (prop is null)
                 {
-                    (Vector3 Min, Vector3 Max) local;
-                    if (placement.Primitive is { } primitive)
-                    {
-                        local = PrimitiveMesher.Bounds(primitive, placement.Scale);
-                    }
-                    else
-                    {
-                        var prop = findProp(placement.Prop);
-                        if (prop is null)
-                        {
-                            errors.Add(new ZoneFileError(file, $"{what}: there's no prop '{placement.Prop}'."));
-                            return;
-                        }
-
-                        var scale = placement.Scale;
-                        if (prop.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
-                        {
-                            errors.Add(new ZoneFileError(file, $"{what}: {prop.Id} only scales evenly, the same on every axis."));
-                        }
-
-                        local = (prop.BoundsMin, prop.BoundsMax);
-                    }
-
-                    var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
-                    var reachMin = new Vector3((chunk.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Z - 1) * ZoneGrid.ChunkSize);
-                    var reachMax = new Vector3((chunk.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Z + 2) * ZoneGrid.ChunkSize);
-                    if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
-                    {
-                        errors.Add(
-                            new ZoneFileError(
-                                file,
-                                $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."
-                            )
-                        );
-                    }
+                    errors.Add(new ZoneFileError(file, $"{what}: there's no prop '{placement.Prop}'."));
+                    return;
                 }
+
+                var scale = placement.Scale;
+                if (prop.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
+                {
+                    errors.Add(new ZoneFileError(file, $"{what}: {prop.Id} only scales evenly, the same on every axis."));
+                }
+
+                local = (prop.BoundsMin, prop.BoundsMax);
+            }
+
+            var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
+            var reachMin = new Vector3((chunk.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Z - 1) * ZoneGrid.ChunkSize);
+            var reachMax = new Vector3((chunk.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Z + 2) * ZoneGrid.ChunkSize);
+            if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
+            {
+                errors.Add(
+                    new ZoneFileError(
+                        file,
+                        $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."
+                    )
+                );
             }
         }
 
