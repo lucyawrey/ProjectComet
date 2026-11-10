@@ -1,6 +1,6 @@
 [[tile]]
 piece = "piece"
-origin = [6, 0]
+origin = [3, 0]
 
 [[spawn]]
 id = "spawn.main.cube"
@@ -48,7 +48,7 @@ position = [-55.673, 4.2, 8.514]
 size = [2.0, 1.0, 2.0]
 stand_seconds = 1.0
 facing = "direction"
-target = "teleporter.hub_old.main"
+target = ""
 
 [teleporter.pad]
 primitive = "box"

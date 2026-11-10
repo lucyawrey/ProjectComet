@@ -2,6 +2,7 @@ id = "zone.main"
 
 [[piece]]
 name = "piece"
-skirt_depth = 4.0
+skirt_depth = 5.0
 rim_skirts = true
 hole_skirts = true
+under_color = 0x575757
