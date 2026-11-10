@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace Comet.Simulation
@@ -62,26 +63,16 @@ namespace Comet.Simulation
                 }
             }
 
-            _terrain = new bool[_meshes.Count];
-            for (var m = 0; m < _meshes.Count; m++)
-            {
-                _terrain[m] = _meshes[m].Kind == CollisionMesh.TerrainKind;
-            }
-
             KillHeight = killHeight;
+            _terrain = new bool[_meshes.Count];
+            _off = new bool[_meshes.Count];
             var corners = new List<Vector3>();
             var meshOf = new List<int>();
             for (var m = 0; m < _meshes.Count; m++)
             {
+                _terrain[m] = _meshes[m].Kind == CollisionMesh.TerrainKind;
                 corners.AddRange(_meshes[m].Triangles);
-                meshOf.AddRange(System.Linq.Enumerable.Repeat(m, _meshes[m].Triangles.Length / 3));
-            }
-
-            _corners = corners.ToArray();
-            _meshOf = meshOf.ToArray();
-            _off = new bool[_meshes.Count];
-            for (var m = 0; m < _meshes.Count; m++)
-            {
+                meshOf.AddRange(Enumerable.Repeat(m, _meshes[m].Triangles.Length / 3));
                 _off[m] = _meshes[m].StartsOff;
                 if (_meshes[m].Tag is { } tag)
                 {
@@ -94,6 +85,9 @@ namespace Comet.Simulation
                     list.Add(m);
                 }
             }
+
+            _corners = corners.ToArray();
+            _meshOf = meshOf.ToArray();
 
             _normals = new Vector3[_corners.Length / 3];
             _firstCells = new (int X, int Z)[_normals.Length];
@@ -134,11 +128,7 @@ namespace Comet.Simulation
             _meshOf = shared._meshOf;
             _cells = shared._cells;
             _tagged = shared._tagged;
-            _off = new bool[_meshes.Count];
-            for (var m = 0; m < _meshes.Count; m++)
-            {
-                _off[m] = _meshes[m].StartsOff;
-            }
+            _off = _meshes.Select(m => m.StartsOff).ToArray();
         }
 
         public CollisionWorld WithOwnFlips() => new CollisionWorld(this);
@@ -511,22 +501,8 @@ namespace Comet.Simulation
 
         private static bool CrossesAbove(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
         {
-            var d1 = (p.X - b.X) * (a.Z - b.Z) - (a.X - b.X) * (p.Z - b.Z);
-            var d2 = (p.X - c.X) * (b.Z - c.Z) - (b.X - c.X) * (p.Z - c.Z);
-            var d3 = (p.X - a.X) * (c.Z - a.Z) - (c.X - a.X) * (p.Z - a.Z);
-            if ((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0))
-            {
-                return false;
-            }
-
             var normal = Vector3.Cross(b - a, c - a);
-            if (MathF.Abs(normal.Y) < 1e-8f)
-            {
-                return false;
-            }
-
-            var y = a.Y - (normal.X * (p.X - a.X) + normal.Z * (p.Z - a.Z)) / normal.Y;
-            return y > p.Y;
+            return Over(p, a, b, c) && MathF.Abs(normal.Y) >= 1e-8f && HeightOn(normal, a, p.X, p.Z) > p.Y;
         }
 
         public bool IsInsideTerrain(Vector3 position, float slack)
