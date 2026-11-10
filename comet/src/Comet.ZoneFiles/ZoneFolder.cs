@@ -103,30 +103,23 @@ namespace Comet.ZoneFiles
                 WriteIfChanged(folder, ChunkFile(chunk.Coord), Encoding.UTF8.GetBytes(HexColors(ZoneToml.Write(ChunkTable(chunk)))), written);
                 foreach (var tile in chunk.Tiles)
                 {
-                    WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "height"), Bytes(s => HeightmapFormat.Write(s, tile.Heights)), written);
-                    if (tile.Underside is not null)
+                    void WriteTile(string kind, Action<Stream> write) =>
+                        WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, kind), Bytes(write), written);
+
+                    WriteTile("height", s => HeightmapFormat.Write(s, tile.Heights));
+                    if (tile.Underside is { } underside)
                     {
-                        WriteIfChanged(
-                            folder,
-                            TileFile(chunk.Coord, tile.Piece, "under.height"),
-                            Bytes(s => HeightmapFormat.Write(s, tile.Underside)),
-                            written
-                        );
+                        WriteTile("under.height", s => HeightmapFormat.Write(s, underside));
                     }
 
-                    if (tile.Colors is not null)
+                    if (tile.Colors is { } colors)
                     {
-                        WriteIfChanged(folder, TileFile(chunk.Coord, tile.Piece, "color"), Bytes(s => ColorMapFormat.Write(s, tile.Colors)), written);
+                        WriteTile("color", s => ColorMapFormat.Write(s, colors));
                     }
 
-                    if (tile.UndersideColors is not null)
+                    if (tile.UndersideColors is { } undersideColors)
                     {
-                        WriteIfChanged(
-                            folder,
-                            TileFile(chunk.Coord, tile.Piece, "under.color"),
-                            Bytes(s => ColorMapFormat.Write(s, tile.UndersideColors)),
-                            written
-                        );
+                        WriteTile("under.color", s => ColorMapFormat.Write(s, undersideColors));
                     }
                 }
             }
@@ -233,7 +226,10 @@ namespace Comet.ZoneFiles
                     continue;
                 }
 
-                var heights = ReadTileFile(folder, TileFile(coord, tile.Piece, "height"), HeightmapFormat.Read, required: true, errors, tileFiles);
+                T? Read<T>(string kind, Func<Stream, T> read, bool required = false)
+                    where T : class => ReadTileFile(folder, TileFile(coord, tile.Piece, kind), read, required, errors, tileFiles);
+
+                var heights = Read("height", HeightmapFormat.Read, required: true);
                 if (heights is null)
                 {
                     continue;
@@ -241,27 +237,13 @@ namespace Comet.ZoneFiles
 
                 heights.Offset = heightBase;
                 tile.Heights = heights;
-                tile.Underside = ReadTileFile(
-                    folder,
-                    TileFile(coord, tile.Piece, "under.height"),
-                    HeightmapFormat.Read,
-                    required: false,
-                    errors,
-                    tileFiles
-                );
+                tile.Underside = Read("under.height", HeightmapFormat.Read);
                 if (tile.Underside is not null)
                 {
                     tile.Underside.Offset = heightBase;
                 }
-                tile.Colors = ReadTileFile(folder, TileFile(coord, tile.Piece, "color"), ColorMapFormat.Read, required: false, errors, tileFiles);
-                tile.UndersideColors = ReadTileFile(
-                    folder,
-                    TileFile(coord, tile.Piece, "under.color"),
-                    ColorMapFormat.Read,
-                    required: false,
-                    errors,
-                    tileFiles
-                );
+                tile.Colors = Read("color", ColorMapFormat.Read);
+                tile.UndersideColors = Read("under.color", ColorMapFormat.Read);
                 tiles.Add(tile);
             }
 
