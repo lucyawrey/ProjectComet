@@ -136,7 +136,8 @@ Console.WriteLine($"   Database {database} in comet-postgres");
 
 var contentChecked = DateTime.UtcNow;
 Console.WriteLine("== Content");
-BuildContent();
+if (!TryBuildContent())
+    throw Tool.Fail("The content build failed.");
 
 var webRoot = serveWeb ? web : null;
 var page = Path.Combine(web, "index.html");
@@ -246,12 +247,6 @@ string ToolOutput(string tool, params string[] toolArgs)
 
 bool TryBuildContent() =>
     Tool.Run("dotnet", "run", "--project", Path.Combine(Tool.Repo, "shapeland", "src", "ShapeLand.ContentBuild"), "--", "build") == 0;
-
-void BuildContent()
-{
-    if (!TryBuildContent())
-        throw Tool.Fail("The content build failed.");
-}
 
 bool Stale()
 {
