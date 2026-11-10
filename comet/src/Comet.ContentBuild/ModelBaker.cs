@@ -5,10 +5,7 @@ using Prop = Comet.Content.Prop;
 
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// Reads a prop's <c>.glb</c> for its collision triangles and bounds in Unity's space: glTF is right-handed and Unity
-/// left-handed, so X is negated (as Unity's glTFast importer does) and each triangle's winding reversed.
-/// </summary>
+/// <summary>glTF is right-handed and Unity left-handed, so X is negated (as Unity's glTFast does) and each triangle's winding reversed.</summary>
 public static class ModelBaker
 {
     /// <summary>Throws <see cref="ContentException"/> if the model can't be read.</summary>

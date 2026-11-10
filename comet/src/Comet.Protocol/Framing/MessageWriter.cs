@@ -5,10 +5,7 @@ using MessagePack;
 
 namespace Comet.Protocol.Framing
 {
-    /// <summary>
-    /// Builds a frame: the tick (4 bytes, little-endian), then messages, each a varint ID, a varint payload length and a MessagePack payload.
-    /// Without a header it buffers encoded messages for a later frame. Reuse one writer; not thread-safe.
-    /// </summary>
+    /// <summary>Tick (4 bytes, little-endian), then messages as varint ID, varint payload length and MessagePack payload. Not thread-safe.</summary>
     public sealed class MessageWriter : IBufferWriter<byte>
     {
         /// <summary>The frame header's length in bytes: the tick.</summary>

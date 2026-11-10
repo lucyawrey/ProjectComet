@@ -2,10 +2,7 @@ using UnityEditor;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Holds script reloads while in play mode, so changes compile when play stops: a reload during play keeps the game
-    /// running without what wasn't serialized (its input actions, connections), and it breaks every frame.
-    /// </summary>
+    /// <summary>Holds script reloads in play mode: a reload loses unserialized state (input actions, connections) and breaks every frame.</summary>
     [InitializeOnLoad]
     internal static class PlayModeReloads
     {

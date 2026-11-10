@@ -5,10 +5,8 @@ using MessagePack;
 
 namespace Comet.Server.Connections;
 
-/// <summary> The open connections. <see cref="Snapshot"/> is lock-free and allocation-free for the tick thread;
-/// adding and removing copy the array, which is rare (connections are capped by <see cref="ConnectionLimits"/>).
-/// </summary> <param name="serializerOptions">A game with its own messages passes <see
-/// cref="ProtocolSerializer.CreateOptions"/>; null means Comet's only.</param>
+/// <summary><see cref="Snapshot"/> is lock-free and allocation-free for the tick thread; adding and removing copy the array, which is rare.</summary>
+/// <param name="serializerOptions">A game with its own messages passes <see cref="ProtocolSerializer.CreateOptions"/>; null is Comet's only.</param>
 public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerOptions = null)
 {
     private readonly Lock _lock = new();

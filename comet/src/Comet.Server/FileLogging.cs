@@ -4,10 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Comet.Server;
 
-/// <summary>
-/// Logs to a file instead of the console when <c>Comet:LogFile</c> is set, for a server started by a tool (the Unity editor)
-/// that can't keep reading its output: a console nobody reads fills up and stalls the server.
-/// </summary>
+/// <summary>For a server started by a tool (the Unity editor) that can't keep reading its output: an unread console fills up and stalls it.</summary>
 public static class FileLogging
 {
     public static WebApplicationBuilder AddCometLogFile(this WebApplicationBuilder builder)

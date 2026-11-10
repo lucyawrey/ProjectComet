@@ -86,8 +86,8 @@ namespace ShapeLand.Client
                 return;
             }
 
-            // The input opens when Enter is released: focusing it while Enter is still down lets the rest of that
-            // key press reach it, which in web builds leaves it ignoring typed characters.
+            // The input opens on Enter's release: focusing it while Enter is down lets the rest of that key press reach it,
+            // which in web builds leaves it ignoring typed characters.
             var openChat = _hud.View.Controls.Game.OpenChat;
             if (!Open && !_hud.CardShowing && !_hud.MenuBlocking && openChat.WasPressedThisFrame() && !JustToggled)
             {
@@ -180,9 +180,7 @@ namespace ShapeLand.Client
             return !_box.worldBound.Contains(point) && !_button.worldBound.Contains(point);
         }
 
-        // Shows the newest line once the log has laid out. The scheduler can run before that layout, so for a moment it
-        // also follows the log and its lines changing size: new lines, and closing the input (which hides the input row
-        // and the scroll bar, rewrapping lines).
+        // Shows the newest line once the log has laid out; the scheduler can run before that layout, so for a moment it also follows size changes.
         private void ScrollToEnd()
         {
             _log.RegisterCallback<GeometryChangedEvent>(OnLogResized);

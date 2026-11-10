@@ -2,10 +2,7 @@ using System;
 
 namespace Comet.Protocol.Framing
 {
-    /// <summary>
-    /// Unsigned LEB128 variable-length integers: 7 bits per byte, the top bit set when more bytes follow.
-    /// 0–127 take 1 byte, 128–16,383 take 2.
-    /// </summary>
+    /// <summary>Unsigned LEB128: 7 bits per byte, the top bit set when more bytes follow (0–127 take 1 byte, 128–16,383 take 2).</summary>
     public static class Varint
     {
         /// <summary>The most bytes a 32-bit value takes.</summary>

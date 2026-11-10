@@ -9,10 +9,7 @@ namespace Comet.Simulation
     {
         public const int Tries = 8;
 
-        /// <summary>
-        /// How far below a box's or cylinder's bottom feet still count as inside, in meters: feet on a
-        /// pad's top can come out a hair lower in floating point.
-        /// </summary>
+        /// <summary>Meters below a box's or cylinder's bottom that count as inside: floats can put feet on a pad's top a hair lower.</summary>
         public const float BottomSlack = 0.05f;
 
         private readonly Dictionary<string, SpawnPoint> _spawnsByKey = new Dictionary<string, SpawnPoint>();
@@ -101,10 +98,7 @@ namespace Comet.Simulation
                 : volume.Position;
         }
 
-        /// <summary>
-        /// Whether <paramref name="feet"/> are inside <paramref name="volume"/>: a sphere (ellipsoid if
-        /// uneven) filling its size, else from its bottom (less <see cref="BottomSlack"/>) to its top.
-        /// </summary>
+        /// <summary>A sphere (ellipsoid if uneven) fills its size; otherwise from the bottom (less <see cref="BottomSlack"/>) to the top.</summary>
         public static bool Inside(TriggerVolume volume, Vector3 feet)
         {
             var local = ToLocal(volume, feet);

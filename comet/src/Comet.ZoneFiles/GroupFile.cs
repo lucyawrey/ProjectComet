@@ -8,10 +8,7 @@ using Tomlyn.Model;
 
 namespace Comet.ZoneFiles
 {
-    /// <summary>
-    /// A group's file (<c>groups/&lt;name&gt;.toml</c>): its <c>id</c>, then a <c>[[part]]</c> table for each part,
-    /// written like a zone's placements and relative to the group's pivot.
-    /// </summary>
+    /// <summary>A <c>[[part]]</c> table per part, written like a zone's placements and relative to the group's pivot.</summary>
     public static class GroupFile
     {
         public static Group? Read(string path, string file, List<ZoneFileError> errors)

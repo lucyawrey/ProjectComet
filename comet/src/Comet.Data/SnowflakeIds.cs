@@ -1,9 +1,6 @@
 namespace Comet.Data;
 
-/// <summary>
-/// Snowflake-style 64-bit row IDs: 42 bits of milliseconds since <see cref="Epoch"/>, 10 of node number (one per
-/// server process) and 11 of sequence. The sign bit stays 0 to fit <c>bigint</c>. Thread-safe.
-/// </summary>
+/// <summary>42 bits of milliseconds since <see cref="Epoch"/>, 10 of node, 11 of sequence; sign bit 0 for <c>bigint</c>. Thread-safe.</summary>
 public sealed class SnowflakeIds
 {
     public static readonly DateTimeOffset Epoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
@@ -31,10 +28,7 @@ public sealed class SnowflakeIds
         _clock = clock;
     }
 
-    /// <summary>
-    /// The next ID. If this millisecond's 2,048 are used up, or the clock stepped back by up to
-    /// <see cref="MaxClockStepBack"/>, it waits for the clock; a bigger step back throws.
-    /// </summary>
+    /// <summary>Waits if this millisecond's IDs are used up or the clock stepped back up to <see cref="MaxClockStepBack"/>; more throws.</summary>
     public long Next()
     {
         lock (_lock)

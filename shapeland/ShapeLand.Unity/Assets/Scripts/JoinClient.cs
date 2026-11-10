@@ -426,8 +426,7 @@ namespace ShapeLand.Client
                     LookRefused?.Invoke(lookRefusal);
                     break;
                 case ShapeLandMessageIds.Dropped:
-                    // The connection closes next; the client doesn't rejoin by itself, so two tabs can't keep
-                    // taking the character from each other.
+                    // The connection closes next; the client doesn't rejoin by itself, so two tabs can't keep taking the character from each other.
                     DroppedFor = FrameReader.Decode<Dropped>(payload, options).Reason;
                     Log($"dropped: {DroppedFor}");
                     break;
@@ -450,8 +449,7 @@ namespace ShapeLand.Client
                         break;
                     }
 
-                    // Before the player's arrival there: the world is built here, in the same frame, so the
-                    // correction that follows lands in it and the player's movement never runs on the old zone.
+                    // The world is built here, in the same frame before the arrival correction, so the player's movement never runs on the old zone.
                     EnterZone(zone, rebuild: true);
                     Session.Entities.GroundHeight = World.GroundHeight(_content.Movement);
                     foreach (var tag in entered.Flipped ?? Array.Empty<string>())

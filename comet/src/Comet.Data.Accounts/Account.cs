@@ -3,10 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Comet.Data.Accounts;
 
-/// <summary>
-/// Identity's own properties (<c>Id</c>, <c>UserName</c>) can't be marked <c>required</c> here: set them when making
-/// an account.
-/// </summary>
+/// <summary>Identity's own <c>Id</c> and <c>UserName</c> can't be marked <c>required</c> here, so set them when making an account.</summary>
 public class Account : IdentityUser<long>, ITimestamped
 {
     public AccountKind Kind { get; set; } = AccountKind.Player;

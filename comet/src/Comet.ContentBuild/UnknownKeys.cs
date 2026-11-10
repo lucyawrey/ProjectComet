@@ -3,10 +3,7 @@ using Tomlyn.Syntax;
 
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// Finds keys in a TOML document that the content type doesn't have. Tomlyn ignores unknown keys, so a typo
-/// (<c>max_sped</c>) would otherwise silently leave a field at its default.
-/// </summary>
+/// <summary>Tomlyn ignores unknown keys, so a typo (<c>max_sped</c>) would otherwise silently leave a field at its default.</summary>
 internal static class UnknownKeys
 {
     public static IEnumerable<(SyntaxNode Node, string Message)> Find(DocumentSyntax document, JsonTypeInfo root)

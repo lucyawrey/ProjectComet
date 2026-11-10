@@ -18,10 +18,9 @@ public static class NetProfiles
         };
     }
 
-    // Fails unless the kernel modules netem needs are loaded. Only Linux runs Docker on this machine's own kernel.
-    // Docker Desktop's VM on macOS has netem but no ifb device, which shaping incoming traffic needs
-    // (tools/docker/netem.sh), so the server's container stops at "Unknown device type"; Windows' depends on its
-    // WSL kernel.
+    // Fails unless the kernel modules netem needs are loaded; only Linux runs Docker on this machine's own kernel.
+    // Docker Desktop's macOS VM has netem but no ifb device, which shaping incoming traffic needs (tools/docker/netem.sh);
+    // Windows uses its WSL kernel.
     public static void CheckModules()
     {
         if (!OperatingSystem.IsLinux())

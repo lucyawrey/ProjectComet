@@ -1,9 +1,6 @@
 namespace Comet.Server.Connections;
 
-/// <summary>
-/// The game's side of a connection. Called on the connection's own receive flow, not the tick
-/// thread: hand anything the simulation needs to the tick thread safely.
-/// </summary>
+/// <summary>Called on the connection's receive flow, not the tick thread: hand anything the simulation needs to the tick thread safely.</summary>
 public interface IConnectionHandler
 {
     void OnConnected(Connection connection);

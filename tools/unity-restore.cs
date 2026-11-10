@@ -54,9 +54,9 @@ foreach (var dll in Directory.EnumerateFiles(packages, "*.dll", SearchOption.All
 File.WriteAllText(Path.Combine(packages, ".restored"), "");
 Console.WriteLine($"Restored {project}; rewrote {analyzers} analyzer .meta file(s) and set {editorOnly} package DLL(s) to the editor only.");
 
-// Writes a plugin .meta, enabled nowhere or in the editor only, keeping the GUID of an existing one. The CLI writes
-// analyzers' .meta files only, so a Tomlyn DLL may have none yet; Unity would otherwise make one on import with every
-// platform enabled.
+// Writes a plugin .meta (enabled nowhere or in the editor only), keeping an existing GUID. The CLI writes only analyzers' .meta files,
+// so a Tomlyn DLL may have none, and Unity would enable every platform on import.
+
 static void WriteMeta(string meta, bool analyzer, bool editor, bool keepGuidOnly)
 {
     var existing = File.Exists(meta) ? Regex.Match(File.ReadAllText(meta), @"^guid: *(\S+)", RegexOptions.Multiline) : null;

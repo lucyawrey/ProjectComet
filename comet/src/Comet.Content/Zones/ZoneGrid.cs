@@ -3,10 +3,7 @@ using System.Numerics;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// The fixed world grid every zone uses: square chunks, terrain samples every meter. Chunk (x, z) covers X
-    /// from <c>x * ChunkSize</c> to <c>(x + 1) * ChunkSize</c>.
-    /// </summary>
+    /// <summary>Chunk (x, z) covers X from <c>x * ChunkSize</c> to <c>(x + 1) * ChunkSize</c>.</summary>
     public static class ZoneGrid
     {
         /// <summary>A chunk's side, in meters.</summary>
@@ -18,10 +15,7 @@ namespace Comet.Content
         /// <summary>Samples along a chunk's side: its last row and column repeat its neighbors' first, so terrain meets without seams.</summary>
         public const int ChunkSamples = ChunkSize + 1;
 
-        /// <summary>
-        /// The rotation for Euler angles in degrees, applied in Unity's order (Z, X, Y); a positive turn
-        /// about Y takes +Z toward +X.
-        /// </summary>
+        /// <summary>Euler angles in degrees, applied in Unity's order (Z, X, Y); a positive turn about Y takes +Z toward +X.</summary>
         public static Quaternion Rotation(Vector3 eulerDegrees)
         {
             const float toRadians = MathF.PI / 180;

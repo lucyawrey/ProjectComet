@@ -37,10 +37,7 @@ public sealed class ContentBuilder
         return this;
     }
 
-    /// <summary>
-    /// Reads interface text from <c>{folder}/en.toml</c> (<see cref="StringFile"/>), which must exist. Given
-    /// <paramref name="placeholders"/>, any other placeholder is an error, so a typo fails the build.
-    /// </summary>
+    /// <summary>Reads <c>{folder}/en.toml</c>, which must exist; given <paramref name="placeholders"/>, any other placeholder is an error.</summary>
     public ContentBuilder AddStrings(string folder = "strings", IReadOnlyCollection<string>? placeholders = null)
     {
         _stringFile = Path.Combine(folder, "en.toml");
@@ -92,10 +89,7 @@ public sealed class ContentBuilder
         return this;
     }
 
-    /// <summary>
-    /// Reads and checks every registered type, assigning registry numbers and saving new ones if it all passes. With
-    /// <paramref name="release"/>, what's otherwise a warning (blockout placements) is an error.
-    /// </summary>
+    /// <summary>Saves new registry numbers only if every type passes; with <paramref name="release"/>, warnings are errors.</summary>
     public ContentBuildResult Build(bool saveRegistry = true, bool release = false)
     {
         var errors = new List<ContentError>();
@@ -358,8 +352,7 @@ public sealed class ContentBuilder
                     .Find(document, ContentJson.Options.GetTypeInfo(typeof(T)))
                     .Select(u => ErrorAt(file, u.Node.Span, u.Message))
                     .ToList();
-                // TOML allows nan and inf, but no content number means either, and every comparison a range check
-                // makes with NaN is false, so it would pass them.
+                // TOML allows nan and inf, but no content number means either, and NaN passes every range check because its comparisons are false.
                 fileErrors.AddRange(
                     document
                         .Descendants()
@@ -428,8 +421,7 @@ public sealed class ContentBuilder
             return schema;
         }
 
-        // Tomlyn wraps converter errors ("Exception while trying to convert … Reason: (3,8) : error : Invalid enum
-        // name …"); the last part says what's wrong.
+        // Tomlyn wraps converter errors; only the part after the last " : error : " says what's wrong.
         private static string Reason(string message)
         {
             const string marker = " : error : ";

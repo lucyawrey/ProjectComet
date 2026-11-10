@@ -6,10 +6,7 @@ using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// A saved set of parts placed as one: editing it changes every copy. Parts are placements relative to the
-    /// group's pivot; the content build expands each copy into its parts.
-    /// </summary>
+    /// <summary>Parts are relative to the group's pivot; the content build expands each copy, so editing the group changes every copy.</summary>
     [MessagePackObject]
     public sealed class Group : IContentEntry
     {
@@ -31,10 +28,7 @@ namespace Comet.Content
         /// <summary>How deeply groups may nest; deeper nesting places nothing, and validation reports it.</summary>
         public const int MaxDepth = 16;
 
-        /// <summary>
-        /// The placements a copy stands for, in its zone's space, nested groups expanded. An unknown group,
-        /// or one inside itself, places nothing.
-        /// </summary>
+        /// <summary>A copy's placements in its zone's space, nested groups expanded; an unknown or self-containing group places nothing.</summary>
         public static List<Placement> Expand(Placement copy, Func<string, Group?> find)
         {
             var placements = new List<Placement>();
@@ -42,10 +36,7 @@ namespace Comet.Content
             return placements;
         }
 
-        /// <summary>
-        /// Replaces every group copy in <paramref name="zone"/> with its parts, each in the chunk holding
-        /// its pivot (made if none). Changes the zone in place.
-        /// </summary>
+        /// <summary>Replaces each group copy in <paramref name="zone"/> with its parts, in the chunk holding each pivot (made if none).</summary>
         public static void Expand(Zone zone, Func<string, Group?> find)
         {
             var chunks = zone.Chunks.ToDictionary(c => c.Coord);
@@ -74,10 +65,7 @@ namespace Comet.Content
             zone.Chunks = chunks.Values.OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z).ToArray();
         }
 
-        /// <summary>
-        /// <paramref name="group"/>'s parts placed by a copy's transform, one level only (nested groups stay copies). The copy's colors by role, name
-        /// and off state pass down to its parts, its colors over their own.
-        /// </summary>
+        /// <summary>A copy's parts placed by its transform, one level (nested groups stay copies); colors, tag, off and blockout pass down.</summary>
         public static List<Placement> Place(Placement copy, Group group)
         {
             var rotation = ZoneGrid.Rotation(copy.Rotation);
@@ -120,7 +108,7 @@ namespace Comet.Content
             return colors;
         }
 
-        // // outer holds the groups it's inside, so a group inside itself stops there.
+        // outer holds the groups it's inside, so a group inside itself stops there.
         private static void Add(Placement copy, Func<string, Group?> find, List<Placement> into, HashSet<string> outer)
         {
             if (outer.Count >= MaxDepth || copy.Group is null || outer.Contains(copy.Group) || find(copy.Group) is not { } group)

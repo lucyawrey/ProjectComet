@@ -4,10 +4,7 @@ using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// Interface text by key, with <c>{name}</c> placeholders. A missing key gives <c>[key]</c> rather than throwing, so a typo shows on screen.
-    /// A key's <c>_variant</c> version (<c>guest_note_web</c>) replaces its text when the game sets that variant.
-    /// </summary>
+    /// <summary>A missing key gives <c>[key]</c>, not an exception; <c>key_variant</c> replaces <c>key</c> when the game sets that variant.</summary>
     [MessagePackObject]
     public sealed class StringTable
     {

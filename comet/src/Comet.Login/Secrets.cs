@@ -13,10 +13,7 @@ public static class SessionTokens
     public static byte[] Hash(string token) => SHA256.HashData(Encoding.UTF8.GetBytes(token));
 }
 
-/// <summary>
-/// 26 characters of Crockford's base32 (about 130 bits), shown in groups of four. Reading one ignores dashes, spaces
-/// and case, and takes I and L as 1 and O as 0. Only the SHA-256 is stored, looked up through a unique index.
-/// </summary>
+/// <summary>Crockford's base32 in fours; reading ignores dashes, spaces and case and takes I and L as 1, O as 0. Only the hash is stored.</summary>
 public static class RecoveryCodes
 {
     public const int Length = 26;

@@ -54,10 +54,7 @@ namespace Comet.Client
         /// <summary>The delay being moved toward, in ticks.</summary>
         public double Target { get; private set; }
 
-        /// <summary>
-        /// A state arrived needing a delay of <paramref name="neededTicks"/> (receive tick at arrival minus
-        /// the entity's previous stamp).
-        /// </summary>
+        /// <summary>The delay a state needed: receive tick at arrival minus the entity's previous stamp (<paramref name="neededTicks"/>).</summary>
         public void AddSample(double neededTicks, double now)
         {
             _samples.Enqueue(new Sample(now, neededTicks));

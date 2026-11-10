@@ -10,10 +10,7 @@ namespace Comet.ZoneFiles
 {
     public static partial class ZoneValidation
     {
-        /// <summary>
-        /// <paramref name="findProp"/> and <paramref name="findGroup"/> return null for an unknown id. A group copy's
-        /// parts are checked where they land, each against its own chunk, as the content build places them.
-        /// </summary>
+        /// <summary><paramref name="findProp"/> and <paramref name="findGroup"/> return null for unknown ids; parts are checked in place.</summary>
         public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Prop?> findProp, Func<string, Group?>? findGroup = null)
         {
             var errors = new List<ZoneFileError>();

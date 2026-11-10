@@ -352,8 +352,7 @@ void Package()
     File.Copy(content, Path.Combine(output, "content.bin"));
     File.Copy(Path.Combine(Tool.Repo, "shapeland", "deploy", "Caddyfile"), Path.Combine(output, "Caddyfile"));
 
-    // Written here rather than with tar, so it's the same from every platform: the programs are executable on Linux
-    // whatever file modes this machine keeps.
+    // Written here rather than with tar, so programs are executable on Linux whatever file modes this machine keeps.
     using var file = File.Create(Path.Combine(work, "package.tar.gz"));
     using var gzip = new GZipStream(file, CompressionLevel.Optimal);
     using var tar = new TarWriter(gzip, TarEntryFormat.Pax);
@@ -543,8 +542,7 @@ void Page()
     );
     File.WriteAllText(Path.Combine(output, "config.js"), $"window.shapelandLogin = \"https://{ServerHost}\";\n");
 
-    // The page's name needs its own record: once server.shapeland exists, the domain's wildcard no longer covers
-    // shapeland itself (it has a name under it).
+    // The page's name needs its own record: once server.shapeland exists, the domain's wildcard no longer covers shapeland.
     var records = Tool.Capture(Tool.Info("vercel", ["dns", "ls", Domain]))
         .Output.Split('\n')
         .Select(l => l.Split((char[])[' ', '\t'], StringSplitOptions.RemoveEmptyEntries));

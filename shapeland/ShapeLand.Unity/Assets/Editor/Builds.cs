@@ -17,8 +17,8 @@ namespace ShapeLand.Client.Editor
 
         public void OnPreprocessBuild(BuildReport report)
         {
-            // Switching platforms inside a batch run builds with the starting platform's shader setup: a web build
-            // from a Linux-targeted editor failed every draw. Batch runs start on the profile's platform instead.
+            // Switching platforms in a batch run keeps the starting platform's shader setup (a web build from a Linux editor failed every draw),
+            // so a batch run starts on the profile's platform instead.
             if (Application.isBatchMode && EditorUserBuildSettings.activeBuildTarget != report.summary.platform)
             {
                 throw new BuildFailedException(
@@ -35,8 +35,7 @@ namespace ShapeLand.Client.Editor
 
             AssetDatabase.Refresh();
 
-            // A fast web build: uncompressed for this build only, the project's own setting put back once it ends, whether
-            // it worked or not (delayCall runs after a failed build too), so it never stays in the saved settings.
+            // A fast web build is uncompressed for this build only; delayCall puts the project's setting back after it ends, even a failed one.
             if (report.summary.platform == BuildTarget.WebGL && File.Exists(FastWebMarker))
             {
                 File.Delete(FastWebMarker);

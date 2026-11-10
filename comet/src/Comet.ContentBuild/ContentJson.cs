@@ -4,10 +4,7 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// System.Text.Json settings matching how Tomlyn reads content files (snake_case keys, enums by name, unknown keys
-/// disallowed), so the unknown-key check and the JSON Schema can't disagree with the reader.
-/// </summary>
+/// <summary>Matches how Tomlyn reads content, so the unknown-key check and the JSON Schema can't disagree with the reader.</summary>
 public static class ContentJson
 {
     public static readonly JsonSerializerOptions Options = CreateOptions();

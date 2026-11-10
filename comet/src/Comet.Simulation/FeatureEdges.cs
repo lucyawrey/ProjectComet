@@ -8,10 +8,7 @@ namespace Comet.Simulation
     {
         private const float Weld = 0.001f;
 
-        /// <summary>
-        /// The edges of <paramref name="triangles"/> as point pairs: those with one triangle, or whose
-        /// triangles meet at more than <paramref name="creaseDegrees"/>.
-        /// </summary>
+        /// <summary>Edges with one triangle, or whose triangles meet at more than <paramref name="creaseDegrees"/>, as point pairs.</summary>
         public static Vector3[] Of(IReadOnlyList<Vector3> triangles, float creaseDegrees = 1)
         {
             var minCos = (float)Math.Cos(creaseDegrees * Math.PI / 180);

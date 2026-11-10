@@ -46,8 +46,8 @@ int Build(bool release)
     }
 
     Directory.CreateDirectory(output);
-    // Written beside it and renamed over it: the editor builds when a zone is saved while shapeland-dev's watcher
-    // builds too, and a rename never meets the other build's lock or leaves readers a half-written file.
+    // Written beside it and renamed over it, since the editor and shapeland-dev's watcher may build at once;
+    // a rename never meets the other build's lock or leaves a half-written file.
     var file = Path.Combine(output, "content.bin");
     var temporary = $"{file}.{Environment.ProcessId}.tmp";
     using (var stream = File.Create(temporary))

@@ -3,9 +3,7 @@ using System.Numerics;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// Solid triangles in the world: three corners each, in world meters, wound clockwise seen from outside (Unity's convention).
-    /// </summary>
+    /// <summary>Three corners each, in world meters, wound clockwise seen from outside (Unity's convention).</summary>
     public sealed class CollisionMesh
     {
         public CollisionMesh(Vector3[] triangles) => Triangles = triangles;

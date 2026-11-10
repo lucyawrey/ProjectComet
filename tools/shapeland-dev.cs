@@ -46,8 +46,8 @@ args = Tool.Arguments(args);
 
 var project = Path.Combine(Tool.Repo, "shapeland", "ShapeLand.Unity");
 
-// Its own folder: these builds skip compression (the fast-web-build marker, Builds.cs), and tools/run
-// shapeland-deploy publishes artifacts/unity/shapeland/web, so a playtest build never goes out by mistake.
+// Its own folder, since these builds skip compression (Builds.cs) and shapeland-deploy publishes artifacts/unity/shapeland/web.
+// That way a playtest build never goes out by mistake.
 var web = Path.Combine(Tool.Repo, "artifacts", "unity", "shapeland", "web-dev");
 var content = Path.Combine(Tool.Repo, "artifacts", "content", "shapeland", "content.bin");
 var bin = Path.Combine(Tool.Repo, "artifacts", "bin");
@@ -212,8 +212,7 @@ if (!watch)
     return;
 }
 
-// Polls rather than using a file watcher, which misses changes on some file systems. Folders count too: theirs
-// change when a file is added, removed or renamed.
+// Polls rather than using a file watcher, which misses changes on some file systems; folders count too, since theirs change on add or remove.
 while (!server!.HasExited)
 {
     Thread.Sleep(1000);

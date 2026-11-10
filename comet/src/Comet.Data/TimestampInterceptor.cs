@@ -3,10 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Comet.Data;
 
-/// <summary>
-/// Stamps <see cref="ITimestamped"/> rows on save. Bulk updates (<c>ExecuteUpdate</c>) skip it and set
-/// <c>UpdatedAt</c> themselves.
-/// </summary>
+/// <summary>Bulk updates (<c>ExecuteUpdate</c>) skip it and must set <c>UpdatedAt</c> themselves.</summary>
 public sealed class TimestampInterceptor(TimeProvider clock) : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)

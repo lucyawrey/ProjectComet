@@ -15,10 +15,7 @@ namespace Comet.Content
         [Key(1)]
         public string Id { get; set; } = "";
 
-        /// <summary>
-        /// For a zone on its own local grid (a dungeon), the region chunk its chunk (0, 0) sits on, so its
-        /// scenery shows in distant LODs; null for open zones.
-        /// </summary>
+        /// <summary>For a zone on its own grid (a dungeon), the region chunk its (0, 0) sits on, for distant LODs; null for open zones.</summary>
         [Key(2)]
         public ChunkCoord? WorldAnchor { get; set; }
 
@@ -43,9 +40,7 @@ namespace Comet.Content
 
         public const float DefaultHeightBase = -100f;
 
-        /// <summary>
-        /// The height in meters of terrain sample value 0, so ground covers this + 0.01 m up to this + 655.35 m (<see cref="Heightmap.Scale"/>).
-        /// </summary>
+        /// <summary>Meters at terrain sample value 0, so ground covers this + 0.01 m to this + 655.35 m (<see cref="Heightmap.Scale"/>).</summary>
         [Key(9)]
         public float HeightBase { get; set; } = DefaultHeightBase;
     }
@@ -156,9 +151,7 @@ namespace Comet.Content
         }
     }
 
-    /// <summary>
-    /// A terrain piece's part of one chunk: a heightmap whose sample (0, 0) sits at chunk sample (<see cref="OriginX"/>, <see cref="OriginZ"/>).
-    /// </summary>
+    /// <summary>A heightmap whose sample (0, 0) sits at chunk sample (<see cref="OriginX"/>, <see cref="OriginZ"/>).</summary>
     [MessagePackObject]
     public sealed class TerrainTile
     {
@@ -186,10 +179,7 @@ namespace Comet.Content
         public ColorMap? UndersideColors { get; set; }
     }
 
-    /// <summary>
-    /// A prop, primitive or group placed in a chunk (or a group's part). A primitive's scale is its size in
-    /// meters, and its mesh is built at that size.
-    /// </summary>
+    /// <summary>A primitive's scale is its size in meters, and its mesh is built at that size.</summary>
     [MessagePackObject]
     public sealed class Placement
     {
@@ -228,10 +218,7 @@ namespace Comet.Content
         [Key(9)]
         public string? Role { get; set; }
 
-        /// <summary>
-        /// A group copy's colors by role (0xRRGGBB): parts with a listed role, however deeply nested, take
-        /// it in place of their own; an outer copy's wins. Null for most.
-        /// </summary>
+        /// <summary>Colors by role (0xRRGGBB) that parts of that role, at any depth, take over their own; outer copies win. Null for most.</summary>
         [Key(10)]
         public Dictionary<string, uint>? Colors { get; set; }
 
@@ -399,10 +386,7 @@ namespace Comet.Content
         [Key(6)]
         public float FontSize { get; set; } = 13;
 
-        /// <summary>
-        /// Whether the panel has a little arrow under it pointing at the point, as speech bubbles do; only
-        /// with <see cref="Background"/>.
-        /// </summary>
+        /// <summary>Whether the panel has an arrow pointing at the point, as speech bubbles do; only with <see cref="Background"/>.</summary>
         [Key(7)]
         public bool Arrow { get; set; }
 

@@ -30,14 +30,9 @@ namespace Comet.Client
         private readonly Dictionary<uint, Track> _tracks = new Dictionary<uint, Track>();
         private double _renderTick = double.NegativeInfinity;
 
-        /// <param name="reportInterval">How often moving entities are updated, in seconds.</param> <param
-        /// name="idleGap">A gap between states longer than this, in seconds, after a state standing still,
-        /// means the entity stood still.</param> <param name="teleportSpeed">Faster than this across the
-        /// ground or upwards, in meters per second, a move is drawn as a jump; falling is never
-        /// one.</param> <param name="gravity">Downward acceleration while dead-reckoning an entity moving
-        /// vertically, in meters per second squared.</param> <param name="maxExtrapolation">How long, in
-        /// seconds, an entity is dead-reckoned before it holds.</param> <param name="blend">How long, in
-        /// seconds, the difference is eased out when a late state arrives.</param>
+        /// <param name="reportInterval">How often moving entities are updated, in seconds.</param>
+        /// <param name="idleGap">A gap longer than this, in seconds, after a standing-still state means the entity stood still.</param>
+        /// <param name="teleportSpeed">Ground or upward moves above this speed (m/s) are drawn as jumps; falling never is.</param>
         public RemoteEntities(
             int tickRate,
             double reportInterval = 1.0 / 15,
@@ -71,10 +66,7 @@ namespace Comet.Client
 
         public double BlendTicks { get; }
 
-        /// <summary>
-        /// The height of the highest ground under a position at or below it, or null where there is none (a hole, past
-        /// the edge); dead reckoning never goes below it.
-        /// </summary>
+        /// <summary>The highest ground at or below a position, or null over a hole or past the edge; dead reckoning never goes below it.</summary>
         public Func<Vector3, float?>? GroundHeight { get; set; }
 
         /// <summary>How far up or down an entity on the ground is followed over a short move, in meters: a step's height.</summary>
@@ -126,10 +118,7 @@ namespace Comet.Client
 
         public bool Despawn(uint entityId) => _tracks.Remove(entityId);
 
-        /// <summary>
-        /// Adds a state (ignored for entities not spawned and states older than the newest). Returns the previous state's stamp when this one
-        /// continues a move, else null, for <see cref="InterpolationDelay"/>.
-        /// </summary>
+        /// <summary>Returns the previous state's stamp when this continues a move, else null, for <see cref="InterpolationDelay"/>.</summary>
         public double? AddState(uint entityId, uint tick, Vector3 position, float facing, Vector3 velocity = default)
         {
             if (!_tracks.TryGetValue(entityId, out var track))

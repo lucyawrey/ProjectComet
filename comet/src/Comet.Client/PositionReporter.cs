@@ -21,8 +21,7 @@ namespace Comet.Client
         /// <summary>How often the position is reported while moving, in seconds.</summary>
         public double Interval { get; }
 
-        // Step times (a step number over the step rate) round, so an interval of exactly four steps can come out a
-        // hair short of the interval; without this, the report would wait two more steps.
+        // Step times round, so exactly four steps can come out a hair short of the interval; without this tolerance the report waits two more steps.
         private const double TimeTolerance = 1e-6;
 
         public bool ShouldReport(Vector3 velocity, double now)

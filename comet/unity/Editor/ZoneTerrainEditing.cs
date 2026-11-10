@@ -60,10 +60,7 @@ namespace Comet.Unity.Editor
 
         public bool TryGetHeight(string piece, int x, int z, out float height) => Terrain[piece].TryGetHeight(x, z, out height);
 
-        /// <summary>
-        /// Sets a world sample of <paramref name="piece"/>: a height in meters, or null for a hole. Every tile
-        /// holding the sample is changed (chunks repeat their shared edges); one is made if none holds it.
-        /// </summary>
+        /// <summary>A height in meters, or null for a hole; changes every tile holding the sample (edges repeat), making one if none does.</summary>
         public void SetHeight(string piece, int x, int z, float? height) =>
             ForEachTile(
                 piece,
@@ -201,10 +198,7 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>
-        /// Moves a piece: <paramref name="dx"/> and <paramref name="dz"/> whole samples sideways and
-        /// <paramref name="dy"/> meters up, with its underside and colors, so its shape stays the same.
-        /// </summary>
+        /// <summary>Moves a piece <paramref name="dx"/>, <paramref name="dz"/> samples and <paramref name="dy"/> meters.</summary>
         public void MovePiece(string name, int dx, int dz, float dy, uint ground, uint skirt)
         {
             var samples = new Dictionary<(int X, int Z), (float Height, float? Under, uint? Color, uint? UnderColor)>();
@@ -281,10 +275,7 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>
-        /// World samples where two pieces both have ground closer together than <paramref name="gap"/> meters, so a
-        /// body may not fit between them: allowed, but worth fixing.
-        /// </summary>
+        /// <summary>Samples where two pieces' ground is closer than <paramref name="gap"/> meters, so a body may not fit; worth fixing.</summary>
         public List<Vector3> Overlaps(float gap)
         {
             var found = new List<Vector3>();

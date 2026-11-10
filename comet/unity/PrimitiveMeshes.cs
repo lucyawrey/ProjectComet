@@ -10,8 +10,8 @@ namespace Comet.Unity
     {
         private static Dictionary<string, Entry>? _meshes;
 
-        // Meshes an earlier domain built (a reload empties the dictionary but keeps them, as they're DontSave): not
-        // reused, since the mesher may have changed, but destroyed once nothing shows them.
+        // Meshes an earlier domain built survive a reload (they're DontSave) but aren't reused, since the mesher may have changed;
+        // they're destroyed once nothing shows them.
         private static List<Mesh> _strays = new List<Mesh>();
         private static int _uses;
         private static int _pruneAbove = PruneAbove;

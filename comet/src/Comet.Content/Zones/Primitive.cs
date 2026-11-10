@@ -2,9 +2,7 @@ using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// The shapes Comet builds in code. Each stands on its pivot (bottom center) and at scale 1 fits a 1 m box, so scale is size in meters.
-    /// </summary>
+    /// <summary>Each stands on its pivot (bottom center) and at scale 1 fits a 1 m box, so scale is size in meters.</summary>
     public enum PrimitiveKind
     {
         Box,
@@ -28,7 +26,7 @@ namespace Comet.Content
 
         Arch,
 
-        // // At scale 1 each regular solid holds as much as a 1 m cube; a uniform scale keeps them regular.
+        // At scale 1 each regular solid holds as much as a 1 m cube; a uniform scale keeps them regular.
 
         /// <summary>A regular tetrahedron standing on a face, with a corner at the back and a face toward +Z.</summary>
         Tetrahedron,

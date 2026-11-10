@@ -50,9 +50,7 @@ namespace ShapeLand.Client
             ApplyShowThroughWalls();
         }
 
-        // Draws the fade and silhouette materials once, out of sight, so their shaders are ready (compiled) before a
-        // shape first fades or hides behind something, rather than hitching then. (A freshly opened editor still
-        // shows its cyan placeholder on the first fade.)
+        // Draws the fade and silhouette materials once, out of sight, so their shaders compile before a shape first fades instead of hitching then.
         private void WarmUpFades()
         {
             _warmUpMesh ??= new Mesh

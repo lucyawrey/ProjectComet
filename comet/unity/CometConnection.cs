@@ -5,10 +5,7 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// Drives a client session from Unity's frame loop: it handles received frames before any other script's Update,
-    /// and a <see cref="CometFlush"/> on the same object sends what the frame wrote after every other LateUpdate.
-    /// </summary>
+    /// <summary>Received frames are handled before any Update; <see cref="CometFlush"/> sends what the frame wrote after any LateUpdate.</summary>
     [DefaultExecutionOrder(-1000)]
     public sealed class CometConnection : MonoBehaviour
     {
@@ -45,8 +42,8 @@ namespace Comet.Unity
             var transport = Session.Transport;
             Session = null;
             transport.Close();
-            // .NET's transport finishes the close handshake (or gives up after a few seconds) and releases its
-            // socket by itself; disposing it now would abort the close. The browser's still closes cleanly when freed.
+            // .NET's transport finishes the close handshake itself and frees its socket; disposing it now would abort the close.
+            // The browser's transport closes cleanly when freed.
             if (!(transport is WebSocketTransport))
             {
                 transport.Dispose();

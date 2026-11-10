@@ -3,9 +3,7 @@ using System.Text;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// The raw color map file: magic <c>CCOL</c>, version, grid size, then three bytes (red, green, blue) per sample.
-    /// </summary>
+    /// <summary>Magic <c>CCOL</c>, version, grid size, then three bytes (red, green, blue) per sample.</summary>
     public static class ColorMapFormat
     {
         public const int HeaderSize = 10;

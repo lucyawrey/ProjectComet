@@ -274,8 +274,7 @@ namespace Comet.Unity.Editor
                 terrain.ReplaceDefaultColors(piece, oldGround, Ground(), oldUnder, Under());
                 terrain.Commit("Change piece settings", _settings!);
 
-                // Unity's color picker reports every step of a drag as a change; while it has focus, they all go into
-                // the first one's undo step.
+                // Unity's color picker reports every step of a drag as a change; while it has focus, they all go into the first one's undo step.
                 if (!ColorPickerFocused)
                 {
                     _colorUndoGroup = null;

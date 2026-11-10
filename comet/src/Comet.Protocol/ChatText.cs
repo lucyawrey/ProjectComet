@@ -7,10 +7,7 @@ namespace Comet.Protocol
     {
         public const int MaxMarksPerCharacter = 3;
 
-        /// <summary>
-        /// Cleans a chat line: drops control, formatting, private-use and unpaired surrogate characters and marks past
-        /// <see cref="MaxMarksPerCharacter"/>, then trims. False if it's empty or over <paramref name="maxLength"/> UTF-16 characters.
-        /// </summary>
+        /// <summary>Drops unsafe characters and extra marks, then trims; false if empty or over <paramref name="maxLength"/> UTF-16 units.</summary>
         public static bool TryNormalize(string? text, int maxLength, out string normalized)
         {
             text = text ?? "";

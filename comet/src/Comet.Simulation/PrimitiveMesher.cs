@@ -11,11 +11,7 @@ namespace Comet.Simulation
         private static readonly Dictionary<(PrimitiveKind, int?, float, int, float, float, float, Vector3, float, int, int), Vector3[]> Cache =
             new Dictionary<(PrimitiveKind, int?, float, int, float, float, float, Vector3, float, int, int), Vector3[]>();
 
-        /// <summary>
-        /// The triangles of <paramref name="placement"/>'s primitive in its own space, built once per kind,
-        /// values and size and shared: don't change them. Keeps every size asked for, so for sizes that
-        /// keep changing use <see cref="Build"/>.
-        /// </summary>
+        /// <summary>Shared and cached per kind, values and size, so don't change it; use <see cref="Build"/> for sizes that keep changing.</summary>
         public static Vector3[] For(Placement placement, PolygonBudget budget)
         {
             var p = placement.Primitive ?? throw new ArgumentException("Not a primitive's placement.", nameof(placement));

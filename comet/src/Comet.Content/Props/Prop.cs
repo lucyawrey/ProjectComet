@@ -26,10 +26,7 @@ namespace Comet.Content
         [Key(3)]
         public bool UniformScale { get; set; }
 
-        /// <summary>
-        /// The collision mesh in the prop's own space, in meters, three corners per triangle, wound clockwise from outside.
-        /// Taken from objects named with <see cref="CollisionSuffix"/>, else all meshes.
-        /// </summary>
+        /// <summary>Three corners per triangle, in meters, clockwise from outside; from <see cref="CollisionSuffix"/> objects, else all.</summary>
         [JsonIgnore]
         [Key(4)]
         public Vector3[] Collision { get; set; } = Array.Empty<Vector3>();

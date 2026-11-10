@@ -7,10 +7,7 @@ namespace Comet.Server;
 
 public static class WebBuild
 {
-    /// <summary>
-    /// The page's Content Security Policy: scripts only from its own site (Unity's loader needs blob: and 'wasm-unsafe-eval'),
-    /// connections to its own server and the Login server at <paramref name="loginUrl"/>.
-    /// </summary>
+    /// <summary>Unity's loader needs blob: and 'wasm-unsafe-eval'; connections only to the page's server and <paramref name="loginUrl"/>.</summary>
     public static string PagePolicy(string loginUrl)
     {
         var login = Uri.TryCreate(loginUrl, UriKind.Absolute, out var url) ? " " + url.GetLeftPart(UriPartial.Authority) : "";
@@ -19,10 +16,7 @@ public static class WebBuild
             + $"connect-src 'self'{login}; object-src 'none'; base-uri 'none'";
     }
 
-    /// <summary>
-    /// Serves the Unity web build in <paramref name="webRoot"/> at the root, for development. Files named .unityweb are Brotli:
-    /// browsers that accept br decompress natively; the rest (Firefox over plain HTTP) get raw bytes for Unity's loader to unpack.
-    /// </summary>
+    /// <summary>.unityweb files are Brotli: br browsers decompress them; others (Firefox over plain HTTP) get raw bytes for Unity's loader.</summary>
     public static void Serve(WebApplication app, string webRoot)
     {
         var files = new PhysicalFileProvider(Path.GetFullPath(webRoot));

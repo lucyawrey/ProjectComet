@@ -10,12 +10,7 @@ using Tomlyn.Model;
 
 namespace Comet.ZoneFiles
 {
-    /// <summary>
-    /// A zone's folder: <c>zone.toml</c>, then a folder per chunk in <c>chunks/</c>, named by its grid position
-    /// (<c>chunks/0_-1/</c>), holding the chunk's <c>chunk.toml</c> and its terrain tiles: <c>&lt;piece&gt;.height</c>,
-    /// and optionally <c>&lt;piece&gt;.under.height</c>, <c>&lt;piece&gt;.color</c> and
-    /// <c>&lt;piece&gt;.under.color</c> (the underside's colors, only with an underside).
-    /// </summary>
+    /// <summary>A folder per chunk in <c>chunks/</c>, named by position (<c>0_-1</c>), holding <c>chunk.toml</c> and its terrain tiles.</summary>
     public static partial class ZoneFolder
     {
         public const string ZoneFile = "zone.toml";
@@ -41,15 +36,10 @@ namespace Comet.ZoneFiles
 
         public static string ChunkFile(ChunkCoord coord) => $"{ChunksFolder}/{coord}/{ChunkFileName}";
 
-        /// <summary>
-        /// <paramref name="kind"/> is <c>height</c>, <c>under.height</c>, <c>color</c> or <c>under.color</c>.
-        /// </summary>
+        /// <summary><paramref name="kind"/> is <c>height</c>, <c>under.height</c>, <c>color</c> or <c>under.color</c>.</summary>
         public static string TileFile(ChunkCoord coord, string piece, string kind) => $"{ChunksFolder}/{coord}/{piece}.{kind}";
 
-        /// <summary>
-        /// The zone is returned even with errors, without the parts that failed. Checks the files' form only:
-        /// <see cref="ZoneValidation"/> checks what they mean.
-        /// </summary>
+        /// <summary>Returns the zone even with errors, minus failed parts; checks only form: <see cref="ZoneValidation"/> checks meaning.</summary>
         public static Zone Read(string folder, List<ZoneFileError> errors)
         {
             var zone = new Zone();
@@ -103,10 +93,7 @@ namespace Comet.ZoneFiles
             return zone;
         }
 
-        /// <summary>
-        /// Removes chunk and tile files the zone no longer has. Files whose content hasn't changed are left untouched,
-        /// so a save shows only real changes.
-        /// </summary>
+        /// <summary>Removes chunk and tile files the zone no longer has; unchanged files are left alone, so a save shows only real changes.</summary>
         public static void Write(string folder, Zone zone)
         {
             var written = new HashSet<string>(StringComparer.Ordinal);

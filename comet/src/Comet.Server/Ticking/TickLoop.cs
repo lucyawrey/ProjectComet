@@ -4,10 +4,7 @@ namespace Comet.Server.Ticking;
 
 public readonly record struct TickTiming(uint Tick, TimeSpan Lateness, TimeSpan Work);
 
-/// <summary>
-/// Runs the simulation at a fixed rate on a dedicated thread: sleeps until shortly before each deadline, then spins
-/// (the OS often wakes sleeping threads late). A tick that overruns delays the next one; there are no catch-up ticks.
-/// </summary>
+/// <summary>Spins before each deadline, since the OS often wakes sleeping threads late; an overrun delays the next tick, with no catch-up.</summary>
 public sealed class TickLoop
 {
     private static readonly TimeSpan SpinWindow = TimeSpan.FromMilliseconds(1);
@@ -40,10 +37,7 @@ public sealed class TickLoop
 
     public event Action<TickTiming>? TickCompleted;
 
-    /// <summary>
-    /// Called on the tick thread if a tick throws; the loop has stopped and the game's state can't be trusted, so the server
-    /// should log and stop. With no handler, the exception ends the process.
-    /// </summary>
+    /// <summary>Called on the tick thread when a tick throws; the loop has stopped, so stop the server. With none, the process ends.</summary>
     public event Action<uint, Exception>? Failed;
 
     public void Start() => _thread.Start();

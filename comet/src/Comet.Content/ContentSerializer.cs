@@ -3,9 +3,7 @@ using MessagePack.Resolvers;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// MessagePack setup for compiled content; formatters are source-generated (IL2CPP and web builds forbid run-time code generation).
-    /// </summary>
+    /// <summary>Formatters are source-generated, since IL2CPP and web builds forbid run-time code generation.</summary>
     public static class ContentSerializer
     {
         public static MessagePackSerializerOptions CreateOptions(IFormatterResolver gameResolver) =>

@@ -3,10 +3,7 @@ using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// A chunk's terrain heights: 16-bit samples, row by row along Z. Sample <see cref="Hole"/> means no ground; a triangle exists
-    /// only where all three of its samples are ground.
-    /// </summary>
+    /// <summary>16-bit samples, row by row along Z; <see cref="Hole"/> means no ground, and a triangle needs three ground samples.</summary>
     [MessagePackObject]
     public sealed class Heightmap
     {

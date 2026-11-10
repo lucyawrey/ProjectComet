@@ -5,11 +5,7 @@ using Tomlyn.Syntax;
 
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// Reads a string file (<c>strings/en.toml</c>): text keyed by its dotted path (<c>[join]</c> then
-/// <c>name_taken = "…"</c> is <c>join.name_taken</c>). Key parts are lowercase letters, digits and underscores;
-/// placeholders are <c>{name}</c>, with no other braces, and only the names the game lists.
-/// </summary>
+/// <summary>Key parts are lowercase letters, digits, underscores; only <c>{name}</c> placeholders of names the game lists, no other braces.</summary>
 internal static class StringFile
 {
     private static readonly Regex KeyPart = new($"^{ContentBuilder.NamePattern}$");

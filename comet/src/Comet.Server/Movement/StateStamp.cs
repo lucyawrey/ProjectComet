@@ -44,9 +44,8 @@ public sealed class StateStamp
         var earliest = Math.Max(arrivalTick > _maxLag ? arrivalTick - _maxLag : 0, Last);
         Last = Math.Clamp(clientTick, Math.Min(earliest, arrivalTick), arrivalTick);
 
-        // Starts from the sender's own tick, within the maximum lag of arrival, not from Last: a report can arrive before its own stamp
-        // (the client's estimate assumes half its best round trip), and holding it to arrival broke the sender's spacing, a hitch for
-        // everyone drawing them. Not held to arrival afterwards either: that would lose a tick, drawn as a jump.
+        // Starts from the sender's own tick, within the maximum lag of arrival, not from Last: a report can arrive before its stamp,
+        // and holding it to arrival broke the sender's spacing. Not held to arrival afterwards either: that would lose a tick, drawn as a jump.
         var own = Math.Clamp((long)clientTick, (long)arrivalTick - _maxLag, (long)arrivalTick + _maxLag);
         UpdateShift((int)(arrivalTick - own), arrivalTick);
         if (Math.Abs(_shift - _wholeShift) > ShiftHysteresis)

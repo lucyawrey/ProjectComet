@@ -1,9 +1,6 @@
 namespace Comet.Protocol
 {
-    /// <summary>
-    /// Numeric message IDs, part of the network contract. Comet uses 1 to 63 and games start at <see cref="FirstGameMessage"/>,
-    /// so IDs up to 127 take one varint byte.
-    /// </summary>
+    /// <summary>Network contract: Comet uses 1 to 63 and games start at <see cref="FirstGameMessage"/>, so IDs up to 127 take one byte.</summary>
     public static class MessageIds
     {
         public const ushort FirstGameMessage = 64;

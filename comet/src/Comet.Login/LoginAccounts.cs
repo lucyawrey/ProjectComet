@@ -238,8 +238,7 @@ public sealed class LoginAccounts<TCharacter>(
 
     public async Task SignOutAsync(SignedIn signedIn, CancellationToken cancellationToken)
     {
-        // One transaction for a guest: its sessions go with it, so a failure can't leave it unreachable but holding
-        // its name.
+        // A guest's sessions go with it in one transaction, so a failure can't leave it unreachable but still holding its name.
         if (signedIn.Account.IsGuest && await actions.DeleteAsync(signedIn.Account.Id, onlyGuest: true, cancellationToken))
         {
             await actions.PurgeAsync(cancellationToken);

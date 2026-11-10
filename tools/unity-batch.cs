@@ -129,8 +129,7 @@ string? EditorPort()
     return null;
 }
 
-// Runs a command in the open editor and returns its result, or fails with its error. Build reports and test
-// messages hold raw control characters (tabs, line breaks), which JSON strings don't allow, so they become spaces.
+// Build reports and test messages hold raw control characters (tabs, line breaks), which JSON strings don't allow, so they become spaces.
 JsonElement Editor(params string[] command)
 {
     var (code, text) = Tool.Capture(
@@ -243,8 +242,7 @@ int InBatchMode()
     if (!File.Exists(unity))
         throw Tool.Fail($"No Unity {version} at {unity}", 2);
 
-    // Output goes to the log only. Its pipes are this tool's, so the editor's helper processes, which outlive it,
-    // can't hold a caller's output open.
+    // Output goes to the log only: its pipes are this tool's, so the editor's helper processes, which outlive it, would hold a caller's output open.
     var info = Tool.Info(unity, ["-batchmode", "-projectPath", project, "-logFile", log, .. unityArgs]);
     info.RedirectStandardInput = info.RedirectStandardOutput = info.RedirectStandardError = true;
     var editor = Tool.Start(info);

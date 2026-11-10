@@ -17,10 +17,7 @@ namespace Comet.Protocol.Framing
             _remaining = messages;
         }
 
-        /// <summary>
-        /// The tick in the frame's header: the server's tick from the server, the server tick the client
-        /// stamps its report with from a client.
-        /// </summary>
+        /// <summary>The server's tick from the server; from a client, the server tick it stamps its report with.</summary>
         public uint Tick { get; }
 
         public static FrameReader Create(ReadOnlyMemory<byte> frame)

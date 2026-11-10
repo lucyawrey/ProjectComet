@@ -101,14 +101,13 @@ public static class ShapeLandServer
         builder.Services.AddHostedService<GameStartup>();
 
         var app = builder.Build();
-        // Behind the local Caddy proxy, the client's address comes from X-Forwarded-For, so the per-address connection
-        // cap counts players. Only a loopback proxy is trusted (ASP.NET's default), so no client can set the header.
+        // Behind the local Caddy proxy the client's address comes from X-Forwarded-For, so the per-address cap counts players.
+        // Only a loopback proxy is trusted (ASP.NET's default), so no client can set the header.
         app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor });
         var serverOptions = app.Services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
         if (!string.IsNullOrEmpty(serverOptions.WebRoot))
         {
-            // The page's Content Security Policy, the same as shapeland/deploy/vercel.json gives the deployed game
-            // (keep them in step).
+            // The Content Security Policy must stay in step with shapeland/deploy/vercel.json, which gives the deployed game's.
             var policy = WebBuild.PagePolicy(serverOptions.LoginUrl);
             app.Use(
                 async (context, next) =>

@@ -19,10 +19,7 @@ namespace Comet.Client.Login
 
     public interface ILoginTransport
     {
-        /// <summary>
-        /// Sends a request with an optional JSON body and bearer token. A network failure (no answer at all) returns
-        /// status 0 instead of throwing.
-        /// </summary>
+        /// <summary>Sends a request with an optional JSON body and bearer token; a network failure returns status 0 instead of throwing.</summary>
         Task<LoginHttpResponse> SendAsync(string method, string path, string? json, string? bearerToken);
     }
 

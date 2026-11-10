@@ -63,8 +63,7 @@ namespace ShapeLand.Client
 
         private static readonly Vector2Int PhoneReferenceResolution = new Vector2Int(800, 500);
 
-        // The panel settings' own design size, put back on disabling: in the editor a change to the asset would outlast
-        // play mode.
+        // Put back on disabling: in the editor a change to the panel settings asset would outlast play mode.
         private Vector2Int? _referenceResolution;
 
         private void OnEnable()

@@ -9,10 +9,7 @@ namespace ShapeLand.Client
         Touch,
     }
 
-    /// <summary>
-    /// The player's settings, remembered between visits (PlayerPrefs), each saved as it changes: on the web only a
-    /// save keeps it past closing the tab. The Esc menu's Settings page changes them.
-    /// </summary>
+    /// <summary>Saved as they change (PlayerPrefs), because on the web only a save keeps them past closing the tab.</summary>
     public static class GameSettings
     {
         public const float MinCameraSpeed = 0.25f,

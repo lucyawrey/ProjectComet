@@ -28,17 +28,11 @@ public interface IJoinHost<TConnection, TCharacter>
 
     void Joined(TConnection connection, CharacterClaim<TCharacter> claim);
 
-    /// <summary>
-    /// Takes the connection out of the world and drops it, because a newer join (<paramref name="replaced"/>) or the database (a ban,
-    /// a deletion, another server's claim) took its character. Returns where it was for its final save, or null when refused.
-    /// </summary>
+    /// <summary>Drops a connection whose character was taken by <paramref name="replaced"/> or the database; returns its place, or null.</summary>
     CharacterPosition? Dropped(TConnection connection, bool replaced);
 }
 
-/// <summary>
-/// Which connection plays which character, for one game server. Joins check the ticket and claim the character off the tick thread, then come
-/// back through <see cref="Update"/>; a newer join drops the older connection after its final save. All else runs on the tick thread.
-/// </summary>
+/// <summary>Ticket check and claim run off the tick thread and return through <see cref="Update"/>; all else runs on the tick thread.</summary>
 /// <typeparam name="TConnection">The game's connection (a reference type, compared by reference).</typeparam>
 public sealed class JoinedCharacters<TConnection, TCharacter>
     where TConnection : class

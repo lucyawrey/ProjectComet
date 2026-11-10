@@ -9,10 +9,7 @@ using Comet.Server.Ticking;
 
 namespace Comet.Server.Connections;
 
-/// <summary>
-/// One client's WebSocket connection. <see cref="SendEvent"/>, <see cref="EntityStates"/> and <see cref="Flush"/> belong to the tick thread;
-/// <see cref="SendImmediate"/> to the connection's receive flow (handler callbacks).
-/// </summary>
+/// <summary><see cref="SendEvent"/>, <see cref="EntityStates"/>, <see cref="Flush"/>: tick thread. <c>SendImmediate</c>: receive flow.</summary>
 public sealed class Connection
 {
     /// <summary>The largest frame a client may send, in bytes; a bigger one drops the client.</summary>
@@ -124,7 +121,7 @@ public sealed class Connection
         _tickFrame.BeginFrame(tick);
         AppendEvents();
 
-        // States wait while events do, so an entity's state never arrives before the events about it (its spawn);
+        // States wait while events do, so a state never arrives before its entity's spawn;
         // a burst of events therefore pauses everyone's movement for a few ticks.
         if (_eventSizes.Count == 0)
         {
@@ -206,8 +203,8 @@ public sealed class Connection
             _handler.OnDisconnected(this);
         }
 
-        // A WebSocket allows one send at a time, and closing counts as a send, so close only
-        // after the send loop has finished; give up on a client that has stopped reading.
+        // A WebSocket allows one send at a time and closing counts as one, so close only after the send loop ends;
+        // give up on a client that has stopped reading.
         if (await Task.WhenAny(sending, Task.Delay(CloseTimeout, CancellationToken.None)) != sending)
         {
             _socket.Abort();

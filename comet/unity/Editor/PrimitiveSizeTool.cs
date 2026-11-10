@@ -23,9 +23,8 @@ namespace Comet.Unity.Editor
                 _ => null,
             };
 
-        // Follows the selection, checked each editor update (Unity's selection events don't always come): this
-        // context while a placement is selected, Unity's own otherwise. Left alone while a tool of its own (the zone
-        // place or terrain tool) is active, which a change of context would turn off.
+        // Checked each editor update, since Unity's selection events don't always come: this context while a placement is selected,
+        // Unity's own otherwise. Left alone while a tool of its own (the zone place or terrain tool) is active, which a change would turn off.
         [InitializeOnLoadMethod]
         private static void FollowSelection() =>
             EditorApplication.update += () =>

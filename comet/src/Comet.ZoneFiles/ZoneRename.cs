@@ -5,10 +5,7 @@ namespace Comet.ZoneFiles
 {
     public static class ZoneRename
     {
-        /// <summary>
-        /// Also renames the zone's spawn point, teleporter and trigger ids and the teleporter targets inside it;
-        /// targets in other zones are left alone.
-        /// </summary>
+        /// <summary>Also renames the zone's spawn, teleporter and trigger ids and teleporter targets in it; targets in other zones stay.</summary>
         public static void Rename(Zone zone, string newId)
         {
             var oldName = zone.Id.Substring("zone.".Length);

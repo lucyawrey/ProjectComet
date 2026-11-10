@@ -10,10 +10,7 @@ namespace ShapeLand.Client
 {
     public sealed partial class JoinClient
     {
-        /// <summary>
-        /// The start of the session tokens' PlayerPrefs keys, one per Login server, so a token is only ever sent to the
-        /// server it came from. Tests use their own, so they never touch a player's.
-        /// </summary>
+        /// <summary>One per Login server, so a token is only ever sent to the server it came from; tests use their own.</summary>
         public static string TokenKey = "login-token";
 
         public static void ForgetToken(string loginAddress) => PlayerPrefs.DeleteKey(TokenKeyFor(LoginUrl(loginAddress)));

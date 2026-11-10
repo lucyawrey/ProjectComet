@@ -702,9 +702,9 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // The checkout (the folder holding .git: a folder in the main checkout, a file in a worktree) that holds
-        // the Unity project, which names its database as tools/run shapeland-dev does; the Unity project's own folder
-        // is named the same in every checkout.
+        // Named from the checkout root (the folder holding .git), as tools/run shapeland-dev does:
+        // the Unity project's own folder is the same in every checkout.
+
         private static string CheckoutRoot(string projectRoot) => LocalServerPort.CheckoutRoot(projectRoot);
 
         private static string? ContentHashNow() =>

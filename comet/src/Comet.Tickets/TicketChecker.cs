@@ -4,11 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Comet.Tickets;
 
-/// <summary>
-/// Checks that a join ticket is signed, for this server, unexpired and unused. Used tickets are kept in memory only,
-/// so a ticket issued before the checker was made is refused as expired: it may have been used on a previous run.
-/// Thread-safe.
-/// </summary>
+/// <summary>Used tickets are in memory only, so a ticket issued before the checker started is refused as expired; it may have been used.</summary>
 public sealed class TicketChecker
 {
     public static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(5);

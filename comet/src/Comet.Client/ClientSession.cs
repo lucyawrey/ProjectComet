@@ -9,12 +9,7 @@ namespace Comet.Client
 {
     public delegate void GameMessageHandler(ushort messageId, ReadOnlyMemory<byte> payload, uint tick);
 
-    /// <summary> The client's side of a connection: decodes server frames, keeps the server-tick estimate and
-    /// the interpolation buffer, and sends the client's frames. A game's messages arrive through <see
-    /// cref="GameMessage"/>. </summary> <remarks> Polled from one thread: call <see cref="Update"/> each frame,
-    /// write messages, then <see cref="Flush"/>. Events fire inside Update, in server order. Times are seconds
-    /// on the caller's monotonic clock; the session never reads a clock or starts a timer, since web builds
-    /// have neither threads nor timers. </remarks>
+    /// <summary>Call <see cref="Update"/>, write messages, then <see cref="Flush"/> from one thread; web builds have no threads or timers.</summary>
     public sealed class ClientSession
     {
         public const double LocalStallSeconds = 0.25;
@@ -133,7 +128,7 @@ namespace Comet.Client
                 _messages.Write(MessageIds.Ping, new Ping { ClientTime = _lastPingSent });
             }
 
-            // Pongs handled above came first, so frames that waited through a stall of our own count as answers.
+            // This runs after the receive loop, so frames that waited through a stall of our own count as answers.
             var unanswered = _oldestUnansweredPing is { } oldest ? now - oldest / 1_000_000.0 : 0;
             ReportsHeld = unanswered > ReportHoldSeconds;
             if (unanswered > LostSeconds && _ownReason == CloseReason.None)
@@ -155,10 +150,7 @@ namespace Comet.Client
 
         public double ServerSeconds(double now) => Clock.ServerTick(now) / Clock.TickRate;
 
-        /// <summary>
-        /// The server tick a step of a simulation at <paramref name="stepsPerSecond"/>, driven by <see cref="ServerSeconds"/>, falls on; false for
-        /// a step between ticks. Report only from steps on a tick, so the stamp and the position agree exactly.
-        /// </summary>
+        /// <summary>The server tick a step falls on, or false between ticks; report only on-tick steps, so stamp and position agree.</summary>
         public bool TickOfStep(long step, int stepsPerSecond, out uint tick)
         {
             var tickRate = Clock.TickRate;

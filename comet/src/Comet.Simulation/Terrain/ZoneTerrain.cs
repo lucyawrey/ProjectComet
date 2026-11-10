@@ -4,10 +4,7 @@ using Comet.Content;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// A zone's terrain pieces, each seen whole across its chunk tiles, by world sample: sample (x, z) sits at
-    /// world (x, z) × <see cref="ZoneGrid.SampleSpacing"/>.
-    /// </summary>
+    /// <summary>Pieces are seen whole across chunk tiles, by world sample: (x, z) sits at (x, z) × <see cref="ZoneGrid.SampleSpacing"/>.</summary>
     public sealed class ZoneTerrain
     {
         private readonly Dictionary<string, Piece> _pieces = new Dictionary<string, Piece>();
@@ -56,10 +53,7 @@ namespace Comet.Simulation
 
             public (int MinX, int MinZ, int MaxX, int MaxZ) Extent { get; private set; } = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
 
-            /// <summary>
-            /// Every ground height in a block of world samples, NaN elsewhere, row-major from
-            /// (<paramref name="minX"/>, <paramref name="minZ"/>); reads each tile once.
-            /// </summary>
+            /// <summary>Row-major from (<paramref name="minX"/>, <paramref name="minZ"/>), NaN where there's no ground.</summary>
             internal void ReadHeights(int minX, int minZ, int width, float[] heights)
             {
                 var depth = heights.Length / width;

@@ -5,10 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Comet.Data.Characters;
 
-/// <summary>
-/// Rows shared between several repositories, as one database would be. It also does what the Login server does to
-/// the region (adding, renaming, deleting, kicking). Thread-safe.
-/// </summary>
+/// <summary>Rows shared between repositories, as one database would be; also does what the Login server does to the region. Thread-safe.</summary>
 public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     where TCharacter : Character
 {
@@ -53,10 +50,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>
-    /// Writes the file after every change from then on. A file that won't read is renamed to <c>.bad</c> and the
-    /// database starts empty, returning why. Owners aren't kept, so no character loads held.
-    /// </summary>
+    /// <summary>A file that won't read is renamed to <c>.bad</c> and the database starts empty, returning why. Owners aren't kept.</summary>
     public string? Load(string path)
     {
         lock (_lock)
@@ -315,8 +309,8 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         WriteSnapshotLocked();
     }
 
-    // Under the lock, so one write goes at a time and each has the latest rows; written beside the file and renamed
-    // over it, so a crash mid-write leaves the last good one.
+    // Under the lock, so one write goes at a time and has the latest rows;
+    // written beside the file and renamed over it, so a crash leaves the last good one.
     private void WriteSnapshotLocked()
     {
         if (_snapshot == null)

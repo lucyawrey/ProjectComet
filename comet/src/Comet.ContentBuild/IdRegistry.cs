@@ -4,11 +4,7 @@ using Tomlyn.Syntax;
 
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// The committed ID registry (<c>content/ids.toml</c>): one table per content type, mapping each name (the id
-/// without its type) to a permanent number. New ids get the next number after the type's highest; numbers are never
-/// changed or reused, and entries whose file is gone stay.
-/// </summary>
+/// <summary>The committed ID registry (<c>content/ids.toml</c>): numbers are permanent, never changed or reused, even if the file is gone.</summary>
 public sealed class IdRegistry
 {
     private const string Header = """

@@ -28,7 +28,7 @@ public sealed class ContentBuildResult
 
     public IReadOnlyList<ContentError> Errors { get; }
 
-    /// <summary>Doesn't stop the build (blockout placements); errors in a release build.</summary>
+    /// <summary>Doesn't stop the build (blockout placements, unlinked teleporters); a release build makes them errors.</summary>
     public IReadOnlyList<ContentError> Warnings { get; }
 
     public bool Succeeded => Errors.Count == 0;

@@ -128,8 +128,7 @@ namespace ShapeLand.Client
             var now = CometConnection.Now;
             var maxSpeed = _shape.MaxSpeed * TestSpeedScale;
 
-            // The steps run on the server's clock, so every other one falls on a server tick; only those are
-            // reported, stamped with their tick, so others draw exactly the spacing the player moved at.
+            // The steps run on the server's clock so every other one falls on a server tick; only those are reported, stamped with their tick.
             var steps = _step.Advance(_session.ServerSeconds(now));
             for (var i = 0; i < steps; i++)
             {

@@ -16,10 +16,7 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.GameServer;
 
-/// <summary>
-/// ShapeLand's game. Connections decode messages on their own receive flows and queue them; the tick thread handles
-/// the queue in order, so all game state belongs to the tick thread.
-/// </summary>
+/// <summary>Receive flows only queue inputs; all game state belongs to the tick thread.</summary>
 public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, ShapeLandCharacter>
 {
     private readonly ShapeLandContent _content;

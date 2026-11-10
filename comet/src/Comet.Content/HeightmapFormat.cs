@@ -3,10 +3,7 @@ using System.Text;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// The raw heightmap file: magic <c>CHGT</c>, version, grid size, then little-endian uint16 samples.
-    /// A plain <c>.r16</c> file differs only by the 10-byte header.
-    /// </summary>
+    /// <summary>Magic <c>CHGT</c>, version, grid size, then uint16 samples (little-endian); a <c>.r16</c> file lacks the 10-byte header.</summary>
     public static class HeightmapFormat
     {
         public const int HeaderSize = 10;

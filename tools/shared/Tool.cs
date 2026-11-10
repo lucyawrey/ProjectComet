@@ -32,8 +32,7 @@ public static class Tool
         return new InvalidOperationException();
     }
 
-    // Where a program is: on PATH (with Windows' extensions, so npm's .cmd shims are found), or in the places a Mac
-    // app started from the Dock or Unity Hub doesn't have on its PATH.
+    // Looks on PATH (with Windows' extensions, so npm's .cmd shims are found) and where a Mac app started from the Dock or Unity Hub lacks it.
     public static string Find(string program)
     {
         var dirs = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator).ToList();
@@ -114,8 +113,8 @@ public static class Tool
         return process;
     }
 
-    // Asks a program to stop as Ctrl+C would (SIGTERM on Linux and macOS: servers then tell their clients and save),
-    // and kills it with its children if it hasn't within the wait. Windows has no such signal, so there it's killed.
+    // SIGTERM on Linux and macOS lets servers tell their clients and save; a program that hasn't stopped by the wait is killed with its children.
+    // Windows has no such signal, so it's killed there.
     public static void Stop(Process process, int waitMilliseconds = 10_000)
     {
         try
@@ -134,8 +133,7 @@ public static class Tool
         catch (InvalidOperationException) { } // already gone
     }
 
-    // The arguments a tool was given. tools\run.cmd passes its whole command line on as it was typed, so cmd never
-    // splits it (at = ; , as well as spaces), and the tool's own name comes first: dropped here.
+    // tools\run.cmd passes its whole command line as typed, so cmd never splits it (at = ; ,), with the tool's own name first, dropped here.
     public static string[] Arguments(string[] args) =>
         Environment.GetEnvironmentVariable("COMET_TOOLS_RUN_CMD") == "1" && args.Length > 0 ? args[1..] : args;
 

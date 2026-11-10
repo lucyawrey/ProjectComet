@@ -4,10 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Comet.Tickets;
 
-/// <summary>
-/// Signs join tickets (ES256 JWTs): <c>sub</c> is the account, <c>chr</c> the character, <c>aud</c> the game server's
-/// node number and <c>jti</c> a one-time ID.
-/// </summary>
+/// <summary>ES256 JWTs: <c>sub</c> is the account, <c>chr</c> the character, <c>aud</c> the game server's node, <c>jti</c> a one-time ID.</summary>
 public sealed class TicketIssuer(ECDsaSecurityKey privateKey, TimeProvider clock)
 {
     public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(60);

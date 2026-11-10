@@ -1,9 +1,6 @@
 namespace Comet.Protocol.Login
 {
-    /// <summary>
-    /// The Login server's HTTP interface: JSON (camelCase) under <c>/api/</c>, session token as <c>Authorization: Bearer &lt;token&gt;</c>.
-    /// Errors are Problem Details (RFC 9457) whose <c>code</c> is one of <see cref="LoginErrors"/>.
-    /// </summary>
+    /// <summary>camelCase JSON under <c>/api/</c>, Bearer token; errors are RFC 9457 Problem Details with a <see cref="LoginErrors"/> code.</summary>
     public static class LoginPaths
     {
         public const string Guest = "/api/guest";

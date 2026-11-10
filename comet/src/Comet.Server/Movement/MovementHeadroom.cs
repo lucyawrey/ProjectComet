@@ -11,16 +11,10 @@ public sealed class MovementHeadroom
     /// <summary>The highest any reported position has been above an exact jump's apex from the last ground, in meters.</summary>
     public float MaxRiseOverApex { get; private set; } = float.NegativeInfinity;
 
-    /// <summary>
-    /// The most a reported position's arc needed to start late, in seconds: how much hang time past an exact jump's
-    /// fall it used (<see cref="MovementTolerances.AirTimeSlack"/>).
-    /// </summary>
+    /// <summary>Seconds of hang time past an exact jump's fall that a reported arc needed (<see cref="MovementTolerances.AirTimeSlack"/>).</summary>
     public float MaxAirSlack { get; private set; } = float.NegativeInfinity;
 
-    /// <summary>
-    /// The banked movement, in seconds at <c>factor</c> × max speed, that this player's reports needed so far with that
-    /// speed factor (<see cref="MovementTolerances.MaxBurstSeconds"/>); 0 if they never moved faster than it allows.
-    /// </summary>
+    /// <summary>Banked movement needed so far, in seconds at <c>factor</c> × max speed (<see cref="MovementTolerances.MaxBurstSeconds"/>).</summary>
     public float BurstSecondsNeeded(int factorIndex) => _maxSpeed[factorIndex] > 0 ? _maxDeficit[factorIndex] / _maxSpeed[factorIndex] : 0;
 
     internal void AddMove(float distance, float elapsedSeconds, float maxSpeed)

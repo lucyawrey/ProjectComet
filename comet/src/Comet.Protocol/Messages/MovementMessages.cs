@@ -2,10 +2,7 @@ using MessagePack;
 
 namespace Comet.Protocol.Messages
 {
-    /// <summary>
-    /// Client input: the client's own position, which the server validates. Sent about 15 times a second while moving;
-    /// the frame header carries the client's estimate of the server tick.
-    /// </summary>
+    /// <summary>The client's own position, which the server validates; the frame header carries the client's estimate of the server tick.</summary>
     [MessagePackObject]
     public struct PositionReport
     {
@@ -35,10 +32,7 @@ namespace Comet.Protocol.Messages
         public uint CorrectionSequence;
     }
 
-    /// <summary>
-    /// Server state: where an entity is. Latest-only: a newer update for the same entity
-    /// replaces an unsent older one.
-    /// </summary>
+    /// <summary>Latest-only: a newer update for the same entity replaces an unsent older one.</summary>
     [MessagePackObject]
     public struct EntityState
     {
@@ -60,10 +54,7 @@ namespace Comet.Protocol.Messages
         [Key(5)]
         public uint Tick;
 
-        /// <summary>
-        /// Velocity in meters per second, as the mover reported it: clients that run out of states keep drawing
-        /// the entity along it until the next one arrives (dead reckoning).
-        /// </summary>
+        /// <summary>Meters per second, as the mover reported it; clients out of states draw the entity along it (dead reckoning).</summary>
         [Key(6)]
         public float VelocityX;
 

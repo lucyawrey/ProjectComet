@@ -12,8 +12,9 @@ namespace Comet.Unity
 
         public bool IsGroup => !string.IsNullOrEmpty(groupId);
 
-        // Kept as base64 text, not a byte array: Unity's undo compares arrays element by element when their length
-        // changes, which took seconds for each terrain stroke, while a string is one value.
+        // Kept as base64 text, not a byte array: Unity's undo compares arrays element by element when their length changes,
+        // which took seconds per terrain stroke.
+
         [SerializeField, HideInInspector]
         private string zoneData = "";
 
