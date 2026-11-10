@@ -127,7 +127,9 @@ namespace Comet.Simulation
 
         private static Vector2[] Doorway(Vector3 size, float width, float height)
         {
-            var (half, top) = Opening(size, width, height);
+            const float rim = 0.05f;
+            var half = Math.Min(width / 2, size.X / 2 - rim);
+            var top = Math.Min(height, size.Y - rim);
             if (half <= 0 || top <= 0)
             {
                 return Rectangle(size);
@@ -172,12 +174,6 @@ namespace Comet.Simulation
             }
 
             return profile.Where((point, i) => Vector2.DistanceSquared(point, profile[(i + profile.Count - 1) % profile.Count]) > 1e-8f).ToArray();
-        }
-
-        private static (float Half, float Top) Opening(Vector3 size, float width, float height)
-        {
-            const float rim = 0.05f;
-            return (Math.Min(width / 2, size.X / 2 - rim), Math.Min(height, size.Y - rim));
         }
 
         private static void BeveledBox(Builder mesh, Vector3 size, float bevel)
