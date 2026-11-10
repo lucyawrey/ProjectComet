@@ -30,18 +30,7 @@ public class MovementValidatorTests
     }
 
     private MovementVerdict Report(float x, float y, float z, uint tick, uint sequence = 0) =>
-        _validator.Check(
-            new PositionReport
-            {
-                X = x,
-                Y = y,
-                Z = z,
-                CorrectionSequence = sequence,
-            },
-            tick,
-            MaxSpeed,
-            JumpVelocity
-        );
+        Report(new Vector3(x, y, z), Vector3.Zero, tick, sequence: sequence);
 
     [Fact]
     public void AcceptsWalkingAtFullSpeed()
@@ -130,48 +119,22 @@ public class MovementValidatorTests
         var validator = new MovementValidator(world, rules, new MovementTolerances(), TickRate);
         validator.Reset(state.Position, 0, tick: 100);
         var wedged = state.Position.Y;
-        Assert.Equal(
-            MovementVerdict.Accepted,
+        MovementVerdict CheckAt(float y, uint tick) =>
             validator.Check(
                 new PositionReport
                 {
                     X = 8,
-                    Y = wedged,
+                    Y = y,
                     Z = 4,
                 },
-                160,
+                tick,
                 MaxSpeed,
                 JumpVelocity
-            )
-        );
-        Assert.Equal(
-            MovementVerdict.Accepted,
-            validator.Check(
-                new PositionReport
-                {
-                    X = 8,
-                    Y = wedged,
-                    Z = 4,
-                },
-                220,
-                MaxSpeed,
-                JumpVelocity
-            )
-        );
-        Assert.Equal(
-            MovementVerdict.Accepted,
-            validator.Check(
-                new PositionReport
-                {
-                    X = 8,
-                    Y = wedged + 0.9f,
-                    Z = 4,
-                },
-                230,
-                MaxSpeed,
-                JumpVelocity
-            )
-        );
+            );
+
+        Assert.Equal(MovementVerdict.Accepted, CheckAt(wedged, 160));
+        Assert.Equal(MovementVerdict.Accepted, CheckAt(wedged, 220));
+        Assert.Equal(MovementVerdict.Accepted, CheckAt(wedged + 0.9f, 230));
     }
 
     [Fact]
@@ -398,20 +361,13 @@ public class MovementValidatorTests
     [InlineData(100f)]
     public void FacingIsHeldToOneTurn(float facing)
     {
-        Assert.Equal(
-            MovementVerdict.Accepted,
-            _validator.Check(
-                new PositionReport
-                {
-                    X = 4.1f,
-                    Z = 4,
-                    Facing = facing,
-                },
-                102,
-                MaxSpeed,
-                JumpVelocity
-            )
-        );
+        var report = new PositionReport
+        {
+            X = 4.1f,
+            Z = 4,
+            Facing = facing,
+        };
+        Assert.Equal(MovementVerdict.Accepted, _validator.Check(report, 102, MaxSpeed, JumpVelocity));
         Assert.InRange(_validator.Facing, -MathF.PI, MathF.PI);
         if (MathF.Abs(facing) < 1000)
         {
