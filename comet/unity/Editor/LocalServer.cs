@@ -168,11 +168,14 @@ namespace Comet.Unity.Editor
         [MenuItem(Menu + "Start", priority = 40)]
         private static void StartMenu()
         {
-            if (Settings() is not { } settings)
+            if (Settings() is { } settings)
             {
-                return;
+                StartOrUseOutside(settings);
             }
+        }
 
+        private static void StartOrUseOutside(CometSettings settings)
+        {
             if (JoinOutsideServer && Answers(settings))
             {
                 UseOutside(settings);
@@ -282,13 +285,7 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            if (JoinOutsideServer && Answers(settings))
-            {
-                UseOutside(settings);
-                return;
-            }
-
-            Start(settings, build: true, answers: false);
+            StartOrUseOutside(settings);
         }
 
         private static void OnContentCopied(byte[] contentFile)
