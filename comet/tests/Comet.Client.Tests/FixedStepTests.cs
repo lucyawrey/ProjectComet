@@ -52,7 +52,6 @@ public class FixedStepTests
         var step = new FixedStep(4);
         step.Advance(1.1);
         Assert.Equal(4, step.LastStep);
-        // Steps at 1.25 and 1.5 s, wherever the frames fall.
         Assert.Equal(2, step.Advance(1.6));
         Assert.Equal(6, step.LastStep);
         Assert.Equal(0.4f, step.Alpha, 4);

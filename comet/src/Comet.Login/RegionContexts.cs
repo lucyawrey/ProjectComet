@@ -10,7 +10,6 @@ public abstract class RegionContexts<TCharacter>(string connectionString, TimePr
 {
     public CometRegionContext<TCharacter> Create() => Create(options => options.UseCometRegion(connectionString, clock));
 
-    /// <summary>Joins <paramref name="accounts"/>' open transaction, so one commit covers both schemas.</summary>
     public async Task<CometRegionContext<TCharacter>> JoinAsync(DbContext accounts, CancellationToken cancellationToken)
     {
         var transaction =

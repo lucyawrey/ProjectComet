@@ -9,10 +9,6 @@ using Tomlyn.Model;
 
 namespace Comet.ZoneFiles
 {
-    /// <summary>
-    /// Zone TOML through Tomlyn's table model, which needs no reflection or source generator, so the Unity editor
-    /// runs the same code as the content build. Reading collects errors by file and key rather than throwing.
-    /// </summary>
     internal sealed class ZoneToml
     {
         private readonly string _file;
@@ -37,7 +33,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        /// <summary>One blank line before each table header, so the blocks read apart.</summary>
         public static string Write(TomlTable table)
         {
             var lines = TomlSerializer.Serialize(table, TomlSerializerOptions.Default).Replace("\r\n", "\n").Split('\n');
@@ -252,7 +247,6 @@ namespace Comet.ZoneFiles
                     return 0;
             }
 
-            // TOML allows nan and inf, but no zone number means either.
             if (double.IsNaN(number) || double.IsInfinity(number) || Math.Abs(number) > float.MaxValue)
             {
                 Error(path, $"{number.ToString(CultureInfo.InvariantCulture)} isn't allowed: zone numbers must be finite.");

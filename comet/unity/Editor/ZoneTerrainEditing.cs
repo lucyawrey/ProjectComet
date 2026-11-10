@@ -9,10 +9,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// A zone's terrain while it's being edited: each piece's tiles are grown to whole chunks so brushes reach anywhere
-    /// in them, and written back to the scene's copy after each stroke. Saving crops them (<see cref="Crop"/>).
-    /// </summary>
     public sealed class ZoneTerrainEditing
     {
         private static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(
@@ -34,7 +30,6 @@ namespace Comet.Unity.Editor
 
         public ZoneEditing Editing { get; }
 
-        /// <summary>Change it through <see cref="SetHeight"/> and the like, then <see cref="Commit"/>.</summary>
         public Zone Zone { get; }
 
         public ZoneTerrain Terrain { get; private set; }
@@ -78,7 +73,6 @@ namespace Comet.Unity.Editor
                 (tile, tx, tz) => tile.Heights.Samples[tz * tile.Heights.SizeX + tx] = Sample(tile.Heights, height)
             );
 
-        /// <summary>Starts an underside map at the piece's bottom where there's none.</summary>
         public void SetUnderside(string piece, int x, int z, float height) =>
             ForEachTile(
                 piece,
@@ -95,7 +89,6 @@ namespace Comet.Unity.Editor
         public float UndersideAt(string piece, int x, int z) =>
             Terrain[piece].TryGetUnderside(x, z, out var under) ? under : Terrain[piece].BottomHeight;
 
-        /// <summary>Starts a color map of <paramref name="ground"/> where there's none; color is 0xRRGGBB.</summary>
         public void SetColor(string piece, int x, int z, uint color, uint ground) =>
             ForEachTile(
                 piece,
@@ -114,10 +107,6 @@ namespace Comet.Unity.Editor
                 }
             );
 
-        /// <summary>
-        /// Gives a world sample the piece's default colors (ground and skirt) in the color maps its tiles have.
-        /// Tiles grown to their whole chunk have no colors past their old edge (zero: black).
-        /// </summary>
         public void ResetColors(string piece, int x, int z, uint ground, uint skirt) =>
             ForEachTile(
                 piece,
@@ -138,10 +127,6 @@ namespace Comet.Unity.Editor
                 }
             );
 
-        /// <summary>
-        /// Paints a world sample's underside color (0xRRGGBB), where the piece has an underside map, starting a map
-        /// of <paramref name="skirt"/> where there's none.
-        /// </summary>
         public void SetUndersideColor(string piece, int x, int z, uint color, uint skirt) =>
             ForEachTile(
                 piece,
@@ -165,10 +150,6 @@ namespace Comet.Unity.Editor
                 }
             );
 
-        /// <summary>
-        /// Recolors the piece's painted maps where they hold its old default colors, so changing a piece's top or
-        /// underside color also changes the samples the brushes left at that color (maps store plain colors).
-        /// </summary>
         public void ReplaceDefaultColors(string piece, uint oldGround, uint newGround, uint oldUnder, uint newUnder)
         {
             static void Replace(ColorMap? map, uint from, uint to)
@@ -226,8 +207,6 @@ namespace Comet.Unity.Editor
         /// </summary>
         public void MovePiece(string name, int dx, int dz, float dy, uint ground, uint skirt)
         {
-            // Every world sample the piece has, read from its tiles (chunks repeat their shared edges, so a sample may
-            // be read twice, with the same values).
             var samples = new Dictionary<(int X, int Z), (float Height, float? Under, uint? Color, uint? UnderColor)>();
             foreach (var chunk in Zone.Chunks)
             {
@@ -245,7 +224,6 @@ namespace Comet.Unity.Editor
 
                             var i = z * map.SizeX + x;
                             var key = (chunk.Coord.X * ZoneGrid.ChunkSize + tile.OriginX + x, chunk.Coord.Z * ZoneGrid.ChunkSize + tile.OriginZ + z);
-                            // Where tiles share a sample, one may have a map the other lacks: keep what either has.
                             samples.TryGetValue(key, out var seen);
                             samples[key] = (
                                 map.Offset + map.Samples[i] * Heightmap.Scale,
@@ -334,10 +312,6 @@ namespace Comet.Unity.Editor
             return found;
         }
 
-        /// <summary>
-        /// Crops each tile to the samples with ground (and drops tiles with none), as the zone's files keep them.
-        /// Underside and color maps (ground and underside) are cropped the same way.
-        /// </summary>
         public static void Crop(Zone zone)
         {
             foreach (var chunk in zone.Chunks)
@@ -364,7 +338,6 @@ namespace Comet.Unity.Editor
                         }
                     }
 
-                    // A tile needs a whole cell of ground to draw anything; a lone row or column is dropped too.
                     if (maxX - minX < 1 || maxZ - minZ < 1)
                     {
                         continue;
@@ -464,8 +437,6 @@ namespace Comet.Unity.Editor
             };
         }
 
-        // Runs `change` on every tile of the piece holding world sample (x, z), making one for its own chunk if
-        // none does and `create` is set.
         private void ForEachTile(string piece, int x, int z, bool create, Action<TerrainTile, int, int> change)
         {
             var found = false;
@@ -514,7 +485,6 @@ namespace Comet.Unity.Editor
                         Samples = new ushort[size * size],
                     },
                 };
-                // Its edges repeat its neighbors' (chunks share their edge samples), so it starts with theirs.
                 var whole = Terrain[piece];
                 for (var i = 0; i < size; i++)
                 {
@@ -534,7 +504,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A height in meters as one of the map's samples, kept off the hole value and within range.
         private static ushort Sample(Heightmap map, float? height) => height is { } h ? map.ToSample(h) : Heightmap.Hole;
 
         private static Heightmap Filled(Heightmap like, float height)

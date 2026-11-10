@@ -4,10 +4,6 @@ using UnityEngine.UIElements;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// Fills a UI Toolkit interface's text from the string table: UXML text written as <c>text="#join.title"</c>
-    /// is set once the content has loaded, and text with a shared placeholder is refilled when its value changes.
-    /// </summary>
     public static class UiText
     {
         public static void Fill(VisualElement root, StringTable strings)

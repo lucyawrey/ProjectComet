@@ -9,14 +9,12 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Tests
 {
-    // Signs over the zone: shown within their distance and in sight of the camera, in their own colors.
     public class SignsTests : GameSceneTest
     {
         [UnityTest]
         public IEnumerator SignsShowInRangeAndInSight()
         {
             yield return StartGame();
-            // The camera moves to the player in its next LateUpdate after the spawn, and the signs are placed from it.
             yield return TestGameServer.WaitFor(() => Vector3.Distance(Camera.transform.position, View.Player.transform.position) < 10, 5);
             var eye = Camera.transform.position;
             var ahead = eye + Camera.transform.forward * 4;
@@ -25,10 +23,9 @@ namespace ShapeLand.Client.Tests
             var worldFar = eye + Camera.transform.forward * 8 + Camera.transform.up;
             var feet = View.Player.transform.position;
 
-            // The tests zone's door, a box 1 by 3 by 4 m standing at (18, 0, 12), closed until its plate is stepped on.
             var door = new Vector3(18, 1.5f, 12);
             var behindDoor = door + (door - eye).normalized * 1.5f;
-            var onDoor = new Vector3(eye.x < door.x ? 17.45f : 18.55f, 1.5f, 12); // just in front of the face toward the camera
+            var onDoor = new Vector3(eye.x < door.x ? 17.45f : 18.55f, 1.5f, 12);
             var chunk = Join.Zone.Chunks[0];
             chunk.Signs = chunk
                 .Signs.Concat(
@@ -77,7 +74,6 @@ namespace ShapeLand.Client.Tests
                 )
                 .ToArray();
 
-            // The signs are read as a zone is entered; turning them off and on reads the zone again.
             var signs = Object.FindAnyObjectByType<Signs>();
             signs.enabled = false;
             signs.enabled = true;
@@ -104,8 +100,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(Of("Near").Q(className: "sign-arrow"), Is.Not.Null, "The sign has no arrow.");
             Assert.That(Of("Plain").Q(className: "sign-arrow"), Is.Null, "A sign without a background has an arrow.");
 
-            // World-sized signs shrink with their depth from the camera, measured now since the camera may have moved
-            // since they were placed. Screen-sized ones aren't scaled.
             Assert.That(Showing("World") && Showing("World far"), Is.True);
             float Depth(Vector3 at) => View.Camera.WorldToScreenPoint(at).z;
             var nearDepth = Depth(worldNear);

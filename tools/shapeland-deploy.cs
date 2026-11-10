@@ -48,8 +48,6 @@ const string PageHost = "shapeland." + Domain,
     ServerHost = ServerName + "." + Domain;
 
 // Where the server's name points while it's down: an address reserved for documentation, which nothing answers.
-// Removing the record instead would let the domain's wildcard answer for the name, and resolvers keep that
-// answer for 30 minutes, past the next up; the record's own cache time is a minute.
 const string Parked = "192.0.2.1";
 
 var options = new Tool.Args(args);
@@ -140,7 +138,6 @@ string AcmeEmail()
     return string.IsNullOrEmpty(email) ? throw Tool.Fail($"Set ACME_EMAIL in {file}.", 2) : email;
 }
 
-// The running (or starting) game server instances' ids.
 string[] Instances() =>
     Aws(
             "ec2",
@@ -155,14 +152,12 @@ string[] Instances() =>
         )
         .Split((char[])[' ', '\t', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
-// The kept data volume's id, or None.
 string DataVolume() =>
     Aws("ec2", "describe-volumes", "--filters", $"Name=tag:{Tag},Values=data", "--query", "Volumes[0].VolumeId", "--output", "text");
 
 string SecurityGroup() =>
     Aws("ec2", "describe-security-groups", "--filters", $"Name=group-name,Values={Tag}", "--query", "SecurityGroups[0].GroupId", "--output", "text");
 
-// Vercel DNS: the server's records as (id, value), from the CLI's table (columns: id, name, type, value, ...).
 List<(string Id, string Value)> DnsRecords() =>
     Tool.Capture(Tool.Info("vercel", ["dns", "ls", Domain]), withErrors: false)
         .Output.Split('\n')
@@ -178,8 +173,6 @@ void DnsSet(string address)
     Tool.Output("vercel", "dns", "add", Domain, ServerName, "A", address);
 }
 
-// Whether the game and Login servers at an address answer over HTTPS with "ok" from /health and /api/health. Asked
-// at that address, so a stale DNS answer on this machine can't mislead it; the certificate is still checked for the name.
 bool Answers(string address)
 {
     using var http = new HttpClient(
@@ -211,7 +204,6 @@ bool Answers(string address)
     return true;
 }
 
-// The running server's public address, if any.
 string? ServerIp()
 {
     var ids = Instances();
@@ -241,7 +233,6 @@ void Setup()
             "--public-access-block-configuration",
             "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
         );
-        // Old packages go after a day; each up uploads its own.
         Aws(
             "s3api",
             "put-bucket-lifecycle-configuration",
@@ -334,8 +325,6 @@ void Setup()
     Console.WriteLine($"Set up: bucket {bucket}, security group {group}, data volume {volume}.");
 }
 
-// The server package: the Login and game servers for Linux on ARM (self-contained), the content and the Caddyfile,
-// and the bots when any are asked for.
 void Package()
 {
     var output = Path.Combine(work, "package");
@@ -394,7 +383,6 @@ void Up(bool packaged)
     var volume = DataVolume();
     if (group == "None" || volume == "None")
         throw Tool.Fail("Run setup first.");
-    // The instance starts beside the volume, in its availability zone; the last instance must have let it go.
     Aws("ec2", "wait", "volume-available", "--volume-ids", volume);
     var zone = Aws("ec2", "describe-volumes", "--volume-ids", volume, "--query", "Volumes[0].AvailabilityZone", "--output", "text");
     var subnet = Aws(
@@ -567,7 +555,6 @@ void Page()
     }
 
     Console.WriteLine("== Publishing on Vercel");
-    // The deployment's address is the last vercel.app URL in its output (the rest varies between CLI versions).
     var deploy = Tool.Capture(Tool.Info("vercel", ["deploy", "--prod", "--yes"], folder: output), withErrors: true).Output;
     var deployment =
         System.Text.RegularExpressions.Regex.Matches(deploy, @"https://[a-z0-9.-]*\.vercel\.app").LastOrDefault()?.Value

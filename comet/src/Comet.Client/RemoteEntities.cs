@@ -19,23 +19,12 @@ namespace Comet.Client
         public float Facing { get; }
     }
 
-    /// <summary> The interpolation buffer for other entities: each one's recent states, stamped with the server
-    /// tick they are from, drawn at a render tick a little behind the newest arrivals so there is usually a
-    /// state on either side to blend between. </summary> <remarks> Past an entity's newest state (a late
-    /// packet: over TCP a lost one stalls the stream) it is dead-reckoned along that state's velocity for up to
-    /// <see cref="MaxExtrapolationTicks"/>, then held; the late state's difference is then eased out over <see
-    /// cref="BlendTicks"/>. After an idle gap (<see cref="IdleGapTicks"/>) a standing entity's old state is
-    /// restamped one report interval before the next, or a player starting to move would glide slowly across
-    /// the gap. States further apart than <see cref="TeleportSpeed"/> allows aren't blended: held, then jumped.
-    /// </remarks>
     public sealed class RemoteEntities
     {
         private const int MaxStates = 32;
 
-        // Distance allowed on top of the teleport speed, so slow ticks and rounding never count as a jump.
         private const float TeleportMargin = 0.5f;
 
-        // Slower than this across the ground, in meters per second, an entity counts as standing still.
         private const float StandingSpeed = 0.1f;
 
         private readonly Dictionary<uint, Track> _tracks = new Dictionary<uint, Track>();
@@ -70,21 +59,16 @@ namespace Comet.Client
 
         public int TickRate { get; }
 
-        /// <summary>How often a moving entity's states arrive, in ticks.</summary>
         public double ReportIntervalTicks { get; }
 
-        /// <summary>States of a standing entity further apart than this, in ticks, count as a stop and a fresh start.</summary>
         public double IdleGapTicks { get; }
 
-        /// <summary>Moves faster than this, in meters per second, are drawn as a jump to the new place.</summary>
         public float TeleportSpeed { get; }
 
         public float Gravity { get; }
 
-        /// <summary>How long an entity is dead-reckoned past its newest state before it holds, in ticks.</summary>
         public double MaxExtrapolationTicks { get; }
 
-        /// <summary>How long a late state's difference is eased out over, in ticks.</summary>
         public double BlendTicks { get; }
 
         /// <summary>
@@ -96,7 +80,6 @@ namespace Comet.Client
         /// <summary>How far up or down an entity on the ground is followed over a short move, in meters: a step's height.</summary>
         public const float StepReach = 0.5f;
 
-        // How far above an entity on the ground to look for walls.
         private const float WallProbe = 100f;
 
         /// <summary>A blend-back further than this, in meters, counts as a visible hitch (<see cref="VisibleBlendBacks"/>).</summary>
@@ -108,10 +91,6 @@ namespace Comet.Client
 
         public bool Contains(uint entityId) => _tracks.ContainsKey(entityId);
 
-        /// <summary>
-        /// Leaves a spawned entity out of the smoothness counters (<see cref="MoveStates"/> to
-        /// <see cref="VisibleBlendBacks"/>), e.g. a test's speed cheater, whose impossible moves aren't the network's.
-        /// </summary>
         public void ExcludeFromCounts(uint entityId)
         {
             if (_tracks.TryGetValue(entityId, out var track))
@@ -120,31 +99,18 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>States so far that continued a move (no idle gap before them).</summary>
         public long MoveStates { get; private set; }
 
-        /// <summary>
-        /// Of <see cref="MoveStates"/>, those that arrived after the render tick had passed the state before them:
-        /// the entity ran out of states mid-move and was dead-reckoned until this one came.
-        /// </summary>
         public long Holds { get; private set; }
 
-        /// <summary>
-        /// Of <see cref="MoveStates"/>, those whose speed across the ground (distance over the stamps' gap) differs
-        /// from the step before by more than 30% either way, both at walking pace: a hitch in drawn speed.
-        /// </summary>
         public long SpeedHitches { get; private set; }
 
-        /// <summary>Of <see cref="MoveStates"/>, those too far from the state before them to walk, drawn as a jump.</summary>
         public long Jumps { get; private set; }
 
-        /// <summary>How far, in ticks, the render tick had passed the previous state when each hold ended, summed.</summary>
         public double HeldTicks { get; private set; }
 
-        /// <summary>Times dead reckoning ran its full <see cref="MaxExtrapolationTicks"/> and the entity held: a visible stop.</summary>
         public long Overruns { get; private set; }
 
-        /// <summary>Late states whose difference from where the entity was drawn was eased out.</summary>
         public long BlendBacks { get; private set; }
 
         public long VisibleBlendBacks { get; private set; }
@@ -185,8 +151,6 @@ namespace Comet.Client
                 return null;
             }
 
-            // A long gap after a state standing still was the entity standing still; after a moving one it was a
-            // stall, and the entity was dead-reckoned through it.
             double? previous = newest.Tick;
             var standing = new Vector2(newest.Velocity.X, newest.Velocity.Z).Length() < StandingSpeed;
             if (tick - newest.Tick > IdleGapTicks && standing)
@@ -229,10 +193,6 @@ namespace Comet.Client
             return previous;
         }
 
-        /// <summary>
-        /// Where an entity is drawn at <paramref name="renderTick"/>, dropping states no longer needed;
-        /// false for an entity not spawned.
-        /// </summary>
         public bool TrySample(uint entityId, double renderTick, out EntityPose pose)
         {
             _renderTick = Math.Max(_renderTick, renderTick);
@@ -242,7 +202,6 @@ namespace Comet.Client
                 return false;
             }
 
-            // Keep one state at or before the render tick, to blend from.
             var states = track.States;
             var drop = 0;
             while (drop + 1 < states.Count && states[drop + 1].Tick <= renderTick)
@@ -281,7 +240,7 @@ namespace Comet.Client
                 facing = from.Facing;
                 if (states.Count > 1 && renderTick > from.Tick)
                 {
-                    track.Offset = Vector3.Zero; // a jump isn't eased
+                    track.Offset = Vector3.Zero;
                 }
             }
             else
@@ -292,7 +251,6 @@ namespace Comet.Client
                 facing = LerpAngle(from.Facing, to.Facing, t);
             }
 
-            // Leaving dead reckoning, or reckoning on from a newer state: ease out the difference from where it was drawn.
             if (track.Drawn is { } drawn && track.ExtrapolatedFrom is { } reckonedFrom && (!extrapolating || from.Tick != reckonedFrom))
             {
                 var error = drawn - position;
@@ -347,10 +305,6 @@ namespace Comet.Client
             return position;
         }
 
-        // Walks an entity on the ground along its path in pieces of at most StepReach: ground within
-        // StepReach up or down is followed, higher ground is a wall that stops it, and a lower drop is
-        // walked off and falls under gravity. Ground anywhere above counts as a wall (the probe can't see
-        // past a block's top).
         private Vector3 Walk(State from, float t)
         {
             var move = new Vector2(from.Velocity.X, from.Velocity.Z) * t;
@@ -372,7 +326,6 @@ namespace Comet.Client
                     continue;
                 }
 
-                // Off the edge partway through this piece; it falls for the rest of the time.
                 var fall = t * (1 - (float)(i - 1) / pieces);
                 var end = new Vector3(from.Position.X + move.X, at.Y, from.Position.Z + move.Y);
                 var fallen = at.Y - 0.5f * Gravity * fall * fall;
@@ -437,7 +390,6 @@ namespace Comet.Client
 
             public bool Counted { get; set; } = true;
 
-            /// <summary>Where the entity was last drawn, and the stamp it was being dead-reckoned from (null if it wasn't).</summary>
             public Vector3? Drawn { get; set; }
 
             public double? ExtrapolatedFrom { get; set; }
@@ -446,7 +398,6 @@ namespace Comet.Client
 
             public double BlendStart { get; set; }
 
-            /// <summary>The state whose dead reckoning last ran out, so each overrun counts once.</summary>
             public double OverrunFrom { get; set; } = double.NaN;
         }
     }

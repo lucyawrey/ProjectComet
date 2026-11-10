@@ -8,14 +8,12 @@ namespace Comet.Content
     /// </summary>
     public static class ColorMapFormat
     {
-        /// <summary>The header's length in bytes.</summary>
         public const int HeaderSize = 10;
 
         public const ushort Version = 1;
 
         private static readonly byte[] Magic = Encoding.ASCII.GetBytes("CCOL");
 
-        /// <summary>Reads a color map file; throws <see cref="ContentException"/> if it's malformed or another version.</summary>
         public static ColorMap Read(Stream stream)
         {
             using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);

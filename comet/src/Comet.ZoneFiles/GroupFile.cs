@@ -32,7 +32,6 @@ namespace Comet.ZoneFiles
             };
         }
 
-        /// <summary>Includes subfolders; each file is relative to <paramref name="folder"/>.</summary>
         public static List<(Group Group, string File)> ReadFolder(string folder, List<ZoneFileError> errors)
         {
             var groups = new List<(Group, string)>();
@@ -55,7 +54,6 @@ namespace Comet.ZoneFiles
             return groups;
         }
 
-        /// <summary>Leaves the file untouched if it's the same.</summary>
         public static void Write(string path, Group group)
         {
             var table = new TomlTable { ["id"] = group.Id };
@@ -75,7 +73,6 @@ namespace Comet.ZoneFiles
             File.WriteAllBytes(path, bytes);
         }
 
-        /// <summary>Relative to the groups folder: <c>group.tree</c> is in <c>tree.toml</c>.</summary>
         public static string FileFor(string key) =>
             (key.StartsWith("group.", StringComparison.Ordinal) ? key.Substring("group.".Length) : key) + ".toml";
     }

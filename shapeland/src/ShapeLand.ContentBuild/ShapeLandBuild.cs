@@ -8,12 +8,8 @@ namespace ShapeLand.ContentBuild;
 
 public static class ShapeLandBuild
 {
-    /// <summary>Relative to the content folder.</summary>
     public const string ModelRoot = "../ShapeLand.Unity/Assets";
 
-    /// <summary>
-    /// The only placeholders interface text may use: {username} anywhere, the rest only in the messages that get them.
-    /// </summary>
     public static readonly string[] Placeholders = ["username", "address", "speed", "height", "percent", "rule", "api", "width", "time"];
 
     public static ContentBuilder CreateBuilder(string contentRoot, string? modelRoot = null) =>
@@ -26,10 +22,6 @@ public static class ShapeLandBuild
             .AddGroups()
             .AddZones();
 
-    /// <summary>
-    /// Warnings (blockout placements) go into <paramref name="warnings"/>, or with <paramref name="release"/> are
-    /// errors.
-    /// </summary>
     public static (ShapeLandContent? Content, IReadOnlyList<ContentError> Errors) Build(
         string contentRoot,
         bool saveRegistry = true,
@@ -50,7 +42,6 @@ public static class ShapeLandBuild
             return (null, errors);
         }
 
-        // A missing or renamed shapes folder builds empty, and players need a shape to join.
         if (result.Entries<Shape>().Count == 0)
         {
             errors.Add(new ContentError(Path.Combine(contentRoot, "shapes"), 1, 1, "No shapes: the game needs at least one (shapes/*.toml)."));

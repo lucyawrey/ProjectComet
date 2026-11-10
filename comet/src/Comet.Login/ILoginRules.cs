@@ -9,9 +9,6 @@ public interface ILoginRules<TCharacter>
     /// <summary>Checks a username, returning an error code (<c>LoginErrors</c>) or null if it's allowed.</summary>
     string? CheckName(string name);
 
-    /// <summary>
-    /// Makes a new guest's character from the game's part of the request, or null if it isn't allowed.
-    /// </summary>
     TCharacter? CreateCharacter(long characterId, long accountId, string username, JsonElement request);
 
     /// <summary>Serialized as JSON for the client.</summary>
@@ -19,10 +16,8 @@ public interface ILoginRules<TCharacter>
 
     GameServerAddress ServerFor(TCharacter character);
 
-    /// <summary>Renaming the account renames its live characters too.</summary>
     bool CharacterNamesFollowUsername { get; }
 
-    /// <summary>Deleting the account deletes its characters too, and restoring it restores them.</summary>
     bool CharactersDeletedWithAccount { get; }
 }
 

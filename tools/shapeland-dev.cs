@@ -134,17 +134,15 @@ var database = ToolOutput("comet-postgres", "name", Tool.Repo, port.ToString());
 var connection = ToolOutput("comet-postgres", "database", database);
 Console.WriteLine($"   Database {database} in comet-postgres");
 
-// Changes to the content sources after this (made with the build below) start a rebuild, when watching.
 var contentChecked = DateTime.UtcNow;
 Console.WriteLine("== Content");
 BuildContent();
 
-var webRoot = serveWeb ? web : null; // without a page, the editor copies the new content into the project itself
+var webRoot = serveWeb ? web : null;
 var page = Path.Combine(web, "index.html");
 if (serveWeb && build && (rebuild || Stale()))
 {
     Console.WriteLine("== Unity web build (a few minutes)");
-    // Asks for a fast build (Builds.FastWebMarker); the build uses the marker up, and it goes after a failed one too.
     var marker = Path.Combine(project, "Library", "ShapeLand", "fast-web-build");
     Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
     File.WriteAllText(marker, "");
@@ -152,7 +150,6 @@ if (serveWeb && build && (rebuild || Stale()))
     File.Delete(marker);
     if (code != 0)
         throw Tool.Fail("The Unity web build failed.");
-    // Marks the build as up to date, but only a build that made its page.
     if (!File.Exists(page))
         throw Tool.Fail($"The Unity build made no page at {page} (log: {project}/Logs/web.log)");
     File.SetLastWriteTimeUtc(page, DateTime.UtcNow);
@@ -187,7 +184,6 @@ if (Tool.Answers($"{url}health"))
 if (Tool.Answers(url, success: false))
     throw Tool.Fail($"Something else is already using port {port}; stop it or use --port.");
 
-// Where other devices reach this machine, with --lan: the page's Login server and the tickets' game server use it.
 var host = lan ? "0.0.0.0" : "localhost";
 var publicHost = lan ? LocalAddress() ?? "localhost" : "localhost";
 
@@ -223,8 +219,8 @@ while (!server!.HasExited)
     Thread.Sleep(1000);
     if (!ContentChangedSince(contentChecked))
         continue;
-    Thread.Sleep(500); // let an editor finish saving several files
-    contentChecked = DateTime.UtcNow; // changes from here on start another round
+    Thread.Sleep(500);
+    contentChecked = DateTime.UtcNow;
     Console.WriteLine("== Content changed; rebuilding");
     if (!TryBuildContent())
     {
@@ -258,7 +254,6 @@ void BuildContent()
         throw Tool.Fail("The content build failed.");
 }
 
-// The Unity build is up to date when no file it's made from is newer than its page.
 bool Stale()
 {
     if (!File.Exists(page))
@@ -294,10 +289,9 @@ bool ContentChangedSince(DateTime time)
     catch (IOException)
     {
         return false;
-    } // something changed while looking; the next round sees it
+    }
 }
 
-// Content changes need no Unity build: the page loads it from StreamingAssets.
 void CopyContent()
 {
     if (webRoot == null)
@@ -308,8 +302,6 @@ void CopyContent()
         File.Copy(content, copy, overwrite: true);
 }
 
-// This machine's address on the local network: the one a connection to the internet would go out from. A UDP
-// "connection" only picks the route; nothing is sent.
 static string? LocalAddress()
 {
     try
@@ -329,8 +321,6 @@ void StartServers()
     var bind = lan ? "0.0.0.0" : "127.0.0.1";
     if (net != null)
     {
-        // The servers' logs show in this terminal; the bots' (and netem's note) only with docker compose logs. The
-        // containers reach PostgreSQL as comet-postgres on the comet network.
         var env = new Dictionary<string, string?>(compose)
         {
             ["SHAPELAND_WEBROOT"] = webRoot != null ? "/app/web" : "",
@@ -351,7 +341,6 @@ void StartServers()
     }
     else
     {
-        // Accounts first: it migrates the database and makes the development ticket keys the game server reads.
         login = Tool.Start(
             Tool.Info(
                 "dotnet",
@@ -371,7 +360,6 @@ void StartServers()
         if (!Tool.WaitFor(() => login.HasExited || Tool.Answers($"{loginUrl}/api/health"), 60, TimeSpan.FromMilliseconds(500)) || login.HasExited)
             throw Tool.Fail("The Login server stopped.");
 
-        // The built programs run directly: stopping `dotnet run` can leave the program it started running.
         server = Tool.Start(
             Tool.Info(
                 "dotnet",
@@ -386,10 +374,9 @@ void StartServers()
                     "--Comet:Connections:MaxConnectionsPerAddress=1000",
                 ]
             )
-        ); // the bots all come from this machine
+        );
     }
 
-    // Answering, and still running (so it's this server, not one that started meanwhile).
     Tool.WaitFor(() => server.HasExited || Tool.Answers($"{url}health"), 60, TimeSpan.FromMilliseconds(500));
     if (server.HasExited)
         throw Tool.Fail("The game server stopped.");

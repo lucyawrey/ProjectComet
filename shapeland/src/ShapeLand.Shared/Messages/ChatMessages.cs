@@ -9,10 +9,6 @@ namespace ShapeLand.Shared.Messages
         public string Text;
     }
 
-    /// <summary>
-    /// Includes the sender, so everyone sees the same order. Carries the sender's name: chat is server-wide, so they
-    /// may be in another zone.
-    /// </summary>
     [MessagePackObject]
     public struct ChatMessage
     {
@@ -28,9 +24,6 @@ namespace ShapeLand.Shared.Messages
 
     public enum ChatRejection : byte
     {
-        /// <summary>
-        /// Empty after trimming, or longer than <see cref="ShapeLand.Shared.World.ShapeLandRules.MaxChatLength"/>.
-        /// </summary>
         InvalidText = 1,
 
         TooFast = 2,

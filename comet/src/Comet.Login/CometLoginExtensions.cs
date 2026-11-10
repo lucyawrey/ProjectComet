@@ -21,9 +21,6 @@ public static class CometLoginExtensions
 {
     private const string CorsPolicy = "comet-login";
 
-    /// <summary>
-    /// Settings come from the <c>Login</c> configuration section; <paramref name="configure"/> overrides them.
-    /// </summary>
     public static WebApplicationBuilder AddCometLogin<TAccounts, TRegion, TCharacter, TRules>(
         this WebApplicationBuilder builder,
         Action<LoginOptions>? configure = null
@@ -39,7 +36,6 @@ public static class CometLoginExtensions
         configure?.Invoke(settings);
         services.AddSingleton(Options.Create(settings));
 
-        // A JSON null for a field that can't be null is a bad request (400), not a crash further in.
         services.ConfigureHttpJsonOptions(json => json.SerializerOptions.RespectNullableAnnotations = true);
 
         services.TryAddSingleton(TimeProvider.System);
@@ -60,7 +56,6 @@ public static class CometLoginExtensions
         services
             .AddIdentityCore<Account>(identity =>
             {
-                // Current NIST guidance: a minimum length and nothing else. Lockout is SignInLockout's, per address.
                 identity.Password = new PasswordOptions
                 {
                     RequiredLength = 8,
@@ -70,7 +65,7 @@ public static class CometLoginExtensions
                     RequireUppercase = false,
                     RequireNonAlphanumeric = false,
                 };
-                identity.User.AllowedUserNameCharacters = ""; // the game's rules check names
+                identity.User.AllowedUserNameCharacters = "";
                 identity.Lockout.AllowedForNewUsers = false;
             })
             .AddUserStore<CometUserStore>();
@@ -81,7 +76,6 @@ public static class CometLoginExtensions
         services.AddProblemDetails();
         services.Configure<ForwardedHeadersOptions>(forwarded =>
         {
-            // Trusts only the default known proxies (this machine's loopback), where Caddy runs.
             forwarded.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
         });
         services.AddCors(cors =>
@@ -150,7 +144,7 @@ public static class CometLoginExtensions
             var privateFile = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
             if (!OperatingSystem.IsWindows())
             {
-                privateFile.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite; // the owner only
+                privateFile.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
             }
 
             using var writer = new StreamWriter(settings.SigningKeyFile, privateFile);

@@ -39,10 +39,6 @@ public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerO
         }
     }
 
-    /// <summary>
-    /// Counts a connection from <paramref name="address"/> before its WebSocket is accepted, or returns false if
-    /// that would pass <paramref name="limits"/>. Each success is matched by one <see cref="Release"/>.
-    /// </summary>
     internal bool TryReserve(IPAddress? address, ConnectionLimits limits)
     {
         var key = AddressKey(address);
@@ -73,7 +69,6 @@ public sealed class ConnectionRegistry(MessagePackSerializerOptions? serializerO
         }
     }
 
-    // IPv4 as itself (also when mapped into IPv6); IPv6 by its /64.
     private static IPAddress AddressKey(IPAddress? address)
     {
         if (address is null)

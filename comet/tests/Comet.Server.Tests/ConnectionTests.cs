@@ -9,7 +9,6 @@ using Comet.Server.Ticking;
 
 namespace Comet.Server.Tests;
 
-/// <summary>A server <see cref="Connection"/> over a loopback socket, read by a plain client WebSocket.</summary>
 public sealed class ConnectionTests : IAsyncLifetime
 {
     private TcpListener _listener = null!;
@@ -47,8 +46,6 @@ public sealed class ConnectionTests : IAsyncLifetime
     [Fact]
     public async Task EventsOverOneFrameSpreadOverTickFramesUnderTheClientLimit()
     {
-        // Over 100 KB of events in one tick, like 60 players each saying three of the longest chat lines at once
-        // (which once overflowed the send buffer), and a state for each of them.
         const int events = 12_000;
         for (var i = 0; i < events; i++)
         {
@@ -82,7 +79,6 @@ public sealed class ConnectionTests : IAsyncLifetime
                 }
                 else if (id == MessageIds.EntityState)
                 {
-                    // Never ahead of the events queued before them.
                     Assert.Equal(events, received.Count);
                     states++;
                 }
@@ -95,7 +91,6 @@ public sealed class ConnectionTests : IAsyncLifetime
     [Fact]
     public async Task AFloodOfEmptyFramesDropsTheClient()
     {
-        // Frames with only a header carry no messages, but still cost the server to receive, so they count toward the flood limit.
         var empty = new byte[MessageWriter.TickSize];
         try
         {
@@ -104,10 +99,7 @@ public sealed class ConnectionTests : IAsyncLifetime
                 await _client.SendAsync(empty, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
             }
         }
-        catch (WebSocketException)
-        {
-            // Dropped while still sending.
-        }
+        catch (WebSocketException) { }
 
         await _running.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }

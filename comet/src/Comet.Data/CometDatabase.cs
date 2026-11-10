@@ -17,7 +17,6 @@ public static class CometDatabase
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(new TimestampInterceptor(clock));
 
-    /// <summary>For sharing another context's open <paramref name="connection"/> in one transaction.</summary>
     public static DbContextOptionsBuilder UseComet(
         this DbContextOptionsBuilder options,
         DbConnection connection,

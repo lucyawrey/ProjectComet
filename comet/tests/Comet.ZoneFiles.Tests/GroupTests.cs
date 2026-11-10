@@ -60,7 +60,6 @@ public class GroupTests
         Assert.Equal(2, parts.Count);
         foreach (var (part, original) in parts.Zip(tree.Parts))
         {
-            // Each part lands where the copy's matrix puts it, turned by both rotations.
             var expected = Vector3.Transform(
                 original.Position,
                 Matrix4x4.CreateScale(2)
@@ -81,7 +80,6 @@ public class GroupTests
             Assert.Null(part.Group);
         }
 
-        // The second part (1 m out along X, 2 m up) ends up along -Z after a quarter turn, at twice the distance.
         Assert.True(Vector3.Distance(new Vector3(10, 5, 3), parts[1].Position) < 1e-4f, $"{parts[1].Position}");
     }
 
@@ -156,7 +154,6 @@ public class GroupTests
             Find
         );
 
-        // The outer copy's leaves win over the inner copy's; the inner copy's trunk stays; the second tree only takes the leaves.
         Assert.Equal([0x333333u, 0x00FF00u, 0x7A5C3Eu, 0x00FF00u], parts.Select(p => p.Color!.Value));
         Assert.Equal(new SortedSet<string> { "leaves", "trunk" }, Groups.Roles("group.grove", Find));
     }
@@ -185,8 +182,8 @@ public class GroupTests
         Groups.Expand(zone, key => key == tree.Id ? tree : null);
 
         Assert.Equal([new ChunkCoord(0, 0), new ChunkCoord(1, 0)], zone.Chunks.Select(c => c.Coord));
-        Assert.Equal(2, zone.Chunks[0].Placements.Length); // the box and the trunk
-        Assert.Single(zone.Chunks[1].Placements); // the crown, 1 m over the border
+        Assert.Equal(2, zone.Chunks[0].Placements.Length);
+        Assert.Single(zone.Chunks[1].Placements);
         Assert.DoesNotContain(zone.Chunks.SelectMany(c => c.Placements), p => p.Group != null);
     }
 
@@ -230,7 +227,6 @@ public class GroupTests
     [Fact]
     public void AGroupInsideItselfStopsThere()
     {
-        // Three copies of itself would expand to 3^16 parts if only the depth limit stopped it.
         var loop = new Group
         {
             Id = "group.loop",

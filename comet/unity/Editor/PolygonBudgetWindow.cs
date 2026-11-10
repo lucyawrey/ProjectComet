@@ -7,10 +7,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Tunes the polygon budget: changes show at once on every primitive in the opened zone, and Save writes them to
-    /// the game's settings file. Until saved, the next content build puts the game's values back.
-    /// </summary>
     public sealed class PolygonBudgetWindow : EditorWindow
     {
         [MenuItem("Comet/Zones/Polygon Budget", priority = 30)]
@@ -71,7 +67,6 @@ namespace Comet.Unity.Editor
             );
         }
 
-        // Rewrites only the budget's three values, keeping the rest of the settings file and its comments.
         private static void Save(CometSettings settings)
         {
             var path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Application.dataPath)!, settings.budgetFile));
@@ -116,10 +111,6 @@ namespace Comet.Unity.Editor
         }
     }
 
-    /// <summary>
-    /// Keeps the opened zone's primitives built at their size: a resize with Unity's scale tool folds into the
-    /// primitive's size when the mouse is let go, and the mesh is built again with the polygon budget.
-    /// </summary>
     [InitializeOnLoad]
     public static class ZonePrimitiveEditing
     {

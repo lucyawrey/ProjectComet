@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// The model for each prop id (<c>prop.rock</c>), so the client and the zone editor can place what zones list.
-    /// A game fills it from its content's prop entries, never by hand.
-    /// </summary>
     [CreateAssetMenu(menuName = "Comet/Prop Library")]
     public sealed class PropLibrary : ScriptableObject
     {

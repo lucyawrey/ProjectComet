@@ -6,7 +6,6 @@ namespace ShapeLand.Client
 {
     public sealed partial class AccountPage
     {
-        // The step's button: save the username or password, check the password, or finish with the code.
         private void Submit()
         {
             switch (_step)
@@ -60,15 +59,12 @@ namespace ShapeLand.Client
             ShowStep(Step.Rows);
         }
 
-        // Changing a password needs a recent sign-in, so it's asked for before the new password is typed (a guest's
-        // first password needs none).
         private void OpenPassword()
         {
             _resubmitPassword = false;
             OpenRecent(Step.Password, needsRecent: !(_hud.Join.Account?.Guest ?? true));
         }
 
-        // Making a recovery code needs a recent sign-in too, asked for before its page; the code comes with its button.
         private void OpenCode()
         {
             if (!(_hud.Join.Account?.Guest ?? true))
@@ -77,7 +73,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Opens the step, first asking for the password again when it needs a recent sign-in and the session isn't.
         private async void OpenRecent(Step step, bool needsRecent)
         {
             if (_busy)
@@ -88,7 +83,7 @@ namespace ShapeLand.Client
             if (needsRecent)
             {
                 Busy(true);
-                await _hud.Join.RefreshAccountAsync(); // whether the sign-in is still recent now, not when the page opened
+                await _hud.Join.RefreshAccountAsync();
                 Busy(false);
                 if (!(_hud.Join.Account?.RecentSignIn ?? false))
                 {
@@ -118,7 +113,6 @@ namespace ShapeLand.Client
             Busy(false);
             if (error == LoginErrors.SignInAgain)
             {
-                // The sign-in got old while the new password was typed: confirm, then go on with it.
                 _resubmitPassword = true;
                 AskToConfirm(Step.Password);
                 return;
@@ -159,7 +153,6 @@ namespace ShapeLand.Client
             _codeText.text = code;
         }
 
-        // The change needs a recent sign-in: the password again, then the change goes on.
         private void AskToConfirm(Step then)
         {
             _afterConfirm = then;
@@ -189,7 +182,6 @@ namespace ShapeLand.Client
             }
             else if (_afterConfirm == Step.Password && _resubmitPassword)
             {
-                // Back to the change with the new password still typed in, and on with it.
                 _resubmitPassword = false;
                 var (typed, again) = (_passwordField.value, _passwordAgain.value);
                 ShowStep(Step.Password);
@@ -203,7 +195,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Signing out asks first; a guest would lose the character, so Set password comes first.
         private void AskToSignOut()
         {
             var strings = _hud.Join.Content.Strings;

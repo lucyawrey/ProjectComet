@@ -9,7 +9,6 @@ namespace ShapeLand.Client
 {
     public sealed partial class JoinScreen
     {
-        // The new player's card as for someone new: no name, the first shape and colors.
         private void StartFresh(bool glide = true)
         {
             _name.value = "";
@@ -40,7 +39,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Marks the choices, recolors the icons, and updates the preview and the stats.
         private void Refresh()
         {
             foreach (var button in _shapes.Children())

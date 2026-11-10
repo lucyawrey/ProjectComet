@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// Unity meshes for terrain chunks, built from the same data the server collides with, so what is drawn is
-    /// what is stood on.
-    /// </summary>
     public static class TerrainMeshes
     {
         public static Mesh Build(string name, TerrainMesh terrain)
@@ -32,7 +28,6 @@ namespace Comet.Unity
                 colors[i] = new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
             }
 
-            // Every triangle has its own corners, so the recalculated normals are flat: one per face.
             mesh.Clear();
             mesh.indexFormat = vertices.Count > 65535 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
 

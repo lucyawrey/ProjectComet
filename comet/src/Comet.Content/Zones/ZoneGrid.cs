@@ -39,7 +39,6 @@ namespace Comet.Content
                 z;
             if (MathF.Abs(sinX) > 0.99999f)
             {
-                // Facing straight up or down, Y and Z turn about the same axis: it's all in Y.
                 y = MathF.Atan2(2 * (q.W * q.Y - q.X * q.Z), 1 - 2 * (q.Y * q.Y + q.Z * q.Z));
                 z = 0;
             }

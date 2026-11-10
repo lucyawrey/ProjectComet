@@ -6,17 +6,12 @@ using ShapeLand.Shared.Content;
 
 namespace ShapeLand.Shared.World
 {
-    /// <summary>Built the same way on client and server.</summary>
     public static class ShapeLandWorld
     {
         public static (Zone Zone, SpawnPoint Spawn) StartOf(ShapeLandContent content, Shape shape) =>
             Triggers.FindSpawn(content.Zones.All, shape.Spawn)
             ?? throw new System.InvalidOperationException($"{shape.Id}'s spawn '{shape.Spawn}' isn't in any zone.");
 
-        /// <summary>
-        /// Others moving faster than this are drawn jumping rather than gliding: half again the fastest shape's top
-        /// speed or jump speed, so only respawns, snap-backs and speed cheats exceed it.
-        /// </summary>
         public static float TeleportSpeed(ShapeLandContent content)
         {
             var fastest = 0f;
@@ -70,7 +65,6 @@ namespace ShapeLand.Shared.World
             return new CollisionWorld(new ZoneTerrain(zone), meshes, zone.KillHeight ?? content.Settings.World.KillHeight, content.Movement.MaxSlope);
         }
 
-        /// <summary>Solid, and never flipped.</summary>
         public static IEnumerable<Placement> Pads(ZoneChunk chunk)
         {
             foreach (var spawn in chunk.Spawns)

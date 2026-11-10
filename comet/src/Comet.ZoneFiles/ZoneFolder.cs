@@ -70,8 +70,6 @@ namespace Comet.ZoneFiles
             var chunksPath = Path.Combine(folder, ChunksFolder);
             if (Directory.Exists(chunksPath))
             {
-                // Files directly in chunks/ and folders without a chunk file are left alone, unless the folder holds
-                // terrain tiles, which would otherwise be dropped without a word.
                 foreach (var path in Directory.EnumerateDirectories(chunksPath).OrderBy(p => p, StringComparer.Ordinal))
                 {
                     var name = Path.GetFileName(path);
@@ -245,7 +243,6 @@ namespace Comet.ZoneFiles
                 (tile.OriginX, tile.OriginZ) = toml.Pair(t, path, "origin");
                 if (tile.Piece.Length == 0 || !ZoneValidation.IsName(tile.Piece))
                 {
-                    // Without a usable name there's no file to read; validation reports the name.
                     continue;
                 }
 
@@ -348,8 +345,6 @@ namespace Comet.ZoneFiles
                 })
                 .ToArray();
 
-            // Tile files in the chunk folder that no tile reads are probably a piece renamed by hand: say so rather
-            // than silently ignoring them. Other files there aren't the zone's.
             var tileFolder = Path.Combine(folder, ChunksFolder, coord.ToString());
             if (Directory.Exists(tileFolder))
             {
@@ -625,8 +620,6 @@ namespace Comet.ZoneFiles
         private static bool IsTileFile(string path) =>
             path.EndsWith(".height", StringComparison.Ordinal) || path.EndsWith(".color", StringComparison.Ordinal);
 
-        // Removes chunk and tile files a save didn't write, and chunk folders left empty. Anything else in chunks/
-        // isn't the zone's.
         private static void RemoveStale(string folder, HashSet<string> written)
         {
             var chunksPath = Path.Combine(folder, ChunksFolder);

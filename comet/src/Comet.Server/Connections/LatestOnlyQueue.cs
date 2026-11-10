@@ -1,9 +1,5 @@
 namespace Comet.Server.Connections;
 
-/// <summary>
-/// Pending state messages for one connection, keyed by entity: a newer message replaces an unsent older one, so a stalled
-/// connection catches up instead of replaying stale updates. Tick thread only.
-/// </summary>
 public sealed class LatestOnlyQueue<T>
     where T : struct
 {
@@ -12,7 +8,6 @@ public sealed class LatestOnlyQueue<T>
 
     public int Count => _items.Count;
 
-    /// <summary>Queues <paramref name="value"/> for <paramref name="key"/>, replacing one still queued for it in place.</summary>
     public void Set(uint key, in T value)
     {
         if (_indexByKey.TryGetValue(key, out var index))
@@ -40,10 +35,6 @@ public sealed class LatestOnlyQueue<T>
         }
     }
 
-    /// <summary>
-    /// Hands queued messages to <paramref name="write"/> in the order first queued, until it returns false
-    /// (it had no room for that one). The messages written leave the queue; the rest stay, in order.
-    /// </summary>
     public void Drain<TState>(TState state, Func<TState, T, bool> write)
     {
         var written = 0;

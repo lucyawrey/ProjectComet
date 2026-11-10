@@ -60,7 +60,7 @@ public class TicketTests
     public async Task ATicketIssuedBeforeTheServerStartedIsRefused()
     {
         var ticket = Issuer().Issue(1, 2, 7);
-        _clock.Now += TimeSpan.FromSeconds(1); // the game server restarts
+        _clock.Now += TimeSpan.FromSeconds(1);
         Assert.Equal(TicketRejection.Expired, (await Checker().CheckAsync(ticket)).Rejection);
     }
 
@@ -104,12 +104,10 @@ public class TicketTests
     [Fact]
     public async Task OnlyES256IsAccepted()
     {
-        // An HMAC ticket "signed" with the public key's bytes: the classic JWT algorithm-confusion forgery.
         var hmac = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Keys.Public)) { KeyId = TicketKeys.PublicKey(Keys.Public).KeyId };
         var forged = new JsonWebTokenHandler().CreateToken(Descriptor(new SigningCredentials(hmac, SecurityAlgorithms.HmacSha256)));
         Assert.Equal(TicketRejection.Invalid, (await Checker().CheckAsync(forged)).Rejection);
 
-        // An unsigned ticket (alg "none").
         var unsigned = new JsonWebTokenHandler().CreateToken(Descriptor(null));
         Assert.Equal(TicketRejection.Invalid, (await Checker().CheckAsync(unsigned)).Rejection);
     }

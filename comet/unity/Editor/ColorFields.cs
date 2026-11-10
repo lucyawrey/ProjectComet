@@ -3,10 +3,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// One color field, its label bold while the color is the thing's own (like Unity's prefab overrides), with a reset
-    /// button back to the default.
-    /// </summary>
     internal static class ColorFields
     {
         private static GUIContent? _resetIcon;

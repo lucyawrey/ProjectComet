@@ -6,10 +6,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// Unity meshes for primitives from <see cref="PrimitiveMesher"/>, built from the values the server collides with.
-    /// In the game, placed primitives are combined into one mesh per chunk, so a large zone stays a few draw calls.
-    /// </summary>
     public static class PrimitiveMeshes
     {
         private static Dictionary<string, Entry>? _meshes;
@@ -20,8 +16,6 @@ namespace Comet.Unity
         private static int _uses;
         private static int _pruneAbove = PruneAbove;
 
-        // Past this many meshes, the ones nothing shows are destroyed (the zone editor makes one per size tried),
-        // except the most recently asked for, which a caller may still be collecting.
         private const int PruneAbove = 2048,
             KeepRecent = 512;
         private const string NamePrefix = "Primitive ";
@@ -38,7 +32,6 @@ namespace Comet.Unity
             var name = MeshName(placement, budget);
             if (!meshes.TryGetValue(name, out var entry) || entry.Mesh == null)
             {
-                // Built here rather than taken from the mesher's cache, which keeps every size it's asked for.
                 var mesh = new Mesh { name = name, hideFlags = HideFlags.DontSave };
                 var builder = new Builder();
                 builder.Add(PrimitiveMesher.Build(placement.Primitive!, placement.Scale, budget), System.Numerics.Matrix4x4.Identity, 0xFFFFFF);
@@ -90,7 +83,6 @@ namespace Comet.Unity
             return shown;
         }
 
-        // True if the mesh is gone; one that is still shown is kept.
         private static bool Destroy(Mesh mesh, HashSet<Mesh> shown)
         {
             if (mesh == null)
@@ -145,7 +137,6 @@ namespace Comet.Unity
                 {
                     for (var k = 0; k < 3; k++)
                     {
-                        // A mirroring transform turns triangles inside out; rewind them to face out again.
                         var corner = triangles[i + (mirrored && k > 0 ? 3 - k : k)];
                         var p = System.Numerics.Vector3.Transform(corner, transform);
                         _vertices.Add(new Vector3(p.X, p.Y, p.Z));
@@ -156,7 +147,6 @@ namespace Comet.Unity
 
             public void Fill(Mesh mesh)
             {
-                // Every triangle has its own corners, so the recalculated normals are flat: one per face.
                 mesh.Clear();
                 mesh.indexFormat = _vertices.Count > 65535 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
                 mesh.SetVertices(_vertices);
@@ -173,7 +163,6 @@ namespace Comet.Unity
             }
         }
 
-        // "Primitive Box 2×1×2", then every value the mesh depends on, exactly.
         private static string MeshName(Placement placement, PolygonBudget budget)
         {
             var p = placement.Primitive!;

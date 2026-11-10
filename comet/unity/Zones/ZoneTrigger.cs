@@ -3,10 +3,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// Shared by spawn points, teleporters and triggers in a zone opened in the editor: an invisible volume at the
-    /// object's position, an optional pad (a primitive child, solid in the game) and an optional sign (a sign child).
-    /// </summary>
     [DisallowMultipleComponent]
     [SelectionBase]
     public abstract class ZoneTrigger : MonoBehaviour
@@ -53,7 +49,6 @@ namespace Comet.Unity
 
         public PrimitiveKind Shape => (PrimitiveKind)System.Enum.Parse(typeof(PrimitiveKind), volume.ToString());
 
-        // The wireframe, kept until the shape, size or polygon budget changes.
         private Vector3[]? _edges;
         private (VolumeKind, Vector3, float, int, int) _edgesFor;
 

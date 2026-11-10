@@ -8,26 +8,18 @@ namespace ShapeLand.Client
 {
     public sealed partial class AccountPage
     {
-        /// <summary>True while keys or a gamepad move the page's selection, which shows only then.</summary>
         public bool Navigating
         {
             get => _page.ClassListContains("navigating");
             private set
             {
                 _page.EnableInClassList("navigating", value);
-                _confirmHost.EnableInClassList("navigating", value); // the sign-out and leave-code questions
+                _confirmHost.EnableInClassList("navigating", value);
             }
         }
 
-        // Whether the last move came from a gamepad: a field it lands on waits for A, so a phone's keyboard doesn't
-        // pop up by surprise.
         private bool _padInput;
 
-        /// <summary>
-        /// Keys and a gamepad on the page, with the Esc menu's Menu actions (Esc itself is the Hud's, through
-        /// <see cref="Back"/>): up and down move through the step, Submit uses what's selected, B goes back. While a
-        /// field has the keyboard, Up, Down and Tab still move on, and landing on a field with the keyboard types into it.
-        /// </summary>
         public void Update(ShapeLandControls.MenuActions actions)
         {
             if (!Open || Time.frameCount == _shownOnFrame)
@@ -65,10 +57,10 @@ namespace ShapeLand.Client
 
             var typing = Typing;
             var step = _navigation.StepVertical(typing && !fromPad ? MenuNavigation.TypingArrows() : actions.Navigate.ReadValue<Vector2>());
-            var submit = actions.Submit.WasPressedThisFrame() && (!typing || fromPad); // Space and Enter in a field are the field's
+            var submit = actions.Submit.WasPressedThisFrame() && (!typing || fromPad);
             if (!Navigating && step != Vector2Int.zero && !typing)
             {
-                Navigating = true; // the first press only shows where the selection is
+                Navigating = true;
                 Mark();
                 return;
             }
@@ -113,7 +105,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // The step's items, top to bottom: the rows and Sign Out; a form's fields and its button; the code's Copy and Done.
         private List<VisualElement> Items() =>
             _step switch
             {
@@ -127,7 +118,6 @@ namespace ShapeLand.Client
                 _ => new List<VisualElement> { _copy, _submit },
             };
 
-        // Up from the first item reaches Back; down from Back, the first item again.
         private void Move(int by)
         {
             var count = Items().Count;

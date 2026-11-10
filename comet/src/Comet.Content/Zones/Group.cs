@@ -16,14 +16,12 @@ namespace Comet.Content
         [Key(0)]
         public int Number { get; set; }
 
-        /// <summary>The group's id (<c>group.tree</c>).</summary>
         [Key(1)]
         public string Id { get; set; } = "";
 
         [Key(2)]
         public Placement[] Parts { get; set; } = Array.Empty<Placement>();
 
-        /// <summary>The name the zone editor shows; null shows its id without the <c>group.</c> prefix.</summary>
         [Key(3)]
         public string? DisplayName { get; set; }
     }
@@ -103,11 +101,9 @@ namespace Comet.Content
                 .ToList();
         }
 
-        /// <summary>The roles a group's parts play, its nested groups' included.</summary>
         public static SortedSet<string> Roles(string group, Func<string, Group?> find) =>
             new(Expand(new Placement { Group = group }, find).Select(p => p.Role).OfType<string>());
 
-        // // Colors by role with the outer ones winning, or null for none.
         private static Dictionary<string, uint>? Over(Dictionary<string, uint>? outer, Dictionary<string, uint>? inner)
         {
             if (outer is null || inner is null)

@@ -17,9 +17,6 @@ namespace Comet.Unity
         /// <summary>Seconds on a real-time clock, unaffected by pausing or time scale.</summary>
         public static double Now => Time.realtimeSinceStartupAsDouble;
 
-        /// <summary>Closes any current session first.</summary>
-        /// <param name="teleportSpeed">Other entities moving faster than this jump instead of gliding.</param>
-        /// <param name="groundHeight">The highest ground at or below a position, as a floor for dead reckoning.</param>
         public ClientSession Connect(
             Uri url,
             MessagePackSerializerOptions options,

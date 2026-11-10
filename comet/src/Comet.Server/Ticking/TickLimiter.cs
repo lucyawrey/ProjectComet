@@ -1,8 +1,5 @@
 namespace Comet.Server.Ticking;
 
-/// <summary>
-/// One player's rate limit for an action: a burst, then one every <c>secondsPerTake</c>, counted in server ticks. Tick thread only.
-/// </summary>
 public sealed class TickLimiter(int tickRate, int burst, float secondsPerTake)
 {
     private float _tokens = burst;

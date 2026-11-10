@@ -12,15 +12,12 @@ namespace Comet.Simulation
 
         public Vector3[] Triangles { get; }
 
-        /// <summary>The tag of the placement it belongs to, for flipping it, or null.</summary>
         public string? Tag { get; set; }
 
-        /// <summary>Whether it starts off: not solid until turned on.</summary>
         public bool StartsOff { get; set; }
 
         public const string TerrainKind = "terrain";
 
-        /// <summary>What made it (a prop, a primitive, a wall…), named by the game, for debug views; or null.</summary>
         public string? Kind { get; set; }
 
         public static CollisionMesh Placed(IReadOnlyList<Vector3> triangles, Matrix4x4 transform)

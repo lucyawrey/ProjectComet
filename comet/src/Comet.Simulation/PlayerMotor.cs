@@ -17,9 +17,6 @@ namespace Comet.Simulation
         public float Facing;
     }
 
-    /// <summary>
-    /// Moves a player one step. Clients and bots move with it, so their movement fits the rules the server checks.
-    /// </summary>
     public static class PlayerMotor
     {
         /// <param name="move">Wanted direction on the ground plane (X, Z), length 0 to 1.</param>
@@ -69,8 +66,6 @@ namespace Comet.Simulation
                 velocityY -= rules.Gravity * seconds;
             }
 
-            // On the ground a move walks up low ledges; in the air it rides up onto them by as much as
-            // terrain climbs over the move, up to the mantle height.
             var position = state.Position;
             var stepUp = state.Grounded ? rules.StepHeight : 0;
             position = TryMoveAxis(
@@ -104,7 +99,6 @@ namespace Comet.Simulation
                 }
             }
 
-            // Terrain may rise by up to twice the distance moved (slopes up to ~63°), however fast the player moves.
             var snap = state.Grounded ? rules.GroundSnap : 0;
             var climb = 2 * Vector2.Distance(new Vector2(state.Position.X, state.Position.Z), new Vector2(position.X, position.Z));
             if (
@@ -123,9 +117,6 @@ namespace Comet.Simulation
                 state.Grounded = false;
             }
 
-            // Landing or stepping down beside a steep surface can leave the body in it: push it out
-            // sideways, else the fall stops where it fits (a V of steep faces); a body held up that way
-            // stands.
             var held = !world.TryPushOut(ref position, rules.BodyRadius, rules.BodyHeight, passThrough)
                 ? velocityY <= 0 && world.TryRest(ref position, startY, rules.BodyRadius, rules.BodyHeight, passThrough)
                 : !state.Grounded && velocityY <= 0 && world.IsWedged(position, rules.BodyRadius, rules.BodyHeight, passThrough);
@@ -139,7 +130,6 @@ namespace Comet.Simulation
             state.Velocity = new Vector3(current.X, velocityY, current.Y);
         }
 
-        // The result is in (-π, π].
         private static float TurnToward(float from, float to, float maxTurn)
         {
             var difference = to - from;

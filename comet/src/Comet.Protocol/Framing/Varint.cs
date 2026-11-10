@@ -34,7 +34,6 @@ namespace Comet.Protocol.Framing
             return i;
         }
 
-        /// <summary>Reads a varint, or returns false if <paramref name="source"/> ends early or the value is too long.</summary>
         public static bool TryRead(ReadOnlySpan<byte> source, out uint value, out int bytesRead)
         {
             value = 0;

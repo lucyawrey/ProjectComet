@@ -7,14 +7,10 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Options for the editor's local game server (<see cref="LocalServer"/>): serving the last web build, opening it
-    /// to the local network, and bots. Makes the web build too, when the editor is on the Web platform.
-    /// </summary>
     internal sealed class ServerOptionsWindow : EditorWindow
     {
-        private const double StatusEvery = 1; // seconds between checks of who's on the port (an HTTP request)
-        private const double WebBuildEvery = 10; // seconds between looks for files newer than the web build
+        private const double StatusEvery = 1;
+        private const double WebBuildEvery = 10;
 
         private double _checkedAt = -StatusEvery;
         private double _webCheckedAt = -WebBuildEvery;
@@ -173,7 +169,7 @@ namespace Comet.Unity.Editor
             EditorGUILayout.EndHorizontal();
             if (copied)
             {
-                Repaint(); // back to "Copy" once the moment passes
+                Repaint();
             }
         }
 
@@ -274,8 +270,6 @@ namespace Comet.Unity.Editor
             EditorGUILayout.EndHorizontal();
         }
 
-        // Builds the web player into the settings' folder with the web build profile; the server serves the folder as
-        // it is, so pages pick it up on reload.
         private void MakeWebBuild(CometSettings settings)
         {
             var folder = ContentBuild.ProjectPath(settings.webBuildFolder);
@@ -300,8 +294,6 @@ namespace Comet.Unity.Editor
             _webCheckedAt = -WebBuildEvery;
         }
 
-        // When the web build was made, and the first thing it's made from that changed since (as the dev script
-        // checks), leaving out the zone editor's working scenes, which aren't in builds.
         private void CheckWebBuild(CometSettings settings)
         {
             _webBuiltAt = null;

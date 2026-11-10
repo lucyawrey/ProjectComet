@@ -11,10 +11,6 @@ namespace ShapeLand.Client
 {
     public sealed partial class JoinScreen
     {
-        // Keys and gamepad reach only the rows in sight, so each row is hidden or shown here with its page: the new
-        // player's rows (Change Shape has no name row), the Sign In page's (a code signs in on its own, with no username
-        // or password), the Set Password page's, and the server line (desktop builds, not while changing the look or
-        // setting a password). Then the selection moves to the top row in sight.
         private void MarkFieldRows()
         {
             var page = SigningIn || SettingPassword;
@@ -40,8 +36,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Enter in a field joins (applies); elsewhere on the card Enter is the Submit action's (Navigate). Tab and
-        // Shift+Tab move to the next or last row, from a field too.
         private void OnKeyDown(KeyDownEvent e)
         {
             if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && Typing)
@@ -59,7 +53,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // With a keyboard, landing on a text field's row goes straight into typing; Up, Down and Tab still leave it.
         private void FocusRowField()
         {
             if (!_onBack && _rows[_row].Q<TextField>() is { } field && Usable(_rows[_row]))
@@ -68,10 +61,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Keys and gamepad on the card, with the Esc menu's Menu actions: up and down move between rows, left and right
-        // pick within one (or between the buttons), Submit types into a field, presses a button or joins (applies) from
-        // the other rows, and Back stops typing, else goes back or cancels. Typing needs a keyboard; while a field has
-        // it, only the gamepad moves on (and the keys type).
         private void Navigate(ShapeLandControls.MenuActions actions)
         {
             if (_confirm.Open)
@@ -85,7 +74,7 @@ namespace ShapeLand.Client
             var step = _navigation.Step(typing && !fromPad ? MenuNavigation.TypingArrows() : actions.Navigate.ReadValue<Vector2>());
             if (!Navigating && step != Vector2Int.zero && !typing)
             {
-                Navigating = true; // the first press only shows where the selection is (leaving a field moves at once)
+                Navigating = true;
                 return;
             }
 
@@ -131,14 +120,12 @@ namespace ShapeLand.Client
                     Cancel();
                 }
             }
-            // Space and Enter while typing are the field's (Enter joins through OnKeyDown); a gamepad's A ends typing.
             else if (actions.Submit.WasPressedThisFrame() && (!typing || actions.Submit.activeControl?.device is Gamepad))
             {
                 SubmitRow(typing);
             }
         }
 
-        // The sign-out question: up and down choose, Submit picks, Back stays.
         private void NavigateConfirm(ShapeLandControls.MenuActions actions)
         {
             var step = _navigation.Step(actions.Navigate.ReadValue<Vector2>());
@@ -188,17 +175,15 @@ namespace ShapeLand.Client
                 SelectRow(row);
                 if (_scroll.contentContainer.Contains(_rows[row]))
                 {
-                    _scroll.ScrollTo(_rows[row]); // when the card is too tall for a phone's screen
+                    _scroll.ScrollTo(_rows[row]);
                 }
             }
         }
 
         private static bool Usable(VisualElement row) => !row.ClassListContains("hidden");
 
-        // The top row in sight: the name, or the shape when changing the look.
         private int FirstRow() => Math.Max(0, Array.FindIndex(_rows, Usable));
 
-        // Back above the top row: the card's own pages', or the look card's when it came from the Esc menu.
         private Button CurrentBack =>
             SigningIn || SettingPassword ? _pageBack
             : FromMenu ? _backButton
@@ -224,13 +209,10 @@ namespace ShapeLand.Client
                 _rows[i].EnableInClassList("selected", i == row && Items(_rows[i]).Count == 0);
             }
 
-            // The buttons start on the main one (Play, Apply, Sign In); the server line on its first item.
             _buttonIndex = _rows[row] == _buttonsRow ? Items(_buttonsRow).IndexOf(_joinButton) : 0;
             MarkItem();
         }
 
-        // A row's items, left to right, for left and right to move between: the buttons in sight (Sign In or Sign Out,
-        // Cancel, then the main one), and the server line's Change, or its field and Cancel once open. None for other rows.
         private List<VisualElement> Items(VisualElement row)
         {
             if (row == _buttonsRow)
@@ -277,7 +259,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Left or right on the selected row: the next shape or color (picked at once), or the next button.
         private void Pick(int by)
         {
             var row = _rows[_row];

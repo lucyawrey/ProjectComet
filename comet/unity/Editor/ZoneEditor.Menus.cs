@@ -50,11 +50,9 @@ namespace Comet.Unity.Editor
             Open(picked, settings);
         }
 
-        // Zones open into a scene of their own, which play mode can't do.
         [MenuItem("Comet/Zones/Open…", true)]
         private static bool CanOpen() => !EditorApplication.isPlaying;
 
-        // Newest first: folders relative to the project, kept per project.
         private const int RecentCount = 8;
         private static string RecentKey => "Comet.Zones.Recent." + ProjectRoot;
 
@@ -73,7 +71,6 @@ namespace Comet.Unity.Editor
             EditorPrefs.SetString(RecentKey, string.Join("\n", recent.Take(RecentCount)));
         }
 
-        // A menu can't list items that change, and a pop-up menu can't open from one, so this opens a small window.
         [MenuItem("Comet/Zones/Open Recent…", priority = 2)]
         public static void OpenRecentMenu() => RecentZonesWindow.Show();
 
@@ -103,10 +100,6 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Save", true)]
         private static bool CanSave() => UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() != null;
 
-        /// <summary>
-        /// Saves the opened zone into a new folder as a zone named after it, then opens that. The zone's own files
-        /// keep their last save.
-        /// </summary>
         [MenuItem("Comet/Zones/Save As…", priority = 4)]
         public static void SaveAsMenu()
         {
@@ -141,8 +134,6 @@ namespace Comet.Unity.Editor
         private static bool CanSaveAs() =>
             !EditorApplication.isPlaying && UnityEngine.Object.FindAnyObjectByType<ZoneEditing>() is { IsGroup: false, HasZoneData: true };
 
-        // A save-file dialog, unlike a folder one, lets the name be typed and creates nothing. Null if the pick was
-        // canceled or refused (saying why).
         private static string? PickNewZoneFolder(string title, CometSettings settings)
         {
             var zones = ProjectPath(settings.zonesFolder).TrimEnd('/', '\\');

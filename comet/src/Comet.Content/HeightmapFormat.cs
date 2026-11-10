@@ -9,14 +9,12 @@ namespace Comet.Content
     /// </summary>
     public static class HeightmapFormat
     {
-        /// <summary>The header's length in bytes.</summary>
         public const int HeaderSize = 10;
 
         public const ushort Version = 2;
 
         private static readonly byte[] Magic = Encoding.ASCII.GetBytes("CHGT");
 
-        /// <summary>Reads a heightmap file; throws <see cref="ContentException"/> if it's malformed or another version.</summary>
         public static Heightmap Read(Stream stream)
         {
             using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);

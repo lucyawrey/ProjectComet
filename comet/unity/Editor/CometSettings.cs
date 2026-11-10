@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// A game's settings for Comet's editor tools: how to build its content, where its zones are and how to draw them.
-    /// Each game's Unity project has one (Create › Comet › Settings).
-    /// </summary>
     [CreateAssetMenu(menuName = "Comet/Settings")]
     public sealed class CometSettings : ScriptableObject
     {
@@ -205,8 +201,6 @@ namespace Comet.Unity.Editor
 
         private void OnValidate() => ZoneEditorScenes.SetPlayScene(this);
 
-        // Searching the asset database takes about 10 ms, and the zone tools ask on every Scene view event, so the
-        // answer is kept until it's unloaded (as a new scene does) or the project's assets change.
         private static CometSettings? _found;
 
         [InitializeOnLoadMethod]
@@ -216,7 +210,6 @@ namespace Comet.Unity.Editor
             CollisionColors.Find = () => Find(quiet: true)?.collisionColors;
         }
 
-        /// <summary>Null (with a dialog unless <paramref name="quiet"/>) if the project has none.</summary>
         public static CometSettings? Find(bool quiet)
         {
             if (_found != null)

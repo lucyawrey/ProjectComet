@@ -2,10 +2,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Comet.Data.Characters;
 
-/// <summary>
-/// Which game server holds a character. Each join claims it and adds one to <see cref="Version"/>; status saves
-/// apply only while the version is still the saving server's, so a stale save changes nothing.
-/// </summary>
 public class CharacterOwner : ITimestamped
 {
     public required long CharacterId { get; set; }

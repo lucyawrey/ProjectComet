@@ -5,10 +5,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Comet.Data.Tests;
 
-/// <summary>
-/// The character repository's contract, run against both the in-memory and the PostgreSQL repository, so the
-/// in-memory one the game tests use behaves like the real one.
-/// </summary>
 public abstract class CharacterRepositoryContract : IAsyncLifetime
 {
     private const int ServerA = 1;
@@ -115,7 +111,6 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
         Assert.Equal(Somewhere, await Backend.PositionAsync(id));
         Assert.Equal((ServerA, 1L, false), await Backend.OwnerAsync(id));
 
-        // The queued save it replaced isn't written later.
         await repository.FlushAsync();
         Assert.Equal(Somewhere, await Backend.PositionAsync(id));
         Assert.Empty(_refused);
@@ -142,14 +137,12 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
         var first = await repository.ClaimAsync(id, Cancel);
         repository.SaveStatus(id, first.Version, Elsewhere);
 
-        // The newer connection: the older one leaves first (not awaited, as the game does), then the claim.
         _ = repository.LeaveAsync(id, first.Version, Somewhere);
         var second = await repository.ClaimAsync(id, Cancel);
 
         Assert.Equal(2, second.Version);
         Assert.Equal(Somewhere, second.Position);
 
-        // The older connection's late save is refused; the newer one keeps playing.
         repository.SaveStatus(id, first.Version, Elsewhere);
         await repository.FlushAsync();
         Assert.Equal(Somewhere, await Backend.PositionAsync(id));
@@ -168,7 +161,6 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
         var repository = await StartAsync(ServerA);
         var first = await repository.ClaimAsync(id, Cancel);
 
-        // The older connection never left (it's still being dropped): its queued save still lands before the claim.
         repository.SaveStatus(id, first.Version, Somewhere);
         var second = await repository.ClaimAsync(id, Cancel);
 
@@ -210,7 +202,7 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
         var claim = await repository.ClaimAsync(id, Cancel);
 
         await Backend.RenameAsync(id, "Isolde");
-        repository.SaveCharacter(Look(claim.Character!, 4), claim.Version); // still carries "Iris"
+        repository.SaveCharacter(Look(claim.Character!, 4), claim.Version);
         await repository.FlushAsync();
 
         var saved = await Backend.CharacterAsync(id);
@@ -246,7 +238,6 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
 
         await Backend.KickAsync(id);
 
-        // No saves at all: the interval's version check finds it.
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (_refused.IsEmpty && DateTime.UtcNow < deadline)
         {
@@ -276,7 +267,7 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
     {
         var id = await AddAsync("Milo");
         var crashed = await StartAsync(ServerA);
-        await crashed.ClaimAsync(id, Cancel); // and never leaves
+        await crashed.ClaimAsync(id, Cancel);
 
         await StartAsync(ServerA);
 
@@ -333,7 +324,6 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
 
     private async Task<ICharacterRepository<TestCharacter>> StartAsync(int server, TimeSpan? interval = null)
     {
-        // A long interval by default, so tests write with FlushAsync, not the timer.
         var options = new CharacterRepositoryOptions { ServerId = server, SaveInterval = interval ?? TimeSpan.FromHours(1) };
         var repository = Backend.CreateRepository(options);
         repository.SaveRefused += refused => _refused.Enqueue((server, refused));
@@ -342,7 +332,6 @@ public abstract class CharacterRepositoryContract : IAsyncLifetime
         return repository;
     }
 
-    /// <summary>One database the repositories share, and what the Login server does to it.</summary>
     protected interface IBackend
     {
         ICharacterRepository<TestCharacter> CreateRepository(CharacterRepositoryOptions options);

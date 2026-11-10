@@ -2,7 +2,6 @@ using Comet.Data.Characters;
 
 namespace Comet.Data.Tests;
 
-/// <summary>What a development server without accounts adds to the in-memory database: names and the snapshot file.</summary>
 public sealed class InMemoryCharacterDatabaseTests : IDisposable
 {
     private readonly string _snapshot = Path.Combine(Path.GetTempPath(), $"comet-snapshot-{Guid.NewGuid():N}.json");
@@ -42,7 +41,7 @@ public sealed class InMemoryCharacterDatabaseTests : IDisposable
     public void TheSnapshotKeepsCharactersAndSpotsButNoHolds()
     {
         var database = new InMemoryCharacterDatabase<TestCharacter>(TimeProvider.System);
-        Assert.Null(database.Load(_snapshot)); // no file yet: starts empty
+        Assert.Null(database.Load(_snapshot));
         var (id, _) = database.FindOrAdd("Ada", id => Make(id, "Ada", look: 7));
         database.SetPosition(id, new CharacterPosition(3, 1, 2, 3, 0.5f));
 
@@ -68,7 +67,7 @@ public sealed class InMemoryCharacterDatabaseTests : IDisposable
     {
         var database = new InMemoryCharacterDatabase<TestCharacter>(TimeProvider.System);
         Assert.Null(database.Load(_snapshot));
-        Directory.CreateDirectory(_snapshot); // nothing can be renamed over a folder
+        Directory.CreateDirectory(_snapshot);
         var failures = new List<Exception>();
         database.SnapshotFailed += failures.Add;
 

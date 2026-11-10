@@ -5,7 +5,6 @@ namespace Comet.ContentBuild.Tests;
 
 internal static class TestModels
 {
-    // A glTF model with one triangle per named node, each lying flat at y = 1, wound to face up (+Y) in glTF.
     public static string Model(params (string Name, Vector3 Offset)[] nodes)
     {
         var model = ModelRoot.CreateModel();
@@ -14,7 +13,7 @@ internal static class TestModels
         {
             var mesh = model.CreateMesh(name);
             var positions = model.CreateAccessor();
-#pragma warning disable CS0618 // SetData with DimensionType and EncodingType: plain enough for one test triangle
+#pragma warning disable CS0618
             positions.SetData(
                 model.UseBufferView(Floats(new Vector3(0, 1, 0), new Vector3(0, 1, 1), new Vector3(1, 1, 0))),
                 0,

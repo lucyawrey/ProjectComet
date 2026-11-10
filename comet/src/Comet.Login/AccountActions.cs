@@ -8,10 +8,6 @@ using Microsoft.Extensions.Options;
 
 namespace Comet.Login;
 
-/// <summary>
-/// Bans and deletions kick an online player by adding one to their characters' owner versions, so the game server
-/// drops them at its next save or version check without ever reading account data.
-/// </summary>
 public sealed class AccountActions<TCharacter>(
     IServiceScopeFactory scopes,
     RegionContexts<TCharacter> regions,
@@ -27,10 +23,6 @@ public sealed class AccountActions<TCharacter>(
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
-    /// <summary>
-    /// Kicks an online player now and again just after the ticket lifetime, catching a join with a ticket issued
-    /// before the ban. The second kick is scheduled in memory.
-    /// </summary>
     public async Task BanAsync(long accountId, CancellationToken cancellationToken)
     {
         await using (var scope = scopes.CreateAsyncScope())
@@ -62,10 +54,6 @@ public sealed class AccountActions<TCharacter>(
         );
     }
 
-    /// <summary>
-    /// The username stays held until the purge. With <paramref name="onlyGuest"/>, an account claimed meanwhile is left
-    /// alone; returns whether it was deleted.
-    /// </summary>
     public async Task<bool> DeleteAsync(long accountId, bool onlyGuest, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
@@ -95,9 +83,6 @@ public sealed class AccountActions<TCharacter>(
         return true;
     }
 
-    /// <summary>
-    /// Runs in <paramref name="db"/>'s open transaction.
-    /// </summary>
     public async Task RestoreAsync(CometAccountContext db, Account account, CancellationToken cancellationToken)
     {
         var deletedAt = account.DeletedAt;
@@ -120,9 +105,6 @@ public sealed class AccountActions<TCharacter>(
         await KickAsync(region, accountId, cancellationToken);
     }
 
-    /// <summary>
-    /// Idle means no session use, status save or owner heartbeat for <see cref="LoginOptions.GuestIdle"/>.
-    /// </summary>
     public async Task<int> CleanUpGuestsAsync(CancellationToken cancellationToken)
     {
         if (options.Value.GuestIdle is not { } idle)
@@ -173,9 +155,6 @@ public sealed class AccountActions<TCharacter>(
         return idleGuests.Count;
     }
 
-    /// <summary>
-    /// Deleted guests go at once: a guest can't sign in to restore itself, so the hold would only keep its name taken.
-    /// </summary>
     public async Task<(int Accounts, int Characters)> PurgeAsync(CancellationToken cancellationToken)
     {
         var settings = options.Value;

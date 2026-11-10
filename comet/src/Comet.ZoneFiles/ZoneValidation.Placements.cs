@@ -152,9 +152,6 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
-        /// <summary>
-        /// Stand-ins to finish before a release. A group copy counts if it or any part it expands to is blockout.
-        /// </summary>
         public static List<ZoneFileError> Blockout(Zone zone, Func<string, Group?> findGroup)
         {
             var found = new List<ZoneFileError>();
@@ -186,7 +183,6 @@ namespace Comet.ZoneFiles
             return found;
         }
 
-        // A placement's reach: its bounds once placed stay within the ring of chunks around `chunk`.
         private static void CheckReach(
             Placement placement,
             ChunkCoord chunk,
@@ -261,9 +257,6 @@ namespace Comet.ZoneFiles
 
         private static bool Even(Vector3 scale) => Math.Abs(scale.X - scale.Y) <= 1e-4f && Math.Abs(scale.X - scale.Z) <= 1e-4f;
 
-        // What a placement places and how, wherever it is: a prop id, a primitive's values or a group id; a scale
-        // above 0 (even for a group); a role only on a group's parts, a tag and starting off only in a zone, and no
-        // color of a group copy's own.
         private static void CheckPlaced(Placement placement, string what, bool inGroup, string file, Action<string, string> error)
         {
             if (placement.Primitive is { } primitive)

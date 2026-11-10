@@ -3,9 +3,6 @@ using Comet.Client;
 
 namespace ShapeLand.Bots;
 
-/// <summary>
-/// Network numbers come from honest bots only, after the warmup; cheaters only show whether they were caught.
-/// </summary>
 public sealed class NetReport
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };

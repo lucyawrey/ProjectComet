@@ -8,10 +8,6 @@ using UnityEngine.SceneManagement;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Ties the zone editor to Unity's scene workflow: saving a zone's scene saves its files, and play mode always
-    /// starts in the settings' Play Scene, so it plays the zone from content.
-    /// </summary>
     [InitializeOnLoad]
     public static class ZoneEditorScenes
     {
@@ -57,7 +53,6 @@ namespace Comet.Unity.Editor
             };
         }
 
-        /// <summary>While true, saving a scene doesn't save its zone.</summary>
         internal static bool Quiet { get; set; }
 
         public static void SetPlayScene(CometSettings? settings)

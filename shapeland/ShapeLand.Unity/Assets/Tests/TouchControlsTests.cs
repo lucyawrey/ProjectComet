@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Tests
 {
-    // The touch controls' math: the floating stick's value and the camera drag's turn.
     public class TouchControlsTests
     {
         [Test]

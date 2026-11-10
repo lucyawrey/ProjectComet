@@ -25,7 +25,6 @@ public class ModelBakerTests
     {
         var prop = Bake(TestModels.Model(("Plate", new Vector3(2, 0, 0))));
 
-        // X is negated (glTF's +X is Unity's -X) and the winding reversed, so the triangle still faces up.
         Assert.Equal([new Vector3(-2, 1, 0), new Vector3(-3, 1, 0), new Vector3(-2, 1, 1)], prop.Collision);
         var (a, b, c) = (prop.Collision[0], prop.Collision[1], prop.Collision[2]);
         Assert.True(Vector3.Cross(b - a, c - a).Y > 0);

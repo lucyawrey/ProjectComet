@@ -5,9 +5,6 @@ namespace ShapeLand.Shared
 {
     public static class RepoPaths
     {
-        /// <summary>
-        /// Looks above the running program. <paramref name="hint"/> ends the error message ("; set ..." or ".").
-        /// </summary>
         public static string Root(string hint)
         {
             for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)

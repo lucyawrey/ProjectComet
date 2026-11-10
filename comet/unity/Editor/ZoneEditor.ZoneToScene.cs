@@ -10,10 +10,6 @@ namespace Comet.Unity.Editor
 {
     public static partial class ZoneEditor
     {
-        /// <summary>
-        /// Redraws a zone's terrain preview: only the chunks in <paramref name="only"/> (where a brush went), or all if
-        /// null. A piece's flat bottom follows its lowest ground, so when that moves, every chunk is redrawn.
-        /// </summary>
         public static void RebuildTerrain(ZoneEditing editing, Zone zone, CometSettings settings, ISet<ChunkCoord>? only = null)
         {
             var root = editing.transform;
@@ -78,7 +74,6 @@ namespace Comet.Unity.Editor
 
         private static string ChunkName(ChunkCoord coord) => $"Chunk {coord}";
 
-        // Each zone's pieces' flat bottoms as last drawn, to tell when a partial redraw isn't enough.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ZoneEditing, float[]> DrawnBottoms =
             new System.Runtime.CompilerServices.ConditionalWeakTable<ZoneEditing, float[]>();
 
@@ -159,7 +154,7 @@ namespace Comet.Unity.Editor
             component.fontSize = sign.FontSize;
             component.textHeight = sign.TextHeight;
             component.arrow = sign.Arrow;
-            component.gameObject.SetActive(!sign.Off); // turned off (unchecked): kept but not shown in the game
+            component.gameObject.SetActive(!sign.Off);
         }
 
         private static string TriggersFolder<T>()
@@ -223,7 +218,6 @@ namespace Comet.Unity.Editor
                     .ToList()
                 ?? new List<ZonePlacement.RoleColor>();
             SetColors(marker, settings, placement.Color, defaultColor);
-            // An object turned off (unchecked) is a placement that starts off.
             thing.SetActive(!placement.Off);
             return thing;
         }
@@ -243,7 +237,6 @@ namespace Comet.Unity.Editor
             placement.SetDefaultColor(defaultColor ?? prop ?? settings.placedColor);
         }
 
-        /// <summary>Null for a prop id (<c>prop.rock</c>).</summary>
         public static PrimitiveKind? PrimitiveNamed(string name) => PrimitiveKinds.Named(name);
 
         public static (Primitive Primitive, Vector3 Size) Starting(PrimitiveKind kind) =>
@@ -269,7 +262,6 @@ namespace Comet.Unity.Editor
                 _ => (new Primitive { Kind = kind }, new Vector3(2, 2, 2)),
             };
 
-        // Its placement component is added here, since the mesh comes from it.
         private static GameObject CreatePrimitive(Primitive primitive, Vector3 size, CometSettings settings, Transform parent)
         {
             var name = PrimitiveKinds.Name(primitive.Kind);
@@ -293,7 +285,6 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        // A stand-in cube if the library has none.
         private static GameObject Instantiate(string prop, CometSettings settings, Transform parent)
         {
             var model = settings.props != null ? settings.props.Model(prop) : null;
@@ -309,7 +300,6 @@ namespace Comet.Unity.Editor
                 thing.transform.SetParent(parent, false);
             }
 
-            // Numbered like Unity's own copies (prop.rock, prop.rock (1), ...); saving ignores names.
             thing.name = "";
             thing.name = GameObjectUtility.GetUniqueNameForSibling(parent, prop);
             PlacedProps.HideCollision(thing);

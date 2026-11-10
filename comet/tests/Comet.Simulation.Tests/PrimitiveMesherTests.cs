@@ -20,7 +20,7 @@ public class PrimitiveMesherTests
             data.Add(kind, 0f);
         }
 
-        data.Add(PrimitiveKind.Box, 0.2f); // with a bevel
+        data.Add(PrimitiveKind.Box, 0.2f);
         return data;
     }
 
@@ -34,7 +34,6 @@ public class PrimitiveMesherTests
             Thickness = kind == PrimitiveKind.Arch ? 0.4f : 0,
         };
 
-    // Every edge is shared by exactly one other triangle running the other way: closed, and wound consistently.
     [Theory]
     [MemberData(nameof(EveryKind))]
     public void MeshesAreClosedAndFaceOutward(PrimitiveKind kind, float bevel)
@@ -97,13 +96,12 @@ public class PrimitiveMesherTests
     [Fact]
     public void RoundPrimitivesKeepTheSameFacetsPerMeter()
     {
-        // A cylinder of n sides has two caps of n - 2 triangles and n sides of 2.
         int Sides(float diameter) =>
             (PrimitiveMesher.Build(Make(PrimitiveKind.Cylinder), new Vector3(diameter, 1, diameter), Budget).Length / 3 + 4) / 4;
-        Assert.Equal(13, Sides(2)); // 2π m around at 0.5 m a facet
+        Assert.Equal(13, Sides(2));
         Assert.Equal(25, Sides(4));
-        Assert.Equal(6, Sides(0.1f)); // the minimum
-        Assert.Equal(48, Sides(100)); // the maximum
+        Assert.Equal(6, Sides(0.1f));
+        Assert.Equal(48, Sides(100));
         Assert.Equal(
             4,
             (PrimitiveMesher.Build(new Primitive { Kind = PrimitiveKind.Cylinder, Sides = 4 }, Vector3.One * 9, Budget).Length / 3 + 4) / 4
@@ -138,12 +136,11 @@ public class PrimitiveMesherTests
         Assert.Equal(faces, normals.Select(n => Key(n, 3)).Distinct().Count());
         if (kind == PrimitiveKind.Octahedron)
         {
-            return; // standing on a tip, checked below
+            return;
         }
 
-        Assert.Contains(normals, n => n.Y < -0.9999f); // standing on a face
+        Assert.Contains(normals, n => n.Y < -0.9999f);
 
-        // Every corner is the same distance from the middle.
         var corners = triangles.DistinctBy(c => Key(c)).ToArray();
         var middle = corners.Aggregate(Vector3.Zero, (sum, c) => sum + c) / corners.Length;
         var distances = corners.Select(c => Vector3.Distance(c, middle)).ToArray();
@@ -169,11 +166,9 @@ public class PrimitiveMesherTests
         Assert.Contains(normals, n => MathF.Abs(n.X) < 1e-4f && n.Z > 0.5f);
     }
 
-    // Rounded, with -0 as 0.
     private static string Key(Vector3 v, int decimals = 4) =>
         $"{MathF.Round(v.X, decimals) + 0f},{MathF.Round(v.Y, decimals) + 0f},{MathF.Round(v.Z, decimals) + 0f}";
 
-    // The volume inside triangles wound with outward normals along Cross(b - a, c - a): positive when they face out.
     private static float Volume(Vector3[] triangles)
     {
         var volume = 0f;

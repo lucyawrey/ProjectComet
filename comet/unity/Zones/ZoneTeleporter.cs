@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>Standing in it sends players to its target.</summary>
     public sealed class ZoneTeleporter : ZoneTrigger
     {
         [Tooltip("How players arriving here face. Direction: the way the object turns (its Y rotation).")]

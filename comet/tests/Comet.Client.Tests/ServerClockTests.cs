@@ -4,7 +4,6 @@ public class ServerClockTests
 {
     private const int TickRate = 30;
 
-    /// <summary>A pong from a server whose tick at time t is t × 30 + 1000, with the reply leaving halfway through the round trip.</summary>
     private static void Pong(ServerClock clock, double sentAt, double roundTrip, double offsetSeconds = 0)
     {
         var tick = (uint)Math.Floor((sentAt + roundTrip / 2 + offsetSeconds) * TickRate + 1000);
@@ -22,7 +21,6 @@ public class ServerClockTests
         Assert.True(clock.Synced);
         Assert.Equal(0.1, clock.RoundTrip, 6);
         Assert.Equal(TrueTick(10.1), clock.ServerTick(10.1), 0.6);
-        // Frames arriving now left the server half a round trip ago.
         Assert.Equal(TrueTick(10.05), clock.ReceiveTick(10.1), 0.6);
     }
 
@@ -42,7 +40,6 @@ public class ServerClockTests
         var clock = new ServerClock(TickRate);
         Pong(clock, sentAt: 0, roundTrip: 0.05);
 
-        // Later pings are delayed one way only (queueing), which would skew a plain average.
         for (var i = 1; i < 9; i++)
         {
             clock.OnPong((uint)Math.Floor(TrueTick(i + 0.025)), i, i + 0.05 + 0.2);
@@ -75,7 +72,6 @@ public class ServerClockTests
         Pong(clock, sentAt: 0, roundTrip: 0.05);
         var before = clock.ServerTick(1);
 
-        // The server turns out to be 0.1 s (3 ticks) ahead; with a lower round trip, so it's trusted.
         Pong(clock, sentAt: 0.5, roundTrip: 0.04, offsetSeconds: 0.1);
         clock.Advance(1);
         var moved = clock.ServerTick(1) - before;

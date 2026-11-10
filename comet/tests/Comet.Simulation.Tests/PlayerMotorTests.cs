@@ -27,13 +27,12 @@ public class PlayerMotorTests
         Assert.True(state.Grounded);
         Assert.Equal(6f, state.Velocity.X, 3);
         Assert.Equal(1f, state.Position.Y, 3);
-        Assert.InRange(state.Position.X, 5.5f, 7f); // ~0.15 s to reach full speed
+        Assert.InRange(state.Position.X, 5.5f, 7f);
     }
 
     [Fact]
     public void TurnsToFaceTheMoveAtTheTurnRateWhileMovingThatWayAtOnce()
     {
-        // Facing +Z, then moving -Z: 900°/s turns the 180° in 0.2 s, but the body heads -Z from the first step.
         var state = Run(Standing(1, 1), new Vector2(0, -1), 0.1f);
         Assert.True(state.Velocity.Z < 0);
         Assert.Equal(90f, MathF.Abs(state.Facing) * 180 / MathF.PI, 0);
@@ -45,7 +44,6 @@ public class PlayerMotorTests
     [Fact]
     public void TurnsTheShortWayRoundAcrossTheBack()
     {
-        // From just left of behind (-170°) to just right of it (170°) is 20° the short way.
         var state = Standing(1, 1);
         state.Facing = -170 * MathF.PI / 180;
         var target = 170 * MathF.PI / 180;
@@ -59,7 +57,6 @@ public class PlayerMotorTests
         var state = Run(Standing(13, 1), new Vector2(1, 0), 0.4f);
 
         Assert.True(state.Grounded);
-        // Standing on the highest ground under the body: the slope's height at the circle's uphill edge.
         Assert.True(_world.TryGetTerrainHeight(state.Position.X + TestWorlds.Rules.BodyRadius, state.Position.Z, float.MaxValue, out var ground));
         Assert.Equal(ground, state.Position.Y, 2);
     }
@@ -67,7 +64,6 @@ public class PlayerMotorTests
     [Fact]
     public void ClimbsSteepSlopesFastWithoutSinking()
     {
-        // 30 m/s up the 1 m rise: more than a step's height per frame.
         var state = Run(Standing(12, 1), new Vector2(1, 0), 0.15f, maxSpeed: 30);
 
         Assert.True(_world.TryGetTerrainHeight(state.Position.X, state.Position.Z, float.MaxValue, out var ground));
@@ -93,30 +89,28 @@ public class PlayerMotorTests
     [Fact]
     public void WalksUpStepsButNotBlocks()
     {
-        var step = Run(Standing(1, 10), new Vector2(1, 0), 0.5f); // on the step, not yet past it
+        var step = Run(Standing(1, 10), new Vector2(1, 0), 0.5f);
         Assert.InRange(step.Position.X, 3f, 5f);
         Assert.Equal(1.3f, step.Position.Y, 3);
 
         var block = Run(Standing(1, 4), new Vector2(1, 0), 1);
-        Assert.Equal(3 - 0.4f, block.Position.X, 2); // stopped against the cube's face
+        Assert.Equal(3 - 0.4f, block.Position.X, 2);
         Assert.Equal(1f, block.Position.Y, 3);
     }
 
     [Fact]
     public void SlidesAlongAWallInsteadOfStopping()
     {
-        // West of the cube, pushing diagonally into its west face.
         var state = Run(Standing(2.5f, 3.5f), new Vector2(1, 1), 0.5f);
 
         Assert.True(state.Position.Z > 5, "should keep moving along z");
-        Assert.InRange(state.Position.X, 2.5f, 3f); // round the corner once past it
+        Assert.InRange(state.Position.X, 2.5f, 3f);
     }
 
     [Fact]
     public void JumpsOntoABlock()
     {
-        // Apex 2.4 m above the ground, clearing the 2 m cube before reaching its face.
-        var state = Run(Standing(1, 4), new Vector2(1, 0), 0.75f, jumpFirst: true, jumpVelocity: 11); // landed, not yet past the far edge
+        var state = Run(Standing(1, 4), new Vector2(1, 0), 0.75f, jumpFirst: true, jumpVelocity: 11);
 
         Assert.Equal(3f, state.Position.Y, 3);
         Assert.True(state.Grounded);

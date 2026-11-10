@@ -19,10 +19,6 @@ public interface ICharacterRepository<TCharacter> : IAsyncDisposable
     /// </summary>
     event Action<SaveRefused>? SaveRefused;
 
-    /// <summary>
-    /// Waits for the schema the game expects, releases characters still held under this server's ID (left from a
-    /// crash), and starts the writer.
-    /// </summary>
     Task StartAsync(CancellationToken cancellationToken);
 
     /// <summary>
@@ -39,10 +35,6 @@ public interface ICharacterRepository<TCharacter> : IAsyncDisposable
     /// </summary>
     void SaveCharacter(TCharacter character, long version);
 
-    /// <summary>
-    /// Writes the final status (if any) and releases the character now, not at the interval. A later claim of the same
-    /// character waits for it.
-    /// </summary>
     Task LeaveAsync(long characterId, long version, CharacterPosition? position);
 
     /// <summary>Null if the character is gone.</summary>
@@ -50,13 +42,9 @@ public interface ICharacterRepository<TCharacter> : IAsyncDisposable
 
     Task FlushAsync();
 
-    /// <summary>
-    /// Writes what's queued, giving up after <paramref name="timeout"/> and logging what was lost.
-    /// </summary>
     Task StopAsync(TimeSpan timeout);
 }
 
-/// <summary><c>Zone</c> is the zone's content number.</summary>
 public readonly record struct CharacterPosition(int Zone, float X, float Y, float Z, float Facing);
 
 public readonly record struct SaveRefused(long CharacterId, long Version);
@@ -88,8 +76,5 @@ public sealed record CharacterRepositoryOptions
     /// <summary>The node number its Snowflake IDs use.</summary>
     public required int ServerId { get; init; }
 
-    /// <summary>
-    /// Bounds what a crash can lose and how long a kicked player keeps playing.
-    /// </summary>
     public TimeSpan SaveInterval { get; init; } = TimeSpan.FromSeconds(60);
 }

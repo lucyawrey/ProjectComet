@@ -22,7 +22,6 @@ foreach (var step in steps)
     if (Tool.Run(Tool.Info("dotnet", step, Tool.Repo)) is var code and not 0)
         Environment.Exit(code);
 
-// Each game's string files are in <game>/content/strings/.
 var placeholder = new Regex(@"=\s*(""\[[^""]*\]""|'\[[^']*\]')\s*$");
 var found = Directory
     .EnumerateDirectories(Tool.Repo)

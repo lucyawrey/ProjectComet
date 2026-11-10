@@ -5,12 +5,8 @@ using Comet.Content;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// A zone's spawn points, teleporters and triggers, found by id, number or where a player stands, and arriving at one.
-    /// </summary>
     public sealed class Triggers
     {
-        /// <summary>Random spots tried for one with ground and room, before falling back to the center.</summary>
         public const int Tries = 8;
 
         /// <summary>
@@ -51,7 +47,6 @@ namespace Comet.Simulation
 
         public bool TryGetSpawn(int number, out SpawnPoint spawn) => _spawnsByNumber.TryGetValue(number, out spawn!);
 
-        /// <summary>The spawn point whose volume <paramref name="feet"/> are in, or null (the first if volumes overlap).</summary>
         public SpawnPoint? SpawnAt(Vector3 feet)
         {
             foreach (var spawn in _spawns)
@@ -65,7 +60,6 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>The teleporter whose volume <paramref name="feet"/> are in, or null (the first if volumes overlap).</summary>
         public Teleporter? TeleporterAt(Vector3 feet)
         {
             foreach (var teleporter in _teleporters)
@@ -79,7 +73,6 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>The spawn point with id <paramref name="id"/> and its zone, or null.</summary>
         public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(IEnumerable<Zone> zones, string id)
         {
             foreach (var zone in zones)
@@ -99,7 +92,6 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>The ground in the middle of a spawn point's volume, or its bottom if there's none.</summary>
         public static Vector3 Center(SpawnPoint spawn, CollisionWorld world)
         {
             var volume = spawn.Volume;
@@ -134,11 +126,6 @@ namespace Comet.Simulation
             }
         }
 
-        /// <summary>
-        /// Where a player arrives in <paramref name="volume"/> and which way they face (radians, 0 facing
-        /// +Z): a random free spot on the ground in its footprint, else its center on the ground there,
-        /// else its bottom center.
-        /// </summary>
         public static (Vector3 Feet, float Facing) Arrive(
             TriggerVolume volume,
             SpawnFacing facing,
@@ -201,7 +188,6 @@ namespace Comet.Simulation
             }
             else
             {
-                // Uniform over the disc: the square root spreads spots evenly rather than bunching them at the center.
                 var angle = (float)(random.NextDouble() * 2 * Math.PI);
                 var distance = MathF.Sqrt((float)random.NextDouble());
                 x = MathF.Sin(angle) * distance * half.X;

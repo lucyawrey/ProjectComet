@@ -15,7 +15,6 @@ namespace ShapeLand.Shared.Content
         [Key(1)]
         public string Id { get; set; } = "";
 
-        /// <summary>As 0xRRGGBB.</summary>
         [Key(2)]
         public uint Rgb { get; set; }
     }

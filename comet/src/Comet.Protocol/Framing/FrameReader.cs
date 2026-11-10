@@ -4,10 +4,6 @@ using MessagePack;
 
 namespace Comet.Protocol.Framing
 {
-    /// <summary>
-    /// Reads the messages in a frame written by <see cref="MessageWriter"/>.
-    /// Unknown message IDs can be skipped, because every message carries its length.
-    /// </summary>
     public struct FrameReader
     {
         /// <summary>The largest frame clients accept from the server; the server keeps its frames under it.</summary>
@@ -27,7 +23,6 @@ namespace Comet.Protocol.Framing
         /// </summary>
         public uint Tick { get; }
 
-        /// <summary>A reader for <paramref name="frame"/>; throws <see cref="ProtocolException"/> if it's too short for its header.</summary>
         public static FrameReader Create(ReadOnlyMemory<byte> frame)
         {
             if (frame.Length < MessageWriter.TickSize)

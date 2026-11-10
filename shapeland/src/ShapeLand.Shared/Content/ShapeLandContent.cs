@@ -11,7 +11,6 @@ namespace ShapeLand.Shared.Content
     {
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
-        /// <summary><see cref="Fingerprint"/> is 0 until it's saved.</summary>
         public ShapeLandContent(
             IEnumerable<Shape> shapes,
             GameSettings settings,
@@ -34,10 +33,8 @@ namespace ShapeLand.Shared.Content
 
         public ContentTable<Shape> Shapes { get; }
 
-        /// <summary>In the order they're shown, not number order.</summary>
         public ContentTable<PlayerColor> Colors { get; }
 
-        /// <summary>The first color's for a number the content doesn't have.</summary>
         public uint ColorRgb(int number) =>
             Colors.TryGet(number, out var color) ? color.Rgb
             : Colors.All.Count > 0 ? Colors.All[0].Rgb
@@ -63,14 +60,8 @@ namespace ShapeLand.Shared.Content
                     ?.Primitive?.Kind
                 : null;
 
-        /// <summary>
-        /// 0 for content never in a file. Joins carry it, so the server turns away a client whose content differs.
-        /// </summary>
         public ulong Fingerprint { get; private set; }
 
-        /// <summary>
-        /// Reads a content file; throws <see cref="ContentException"/> if it's corrupt or from an incompatible build.
-        /// </summary>
         public static ShapeLandContent Load(Stream stream)
         {
             var bytes = new MemoryStream();

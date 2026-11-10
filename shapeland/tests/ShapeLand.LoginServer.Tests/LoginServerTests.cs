@@ -41,7 +41,6 @@ public sealed class PostgresContainer : IAsyncLifetime
     }
 }
 
-/// <summary>ShapeLand's Login server as it runs: its real migrations, content and rules, on a fresh database.</summary>
 public sealed class LoginServerTests(PostgresContainer postgres) : IAsyncDisposable
 {
     private readonly string _keys = Path.Combine(Path.GetTempPath(), $"shapeland-login-tests-{Guid.NewGuid():N}");

@@ -4,23 +4,14 @@ using Comet.Simulation;
 
 namespace ShapeLand.ContentBuild.Tests;
 
-/// <summary>
-/// A seeded zone for tests (ShapeLand's own zone is made by hand in the editor): a floating disc of gentle hills
-/// centered on the origin across four chunks, dropping off into open sky at its edge, with a few cube blocks to jump
-/// on. The same for the same seed on every machine.
-/// </summary>
 public static class TestTerrain
 {
-    public const float Radius = 28f; // the disc's edge, in meters from the chunk's center
+    public const float Radius = 28f;
 
-    /// <summary>The test zone's id.</summary>
     public const string ZoneId = "zone.test";
 
-    /// <summary>The island: one piece, cut into the four chunks around the origin, with blocks and two spawn points, the default at the center.</summary>
     public static Zone GenerateZone(int seed)
     {
-        // The island's samples run from -RadiusSamples to RadiusSamples on each axis (1 m apart, centered on the
-        // origin). Each chunk's tile covers its part, sharing the samples on X = 0 and Z = 0 with its neighbors.
         var radiusSamples = (int)(Radius / ZoneGrid.SampleSpacing);
         var chunks = new List<ZoneChunk>();
         foreach (var (cx, cz) in new[] { (-1, -1), (0, -1), (-1, 0), (0, 0) })
@@ -71,7 +62,6 @@ public static class TestTerrain
             Chunks = chunks.ToArray(),
         };
 
-        // A low step, a block to jump onto, a taller one to jump up to from the first, and a long platform.
         var island = new ZoneTerrain(zone)["island"];
         foreach (
             var (x, z, size) in new[]
@@ -83,7 +73,6 @@ public static class TestTerrain
             }
         )
         {
-            // Sunk 0.5 m so no gap shows on slopes; a box stands on its pivot, its scale its size in meters.
             const float sink = 0.5f;
             island.TryGetHeightAt(x, z, out var ground);
             var chunk = zone.Chunks.Single(c => c.Coord.Equals(ChunkCoord.Containing(new Vector3(x, 0, z))));
@@ -99,7 +88,6 @@ public static class TestTerrain
             ];
         }
 
-        // Spawn points, each with its pad: a flat cylinder primitive (its pivot at its base) sunk halfway into the ground, with the spawn's volume on its top.
         foreach (var (name, x, z) in new[] { ("center", 0f, 0f), ("east", 18f, 8f) })
         {
             const float radius = 2,
@@ -134,8 +122,6 @@ public static class TestTerrain
         return zone;
     }
 
-    // The island's height at world (x, z) in meters, or null past its edge, with the same hills as the old map (whose noise ran over
-    // samples 2 m apart, so world meters / 24 matches its x / 12).
     private static float? HeightAt(float x, float z, int seed)
     {
         if (MathF.Sqrt(x * x + z * z) > Radius)
@@ -143,13 +129,11 @@ public static class TestTerrain
             return null;
         }
 
-        // The old map's sample 0 was at -32 m.
         float nx = (x + 32) / 24f,
             nz = (z + 32) / 24f;
         return 4f + 3f * Noise(seed, nx, nz) + 1f * Noise(seed + 1, (x + 32) / 10f, (z + 32) / 10f);
     }
 
-    // Smooth value noise in -1..1 from a hash of lattice points (not System.Random, whose sequence may change).
     private static float Noise(int seed, float x, float z)
     {
         int x0 = (int)MathF.Floor(x),

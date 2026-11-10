@@ -117,7 +117,7 @@ public class ZoneFolderTests
             rotation = [0.0, 45.0, 0.0]
             scale = [2.0, 1.0, 2.0]
 
-            """.ReplaceLineEndings("\n"), // the test source may be checked out with Windows line endings
+            """.ReplaceLineEndings("\n"),
             File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")).ReplaceLineEndings("\n")
         );
         Assert.True(File.Exists(folder.PathOf("chunks/-1_0/main.height")));
@@ -362,7 +362,6 @@ public class ZoneFolderTests
         using var folder = new TempFolder();
         ZoneFolder.Write(folder.Root, Zones.Sample());
         folder.Write("chunks/notes.txt", "kept");
-        // Not the zone's, so left alone: the old layout's chunk file, other folders, nested folders and other files.
         folder.Write("chunks/9_9.toml", "kept");
         folder.Write("chunks/old/0_0.toml", "kept");
         folder.Write("chunks/0_0/backup/main.height", "kept");
@@ -389,11 +388,11 @@ public class ZoneFolderTests
     {
         using var folder = new TempFolder();
         ZoneFolder.Write(folder.Root, Zones.Sample());
-        folder.Write("chunks/9_9.toml", "not = [toml"); // the old layout's: ignored
+        folder.Write("chunks/9_9.toml", "not = [toml");
         folder.Write("chunks/old/notes.txt", "");
         folder.Write("chunks/1_1/.DS_Store", "");
         folder.Write("chunks/2_2/main.height", "");
-        folder.Write("chunks/0_0/0_0.toml", ""); // not a tile file, so not reported
+        folder.Write("chunks/0_0/0_0.toml", "");
 
         var errors = new List<ZoneFileError>();
         var zone = ZoneFolder.Read(folder.Root, errors);
@@ -488,7 +487,6 @@ public class ZoneFolderTests
                 FontSize = 18,
                 Arrow = true,
             },
-            // Settings not in use are kept, to come back when turned on again; a turned-off sign is kept but not shown.
             new Sign
             {
                 Position = new Vector3(14, 6, 9),
@@ -568,12 +566,10 @@ public class ZoneFolderTests
         var sign = chunk.Spawns[0].Volume.Sign!;
         Assert.Equal(("Gate", new Vector3(1, 3, 0), true), (sign.Text, sign.Position, sign.Arrow));
 
-        // Shown over its offset turned with the volume's yaw (90 degrees: +X turns to -Z).
         var (point, shown) = chunk.AllSigns().Single();
         Assert.Same(sign, shown);
         Assert.True(Vector3.Distance(new Vector3(5, 7, 4), point) < 1e-4f, $"The sign is shown over {point}.");
 
-        // Turned off, it's kept with its trigger but not shown.
         sign.Off = true;
         Assert.Empty(chunk.AllSigns());
     }

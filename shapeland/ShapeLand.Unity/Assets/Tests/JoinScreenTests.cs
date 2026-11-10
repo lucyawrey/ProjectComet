@@ -9,12 +9,8 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Tests
 {
-    // The join card in the Game scene: joining with the chosen look, refusals and failures shown on the card,
-    // changing the look in game, and coming back after a lost connection.
     public class JoinScreenTests : GameSceneTest
     {
-        // Without accounts the card comes back as the person last played on the editor's server, never as one of its
-        // bots, though the bots saved their spots later.
         [UnityTest]
         public IEnumerator WithoutAccountsTheCardComesBackAsTheLastPersonNotABot()
         {
@@ -50,11 +46,10 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.transform.Find(start), Is.Not.Null, "The shape's start zone wasn't drawn behind the join screen.");
             Assert.That(View.Player, Is.Null, "Joined before pressing Join.");
 
-            // The tests' server starts everyone in its own zone.
             Field("name").value = "Pebble";
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null, 10);
-            yield return null; // destroyed objects go at the end of the frame
+            yield return null;
             Assert.That(View.transform.Find(TestGameServer.Zone), Is.Not.Null, "The zone the server put the player in wasn't drawn.");
             Assert.That(View.transform.Find(start), Is.Null, "The start zone is still drawn.");
         }
@@ -69,7 +64,6 @@ namespace ShapeLand.Client.Tests
             Click(ShapeButton("shape.cube"));
             Click(Swatch("colors", Join.Content.Colors.All[1].Number));
             Click(Swatch("eyes", Join.Content.Colors.All[3].Number));
-            // From content, so tuning the cube doesn't break the test.
             var cube = Join.Content.Shapes.All.First(shape => shape.Id == "shape.cube");
             var (_, jump) = JoinScreen.Stats(cube, Join.Content.Movement);
             var expected = new[]
@@ -90,7 +84,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(spawn.Color, Is.EqualTo(Join.Content.Colors.All[1].Number));
             Assert.That(spawn.EyeColor, Is.EqualTo(Join.Content.Colors.All[3].Number));
 
-            // The overlay fills the screen next to the join screen (a nested UIDocument once gave it no height).
             yield return null;
             var screen = Hud.Root.panel.visualTree.worldBound;
             Assert.That(Hud.Root.worldBound.height, Is.EqualTo(screen.height).Within(1), "The overlay doesn't fill the screen.");
@@ -120,7 +113,7 @@ namespace ShapeLand.Client.Tests
             Assert.That(View.Player, Is.Null, "The player's shape is still in the world.");
             Assert.That(Join.Joined, Is.False);
             Assert.That(Hud.Shown, Is.False, "The overlay is still showing.");
-            Assert.That(Field("name").value, Is.EqualTo("Pebble"), "The card lost the name to play again with."); // accounts off: no signed-in card
+            Assert.That(Field("name").value, Is.EqualTo("Pebble"), "The card lost the name to play again with.");
             Assert.That(Screen.Root.Q<Button>("join-button").enabledSelf, Is.True, "Play isn't enabled for another try.");
         }
 
@@ -146,7 +139,6 @@ namespace ShapeLand.Client.Tests
             );
         }
 
-        // Without accounts, as the editor's server restarting for new content: back in as the same name.
         [UnityTest]
         public IEnumerator RejoinsAServerThatRestarted() => Rejoins(accounts: false);
 
@@ -161,7 +153,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(Join.Spawn.Value.Name, Is.EqualTo("UnityTest"));
         }
 
-        // With accounts off (the editor's default), Sign In and the Account entry stay where they are, off, saying why.
         [UnityTest]
         public IEnumerator WithoutAccountsSignInAndTheAccountPageAreOff()
         {
@@ -190,7 +181,7 @@ namespace ShapeLand.Client.Tests
             yield return TestGameServer.WaitFor(() => Screen.Connecting, 10);
             Assert.That(Screen.Connecting, Is.True, "The connecting pop-up didn't come up.");
             Assert.That(Screen.Showing, Is.False, "The card came up while rejoining.");
-            yield return Wait(3); // several tries fail meanwhile
+            yield return Wait(3);
             Assert.That(Screen.Connecting, Is.True, "The pop-up went away while rejoining.");
             Assert.That(Screen.ConnectingError, Is.Null, "A failed try showed an error while rejoining.");
 
@@ -207,16 +198,16 @@ namespace ShapeLand.Client.Tests
         {
             yield return StartGame(join: false, accounts: true);
             yield return Server.StartBots(1, 30);
-            yield return Wait(3); // time for the bot to join; this client can't see it before joining
+            yield return Wait(3);
 
             var join = Screen.Root.Q<Button>("join-button");
             Field("name").value = "no!";
             Click(join);
             Assert.That(Screen.Error, Is.EqualTo(Strings.Get("join.name_rules")), "A bad name wasn't caught before sending.");
 
-            Field("name").value = "bot0001"; // the bot's name, in other capitals
+            Field("name").value = "bot0001";
             Click(join);
-            yield return TestGameServer.WaitFor(() => Screen.Error != null, 10); // pressing Join cleared the last one
+            yield return TestGameServer.WaitFor(() => Screen.Error != null, 10);
             Assert.That(Screen.Error, Is.EqualTo(Strings.Format("join.name_taken_new", ("username", "bot0001"))), "A taken name wasn't reported.");
             Assert.That(Screen.Root.Q<Button>("sign-in-button").ClassListContains("pointed"), Is.True, "A taken name doesn't point to Sign in.");
             Assert.That(join.enabledSelf, Is.True, "Join stayed disabled after a refusal.");

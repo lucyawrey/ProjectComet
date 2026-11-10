@@ -10,18 +10,9 @@ using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The game scene's view: draws the zone (its terrain, placed objects and pads) once the content has loaded, and
-    /// again for each zone the player goes to, showing placements as triggers flip them; the player's own shape
-    /// (with eyes, to show its facing) once the server spawns it, with the orbit camera following, and the other
-    /// players where the interpolation buffer puts them. Shapes fade out as they fall off the island, before a
-    /// teleport and as others leave, and back in where they arrive (<see cref="ShapeFade"/>): another's jump in
-    /// place holds them where they stood while they fade out.
-    /// </summary>
     [RequireComponent(typeof(JoinClient))]
     public sealed partial class GameView : MonoBehaviour
     {
-        /// <summary>A layer the main camera doesn't draw, for the join screen's shape preview.</summary>
         public const int PreviewLayer = 31;
 
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
@@ -70,13 +61,11 @@ namespace ShapeLand.Client
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
         private readonly Dictionary<uint, OtherFade> _otherFades = new Dictionary<uint, OtherFade>();
         private bool _zonePending;
-        private PositionCorrection? _pendingArrival; // where the player arrived in a zone not drawn yet
+        private PositionCorrection? _pendingArrival;
         private Mesh _warmUpMesh;
         private bool _padFading;
         private readonly List<(ShapeBody Shape, ShapeFade Fade)> _leaving = new List<(ShapeBody, ShapeFade)>();
 
-        // How another player's shape fades: where it was last drawn from the buffer, to see it jump, and where it's
-        // held while fading out after one.
         private sealed class OtherFade
         {
             public readonly ShapeFade Fade = new ShapeFade();
@@ -86,21 +75,17 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
 
-        // The drawn zone's pads, and its tagged placements by tag (with whether each starts off), for flipping.
         private readonly List<Pad> _pads = new List<Pad>();
         private readonly Dictionary<string, List<(GameObject Thing, bool StartsOff)>> _tagged = new Dictionary<string, List<(GameObject, bool)>>();
 
-        // The player standing in spawn points, teleporters and triggers, timed as the server times them, to draw pads charging.
         private readonly TriggerCharge _spawnCharge = new TriggerCharge();
         private readonly TriggerCharge _teleportCharge = new TriggerCharge();
         private readonly TriggerCharge _triggerCharge = new TriggerCharge();
 
-        // The teleporter about to send the player, so only its pad (not the one they arrive on) holds its color.
         private Teleporter _sending;
         private MaterialPropertyBlock _padColor;
         private Triggers _triggers;
 
-        // Every teleporter in the content, so one whose target isn't there yet doesn't charge: the server won't send it.
         private HashSet<string> _teleporterIds;
         private ShapeLandContent _content;
         private Shape _showcased;
@@ -111,13 +96,10 @@ namespace ShapeLand.Client
         private ShapeLandControls _controls;
         private ShapeBody _playerShape;
 
-        /// <summary>The player, once spawned; their shape is a child of it.</summary>
         public LocalPlayer Player { get; private set; }
 
-        /// <summary>The other players' shapes drawn now, by entity ID.</summary>
         public IReadOnlyDictionary<uint, ShapeBody> Others => _others;
 
-        /// <summary>Every player in view, this one included, as the server spawned them (name, shape, colors), by entity ID.</summary>
         public IReadOnlyDictionary<uint, PlayerSpawn> Spawns => _spawns;
 
         /// <summary>The same as a concrete dictionary, so looping over it every frame doesn't box an enumerator.</summary>
@@ -129,7 +111,6 @@ namespace ShapeLand.Client
 
         public OrbitCamera OrbitCamera => orbitCamera;
 
-        /// <summary>Whether the player's own shape shows where something hides it (V); on unless turned off, and remembered.</summary>
         public bool ShowThroughWalls
         {
             get => GameSettings.ShowThroughWalls;
@@ -149,7 +130,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>A player's drawn shape (this one's too), or null.</summary>
         public ShapeBody ShapeOf(uint entityId) =>
             Player != null && entityId == _join.Session?.EntityId ? _playerShape
             : _others.TryGetValue(entityId, out var other) ? other
@@ -170,7 +150,6 @@ namespace ShapeLand.Client
             Camera.cullingMask &= ~(1 << PreviewLayer);
         }
 
-        // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
         private void Update()
         {
             if (_zonePending && (Player == null || !Player.Departing))
@@ -251,16 +230,13 @@ namespace ShapeLand.Client
             DrawZone();
         }
 
-        // Another zone is shown (another shape picked, or the player went there): draw that instead, before the
-        // player arrives in it.
         private void OnZoneChanged(Zone zone)
         {
             if (_drawnZone == null)
             {
-                return; // the content just loaded: OnContentLoaded draws the zone shown by then
+                return;
             }
 
-            // The player's shape is still fading out where it stood: the old zone stays drawn around it until it's gone.
             if (Player != null && Player.Departing)
             {
                 Player.World = _join.World;
@@ -277,7 +253,7 @@ namespace ShapeLand.Client
             _teleportCharge.Clear();
             _triggerCharge.Clear();
             _sending = null;
-            ClearLeaving(); // others from the old zone would fade out in the new one
+            ClearLeaving();
             DrawZone();
             if (Player != null)
             {
@@ -292,10 +268,8 @@ namespace ShapeLand.Client
             }
         }
 
-        // Shows or hides the placements with a tag as triggers flip them.
         private void OnFlipped(string tag, bool flipped)
         {
-            // While the old zone stays drawn, flips are the new zone's: DrawZone shows them.
             if (!_zonePending && _tagged.TryGetValue(tag, out var things))
             {
                 foreach (var (thing, startsOff) in things)
@@ -307,7 +281,6 @@ namespace ShapeLand.Client
             Player?.Flipped(tag);
         }
 
-        // Draws the join client's zone: its terrain, placed objects and pads.
         private void DrawZone()
         {
             var content = _content;
@@ -349,8 +322,6 @@ namespace ShapeLand.Client
                 }
             }
 
-            // Behind the join screen, the camera circles the picked shape's start here, else another shape's or another
-            // spawn point.
             var shown =
                 (_showcased != null && _triggers.TryGetSpawn(_showcased.Spawn, out var picked) ? picked : null)
                 ?? content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
@@ -358,10 +329,6 @@ namespace ShapeLand.Client
             orbitCamera.Showcase(shown != null ? Conversions.ToUnity(Triggers.Center(shown, _world)) : Vector3.zero);
         }
 
-        /// <summary>
-        /// Behind the join screen, circles <paramref name="shape"/>'s start: at once if it's in the zone drawn (gliding
-        /// there if <paramref name="glide"/>), else once its zone is drawn.
-        /// </summary>
         public void Showcase(Shape shape, bool glide)
         {
             _showcased = shape;

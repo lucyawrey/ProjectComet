@@ -26,7 +26,6 @@ public class ZoneTerrainTests
     [Fact]
     public void HeightsFollowTheMeshesTriangles()
     {
-        // One cell with corners 0, 1 (x + 1), 2 (z + 1) and 4 (both): the diagonal runs from (x+1, z) to (x, z+1).
         var zone = new Zone
         {
             Pieces = [new TerrainPiece { Name = "main" }],
@@ -47,7 +46,6 @@ public class ZoneTerrainTests
     [Fact]
     public void APieceIsOneGridAcrossChunks()
     {
-        // Two tiles meeting at x = 64: chunk 0's last column is chunk 1's first.
         var zone = new Zone
         {
             Pieces = [new TerrainPiece { Name = "main", SkirtDepth = 3 }],

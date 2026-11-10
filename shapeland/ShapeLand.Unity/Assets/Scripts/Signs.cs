@@ -7,26 +7,16 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The signs of the zone shown: each one's text over its point, sized in the world (smaller further away) or one
-    /// size on screen like a name tag, while it's in range and in sight of the camera. Behind the name tags and
-    /// bubbles, in the same layer.
-    /// </summary>
-    [DefaultExecutionOrder(100)] // after the camera has moved
+    [DefaultExecutionOrder(100)]
     [RequireComponent(typeof(Hud))]
     public sealed class Signs : MonoBehaviour
     {
-        // Sight checks each frame, taken in turn by the signs in range, so many signs stay cheap.
         private const int ChecksPerFrame = 8;
         private const float FadeSeconds = 0.15f;
 
-        // The sight line starts a little in front of the camera (one brushing a wall still sees) and stops short of
-        // the sign (one on a wall or post isn't hidden by it), in meters.
         private const float CameraGap = 0.1f,
             SignGap = 0.3f;
 
-        // World-sized signs are laid out at a screen-sized sign's default font size, then scaled as a whole (padding
-        // and arrow too) to their text height at their distance. The arrow's height is the USS's .sign-arrow's.
         private const float WorldLayoutFontSize = 13,
             ArrowHeight = 7,
             MaxWorldScale = 20;
@@ -82,18 +72,16 @@ namespace ShapeLand.Client
                     panel.style.backgroundColor = back;
                     if (sign.Arrow && sign.Background)
                     {
-                        // Over the point, with the arrow's tip on it, as a speech bubble sits over its speaker.
                         panel.AddToClassList("with-arrow");
                         panel.Add(new PanelArrow(back, "sign-arrow"));
                     }
 
                     panel.style.display = DisplayStyle.None;
-                    _layer.Insert(0, panel); // first, so the name tags and bubbles draw over it
+                    _layer.Insert(0, panel);
                     _signs.Add(new Shown(sign, point, panel) { HasArrow = sign.Arrow && sign.Background });
                 }
             }
 
-            // Invisible walls don't hide signs.
             _walls.Clear();
             var meshes = _hud.Join.World.Meshes;
             for (var m = 0; m < meshes.Count; m++)
@@ -126,18 +114,17 @@ namespace ShapeLand.Client
                 var inRange = screen.z > 0 && Vector3.Distance(eye, point) <= shown.Sign.ShowDistance;
                 if (!inRange)
                 {
-                    shown.Checked = false; // one coming back into range waits for a fresh check
+                    shown.Checked = false;
                 }
                 else if (checks > 0)
                 {
                     checks--;
-                    _next = (index + 1) % _signs.Count; // the next frame starts after the last one checked
+                    _next = (index + 1) % _signs.Count;
                     shown.Checked = true;
                     shown.InSight = InSight(eye, point);
                 }
 
                 var target = inRange && shown.Checked && shown.InSight ? 1 : 0;
-                // Behind the camera it would draw mirrored, so it goes at once instead of fading.
                 shown.Opacity = screen.z <= 0 ? 0 : Mathf.MoveTowards(shown.Opacity, target, Time.unscaledDeltaTime / FadeSeconds);
                 var label = shown.Panel;
                 label.style.display = shown.Opacity > 0 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -155,7 +142,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Scales a world-sized sign's panel to its text height at depth meters, about its point.
         private static void WorldSize(Shown shown, VisualElement label, IPanel panel, Camera camera, float depth)
         {
             var panelHigh = panel.visualTree.layout.height;
@@ -166,7 +152,6 @@ namespace ShapeLand.Client
             label.style.scale = new Scale(new Vector3(scale, scale, 1));
             if (shown.HasArrow && !float.IsNaN(label.layout.height)) // NaN until its first layout
             {
-                // About the arrow's tip, which is on the point; without an arrow, the panel's middle is (the default).
                 label.style.transformOrigin = new TransformOrigin(Length.Percent(50), Length.Pixels(label.layout.height + ArrowHeight));
             }
         }
@@ -199,7 +184,6 @@ namespace ShapeLand.Client
 
             public Sign Sign { get; }
 
-            /// <summary>The world point it's shown over (a trigger's sign has its position from its volume).</summary>
             public Vector3 Point { get; }
             public VisualElement Panel { get; }
             public bool HasArrow { get; set; }

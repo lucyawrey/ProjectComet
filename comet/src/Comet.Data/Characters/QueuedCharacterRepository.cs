@@ -7,10 +7,6 @@ public readonly record struct StatusSave(long CharacterId, long Version, Charact
 
 public readonly record struct HeldCharacter(long CharacterId, long Version);
 
-/// <summary>
-/// One writer task runs claims, saves and leaves in the order they came, retrying with backoff while the database is
-/// unreachable. A backend supplies the single operations.
-/// </summary>
 public abstract class QueuedCharacterRepository<TCharacter> : ICharacterRepository<TCharacter>
     where TCharacter : Character
 {
@@ -20,8 +16,6 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
 
     private readonly Channel<Operation> _operations = Channel.CreateUnbounded<Operation>(new UnboundedChannelOptions { SingleReader = true });
 
-    // Status saves waiting for the next interval, latest per character. Written by the game's thread, taken by the
-    // writer.
     private readonly Lock _pendingLock = new();
     private Dictionary<long, StatusSave> _pending = [];
 
@@ -47,27 +41,19 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
 
     public event Action<SaveRefused>? SaveRefused;
 
-    // Backend operations. Each runs on the writer's thread, one at a time, and may throw; IsTransient decides
-    // whether the writer retries.
-
     protected abstract Task PrepareAsync(CancellationToken cancellationToken);
 
     /// <summary>Returns <see cref="ClaimOutcome.Claimed"/> or <see cref="ClaimOutcome.NotFound"/>.</summary>
     protected abstract Task<CharacterClaim<TCharacter>> ClaimCoreAsync(long characterId, CancellationToken cancellationToken);
 
-    /// <summary>Writes the saves whose version still holds, returning the characters whose saves applied.</summary>
     protected abstract Task<IReadOnlySet<long>> SaveStatusesCoreAsync(IReadOnlyList<StatusSave> saves, CancellationToken cancellationToken);
 
-    /// <summary>Writes the game's own columns if the version still holds; false if it doesn't.</summary>
     protected abstract Task<bool> SaveCharacterCoreAsync(TCharacter character, long version, CancellationToken cancellationToken);
 
-    /// <summary>Writes the final status (if any) and releases the character, if the version still holds.</summary>
     protected abstract Task LeaveCoreAsync(long characterId, long version, CharacterPosition? position, CancellationToken cancellationToken);
 
-    /// <summary>Returns the characters still held under their versions, and marks them as active.</summary>
     protected abstract Task<IReadOnlySet<long>> CheckHeldCoreAsync(IReadOnlyList<HeldCharacter> held, CancellationToken cancellationToken);
 
-    /// <summary>Whether a failure is the database being unreachable or busy, so the writer retries it.</summary>
     protected virtual bool IsTransient(Exception exception) => false;
 
     public abstract Task<string?> LoadNameAsync(long characterId, CancellationToken cancellationToken);
@@ -100,7 +86,6 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
     {
         lock (_pendingLock)
         {
-            // An older connection's save never replaces a newer one's.
             if (!_pending.TryGetValue(characterId, out var queued) || queued.Version <= version)
             {
                 _pending[characterId] = new(characterId, version, position);
@@ -201,7 +186,6 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
             }
             catch (Exception exception)
             {
-                // A bug, or the stop deadline passing: never let one operation stop the writer.
                 Logger.LogError(exception, "A character save failed and was dropped: {Operation}", operation);
                 operation.Fail();
             }
@@ -212,7 +196,7 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
     {
         if (claim.CancellationToken.IsCancellationRequested)
         {
-            return; // the joiner gave up while it waited in the queue
+            return;
         }
 
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(claim.CancellationToken, _abort.Token);
@@ -246,7 +230,7 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
         }
         catch (OperationCanceledException) when (claim.CancellationToken.IsCancellationRequested)
         {
-            return; // the joiner has its Unavailable already
+            return;
         }
 
         if (result.Outcome != ClaimOutcome.Claimed)
@@ -258,7 +242,6 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
         _held[claim.CharacterId] = result.Version;
         if (!claim.Done.TrySetResult(result))
         {
-            // The joiner gave up while the claim ran: let the character go again.
             await LeaveNowAsync(new LeaveOperation(claim.CharacterId, result.Version, null, new()));
         }
     }
@@ -277,7 +260,6 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
         var position = leave.Position;
         lock (_pendingLock)
         {
-            // The final save replaces a queued one from the same connection, or carries it if there's none.
             if (_pending.TryGetValue(leave.CharacterId, out var queued) && queued.Version <= leave.Version)
             {
                 _pending.Remove(leave.CharacterId);
@@ -334,7 +316,6 @@ public abstract class QueuedCharacterRepository<TCharacter> : ICharacterReposito
         }
         catch (Exception exception) when (IsTransient(exception) && !_abort.IsCancellationRequested)
         {
-            // Unreachable: keep the batch for the next interval, under any newer saves made meanwhile. Players play on.
             Logger.LogWarning(exception, "Couldn't write {Count} status saves; retrying next interval", batch.Count);
             lock (_pendingLock)
             {

@@ -8,9 +8,6 @@ using UnityEngine.TestTools;
 
 namespace ShapeLand.Client.Tests
 {
-    // Joins the real ShapeLand servers from Play mode with the join client alone: makes a guest account at the Login
-    // server, gets a ticket, and checks the welcome, the player's own spawn and the first pong. Needs the dotnet SDK on
-    // the PATH, Docker, and the content built and copied (ShapeLand > Copy Content).
     [Category("Accounts")]
     public class JoinTests
     {
@@ -44,7 +41,6 @@ namespace ShapeLand.Client.Tests
             Debug.Log($"Joined as entity {join.Session.EntityId}; round trip {join.Session.Clock.RoundTrip * 1000:0.0} ms.");
         }
 
-        // Leave game closes the connection with no error; the player stays signed in and plays again with a new ticket.
         [UnityTest]
         public IEnumerator LeavesAndJoinsAgain()
         {

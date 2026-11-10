@@ -2,13 +2,6 @@ using ShapeLand.Bots;
 using ShapeLand.Shared;
 using ShapeLand.Shared.Content;
 
-// ShapeLand bots: honest wanderers plus optional cheaters. Each bot is a guest account on the Login server, with its
-// token kept in --tokens so later runs play the same accounts.
-//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--dev] [--login http://localhost:5090] [--tokens <folder>] [--server ws://server:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
-//     [--warmup 10] [--results file.json] [--meta key=value ...] [--prefix Bot] [--chat [30]] [--cheat-speed 2.5] [--cheat-jump 1]
-// --server replaces the game server address in the bots' tickets (Docker). --dev joins the editor's server by name
-// at --server, without accounts. --cheat-speed and --cheat-jump are multipliers; small values make subtle cheaters.
-// --chat is the average seconds between lines. --warmup or --results records network numbers (see NetReport).
 var login = new Uri(Arg("--login", "http://localhost:5090"));
 var tokens = Arg("--tokens", "");
 var serverOverride = Arg("--server", "") is { Length: > 0 } server ? new Uri(server) : null;
@@ -25,7 +18,7 @@ var chat =
     chatIndex < 0 ? 0
     : chatIndex + 1 < args.Length && double.TryParse(args[chatIndex + 1], out var every) ? every
     : 30;
-var prefix = Arg("--prefix", "Bot"); // honest bots' names, so two groups can share a server
+var prefix = Arg("--prefix", "Bot");
 var warmup = double.Parse(Arg("--warmup", resultsFile != "" ? "10" : "-1"));
 var meta = args.Select((arg, i) => (arg, i))
     .Where(a => a.arg == "--meta" && a.i + 1 < args.Length)
@@ -96,7 +89,7 @@ await Task.WhenAll(
     bots.Select(
         async (bot, i) =>
         {
-            await Task.Delay(i * 100); // don't all join in the same instant
+            await Task.Delay(i * 100);
             await bot.RunAsync(stop.Token);
         }
     )

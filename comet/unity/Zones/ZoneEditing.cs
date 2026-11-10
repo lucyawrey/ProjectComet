@@ -2,10 +2,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// The root of a zone or group opened in the editor. Holds the zone's parts not shown as objects (terrain, borders,
-    /// entrances, transition rooms), kept with the scene so they survive script reloads.
-    /// </summary>
     public sealed class ZoneEditing : MonoBehaviour
     {
         [Tooltip("The zone's folder, relative to the Unity project; for a group being edited, its file.")]

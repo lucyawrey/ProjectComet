@@ -1,15 +1,9 @@
 namespace Comet.Server.Movement;
 
-/// <summary>
-/// How much of the movement tolerances (<see cref="MovementTolerances"/>) one player's reports needed, for tuning them. Measured against
-/// exact rules, so it shows how far they could tighten before this player would have been snapped back.
-/// </summary>
 public sealed class MovementHeadroom
 {
     public static readonly float[] SpeedFactors = [1.0f, 1.05f, 1.1f, 1.15f, 1.2f];
 
-    // Per speed factor: the running shortfall of a distance budget earned at that speed (a token bucket's deficit),
-    // and the largest it has been.
     private readonly float[] _deficit = new float[SpeedFactors.Length];
     private readonly float[] _maxDeficit = new float[SpeedFactors.Length];
     private readonly float[] _maxSpeed = new float[SpeedFactors.Length];
@@ -40,7 +34,6 @@ public sealed class MovementHeadroom
         }
     }
 
-    /// <param name="airSeconds">Time since the last ground, by the report's stamp.</param>
     internal void AddHeight(float rise, float airSeconds, float jumpVelocity, float gravity)
     {
         var apex = jumpVelocity * jumpVelocity / (2 * gravity);

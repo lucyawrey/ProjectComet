@@ -51,7 +51,6 @@ foreach (var dll in Directory.EnumerateFiles(packages, "*.dll", SearchOption.All
     }
 }
 
-// When it last finished, so tools/run unity-batch can tell whether packages.config changed since. Unity skips dot files.
 File.WriteAllText(Path.Combine(packages, ".restored"), "");
 Console.WriteLine($"Restored {project}; rewrote {analyzers} analyzer .meta file(s) and set {editorOnly} package DLL(s) to the editor only.");
 

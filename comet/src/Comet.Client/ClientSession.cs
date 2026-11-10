@@ -7,7 +7,6 @@ using MessagePack;
 
 namespace Comet.Client
 {
-    /// <summary>A game message (ID from <see cref="MessageIds.FirstGameMessage"/>) in a frame stamped <paramref name="tick"/>.</summary>
     public delegate void GameMessageHandler(ushort messageId, ReadOnlyMemory<byte> payload, uint tick);
 
     /// <summary> The client's side of a connection: decodes server frames, keeps the server-tick estimate and
@@ -18,20 +17,10 @@ namespace Comet.Client
     /// have neither threads nor timers. </remarks>
     public sealed class ClientSession
     {
-        /// <summary>A gap between updates longer than this, in seconds, is a stall on this side rather than the network's.</summary>
         public const double LocalStallSeconds = 0.25;
 
-        /// <summary>
-        /// A ping unanswered for this long, in seconds, means our sends are stuck (e.g. wifi roaming):
-        /// position reports are held, since piled up in the socket they would all reach the server at once
-        /// on recovery and trip its flood limit.
-        /// </summary>
         public const double ReportHoldSeconds = 2;
 
-        /// <summary>
-        /// A ping unanswered for this long, in seconds, means the server is gone (a machine that vanished closes
-        /// nothing, and TCP takes minutes to notice): the session closes with <see cref="CloseReason.Lost"/>.
-        /// </summary>
         public const double LostSeconds = 10;
 
         private readonly MessagePackSerializerOptions _options;
@@ -53,11 +42,9 @@ namespace Comet.Client
 
         private double _nextPing;
 
-        // Ping times as sent, in whole microseconds, so a pong's echo compares exactly.
         private long _lastPingSent;
         private long? _oldestUnansweredPing;
 
-        // Why this side gave up on the session (a protocol error, or the server gone quiet), with the details.
         private CloseReason _ownReason;
         private string? _ownError;
 
@@ -91,7 +78,6 @@ namespace Comet.Client
 
         public ServerClock Clock => _clock ?? throw NotWelcomed();
 
-        /// <summary>Other entities, drawn through the interpolation buffer. The game spawns them from its own messages.</summary>
         public RemoteEntities Entities => _entities ?? throw NotWelcomed();
 
         public InterpolationDelay InterpolationDelay => _delay ?? throw NotWelcomed();
@@ -100,37 +86,24 @@ namespace Comet.Client
 
         public int StatesReceived { get; private set; }
 
-        /// <summary>Why the session ended: given up on here, or the transport's reason.</summary>
         public CloseReason CloseReason => _ownReason != CloseReason.None ? _ownReason : Transport.CloseReason;
 
-        /// <summary>The details of <see cref="CloseReason"/>, in English, for logs.</summary>
         public string? Error => _ownError ?? Transport.Error;
 
-        /// <summary>Closed by either side, or given up on (a protocol error, or the server gone quiet); <see cref="CloseReason"/> says why.</summary>
         public bool Closed => _ownReason != CloseReason.None || Transport.State == TransportState.Closed;
 
-        /// <summary>The server's welcome arrived; <see cref="Clock"/> and <see cref="Entities"/> are ready.</summary>
         public event Action<Welcome>? WelcomeArrived;
 
-        /// <summary>The server moved the player. The simulation should move there at once (see <see cref="CorrectionBlend"/>).</summary>
         public event Action<PositionCorrection>? Corrected;
 
-        /// <summary>An entity left view; it has already been removed from <see cref="Entities"/>.</summary>
         public event Action<uint>? EntityDespawned;
 
-        /// <summary>
-        /// A message for the game (ID <see cref="MessageIds.FirstGameMessage"/> or higher), which the
-        /// session doesn't handle itself.
-        /// </summary>
         public event GameMessageHandler? GameMessage;
 
-        /// <summary>The tick other entities are drawn at, at <paramref name="now"/>.</summary>
         public double RenderTick(double now) => Clock.ReceiveTick(now) - InterpolationDelay.Ticks;
 
         public void Update(double now)
         {
-            // After a stall of our own (a hidden browser tab, a long frame), the frames waiting were received long
-            // before now, so they say nothing about the network's delay; don't let them push the delay up.
             _catchingUp = now - _lastUpdate > LocalStallSeconds;
             _lastUpdate = now;
             while (_ownReason == CloseReason.None && Transport.TryReceive(out var frame))
@@ -169,7 +142,6 @@ namespace Comet.Client
                 return;
             }
 
-            // Answers are back: send where the player is now, once, in place of what was held.
             if (!ReportsHeld && _heldReport is { } held)
             {
                 _heldReport = null;
@@ -177,18 +149,10 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>
-        /// Whether position reports are being held because a ping has gone unanswered for <see cref="ReportHoldSeconds"/>;
-        /// the latest is sent once answers return.
-        /// </summary>
         public bool ReportsHeld { get; private set; }
 
         public void Write<T>(ushort messageId, in T message) => _messages.Write(messageId, message);
 
-        /// <summary>
-        /// The server's time at <paramref name="now"/>, in seconds: drive the player's own <see cref="FixedStep"/> with it so its steps fall on
-        /// server ticks. The estimate only slews, so the steps stay evenly spaced.
-        /// </summary>
         public double ServerSeconds(double now) => Clock.ServerTick(now) / Clock.TickRate;
 
         /// <summary>
@@ -208,10 +172,6 @@ namespace Comet.Client
             return ticks % stepsPerSecond == 0;
         }
 
-        /// <summary>
-        /// Queues a report of where the player was at <paramref name="tick"/> (from <see cref="TickOfStep"/>), echoing the last correction.
-        /// The frame it goes in is stamped with that tick.
-        /// </summary>
         public void ReportPosition(uint tick, Vector3 position, Vector3 velocity, float facing)
         {
             if (ReportsHeld)
@@ -220,7 +180,6 @@ namespace Comet.Client
                 return;
             }
 
-            // A frame has one tick: send what's queued for another tick first.
             if (_reportTick is { } queued && queued != tick)
             {
                 Flush(_lastUpdate);
@@ -246,9 +205,6 @@ namespace Comet.Client
                 }
             );
 
-        /// <summary>
-        /// Sends the queued messages in one frame, stamped with the tick of a queued report, else the estimated server tick.
-        /// </summary>
         public void Flush(double now)
         {
             if (_messages.MessageCount == 0)
@@ -295,7 +251,6 @@ namespace Comet.Client
                         _clock?.OnPong(tick, sent / 1_000_000.0, now);
                         if (sent >= _oldestUnansweredPing)
                         {
-                            // Pongs come back in order, so any ping since this one is the oldest still unanswered.
                             _oldestUnansweredPing = _lastPingSent > sent ? _lastPingSent : (long?)null;
                         }
 
@@ -331,7 +286,7 @@ namespace Comet.Client
                             GameMessage?.Invoke(messageId, payload, tick);
                         }
 
-                        break; // an unknown Comet message, from a newer server
+                        break;
                 }
             }
         }

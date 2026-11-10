@@ -2,7 +2,6 @@ using Tomlyn.Syntax;
 
 namespace Comet.ContentBuild;
 
-/// <summary>Collects a content file's validation errors, placed at the field they're about.</summary>
 public sealed class ContentValidation
 {
     private readonly string _file;
@@ -28,10 +27,6 @@ public sealed class ContentValidation
         );
     }
 
-    /// <summary>
-    /// Placed at the field whether it's written in the table, as a dotted key (<c>look.height</c>) or in an inline
-    /// table, else at the table.
-    /// </summary>
     public void Error(string tablePropertyName, string propertyName, string message)
     {
         var table = ContentJson.KeyFor(tablePropertyName);

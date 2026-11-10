@@ -41,8 +41,6 @@ namespace Comet.ZoneFiles
             };
         }
 
-        // Settings not in use (the background's with no panel, the other mode's size) are kept when set, so turning
-        // them back on in the editor brings them back.
         private static TomlTable SignTable(Sign t, string positionKey)
         {
             var sign = new TomlTable

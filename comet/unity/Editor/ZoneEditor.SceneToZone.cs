@@ -16,8 +16,6 @@ namespace Comet.Unity.Editor
             var chunks = zone.Chunks.ToDictionary(c => c.Coord);
             var settings = CometSettings.Find(quiet: true);
 
-            // A charge color is saved only when it isn't the game's default for its kind, so a later change to the
-            // default reaches the rest.
             uint? OwnChargeColor(Color color, Color? fallback) =>
                 fallback is { } usual && Conversions.ToRgb(color) == Conversions.ToRgb(usual) ? null : Conversions.ToRgb(color);
             ZoneChunk ChunkAt(System.Numerics.Vector3 position)
@@ -32,8 +30,6 @@ namespace Comet.Unity.Editor
                 return chunk;
             }
 
-            // A copy being edited in place is saved as the copy; its parts go to its group only when that's saved.
-            // Pads are saved inside their spawn points, teleporters and triggers.
             foreach (
                 var placed in editing
                     .GetComponentsInChildren<ZonePlacement>(true)
@@ -115,7 +111,6 @@ namespace Comet.Unity.Editor
                 chunk.Signs = chunk.Signs.Append(SignOf(sign, ToNumerics(sign.transform.position))).ToArray();
             }
 
-            // Tiles are kept whole-chunk while editing; the files keep only their ground.
             ZoneTerrainEditing.Crop(zone);
 
             zone.Chunks = chunks
@@ -147,7 +142,6 @@ namespace Comet.Unity.Editor
                 StandSeconds = trigger.standSeconds,
                 Rearm = (Rearm)trigger.rearm,
                 Pad = trigger.Pad is { } pad ? PlacementOf(pad) : null,
-                // From the volume's bottom center, turned back by its yaw: the sign's place in the volume's own space.
                 Sign = trigger.Sign is { } sign
                     ? SignOf(sign, ToNumerics(Quaternion.Euler(0, -t.eulerAngles.y, 0) * (sign.transform.position - t.position)))
                     : null,
@@ -174,9 +168,6 @@ namespace Comet.Unity.Editor
                 Off = !sign.gameObject.activeSelf,
             };
 
-        /// <summary>
-        /// Relative to <paramref name="relativeTo"/> (a copy whose group's parts are being saved), not the world.
-        /// </summary>
         internal static Placement PlacementOf(ZonePlacement placed, Transform? relativeTo = null)
         {
             var t = placed.transform;
@@ -198,7 +189,6 @@ namespace Comet.Unity.Editor
                 Rotation = Angles(rotation.eulerAngles),
                 Scale = ToNumerics(placed.isPrimitive && !placed.IsGroup ? Vector3.Scale(placed.size, lossy) : lossy),
                 Color = placed.ownColor && !placed.IsGroup ? Conversions.ToRgb(placed.color) : (uint?)null,
-                // Only a group's parts have a role: one unpacked into a zone drops it.
                 Role =
                     !string.IsNullOrEmpty(placed.role) && (relativeTo != null || placed.GetComponentInParent<ZoneEditing>(true) is { IsGroup: true })
                         ? placed.role

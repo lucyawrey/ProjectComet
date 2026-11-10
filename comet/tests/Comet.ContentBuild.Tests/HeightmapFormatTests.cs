@@ -70,7 +70,6 @@ public class HeightmapFormatTests
         Assert.Contains("bytes after", Assert.Throws<ContentException>(() => HeightmapFormat.Read(new MemoryStream([.. bytes, 0]))).Message);
     }
 
-    // The header after the magic: the version at 4, sizes at 6 and 8.
     private static byte[] WithHeader(Action<byte[]> change)
     {
         var stream = new MemoryStream();
@@ -83,7 +82,6 @@ public class HeightmapFormatTests
     [Fact]
     public void AHugeClaimedSizeIsTruncatedNotAnOverflow()
     {
-        // 65535 × 65535 samples overflowed an int and crashed the tool.
         var bytes = WithHeader(b =>
         {
             BitConverter.TryWriteBytes(b.AsSpan(6), ushort.MaxValue);

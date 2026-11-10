@@ -10,7 +10,6 @@ using ShapeLand.Shared.Messages;
 
 namespace ShapeLand.GameServer;
 
-/// <summary>Tick thread only.</summary>
 internal sealed class Player(Connection connection, int tickRate)
 {
     public Connection Connection { get; } = connection;
@@ -43,7 +42,6 @@ internal sealed class Player(Connection connection, int tickRate)
 
     public TickLimiter ReturnLimiter { get; } = RateLimits.Return(tickRate);
 
-    /// <summary>Not saved: lasts for the session only.</summary>
     public SpawnPoint SpawnPoint { get; set; } = null!;
 
     public ZoneState Zone { get; set; } = null!;

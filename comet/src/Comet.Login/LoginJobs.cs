@@ -9,10 +9,6 @@ using Microsoft.Extensions.Options;
 
 namespace Comet.Login;
 
-/// <summary>
-/// Runs before the server listens, so a missing signing key stops startup. Only the Login server migrates; game
-/// servers wait for it.
-/// </summary>
 internal sealed class Startup<TCharacter>(
     IServiceScopeFactory scopes,
     RegionContexts<TCharacter> regions,

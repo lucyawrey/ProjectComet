@@ -41,7 +41,6 @@ public static class WebBuild
                 {
                     if (context.File.Name == "content.bin")
                     {
-                        // Checked on every load, so a reload gets new content.
                         context.Context.Response.Headers.CacheControl = "no-cache";
                         return;
                     }

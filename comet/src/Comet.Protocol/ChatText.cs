@@ -5,7 +5,6 @@ namespace Comet.Protocol
 {
     public static class ChatText
     {
-        /// <summary>Combining marks kept on one character (enough for real scripts and keycap emoji); more stack out of the bubble.</summary>
         public const int MaxMarksPerCharacter = 3;
 
         /// <summary>

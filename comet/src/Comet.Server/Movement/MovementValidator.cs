@@ -8,18 +8,13 @@ public enum FallResult
 {
     None,
 
-    /// <summary>The server moved a silent airborne player; send their new state.</summary>
     Moved,
 
-    /// <summary>The server's fall landed; send the state, and the client the correction from <see cref="MovementValidator.Landing"/>.</summary>
     Landed,
 
     FellOut,
 }
 
-/// <summary>
-/// How lenient the checks are; tuned from what honest bots need under the bad network profile (see <see cref="MovementHeadroom"/>).
-/// </summary>
 public sealed class MovementTolerances
 {
     public float SpeedFactor { get; set; } = 1.1f;
@@ -32,26 +27,14 @@ public sealed class MovementTolerances
 
     public float JumpFactor { get; set; } = 1.0f;
 
-    /// <summary>
-    /// How long, in seconds, a takeoff may come after the last report on the ground: reports are paced, so the
-    /// gravity arc starts this much later than that report, which only ever makes it more lenient.
-    /// </summary>
     public float AirTimeSlack { get; set; } = 0.2f;
 
-    /// <summary>
-    /// Seconds without a report before the server moves an airborne player itself. Longer than a TCP resend stall
-    /// at a bad connection's round trip (about 200 ms with 2% loss), which 0.5 s wasn't.
-    /// </summary>
     public float SilenceSeconds { get; set; } = 1.0f;
 
     /// <summary>Extra height always allowed above a jump, in meters.</summary>
     public float HeightSlack { get; set; } = 0.4f;
 }
 
-/// <summary>
-/// Checks one player's position reports (the client is the authority on its movement, within these rules): a capped distance budget for speed,
-/// the gravity arc from the last ground for height. A player silent in the air is moved down that arc by <see cref="Fall"/>. Tick thread only.
-/// </summary>
 public sealed class MovementValidator
 {
     private CollisionWorld _world;
@@ -77,32 +60,23 @@ public sealed class MovementValidator
         _tickRate = tickRate;
     }
 
-    /// <summary>The last accepted position (where a snap-back returns to).</summary>
     public Vector3 Position { get; private set; }
 
-    /// <summary>The player's velocity: as last reported, or the server's own while it moves them down a fall.</summary>
     public Vector3 Velocity => _serverFalling ? _fall.Velocity : _velocity;
 
     /// <summary>The last reported facing, as a yaw angle in radians.</summary>
     public float Facing { get; private set; }
 
-    /// <summary>The last accepted position standing on solid ground (where a respawn returns to).</summary>
     public Vector3 SafePosition { get; private set; }
 
-    /// <summary>The latest correction sent; reports echoing an older one are stale.</summary>
     public uint CorrectionSequence { get; private set; }
 
-    /// <summary>Rejected reports so far (not counting stale ones or falls).</summary>
     public int Violations { get; private set; }
 
     public MovementHeadroom Headroom { get; } = new();
 
     public CollisionWorld World => _world;
 
-    /// <summary>
-    /// The meshes the player passes through: ones turned on around them, until they're fully out (game code keeps
-    /// it). Checks and server falls skip them.
-    /// </summary>
     public PassThrough PassThrough { get; } = new();
 
     public bool ServerFalling => _serverFalling;
@@ -128,7 +102,6 @@ public sealed class MovementValidator
     /// </summary>
     public MovementVerdict Check(in PositionReport report, uint tick, float maxSpeed, float jumpVelocity, uint? stamp = null)
     {
-        // While the server finishes a fall, every report is stale, even one that guesses the landing's sequence.
         if (report.CorrectionSequence != CorrectionSequence || _serverFalling)
         {
             return MovementVerdict.Stale;
@@ -145,8 +118,6 @@ public sealed class MovementValidator
         _lastTick = tick;
         _budget = MathF.Min(_budget + allowedSpeed * elapsed, allowedSpeed * _tolerances.MaxBurstSeconds + _tolerances.DistanceSlack);
 
-        // Standing still sends nothing, and the first report after it is sent as the player starts moving, so a
-        // player last seen on the ground was still there when this report was sent.
         if (!_airborne)
         {
             _groundTick = Math.Max(_groundTick, stamp ?? tick);
@@ -158,7 +129,6 @@ public sealed class MovementValidator
             return MovementVerdict.FellOut;
         }
 
-        // Rejected heights count too: an honest one over the limit is exactly what tuning needs to see.
         var air = stamp ?? tick;
         Headroom.AddHeight(position.Y - _groundY, (air > _groundTick ? air - _groundTick : 0) / (float)_tickRate, jumpVelocity, _rules.Gravity);
 
@@ -195,13 +165,8 @@ public sealed class MovementValidator
         && float.IsFinite(report.VelocityZ)
         && float.IsFinite(report.Facing);
 
-    // Into [-π, π], so a huge facing can't make viewers' angle interpolation overflow.
     private static float WrapAngle(float radians) => (float)Math.IEEERemainder(radians, 2 * Math.PI);
 
-    /// <summary>
-    /// The reported velocity, held to what the rules allow, since the server starts silent players' falls from it and relays it for
-    /// extrapolation. Sideways capped at the allowed speed, up at what's left of the jump arc, down at a fall from the jump's top.
-    /// </summary>
     private Vector3 AllowedVelocity(in PositionReport report, float allowedSpeed, float jumpVelocity, uint tick)
     {
         var sideways = new Vector2(report.VelocityX, report.VelocityZ);
@@ -247,10 +212,6 @@ public sealed class MovementValidator
         return falling <= 0 ? top : top - 0.5f * _rules.Gravity * falling * falling;
     }
 
-    /// <summary>
-    /// Called every server tick. Moves an airborne player silent for <see cref="MovementTolerances.SilenceSeconds"/> down their fall with the
-    /// shared movement code, from their last velocity, until they land or fall out. Reports before the landing correction are ignored meanwhile.
-    /// </summary>
     public FallResult Fall(uint tick, float maxSpeed, float jumpVelocity)
     {
         if (!_airborne)
@@ -266,7 +227,7 @@ public sealed class MovementValidator
             }
 
             _serverFalling = true;
-            CorrectionSequence++; // the silent client's reports from before the landing correction are stale
+            CorrectionSequence++;
             var maxUp = jumpVelocity - _rules.Gravity * AirTime(_lastReportTick);
             _fall = new MotorState
             {
@@ -275,10 +236,8 @@ public sealed class MovementValidator
                 Grounded = false,
                 Facing = Facing,
             };
-            _fallMove = maxSpeed > 0 ? new Vector2(_velocity.X, _velocity.Z) / maxSpeed : Vector2.Zero; // the motor caps it at full stick
+            _fallMove = maxSpeed > 0 ? new Vector2(_velocity.X, _velocity.Z) / maxSpeed : Vector2.Zero;
 
-            // The fall began at the last report, so catch up on the silence first: the player is where that arc
-            // has taken them by now, rather than hanging at the last report and then dropping.
             for (var t = _lastReportTick + 1; t < tick; t++)
             {
                 if (StepFall(maxSpeed, jumpVelocity) is { } early)
@@ -291,7 +250,6 @@ public sealed class MovementValidator
         return StepFall(maxSpeed, jumpVelocity) is { } result ? Finish(result, tick) : FallResult.Moved;
     }
 
-    // Null while still in the air.
     private FallResult? StepFall(float maxSpeed, float jumpVelocity)
     {
         PlayerMotor.Step(ref _fall, _fallMove, jump: false, 1f / _tickRate, maxSpeed, jumpVelocity, _world, _rules, PassThrough);
@@ -331,10 +289,6 @@ public sealed class MovementValidator
             Facing = Facing,
         };
 
-    /// <summary>
-    /// Moves the player somewhere new and builds the correction telling them, as <paramref name="reason"/>; with <paramref name="world"/>,
-    /// into that world (another zone). Later reports must echo its sequence.
-    /// </summary>
     public PositionCorrection Teleport(
         Vector3 position,
         float facing,
@@ -362,10 +316,6 @@ public sealed class MovementValidator
         };
     }
 
-    /// <summary>
-    /// Builds the correction for a rejected report or a fall: back to the last accepted position, or the last safe ground for a fall.
-    /// Later reports must echo its sequence.
-    /// </summary>
     public PositionCorrection Correct(CorrectionReason reason, uint tick, MovementVerdict verdict = MovementVerdict.Accepted)
     {
         CorrectionSequence++;

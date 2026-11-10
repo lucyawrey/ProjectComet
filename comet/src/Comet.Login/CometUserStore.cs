@@ -4,10 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Comet.Login;
 
-/// <summary>
-/// Only usernames, password hashes and security stamps. Any other Identity feature fails clearly, since its tables
-/// don't exist.
-/// </summary>
 public sealed class CometUserStore(CometAccountContext db) : IUserPasswordStore<Account>, IUserSecurityStampStore<Account>
 {
     public async Task<IdentityResult> CreateAsync(Account user, CancellationToken cancellationToken)

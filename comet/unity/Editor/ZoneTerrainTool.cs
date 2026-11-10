@@ -9,10 +9,6 @@ using static Comet.Unity.Conversions;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// The Scene view's terrain tool for a zone opened in the editor: pick a piece and a brush in its panel, then
-    /// paint. Each stroke is one undo step.
-    /// </summary>
     [EditorTool("Zone Terrain")]
     public sealed class ZoneTerrainTool : EditorTool
     {
@@ -66,15 +62,12 @@ namespace Comet.Unity.Editor
         private bool _painting;
         private bool _redraw;
 
-        // The chunks the stroke changed since its last redraw; null when it changed which ground there is (holes and
-        // ground decide which edges are the piece's outside, anywhere on it), so everything is redrawn.
         private HashSet<ChunkCoord>? _changed = new HashSet<ChunkCoord>();
         private double _lastRedraw;
         private float _flattenHeight;
         private Vector3? _hover;
         private List<Vector3> _overlaps = new List<Vector3>();
 
-        // The undo step a drag in Unity's color picker started, so the whole drag is one step.
         private int? _colorUndoGroup;
 
         private GUIContent? _icon;
@@ -241,7 +234,6 @@ namespace Comet.Unity.Editor
 
         private void PieceSettings(ZoneTerrainEditing terrain)
         {
-            // A picker session ends once focus leaves it (say, to paint), so later changes get steps of their own.
             if (!ColorPickerFocused)
             {
                 _colorUndoGroup = null;
@@ -269,7 +261,6 @@ namespace Comet.Unity.Editor
             var ground = OwnColor("Top color", "unpainted ground", settings.GroundColor, _settings!.groundColor);
             var under = OwnColor("Underside color", "unpainted skirt walls and bottom", settings.UnderColor, _settings!.underColor);
 
-            // The reset buttons may not count as a change.
             if (EditorGUI.EndChangeCheck() || ground != settings.GroundColor || under != settings.UnderColor)
             {
                 settings.SkirtDepth = depth;
@@ -302,7 +293,6 @@ namespace Comet.Unity.Editor
 
         private void UndersideGui(ZoneTerrainEditing terrain)
         {
-            // On once the Underside brushes have painted; turning it off removes the underside and its colors.
             var hasUnderside = terrain.HasUnderside(piece);
             using (new EditorGUI.DisabledScope(!hasUnderside))
             {
@@ -381,7 +371,6 @@ namespace Comet.Unity.Editor
             var group = Undo.GetCurrentGroup();
             if (carry)
             {
-                // Found before the terrain moves. A pad moves with its spawn point, teleporter or trigger.
                 var carried = terrain
                     .Editing.GetComponentsInChildren<ZonePlacement>(true)
                     .Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null)
@@ -409,8 +398,6 @@ namespace Comet.Unity.Editor
             RefreshOverlaps();
         }
 
-        // Whether a point stands on the selected piece: over its ground, which is the nearest ground below it (within
-        // a meter, since pivots are often sunk into it), with no other piece's ground in between.
         private bool StandsOn(ZoneTerrainEditing terrain, Vector3 point)
         {
             const float sink = 1;
@@ -475,7 +462,6 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            // Take the left mouse button from the scene's selection while the tool is picked.
             var control = GUIUtility.GetControlID(FocusType.Passive);
             if (e.type == EventType.Layout)
             {
@@ -532,8 +518,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Where the mouse ray first enters the selected piece (the solid between its underside and ground), marching a
-        // quarter meter at a time; else where it meets the height the last stroke started at, to paint new ground.
         private Vector3? Pick(ZoneTerrainEditing terrain, Ray ray)
         {
             var piece = terrain.Terrain[this.piece];
@@ -592,7 +576,6 @@ namespace Comet.Unity.Editor
             }
             else if (_changed != null)
             {
-                // The cells around each changed sample, and so their chunks (a sample on a border is in both).
                 for (var cz = FloorDiv(minZ - 1, ZoneGrid.ChunkSize); cz <= FloorDiv(maxZ, ZoneGrid.ChunkSize); cz++)
                 {
                     for (var cx = FloorDiv(minX - 1, ZoneGrid.ChunkSize); cx <= FloorDiv(maxX, ZoneGrid.ChunkSize); cx++)
@@ -616,7 +599,6 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            // Smoothing reads the neighbors before any changes, so the result doesn't depend on the order.
             var before = brush == Brush.Smooth ? changes.ToDictionary(c => (c.X, c.Z), c => Average(terrain, c.X, c.Z)) : null;
             foreach (var (x, z, weight) in changes)
             {
@@ -670,12 +652,9 @@ namespace Comet.Unity.Editor
                 terrain.Reindex();
             }
 
-            // Redrawn as the stroke goes (RedrawDuringStroke); the undo step is written when it ends.
             _redraw = true;
         }
 
-        // A stroke redraws only the chunks it changed (about 2 ms a chunk), at most 60 times a second; its end redraws
-        // in full.
         private void RedrawDuringStroke(ZoneTerrainEditing terrain)
         {
             if (_redraw && EditorApplication.timeSinceStartup - _lastRedraw >= 1.0 / 60)
@@ -689,8 +668,6 @@ namespace Comet.Unity.Editor
 
         private static int FloorDiv(int a, int b) => a >= 0 ? a / b : (a - b + 1) / b;
 
-        // The underside brushes at one ground sample (at `height`); `amount` is the stroke's time times its falloff.
-        // The underside never rises above the ground.
         private void PaintUnderside(ZoneTerrainEditing terrain, int x, int z, float height, float amount, Dictionary<(int, int), float?>? before)
         {
             var under = terrain.UndersideAt(piece, x, z);

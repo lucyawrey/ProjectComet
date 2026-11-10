@@ -3,13 +3,8 @@ using System.Numerics;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// The meshes one player passes through: ones a flip turned on around them, until they're fully out.
-    /// Keep one per player on every side (server, client, bots) so they agree where a player may stand.
-    /// </summary>
     public sealed class PassThrough : HashSet<int>
     {
-        /// <summary>After the meshes tagged <paramref name="tag"/> flipped: adds each now on that a body at <paramref name="feet"/> overlaps.</summary>
         public void Flipped(CollisionWorld world, string tag, Vector3 feet, float radius, float bodyHeight)
         {
             foreach (var mesh in world.MeshesTagged(tag))
@@ -21,7 +16,6 @@ namespace Comet.Simulation
             }
         }
 
-        /// <summary>Drops the meshes a body at <paramref name="feet"/> is fully out of.</summary>
         public void Prune(CollisionWorld world, Vector3 feet, float radius, float bodyHeight)
         {
             if (Count > 0)

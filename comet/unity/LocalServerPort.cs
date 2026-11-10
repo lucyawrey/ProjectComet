@@ -1,9 +1,5 @@
 namespace Comet.Unity
 {
-    /// <summary>
-    /// The port of the editor's local game server, so play mode joins it whatever port it's on. Set by the editor;
-    /// null outside it.
-    /// </summary>
     public static class LocalServerPort
     {
         public const string Key = "Comet.LocalServer.Port";
@@ -23,9 +19,6 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>
-        /// Whether play mode joins with accounts: an editor preference per computer, off by default. True in builds.
-        /// </summary>
         public static bool UseAccounts
         {
             get
@@ -41,7 +34,6 @@ namespace Comet.Unity
 #if UNITY_EDITOR
         public static string UseAccountsKey => "Comet.LocalServer.UseAccounts." + System.IO.Path.GetDirectoryName(UnityEngine.Application.dataPath);
 
-        /// <summary>The file the editor's server keeps its characters in without accounts: one per checkout.</summary>
         public static string DevCharactersFile =>
             System.IO.Path.Combine(
                 CheckoutRoot(System.IO.Path.GetDirectoryName(UnityEngine.Application.dataPath)!),

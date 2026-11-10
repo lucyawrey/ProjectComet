@@ -2,10 +2,6 @@ using System.Diagnostics.Tracing;
 
 namespace Comet.Server.Diagnostics;
 
-/// <summary>
-/// Times each garbage-collection pause (all managed threads suspended), from GCSuspendEEBegin to GCRestartEEEnd, including the short
-/// pauses inside background collections. <see cref="PauseRecorded"/> is raised on the runtime's event thread, shortly after the pause.
-/// </summary>
 public sealed class GcPauseListener : EventListener
 {
     private const string RuntimeSource = "Microsoft-Windows-DotNETRuntime";
@@ -76,10 +72,6 @@ public sealed class GcPauseListener : EventListener
     }
 }
 
-/// <summary>
-/// One GC pause. <see cref="Collection"/> is the deepest collection that started in it, or, when <see cref="StartedInPause"/>
-/// is false, the latest one before it (such as the background collection this pause belongs to).
-/// </summary>
 public readonly record struct GcPause(DateTime End, TimeSpan Duration, GcCollection? Collection, bool StartedInPause, GcHeapStats? HeapStats);
 
 public readonly record struct GcCollection(ulong Number, int Generation, GcReason Reason, GcType Type);

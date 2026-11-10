@@ -3,7 +3,6 @@ using UnityEngine.InputSystem;
 
 namespace ShapeLand.Client
 {
-    /// <summary>A menu's keyboard and gamepad navigation: a held direction steps once, then repeats after a pause.</summary>
     public sealed class MenuNavigation
     {
         private const float RepeatDelay = 0.4f,
@@ -12,7 +11,6 @@ namespace ShapeLand.Client
         private Vector2 _held;
         private float _repeatAt;
 
-        /// <summary>The step for the direction held now; down and right are positive, and a diagonal moves up or down.</summary>
         public Vector2Int Step(Vector2 value)
         {
             var held = new Vector2(Mathf.Abs(value.x) > 0.5f ? Mathf.Sign(value.x) : 0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
@@ -38,10 +36,8 @@ namespace ShapeLand.Client
             return Vector2Int.zero;
         }
 
-        /// <summary><see cref="Step"/> for a menu that only moves up and down.</summary>
         public Vector2Int StepVertical(Vector2 value) => Step(new Vector2(0, value.y));
 
-        /// <summary>While a field has the keyboard, only Up and Down move (Left and Right move the caret, letters type).</summary>
         public static Vector2 TypingArrows()
         {
             var keyboard = Keyboard.current;

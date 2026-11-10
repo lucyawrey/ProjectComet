@@ -10,7 +10,6 @@ namespace Comet.Server;
 /// </summary>
 public static class FileLogging
 {
-    /// <summary>Sends the app's logs to <c>Comet:LogFile</c> only (appending), if it's set.</summary>
     public static WebApplicationBuilder AddCometLogFile(this WebApplicationBuilder builder)
     {
         var path = builder.Configuration["Comet:LogFile"];
@@ -23,10 +22,6 @@ public static class FileLogging
         return builder;
     }
 
-    /// <summary>
-    /// Writes a failure that stopped the server to <c>Comet:LogFile</c>, if the command line sets it,
-    /// so a tool reading the file sees why.
-    /// </summary>
     public static void LogFailure(string[] args, Exception exception)
     {
         var path = new ConfigurationBuilder().AddCommandLine(args).Build()["Comet:LogFile"];
@@ -39,10 +34,7 @@ public static class FileLogging
         {
             File.AppendAllText(Path.GetFullPath(path), $"{DateTime.Now:HH:mm:ss} Critical: the server stopped: {exception}\n");
         }
-        catch (IOException)
-        {
-            // Nowhere left to say it but the console.
-        }
+        catch (IOException) { }
     }
 
     private sealed class FileLoggerProvider(string path) : ILoggerProvider
@@ -59,7 +51,6 @@ public static class FileLogging
             }
         }
 
-        // Others (the editor showing it) may read it while it's written.
         private static StreamWriter Open(string path)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);

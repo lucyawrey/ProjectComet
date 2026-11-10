@@ -7,13 +7,11 @@ using Comet.Content;
 
 namespace Comet.ZoneFiles
 {
-    /// <summary>Checks what a zone's files mean, after <see cref="ZoneFolder.Read"/> has checked their form.</summary>
     public static partial class ZoneValidation
     {
         private static readonly Regex NamePattern = new Regex("^[a-z][a-z0-9_]*$");
         private static readonly Regex PlacementTag = new Regex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$");
 
-        /// <summary>A lowercase letter, then lowercase letters, digits and underscores.</summary>
         public static bool IsName(string name) => NamePattern.IsMatch(name);
 
         /// <summary>Whether <paramref name="id"/> is <c>{kind}.zone.name</c>, as spawn and trigger ids are.</summary>
@@ -25,7 +23,6 @@ namespace Comet.ZoneFiles
 
         public static readonly PrimitiveKind[] VolumeKinds = { PrimitiveKind.Box, PrimitiveKind.Cylinder, PrimitiveKind.Sphere };
 
-        /// <summary>Whether <paramref name="id"/> is <c>{kind}.name</c>.</summary>
         public static bool IsId(string id, string kind) =>
             id.StartsWith(kind + ".", StringComparison.Ordinal) && IsName(id.Substring(kind.Length + 1));
 
@@ -82,7 +79,6 @@ namespace Comet.ZoneFiles
                 }
             }
 
-            // Tags may be shared: a toggle effect flips every placement with its tag.
             var placementTags = new HashSet<string>();
             foreach (var chunk in zone.Chunks)
             {
@@ -122,7 +118,6 @@ namespace Comet.ZoneFiles
                 foreach (var teleporter in chunk.Teleporters)
                 {
                     CheckTrigger(teleporter.Id, "teleporter", teleporter.Volume, chunk.Coord, zoneName, idFiles, file, Error);
-                    // An empty target is a teleporter not linked yet, which the content build warns about.
                     if (teleporter.Target != "" && !IsZonedId(teleporter.Target, "teleporter"))
                     {
                         Error(

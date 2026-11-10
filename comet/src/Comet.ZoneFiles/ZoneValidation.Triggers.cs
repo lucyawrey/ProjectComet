@@ -6,7 +6,6 @@ namespace Comet.ZoneFiles
 {
     public static partial class ZoneValidation
     {
-        // A sign's text, colors and sizes; where it is is checked by the caller.
         private static void CheckSign(Sign sign, string what, string file, Action<string, string> error)
         {
             if (string.IsNullOrWhiteSpace(sign.Text))
@@ -100,7 +99,6 @@ namespace Comet.ZoneFiles
 
             if (volume.Sign is { } sign)
             {
-                // Its offset may reach into the next chunk: it goes with its trigger.
                 CheckSign(sign, $"{id}'s sign", file, error);
             }
         }

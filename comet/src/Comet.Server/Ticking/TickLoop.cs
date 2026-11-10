@@ -2,9 +2,6 @@ using System.Diagnostics;
 
 namespace Comet.Server.Ticking;
 
-/// <summary>How one tick went, reported after it runs.</summary>
-/// <param name="Lateness">How long after its scheduled time the tick started.</param>
-/// <param name="Work">How long the tick's work took.</param>
 public readonly record struct TickTiming(uint Tick, TimeSpan Lateness, TimeSpan Work);
 
 /// <summary>
@@ -39,10 +36,8 @@ public sealed class TickLoop
 
     public TimeSpan Period { get; }
 
-    /// <summary>The last tick started. Safe to read from any thread.</summary>
     public uint CurrentTick => Volatile.Read(ref _tick);
 
-    /// <summary>Called on the tick thread after each tick.</summary>
     public event Action<TickTiming>? TickCompleted;
 
     /// <summary>
@@ -53,7 +48,6 @@ public sealed class TickLoop
 
     public void Start() => _thread.Start();
 
-    /// <summary>Stops after the current tick, waiting for it unless called from the tick thread itself.</summary>
     public void Stop()
     {
         _stopping = true;
@@ -100,7 +94,6 @@ public sealed class TickLoop
             var now = Stopwatch.GetTimestamp();
             if (now >= scheduled)
             {
-                // Overran: start the next tick now and schedule from here, without catching up.
                 scheduled = now;
                 continue;
             }

@@ -6,12 +6,10 @@ using System.Threading.Tasks;
 
 namespace Comet.Client.Login
 {
-    /// <summary>The Login server over <see cref="HttpClient"/>, for bots and tools (the web build uses UnityWebRequest).</summary>
     public sealed class HttpLoginTransport : ILoginTransport
     {
         private readonly HttpClient _http;
 
-        /// <param name="http">A client whose <see cref="HttpClient.BaseAddress"/> is the Login server.</param>
         public HttpLoginTransport(HttpClient http) => _http = http;
 
         public async Task<LoginHttpResponse> SendAsync(string method, string path, string? json, string? bearerToken)

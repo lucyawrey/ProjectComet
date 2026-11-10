@@ -12,7 +12,6 @@ public class FeatureEdgesTests
         Assert.Equal(24, lines.Length);
         for (var i = 0; i < lines.Length; i += 2)
         {
-            // Each edge runs along one axis: a face diagonal would change two coordinates.
             var changed = (lines[i].X != lines[i + 1].X ? 1 : 0) + (lines[i].Y != lines[i + 1].Y ? 1 : 0) + (lines[i].Z != lines[i + 1].Z ? 1 : 0);
             Assert.Equal(1, changed);
         }

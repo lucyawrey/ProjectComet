@@ -7,10 +7,8 @@ namespace Comet.Server.Joining;
 
 public enum JoinFailure
 {
-    /// <summary>Malformed, wrongly signed or for an unknown key.</summary>
     BadTicket,
 
-    /// <summary>Expired, or issued before this server started: fetch a new one.</summary>
     ExpiredTicket,
 
     UsedTicket,
@@ -18,23 +16,16 @@ public enum JoinFailure
 
     NoCharacter,
 
-    /// <summary>The database didn't hand over the character within the claim deadline.</summary>
     Busy,
 
-    /// <summary>A newer join for the same character came in while this one was still claiming.</summary>
     Replaced,
 }
 
-/// <summary>The game's side of <see cref="JoinedCharacters{TConnection, TCharacter}"/>, called on the tick thread.</summary>
 public interface IJoinHost<TConnection, TCharacter>
     where TCharacter : Character
 {
     void JoinFailed(TConnection connection, JoinFailure failure);
 
-    /// <summary>
-    /// The character is claimed for the connection: put it in the world, at <paramref name="claim"/>'s position or the
-    /// game's fallback.
-    /// </summary>
     void Joined(TConnection connection, CharacterClaim<TCharacter> claim);
 
     /// <summary>
@@ -53,18 +44,16 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     where TConnection : class
     where TCharacter : Character
 {
-    private readonly TicketChecker? _tickets; // none on a development server that joins without tickets
+    private readonly TicketChecker? _tickets;
     private readonly ICharacterRepository<TCharacter> _repository;
-    private readonly TimeSpan _claimDeadline; // for the database to hand over a character, or the join fails as Busy
+    private readonly TimeSpan _claimDeadline;
     private readonly ILogger _logger;
 
-    // Finished background work, for the tick thread.
     private readonly ConcurrentQueue<Action<IJoinHost<TConnection, TCharacter>>> _done = new();
 
     private readonly Dictionary<TConnection, Pending> _pending = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<TConnection, Binding> _joined = new(ReferenceEqualityComparer.Instance);
 
-    // The connection that has (or is claiming) each character: the newest join.
     private readonly Dictionary<long, TConnection> _holders = [];
 
     public JoinedCharacters(TicketChecker? tickets, ICharacterRepository<TCharacter> repository, TimeSpan claimDeadline, ILogger logger)
@@ -78,7 +67,6 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
 
     public int Count => _joined.Count;
 
-    /// <summary>Starts a join with a ticket; false if the connection already joined or is joining.</summary>
     public bool Begin(TConnection connection, string ticket)
     {
         if (_pending.ContainsKey(connection) || _joined.ContainsKey(connection))
@@ -96,10 +84,6 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         return true;
     }
 
-    /// <summary>
-    /// Starts a join without a ticket, for a character the game has already picked (a development server without
-    /// accounts). The character must not be playing or joining (<see cref="IsPlaying"/>): this never replaces anyone.
-    /// </summary>
     public bool Begin(TConnection connection, long characterId, long accountId)
     {
         if (_pending.ContainsKey(connection) || _joined.ContainsKey(connection) || IsPlaying(characterId))
@@ -113,10 +97,8 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         return true;
     }
 
-    /// <summary>Whether a connection plays the character, or is joining as it.</summary>
     public bool IsPlaying(long characterId) => _holders.ContainsKey(characterId);
 
-    /// <summary>Runs finished joins, refused saves and drops. Call once per tick.</summary>
     public void Update(IJoinHost<TConnection, TCharacter> host)
     {
         while (_done.TryDequeue(out var work))
@@ -133,7 +115,6 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         return found;
     }
 
-    /// <summary>Queues a status save for the connection's character (nothing if it hasn't joined).</summary>
     public void SaveStatus(TConnection connection, CharacterPosition position)
     {
         if (_joined.TryGetValue(connection, out var binding))
@@ -150,7 +131,6 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
         }
     }
 
-    /// <summary>The connection left (or was dropped by the game): writes its final save and releases its character.</summary>
     public Task Leave(TConnection connection, CharacterPosition? position)
     {
         if (_pending.Remove(connection, out var pending))
@@ -181,7 +161,7 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     {
         if (pending.Abandoned)
         {
-            return; // the connection closed meanwhile
+            return;
         }
 
         if (ticket == null)
@@ -242,7 +222,6 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
     {
         if (pending.Abandoned)
         {
-            // Closed or replaced while claiming: let the character go (refused harmlessly if a newer claim took it).
             if (claim.Outcome == ClaimOutcome.Claimed)
             {
                 _ = _repository.LeaveAsync(characterId, claim.Version, null);
@@ -261,7 +240,6 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
 
         if (claim.Character!.AccountId != accountId)
         {
-            // A ticket naming someone else's character: never issued by our Login server.
             _logger.LogWarning("A join for account {Account} named character {Character} of another account", accountId, characterId);
             _ = _repository.LeaveAsync(characterId, claim.Version, null);
             ForgetHolder(connection, characterId);
@@ -275,7 +253,6 @@ public sealed class JoinedCharacters<TConnection, TCharacter>
 
     private void Refuse(IJoinHost<TConnection, TCharacter> host, SaveRefused refused)
     {
-        // Only the connection playing that character under that version: a newer one keeps playing.
         if (
             _holders.TryGetValue(refused.CharacterId, out var connection)
             && _joined.TryGetValue(connection, out var binding)

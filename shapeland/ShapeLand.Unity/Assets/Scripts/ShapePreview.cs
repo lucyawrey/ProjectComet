@@ -4,11 +4,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The join card's turning shape (<c>Assets/Prefabs/ShapePreview.prefab</c>): the chosen shape, built like any
-    /// player's, in front of its own camera on a layer the main camera doesn't draw (<see cref="GameView.PreviewLayer"/>),
-    /// far below the island, and shown on the card through a render texture.
-    /// </summary>
     public sealed class ShapePreview : MonoBehaviour
     {
         [SerializeField]
@@ -25,7 +20,6 @@ namespace ShapeLand.Client
         private ShapeBody _shape;
         private Quaternion _facing = Quaternion.Euler(0, 200, 0);
 
-        /// <summary>Draws into <paramref name="target"/>'s background from now on.</summary>
         public void ShowIn(VisualElement target)
         {
             _texture = new RenderTexture(textureSize, textureSize, 24, RenderTextureFormat.ARGB32) { name = "Shape preview" };
@@ -33,7 +27,6 @@ namespace ShapeLand.Client
             target.style.backgroundImage = Background.FromRenderTexture(_texture);
         }
 
-        /// <summary>Shows <paramref name="shape"/> in the given colors, keeping the way the last one faced.</summary>
         public void Show(GameView view, Shape shape, uint color, uint eyeColor)
         {
             if (_shape != null)

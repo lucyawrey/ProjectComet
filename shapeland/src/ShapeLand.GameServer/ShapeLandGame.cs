@@ -107,7 +107,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
             ShapeLandMessageIds.NameChanged => new Input(connection, InputKind.NameChanged),
             ShapeLandMessageIds.ChatSend => new Input(connection, InputKind.Chat) { Chat = FrameReader.Decode<ChatSend>(payload, options) },
             ShapeLandMessageIds.ReturnToSpawn => new Input(connection, InputKind.Return),
-            _ => null, // unknown or not for the server: ignored, so older servers tolerate newer clients
+            _ => null,
         };
         if (input is not null)
         {
@@ -128,7 +128,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                 && (!_players.TryGetValue(input.Connection, out var from) || from.Dropped)
             )
             {
-                continue; // a dropped player's inputs, until its connection closes
+                continue;
             }
 
             switch (input.Kind)
@@ -168,8 +168,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
         _joins.Update(this);
 
-        // Players silent in the air fall, so going quiet mid-jump can't be used to hover. Connections that never join
-        // are dropped so they can't hold a place (a join in progress has its own deadline).
         var seconds = (float)tick / ShapeLandRules.TickRate;
         foreach (var player in _players.Values)
         {
@@ -238,7 +236,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         }
     }
 
-    // A name that's playing is refused before the claim, so a dev join never replaces anyone.
     private void DevJoin(Player player, DevJoinRequest request, uint tick)
     {
         if (!CanJoin(player, request.ContentFingerprint, tick))
@@ -278,7 +275,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     {
         if (player.Joining || player.Joined || !player.JoinLimiter.TryTake(tick))
         {
-            // One join at a time, and retries after a failure only at a pace no honest client exceeds.
             player.Connection.Disconnect();
             return false;
         }
@@ -321,7 +317,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     {
         if (!_players.TryGetValue(connection, out var player))
         {
-            _ = _joins.Leave(connection, null); // closed meanwhile
+            _ = _joins.Leave(connection, null);
             return;
         }
 
@@ -416,7 +412,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         player.Zone = zone;
         player.Validator = new MovementValidator(zone.World, _content.Movement, _tolerances, ShapeLandRules.TickRate);
         player.Validator.Reset(feet, facing, tick);
-        player.PlacedByServer(tick); // the others learn of them from the spawn, not a state
+        player.PlacedByServer(tick);
 
         var connection = player.Connection;
         connection.SendEvent(
@@ -433,7 +429,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         connection.SendEvent(ShapeLandMessageIds.SpawnSet, new SpawnSet { Spawn = player.SpawnPoint.Number });
         if (atSpawn)
         {
-            // Standing on the spawn already: it isn't claimed again until they step out and in.
             player.SpawnCharge.Arrived(player.SpawnPoint, player.SpawnPoint.Volume);
         }
 
@@ -526,7 +521,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         _logger.LogInformation("{OldName} is now {Name}", oldName, name);
     }
 
-    // The snap-back makes the reports still in flight, moved with the old shape's speed and jump, stale.
     private static void Respawn(Player player, uint tick)
     {
         player.Connection.SendEvent(MessageIds.PositionCorrection, player.Validator.Correct(CorrectionReason.SnapBack, tick));
@@ -560,7 +554,7 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         switch (verdict)
         {
             case MovementVerdict.Accepted:
-                player.StateTick = player.Stamp.Broadcast; // shifted by the player's latency (StateStamp)
+                player.StateTick = player.Stamp.Broadcast;
                 player.Moved = true;
                 break;
             case MovementVerdict.Stale:
@@ -569,8 +563,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
                 ToSpawn(player, tick);
                 break;
             default:
-                // Never banned automatically. Logged at the 1st, 10th, 100th… violation so a cheater doesn't flood
-                // the log.
                 if (IsPowerOfTen(player.Validator.Violations))
                 {
                     _logger.LogWarning(
@@ -593,7 +585,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     {
         var wasFalling = player.Validator.ServerFalling;
         var result = player.Validator.Fall(tick, player.Shape.MaxSpeed, player.Shape.JumpVelocity);
-        // A fall that began during a long silence can land on the very tick the server takes it over.
         if (!wasFalling && result != FallResult.None)
         {
             player.ServerFalls++;
@@ -696,7 +687,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
         zone.Players.Remove(player);
         foreach (var other in zone.Players)
         {
-            // A state still queued would follow the despawn in the next frame (events go first).
             other.Connection.EntityStates.Remove(player.EntityId);
             other.Connection.SendEvent(MessageIds.EntityDespawn, new EntityDespawn { EntityId = player.EntityId });
             player.Connection.EntityStates.Remove(other.EntityId);
@@ -736,7 +726,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
             return;
         }
 
-        // Not logged: ShapeLand's chat keeps nothing.
         var message = new ChatMessage
         {
             EntityId = player.EntityId,
@@ -756,12 +745,12 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
     {
         if (!_players.Remove(connection, out var player) || !player.Joined)
         {
-            _ = _joins.Leave(connection, null); // a join in progress lets its character go
+            _ = _joins.Leave(connection, null);
             return;
         }
 
         LeaveZone(player);
-        _ = _joins.Leave(connection, PositionOf(player)); // the final save, then the character is released
+        _ = _joins.Leave(connection, PositionOf(player));
 
         _logger.LogInformation(
             "{Name} left ({Players} online); {Violations} movement violations, {Falls} falls finished by the server, {Clamped} of {Stamps} stamps clamped",
@@ -817,9 +806,6 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
 
         public string Name { get; init; } = "";
 
-        /// <summary>
-        /// The report frame's header: the client's estimate of the server tick when it sent the report.
-        /// </summary>
         public uint ClientTick { get; init; }
     }
 }

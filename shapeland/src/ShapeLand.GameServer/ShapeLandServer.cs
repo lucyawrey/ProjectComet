@@ -21,7 +21,6 @@ public static class ShapeLandServer
 {
     public static WebApplication Build(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
-        // Settings load from the build output, so the server can be started from any folder.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
         configure?.Invoke(builder);
         builder.AddCometLogFile();
@@ -46,7 +45,6 @@ public static class ShapeLandServer
         }
 #endif
 
-        // Tests put an in-memory repository and their own ticket keys in first.
         builder.Services.TryAddSingleton<ICharacterRepository<ShapeLandCharacter>>(services =>
         {
             var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
@@ -144,7 +142,6 @@ public static class ShapeLandServer
         app.UseWebSockets();
         app.MapCometWebSocket("/ws");
 
-        // Any page may ask: the web page may be served from a CDN on another host.
         app.MapGet(
             "/health",
             (HttpContext context) =>
@@ -167,8 +164,6 @@ public static class ShapeLandServer
 #if DEBUG
         if (devJoins)
         {
-            // Stops the server the way Ctrl+C does (spots saved, the snapshot written) rather than killing it, on every
-            // platform. Only from this computer.
             app.MapPost(
                 "/dev/stop",
                 (HttpContext context, IHostApplicationLifetime lifetime) =>
@@ -185,13 +180,11 @@ public static class ShapeLandServer
         }
 #endif
 
-        app.Services.GetRequiredService<LoadedContent>(); // a missing content file stops the server now
+        app.Services.GetRequiredService<LoadedContent>();
         return app;
     }
 
 #if DEBUG
-    // Positions are saved every few seconds so a server that's killed rather than stopped loses little of where
-    // everyone stood.
     private static void AddDevCharacters(WebApplicationBuilder builder)
     {
         builder.Services.AddSingleton(services =>
@@ -224,8 +217,6 @@ public static class ShapeLandServer
     }
 #endif
 
-    // Hosted services start before the server listens. Waits for the database (the Login server migrates it, and
-    // makes the ticket keys before that).
     private sealed class GameStartup(IServiceProvider services, IHostApplicationLifetime lifetime, ILogger<GameStartup> logger) : IHostedService
     {
         private static readonly TimeSpan FlushTimeout = TimeSpan.FromSeconds(10);
@@ -233,13 +224,12 @@ public static class ShapeLandServer
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             await services.GetRequiredService<ICharacterRepository<ShapeLandCharacter>>().StartAsync(cancellationToken);
-            var game = services.GetRequiredService<ShapeLandGame>(); // loads the content and builds the worlds
+            var game = services.GetRequiredService<ShapeLandGame>();
             logger.LogInformation("Playing {Zones}", string.Join(", ", game.Content.Zones.All.Select(z => z.Id)));
 
             var tickLoop = services.GetRequiredService<TickLoop>();
             tickLoop.Failed += (tick, e) =>
             {
-                // Fail fast: the world may be half-updated, so stop rather than play on; the host flushes the log.
                 logger.LogCritical(e, "The game failed on tick {Tick}; stopping the server", tick);
                 Environment.ExitCode = 1;
                 lifetime.StopApplication();

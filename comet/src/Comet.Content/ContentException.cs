@@ -2,7 +2,6 @@ using System;
 
 namespace Comet.Content
 {
-    /// <summary>Content is missing, unknown or malformed.</summary>
     public sealed class ContentException : Exception
     {
         public ContentException(string message)

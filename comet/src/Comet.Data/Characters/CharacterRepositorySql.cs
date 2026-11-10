@@ -1,8 +1,5 @@
 namespace Comet.Data.Characters;
 
-/// <summary>
-/// Hand-written SQL for what EF Core can't express: an upsert that returns a value, batched writes, row locks.
-/// </summary>
 internal static class CharacterRepositorySql
 {
     private const string Character = $"{CometRegion.Schema}.{CometRegion.CharacterTable}";

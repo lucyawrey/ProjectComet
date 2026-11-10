@@ -7,7 +7,6 @@ namespace ShapeLand.Data;
 
 public class ShapeLandRegionContext(DbContextOptions<ShapeLandRegionContext> options) : CometRegionContext<ShapeLandCharacter>(options);
 
-// For dotnet ef (migrations) and the model checks in tests, which need a context without a server. It never connects.
 public sealed class RegionContextFactory : IDesignTimeDbContextFactory<ShapeLandRegionContext>
 {
     public ShapeLandRegionContext CreateDbContext(string[] args)

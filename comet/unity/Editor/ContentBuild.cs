@@ -9,10 +9,6 @@ using Debug = UnityEngine.Debug;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Builds a game's content and keeps the copy that play mode and its tests read (StreamingAssets, git ignored) the
-    /// same as the build's output: copied after each build, when scripts load and as play mode starts.
-    /// </summary>
     [InitializeOnLoad]
     public static class ContentBuild
     {
@@ -33,10 +29,8 @@ namespace Comet.Unity.Editor
             ZoneEditor.Saved += _ => Build();
         }
 
-        /// <summary>Raised with the content after each copy, whether or not it changed.</summary>
         public static event Action<byte[]>? Copied;
 
-        /// <summary>The content build's output, as a full path; null if the settings don't name one.</summary>
         public static string? Source
         {
             get
@@ -49,7 +43,6 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Content/Build", priority = 20)]
         private static void BuildMenu() => Build();
 
-        /// <summary>A build asked for during another runs after it.</summary>
         public static void Build()
         {
             var settings = CometSettings.Find(quiet: false);
@@ -129,7 +122,6 @@ namespace Comet.Unity.Editor
                     Debug.Log("Built the content and copied it in.");
                 }
 
-                // Warnings (such as blockout placements) don't stop the build, but are worth seeing.
                 if (!failed)
                 {
                     lock (output)
@@ -151,7 +143,6 @@ namespace Comet.Unity.Editor
             EditorApplication.update += Poll;
         }
 
-        /// <summary>Returns false if there is no build output yet.</summary>
         public static bool Copy()
         {
             var source = Source;

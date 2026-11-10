@@ -2,16 +2,6 @@ using System;
 
 namespace Comet.Client
 {
-    /// <summary>
-    /// Estimates the server's tick from pings. Two timelines come out of it: <see cref="ServerTick"/>, the
-    /// tick the server is on now (for stamping inputs), and <see cref="ReceiveTick"/>, the tick of frames
-    /// arriving now (half a round trip behind), which interpolation draws behind.
-    /// </summary>
-    /// <remarks>
-    /// The lowest round trip among the last <see cref="SampleCount"/> pongs is trusted (it waited in the fewest queues); the server is
-    /// about half a round trip past its frame's stamp. Estimates slew toward it (at most <see cref="MaxSlew"/>) so drawing doesn't stutter,
-    /// and jump past <see cref="JumpSeconds"/>. Times are seconds on the caller's monotonic clock.
-    /// </remarks>
     public sealed class ServerClock
     {
         public const int SampleCount = 10;
@@ -19,7 +9,6 @@ namespace Comet.Client
         /// <summary>How much faster or slower than real time the estimates may run while catching up (0.05 is 5%).</summary>
         public const double MaxSlew = 0.05;
 
-        /// <summary>Off by more than this, in seconds, the estimates jump instead of slewing.</summary>
         public const double JumpSeconds = 0.25;
 
         private readonly Sample[] _samples = new Sample[SampleCount];
@@ -43,22 +32,17 @@ namespace Comet.Client
 
         public int TickRate { get; }
 
-        /// <summary>True once a pong has arrived; before that the estimate comes from frame headers alone.</summary>
         public bool Synced => _sampleTotal > 0;
 
         /// <summary>The trusted sample's round trip, in seconds (0 before the first pong).</summary>
         public double RoundTrip { get; private set; }
 
-        /// <summary>The latest pong's round trip, in seconds (0 before the first pong).</summary>
         public double LastRoundTrip { get; private set; }
 
-        /// <summary>The tick the server is on at <paramref name="now"/>, with a fraction.</summary>
         public double ServerTick(double now) => now * TickRate + _serverOffset;
 
-        /// <summary>The tick of frames arriving at <paramref name="now"/>, with a fraction.</summary>
         public double ReceiveTick(double now) => now * TickRate + _receiveOffset;
 
-        /// <summary>A frame arrived. Until the first pong, this sets a rough estimate (no round trip known yet).</summary>
         public void OnFrame(uint tick, double now)
         {
             if (_started)
@@ -120,7 +104,6 @@ namespace Comet.Client
             return current + Math.Max(-maxStep, Math.Min(maxStep, difference));
         }
 
-        // A frame stamped with tick T is sent while the server is somewhere in tick T, so assume its middle.
         private static double Center(uint tick) => tick + 0.5;
 
         private readonly struct Sample
@@ -133,7 +116,6 @@ namespace Comet.Client
 
             public double RoundTrip { get; }
 
-            /// <summary>The receive-tick offset this sample implies: the frame's tick against its arrival time.</summary>
             public double ArrivalOffset { get; }
         }
     }

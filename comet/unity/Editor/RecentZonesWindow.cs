@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// The zones opened lately on this computer (<see cref="ZoneEditor.Recent"/>), one button each. Closes on picking
-    /// one or on clicking away.
-    /// </summary>
     internal sealed class RecentZonesWindow : EditorWindow
     {
         internal static new void Show()

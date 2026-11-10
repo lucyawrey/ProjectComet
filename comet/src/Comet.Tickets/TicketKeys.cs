@@ -3,10 +3,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Comet.Tickets;
 
-/// <summary>
-/// ECDSA P-256 keys for join tickets, as PEM. Game servers accept every public key in a folder, so old and new keys
-/// both work during a rotation.
-/// </summary>
 public static class TicketKeys
 {
     public static (string PrivatePem, string PublicPem) Create()

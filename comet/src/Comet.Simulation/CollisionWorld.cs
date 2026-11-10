@@ -10,26 +10,22 @@ namespace Comet.Simulation
     /// </summary>
     public sealed class CollisionWorld
     {
-        // // Triangles go into square cells of the ground plane, so a query looks only at those near it.
         private const float CellSize = 4f;
         private const float Epsilon = 0.001f;
 
         // // How far below a clear body IsWedged looks for support: more than TryRest's millimeter.
         private const float WedgeDepth = 0.01f;
 
-        // // So the body ends clear rather than exactly against the surface.
         private const float PushMargin = 0.002f;
 
         private readonly List<CollisionMesh> _meshes;
 
         private readonly float _walkableNormalY;
 
-        // // Terrain meshes aren't closed, so are never "inside", and aren't obstacles for the camera.
         private readonly bool[] _terrain;
         private readonly Vector3[] _corners;
         private readonly Vector3[] _normals;
 
-        // // Each triangle's lowest cell on each axis: a query spanning several cells looks at it only in the first it's listed in.
         private readonly (int X, int Z)[] _firstCells;
 
         private readonly int[] _meshOf;
@@ -151,10 +147,6 @@ namespace Comet.Simulation
             }
         }
 
-        /// <summary>
-        /// This world with its own flips, for one player's view of a shared world (a bot's) so flips don't
-        /// race; shares the terrain and meshes.
-        /// </summary>
         public CollisionWorld WithOwnFlips() => new CollisionWorld(this);
 
         public ZoneTerrain? Terrain { get; }
@@ -168,7 +160,6 @@ namespace Comet.Simulation
 
         public bool IsOn(int mesh) => !_off[mesh];
 
-        /// <summary>Flips the meshes tagged <paramref name="tag"/> from how they start (<paramref name="flipped"/>), or back.</summary>
         public void SetFlipped(string tag, bool flipped)
         {
             var off = (bool[])_off.Clone();
@@ -180,7 +171,6 @@ namespace Comet.Simulation
             _off = off;
         }
 
-        /// <summary>Whether a body at <paramref name="feet"/> overlaps mesh <paramref name="mesh"/>, on or off.</summary>
         public bool Overlaps(int mesh, Vector3 feet, float radius, float bodyHeight) =>
             TouchesMesh(feet, radius, bodyHeight, null, only: mesh) || IsInsideMesh(feet + new Vector3(0, bodyHeight / 2, 0), null, only: mesh);
 
@@ -244,7 +234,6 @@ namespace Comet.Simulation
             var off = _off;
             var line = to - from;
 
-            // // A grid walk; a triangle in several cells may be tested more than once, which is harmless for a yes or no.
             int x = Cell(from.X),
                 z = Cell(from.Z),
                 endX = Cell(to.X),
@@ -294,7 +283,7 @@ namespace Comet.Simulation
             var determinant = Vector3.Dot(ab, p);
             if (MathF.Abs(determinant) < 1e-9f)
             {
-                return false; // parallel to its plane
+                return false;
             }
 
             var inverse = 1 / determinant;
@@ -337,18 +326,12 @@ namespace Comet.Simulation
             return found;
         }
 
-        /// <summary>Whether a body at <paramref name="feet"/> touches a triangle or is wholly inside a mesh or terrain piece.</summary>
         public bool IsBlocked(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
             var middle = feet + new Vector3(0, bodyHeight / 2, 0);
             return TouchesMesh(feet, radius, bodyHeight, passThrough) || IsInsideMesh(middle, passThrough) || IsInsideTerrain(middle, 0);
         }
 
-        /// <summary>
-        /// Whether a clear body is held up without walkable ground: a little lower it would overlap
-        /// something no sideways push gets it out of (a V of steep faces). A lone steep face still slides
-        /// it off.
-        /// </summary>
         public bool IsWedged(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
             var lower = feet - new Vector3(0, WedgeDepth, 0);
@@ -452,9 +435,6 @@ namespace Comet.Simulation
                             continue;
                         }
 
-                        // // Away from the triangle's surface, seen from above (level ones
-                        // can't be left sideways), far enough that the whole cut triangle is
-                        // a radius behind the body.
                         var away = Flat(_normals[t]);
                         if (away.LengthSquared() < 0.01f)
                         {
@@ -480,7 +460,6 @@ namespace Comet.Simulation
             return deepest;
         }
 
-        // // A hair smaller than the body, so resting on a surface or against a wall isn't touching it.
         private bool TouchesMesh(Vector3 feet, float radius, float bodyHeight, ISet<int>? passThrough, int only = -1)
         {
             var off = _off;
@@ -563,7 +542,6 @@ namespace Comet.Simulation
                 return false;
             }
 
-            // // A vertical triangle (no area seen from above) isn't crossed.
             var normal = Vector3.Cross(b - a, c - a);
             if (MathF.Abs(normal.Y) < 1e-8f)
             {
@@ -574,10 +552,6 @@ namespace Comet.Simulation
             return y > p.Y;
         }
 
-        /// <summary>
-        /// Whether <paramref name="position"/> is inside a terrain piece: below its ground by more than
-        /// <paramref name="slack"/> and above its bottom.
-        /// </summary>
         public bool IsInsideTerrain(Vector3 position, float slack)
         {
             if (Terrain == null)
@@ -611,9 +585,6 @@ namespace Comet.Simulation
             return x == Math.Max(firstX, fromX) && z == Math.Max(firstZ, fromZ);
         }
 
-        // // Height is linear over a triangle, so its highest point in the overlap is on the overlap's edge:
-        // a corner in the circle, an edge's crossing, or the circle's uphill point. Minus infinity if they
-        // don't meet.
         private float HighestInCircle(int t, Vector3 feet, float r)
         {
             var a = _corners[3 * t];
@@ -660,7 +631,6 @@ namespace Comet.Simulation
                 }
             }
 
-            // // Level ground has no uphill; the feet's own point stands in.
             var uphill = new Vector2(-normal.X, -normal.Z);
             var point = uphill.LengthSquared() > 1e-12f ? Flat(feet) + Vector2.Normalize(uphill) * r : Flat(feet);
             var spot = new Vector3(point.X, 0, point.Y);
@@ -692,10 +662,9 @@ namespace Comet.Simulation
                     return true;
                 }
 
-                // // An outline with no area seen from above (a wall) has no inside.
                 if ((q - p).LengthSquared() < 1e-12f)
                 {
-                    continue; // a corner repeated by the clipping
+                    continue;
                 }
 
                 var side = Cross(q - p, center - p);
@@ -769,7 +738,6 @@ namespace Comet.Simulation
             return Vector2.DistanceSquared(point, p + s * d);
         }
 
-        // Edges count as over.
         private static bool Over(Vector3 point, Vector3 a, Vector3 b, Vector3 c)
         {
             var d1 = (point.X - b.X) * (a.Z - b.Z) - (a.X - b.X) * (point.Z - b.Z);

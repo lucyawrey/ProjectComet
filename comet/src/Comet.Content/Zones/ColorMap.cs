@@ -3,9 +3,6 @@ using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// Painted terrain colors, one per height sample, on the same grid as the heightmap tile they belong to.
-    /// </summary>
     [MessagePackObject]
     public sealed class ColorMap
     {

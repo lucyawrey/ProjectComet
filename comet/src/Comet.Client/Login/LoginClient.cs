@@ -4,7 +4,6 @@ using Comet.Protocol.Login;
 
 namespace Comet.Client.Login
 {
-    /// <summary>An HTTP response from the Login server, or a network failure (<see cref="Status"/> 0).</summary>
     public readonly struct LoginHttpResponse
     {
         public LoginHttpResponse(int status, string body)
@@ -18,10 +17,6 @@ namespace Comet.Client.Login
         public bool Succeeded => Status >= 200 && Status < 300;
     }
 
-    /// <summary>
-    /// Sends HTTP requests to the Login server: <c>UnityWebRequest</c> in the game (which works on web), plain
-    /// <c>HttpClient</c> for the bots (<see cref="HttpLoginTransport"/>).
-    /// </summary>
     public interface ILoginTransport
     {
         /// <summary>
@@ -31,7 +26,6 @@ namespace Comet.Client.Login
         Task<LoginHttpResponse> SendAsync(string method, string path, string? json, string? bearerToken);
     }
 
-    /// <summary>Where the session token is kept between visits (PlayerPrefs in the game, a file for bots).</summary>
     public interface ITokenStore
     {
         string? Load();
@@ -40,10 +34,6 @@ namespace Comet.Client.Login
         void Save(string? token);
     }
 
-    /// <summary>
-    /// A Login server call's result: the value, or an error code (<see cref="LoginErrors"/> or <see
-    /// cref="LoginClient{TCharacter}.Unreachable"/>).
-    /// </summary>
     public readonly struct LoginResult<T>
     {
         public LoginResult(T value)
@@ -65,11 +55,6 @@ namespace Comet.Client.Login
         public static LoginResult<T> Failed(string error) => new LoginResult<T>(error);
     }
 
-    /// <summary>
-    /// The Login server's client: keeps the session token (<see cref="ITokenStore"/>), sends it with signed-in calls,
-    /// and forgets it when the server says it's no longer good (<see cref="LoginErrors.SignedOut"/>).
-    /// <typeparamref name="TCharacter"/> is how the game's Login server describes a character.
-    /// </summary>
     public sealed class LoginClient<TCharacter>
     {
         private static readonly JsonSerializerOptions Json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -95,10 +80,6 @@ namespace Comet.Client.Login
         public Task<LoginResult<bool>> SignInAsync(string username, string password) =>
             StartSessionAsync(LoginPaths.SignIn, new SignInRequest { Username = username, Password = password });
 
-        /// <summary>
-        /// Signs in again (for a change that needs a recent sign-in), replacing this device's session rather than
-        /// adding one: the old session is revoked, best effort, once the new one is kept.
-        /// </summary>
         public async Task<LoginResult<bool>> SignInAgainAsync(string username, string password)
         {
             var old = Token;
@@ -114,7 +95,6 @@ namespace Comet.Client.Login
         public Task<LoginResult<bool>> SignInWithCodeAsync(string code) =>
             StartSessionAsync(LoginPaths.SignInWithCode, new RecoveryCodeSignInRequest { Code = code });
 
-        /// <summary>Restores a deleted account (after a sign-in said <see cref="LoginErrors.AccountDeleted"/>) and signs in.</summary>
         public Task<LoginResult<bool>> RestoreAsync(string username, string password, string? recoveryCode = null) =>
             StartSessionAsync(
                 LoginPaths.Restore,
@@ -138,7 +118,6 @@ namespace Comet.Client.Login
 
         public Task<LoginResult<TicketResponse>> GetTicketAsync() => SendAsync<TicketResponse>("POST", LoginPaths.Ticket, null);
 
-        /// <summary>Signs out on the server (best effort) and forgets the token either way.</summary>
         public async Task SignOutAsync()
         {
             if (Token != null)
@@ -149,7 +128,6 @@ namespace Comet.Client.Login
             Forget();
         }
 
-        /// <summary>Forgets the token without telling the server.</summary>
         public void Forget()
         {
             Token = null;
@@ -211,7 +189,6 @@ namespace Comet.Client.Login
             }
         }
 
-        // The Problem Details' code, or a generic one for an answer that isn't ours (a proxy's error page).
         private static string ErrorCode(LoginHttpResponse response)
         {
             try

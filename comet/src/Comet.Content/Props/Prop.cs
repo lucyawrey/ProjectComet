@@ -5,13 +5,9 @@ using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// A model placed in zones. The content build bakes its collision triangles and bounds into the content file, so server and client collide alike.
-    /// </summary>
     [MessagePackObject]
     public sealed class Prop : IContentEntry
     {
-        /// <summary>Marks the objects in a model that make up its collision mesh (<c>Cube-col</c>).</summary>
         public const string CollisionSuffix = "-col";
 
         [JsonIgnore]
@@ -27,7 +23,6 @@ namespace Comet.Content
         [Key(2)]
         public string Model { get; set; } = "";
 
-        /// <summary>Whether placements may only scale it evenly on every axis (for detailed models that look wrong stretched).</summary>
         [Key(3)]
         public bool UniformScale { get; set; }
 
@@ -39,12 +34,10 @@ namespace Comet.Content
         [Key(4)]
         public Vector3[] Collision { get; set; } = Array.Empty<Vector3>();
 
-        /// <summary>The low corner of the box around all its meshes, in its own space.</summary>
         [JsonIgnore]
         [Key(5)]
         public Vector3 BoundsMin { get; set; }
 
-        /// <summary>The high corner of that box.</summary>
         [JsonIgnore]
         [Key(6)]
         public Vector3 BoundsMax { get; set; }

@@ -4,13 +4,11 @@ public sealed record JoinTicket(string TicketId, long AccountId, long CharacterI
 
 public enum TicketRejection
 {
-    /// <summary>Malformed, wrongly signed, signed by an unknown key, or another algorithm than ES256.</summary>
     Invalid,
     Expired,
 
     WrongServer,
 
-    /// <summary>Already used to join this server.</summary>
     Used,
 }
 

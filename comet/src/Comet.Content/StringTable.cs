@@ -24,7 +24,6 @@ namespace Comet.Content
 
         public void SetVariant(string? variant) => _variant = variant;
 
-        /// <summary>Sets a value that fills <c>{name}</c> in every text, unless a message gives its own.</summary>
         public void SetShared(string name, string value)
         {
             if (_shared.TryGetValue(name, out var old) && old == value)
@@ -36,18 +35,13 @@ namespace Comet.Content
             SharedChanged?.Invoke();
         }
 
-        /// <summary>The text with no placeholders filled in, or <c>[key]</c>.</summary>
         public string Raw(string key) =>
             _variant != null && Entries.TryGetValue($"{key}_{_variant}", out var variant) ? variant
             : Entries.TryGetValue(key, out var text) ? text
             : $"[{key}]";
 
-        /// <summary>The text with the shared values filled in, or <c>[key]</c>.</summary>
         public string Get(string key) => Format(key);
 
-        /// <summary>
-        /// The text with each <c>{name}</c> replaced from <paramref name="values"/>, else the shared value; one with neither is left as written.
-        /// </summary>
         public string Format(string key, params (string Name, object Value)[] values)
         {
             var text = Raw(key);
@@ -56,7 +50,6 @@ namespace Comet.Content
                 return text;
             }
 
-            // One pass over the text, so a value that itself holds a {name} is left as it is.
             var result = new StringBuilder(text.Length);
             var at = 0;
             while (at < text.Length)

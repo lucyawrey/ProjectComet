@@ -3,13 +3,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// A question over the dimmed screen, in the Esc menu's Leave game style: a title, a note and a column of buttons,
-    /// risky ones red, one after safe ones set apart below them. A confirm leads with the action the player was heading
-    /// for, unless it loses something for good. Choosing one closes it. Keys and a gamepad move a selection through
-    /// the choices (<see cref="Move"/>, <see cref="Choose"/>), shown only while the host has <c>navigating</c>.
-    /// Built in code so the join card and the Account page share it. Pointer and touch only for now.
-    /// </summary>
     public sealed class ConfirmPanel
     {
         private readonly VisualElement _overlay;
@@ -22,7 +15,6 @@ namespace ShapeLand.Client
         )>();
         private int _selected;
 
-        /// <summary>Adds the (hidden) panel to <paramref name="host"/>, which gets <c>confirming</c> while it's up.</summary>
         public ConfirmPanel(VisualElement host)
         {
             _host = host;
@@ -35,13 +27,8 @@ namespace ShapeLand.Client
             host.Add(_overlay);
         }
 
-        /// <summary>True while the panel is up.</summary>
         public bool Open => !_overlay.ClassListContains("hidden");
 
-        /// <summary>
-        /// Asks <paramref name="title"/>. <paramref name="cancel"/> runs on Esc (<see cref="Cancel"/>); each choice runs
-        /// its action after the panel closes.
-        /// </summary>
         public void Show(string title, string note, Action cancel, params (string Text, bool Risky, Action Chosen)[] choices)
         {
             _cancel = cancel;
@@ -83,14 +70,12 @@ namespace ShapeLand.Client
             _host.AddToClassList("confirming");
         }
 
-        /// <summary>Moves the selection up or down the choices.</summary>
         public void Move(int by)
         {
             _selected = Math.Clamp(_selected + by, 0, _choices.Count - 1);
             Mark();
         }
 
-        /// <summary>Chooses the selected choice.</summary>
         public void Choose()
         {
             if (_choices.Count > 0)
@@ -109,7 +94,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Closes the panel as if the player chose to stay.</summary>
         public void Cancel()
         {
             var cancel = _cancel;

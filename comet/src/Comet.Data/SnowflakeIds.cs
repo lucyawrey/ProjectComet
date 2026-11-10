@@ -15,7 +15,6 @@ public sealed class SnowflakeIds
     private const long MaxSequence = (1 << SequenceBits) - 1;
     private const long MaxTime = (1L << TimeBits) - 1;
 
-    /// <summary>How far the clock may step back before <see cref="Next"/> gives up instead of waiting.</summary>
     public static readonly TimeSpan MaxClockStepBack = TimeSpan.FromSeconds(1);
 
     private readonly int _node;

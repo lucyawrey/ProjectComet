@@ -10,8 +10,6 @@ namespace ShapeLand.Client
 {
     public sealed partial class GameView
     {
-        // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
-        // the camera carry on as they were (the server's snap-back has already put the player where it has them).
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
             WarmUpFades();
@@ -39,7 +37,7 @@ namespace ShapeLand.Client
                         Y = spawn.Y,
                         Z = spawn.Z,
                     }
-                ); // joining on a spawn doesn't claim it
+                );
             }
             else
             {
@@ -73,7 +71,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // A player coming into view fades in; one already in view (a new look) is swapped at once.
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
             var track = _otherFades.TryGetValue(spawn.EntityId, out var known) ? known : new OtherFade();
@@ -103,7 +100,6 @@ namespace ShapeLand.Client
             _otherFades[spawn.EntityId] = track;
         }
 
-        // Everyone leaves the world, this player too, and the camera goes back to orbiting the island.
         private void OnConnectionLost(CloseReason reason)
         {
             foreach (var other in _others.Values)
@@ -123,7 +119,7 @@ namespace ShapeLand.Client
                 _playerShape = null;
             }
 
-            _spawns.Clear(); // this player's own entry too, or a rejoin would tag someone with the old name
+            _spawns.Clear();
         }
 
         private void ClearLeaving()
@@ -136,7 +132,6 @@ namespace ShapeLand.Client
             _leaving.Clear();
         }
 
-        // A player leaving view fades out where they were last drawn.
         private void OnOtherLeft(uint entityId)
         {
             if (_others.Remove(entityId, out var other))
@@ -148,14 +143,9 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>
-        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin: its look (a group of
-        /// primitives) at its scale and hover in content.
-        /// </summary>
         public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent) =>
             BuildShape(_content, shape, color, eyeColor, parent, shapeMaterial, eyesMaterial, shapeFadeMaterial, eyesFadeMaterial);
 
-        /// <summary><see cref="BuildShape(Shape, uint, uint, Transform)"/> with its content and materials given, as tests build shapes.</summary>
         public static ShapeBody BuildShape(
             ShapeLandContent content,
             Shape shape,
@@ -173,7 +163,7 @@ namespace ShapeLand.Client
             {
                 if (part.Primitive == null)
                 {
-                    continue; // looks are built from primitives
+                    continue;
                 }
 
                 var r = part.Rotation;

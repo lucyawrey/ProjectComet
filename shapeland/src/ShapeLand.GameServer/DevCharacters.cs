@@ -4,10 +4,6 @@ using ShapeLand.Data;
 
 namespace ShapeLand.GameServer;
 
-/// <summary>
-/// The characters of a server without accounts, picked by name. People's and bots' are on separate accounts, so the
-/// joins' account check holds as with tickets.
-/// </summary>
 public sealed class DevCharacters(InMemoryCharacterDatabase<ShapeLandCharacter> database)
 {
     public const long AccountId = 1;
@@ -16,7 +12,6 @@ public sealed class DevCharacters(InMemoryCharacterDatabase<ShapeLandCharacter> 
 
     public InMemoryCharacterDatabase<ShapeLandCharacter> Database => database;
 
-    /// <summary>Null if the name belongs to the other account.</summary>
     public long? FindOrAdd(string name, bool bot, int shape, int color, int eyeColor)
     {
         var account = bot ? BotAccountId : AccountId;

@@ -39,10 +39,6 @@ public sealed class ContentBuildResult
     /// <summary>In number order; empty unless <see cref="ContentBuilder.AddZones"/> was called.</summary>
     public IReadOnlyList<Zone> Zones { get; }
 
-    /// <summary>
-    /// In number order; empty unless <see cref="ContentBuilder.AddGroups"/> was called. Zones hold their copies
-    /// already expanded.
-    /// </summary>
     public IReadOnlyList<Group> Groups { get; }
 
     public IReadOnlyDictionary<string, int> Numbers(string kind)

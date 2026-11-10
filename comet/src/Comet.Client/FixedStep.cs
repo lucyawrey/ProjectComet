@@ -2,19 +2,12 @@ using System;
 
 namespace Comet.Client
 {
-    /// <summary>
-    /// Paces a fixed-rate simulation from a variable frame clock: how many whole steps are due, and how far the
-    /// frame sits between steps. Step n is at n / <see cref="StepsPerSecond"/> seconds, so a simulation driven
-    /// by <see cref="ClientSession.ServerSeconds"/> steps exactly on server ticks.
-    /// </summary>
     public sealed class FixedStep
     {
         private bool _started;
         private long _lastStep;
         private double _now;
 
-        /// <param name="maxSteps">The most steps one frame runs; time beyond that (a long hitch) is
-        /// dropped, so the simulation slows instead of spiraling.</param>
         public FixedStep(int stepsPerSecond, int maxSteps = 15)
         {
             if (stepsPerSecond <= 0)
@@ -29,21 +22,15 @@ namespace Comet.Client
 
         public int StepsPerSecond { get; }
 
-        /// <summary>How long one step is, in seconds.</summary>
         public double StepSeconds { get; }
 
         public int MaxSteps { get; }
 
-        /// <summary>The number of the last step run (or of the grid point the clock started at).</summary>
         public long LastStep => _lastStep;
 
         /// <summary>From 0 to 1: how far past the last step the frame is, as a fraction of a step.</summary>
         public float Alpha => _started ? (float)Math.Min(1, Math.Max(0, _now * StepsPerSecond - _lastStep)) : 0;
 
-        /// <summary>
-        /// Advances to <paramref name="now"/> and returns how many steps to run, the last being <see cref="LastStep"/>. The first call starts the
-        /// clock and runs none; time going backwards runs nothing until it passes the last step again.
-        /// </summary>
         public int Advance(double now)
         {
             _now = now;
@@ -65,7 +52,6 @@ namespace Comet.Client
             return (int)Math.Min(steps, MaxSteps);
         }
 
-        /// <summary>Starts again at the next <see cref="Advance"/> (after a pause or a teleport).</summary>
         public void Reset()
         {
             _started = false;

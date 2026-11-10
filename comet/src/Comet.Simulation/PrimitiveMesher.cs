@@ -6,11 +6,6 @@ using Comet.Content;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// Builds primitives' meshes, the same for collision and drawing on server, client and editor: flat-shaded
-    /// triangles, wound clockwise from outside, built at the placed size around the pivot so bevels and sides
-    /// stay true to size.
-    /// </summary>
     public static class PrimitiveMesher
     {
         private static readonly Dictionary<(PrimitiveKind, int?, float, int, float, float, float, Vector3, float, int, int), Vector3[]> Cache =
@@ -93,10 +88,6 @@ namespace Comet.Simulation
             return mesh.Triangles.ToArray();
         }
 
-        /// <summary>
-        /// The box the primitive fills at <paramref name="size"/> around its pivot, for zone reach checks;
-        /// a regular solid is as wide as being regular makes it.
-        /// </summary>
         public static (Vector3 Min, Vector3 Max) Bounds(Primitive primitive, Vector3 size)
         {
             size = Vector3.Abs(size);
@@ -109,7 +100,6 @@ namespace Comet.Simulation
             return (new Vector3(-size.X / 2, 0, -size.Z / 2), new Vector3(size.X / 2, size.Y, size.Z / 2));
         }
 
-        // // Ramanujan's first approximation of an ellipse's circumference.
         private static float Ellipse(float width, float depth)
         {
             float a = width / 2,
@@ -139,7 +129,6 @@ namespace Comet.Simulation
             return profile.ToArray();
         }
 
-        // // A wall with a door-shaped opening at the bottom center, kept inside the wall; no opening if either side is 0.
         private static Vector2[] Doorway(Vector3 size, float width, float height)
         {
             var (half, top) = Opening(size, width, height);
@@ -161,9 +150,6 @@ namespace Comet.Simulation
             };
         }
 
-        // // The outside is a half ellipse as wide as the arch (a half circle if the arch is at least half
-        // as tall as wide); the inside is the same curve set in by the thickness, at least 5 cm wide and
-        // high.
         private static Vector2[] Arch(Vector3 size, float thickness, int? sides, PolygonBudget budget)
         {
             const float least = 0.05f;
@@ -189,11 +175,9 @@ namespace Comet.Simulation
                 profile.Add(new Vector2(outerX * MathF.Cos(angle), springs + outerY * MathF.Sin(angle)));
             }
 
-            // // Where the legs have no straight part, a curve's end lands on its bottom corner: drop the repeat.
             return profile.Where((point, i) => Vector2.DistanceSquared(point, profile[(i + profile.Count - 1) % profile.Count]) > 1e-8f).ToArray();
         }
 
-        // // Kept at least 5 cm inside the wall's sides and top.
         private static (float Half, float Top) Opening(Vector3 size, float width, float height)
         {
             const float rim = 0.05f;
@@ -237,7 +221,6 @@ namespace Comet.Simulation
             }
         }
 
-        // // Corners sit half a side off the axes, so 4 sides make faces square to them.
         private static void Round(Builder mesh, Vector3 size, int sides, bool cone)
         {
             sides = Math.Max(3, sides);
@@ -284,7 +267,7 @@ namespace Comet.Simulation
             var bands = new Vector3[rings + 1][];
             for (var r = 0; r <= rings; r++)
             {
-                var polar = MathF.PI * r / rings; // 0 at the bottom
+                var polar = MathF.PI * r / rings;
                 var y = size.Y / 2 * (1 - MathF.Cos(polar));
                 bands[r] = Ring(size, sides, MathF.Sin(polar), y);
             }
@@ -342,7 +325,6 @@ namespace Comet.Simulation
                 }
             }
 
-            // // Measured as built: the sum of the cones from its middle to each triangle.
             private static (Vector3[], int[][]) OfUnitVolume((Vector3[] Points, int[][] Faces) solid)
             {
                 var middle = solid.Points.Aggregate(Vector3.Add) / solid.Points.Length;
@@ -371,7 +353,6 @@ namespace Comet.Simulation
                 {
                     case PrimitiveKind.Tetrahedron:
                     {
-                        // // Height = edge × √(2/3).
                         var edge = MathF.Sqrt(1.5f);
                         var radius = edge / MathF.Sqrt(3);
                         points = new[]
@@ -443,7 +424,7 @@ namespace Comet.Simulation
                 var normal = Vector3.Normalize(Vector3.Cross(points[face[1]] - points[face[0]], points[face[2]] - points[face[0]]));
                 if (Vector3.Dot(normal, points[face[0]]) < 0)
                 {
-                    normal = -normal; // face away from the center
+                    normal = -normal;
                 }
                 var down = -Vector3.UnitY;
                 var axis = Vector3.Cross(normal, down);
@@ -548,13 +529,12 @@ namespace Comet.Simulation
                     var p = profile[i];
                     var q = profile[(i + 1) % profile.Length];
                     var edge = q - p;
-                    var outward = new Vector3(edge.Y, -edge.X, 0); // to the right of a counterclockwise edge
+                    var outward = new Vector3(edge.Y, -edge.X, 0);
                     Add(At(p, front), At(q, front), At(q, back), outward);
                     Add(At(p, front), At(q, back), At(p, back), outward);
                 }
             }
 
-            // // Flipped if needed so it faces along <paramref name="outward"/>; drops slivers.
             private void Add(Vector3 a, Vector3 b, Vector3 c, Vector3 outward)
             {
                 var normal = Vector3.Cross(b - a, c - a);
@@ -593,7 +573,7 @@ namespace Comet.Simulation
                         var turn = Cross(a, b, c);
                         if (turn < 0)
                         {
-                            continue; // a reflex corner
+                            continue;
                         }
 
                         if (turn > 1e-9f && remaining.Any(p => p != a && p != b && p != c && Inside(p, a, b, c)))

@@ -23,9 +23,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     private readonly Dictionary<long, CharacterStatus> _statuses = [];
     private string? _snapshot;
 
-    /// <summary>
-    /// The rows changed anyway, and the next change tries the write again. Raised under the database's lock.
-    /// </summary>
     public event Action<Exception>? SnapshotFailed;
 
     public TimeProvider Clock => clock;
@@ -40,10 +37,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>
-    /// Matches the live character's name ignoring case, as the name column does; else makes one from
-    /// <paramref name="make"/>, given the next free ID.
-    /// </summary>
     public (long Id, bool Made) FindOrAdd(string name, Func<long, TCharacter> make)
     {
         lock (_lock)
@@ -168,7 +161,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>Also kicks it, as deleting its account does.</summary>
     public void Delete(long characterId)
     {
         lock (_lock)
@@ -179,7 +171,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>Adds one to the owner version, so the holding server drops the player.</summary>
     public void Kick(long characterId)
     {
         lock (_lock)
@@ -382,10 +373,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     }
 }
 
-/// <summary>
-/// In memory, with the same contract as <see cref="CharacterRepository{TCharacter, TContext}"/>, checked by the same
-/// tests.
-/// </summary>
 public sealed class InMemoryCharacterRepository<TCharacter>(
     InMemoryCharacterDatabase<TCharacter> database,
     CharacterRepositoryOptions options,

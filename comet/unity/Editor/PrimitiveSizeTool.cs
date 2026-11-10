@@ -6,10 +6,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// The tool context while zone placements are selected: Unity's own tools, except that scaling one primitive edits
-    /// its size rather than its transform's scale, so its facets follow the polygon budget as it's dragged.
-    /// </summary>
     [EditorToolContext("Zone", typeof(ZonePlacement))]
     internal sealed class ZoneToolContext : EditorToolContext
     {
@@ -59,9 +55,6 @@ namespace Comet.Unity.Editor
             };
     }
 
-    /// <summary>
-    /// The Zone context's scale tool: one selected primitive is resized by its size; anything else scales as Unity's.
-    /// </summary>
     [EditorTool("Zone Scale", typeof(ZonePlacement), typeof(ZoneToolContext))]
     internal sealed class ZoneScaleTool : EditorTool
     {

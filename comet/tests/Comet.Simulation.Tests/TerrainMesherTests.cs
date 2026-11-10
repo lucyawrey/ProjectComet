@@ -8,8 +8,6 @@ public class TerrainMesherTests
     private const uint Grass = 0x55aa33,
         Earth = 0x775533;
 
-    // A piece of flat ground at `height` meters: `samples` rows of text, '#' for ground and '.' for a hole, row 0 at
-    // world sample z = 0, all in chunk (0, 0) unless split.
     private static Zone Piece(float height, bool rim, bool holes, params string[] samples) =>
         Zone(
             new TerrainPiece
@@ -73,7 +71,6 @@ public class TerrainMesherTests
             .Range(0, mesh.Positions.Count / 3)
             .Select(i => (mesh.Positions[3 * i], mesh.Positions[3 * i + 1], mesh.Positions[3 * i + 2], mesh.Colors[3 * i]));
 
-    // Unity's normal for a clockwise triangle.
     private static Vector3 Normal((Vector3 A, Vector3 B, Vector3 C, uint) t) => Vector3.Normalize(Vector3.Cross(t.B - t.A, t.C - t.A));
 
     [Fact]
@@ -89,7 +86,6 @@ public class TerrainMesherTests
         Assert.All(top, t => Assert.Equal(Grass, t.Color));
         Assert.Equal(8, bottom.Count);
         Assert.All(bottom, t => Assert.Equal(-Vector3.UnitY, Normal(t)));
-        // 8 edges around the outside, a wall of two triangles each.
         Assert.Equal(8 + 8 + 16, triangles.Count);
     }
 
@@ -148,8 +144,6 @@ public class TerrainMesherTests
     [Fact]
     public void RimAndHoleSkirtsAreSeparate()
     {
-        // A 5×5 piece with a hole at its center sample: the six triangles touching it are gone, leaving a hole edged
-        // by six edges, inside a rim of sixteen.
         string[] samples = ["#####", "#####", "##.##", "#####", "#####"];
         int Walls(bool rim, bool holes) =>
             Triangles(Mesh(Piece(2, rim, holes, samples))[new ChunkCoord(0, 0)]).Count(t => MathF.Abs(Normal(t).Y) < 0.01f) / 2;
@@ -163,7 +157,6 @@ public class TerrainMesherTests
     [Fact]
     public void PiecesAreCutAtChunkBordersWithoutWallsBetween()
     {
-        // Two tiles meeting at world x = 0: chunk -1's last column is chunk 0's first.
         var zone = Zone(
             new TerrainPiece
             {
@@ -180,7 +173,6 @@ public class TerrainMesherTests
 
         Assert.Equal(4, meshes[new ChunkCoord(-1, 0)].Positions.Count / 3);
         Assert.Equal(4, meshes[new ChunkCoord(0, 0)].Positions.Count / 3);
-        // Positions are relative to their chunk: chunk -1's tile starts 62 m into it.
         Assert.Equal(62, meshes[new ChunkCoord(-1, 0)].Positions.Min(p => p.X));
         Assert.Equal(64, meshes[new ChunkCoord(-1, 0)].Positions.Max(p => p.X));
         Assert.Equal(0, meshes[new ChunkCoord(0, 0)].Positions.Min(p => p.X));
@@ -189,7 +181,6 @@ public class TerrainMesherTests
     [Fact]
     public void MeshingSomeChunksGivesTheSameMeshesAsMeshingAll()
     {
-        // A hole on chunk 0's side of the border, so walls are part of what has to match.
         var zone = Zone(
             new TerrainPiece
             {
@@ -225,7 +216,6 @@ public class TerrainMesherTests
     [Fact]
     public void WallsStopOnTerrainBelow()
     {
-        // A small plateau piece standing on main ground at 0 m; its bottom is far below, but its walls stop on the ground.
         var zone = Zone(
             [
                 new TerrainPiece
@@ -264,7 +254,6 @@ public class TerrainMesherTests
 
         var mesh = Mesh(zone)[new ChunkCoord(0, 0)];
 
-        // Each corner takes its sample's color: (1, 1) is the fourth.
         var corner = mesh.Positions.IndexOf(new Vector3(1, 2, 1));
         Assert.Equal(0x444444u, mesh.Colors[corner]);
     }

@@ -10,7 +10,6 @@ namespace Comet.Unity.Editor
 {
     public static partial class LocalServer
     {
-        // False (with the reason in the Console) if it couldn't start.
         private static bool Launch(
             CometSettings settings,
             Options options,
@@ -33,7 +32,6 @@ namespace Comet.Unity.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(log)!);
             File.WriteAllText(log, "");
 
-            // The Login server first: it migrates the database and makes the development ticket keys.
             var loginPid = 0;
             var loginStartTicks = 0L;
             if (login.Length > 0)
@@ -46,7 +44,6 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            // The built program runs directly: stopping `dotnet run` can leave the program it started running.
             var start = new ProcessStartInfo(ContentBuild.Dotnet(), $"{arguments} {settings.serverArguments}")
             {
                 WorkingDirectory = ContentBuild.ProjectRoot,
@@ -87,7 +84,6 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        // Without the Login server's part; turns off bots and the web build when there are none to start.
         private static string ServerArguments(
             CometSettings settings,
             ref Options options,
@@ -126,11 +122,9 @@ namespace Comet.Unity.Editor
 
             if (options.Bots > 0)
             {
-                arguments += " --Comet:Connections:MaxConnectionsPerAddress=1000"; // the bots all come from this computer
+                arguments += " --Comet:Connections:MaxConnectionsPerAddress=1000";
             }
 
-            // Without accounts: the characters live in a file per checkout (in its ignored artifacts folder), so a
-            // designer comes back where they stood after a restart; deleting it starts them over.
             dev = login.Length == 0 && !string.IsNullOrEmpty(settings.serverDevArguments);
             if (dev)
             {
@@ -200,8 +194,6 @@ namespace Comet.Unity.Editor
         // Runs off the main thread, so no Unity calls.
         private static Built Build(string dotnet, string root, string project)
         {
-            // Into its own artifacts folder, so it never fights another build of the same project over files (play-mode
-            // tests build the game server too, as do the dev scripts and dotnet test).
             var artifacts = Path.Combine(root, "artifacts", "editor-server");
             var start = new ProcessStartInfo(
                 dotnet,
@@ -231,8 +223,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // The connection string comes back as the "program". The tool is a C# file app; the -- keeps dotnet from
-        // reading its arguments as its own.
         private static Built Database(string dotnet, string tool, string root, string checkout, int port)
         {
             string Run(string arguments, out int exitCode)
@@ -284,8 +274,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // The editor's own server and bots: their processes (pid and start time, so a reused pid isn't taken for
-        // theirs), the content and options it started with, the programs run, and whether it's still starting.
         [Serializable]
         private sealed class State
         {
@@ -300,7 +288,7 @@ namespace Comet.Unity.Editor
             public long loginStartTicks;
             public string loginProgram = "";
             public bool waiting;
-            public bool dev; // without accounts: stopped through /dev/stop first
+            public bool dev;
             public int port;
             public int loginPort;
             public bool web;
@@ -323,7 +311,6 @@ namespace Comet.Unity.Editor
 
         private static void Write(State state) => File.WriteAllText(ContentBuild.ProjectPath(StateFile), JsonUtility.ToJson(state, true));
 
-        // Stops a process the editor started, if it's still that one; whether it was running.
         private static bool Kill(int pid, long startTicks)
         {
             if (pid <= 0 || !Alive(pid, startTicks))
@@ -337,10 +324,7 @@ namespace Comet.Unity.Editor
                 process.Kill();
                 process.WaitForExit(3000);
             }
-            catch (Exception e) when (e is InvalidOperationException or ArgumentException or System.ComponentModel.Win32Exception)
-            {
-                // It has stopped by itself meanwhile.
-            }
+            catch (Exception e) when (e is InvalidOperationException or ArgumentException or System.ComponentModel.Win32Exception) { }
 
             return true;
         }

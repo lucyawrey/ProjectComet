@@ -3,10 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace Comet.Login;
 
-/// <summary>
-/// Counts wrong passwords per account and address together, so a stranger elsewhere can't lock someone out by
-/// knowing their name. In memory: a restart resets it. Recovery codes ignore it.
-/// </summary>
 public sealed class SignInLockout(IOptions<LoginOptions> options, TimeProvider clock)
 {
     private const int PruneAbove = 10_000;
@@ -43,7 +39,6 @@ public sealed class SignInLockout(IOptions<LoginOptions> options, TimeProvider c
 
     private static Entry Next(Entry entry, DateTime now, LoginOptions settings)
     {
-        // Failures count within one window; a lockout that ended starts a fresh one.
         if (now - entry.Since > settings.LockoutDuration || (entry.LockedUntil != DateTime.MinValue && entry.LockedUntil <= now))
         {
             entry = new Entry(0, now, DateTime.MinValue);

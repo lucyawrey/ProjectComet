@@ -2,7 +2,6 @@ namespace Comet.Data.Tests;
 
 public class SnowflakeIdsTests
 {
-    // A clock that returns the queued times in order, then keeps returning the last one plus 1 ms per read.
     private sealed class StepClock(params DateTimeOffset[] times) : TimeProvider
     {
         private readonly Queue<DateTimeOffset> _times = new(times);
@@ -37,12 +36,12 @@ public class SnowflakeIdsTests
     [Fact]
     public void AFullMillisecondWaitsForTheNext()
     {
-        var times = Enumerable.Repeat(T, 2049).ToArray(); // one more call than a millisecond holds
+        var times = Enumerable.Repeat(T, 2049).ToArray();
         var ids = new SnowflakeIds(1, new StepClock(times));
         var made = Enumerable.Range(0, 2049).Select(_ => ids.Next()).ToList();
         Assert.Equal(made.Count, made.Distinct().Count());
         Assert.Equal(T.AddMilliseconds(1), SnowflakeIds.TimeOf(made[^1]));
-        Assert.Equal(made.Order(), made); // still growing
+        Assert.Equal(made.Order(), made);
     }
 
     [Fact]

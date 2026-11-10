@@ -15,25 +15,12 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The join screen (UI Toolkit, <c>Assets/UI/JoinScreen.uxml</c>): a card over the orbiting island where a new
-    /// player picks a name, shape and colors, sees the shape turning with its speed and jump height, and joins, which
-    /// makes a guest account. The card's Sign in page signs in to an account made elsewhere, with a password or a
-    /// recovery code. A returning player (a kept session token) goes straight into the game behind a small connecting
-    /// pop-up, unless Join on launch is off. A signed-in player not playing (after leaving, a drop, a cancelled join)
-    /// gets the signed-in card: who they are beside their shape, Play, and Sign out (a guest is warned, and can set a
-    /// password on the card first). Refusals and connection failures show on the card, which stays up for another
-    /// try; it hides once the player spawns. When the server shuts down (as a restart does), the pop-up tries joining
-    /// again for a minute; if the server came back with new content, a web page reloads to load it and joins again by
-    /// itself. Desktop builds also have a server field (the Login server); a web page uses the one its config names.
-    /// </summary>
     [RequireComponent(typeof(UIDocument), typeof(JoinClient), typeof(GameView))]
     public sealed partial class JoinScreen : MonoBehaviour
     {
         [SerializeField]
         private ShapePreview previewPrefab;
 
-        // The PlayerPrefs key for the server remembered for next time.
         private const string ServerKey = "remember.login";
 
         private JoinClient _join;
@@ -50,7 +37,6 @@ namespace ShapeLand.Client
         private Button _cancelButton;
         private Button _backButton;
 
-        // Where Back goes, when the card was opened from the Esc menu.
         private Action _back;
         private VisualElement _serverField;
         private VisualElement _serverLine;
@@ -62,12 +48,10 @@ namespace ShapeLand.Client
         private VisualElement[] _pageRows;
         private Label _serverText;
 
-        // The address when Change was pressed, for Cancel to put back.
         private string _serverBefore;
         private Label _pageName;
         private VisualElement _signIn;
 
-        // With accounts off, the last join's name and look, for joining again after the server restarts.
         private string _devName;
         private NewCharacter _devLook;
         private TextField _signInUsername;
@@ -87,11 +71,9 @@ namespace ShapeLand.Client
         private ConfirmPanel _confirm;
         private bool _withCode;
 
-        // A new player's name that's taken: the card points them to Sign in, filled in with it.
         private string _takenName;
         private bool _busy;
 
-        // The connecting pop-up: each join from it counts, so a cancelled one's answer is ignored; the dots step.
         private VisualElement _pop;
         private Label _popMain;
         private Label _popSub;
@@ -102,23 +84,18 @@ namespace ShapeLand.Client
         private float _popDotAt;
         private ShapePreview _preview;
 
-        // Keys and gamepad: the rows they move through (name, shape, color, eyes, then the bottom line of server field
-        // and buttons), the selected one, the selected item on the bottom line, and the held direction's repeat.
         private VisualElement[] _rows;
         private ScrollView _scroll;
         private VisualElement _buttonsRow;
         private int _row;
         private int _buttonIndex;
 
-        // Up from the name row reaches Back, when the card has it (opened from the Esc menu).
         private bool _onBack;
         private readonly MenuNavigation _navigation = new();
         private int _shownOnFrame;
 
-        // What each shape and color button does, for left and right to pick with.
         private readonly Dictionary<VisualElement, Action> _choose = new();
 
-        // After the server shuts down (a restart sends that), the card tries joining again once a second for this long.
         private const float RejoinSeconds = 60;
         private float? _rejoinUntil;
         private bool _focusNamePending;
@@ -128,42 +105,30 @@ namespace ShapeLand.Client
         private int _color;
         private int _eyeColor;
 
-        /// <summary>The screen's root, for tests.</summary>
         public VisualElement Root => _root;
 
-        /// <summary>True while the card is up.</summary>
         public bool Showing => _root != null && !_root.ClassListContains("hidden");
 
-        /// <summary>True while the card is up to change the look of a player already in the game.</summary>
         public bool Changing { get; private set; }
 
-        /// <summary>True while the card shows the sign-in panel instead of the new player's fields.</summary>
         public bool SigningIn => _root != null && _root.ClassListContains("signing-in");
 
-        /// <summary>True while the card is up for a signed-in player who isn't playing: who they are, and Play.</summary>
         public bool SignedInCard => _root != null && _root.ClassListContains("signed-in");
 
-        /// <summary>True while the card shows its Set password page (from the signed-in card).</summary>
         public bool SettingPassword => _root != null && _root.ClassListContains("setting-password");
 
-        /// <summary>True while the connecting pop-up is up (joining on launch or after a restart).</summary>
         public bool Connecting => _pop != null && !_pop.ClassListContains("hidden");
 
-        /// <summary>The pop-up's message after a join from it failed, or null.</summary>
         public string ConnectingError => Connecting && _pop.ClassListContains("failed") ? _popMain.text : null;
 
-        /// <summary>True while a text field on the card has the keyboard.</summary>
         public bool Typing =>
             _root?.focusController?.focusedElement is VisualElement focused
             && (focused is TextField || focused.GetFirstAncestorOfType<TextField>() != null);
 
-        /// <summary>The message on the card, or null when there is none.</summary>
         public string Error => _error != null && _error.ClassListContains("shown") ? _error.text : null;
 
-        /// <summary>The chosen shape's speed (m/s) and jump height (m), as the card shows them.</summary>
         public static (float Speed, float JumpHeight) Stats(Shape shape, MovementRules rules) => (shape.MaxSpeed, rules.JumpApex(shape.JumpVelocity));
 
-        /// <summary>What the card says when the server refuses a join.</summary>
         public static string RefusalMessage(StringTable strings, JoinRejection reason) =>
             reason switch
             {
@@ -178,7 +143,6 @@ namespace ShapeLand.Client
                 _ => strings.Get("join.not_accepted"),
             };
 
-        /// <summary>What the card says for a Login server error code (<see cref="LoginErrors"/>).</summary>
         public static string LoginMessage(StringTable strings, string code, string name = "") =>
             code switch
             {
@@ -198,7 +162,6 @@ namespace ShapeLand.Client
                 _ => strings.Get("account.failed"),
             };
 
-        /// <summary>What the card says after the connection was lost for <paramref name="reason"/>.</summary>
         public static string LostMessage(StringTable strings, CloseReason reason) =>
             strings.Get(
                 reason switch
@@ -281,8 +244,6 @@ namespace ShapeLand.Client
             tree.Q<Button>("pop-cancel").clicked += CancelPop;
             tree.Q<Button>("pop-retry").clicked += () => JoinFromPop();
             _buttonsRow = _joinButton.parent;
-            // Rows for keys and a gamepad, top to bottom: the Sign In and Set Password pages' rows, the new player's
-            // rows (name, shape, color, eyes), the buttons, and the server line; only those in sight are reached.
             _scroll = tree.Q<ScrollView>("card-scroll");
             _nameRow = tree.Q("name-row");
             _pageRows = new VisualElement[]
@@ -317,7 +278,6 @@ namespace ShapeLand.Client
             SetChanging(false);
         }
 
-        // Changing the look: no server to pick, and the card can be closed without changing anything.
         private void SetChanging(bool changing)
         {
             Changing = changing;
@@ -337,14 +297,12 @@ namespace ShapeLand.Client
                 _back = null;
             }
 
-            // Opened from the Esc menu, Back stands in for Cancel.
             _cancelButton.EnableInClassList("hidden", !changing || _back != null);
             _backButton.EnableInClassList("hidden", _back == null);
             MarkFieldRows();
             SetButton(true, MainButtonKey());
         }
 
-        // What the card's main button says when it's ready.
         private string MainButtonKey() =>
             Changing ? "join.apply"
             : SigningIn ? "account.sign_in"
@@ -358,38 +316,29 @@ namespace ShapeLand.Client
             _joinButton.text = Text(key);
         }
 
-        // Before joining, the picked shape's start zone shows behind the card, the camera circling its start (gliding
-        // there from another shape's start in the same zone).
         private void ShowStartZone(bool glide = true)
         {
             _view.Showcase(_shape, glide);
             _join.ShowZone(ShapeLandWorld.StartOf(_content, _shape).Zone);
         }
 
-        // Shows the card with the current choices, the name row selected.
         private void Show()
         {
             OpenPreview();
             Refresh();
             _root.RemoveFromClassList("hidden");
-            _shownOnFrame = Time.frameCount; // the press that brought the card up (from the Esc menu) isn't the card's
+            _shownOnFrame = Time.frameCount;
             SelectRow(FirstRow());
         }
 
-        /// <summary>True while keys or a gamepad move the card's selection, which shows only then.</summary>
         public bool Navigating
         {
             get => _root.ClassListContains("navigating");
             private set => _root.EnableInClassList("navigating", value);
         }
 
-        /// <summary>True while the card is up to change the look and was opened from the Esc menu.</summary>
         public bool FromMenu => Changing && _back != null;
 
-        /// <summary>
-        /// Brings the card up over the game, filled in with the player's current look, to change it. Given
-        /// <paramref name="back"/> (opened from the Esc menu), the card has Back, which closes it and calls that.
-        /// </summary>
         public void OpenChange(Action back = null, bool navigating = false)
         {
             if (Showing || !_join.Joined || _join.Spawn is not PlayerSpawn spawn)
@@ -408,12 +357,8 @@ namespace ShapeLand.Client
             Show();
         }
 
-        // Ready to type a name when joining, except on a phone, where focusing the field would bring up its keyboard
-        // over the card before the player has looked at it. Focused once no key is down, or the key that brought the
-        // card up would type.
         private void FocusName() => _focusNamePending = !WebPage.IsPhone;
 
-        /// <summary>Closes the card without changing the look and goes back to the Esc menu, if it came from there.</summary>
         public void Back()
         {
             var back = FromMenu ? _back : null;
@@ -421,7 +366,6 @@ namespace ShapeLand.Client
             back?.Invoke();
         }
 
-        /// <summary>Closes the card without changing the look.</summary>
         public void Cancel()
         {
             if (Changing)
@@ -434,7 +378,7 @@ namespace ShapeLand.Client
         {
             _confirm.Close();
             _root.AddToClassList("hidden");
-            _root.focusController?.focusedElement?.Blur(); // or Enter and the controller's submit button still reach the hidden card
+            _root.focusController?.focusedElement?.Blur();
             if (_preview != null)
             {
                 Destroy(_preview.gameObject);
@@ -474,20 +418,19 @@ namespace ShapeLand.Client
             AddSwatches(_eyes, color => _eyeColor = color);
             if (!JoinClient.Accounts)
             {
-                // The editor's own server, joined by name: no Login server to sign in to or pick.
                 _root.Q<Label>(className: "have-account-text").text = Text("account.off_note");
                 _signInButton.SetEnabled(false);
             }
 
-            WebPage.TakeRejoin(); // a returning player resumes below anyway
+            WebPage.TakeRejoin();
 #if !UNITY_WEBGL || UNITY_EDITOR
-            _join.UseLoginServer(ServerAddress()); // the one remembered in the card, with the token kept for it
+            _join.UseLoginServer(ServerAddress());
 #endif
             if (_join.SignedIn)
             {
                 if (GameSettings.AutoJoin)
                 {
-                    JoinFromPop(); // a returning player goes straight into the game
+                    JoinFromPop();
                 }
                 else
                 {
@@ -498,10 +441,8 @@ namespace ShapeLand.Client
             }
 
 #if UNITY_EDITOR
-            // Without accounts, a designer comes back as the character they played last on the editor's server.
             if (!JoinClient.Accounts && LastDevCharacter() is { } last)
             {
-                // A shape or color since removed from the content falls back to the first.
                 int Known(int color) => _content.Colors.TryGet(color, out _) ? color : _content.Colors.All[0].Number;
                 var (color, eyeColor) = (Known(last.Color), Known(last.EyeColor));
                 var lastShape = _content.Shapes.TryGet(last.Shape, out var shape) ? shape : _content.Shapes.All[0];
@@ -523,7 +464,7 @@ namespace ShapeLand.Client
                 _name.value = last.Name;
                 _shape = lastShape;
                 (_color, _eyeColor) = (color, eyeColor);
-                ShowStartZone(glide: false); // Show, below, draws the card with them
+                ShowStartZone(glide: false);
             }
 #endif
 
@@ -531,10 +472,6 @@ namespace ShapeLand.Client
             FocusName();
         }
 
-        /// <summary>
-        /// The card's main button: joins as a new guest with the choices on the card, signs in (the sign-in panel),
-        /// plays (a signed-in player), or applies a change of look and name.
-        /// </summary>
         public async void Submit()
         {
             if (!_joinButton.enabledSelf || _content == null || _busy)
@@ -592,7 +529,7 @@ namespace ShapeLand.Client
                         EyeColor = _eyeColor,
                     }
                 );
-                _join.DevJoin(_devName, _devLook); // the spawn, a refusal or a failure comes next
+                _join.DevJoin(_devName, _devLook);
                 return;
             }
 
@@ -610,7 +547,6 @@ namespace ShapeLand.Client
             );
             if (error == LoginErrors.NameTaken)
             {
-                // Probably the player's own account from another device: Sign in, filled in with the name.
                 _takenName = name;
                 _signInButton.AddToClassList("pointed");
                 Retry(_content.Strings.Format("join.name_taken_new", ("username", name)));
@@ -622,13 +558,12 @@ namespace ShapeLand.Client
 #if !UNITY_WEBGL || UNITY_EDITOR
             else
             {
-                PlayerPrefs.SetString(ServerKey, ServerAddress()); // as for a sign-in: the guest's token is kept under this server
+                PlayerPrefs.SetString(ServerKey, ServerAddress());
                 PlayerPrefs.Save();
             }
 #endif
         }
 
-        // The Change Shape card: the look goes to the game server, and the card closes on the spawn it brings.
         private void Apply()
         {
             var current = _join.Spawn.Value;
@@ -656,10 +591,10 @@ namespace ShapeLand.Client
             _rejoinUntil = null;
             if (rejoining && reason == JoinRejection.DifferentContent && WebPage.Reload())
             {
-                return; // the server came back with new content; the reloaded page loads it and rejoins
+                return;
             }
 
-            ShowCardAgain(RefusalMessage(_content.Strings, reason)); // the pop-up gives way to the card, which says why
+            ShowCardAgain(RefusalMessage(_content.Strings, reason));
         }
 
         private void OnLookRefused(LookRejection reason)
@@ -670,7 +605,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // The card comes back with the reason (none after leaving), and the choices made before.
         private void OnConnectionLost(CloseReason reason)
         {
             if (!JoinClient.Accounts)
@@ -678,7 +612,6 @@ namespace ShapeLand.Client
                 SetChanging(false);
                 if (reason == CloseReason.ServerShutDown)
                 {
-                    // The editor's server restarting (for new content, say): back in as the same name, where it stood.
                     _rejoinUntil = Time.unscaledTime + RejoinSeconds;
                     _nextRejoin = Time.unscaledTime + 1;
                     JoinFromPop();
@@ -687,7 +620,7 @@ namespace ShapeLand.Client
 
                 if (reason == CloseReason.None)
                 {
-                    StartFresh(); // left the game; a lost connection keeps the choices, to join again
+                    StartFresh();
                 }
 
                 ShowCardAgain(reason == CloseReason.None ? null : LostMessage(_content.Strings, reason));
@@ -696,13 +629,12 @@ namespace ShapeLand.Client
 
             if (!_join.SignedIn)
             {
-                return; // signed out: OnSignedOut brought up the new player's card
+                return;
             }
 
             SetChanging(false);
             if (_join.DroppedFor is DropReason dropped)
             {
-                // Taken over by another tab or device, or removed: no rejoining by itself.
                 ShowSignedIn(Text(dropped == DropReason.Replaced ? "drop.replaced" : "drop.removed"));
                 return;
             }
@@ -724,13 +656,11 @@ namespace ShapeLand.Client
             ShowSignedIn(LostMessage(_content.Strings, reason));
         }
 
-        // While rejoining, the pop-up tries again each second; its dots step meanwhile.
         private void Update()
         {
             if (Showing && WebPage.Playing && _content != null && Time.frameCount != _shownOnFrame)
             {
                 Navigate(_view.Controls.Menu);
-                // A gamepad's Start joins, or applies the change, from anywhere on the card (Esc is the Hud's).
                 var start = _view.Controls.Game.Menu;
                 if (start.WasPressedThisFrame() && start.activeControl?.device is Gamepad)
                 {
@@ -748,13 +678,11 @@ namespace ShapeLand.Client
                 }
             }
 
-            // Kept out of sight while a phone page shows its "Tap to play" card over the game.
             var waiting = !WebPage.Playing;
             if (waiting != _root.ClassListContains("waiting"))
             {
                 _root.EnableInClassList("waiting", waiting);
             }
-            // The pop-up with keys or a gamepad: Back cancels, Submit retries after a failure.
             if (Connecting && WebPage.Playing && _content != null)
             {
                 var menu = _view.Controls.Menu;
@@ -794,12 +722,11 @@ namespace ShapeLand.Client
             JoinFromPop();
         }
 
-        // The join's retry with a fresh ticket couldn't get one: said where the join was asked from.
         private void OnRetryFailed(string error)
         {
             if (_rejoinUntil != null)
             {
-                _popBusy = false; // not back yet: the pop-up tries again
+                _popBusy = false;
                 return;
             }
 
@@ -822,12 +749,12 @@ namespace ShapeLand.Client
         {
             if (_content == null)
             {
-                return; // the content didn't load; nothing to show the card with
+                return;
             }
 
             if (_rejoinUntil != null && failure != JoinFailure.BadAddress)
             {
-                _popBusy = false; // not back yet: the pop-up tries again
+                _popBusy = false;
                 return;
             }
 
@@ -897,7 +824,7 @@ namespace ShapeLand.Client
             _join.SignedOut -= OnSignedOut;
             if (_preview != null)
             {
-                Destroy(_preview.gameObject); // its own object, so it doesn't go with the card
+                Destroy(_preview.gameObject);
             }
         }
     }

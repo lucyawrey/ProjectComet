@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>Standing in it flips the placements its effects name.</summary>
     public sealed class ZoneToggleTrigger : ZoneTrigger
     {
         [Serializable]

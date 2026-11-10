@@ -9,7 +9,6 @@ namespace ShapeLand.Client
 {
     public sealed partial class JoinScreen
     {
-        // The server line's Change: the field in place of the line's text, for keys and gamepad too.
         private void OpenServerField()
         {
             _serverBefore = _server.value;
@@ -38,11 +37,8 @@ namespace ShapeLand.Client
             }
         }
 
-        // The Login server in the card, or the default one when it's empty.
         private string ServerAddress() => string.IsNullOrWhiteSpace(_server.value) ? _join.DefaultLoginAddress : _server.value.Trim();
 
-        // The Login server last used, else the default. In the editor, one on this computer means its local Login
-        // server, on whatever port that uses now (Comet › Server); one elsewhere (a teammate's) stays as it was.
         private string RememberedServer()
         {
             var remembered = PlayerPrefs.GetString(ServerKey, "");
@@ -60,10 +56,8 @@ namespace ShapeLand.Client
         }
 
 #if UNITY_EDITOR
-        /// <summary>The editor server's character file to come back from without accounts; null for its own, "" for none (tests).</summary>
         public static string DevCharactersFile { get; set; }
 
-        // The editor's server's characters without accounts, as it keeps them (ShapeLand.GameServer's DevCharacters).
         [Serializable]
         private sealed class DevFile
         {
@@ -90,8 +84,6 @@ namespace ShapeLand.Client
             public string UpdatedAt = "";
         }
 
-        // The character last played on the editor's server (the latest status saved), or null for none or no file.
-        // The editor server's account for people's characters (ShapeLand.GameServer's DevCharacters.AccountId).
         private const long PeopleAccount = 1;
 
         private static DevCharacter LastDevCharacter()
@@ -105,7 +97,6 @@ namespace ShapeLand.Client
                 }
 
                 var file = JsonUtility.FromJson<DevFile>(System.IO.File.ReadAllText(path));
-                // People's characters only: the editor's bots have their own account.
                 var live = file?.Characters?.Where(c => !c.IsDeleted && c.Name.Length > 0 && c.AccountId == PeopleAccount).ToList();
                 if (live == null || live.Count == 0)
                 {

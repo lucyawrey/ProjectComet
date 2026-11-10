@@ -3,10 +3,6 @@ using System.Numerics;
 
 namespace Comet.Client
 {
-    /// <summary>
-    /// Decides when the player's own position is reported: every <see cref="Interval"/> while moving, at once
-    /// on starting, stopping or turning sharply, and not at all while standing still.
-    /// </summary>
     public sealed class PositionReporter
     {
         private const float MovingSpeedSquared = 0.01f;
@@ -16,7 +12,6 @@ namespace Comet.Client
         private Vector2 _reportedDirection;
         private double _lastReport = double.NegativeInfinity;
 
-        /// <param name="sharpTurnDegrees">A change of ground direction at least this large is reported at once.</param>
         public PositionReporter(double interval = 1.0 / 15, float sharpTurnDegrees = 45)
         {
             Interval = interval;
@@ -30,7 +25,6 @@ namespace Comet.Client
         // hair short of the interval; without this, the report would wait two more steps.
         private const double TimeTolerance = 1e-6;
 
-        /// <summary>Whether to report at <paramref name="now"/> (the step's time), given the player's velocity after this step.</summary>
         public bool ShouldReport(Vector3 velocity, double now)
         {
             var moving = velocity.LengthSquared() > MovingSpeedSquared;
@@ -52,7 +46,6 @@ namespace Comet.Client
             return report;
         }
 
-        /// <summary>Forgets what was last reported, so the next moving step reports at once (after a correction).</summary>
         public void Reset()
         {
             _wasMoving = false;

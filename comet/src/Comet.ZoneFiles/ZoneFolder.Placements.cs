@@ -78,7 +78,6 @@ namespace Comet.ZoneFiles
             return colors;
         }
 
-        /// <summary>Leaves out the defaults most placements have, to keep the files short.</summary>
         internal static TomlTable PlacementTable(Placement p)
         {
             var placement = new TomlTable();
@@ -156,7 +155,6 @@ namespace Comet.ZoneFiles
             return null;
         }
 
-        // TOML writes integers in decimal; colors read better as hex, as the game's own content writes them.
         internal static string HexColors(string text)
         {
             text = Regex.Replace(

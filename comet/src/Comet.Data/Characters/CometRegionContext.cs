@@ -2,10 +2,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Comet.Data.Characters;
 
-/// <summary>
-/// The <c>region</c> schema, shared by the Login server and the game servers. A game subclasses it with its own
-/// <typeparamref name="TCharacter"/> and owns the migrations.
-/// </summary>
 public abstract class CometRegionContext<TCharacter>(DbContextOptions options) : DbContext(options)
     where TCharacter : Character
 {
@@ -27,7 +23,7 @@ public abstract class CometRegionContext<TCharacter>(DbContextOptions options) :
             character.Property(c => c.Id).ValueGeneratedNever();
             character.HasIndex(c => c.AccountId);
             character.Property(c => c.Name).UseCollation(CometRegion.CaseInsensitive);
-            character.HasIndex(c => c.Name).IsUnique().HasFilter("deleted_at IS NULL"); // only live characters hold names
+            character.HasIndex(c => c.Name).IsUnique().HasFilter("deleted_at IS NULL");
         });
 
         modelBuilder.Entity<CharacterStatus>(status =>

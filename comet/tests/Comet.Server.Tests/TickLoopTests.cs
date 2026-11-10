@@ -28,7 +28,6 @@ public class TickLoopTests
         var intervals = starts.Zip(starts.Skip(1), (a, b) => Stopwatch.GetElapsedTime(a, b).TotalMilliseconds).Order().ToList();
         Assert.InRange(intervals[intervals.Count / 2], 15, 25);
 
-        // Ticks never start before their slot, so about 10 fit in the 190 ms after the slow tick; catching up would start many at once.
         var afterSlowTick = starts[3];
         Assert.True(starts.Count(t => t >= afterSlowTick && Stopwatch.GetElapsedTime(afterSlowTick, t).TotalMilliseconds < 190) <= 12);
     }

@@ -2,10 +2,6 @@ using Comet.Content;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// Times standing in trigger volumes, for one player or for one trigger shared by everyone in it.
-    /// The server decides with it; the client times its own player too, to draw a pad charging.
-    /// </summary>
     public sealed class TriggerCharge
     {
         private object? _inside;
@@ -13,10 +9,6 @@ namespace Comet.Simulation
         private float _since;
         private bool _fired;
 
-        /// <summary>
-        /// Takes what's stood in now (null for nothing) at <paramref name="seconds"/> and returns whether
-        /// it fires; stepping into something else starts over.
-        /// </summary>
         public bool Step(object? inside, TriggerVolume? volume, float seconds)
         {
             if (inside != _inside)
@@ -44,7 +36,6 @@ namespace Comet.Simulation
             return true;
         }
 
-        /// <summary>Counts the player as already inside and fired, so it waits for a step off (for arriving on a teleporter).</summary>
         public void Arrived(object inside, TriggerVolume volume)
         {
             _inside = inside;
@@ -71,7 +62,6 @@ namespace Comet.Simulation
 
         public object? Inside => _inside;
 
-        /// <summary>Whether it has fired for what's stood in and waits for a step off.</summary>
         public bool Fired => _inside != null && _fired;
     }
 }

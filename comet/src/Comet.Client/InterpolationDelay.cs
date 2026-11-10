@@ -3,16 +3,8 @@ using System.Collections.Generic;
 
 namespace Comet.Client
 {
-    /// <summary> How far behind the receive timeline other entities are drawn, adapted to what arriving states
-    /// need. One delay is shared by every entity, so they're all drawn at the same moment. </summary> <remarks>
-    /// A sample is how far the receive tick has run past an entity's previous stamp when its state arrives. The
-    /// target is a <see cref="Percentile"/> of recent samples plus <see cref="MarginTicks"/>, never under <see
-    /// cref="FloorTicks"/> (two report intervals), and holds the highest of the last <see cref="HoldSeconds"/>:
-    /// over TCP a lost packet stalls every entity at once, and a target that fell as soon as the stall left the
-    /// window left the next one short. </remarks>
     public sealed class InterpolationDelay
     {
-        /// <summary>How far back samples count toward the target, in seconds.</summary>
         public const double WindowSeconds = 2;
 
         /// <summary>The share of samples the delay should cover (0.95 covers all but the slowest 5%).</summary>
@@ -21,10 +13,8 @@ namespace Comet.Client
         /// <summary>How much slower than real time the render tick may run while the delay grows (0.04 is 4%).</summary>
         public const double GrowRate = 0.04;
 
-        /// <summary>How much faster than real time the render tick may run while the delay shrinks.</summary>
         public const double ShrinkRate = 0.02;
 
-        /// <summary>How long a raw target holds before a lower one can replace it, in seconds.</summary>
         public const double HoldSeconds = 5;
 
         private const int MaxSamples = 1024;
@@ -32,7 +22,7 @@ namespace Comet.Client
         private const double TargetInterval = 0.25;
 
         private readonly Queue<Sample> _samples = new Queue<Sample>();
-        private readonly Queue<Sample> _raw = new Queue<Sample>(); // raw targets, held for HoldSeconds
+        private readonly Queue<Sample> _raw = new Queue<Sample>();
         private double[] _sorted = new double[64];
         private double _lastAdvance = double.NaN;
         private double _nextTarget;
@@ -53,13 +43,10 @@ namespace Comet.Client
 
         public int TickRate { get; }
 
-        /// <summary>The least the delay can be, in ticks.</summary>
         public double FloorTicks { get; }
 
-        /// <summary>Added to the measured percentile, in ticks.</summary>
         public double MarginTicks { get; }
 
-        /// <summary>The delay now, in ticks.</summary>
         public double Ticks { get; private set; }
 
         public double Seconds => Ticks / TickRate;
@@ -80,10 +67,6 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>
-        /// Moves the delay toward the target by running the render tick at most <see cref="GrowRate"/> slow or <see cref="ShrinkRate"/> fast,
-        /// so drawn motion never jumps and the render tick never goes back. Call once per update.
-        /// </summary>
         public void Advance(double now)
         {
             if (now >= _nextTarget)

@@ -9,7 +9,6 @@ namespace ShapeLand.Client
 {
     public sealed partial class JoinScreen
     {
-        // The Sign in page in place of the new player's rows, or back; filled in with a taken name it was pointed to from.
         private void SetSigningIn(bool signingIn)
         {
             _root.EnableInClassList("signing-in", signingIn);
@@ -26,7 +25,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // A recovery code in place of the username and password, or back.
         private void SetWithCode(bool withCode)
         {
             _withCode = withCode;
@@ -36,7 +34,6 @@ namespace ShapeLand.Client
             _pageName.text = Text(withCode ? "account.sign_in_code_page" : "account.sign_in");
         }
 
-        // The signed-in card's Set password page (a guest keeping their character), or back to the card.
         private void SetSettingPassword(bool setting)
         {
             _root.EnableInClassList("setting-password", setting);
@@ -58,7 +55,6 @@ namespace ShapeLand.Client
             SetSignedIn(true);
         }
 
-        // Back on the card's own pages.
         private void PageBack()
         {
             if (SigningIn)
@@ -71,7 +67,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // The signed-in card: who the player is, beside their shape as it was last saved, in place of the new player's rows.
         private void SetSignedIn(bool signedIn)
         {
             _root.EnableInClassList("signed-in", signedIn);
@@ -96,8 +91,6 @@ namespace ShapeLand.Client
             MarkFieldRows();
         }
 
-        // A returning player, joining behind the small pop-up (the card stays down); on failure the pop-up says why, with
-        // Retry, and Cancel brings up the signed-in card. A refused token shows the new player's card (through SignedOut).
         private async void JoinFromPop()
         {
             var attempt = ++_popAttempt;
@@ -118,7 +111,7 @@ namespace ShapeLand.Client
 
             if (error == null)
             {
-                ShowPop(); // with the name, now that the account has loaded
+                ShowPop();
                 error = await _join.PlayAsync();
                 if (attempt != _popAttempt)
                 {
@@ -128,7 +121,7 @@ namespace ShapeLand.Client
 
             if (error == null)
             {
-                return; // connecting; the spawn, a refusal or a failure comes next
+                return;
             }
 
             _popBusy = false;
@@ -142,7 +135,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Join on launch off: the signed-in card, once the account has loaded.
         private async void ShowSignedInOnLaunch()
         {
             var error = await _join.LoadAccountAsync();
@@ -177,7 +169,6 @@ namespace ShapeLand.Client
             _pop.AddToClassList("hidden");
         }
 
-        // The pop-up's Cancel: stops the join and brings up the signed-in card.
         private void CancelPop()
         {
             _rejoinUntil = null;
@@ -186,7 +177,6 @@ namespace ShapeLand.Client
             ShowCardAgain(null);
         }
 
-        // Signing out from the signed-in card asks first; a guest would lose the character, so Set password comes first.
         private void AskToSignOut()
         {
             var strings = _content.Strings;
@@ -213,10 +203,8 @@ namespace ShapeLand.Client
             }
         }
 
-        private async void SignOut() => await _join.SignOutAsync(); // SignedOut brings up the new player's card
+        private async void SignOut() => await _join.SignOutAsync();
 
-        // After a join that didn't happen or a game that ended: the signed-in card, or with accounts off (no account to
-        // show), the new player's card with its choices kept.
         private void ShowCardAgain(string message)
         {
             if (JoinClient.Accounts)
@@ -236,7 +224,6 @@ namespace ShapeLand.Client
             Retry(message);
         }
 
-        // The card for a signed-in player who isn't playing, with a message: off the Sign In page, if it was last on it.
         private void ShowSignedIn(string message)
         {
             if (Changing)
@@ -251,7 +238,6 @@ namespace ShapeLand.Client
             ShowError(message);
         }
 
-        // The token was refused (expired, revoked, a deleted guest) or the player signed out: the new player's card.
         private void OnSignedOut()
         {
             if (_content == null)
@@ -272,7 +258,6 @@ namespace ShapeLand.Client
             Show();
         }
 
-        // The signed-in card's Set password page; back to the card once it's saved.
         private async System.Threading.Tasks.Task SavePassword()
         {
             if (_setPassword.value != _setPasswordAgain.value)
@@ -296,7 +281,6 @@ namespace ShapeLand.Client
             SetSettingPassword(false);
         }
 
-        // The Sign in page: a username and password, or a recovery code alone.
         private async System.Threading.Tasks.Task SignIn()
         {
             SetButton(false, "account.signing_in");
@@ -316,7 +300,7 @@ namespace ShapeLand.Client
             }
 
 #if !UNITY_WEBGL || UNITY_EDITOR
-            PlayerPrefs.SetString(ServerKey, ServerAddress()); // the next launch goes back to the server signed in to
+            PlayerPrefs.SetString(ServerKey, ServerAddress());
             PlayerPrefs.Save();
 #endif
             _signInCode.value = "";

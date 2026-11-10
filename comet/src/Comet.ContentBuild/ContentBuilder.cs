@@ -10,11 +10,6 @@ using Group = Comet.Content.Group;
 
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// Reads a game's content folder: one TOML file per entry, in folders by type. Each file is checked against its
-/// C# type and, if everything passes, gets its number from the ID registry. Games register their types with
-/// Tomlyn's source-generated metadata for them.
-/// </summary>
 public sealed class ContentBuilder
 {
     private readonly string _root;
@@ -35,10 +30,6 @@ public sealed class ContentBuilder
         return this;
     }
 
-    /// <summary>
-    /// Numbers keys inside entries of type <typeparamref name="T"/> (such as player colors in a settings file) under
-    /// registry type <paramref name="kind"/>. Keys are ids of the form <c>{kind}.name</c>.
-    /// </summary>
     public ContentBuilder AddKeys<T>(string kind, Func<T, IEnumerable<string>> keysOf)
         where T : class, IContentEntry
     {
@@ -57,10 +48,6 @@ public sealed class ContentBuilder
         return this;
     }
 
-    /// <summary>
-    /// Reads props (<see cref="Prop"/>) from <c>{folder}/**/*.toml</c>, baking each one's collision and bounds from
-    /// its model, found under <paramref name="modelRoot"/>.
-    /// </summary>
     public ContentBuilder AddProps(string modelRoot, string folder = "props")
     {
         var root = Path.GetFullPath(modelRoot);
@@ -93,20 +80,12 @@ public sealed class ContentBuilder
         );
     }
 
-    /// <summary>
-    /// Reads groups from <c>{folder}/**/*.toml</c> (<see cref="GroupFile"/>). Zones place copies of them, which the
-    /// build expands into their parts.
-    /// </summary>
     public ContentBuilder AddGroups(string folder = "groups")
     {
         _groupsFolder = folder;
         return this;
     }
 
-    /// <summary>
-    /// Reads zones from <c>{folder}/&lt;name&gt;/</c>, each a zone folder (<see cref="ZoneFolder"/>). Zone, spawn,
-    /// teleporter and trigger ids get registry numbers.
-    /// </summary>
     public ContentBuilder AddZones(string folder = "zones")
     {
         _zonesFolder = folder;
@@ -185,8 +164,6 @@ public sealed class ContentBuilder
         var groups = GroupFile.ReadFolder(folder, groupErrors);
         groupErrors.AddRange(ZoneValidation.CheckGroups(groups, key => props.TryGetValue(key, out var prop) ? prop : null));
         errors.AddRange(groupErrors.Select(e => new ContentError(DisplayPath(Path.Combine(folder, e.File)), 1, 1, e.Message)));
-        // Kept even with errors (the build fails on them anyway), so zones don't also report each copy as unknown; of
-        // groups sharing an id, the first.
         return groups.Select(g => g.Group).GroupBy(g => g.Id).Select(same => same.First()).ToList();
     }
 
@@ -242,8 +219,6 @@ public sealed class ContentBuilder
             }
         }
 
-        // Teleporters may target any zone's; ids name their zone, so they're unique across zones already. One not
-        // linked yet only warns, so zones can be linked one side at a time; standing on it does nothing.
         var teleporters = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Select(t => t.Id).ToHashSet();
         foreach (var zone in zones)
         {
@@ -306,10 +281,8 @@ public sealed class ContentBuilder
     internal static ContentError ErrorAt(string file, SourceSpan span, string message) =>
         new(file, span.Start.Line + 1, span.Start.Column + 1, message);
 
-    /// <summary>A lowercase letter, then lowercase letters, digits and underscores.</summary>
     internal const string NamePattern = "[a-z][a-z0-9_]*";
 
-    /// <summary>A dotted key as written, without quotes (<c>a."b"</c> is <c>a.b</c>).</summary>
     internal static string KeyText(KeySyntax key) => string.Join('.', KeyParts(key).Select(KeyText));
 
     internal static IEnumerable<BareKeyOrStringValueSyntax> KeyParts(KeySyntax key) => new[] { key.Key! }.Concat(key.DotKeys.Select(d => d.Key!));

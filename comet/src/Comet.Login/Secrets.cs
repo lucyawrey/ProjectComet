@@ -4,10 +4,6 @@ using System.Text;
 
 namespace Comet.Login;
 
-/// <summary>
-/// 32 random bytes with a <c>cs_</c> prefix, so secret scanners and logs can tell them apart. Only the SHA-256 is
-/// stored; a token this random can't be guessed however fast the hash.
-/// </summary>
 public static class SessionTokens
 {
     public const string Prefix = "cs_";
@@ -33,7 +29,6 @@ public static class RecoveryCodes
         return string.Join('-', code.Chunk(GroupSize).Select(group => new string(group)));
     }
 
-    /// <summary>The plain code from what a player typed, or null if it can't be one.</summary>
     public static string? Normalize(string typed)
     {
         var code = new StringBuilder(Length);

@@ -7,20 +7,12 @@ using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// F4 shows or hides Comet's <see cref="CollisionView"/> of the zone: what movement collides with, the volumes of
-    /// spawn points, teleporters and triggers (with the way arrivals face), and every player's body. A snap-back for a
-    /// broken movement rule leaves a red body where the player was and says which rule in the chat log. The choice is
-    /// remembered.
-    /// </summary>
     [RequireComponent(typeof(Hud), typeof(Chat), typeof(CollisionView))]
     public sealed class CollisionDebug : MonoBehaviour
     {
         private const string ShownKey = "collisionViewShown";
         private const float MarkSeconds = 4;
 
-        // Comet's colors (terrain, volumes, bodies), and ShapeLand's for its kinds of mesh, muted alike. Changes in
-        // play mode redraw the view.
         [SerializeField]
         private CollisionColors colors = null!;
 
@@ -37,7 +29,6 @@ namespace ShapeLand.Client
         private Comet.Client.ClientSession _session;
         private Vector3 _lastFeet;
 
-        /// <summary>Whether showing or hiding is remembered (PlayerPrefs); off in tests.</summary>
         public bool Remember { get; set; } = true;
 
         private void OnEnable()
@@ -51,15 +42,12 @@ namespace ShapeLand.Client
         // In Start, after the view's Awake: components on one object wake one at a time, in no set order.
         private void Start() => _view.Shown = Remember && PlayerPrefs.GetInt(ShownKey, 0) == 1;
 
-        // Draws the zone again with the new colors.
         private void OnValidate() => Redraw();
 
         private void Redraw() => _shownWorld = null;
 
-        /// <summary>True while the view is showing.</summary>
         public bool Shown => _view != null && _view.Shown;
 
-        /// <summary>Shows or hides the view, and remembers the choice.</summary>
         public void Toggle()
         {
             _view.Shown = !_view.Shown;
@@ -100,7 +88,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Bodies are drawn where the shapes are drawn, after they've moved this frame.
         private void LateUpdate()
         {
             var view = _hud.View;

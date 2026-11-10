@@ -57,7 +57,6 @@ namespace Comet.Unity
                     return;
                 }
 
-                // Only the open zones' signs, and only those turned off themselves, which are what's saved as off.
                 foreach (var zone in FindObjectsByType<ZoneEditing>(FindObjectsSortMode.None))
                 {
                     foreach (var sign in zone.GetComponentsInChildren<ZoneSign>(true))

@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// A prop, primitive or group copy placed in a zone or group opened in the editor; the object's transform is the
-    /// placement's. A primitive's mesh is built at its size: the scale tool edits size, other scales fold into it.
-    /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
     public sealed class ZonePlacement : MonoBehaviour
@@ -59,8 +55,6 @@ namespace Comet.Unity
         [Min(0)]
         public float thickness;
 
-        // Editing the color gives the placement its own; resetting goes back to the default
-        // (its prop's, else the game's).
         [HideInInspector]
         public bool ownColor;
 
@@ -80,18 +74,14 @@ namespace Comet.Unity
         [HideInInspector]
         public List<RoleColor> roleColors = new List<RoleColor>();
 
-        /// <summary>The game's polygon budget; set by the editor.</summary>
         public static PolygonBudget Budget { get; set; } = new PolygonBudget();
 
-        /// <summary>The material for blockout or not placed objects (null: leave it); set by the editor.</summary>
         public static System.Func<bool, Material?>? MaterialFor { get; set; }
 
-        /// <summary>Draws a group copy's parts under it; set by the editor, which reads the groups.</summary>
         public static System.Action<ZonePlacement>? GroupDrawer { get; set; }
 
         public bool IsGroup => !string.IsNullOrEmpty(group);
 
-        // Set while a copy's group is edited in place: its parts are then real placements under it, not a preview.
         [SerializeField, HideInInspector]
         private bool editingInPlace;
 
@@ -121,7 +111,6 @@ namespace Comet.Unity
                 }
                 : null;
 
-        // The mesh shown while a resize is dragged: refilled at each size rather than cached, then dropped.
         private Mesh? _dragMesh;
 
         public void PreviewResize()
@@ -147,7 +136,6 @@ namespace Comet.Unity
             filter.sharedMesh = _dragMesh;
         }
 
-        /// <summary>The mesh isn't saved with the scene, so this builds it again.</summary>
         public void Rebuild()
         {
             if (!isPrimitive || this == null)
@@ -164,7 +152,6 @@ namespace Comet.Unity
                 filter.sharedMesh = mesh;
             }
 
-            // Lets Unity's surface snapping land other objects on it.
             if (TryGetComponent<MeshCollider>(out var collider))
             {
                 collider.sharedMesh = mesh;
@@ -197,9 +184,6 @@ namespace Comet.Unity
             ApplyColor();
         }
 
-        /// <summary>
-        /// Property blocks aren't saved with the scene, so the color is applied again; the editor draws a copy's parts.
-        /// </summary>
         public void ApplyColor()
         {
             if (IsGroup)
@@ -218,7 +202,6 @@ namespace Comet.Unity
         private void OnEnable()
         {
 #if UNITY_EDITOR
-            // Once whoever added it has set what it is.
             UnityEditor.EditorApplication.delayCall += SyncPickRoot;
 #endif
             Rebuild();
@@ -234,7 +217,7 @@ namespace Comet.Unity
             ApplyColor();
             if (IsGroup && !editingInPlace)
             {
-                GroupDrawer?.Invoke(this); // its role colors may have changed, by an edit or an undo
+                GroupDrawer?.Invoke(this);
             }
 
 #if UNITY_EDITOR
@@ -244,8 +227,6 @@ namespace Comet.Unity
 #endif
         }
 
-        // Props and group copies are selected by a click on their meshes or parts; primitives aren't selection bases,
-        // and nor is a copy whose group is edited in place, so its parts are clicked straight.
         private void SyncPickRoot()
         {
             if (this == null || Application.isPlaying)

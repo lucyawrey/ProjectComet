@@ -18,7 +18,6 @@ namespace Comet.Protocol.Framing
         private byte[] _buffer;
         private int _length;
 
-        /// <param name="options">Serializer options; <see cref="ProtocolSerializer.Options"/> (Comet's messages only) if null.</param>
         public MessageWriter(int initialCapacity = 512, MessagePackSerializerOptions? options = null)
         {
             _buffer = new byte[initialCapacity];
@@ -40,7 +39,6 @@ namespace Comet.Protocol.Framing
             _length = TickSize;
         }
 
-        /// <summary>Clears the writer, with no frame header (for buffering encoded messages).</summary>
         public void Clear()
         {
             _length = 0;
@@ -51,7 +49,6 @@ namespace Comet.Protocol.Framing
         {
             _length += Varint.Write(GetSpan(Varint.MaxLength), messageId);
 
-            // Reserve one byte for the length; most payloads are under 128 bytes.
             var lengthPosition = _length;
             GetSpan(1);
             _length++;
@@ -71,10 +68,8 @@ namespace Comet.Protocol.Framing
             MessageCount++;
         }
 
-        /// <summary>Appends messages buffered in another writer (one started with <see cref="Clear"/>).</summary>
         public void Append(MessageWriter messages) => Append(messages, messages.Length, messages.MessageCount);
 
-        /// <summary>Appends the first <paramref name="count"/> messages, <paramref name="length"/> bytes, buffered in another writer.</summary>
         public void Append(MessageWriter messages, int length, int count)
         {
             messages.WrittenSpan.Slice(0, length).CopyTo(GetSpan(length));
@@ -82,7 +77,6 @@ namespace Comet.Protocol.Framing
             MessageCount += count;
         }
 
-        /// <summary>Removes the first <paramref name="count"/> messages, <paramref name="length"/> bytes, keeping the rest in order.</summary>
         public void RemoveStart(int length, int count)
         {
             Buffer.BlockCopy(_buffer, length, _buffer, 0, _length - length);

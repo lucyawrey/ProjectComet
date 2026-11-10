@@ -13,7 +13,7 @@ public class TickLimiterTests
         Assert.True(limiter.TryTake(100));
         Assert.True(limiter.TryTake(100));
         Assert.False(limiter.TryTake(101));
-        Assert.True(limiter.TryTake(161)); // 2 s later
+        Assert.True(limiter.TryTake(161));
         Assert.False(limiter.TryTake(162));
     }
 }

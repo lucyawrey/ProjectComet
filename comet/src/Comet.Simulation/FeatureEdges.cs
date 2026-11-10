@@ -4,12 +4,8 @@ using System.Numerics;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// The edges of a triangle mesh worth drawing as a wireframe: where the surface bends or ends, not flat-face diagonals.
-    /// </summary>
     public static class FeatureEdges
     {
-        // Corners closer than this, in meters, count as one, so seams between meshes with unshared vertices still pair up.
         private const float Weld = 0.001f;
 
         /// <summary>
@@ -25,7 +21,7 @@ namespace Comet.Simulation
                 var normal = Vector3.Cross(triangles[i + 1] - triangles[i], triangles[i + 2] - triangles[i]);
                 if (normal.LengthSquared() < 1e-12f)
                 {
-                    continue; // degenerate: no face to bound
+                    continue;
                 }
 
                 normal = Vector3.Normalize(normal);

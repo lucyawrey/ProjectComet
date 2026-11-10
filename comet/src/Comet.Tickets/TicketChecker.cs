@@ -32,15 +32,14 @@ public sealed class TicketChecker
             ValidAlgorithms = [SecurityAlgorithms.EcdsaSha256],
             IssuerSigningKeys = publicKeys.ToList(),
             ValidIssuer = TicketClaims.Issuer,
-            ValidateAudience = false, // checked below, to tell "for another server" apart
-            ValidateLifetime = false, // checked below, against our clock
+            ValidateAudience = false,
+            ValidateLifetime = false,
             RequireSignedTokens = true,
             RequireExpirationTime = true,
-            TryAllIssuerSigningKeys = false, // only the key the ticket names
+            TryAllIssuerSigningKeys = false,
         };
     }
 
-    /// <summary>Checks a ticket and, if it's good, marks it used.</summary>
     public async Task<(JoinTicket? Ticket, TicketRejection? Rejection)> CheckAsync(string token)
     {
         TokenValidationResult result;

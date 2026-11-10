@@ -9,7 +9,6 @@ namespace ShapeLand.Client
 {
     public sealed partial class GameView
     {
-        // A spawn point's, teleporter's or trigger's pad, if it has one: drawn on its own, to be colored.
         private void AddPad(object owner, string id, TriggerVolume volume, Transform parent)
         {
             if (volume.Pad is not { } pad)
@@ -35,18 +34,13 @@ namespace ShapeLand.Client
                 Color = color;
             }
 
-            /// <summary>The spawn point, teleporter or trigger it's under.</summary>
             public object Owner { get; }
 
             public Renderer[] Renderers { get; }
 
-            /// <summary>Its color at rest (a spawn's while it isn't the player's).</summary>
             public Color Color { get; }
         }
 
-        // The player's own spawn's pad takes their body color, other spawns' a pale color used nowhere else, and
-        // other pads their own. A pad the player stands in charges toward firing (Charging): a spawn's toward their
-        // body color, a teleporter's and a trigger's toward their charge color.
         private void ColorPads()
         {
             if (_content == null || _pads.Count == 0)
@@ -75,8 +69,6 @@ namespace ShapeLand.Client
                     _padFading = false;
                 }
 
-                // The shape starts fading out just before the pad fires, to be gone as it does; stepping off first
-                // brings it back.
                 if (teleporter != null && _teleportCharge.Inside == teleporter && !_teleportCharge.Fired)
                 {
                     var left = (1 - _teleportCharge.Progress(now)) * teleporter.Volume.StandSeconds;
@@ -108,7 +100,6 @@ namespace ShapeLand.Client
                 }
                 else if (pad.Owner is Teleporter teleporter)
                 {
-                    // Lit from firing until the player has faded out of it, and the target from arriving until they step off.
                     var charge =
                         teleporter == _sending && Player != null && Player.Departing ? 1
                         : _teleportCharge.Inside != teleporter ? 0
@@ -139,12 +130,11 @@ namespace ShapeLand.Client
             }
         }
 
-        // Arriving somewhere (a spawn, a teleporter's target) counts as already in what's there: it charges only after a step out and in.
         private void OnCorrected(PositionCorrection correction)
         {
             if (_zonePending)
             {
-                _pendingArrival = correction; // in the zone not drawn yet: its triggers, once it is
+                _pendingArrival = correction;
                 return;
             }
 
@@ -167,9 +157,6 @@ namespace ShapeLand.Client
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
-        // Every pad charges alike: from its resting color straight toward the color it charges to, over its stand time
-        // (charge 0 to 1, or 1 once fired), blinking back to its resting color once, BlinkSeconds long, just before it
-        // fires, so the moment shows on any color. A pad that fires at once has no time to blink.
         private const float BlinkSeconds = 0.1f;
 
         private static Color Charging(Color rest, Color to, float charge, float standSeconds)

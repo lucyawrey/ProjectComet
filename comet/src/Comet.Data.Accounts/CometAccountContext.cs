@@ -2,9 +2,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Comet.Data.Accounts;
 
-/// <summary>
-/// The <c>account</c> schema, used only by the Login server. A game subclasses it to own the migrations.
-/// </summary>
 public abstract class CometAccountContext(DbContextOptions options) : DbContext(options)
 {
     public const string Schema = "account";

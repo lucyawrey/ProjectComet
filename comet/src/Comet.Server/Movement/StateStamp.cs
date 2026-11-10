@@ -1,16 +1,9 @@
 namespace Comet.Server.Movement;
 
-/// <summary>
-/// Stamps a player's entity states with the tick the player sent them at, so network jitter doesn't show as wobble
-/// on others' screens. The tick comes from the report frame's header, bounded to no later than arrival, within <see
-/// cref="MaxLagSeconds"/> of it, and never before the last stamp.
-/// </summary>
 public sealed class StateStamp
 {
-    /// <summary>How far before a report's arrival its stamp may be, in seconds.</summary>
     public const double MaxLagSeconds = 0.5;
 
-    /// <summary>How many seconds of reports the latency's median covers.</summary>
     public const double SmoothingSeconds = 5;
 
     /// <summary>How fast the shift may change, in ticks per tick, so the spacing of states never jumps.</summary>
@@ -23,8 +16,6 @@ public sealed class StateStamp
     private readonly uint _window;
     private readonly Queue<(uint Arrival, int Lag)> _lags = new();
 
-    // How many samples in the window have each lag, from -maxLag to +maxLag (the only lags Stamp gives), so
-    // the median costs the same however many reports a client sends.
     private readonly int[] _lagCounts;
     private double _shift = double.NaN;
     private long _wholeShift;
@@ -37,19 +28,12 @@ public sealed class StateStamp
         _lagCounts = new int[2 * _maxLag + 1];
     }
 
-    /// <summary>The sender's last stamp, for checking their movement.</summary>
     public uint Last { get; private set; }
 
-    /// <summary>
-    /// The stamp for states sent to others: <see cref="Last"/> shifted by the smoothed latency (the median of
-    /// arrival minus stamp over <see cref="SmoothingSeconds"/>, approached at no more than <see
-    /// cref="SlewRate"/>), so only jitter and stalls count toward their interpolation delay.
-    /// </summary>
     public uint Broadcast { get; private set; }
 
     public int Broadcasts { get; private set; }
 
-    /// <summary>Broadcast stamps held back to keep them from going backwards.</summary>
     public int Clamped { get; private set; }
 
     /// <summary>The smoothed latency the broadcast stamps are shifted by, in ticks (0 before the first report).</summary>
@@ -65,8 +49,6 @@ public sealed class StateStamp
         // everyone drawing them. Not held to arrival afterwards either: that would lose a tick, drawn as a jump.
         var own = Math.Clamp((long)clientTick, (long)arrivalTick - _maxLag, (long)arrivalTick + _maxLag);
         UpdateShift((int)(arrivalTick - own), arrivalTick);
-        // Stamps are whole ticks, so the shift is too; it changes only once well past the one in use, since a shift
-        // hovering near a half would otherwise move every few stamps.
         if (Math.Abs(_shift - _wholeShift) > ShiftHysteresis)
         {
             _wholeShift = (long)Math.Round(_shift);
@@ -95,7 +77,6 @@ public sealed class StateStamp
             _lagCounts[_lags.Dequeue().Lag + _maxLag]--;
         }
 
-        // The upper median: the lag at index count / 2 of the sorted window.
         var below = 0;
         var bin = 0;
         while (below + _lagCounts[bin] <= _lags.Count / 2)

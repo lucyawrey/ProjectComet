@@ -40,7 +40,6 @@ public static class ShapeLandLogin
                 throw new InvalidOperationException("Set Login:ConnectionString (PostgreSQL, as the database's owner).");
             }
 
-            // Development: a key pair per checkout in artifacts/keys, made on first run, where the game server looks.
             if (string.IsNullOrEmpty(login.SigningKeyFile))
             {
                 var keys = Path.Combine(RepoPaths.Root(Hint), "artifacts", "keys");

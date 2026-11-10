@@ -9,15 +9,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The in-game overlay (UI Toolkit, <c>Assets/UI/Hud.uxml</c>), shown once the player has joined: the menu, Change
-    /// Look, Return to Spawn and chat buttons (Change Look, or C, brings up the join card), the Esc menu
-    /// (<see cref="GameMenu"/>, its button's tip showing until it's first opened), and the respawn fade over the whole screen. Esc or gamepad Start
-    /// closes the chat input first, then the look card, else opens the menu (in it, Esc goes back a step and Start
-    /// closes it). The chat
-    /// (<see cref="Chat"/>), name tags (<see cref="NameTags"/>) and network numbers (<see cref="NetStats"/>) are
-    /// components beside it on the same object.
-    /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class Hud : MonoBehaviour
     {
@@ -43,46 +34,33 @@ namespace ShapeLand.Client
         private VisualElement _menuButton;
         private bool _menuTipSeen;
 
-        // Chat that was open when the look card came up, and what was typed in it: it reopens once the card closes.
         private bool _reopenChat;
         private string _chatDraft;
 
-        // The overlay's parts kept inside the screen's safe area, and the insets they have now.
         private VisualElement[] _safe;
         private VisualElement[] _centeredSafe;
         private Vector4 _insets = new Vector4(-1, -1, -1, -1);
 
-        // The screen and overlay sizes the safe area was last applied for: it's asked for again only when they change.
         private Vector4 _safeFor;
 
         public JoinClient Join => join;
 
-        /// <summary>The network numbers (F3), beside the overlay.</summary>
         public NetStats Stats => _stats;
 
-        /// <summary>The collision view (F4), beside the overlay.</summary>
         public CollisionDebug Collisions => _collisions;
 
         public GameView View => view;
 
-        /// <summary>The overlay's root.</summary>
         public VisualElement Root => _root;
 
-        /// <summary>True while the player is in the game and the overlay is up.</summary>
         public bool Shown => _root != null && !_root.ClassListContains("hidden");
 
-        /// <summary>True while the join card is up over the game.</summary>
         public bool CardShowing => card.Showing;
 
-        /// <summary>True while the Esc menu is up, and on the frame it closed (<see cref="GameMenu.Blocking"/>).</summary>
         public bool MenuBlocking => _menu != null && (_menu.Blocking || _account.Open);
 
-        /// <summary>Brings up the Esc menu's Account page (from the menu); its Back returns to the menu.</summary>
         public void OpenAccount() => _account.Show(() => _menu.Show(GameMenu.AccountEntry, navigating: _account.Navigating), _menu.Navigating);
 
-        // On a phone the interface scales from a smaller design size than the panel settings' (960 x 600), so a panel
-        // pixel is about a CSS pixel there and text stays readable; the join card still fits a small phone held
-        // landscape.
         private static readonly Vector2Int PhoneReferenceResolution = new Vector2Int(800, 500);
 
         // The panel settings' own design size, put back on disabling: in the editor a change to the asset would outlast
@@ -108,7 +86,6 @@ namespace ShapeLand.Client
             _menuButton = tree.Q("menu-button");
             ((Button)_menuButton).clicked += ToggleMenu;
             _root.EnableInClassList("phone", WebPage.IsPhone);
-            // The other buttons close the look card first.
             tree.Q<Button>("return-button").clicked += () =>
             {
                 CloseLook();
@@ -121,7 +98,6 @@ namespace ShapeLand.Client
             };
             _menuTipSeen = GameSettings.MenuTipSeen;
             tree.Query(className: "hud-tip").ForEach(tip => tip.parent.RegisterCallback<PointerEnterEvent>(_ => MarkMenuTipSeen()));
-            // The join card is its own document on the same panel settings, so the same insets fit it.
             var cardSafe = card.GetComponent<UIDocument>().rootVisualElement.Q("card-safe");
             _safe = new[] { tree.Q("safe"), tree.Q("touch-safe") };
             _centeredSafe = new[] { tree.Q("menu-safe"), tree.Q("account-safe"), cardSafe };
@@ -168,7 +144,6 @@ namespace ShapeLand.Client
             _root.RemoveFromClassList("hidden");
             if (GuestReminder.Due(join.Account))
             {
-                // Once, on a guest's first visit on a later day: their character lives only in this browser.
                 _guestReminder.Q<Label>("guest-reminder-text").text = join.Content.Strings.Get("account.reminder");
                 _guestReminder.RemoveFromClassList("hidden");
                 _guestReminderUntil = Time.unscaledTime + GuestReminder.ShowSeconds;
@@ -194,14 +169,13 @@ namespace ShapeLand.Client
             _touch?.Update(Shown && view.Player != null && view.Player.InputEnabled, _menu.Open);
             if (_touch != null && card.Root != null)
             {
-                // The look card's prompts bar follows the input in use, as the menu's does.
                 card.Root.EnableInClassList("touch-input", _touch.Input == InputKind.Touch);
                 card.Root.EnableInClassList("pad-input", _touch.Input == InputKind.Gamepad);
             }
 
             if (WebPage.IsPhone)
             {
-                KeepToSafeArea(); // also before the HUD shows, for the join card
+                KeepToSafeArea();
             }
 
             if (!Shown)
@@ -209,7 +183,6 @@ namespace ShapeLand.Client
                 return;
             }
 
-            // The look card hides chat and the network numbers while it's up.
             _lookButton.EnableInClassList("on", card.Changing);
             _menuButton.EnableInClassList("on", _menu.Open);
             _root.EnableInClassList("look-open", card.Changing);
@@ -224,7 +197,6 @@ namespace ShapeLand.Client
                 HideGuestReminder();
             }
 
-            // Esc closes the chat input itself (Chat), so a press just after that is left alone.
             var menu = view.Controls.Game.Menu;
             if (menu.WasPressedThisFrame() && _account.Open)
             {
@@ -232,10 +204,7 @@ namespace ShapeLand.Client
             }
             else if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
             {
-                if (card.Changing && menu.activeControl is not KeyControl)
-                {
-                    // Start on the look card applies the change (JoinScreen).
-                }
+                if (card.Changing && menu.activeControl is not KeyControl) { }
                 else if (card.FromMenu)
                 {
                     _reopenChat = false;
@@ -269,7 +238,6 @@ namespace ShapeLand.Client
 
             if (!_menu.Blocking)
             {
-                // C typed in the card's name field is just a letter.
                 var changeLook = view.Controls.Game.ChangeLook;
                 if (changeLook.WasPressedThisFrame())
                 {
@@ -300,11 +268,9 @@ namespace ShapeLand.Client
             UpdateMoving();
         }
 
-        // Insets the safe parts by the screen's safe area (notches, rounded corners, the home bar), which changes as the
-        // phone turns.
         private void KeepToSafeArea()
         {
-            var size = _root.parent.layout.size; // the document's root, laid out while the HUD is hidden
+            var size = _root.parent.layout.size;
             var sizes = new Vector4(Screen.width, Screen.height, size.x, size.y);
             if (float.IsNaN(size.x) || size.x <= 0 || sizes == _safeFor)
             {
@@ -325,8 +291,6 @@ namespace ShapeLand.Client
                 Inset(safe, insets);
             }
 
-            // The menu and the join card center in what's left, so they get even top and bottom insets: a phone in
-            // landscape has an inset only at the bottom (the home indicator), which would leave them off center.
             var vertical = Mathf.Max(insets.x, insets.z);
             foreach (var safe in _centeredSafe)
             {
@@ -342,7 +306,6 @@ namespace ShapeLand.Client
             safe.style.left = insets.w;
         }
 
-        /// <summary>Back to the spawn point, unless typing or on the look card. Becomes an action once Comet has them.</summary>
         public void ReturnToSpawn()
         {
             if (!_chat.Open && !card.Changing)
@@ -351,10 +314,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>
-        /// Brings up the card to change name, shape and colors, putting an open chat away until it closes. From the Esc
-        /// menu (<paramref name="fromMenu"/>), the card's Back returns to the menu.
-        /// </summary>
         public void OpenLook(bool fromMenu = false)
         {
             if (_chat.Open)
@@ -368,7 +327,6 @@ namespace ShapeLand.Client
             UpdateMoving();
         }
 
-        /// <summary>Takes down the first-login tip on the menu button for good (the menu opened, or a tip was hovered).</summary>
         public void MarkMenuTipSeen()
         {
             if (!_menuTipSeen)
@@ -378,7 +336,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // The menu button: opens the menu, closing the look card first, or closes it.
         private void ToggleMenu()
         {
             if (_menu.Open)
@@ -392,7 +349,6 @@ namespace ShapeLand.Client
             UpdateMoving();
         }
 
-        // The look button: brings the card up, or closes it.
         private void ToggleLook()
         {
             if (card.Changing)
@@ -405,7 +361,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Closes the look card without changing anything, leaving chat closed.
         private void CloseLook()
         {
             if (card.Changing)
@@ -416,8 +371,6 @@ namespace ShapeLand.Client
             }
         }
 
-        // Chat put away by the look card opens again once the card is gone, after the key that closed it is let go
-        // (focusing the input while it's down would type it).
         private void ReopenChat()
         {
             if (_reopenChat && !CardShowing && (Keyboard.current == null || !Keyboard.current.anyKey.isPressed))
@@ -428,7 +381,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Stops the shape while the player types, chooses a look or is in the menu.</summary>
         public void UpdateMoving()
         {
             if (view.Player != null)

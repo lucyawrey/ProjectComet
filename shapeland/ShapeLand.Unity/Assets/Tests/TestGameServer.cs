@@ -10,19 +10,10 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Tests
 {
-    // The real ShapeLand game server for Play mode tests, on a free port, playing the tests' own zone
-    // (content/zones/tests), so editing ShapeLand's zones can't break them. Without accounts (the default, as in the
-    // editor), it alone runs, its characters in memory, and play mode joins it by name. With accounts (tests in the
-    // Accounts category), the Login server runs too, on a fresh database in the shared comet-postgres container
-    // (tools/run comet-postgres) and with its own ticket keys; that needs Docker. Either way it sets the editor's
-    // Use Accounts switch and play mode's server port to match, and puts them back after. Needs the dotnet SDK on the
-    // PATH and the content built.
     public sealed class TestGameServer : IDisposable
     {
-        /// <summary>The zone the tests play, laid out for them: change it only along with them.</summary>
         public const string Zone = "zone.tests";
 
-        /// <summary>Where every player starts, in <see cref="Zone"/> (the server's ShapeLand:StartSpawn).</summary>
         public const string StartSpawn = "spawn.tests.start";
 
         private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", ".."));
@@ -40,17 +31,12 @@ namespace ShapeLand.Client.Tests
         private readonly bool _usedAccounts = Comet.Unity.LocalServerPort.UseAccounts;
         private readonly int _editorPort = UnityEditor.SessionState.GetInt(Comet.Unity.LocalServerPort.Key, 0);
 
-        /// <summary>
-        /// A server joined by name, or with <paramref name="accounts"/>, through the Login server with tickets, which
-        /// gets <paramref name="loginArguments"/> on top of its own.
-        /// </summary>
         public TestGameServer(bool accounts = false, string loginArguments = "")
         {
             _accounts = accounts;
             _loginArguments = loginArguments;
         }
 
-        /// <summary>The content play mode and the tests use; fails the test if it hasn't been copied in.</summary>
         public static ShapeLandContent LoadContent()
         {
             var file = Path.Combine(Application.streamingAssetsPath, "content.bin");
@@ -59,10 +45,8 @@ namespace ShapeLand.Client.Tests
             return ShapeLandContent.Load(stream);
         }
 
-        /// <summary>With accounts, the Login server's address (what the card's server field takes), once <see cref="Start"/> has finished; null without.</summary>
         public string Address { get; private set; }
 
-        /// <summary>The game server's address, once <see cref="Start"/> has finished.</summary>
         public string GameAddress => $"127.0.0.1:{_port}";
 
         public IEnumerator Start()
@@ -80,7 +64,7 @@ namespace ShapeLand.Client.Tests
             }
 
             _port = FreePort();
-            UnityEditor.SessionState.SetInt(Comet.Unity.LocalServerPort.Key, _port); // where play mode joins without accounts
+            UnityEditor.SessionState.SetInt(Comet.Unity.LocalServerPort.Key, _port);
             _keys = Path.Combine(Path.GetTempPath(), $"shapeland-unity-tests-{_port}");
             if (!_accounts)
             {
@@ -92,7 +76,6 @@ namespace ShapeLand.Client.Tests
             _database = $"shapeland_unity_tests_{_port}";
             _connection = Database("fresh", _database);
 
-            // The Login server first: it migrates the database and makes the keys the game server reads.
             _login = Run(
                 $"artifacts/bin/ShapeLand.LoginServer/debug/ShapeLand.LoginServer.dll --urls http://127.0.0.1:{_loginPort} "
                     + $"\"--Login:ConnectionString={_connection}\" \"--Login:SigningKeyFile={Path.Combine(_keys, "login.pem")}\" "
@@ -106,7 +89,6 @@ namespace ShapeLand.Client.Tests
             Address = $"127.0.0.1:{_loginPort}";
         }
 
-        // Starts the built server on this server's port and waits until it listens.
         private IEnumerator Launch()
         {
             // The server's output isn't read: reading a child's output asynchronously keeps Unity's editor from exiting.
@@ -127,20 +109,15 @@ namespace ShapeLand.Client.Tests
             Assert.That(listening, "The game server didn't start.");
         }
 
-        /// <summary>
-        /// Stops the game server the way Ctrl+C or tools/run shapeland-dev's restart does: it tells its clients it's
-        /// shutting down. <see cref="StartAgain"/> brings it back at the same address.
-        /// </summary>
         public IEnumerator ShutDownServer()
         {
             if (_accounts)
             {
-                using var term = Process.Start("kill", $"-TERM {_process.Id}"); // Linux and macOS, where these run
+                using var term = Process.Start("kill", $"-TERM {_process.Id}");
                 term.WaitForExit();
             }
             else
             {
-                // As the editor stops its own server without accounts: on every platform.
                 using var http = new System.Net.Http.HttpClient();
                 http.PostAsync($"http://127.0.0.1:{_port}/dev/stop", null).Wait();
             }
@@ -151,10 +128,8 @@ namespace ShapeLand.Client.Tests
             _process = null;
         }
 
-        /// <summary>Starts the server again after <see cref="ShutDownServer"/>, at the same address.</summary>
         public IEnumerator StartAgain() => Launch();
 
-        /// <summary>Runs the bot program against this server: <paramref name="count"/> honest, chatting bots for <paramref name="seconds"/>.</summary>
         public IEnumerator StartBots(int count, double seconds)
         {
             Assert.That(_accounts, "Bots sign in through the Login server: start the server with accounts.");
@@ -173,7 +148,6 @@ namespace ShapeLand.Client.Tests
             );
         }
 
-        /// <summary>Kills the game server, as if it crashed; its connections close.</summary>
         public void StopServer() => Stop(ref _process);
 
         public void Dispose()
@@ -195,7 +169,6 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        // Runs tools/comet-postgres.cs, returning what it prints (a connection string, for database and fresh).
         private static string Database(string command, string name)
         {
             using var process = Process.Start(
@@ -213,7 +186,6 @@ namespace ShapeLand.Client.Tests
             return output;
         }
 
-        // Kills a process if it's still running (it may exit on its own at any moment) and forgets it.
         private static void Stop(ref Process process)
         {
             if (process == null)

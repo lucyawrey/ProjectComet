@@ -2,25 +2,16 @@ using MessagePack;
 
 namespace ShapeLand.Shared.Messages
 {
-    /// <summary>
-    /// Sent once after connecting; after a rejection, the client fetches a new ticket and connects again.
-    /// </summary>
     [MessagePackObject]
     public struct JoinRequest
     {
-        /// <summary>Good once, for this server, for a minute.</summary>
         [Key(0)]
         public string Ticket;
 
-        /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
         [Key(1)]
         public ulong ContentFingerprint;
     }
 
-    /// <summary>
-    /// Joins by name without a ticket. Only a Debug game server started for development takes it; any other answers
-    /// <see cref="JoinRejection.AccountsNeeded"/>.
-    /// </summary>
     [MessagePackObject]
     public struct DevJoinRequest
     {
@@ -36,7 +27,6 @@ namespace ShapeLand.Shared.Messages
         [Key(3)]
         public int EyeColor;
 
-        /// <summary>The client's <c>ShapeLandContent.Fingerprint</c>, which must match the server's.</summary>
         [Key(4)]
         public ulong ContentFingerprint;
 
@@ -50,20 +40,16 @@ namespace ShapeLand.Shared.Messages
 
         BadTicket = 2,
 
-        /// <summary>The ticket expired or is from before the server started: fetch a new one.</summary>
         ExpiredTicket = 3,
 
-        /// <summary>The ticket was used already: fetch a new one.</summary>
         UsedTicket = 4,
 
         WrongServer = 5,
 
         NoCharacter = 6,
 
-        /// <summary>The server couldn't load the character in time: try again soon.</summary>
         Busy = 7,
 
-        /// <summary>A newer join for the same character came in while this one was loading.</summary>
         Replaced = 8,
 
         AccountsNeeded = 9,
@@ -111,7 +97,6 @@ namespace ShapeLand.Shared.Messages
         public LookRejection Reason;
     }
 
-    /// <summary>Carries nothing: the server reads the new name itself.</summary>
     [MessagePackObject]
     public struct NameChanged { }
 
@@ -119,10 +104,6 @@ namespace ShapeLand.Shared.Messages
     {
         Replaced = 1,
 
-        /// <summary>
-        /// Clients don't reconnect on their own after this or <see cref="Replaced"/>, so two tabs can't keep taking the
-        /// character from each other.
-        /// </summary>
         Removed = 2,
     }
 
@@ -133,10 +114,6 @@ namespace ShapeLand.Shared.Messages
         public DropReason Reason;
     }
 
-    /// <summary>
-    /// The client's own player comes first, right after Comet's <c>Welcome</c>. Another spawn for a player already in
-    /// view gives their new look or name, where they stand.
-    /// </summary>
     [MessagePackObject]
     public struct PlayerSpawn
     {

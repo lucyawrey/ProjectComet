@@ -5,14 +5,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The Esc menu's Account page: rows like Settings (Username, Set or Change password, Recovery code, Sign out), each
-    /// opening its own step in the same window. Changing the password or making a code needs a recent sign-in; when the
-    /// Login server says so, the Confirm it's you step asks for the password, then the change goes on. A new recovery
-    /// code is shown once; Copy counts as saving it, and leaving before that asks first. Signing out asks first, and a guest is
-    /// offered Set password. Keys and a gamepad move a selection through the step's rows, fields and buttons, with Back
-    /// above them (<see cref="Update"/>); Esc or B goes back a step, then to the menu.
-    /// </summary>
     public sealed partial class AccountPage
     {
         private enum Step
@@ -64,15 +56,13 @@ namespace ShapeLand.Client
         private readonly VisualElement _passwordRow;
         private readonly VisualElement _confirmHost;
 
-        // Keys and gamepad: the selected item in the step (or Back above it).
         private int _selected;
         private bool _onBack;
         private readonly MenuNavigation _navigation = new();
         private int _shownOnFrame;
 
-        // The step Confirm it's you goes on to once the password checks out.
         private Step _afterConfirm;
-        private bool _resubmitPassword; // the confirm came from a refused change, so the typed password goes on after it
+        private bool _resubmitPassword;
         private bool _busy;
 
         public AccountPage(Hud hud, VisualElement root)
@@ -108,7 +98,7 @@ namespace ShapeLand.Client
             _message = root.Q<Label>("account-message");
             _submit = root.Q<Button>("account-submit");
             _confirmHost = root.Q("account-safe").parent;
-            _confirm = new ConfirmPanel(_confirmHost); // over the whole screen, insets included
+            _confirm = new ConfirmPanel(_confirmHost);
             _usernameRow = root.Q("account-username-row");
             _passwordRow = root.Q("account-password-row");
             _backButton = root.Q<Button>("account-back");
@@ -146,28 +136,21 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>True while the page (or one of its questions) is up.</summary>
         public bool Open => !_page.ClassListContains("hidden") || _confirm.Open;
 
-        /// <summary>True while a field on the page has the keyboard.</summary>
         public bool Typing =>
             Open
             && _page.focusController?.focusedElement is VisualElement focused
             && (focused is TextField || focused.GetFirstAncestorOfType<TextField>() != null);
 
-        /// <summary>
-        /// Brings the page up; <paramref name="back"/> runs on Back from its rows (the menu comes back). With
-        /// <paramref name="navigating"/> (opened with keys or a gamepad), the selection shows at once.
-        /// </summary>
         public void Show(Action back, bool navigating = false) => Show(back, Step.Rows, navigating);
 
-        /// <summary>Brings the page up at its Set password step (the guest reminder's button).</summary>
         public void ShowSetPassword(Action back) => Show(back, Step.Password, false);
 
         private async void Show(Action back, Step step, bool navigating)
         {
             _back = back;
-            _shownOnFrame = Time.frameCount; // the press that opened the page isn't the page's
+            _shownOnFrame = Time.frameCount;
             Navigating = navigating;
             _page.RemoveFromClassList("hidden");
             ShowStep(step);
@@ -178,10 +161,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>
-        /// Esc or Back: closes the question if one is up, else goes back a step, else closes the page and goes back to
-        /// the menu.
-        /// </summary>
         public void Back()
         {
             if (_confirm.Open)
@@ -232,7 +211,7 @@ namespace ShapeLand.Client
             _newCodeStep.EnableInClassList("shown", step == Step.NewCode);
             _codeStep.EnableInClassList("shown", step == Step.Code);
             _submit.EnableInClassList("hidden", step == Step.Rows);
-            _signOut.EnableInClassList("hidden", step != Step.Rows); // the rows' bottom corner, as on the signed-in card
+            _signOut.EnableInClassList("hidden", step != Step.Rows);
             _backText.text = Text(step == Step.Rows ? "menu.back" : "account.page");
             _pageName.text = step switch
             {
@@ -299,13 +278,11 @@ namespace ShapeLand.Client
             _guestInfo.text = Text("account.guest_note");
             _guestInfo.EnableInClassList("hidden", !guest);
             _passwordName.text = Text(guest ? "account.row_set_password" : "account.row_change_password");
-            // A guest has no recovery code until there's a password to recover.
             _codeRow.EnableInClassList("disabled", guest);
             _codeNote.text = Text(guest ? "account.row_recovery_code_later" : "account.row_recovery_code_note");
             _codeValue.EnableInClassList("hidden", guest);
         }
 
-        // The step's button, ready.
         private void SetSubmit()
         {
             _submit.SetEnabled(true);
@@ -321,7 +298,6 @@ namespace ShapeLand.Client
             );
         }
 
-        // While a request is out the button shows it's working and the page holds still.
         private void Busy(bool busy)
         {
             _busy = busy;
@@ -336,7 +312,6 @@ namespace ShapeLand.Client
             Message(null);
         }
 
-        // The page's error, in the join card's error box.
         private void Message(string message)
         {
             _message.text = message ?? "";

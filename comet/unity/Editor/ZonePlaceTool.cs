@@ -9,17 +9,12 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// The Scene view's place tool for a zone opened in the editor: pick a primitive, a prop, or a new spawn point,
-    /// teleporter, trigger or sign in its panel, then click in the scene to place it under the mouse.
-    /// </summary>
     [EditorTool("Zone Place")]
     public sealed class ZonePlaceTool : EditorTool
     {
         [SerializeField]
         private string placeable = "";
 
-        // The kind to add (spawn, teleporter, trigger or sign), or empty for a placeable; and its id (none for signs).
         [SerializeField]
         private string adding = "";
 
@@ -30,7 +25,7 @@ namespace Comet.Unity.Editor
         private string groupId = "group.";
 
         [SerializeField]
-        private Color color = Color.clear; // clear until first shown: then the game's placed color
+        private Color color = Color.clear;
 
         [SerializeField]
         private bool blockout;
@@ -54,9 +49,6 @@ namespace Comet.Unity.Editor
 
         public override bool IsAvailable() => Editing != null;
 
-        // The panel's pictures of each model and primitive, drawn in the placed objects' material and the picked color
-        // (Unity's own previews use the models' imported materials, which show purple where their shaders aren't
-        // ready). Keyed by what's drawn, its color and, for primitives, the polygon budget.
         private readonly Dictionary<(string, Color), Texture2D> _thumbnails = new Dictionary<(string, Color), Texture2D>();
 
         private void OnEnable() => Instance = this;
@@ -106,7 +98,6 @@ namespace Comet.Unity.Editor
         private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix)> parts, Material material, Color color, int size) =>
             Thumbnail(key, parts.Select(p => (p.Mesh, p.Matrix, color)).ToList(), material, color, size);
 
-        // Cached by key and `color` (the picked one, for what follows it).
         private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix, Color Color)> parts, Material material, Color color, int size)
         {
             if (_thumbnails.TryGetValue((key, color), out var cached) && cached != null)
@@ -220,7 +211,6 @@ namespace Comet.Unity.Editor
             CatalogGui(editing, settings, perRow, budgetKey);
             GroupActionsGui(editing, settings);
 
-            // Previews load in the background; keep repainting until they're in.
             if (AssetPreview.IsLoadingAssetPreviews())
             {
                 SceneView.RepaintAll();
@@ -370,7 +360,7 @@ namespace Comet.Unity.Editor
                 if (GUILayout.Button("Delete…", GUILayout.Width(70)))
                 {
                     var id = placeable;
-                    EditorApplication.delayCall += () => ZoneGroups.Delete(id, editing, settings); // after this GUI pass
+                    EditorApplication.delayCall += () => ZoneGroups.Delete(id, editing, settings);
                     placeable = "";
                 }
 
@@ -517,7 +507,6 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            // Take the left mouse button from the scene's selection while the tool is picked.
             var control = GUIUtility.GetControlID(FocusType.Passive);
             if (e.type == EventType.Layout)
             {
@@ -568,7 +557,6 @@ namespace Comet.Unity.Editor
 
             if (adding == "sign")
             {
-                // A little above the ground, so its text isn't half in it.
                 Selection.activeGameObject = ZoneEditor.AddSign(editing, at + Vector3.up * 1.5f).gameObject;
                 return;
             }
@@ -599,12 +587,9 @@ namespace Comet.Unity.Editor
             ).gameObject;
         }
 
-        // The opened zone's name (meadow, for zone.meadow), as its ids use it; its root is named after its id.
         private static string ZoneName(ZoneEditing editing) =>
             editing.name.StartsWith("Zone zone.", StringComparison.Ordinal) ? editing.name.Substring("Zone zone.".Length) : "";
 
-        // Where the mouse points: on top of the terrain, or of a placed object if one is nearer along the ray (on its
-        // bounding box's top), else on the ground plane.
         private static Vector3? Drop(ZoneEditing editing, Vector2 mouse)
         {
             var ray = HandleUtility.GUIPointToWorldRay(mouse);

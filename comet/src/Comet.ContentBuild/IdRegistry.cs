@@ -25,7 +25,6 @@ public sealed class IdRegistry
 
     public bool Changed { get; private set; }
 
-    /// <summary>Starts an empty registry if the file doesn't exist yet.</summary>
     public static IdRegistry Load(string path, string displayPath, List<ContentError> errors)
     {
         var registry = new IdRegistry(path);
@@ -117,7 +116,6 @@ public sealed class IdRegistry
         return result;
     }
 
-    /// <summary>Writes each type's entries in number order, so concurrent additions conflict in git.</summary>
     public void Save()
     {
         var text = new StringBuilder(Header);

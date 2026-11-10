@@ -3,10 +3,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Swaps a placement in place, as a level goes from blockout to finished: a primitive for a prop, or a prop for a
-    /// box the size of its bounds. Position, rotation, name and color carry over. Undoable.
-    /// </summary>
     internal static class ZoneSwap
     {
         public static GameObject? ForProp(ZonePlacement placed, string id, CometSettings settings)
@@ -16,7 +12,6 @@ namespace Comet.Unity.Editor
                 return null;
             }
 
-            // The prop's bounds take the primitive's size: evenly, if the prop only scales evenly.
             var placement = ZoneEditor.PlacementOf(placed);
             var size = Conversions.ToUnity(placement.Scale);
             var bounds = entry.bounds.size;
@@ -53,7 +48,6 @@ namespace Comet.Unity.Editor
             placement.Primitive = new Comet.Content.Primitive { Kind = Comet.Content.PrimitiveKind.Box };
             placement.Scale = Conversions.ToNumerics(new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z)));
 
-            // It keeps looking the color it was: its own, else its prop's.
             placement.Color ??= entry.hasColor ? Conversions.ToRgb(entry.color) : (uint?)null;
             return Replace(placed, placement, settings, "Swap for box");
         }

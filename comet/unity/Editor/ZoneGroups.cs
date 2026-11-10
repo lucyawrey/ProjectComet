@@ -12,17 +12,12 @@ using Group = Comet.Content.Group;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Groups in the editor: copies drawn with their parts, saving a selection as a group, unpacking a copy, and
-    /// editing a group in a scene of its own, whose saving updates every copy in the open scenes.
-    /// </summary>
     [InitializeOnLoad]
     public static class ZoneGroups
     {
         private const string PartsName = "Parts (preview)";
         private const string ReturnKey = "Comet.ZoneGroups.ReturnTo";
 
-        // The group files, read on first use and again when the project changes or a group is saved.
         private static List<(Group Group, string File)>? _groups;
 
         static ZoneGroups()
@@ -33,7 +28,6 @@ namespace Comet.Unity.Editor
             EditorApplication.projectChanged += () => _groups = null;
         }
 
-        /// <summary>Goes up each time the groups are read again, so pictures of them can be redrawn.</summary>
         public static int Version { get; private set; }
 
         public static IReadOnlyList<Group> All => Load().Select(g => g.Group).ToList();
@@ -83,7 +77,6 @@ namespace Comet.Unity.Editor
             return thing;
         }
 
-        /// <summary>A group's meshes in its own space, each with its color (null for a part that has none).</summary>
         public static List<(Mesh Mesh, Matrix4x4 Matrix, Color Color)> Meshes(string id, CometSettings settings)
         {
             var meshes = new List<(Mesh, Matrix4x4, Color)>();
@@ -118,7 +111,6 @@ namespace Comet.Unity.Editor
             return meshes;
         }
 
-        /// <summary>The placed objects' material: the blockout one for blockout, if the settings name one.</summary>
         public static Material? PlacedMaterial(CometSettings settings, bool blockout) =>
             blockout && settings.blockoutMaterial != null ? settings.blockoutMaterial : settings.placedMaterial;
 
@@ -129,7 +121,6 @@ namespace Comet.Unity.Editor
 
         public static void Redraw(ZonePlacement copy) => Draw(copy);
 
-        // Draws a copy's parts under it as uneditable objects the scene doesn't save, built again each time.
         private static void Draw(ZonePlacement copy)
         {
             if (copy == null || copy.EditingInPlace)
@@ -177,7 +168,7 @@ namespace Comet.Unity.Editor
                     var mesh = PrimitiveMeshes.For(part, settings.Budget);
                     thing.AddComponent<MeshFilter>().sharedMesh = mesh;
                     thing.AddComponent<MeshRenderer>().sharedMaterial = PlacedMaterial(settings, part.Blockout) ?? material;
-                    thing.AddComponent<MeshCollider>().sharedMesh = mesh; // for Unity's surface snapping
+                    thing.AddComponent<MeshCollider>().sharedMesh = mesh;
                     thing.transform.SetParent(root, false);
                     thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
                 }
@@ -202,10 +193,6 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>
-        /// Saves the selected placements as the new group <paramref name="id"/> and puts a copy of it in their
-        /// place, its pivot at the bottom center of what was selected. Pads stay.
-        /// </summary>
         public static bool SaveSelection(ZoneEditing editing, string id, CometSettings settings)
         {
             var selected = Selection
@@ -284,7 +271,6 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        /// <summary>Unpacks one level only: nested groups stay copies.</summary>
         public static void Unpack(ZonePlacement copy, CometSettings settings)
         {
             if (Find(copy.group) is not { } group)
@@ -309,7 +295,6 @@ namespace Comet.Unity.Editor
             Selection.objects = made.Cast<Object>().ToArray();
         }
 
-        /// <summary>Asks to save the open scenes' changes, then opens a group, after the current GUI pass.</summary>
         public static void OpenLater(string id, CometSettings settings) =>
             EditorApplication.delayCall += () =>
             {
@@ -368,7 +353,6 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        /// <summary>False (with the reasons shown) if the group doesn't check out.</summary>
         public static bool Save(ZoneEditing editing)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -385,7 +369,7 @@ namespace Comet.Unity.Editor
             var group = new Group
             {
                 Id = editing.groupId,
-                DisplayName = Find(editing.groupId)?.DisplayName, // kept from its file: the scene doesn't hold it
+                DisplayName = Find(editing.groupId)?.DisplayName,
                 Parts = editing
                     .GetComponentsInChildren<ZonePlacement>(true)
                     .Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null)
@@ -406,10 +390,6 @@ namespace Comet.Unity.Editor
 
         public static ZonePlacement? InPlace => Object.FindObjectsByType<ZonePlacement>().FirstOrDefault(p => p.EditingInPlace);
 
-        /// <summary>
-        /// Its parts become placements under the copy, edited like any other; what's placed meanwhile goes into it.
-        /// <see cref="SaveInPlace"/> writes them to the group; <see cref="CancelInPlace"/> drops them.
-        /// </summary>
         public static void EditInPlace(ZonePlacement copy, CometSettings settings)
         {
             if (InPlace is { } other)
@@ -436,7 +416,6 @@ namespace Comet.Unity.Editor
             var made = new List<GameObject>();
             foreach (var part in group.Parts)
             {
-                // Made at the part's place in the group, then put under the copy, so the copy's transform applies.
                 var thing = ZoneEditor.CreatePlaced(part, copy.transform, settings);
                 var r = part.Rotation;
                 thing.transform.SetLocalPositionAndRotation(ToUnity(part.Position), Quaternion.Euler(r.X, r.Y, r.Z));
@@ -546,11 +525,6 @@ namespace Comet.Unity.Editor
                 Handles.EndGUI();
             };
 
-        /// <summary>
-        /// Deletes the group <paramref name="id"/>'s file, after asking. Copies in the open zone or group are
-        /// unpacked and that scene saved first, if the person agrees; any other use stops the delete and is listed.
-        /// Its id stays reserved. Not undoable (version control keeps the file).
-        /// </summary>
         public static void Delete(string id, ZoneEditing editing, CometSettings settings)
         {
             if (Load().FirstOrDefault(g => g.Group.Id == id) is not { Group: not null } entry)
@@ -579,7 +553,6 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            // The open scene's saved files may use it too (copies removed but not saved yet): saving fixes those.
             var saved = editing.IsGroup
                 ? Find(editing.groupId)?.Parts.Any(p => p.Group == id) == true
                 : ZoneFolder
@@ -621,8 +594,6 @@ namespace Comet.Unity.Editor
             Debug.Log($"Deleted {id} ({entry.File}).");
         }
 
-        // Where a group is used, outside the scene that's open: zone files, other groups' parts, and the game's other
-        // content files that name its id (such as a look).
         private static List<string> Uses(string id, CometSettings settings, string? openZone, string? openGroupFile)
         {
             var uses = new List<string>();
@@ -650,7 +621,6 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            // The game's other content (the folder holding the groups folder), by a search for the quoted id.
             var groups = ZoneEditor.ProjectPath(settings.groupsFolder) + Path.DirectorySeparatorChar;
             var content = Path.GetDirectoryName(groups.TrimEnd(Path.DirectorySeparatorChar));
             if (content != null && Directory.Exists(content))
@@ -674,11 +644,9 @@ namespace Comet.Unity.Editor
             return uses;
         }
 
-        // Whether a message names an id as a whole (group.tree, not group.tree_big).
         private static bool Mentions(string message, string id) =>
             System.Text.RegularExpressions.Regex.IsMatch(message, $@"(?<![\w.]){System.Text.RegularExpressions.Regex.Escape(id)}(?!\w)");
 
-        // Checks a new or changed group against the others: the problems in it, or in a loop it would make.
         private static bool Check(Group group, string file, CometSettings settings)
         {
             var groups = Load().Where(g => g.Group.Id != group.Id).Append((group, file)).ToList();

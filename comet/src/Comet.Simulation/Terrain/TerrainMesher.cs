@@ -23,11 +23,6 @@ namespace Comet.Simulation
         }
     }
 
-    /// <summary>
-    /// Turns a zone's terrain pieces into flat-shaded, vertex-colored meshes per chunk, the same everywhere
-    /// they're drawn. Cells split along the (x+1, z) to (x, z+1) diagonal and draw only where all three corners
-    /// are ground, so what's drawn is what's stood on; skirts close the piece's edges.
-    /// </summary>
     public static class TerrainMesher
     {
         /// <param name="only">Mesh only these chunks (null for all); a chunk left with no terrain has no entry.</param>
@@ -45,8 +40,6 @@ namespace Comet.Simulation
             return meshes;
         }
 
-        // // Triangles are addressed by cell and half: half 0 has corners (x, z), (x, z+1), (x+1, z); half 1 has (x+1, z), (x, z+1), (x+1, z+1).
-        // // Samples are read once into flat arrays, since tile lookups are slow and each sample serves up to six triangles.
         private sealed class PieceMesher
         {
             private readonly ZoneTerrain _terrain;
@@ -99,7 +92,6 @@ namespace Comet.Simulation
 
             public void Build()
             {
-                // // Every height, to tell the outside from holes; the rest only where triangles are made.
                 var (fromX, fromZ, toX, toZ) = (int.MinValue, int.MinValue, int.MaxValue, int.MaxValue);
                 if (_only != null)
                 {
@@ -129,7 +121,6 @@ namespace Comet.Simulation
                     }
                 }
 
-                // // A cell's corners are samples s, s + 1, s + row and s + row + 1; half 0 is the first three, half 1 the last three.
                 var row = _width + 1;
                 for (var cz = 0; cz < _depth; cz++)
                 {
@@ -187,7 +178,6 @@ namespace Comet.Simulation
                             ? (cx, cz + 1, 0)
                             : (cx + 1, cz, 0);
 
-            // // Flood-fills the empty triangles reachable from the margin: they're outside the piece; the rest are holes.
             private void MarkOutside()
             {
                 var queue = new int[_ground.Length];
@@ -213,7 +203,6 @@ namespace Comet.Simulation
                         cz = cell / _width;
                     if ((index & 1) == 0)
                     {
-                        // // Half 0's neighbors (as Neighbor gives them): half 1 of the cells west and south, and of its own.
                         Visit(index + 1, queue, ref tail);
                         if (cx > 0)
                         {
@@ -320,7 +309,6 @@ namespace Comet.Simulation
 
             private Vector3 Bottom((int X, int Z) sample) => At(sample, _bottom[Sample(sample)]);
 
-            // // A wall's foot: the piece's bottom, or the other terrain it would hit first.
             private Vector3 WallBottom((int X, int Z) sample, float top)
             {
                 var bottom = Bottom(sample);

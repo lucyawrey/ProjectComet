@@ -1,5 +1,3 @@
-// Helpers the tools share (a class library each references with #:project; tools/run runs the tools): the repository, usage text, running programs
-// and waiting on servers. Everything here works on Linux, macOS and Windows.
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -11,14 +9,11 @@ public static class Tool
     public static readonly bool IsMac = OperatingSystem.IsMacOS();
     public static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
 
-    // How a tool is run, for messages.
     public static string Command(string tool) => IsWindows ? $"tools\\run {tool}" : $"tools/run {tool}";
 
-    // Runs another tool and returns its exit code.
     public static int RunTool(string tool, params string[] args) =>
         Run("dotnet", ["run", "--file", Path.Combine(Repo, "tools", tool + ".cs"), "--", .. args]);
 
-    // The comment block at the top of the running tool, without the comment marks.
     public static void Usage(int exitCode = 0)
     {
         foreach (var line in File.ReadLines(Self).TakeWhile(l => l.StartsWith("//", StringComparison.Ordinal)))
@@ -34,7 +29,7 @@ public static class Tool
         Console.Error.WriteLine(message);
         RunStops();
         Environment.Exit(exitCode);
-        return new InvalidOperationException(); // never reached; lets callers write `throw Tool.Fail(...)`
+        return new InvalidOperationException();
     }
 
     // Where a program is: on PATH (with Windows' extensions, so npm's .cmd shims are found), or in the places a Mac
@@ -68,7 +63,6 @@ public static class Tool
         return info;
     }
 
-    // Runs a program with this terminal's input and output, and returns its exit code.
     public static int Run(string program, params string[] args) => Run(Info(program, args));
 
     public static int Run(ProcessStartInfo info)
@@ -78,14 +72,13 @@ public static class Tool
         return process.ExitCode;
     }
 
-    // Runs a program and returns its exit code and output (stderr goes to this terminal unless asked for too).
     public static (int Code, string Output) Capture(string program, params string[] args) => Capture(Info(program, args));
 
     public static (int Code, string Output) Capture(ProcessStartInfo info, bool withErrors = false)
     {
         info.RedirectStandardOutput = true;
         info.RedirectStandardError = withErrors;
-        info.RedirectStandardInput = true; // nothing to read: a program asking for input gets end of file
+        info.RedirectStandardInput = true;
         using var process = Process.Start(info) ?? throw Fail($"Couldn't start {info.FileName}.");
         process.StandardInput.Close();
         var output = withErrors ? Task.Run(() => process.StandardError.ReadToEnd()) : Task.FromResult("");
@@ -94,7 +87,6 @@ public static class Tool
         return (process.ExitCode, withErrors ? text + output.Result : text);
     }
 
-    // The trimmed output of a program that must succeed.
     public static string Output(string program, params string[] args)
     {
         var (code, text) = Capture(program, args);
@@ -115,7 +107,6 @@ public static class Tool
         throw Fail($"Failed: {Path.GetFileName(info.FileName)} {string.Join(' ', info.ArgumentList)}");
     }
 
-    // A program started in the background, stopped (with its children) by Stop or when the tool stops.
     public static Process Start(ProcessStartInfo info)
     {
         var process = Process.Start(info) ?? throw Fail($"Couldn't start {info.FileName}.");
@@ -140,7 +131,7 @@ public static class Tool
             process.Kill(entireProcessTree: true);
             process.WaitForExit(5000);
         }
-        catch (InvalidOperationException) { } // already gone
+        catch (InvalidOperationException) { }
     }
 
     // The arguments a tool was given. tools\run.cmd passes its whole command line on as it was typed, so cmd never
@@ -148,7 +139,6 @@ public static class Tool
     public static string[] Arguments(string[] args) =>
         Environment.GetEnvironmentVariable("COMET_TOOLS_RUN_CMD") == "1" && args.Length > 0 ? args[1..] : args;
 
-    // Whether a URL answers at all, or answers successfully (with the given body, when one is asked for).
     public static bool Answers(string url, bool success = true, string? body = null)
     {
         try
@@ -166,7 +156,6 @@ public static class Tool
         }
     }
 
-    // Polls until the check passes, up to the given number of tries.
     public static bool WaitFor(Func<bool> check, int tries, TimeSpan delay)
     {
         for (var i = 0; i < tries; i++)
@@ -190,8 +179,6 @@ public static class Tool
         catch (Exception e) when (e is System.ComponentModel.Win32Exception) { }
     }
 
-    // Cleanup that runs once, last added first, when the tool ends: normally, on an error, on Ctrl+C, or when it's
-    // told to stop (a kill, or closing the terminal).
     static readonly List<Action> Stops = [];
     static readonly List<PosixSignalRegistration> Signals = [];
 
@@ -240,7 +227,6 @@ public static class Tool
         }
     }
 
-    // Reads command-line options one at a time.
     public sealed class Args(string[] args)
     {
         int _next;

@@ -5,9 +5,6 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.GameServer;
 
-/// <summary>
-/// One zone as the server plays it; its live trigger state resets when the server restarts. Tick thread only.
-/// </summary>
 internal sealed class ZoneState
 {
     private readonly Dictionary<Trigger, TriggerCharge> _charges = [];
@@ -84,8 +81,6 @@ internal sealed class ZoneState
         }
     }
 
-    // Flips the effect's placements, unless a revert is pending: then an effect with a revert time restarts the wait,
-    // and one without leaves it.
     private void Fire(ToggleEffect effect, uint tick, Action<string, bool> flipped)
     {
         var revertAt = tick + (uint)MathF.Round(effect.RevertSeconds * ShapeLandRules.TickRate);
@@ -111,7 +106,6 @@ internal sealed class ZoneState
         var now = Flipped.Add(tag) || !Flipped.Remove(tag);
         World.SetFlipped(tag, now);
 
-        // Anyone inside a placement that just turned solid passes through it until they're out.
         foreach (var player in Players)
         {
             player.Validator.PassThrough.Flipped(World, tag, player.Validator.Position, _rules.BodyRadius, _rules.BodyHeight);

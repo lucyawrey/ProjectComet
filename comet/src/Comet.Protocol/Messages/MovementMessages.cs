@@ -31,10 +31,6 @@ namespace Comet.Protocol.Messages
         [Key(6)]
         public float Facing;
 
-        /// <summary>
-        /// The last <see cref="PositionCorrection.Sequence"/> the client applied. The server ignores reports
-        /// sent before its latest correction arrived.
-        /// </summary>
         [Key(7)]
         public uint CorrectionSequence;
     }
@@ -58,14 +54,9 @@ namespace Comet.Protocol.Messages
         [Key(3)]
         public float Z;
 
-        /// <summary>Facing as a yaw angle in radians.</summary>
         [Key(4)]
         public float Facing;
 
-        /// <summary>
-        /// The server tick this state is from: for a player, when it sent the report (bounded by the server),
-        /// so clients interpolate on the sender's timing rather than on when the report happened to arrive.
-        /// </summary>
         [Key(5)]
         public uint Tick;
 
@@ -83,7 +74,6 @@ namespace Comet.Protocol.Messages
         public float VelocityZ;
     }
 
-    /// <summary>Server event: an entity is no longer visible to this client (left, or out of view).</summary>
     [MessagePackObject]
     public struct EntityDespawn
     {
@@ -104,27 +94,19 @@ namespace Comet.Protocol.Messages
     {
         Accepted,
 
-        /// <summary>A number that isn't finite (NaN or infinity): never valid, and every comparison with NaN is false.</summary>
         NotFinite,
 
-        /// <summary>Sent before the client applied the latest correction; ignored.</summary>
         Stale,
 
         TooFast,
 
-        /// <summary>Higher than gravity allows: above the arc of a jump from the last ground at this point in it.</summary>
         TooHigh,
 
         InsideSolid,
 
-        /// <summary>Fell below the world's kill height; respawn.</summary>
         FellOut,
     }
 
-    /// <summary>
-    /// Server event: the server overrides the client's own position. The client moves there (blending
-    /// a snap-back, fading a respawn) and echoes <see cref="Sequence"/> in its later reports.
-    /// </summary>
     [MessagePackObject]
     public struct PositionCorrection
     {

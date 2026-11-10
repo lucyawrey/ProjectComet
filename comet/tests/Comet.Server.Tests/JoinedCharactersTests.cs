@@ -19,7 +19,6 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
 
     public JoinedCharactersTests()
     {
-        // A second ago, so this test's tickets count as issued after the server started.
         var checker = new TicketChecker([TicketKeys.PublicKey(Keys.Public)], ServerId, new ShiftedClock(TimeSpan.FromSeconds(-1)));
         _repository = new(_db, new CharacterRepositoryOptions { ServerId = ServerId, SaveInterval = TimeSpan.FromHours(1) });
         _joins = new(checker, _repository, TimeSpan.FromSeconds(10), NullLogger.Instance);
@@ -55,7 +54,7 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
         Assert.Equal(["joined a Alice v1"], _host.Events);
         Assert.True(_joins.TryGet(client, out var character, out var account));
         Assert.Equal((100, 1), (character, account));
-        Assert.False(_joins.Begin(client, _issuer.Issue(1, 100, ServerId))); // one join per connection
+        Assert.False(_joins.Begin(client, _issuer.Issue(1, 100, ServerId)));
     }
 
     [Fact]
@@ -88,7 +87,7 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
     public async Task ATicketForAnotherAccountsCharacterFails()
     {
         await _repository.StartAsync(TestContext.Current.CancellationToken);
-        _joins.Begin(new Client("thief"), _issuer.Issue(2, 100, ServerId)); // account 2, Alice's character
+        _joins.Begin(new Client("thief"), _issuer.Issue(2, 100, ServerId));
         await UntilAsync(() => _host.Events.Count > 0);
 
         Assert.Equal(["failed thief BadTicket"], _host.Events);
@@ -113,7 +112,6 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
         Assert.False(_joins.TryGet(laptop, out _, out _));
         Assert.True(_joins.TryGet(phone, out _, out _));
 
-        // The laptop's late save is refused, and only the phone stays (the refusal drops nobody, since the laptop is gone).
         _repository.SaveStatus(100, 1, Here with { X = 99 });
         await _repository.FlushAsync();
         _joins.Update(_host);
@@ -129,7 +127,7 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
         _joins.Begin(client, _issuer.Issue(1, 100, ServerId));
         await UntilAsync(() => _host.Events.Count == 1);
 
-        _db.Kick(100); // what a ban does
+        _db.Kick(100);
         await _repository.FlushAsync();
         await UntilAsync(() => _host.Events.Count == 2);
 
@@ -158,7 +156,7 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
         await _repository.StartAsync(TestContext.Current.CancellationToken);
         var client = new Client("a");
         _joins.Begin(client, _issuer.Issue(1, 100, ServerId));
-        await _joins.Leave(client, null); // before Update runs the finished join
+        await _joins.Leave(client, null);
 
         await Task.Delay(100, TestContext.Current.CancellationToken);
         _joins.Update(_host);
@@ -172,7 +170,6 @@ public sealed class JoinedCharactersTests : IAsyncDisposable
     [Fact]
     public async Task AJoinFailsAsBusyWhenTheDatabaseCantAnswer()
     {
-        // Never started: the repository's writer isn't running, so the claim can't finish before the deadline.
         var joins = new JoinedCharacters<Client, Character>(
             new TicketChecker([TicketKeys.PublicKey(Keys.Public)], ServerId, new ShiftedClock(TimeSpan.FromSeconds(-1))),
             _repository,

@@ -6,10 +6,6 @@ using static Comet.Unity.Conversions;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// Draws a zone in a game: its terrain and placed objects. Untagged, non-blockout primitives are combined into one
-    /// mesh per chunk; the rest stay apart.
-    /// </summary>
     public sealed class ZoneDrawing
     {
         private readonly Material _terrain;
@@ -43,10 +39,6 @@ namespace Comet.Unity
             _underColor = underColor;
         }
 
-        /// <summary>
-        /// Returns the zone's object, with terrain under "Terrain" and placed objects under <paramref name="placed"/>.
-        /// Each tagged object goes to <paramref name="onTagged"/> as it's drawn.
-        /// </summary>
         public Transform Draw(Zone zone, CollisionWorld world, Transform parent, Action<Placement, GameObject> onTagged, out Transform placed)
         {
             var drawn = new GameObject(zone.Id).transform;

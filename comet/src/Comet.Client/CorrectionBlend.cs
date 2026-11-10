@@ -3,10 +3,6 @@ using System.Numerics;
 
 namespace Comet.Client
 {
-    /// <summary>
-    /// Smooths a snap-back for the player's own shape. The simulation moves to the corrected position at once so its reports pass the
-    /// server's checks; only the drawn position lags, easing to zero over <see cref="Duration"/>. A respawn isn't blended.
-    /// </summary>
     public sealed class CorrectionBlend
     {
         private Vector3 _start;
@@ -26,15 +22,10 @@ namespace Comet.Client
         /// <summary>How long a correction takes to ease out, in seconds.</summary>
         public double Duration { get; }
 
-        /// <summary>Add this to the simulated position to get the drawn one.</summary>
         public Vector3 Offset { get; private set; }
 
         public bool Active => _elapsed < Duration;
 
-        /// <summary>
-        /// Starts a blend from where the shape is drawn now to the corrected simulated position. A correction
-        /// during a blend starts from the current drawn position, so the shape never jumps.
-        /// </summary>
         public void Begin(Vector3 drawnPosition, Vector3 correctedPosition)
         {
             _start = drawnPosition - correctedPosition;
@@ -42,7 +33,6 @@ namespace Comet.Client
             Offset = _start;
         }
 
-        /// <summary>Ends any blend, for a respawn or teleport.</summary>
         public void Clear()
         {
             _elapsed = Duration;

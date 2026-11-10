@@ -11,15 +11,8 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Editor
 {
-    /// <summary>
-    /// Picks the colors players choose from (Comet › ShapeLand › Player Colors): a list to edit, add to and reorder, and the
-    /// swatches laid out ten a line as on the look card. Save writes them to <c>[colors]</c> in the game's settings as
-    /// <c>key = 0xRRGGBB</c> lines in the list's order, and rebuilds the content. Each key gets a permanent number
-    /// (ids.toml) that saved characters keep, so a renamed key is a new color to them.
-    /// </summary>
     public sealed class PlayerColorsWindow : EditorWindow
     {
-        /// <summary>The game's settings file, relative to the Unity project.</summary>
         private const string SettingsFile = "../content/settings/game.toml";
 
         private const int PerLine = 10; // as on the look card (.swatches in ShapeLand.uss)
@@ -141,7 +134,6 @@ namespace ShapeLand.Client.Editor
             return list;
         }
 
-        // The swatches as the look card lays them out, ten a line; clicking one selects it in the list.
         private void DrawSwatches()
         {
             var lines = Mathf.Max(1, Mathf.CeilToInt(colors.Count / (float)PerLine));
@@ -167,7 +159,6 @@ namespace ShapeLand.Client.Editor
 
         private static string Hex(Color color) => ColorUtility.ToHtmlStringRGB(color);
 
-        // The [colors] table's lines: after its header, up to the next table or the end of the file.
         private static (List<string> Lines, int Open, int Close)? Find()
         {
             if (!File.Exists(FullPath))
@@ -211,8 +202,6 @@ namespace ShapeLand.Client.Editor
             }
         }
 
-        // Rewrites the table's color lines in the list's order, keeping the rest of the file (and the table's comments)
-        // as it is, then rebuilds the content.
         private void Save()
         {
             var found = Find();

@@ -6,19 +6,11 @@ using UnityEngine.Rendering;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// A debug view of what movement collides with, as lines: a <see cref="CollisionWorld"/>'s meshes, volumes the
-    /// game adds, and bodies it draws each frame. The game decides when it shows (a key, a dev menu). Meshes are faint,
-    /// so collision that matches its model barely shows; lines behind something are fainter still.
-    /// </summary>
     public sealed class CollisionView : MonoBehaviour
     {
-        // Lines behind something, as a share of their opacity in sight.
         private const float HiddenOpacity = 0.2f;
         private const int BodySides = 16;
 
-        // Terrain edges between cells meeting at less than this many degrees aren't drawn, so gentle slopes don't
-        // fill the view with the grid; cliffs, skirts and piece edges still show.
         private const float TerrainCrease = 20;
 
         [SerializeField]
@@ -26,7 +18,6 @@ namespace Comet.Unity
 
         private readonly List<(int Mesh, GameObject Lines)> _meshes = new List<(int, GameObject)>();
 
-        // Volumes and terrain: lines that never turn off.
         private readonly List<GameObject> _fixed = new List<GameObject>();
         private readonly List<(Matrix4x4 Matrix, Color Color, float Until)> _markers = new List<(Matrix4x4, Color, float)>();
         private Material _seen = null!;
@@ -37,7 +28,6 @@ namespace Comet.Unity
         private Transform _root = null!;
         private bool _shown;
 
-        /// <summary>Whether the view is drawn.</summary>
         public bool Shown
         {
             get => _shown;
@@ -54,15 +44,10 @@ namespace Comet.Unity
             _hidden = Make(CompareFunction.Greater, HiddenOpacity);
             _always = Make(CompareFunction.Always, 1);
             _body = Cylinder();
-            // At the scene's root: the lines are in world space whatever this object's transform.
             _root = new GameObject("Collision view").transform;
             _root.gameObject.SetActive(false);
         }
 
-        /// <summary>
-        /// Shows <paramref name="world"/>'s meshes from now on, each in the color <paramref name="colorOf"/> gives it,
-        /// and its terrain meshes in <paramref name="terrainColor"/>; none of the volumes added before.
-        /// </summary>
         public void Show(CollisionWorld world, System.Func<CollisionMesh, Color> colorOf, Color terrainColor)
         {
             Clear();
@@ -76,10 +61,6 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>
-        /// Adds <paramref name="volume"/>'s shape in <paramref name="color"/>, with a line the way it faces when
-        /// <paramref name="facing"/> (arrivals that face its direction).
-        /// </summary>
         public void AddVolume(TriggerVolume volume, PolygonBudget budget, Color color, bool facing = false)
         {
             var edges = VolumeEdges(volume.Kind, Conversions.ToUnity(volume.Size), budget);
@@ -100,19 +81,11 @@ namespace Comet.Unity
             _fixed.Add(AddLines("Volume", edges, color));
         }
 
-        /// <summary>
-        /// The lines (pairs of points) of a volume on the origin, cut as finely as <paramref name="budget"/> says.
-        /// The editor's gizmos draw these too.
-        /// </summary>
         public static Vector3[] VolumeEdges(PrimitiveKind kind, Vector3 size, PolygonBudget budget) =>
             ToUnity(
                 FeatureEdges.Of(PrimitiveMesher.Build(new Primitive { Kind = kind }, new System.Numerics.Vector3(size.x, size.y, size.z), budget))
             );
 
-        /// <summary>
-        /// The line showing which way a volume of <paramref name="size"/> faces, standing on the origin: from its
-        /// bottom center forward (+Z) to its edge, at least 1 m. The editor's gizmos draw it too.
-        /// </summary>
         public static Vector3[] FacingEdge(Vector3 size)
         {
             var from = Vector3.up * 0.05f;
@@ -127,11 +100,9 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>Draws a body for the next <paramref name="seconds"/>, fading out.</summary>
         public void Mark(Vector3 feet, float radius, float height, Color color, float seconds) =>
             _markers.Add((Matrix4x4.TRS(feet, Quaternion.identity, new Vector3(radius, height, radius)), color, Time.unscaledTime + seconds));
 
-        /// <summary>Forgets the world, volumes and markers.</summary>
         public void Clear()
         {
             foreach (var (_, lines) in _meshes)
@@ -159,7 +130,6 @@ namespace Comet.Unity
                 return;
             }
 
-            // Meshes turned off (a flipped placement) aren't solid, so they aren't drawn.
             if (_world != null)
             {
                 foreach (var (mesh, lines) in _meshes)
@@ -196,7 +166,6 @@ namespace Comet.Unity
             return converted;
         }
 
-        // Pairs of points as one line mesh.
         private GameObject AddLines(string name, Vector3[] points, Color color)
         {
             var indices = new int[points.Length];
@@ -239,7 +208,6 @@ namespace Comet.Unity
             return material;
         }
 
-        // A cylinder of radius 1 and height 1 standing on the origin: two rings and four uprights.
         private static Mesh Cylinder()
         {
             var points = new List<Vector3>();

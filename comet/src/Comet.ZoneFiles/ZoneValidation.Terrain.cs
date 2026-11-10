@@ -75,8 +75,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // Neighboring chunks repeat the samples on their shared edges (and corners), so where two tiles of one piece
-        // both cover a sample, they must agree on whether it's ground and, within half a height step, how high.
         private static void CheckSharedEdges(Zone zone, Action<string, string> error)
         {
             var tiles = zone.Chunks.SelectMany(c => c.Tiles.Select(t => (Chunk: c.Coord, Tile: t))).GroupBy(t => t.Tile.Piece);
@@ -110,7 +108,6 @@ namespace Comet.ZoneFiles
 
         private static (int X, int Z)? FirstMismatch(ChunkCoord chunkA, TerrainTile a, ChunkCoord chunkB, TerrainTile b)
         {
-            // Both tiles in world sample coordinates (a chunk's first sample is at chunk × ChunkSize).
             int ax = chunkA.X * ZoneGrid.ChunkSize + a.OriginX,
                 az = chunkA.Z * ZoneGrid.ChunkSize + a.OriginZ;
             int bx = chunkB.X * ZoneGrid.ChunkSize + b.OriginX,

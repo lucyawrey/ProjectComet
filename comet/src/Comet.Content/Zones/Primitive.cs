@@ -12,13 +12,10 @@ namespace Comet.Content
         /// <summary>A ramp: its slope rises toward +X, with a vertical face at +X.</summary>
         Wedge,
 
-        /// <summary>Round around Y; sides from the polygon budget unless fixed.</summary>
         Cylinder,
 
-        /// <summary>Round around Y, to a point at the top; sides from the polygon budget unless fixed (4 make a square pyramid).</summary>
         Cone,
 
-        /// <summary>Sides and rings from the polygon budget unless fixed.</summary>
         Sphere,
 
         /// <summary>Steps climbing toward +X.</summary>
@@ -27,10 +24,8 @@ namespace Comet.Content
         /// <summary>A plain wall: a box with its face toward -Z.</summary>
         Wall,
 
-        /// <summary>A wall (its face toward -Z) with a door-shaped opening at the bottom center.</summary>
         Doorway,
 
-        /// <summary>A rounded band on two legs, its face toward -Z, round outside and inside; sides from the polygon budget.</summary>
         Arch,
 
         // // At scale 1 each regular solid holds as much as a 1 m cube; a uniform scale keeps them regular.
@@ -41,20 +36,15 @@ namespace Comet.Content
         /// <summary>A regular octahedron standing on a tip, its middle square to the axes.</summary>
         Octahedron,
 
-        /// <summary>A regular dodecahedron standing on a face.</summary>
         Dodecahedron,
 
-        /// <summary>A regular icosahedron standing on a face.</summary>
         Icosahedron,
     }
 
-    /// <summary>Primitive kinds by the names zone files and the editor use (<c>box</c>, <c>wedge</c>).</summary>
     public static class PrimitiveKinds
     {
-        /// <summary>Every kind, in order.</summary>
         public static readonly PrimitiveKind[] All = (PrimitiveKind[])System.Enum.GetValues(typeof(PrimitiveKind));
 
-        /// <summary>The kind's name: its enum name in snake case.</summary>
         public static string Name(PrimitiveKind kind)
         {
             var text = new System.Text.StringBuilder();
@@ -71,7 +61,6 @@ namespace Comet.Content
             return text.ToString();
         }
 
-        /// <summary>The kind named <paramref name="name"/>, or null if none is.</summary>
         public static PrimitiveKind? Named(string name)
         {
             foreach (var kind in All)
@@ -86,7 +75,6 @@ namespace Comet.Content
         }
     }
 
-    /// <summary>A primitive's kind and the values that shape it beyond its size (the placement's scale).</summary>
     [MessagePackObject]
     public sealed class Primitive
     {
@@ -105,7 +93,6 @@ namespace Comet.Content
         [Key(3)]
         public int Steps { get; set; }
 
-        /// <summary>The most steps a stairway has, set or not.</summary>
         public const int MaxSteps = 256;
 
         /// <summary>A doorway's opening width and height, in meters.</summary>
@@ -120,7 +107,6 @@ namespace Comet.Content
         public float Thickness { get; set; }
     }
 
-    /// <summary>How finely round primitives are cut, the same for all so large and small ones look equally faceted.</summary>
     [MessagePackObject]
     public sealed class PolygonBudget
     {
@@ -128,11 +114,9 @@ namespace Comet.Content
         [Key(0)]
         public float FacetLength { get; set; } = 0.5f;
 
-        /// <summary>The fewest sides a round primitive has, however small.</summary>
         [Key(1)]
         public int MinSides { get; set; } = 6;
 
-        /// <summary>The most sides a round primitive has, however large.</summary>
         [Key(2)]
         public int MaxSides { get; set; } = 48;
 

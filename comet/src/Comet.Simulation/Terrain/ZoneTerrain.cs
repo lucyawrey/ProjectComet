@@ -42,7 +42,6 @@ namespace Comet.Simulation
         {
             private readonly Dictionary<ChunkCoord, TerrainTile> _tiles = new Dictionary<ChunkCoord, TerrainTile>();
 
-            // // The tiles in a grid over the chunks they span, since every sample lookup finds its tile; null where a chunk has none.
             private TerrainTile?[] _grid = Array.Empty<TerrainTile?>();
             private int _gridMinX;
             private int _gridMinZ;
@@ -64,7 +63,6 @@ namespace Comet.Simulation
             internal void ReadHeights(int minX, int minZ, int width, float[] heights)
             {
                 var depth = heights.Length / width;
-                // Which candidate tile (TileAt's order) gave each height: the first with ground there wins.
                 var rank = new byte[heights.Length];
                 for (var i = 0; i < heights.Length; i++)
                 {
@@ -110,19 +108,12 @@ namespace Comet.Simulation
                 }
             }
 
-            /// <summary>The ground height at a world sample, or false over a hole or past the piece.</summary>
             public bool TryGetHeight(int x, int z, out float height) => TryGet(x, z, underside: false, out height);
 
-            /// <summary>The underside height at a world sample, or false where the piece has no underside map.</summary>
             public bool TryGetUnderside(int x, int z, out float height) => TryGet(x, z, underside: true, out height);
 
-            /// <summary>
-            /// The ground height at a world position, interpolated across the triangles the mesh draws,
-            /// or false over a hole or past the piece.
-            /// </summary>
             public bool TryGetHeightAt(float x, float z, out float height) => Interpolate(x, z, underside: false, out height);
 
-            /// <summary>The bottom of the piece under a world position: its underside map, else its flat bottom.</summary>
             public float BottomAt(float x, float z) => Interpolate(x, z, underside: true, out var under) ? under : BottomHeight;
 
             public float BottomHeight => _bottomHeight ??= LowestGround() - Settings.SkirtDepth;
@@ -161,10 +152,6 @@ namespace Comet.Simulation
                 return fallback;
             }
 
-            /// <summary>
-            /// The painted underside color (also for the skirt walls) as 0xRRGGBB, or <paramref
-            /// name="fallback"/> where nothing is painted.
-            /// </summary>
             public uint UndersideColorAt(int x, int z, uint fallback)
             {
                 for (var i = 0; i < 4; i++)
@@ -271,7 +258,6 @@ namespace Comet.Simulation
                 return false;
             }
 
-            // // Candidate chunks 0 to 3 are its own, then west, south and southwest, whose tiles repeat the sample on a shared edge or corner.
             private bool TileAt(int x, int z, int which, out TerrainTile tile, out int tx, out int tz)
             {
                 var chunkX = FloorDiv(x, ZoneGrid.ChunkSize) - (which & 1);

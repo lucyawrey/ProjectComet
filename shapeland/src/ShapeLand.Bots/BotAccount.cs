@@ -32,11 +32,6 @@ internal static class BotLooks
     }
 }
 
-/// <summary>If an older account holds the name, a random 4-character suffix is added.</summary>
-/// <remarks>
-/// <paramref name="serverOverride"/> replaces the ticket's game server address, for bots that reach it by another name
-/// (Docker).
-/// </remarks>
 public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFolder, ShapeLandContent content, int seed, Uri? serverOverride = null)
     : IBotAccount
 {
@@ -93,7 +88,6 @@ public sealed class LoginBotAccount(string name, Uri loginServer, string tokenFo
 
     private NewCharacter RandomLook() => BotLooks.Random(content, _random);
 
-    // One file per bot. A bot's token only plays that bot, which the deployed game gives away anyway.
     private sealed class FileTokenStore(string path) : ITokenStore
     {
         public string? Load() => File.Exists(path) ? File.ReadAllText(path).Trim() : null;

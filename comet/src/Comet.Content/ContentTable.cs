@@ -2,7 +2,6 @@ using System.Collections.Generic;
 
 namespace Comet.Content
 {
-    /// <summary>Loaded entries of one content type, looked up by id or number; unknown ones throw.</summary>
     public sealed class ContentTable<T>
         where T : class, IContentEntry
     {

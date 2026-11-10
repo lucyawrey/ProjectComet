@@ -2,12 +2,10 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>Draws a placed prop in a color over its material's own, without copying the material.</summary>
     public static class PlacedColors
     {
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
-        /// <summary>With null, puts back the material's own color.</summary>
         public static void Apply(GameObject thing, Color? color)
         {
             MaterialPropertyBlock? block = null;

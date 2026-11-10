@@ -6,10 +6,6 @@ using UnityEngine.Networking;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// The Login server over <see cref="UnityWebRequest"/>, which works in web builds (browser fetch) and on desktop.
-    /// Await it on Unity's main thread.
-    /// </summary>
     public sealed class UnityLoginTransport : ILoginTransport
     {
         private const int TimeoutSeconds = 15;
@@ -35,7 +31,6 @@ namespace Comet.Unity
             var done = new TaskCompletionSource<LoginHttpResponse>();
             request.SendWebRequest().completed += _ =>
             {
-                // No answer at all (refused, unreachable, timed out, blocked) is status 0.
                 var answered = request.result != UnityWebRequest.Result.ConnectionError && request.responseCode > 0;
                 done.SetResult(new LoginHttpResponse(answered ? (int)request.responseCode : 0, request.downloadHandler?.text ?? ""));
                 request.Dispose();
@@ -44,7 +39,6 @@ namespace Comet.Unity
         }
     }
 
-    /// <summary>Keeps the session token in PlayerPrefs, which a web build keeps in IndexedDB.</summary>
     public sealed class PlayerPrefsTokenStore : ITokenStore
     {
         private readonly string _key;
@@ -68,7 +62,7 @@ namespace Comet.Unity
                 PlayerPrefs.SetString(_key, token);
             }
 
-            PlayerPrefs.Save(); // at once: a web page may close any moment
+            PlayerPrefs.Save();
         }
     }
 }

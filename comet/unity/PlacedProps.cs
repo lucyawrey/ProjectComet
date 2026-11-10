@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>A placed prop's model; objects named <c>Prop.CollisionSuffix</c> stay hidden.</summary>
     public static class PlacedProps
     {
         public static bool IsCollision(Object thing) => thing.name.EndsWith(Prop.CollisionSuffix, System.StringComparison.Ordinal);

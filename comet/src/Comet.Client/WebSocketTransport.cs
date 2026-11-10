@@ -8,10 +8,6 @@ using Comet.Protocol.Framing;
 
 namespace Comet.Client
 {
-    /// <summary>
-    /// The desktop and bot transport, on .NET's <see cref="ClientWebSocket"/>: receives and sends on background tasks and queues frames for the
-    /// polling thread. Not for web builds, which have no threads; the Unity package has a browser transport.
-    /// </summary>
     public sealed class WebSocketTransport : IClientTransport
     {
         private readonly ClientWebSocket _socket = new ClientWebSocket();
@@ -28,9 +24,6 @@ namespace Comet.Client
         private string? _error;
         private volatile bool _closing;
 
-        /// <param name="maxFrameSize">Larger frames from the server close the connection.</param>
-        /// <param name="closeTimeout">How long a close waits for the server's answer before giving up (default 5 s).</param>
-        /// <param name="connectTimeout">How long connecting may take before it fails (default <see cref="TransportLimits.ConnectTimeoutSeconds"/>).</param>
         public WebSocketTransport(
             Uri url,
             int maxFrameSize = FrameReader.MaxServerFrameSize,
@@ -68,7 +61,6 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>Finishes when the connection is closed and the socket released.</summary>
         public Task Completion { get; }
 
         public void Send(ReadOnlySpan<byte> frame)
@@ -115,7 +107,6 @@ namespace Comet.Client
                 }
                 catch (Exception e)
                 {
-                    // Any failure to connect ends the connection with its reason, never leaving it Connecting.
                     _socket.Dispose();
                     if (timeout.IsCancellationRequested)
                     {
@@ -137,7 +128,6 @@ namespace Comet.Client
                 var receiving = ReceiveLoopAsync();
                 var sending = SendLoopAsync();
 
-                // A normal close finishes when the server answers; give up waiting after a while.
                 if (await Task.WhenAny(receiving, sending).ConfigureAwait(false) == sending)
                 {
                     await Task.WhenAny(receiving, Task.Delay(_closeTimeout)).ConfigureAwait(false);
@@ -153,7 +143,6 @@ namespace Comet.Client
             }
         }
 
-        // Records why the connection ended; the first reason wins, and none is kept for a close of our own.
         private void End(CloseReason reason, string error)
         {
             lock (_endLock)
@@ -222,11 +211,8 @@ namespace Comet.Client
                     length += result.Count;
                     if (result.EndOfMessage)
                     {
-                        // Frames pile up while nothing takes them (a paused editor); past the cap, give up rather than
-                        // keep everything.
                         if (Interlocked.Add(ref _queuedBytes, length) > TransportLimits.MaxQueuedBytes)
                         {
-                            // Drop what's waiting too, so it isn't all handled at once on the game's return.
                             while (_received.TryDequeue(out _)) { }
 
                             Interlocked.Exchange(ref _queuedBytes, 0);
@@ -253,7 +239,6 @@ namespace Comet.Client
             }
             finally
             {
-                // Wake the send loop so it notices the connection is gone.
                 _closing = true;
                 _sendSignal.Release();
             }

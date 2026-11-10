@@ -2,10 +2,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// The colors collision is drawn in, by <see cref="CollisionView"/> and the editor's gizmos alike. Each game's
-    /// project has one (Create › Comet › Collision Colors), named in its Comet settings.
-    /// </summary>
     [CreateAssetMenu(fileName = "Collision Colors", menuName = "Comet/Collision Colors")]
     public sealed class CollisionColors : ScriptableObject
     {

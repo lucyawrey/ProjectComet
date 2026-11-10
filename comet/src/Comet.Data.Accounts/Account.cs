@@ -14,21 +14,14 @@ public class Account : IdentityUser<long>, ITimestamped
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    /// <summary>When the first password was set. Null for a guest account.</summary>
     public DateTime? ClaimedAt { get; set; }
 
-    /// <summary>The last time the account's session was used, updated at most once an hour.</summary>
     public required DateTime LastActiveAt { get; set; }
 
-    /// <summary>SHA-256 of the account's one recovery code, or null if it has none.</summary>
     public byte[]? RecoveryCodeHash { get; set; }
 
     public DateTime? RecoveryCodeCreatedAt { get; set; }
 
-    /// <summary>
-    /// Set when the account is deleted; it's purged after the game's hold. Until then its username stays taken, and
-    /// signing in restores it.
-    /// </summary>
     public DateTime? DeletedAt { get; set; }
 
     /// <summary>Deletion isn't a <see cref="Status"/>, so a ban survives it.</summary>

@@ -102,7 +102,6 @@ internal static class UnknownKeys
                     type = type.Options.GetTypeInfo(type.ElementType!);
                     break;
                 default:
-                    // Not a table: Tomlyn reports the type mismatch itself.
                     return null;
             }
         }

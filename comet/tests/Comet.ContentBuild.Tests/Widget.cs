@@ -4,7 +4,6 @@ using Tomlyn.Serialization;
 
 namespace Comet.ContentBuild.Tests;
 
-// A test content type covering nested tables and arrays, so the build is tested without any game's types.
 public sealed class Widget : IContentEntry
 {
     [JsonIgnore]
