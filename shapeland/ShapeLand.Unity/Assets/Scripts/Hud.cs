@@ -204,27 +204,30 @@ namespace ShapeLand.Client
             }
             else if (menu.WasPressedThisFrame() && !_chat.Open && !_chat.JustToggled)
             {
-                if (card.Changing && menu.activeControl is not KeyControl) { }
-                else if (card.FromMenu)
+                var startAppliesLook = card.Changing && menu.activeControl is not KeyControl;
+                if (!startAppliesLook)
                 {
-                    _reopenChat = false;
-                    card.Back();
-                }
-                else if (card.Changing)
-                {
-                    CloseLook();
-                }
-                else if (!_menu.Open)
-                {
-                    _menu.Show();
-                }
-                else if (menu.activeControl is KeyControl)
-                {
-                    _menu.Back();
-                }
-                else
-                {
-                    _menu.Close();
+                    if (card.FromMenu)
+                    {
+                        _reopenChat = false;
+                        card.Back();
+                    }
+                    else if (card.Changing)
+                    {
+                        CloseLook();
+                    }
+                    else if (!_menu.Open)
+                    {
+                        _menu.Show();
+                    }
+                    else if (menu.activeControl is KeyControl)
+                    {
+                        _menu.Back();
+                    }
+                    else
+                    {
+                        _menu.Close();
+                    }
                 }
             }
             else if (_account.Open)

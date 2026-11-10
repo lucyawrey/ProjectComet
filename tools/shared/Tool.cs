@@ -131,7 +131,7 @@ public static class Tool
             process.Kill(entireProcessTree: true);
             process.WaitForExit(5000);
         }
-        catch (InvalidOperationException) { }
+        catch (InvalidOperationException) { } // already gone
     }
 
     // The arguments a tool was given. tools\run.cmd passes its whole command line on as it was typed, so cmd never

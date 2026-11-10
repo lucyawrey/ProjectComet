@@ -521,7 +521,10 @@ namespace Comet.Unity.Editor
                 process.WaitForExit(5000);
             }
             catch (Exception e)
-                when (e is AggregateException or ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
+                when (e is AggregateException or ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                // Gone already, or not answering: Kill sees to it.
+            }
         }
 
         public static string? WebBuild(CometSettings settings)

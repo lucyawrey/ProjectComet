@@ -127,7 +127,10 @@ public sealed class WebSocketTransportTests : IDisposable
                 await stream.WriteAsync(frame, TestContext.Current.CancellationToken);
             }
         }
-        catch (IOException) { }
+        catch (IOException)
+        {
+            // Closed while still sending.
+        }
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(CloseReason.FellBehind, transport.CloseReason);

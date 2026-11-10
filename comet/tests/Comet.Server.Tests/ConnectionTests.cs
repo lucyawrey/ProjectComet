@@ -99,7 +99,10 @@ public sealed class ConnectionTests : IAsyncLifetime
                 await _client.SendAsync(empty, WebSocketMessageType.Binary, endOfMessage: true, TestContext.Current.CancellationToken);
             }
         }
-        catch (WebSocketException) { }
+        catch (WebSocketException)
+        {
+            // Dropped while still sending.
+        }
 
         await _running.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }

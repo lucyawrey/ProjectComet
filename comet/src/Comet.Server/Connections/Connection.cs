@@ -195,7 +195,10 @@ public sealed class Connection
         {
             _socket.Abort();
         }
-        catch (Exception e) when (e is WebSocketException or OperationCanceledException) { }
+        catch (Exception e) when (e is WebSocketException or OperationCanceledException)
+        {
+            // The client went away.
+        }
         finally
         {
             _registry.Remove(this);

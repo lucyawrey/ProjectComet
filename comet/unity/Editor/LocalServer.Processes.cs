@@ -324,7 +324,10 @@ namespace Comet.Unity.Editor
                 process.Kill();
                 process.WaitForExit(3000);
             }
-            catch (Exception e) when (e is InvalidOperationException or ArgumentException or System.ComponentModel.Win32Exception) { }
+            catch (Exception e) when (e is InvalidOperationException or ArgumentException or System.ComponentModel.Win32Exception)
+            {
+                // It has stopped by itself meanwhile.
+            }
 
             return true;
         }

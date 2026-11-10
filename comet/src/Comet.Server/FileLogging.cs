@@ -34,7 +34,10 @@ public static class FileLogging
         {
             File.AppendAllText(Path.GetFullPath(path), $"{DateTime.Now:HH:mm:ss} Critical: the server stopped: {exception}\n");
         }
-        catch (IOException) { }
+        catch (IOException)
+        {
+            // Nowhere left to say it but the console.
+        }
     }
 
     private sealed class FileLoggerProvider(string path) : ILoggerProvider

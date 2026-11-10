@@ -806,7 +806,10 @@ public sealed class EndToEndTests : IAsyncLifetime
                 );
             }
         }
-        catch (WebSocketException) { }
+        catch (WebSocketException)
+        {
+            // already dropped
+        }
 
         Assert.True(await client.ClosedAsync(TimeSpan.FromSeconds(2)));
     }
