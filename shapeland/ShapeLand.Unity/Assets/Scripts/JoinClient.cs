@@ -237,7 +237,7 @@ namespace ShapeLand.Client
             return signedIn.Succeeded ? await ResumeAsync() : signedIn.Error;
         }
 
-        public async Task<string> PlayAsync()
+        private void BeginJoin()
         {
             if (_content == null)
             {
@@ -248,6 +248,11 @@ namespace ShapeLand.Client
             Error = null;
             Rejected = null;
             DroppedFor = null;
+        }
+
+        public async Task<string> PlayAsync()
+        {
+            BeginJoin();
             var attempt = _joinAttempt;
             var ticket = await _login.GetTicketAsync();
             if (attempt != _joinAttempt)
@@ -278,15 +283,7 @@ namespace ShapeLand.Client
 
         public void DevJoin(string name, NewCharacter look)
         {
-            if (_content == null)
-            {
-                throw new InvalidOperationException("Join after the content has loaded.");
-            }
-
-            Failure = JoinFailure.None;
-            Error = null;
-            Rejected = null;
-            DroppedFor = null;
+            BeginJoin();
             _devName = name;
             _content.Strings.SetShared("username", name);
             Connect(new Uri($"ws://localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}/ws"));
