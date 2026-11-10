@@ -221,6 +221,10 @@ namespace Comet.Unity.Editor
 
         private static bool OnUnderside(Brush b) => b != Brush.Hole && b != Brush.Ground;
 
+        private uint GroundOf(TerrainPiece p) => p.GroundColor ?? ToRgb(_settings!.groundColor);
+
+        private uint UnderOf(TerrainPiece p) => p.UnderColor ?? ToRgb(_settings!.underColor);
+
         private static uint? OwnColor(string label, string what, uint? own, Color game)
         {
             var content = new GUIContent(label, $"The color of the piece's {what}. Reset: the game's, from Comet Settings.");
@@ -266,12 +270,10 @@ namespace Comet.Unity.Editor
                 settings.SkirtDepth = depth;
                 settings.RimSkirts = rim;
                 settings.HoleSkirts = holes;
-                uint Ground() => settings.GroundColor ?? ToRgb(_settings!.groundColor);
-                uint Under() => settings.UnderColor ?? ToRgb(_settings!.underColor);
-                var (oldGround, oldUnder) = (Ground(), Under());
+                var (oldGround, oldUnder) = (GroundOf(settings), UnderOf(settings));
                 settings.GroundColor = ground;
                 settings.UnderColor = under;
-                terrain.ReplaceDefaultColors(piece, oldGround, Ground(), oldUnder, Under());
+                terrain.ReplaceDefaultColors(piece, oldGround, GroundOf(settings), oldUnder, UnderOf(settings));
                 terrain.Commit("Change piece settings", _settings!);
 
                 // Unity's color picker reports every step of a drag as a change; while it has focus, they all go into the first one's undo step.
@@ -384,14 +386,7 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            terrain.MovePiece(
-                piece,
-                dx,
-                dz,
-                move.y,
-                settings.GroundColor ?? ToRgb(_settings!.groundColor),
-                settings.UnderColor ?? ToRgb(_settings!.underColor)
-            );
+            terrain.MovePiece(piece, dx, dz, move.y, GroundOf(settings), UnderOf(settings));
             terrain.Commit($"Move piece {piece}", _settings!);
             Undo.CollapseUndoOperations(group);
             RefreshOverlaps();
@@ -632,16 +627,10 @@ namespace Comet.Unity.Editor
                     case Brush.Ground when !has:
                         terrain.SetHeight(piece, x, z, _flattenHeight);
                         var pieceSettings = terrain.Terrain[piece].Settings;
-                        terrain.ResetColors(
-                            piece,
-                            x,
-                            z,
-                            pieceSettings.GroundColor ?? ToRgb(_settings!.groundColor),
-                            pieceSettings.UnderColor ?? ToRgb(_settings!.underColor)
-                        );
+                        terrain.ResetColors(piece, x, z, GroundOf(pieceSettings), UnderOf(pieceSettings));
                         break;
                     case Brush.Color when has:
-                        terrain.SetColor(piece, x, z, ToRgb(paint), terrain.Terrain[piece].Settings.GroundColor ?? ToRgb(_settings!.groundColor));
+                        terrain.SetColor(piece, x, z, ToRgb(paint), GroundOf(terrain.Terrain[piece].Settings));
                         break;
                 }
             }
@@ -685,7 +674,7 @@ namespace Comet.Unity.Editor
                     terrain.SetUnderside(piece, x, z, Mathf.Min(height, Mathf.Lerp(under, _flattenHeight, Mathf.Clamp01(strength * amount * 3))));
                     break;
                 case Brush.Color:
-                    terrain.SetUndersideColor(piece, x, z, ToRgb(paint), terrain.Terrain[piece].Settings.UnderColor ?? ToRgb(_settings!.underColor));
+                    terrain.SetUndersideColor(piece, x, z, ToRgb(paint), UnderOf(terrain.Terrain[piece].Settings));
                     break;
             }
         }
