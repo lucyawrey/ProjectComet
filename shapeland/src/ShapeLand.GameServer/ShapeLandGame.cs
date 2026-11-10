@@ -351,22 +351,16 @@ public sealed class ShapeLandGame : IConnectionHandler, IJoinHost<Connection, Sh
             lookChanged = true;
         }
 
-        foreach (var eyes in new[] { false, true })
+        if (!_content.Colors.TryGet(character.Color, out _))
         {
-            var color = eyes ? character.EyeColor : character.Color;
-            if (!_content.Colors.TryGet(color, out _))
-            {
-                if (eyes)
-                {
-                    character.EyeColor = _content.Colors.All[0].Number;
-                }
-                else
-                {
-                    character.Color = _content.Colors.All[0].Number;
-                }
+            character.Color = _content.Colors.All[0].Number;
+            lookChanged = true;
+        }
 
-                lookChanged = true;
-            }
+        if (!_content.Colors.TryGet(character.EyeColor, out _))
+        {
+            character.EyeColor = _content.Colors.All[0].Number;
+            lookChanged = true;
         }
 
         if (lookChanged)
