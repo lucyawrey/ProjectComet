@@ -8,7 +8,7 @@ namespace ShapeLand.ContentBuild.Tests;
 
 public class ContentTests
 {
-    private static readonly string ContentRoot = Path.Combine(RepoRoot(), "shapeland", "content");
+    private static readonly string ContentRoot = Path.Combine(TestPaths.RepoRoot(), "shapeland", "content");
 
     [Fact]
     public void CompiledContentFindsEachShapeByKey()
@@ -270,18 +270,5 @@ public class ContentTests
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target);
         }
-    }
-
-    private static string RepoRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("Can't find the repository root.");
     }
 }

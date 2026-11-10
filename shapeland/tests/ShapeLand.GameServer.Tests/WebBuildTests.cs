@@ -18,7 +18,7 @@ public sealed class WebBuildTests : IAsyncLifetime
         await File.WriteAllBytesAsync(Path.Combine(_root, "Build", "web.wasm.unityweb"), [6, 7]);
         await File.WriteAllBytesAsync(Path.Combine(_root, "StreamingAssets", "content.bin"), [4, 5]);
 
-        var (content, errors) = ShapeLandBuild.Build(Path.Combine(EndToEndTests.RepoRoot(), "shapeland", "content"), saveRegistry: false);
+        var (content, errors) = ShapeLandBuild.Build(Path.Combine(TestPaths.RepoRoot(), "shapeland", "content"), saveRegistry: false);
         Assert.Empty(errors);
         var contentFile = Path.Combine(_root, "server-content.bin");
         await using (var file = File.Create(contentFile))

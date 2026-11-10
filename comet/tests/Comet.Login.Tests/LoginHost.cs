@@ -14,10 +14,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
-using Npgsql;
-using Testcontainers.PostgreSql;
 
-[assembly: AssemblyFixture(typeof(Comet.Login.Tests.PostgresContainer))]
+[assembly: AssemblyFixture(typeof(Comet.Testing.PostgresContainer))]
 
 namespace Comet.Login.Tests;
 
@@ -63,28 +61,6 @@ public sealed class TestView
 {
     public string Name { get; set; } = "";
     public int Look { get; set; }
-}
-
-public sealed class PostgresContainer : IAsyncLifetime
-{
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18").Build();
-
-    public async ValueTask InitializeAsync() => await _container.StartAsync();
-
-    public async ValueTask DisposeAsync() => await _container.DisposeAsync();
-
-    public async Task<string> CreateDatabaseAsync()
-    {
-        var name = $"test_{Guid.NewGuid():N}";
-        await using (var admin = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await admin.OpenAsync();
-            await using var create = new NpgsqlCommand($"CREATE DATABASE {name}", admin);
-            await create.ExecuteNonQueryAsync();
-        }
-
-        return new NpgsqlConnectionStringBuilder(_container.GetConnectionString()) { Database = name }.ConnectionString;
-    }
 }
 
 public sealed class LoginHost : IAsyncDisposable

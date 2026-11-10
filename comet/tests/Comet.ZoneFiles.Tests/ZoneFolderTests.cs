@@ -79,7 +79,7 @@ public class ZoneFolderTests
         using var folder = new TempFolder();
         var sample = Zones.Sample();
         var tile = sample.Chunks[0].Tiles[0];
-        tile.Underside = Zones.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
+        tile.Underside = Heightmaps.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
         var plain = RoundTrip(sample, folder, out _);
         Assert.DoesNotContain("height_base", File.ReadAllText(folder.PathOf("zone.toml")));
 
@@ -198,7 +198,7 @@ public class ZoneFolderTests
         zone.Pieces[0].GroundColor = 0x739e4d;
         var tile = zone.Chunks[1].Tiles[0];
         var size = tile.Heights.SizeX * tile.Heights.SizeZ;
-        tile.Underside = Zones.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
+        tile.Underside = Heightmaps.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
         tile.UndersideColors = new ColorMap
         {
             SizeX = tile.Heights.SizeX,

@@ -39,7 +39,7 @@ public sealed class EndToEndTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        var (content, errors) = ShapeLandBuild.Build(Path.Combine(RepoRoot(), "shapeland", "content"), saveRegistry: false);
+        var (content, errors) = ShapeLandBuild.Build(Path.Combine(TestPaths.RepoRoot(), "shapeland", "content"), saveRegistry: false);
         Assert.Empty(errors);
         _content = content!;
         await using (var file = File.Create(_contentFile))
@@ -838,18 +838,5 @@ public sealed class EndToEndTests : IAsyncLifetime
         {
             return false;
         }
-    }
-
-    internal static string RepoRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("Can't find the repository root.");
     }
 }

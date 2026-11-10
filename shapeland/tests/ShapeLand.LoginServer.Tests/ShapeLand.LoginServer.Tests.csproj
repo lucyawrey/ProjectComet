@@ -11,16 +11,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Comet.Testing" />
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
-    <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\comet\tests\Comet.Testing\Comet.Testing.csproj" />
     <ProjectReference Include="..\..\..\comet\src\Comet.Client\Comet.Client.csproj" />
     <ProjectReference Include="..\..\src\ShapeLand.LoginServer\ShapeLand.LoginServer.csproj" />
   </ItemGroup>

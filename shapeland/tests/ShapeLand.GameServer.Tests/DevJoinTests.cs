@@ -21,7 +21,7 @@ public sealed class DevJoinTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        var (content, errors) = ShapeLandBuild.Build(Path.Combine(EndToEndTests.RepoRoot(), "shapeland", "content"), saveRegistry: false);
+        var (content, errors) = ShapeLandBuild.Build(Path.Combine(TestPaths.RepoRoot(), "shapeland", "content"), saveRegistry: false);
         Assert.Empty(errors);
         _content = content!;
         await using var file = File.Create(_contentFile);

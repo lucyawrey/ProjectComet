@@ -5,13 +5,6 @@ namespace Comet.ZoneFiles.Tests;
 
 internal static class Zones
 {
-    public static Heightmap Flat(int sizeX, int sizeZ, float height)
-    {
-        var map = new Heightmap { SizeX = sizeX, SizeZ = sizeZ };
-        map.Samples = Enumerable.Repeat(map.ToSample(height), sizeX * sizeZ).ToArray();
-        return map;
-    }
-
     public static Zone Sample() =>
         new()
         {
@@ -67,7 +60,7 @@ internal static class Zones
                             Piece = "main",
                             OriginX = 32,
                             OriginZ = 0,
-                            Heights = Flat(33, 65, 4),
+                            Heights = Heightmaps.Flat(33, 65, 4),
                         },
                     ],
                     Placements =
@@ -90,7 +83,7 @@ internal static class Zones
                         new TerrainTile
                         {
                             Piece = "main",
-                            Heights = Flat(17, 65, 4),
+                            Heights = Heightmaps.Flat(17, 65, 4),
                             Colors = new ColorMap
                             {
                                 SizeX = 17,

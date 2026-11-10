@@ -52,7 +52,7 @@ public class ZoneValidationTests
     public void TilesNeedAKnownPieceAndMustFitTheirChunk()
     {
         var zone = Zones.Sample();
-        zone.Chunks[0].Tiles = [zone.Chunks[0].Tiles[0], new TerrainTile { Piece = "cliff", Heights = Zones.Flat(2, 2, 0) }];
+        zone.Chunks[0].Tiles = [zone.Chunks[0].Tiles[0], new TerrainTile { Piece = "cliff", Heights = Heightmaps.Flat(2, 2, 0) }];
         zone.Chunks[1].Tiles[0].OriginX = 50;
 
         Assert.Equal(
@@ -68,7 +68,7 @@ public class ZoneValidationTests
     public void TerrainMustMatchWhereAPiecesTilesMeet()
     {
         var zone = Zones.Sample();
-        zone.Chunks[1].Tiles[0].Heights = Zones.Flat(17, 65, 4.5f);
+        zone.Chunks[1].Tiles[0].Heights = Heightmaps.Flat(17, 65, 4.5f);
 
         Assert.Equal(
             ["chunks/-1_0/chunk.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 0])."],
@@ -104,11 +104,11 @@ public class ZoneValidationTests
                         Piece = "main",
                         OriginX = 60,
                         OriginZ = 60,
-                        Heights = Zones.Flat(5, 5, 2),
+                        Heights = Heightmaps.Flat(5, 5, 2),
                     },
                 ],
             },
-            new ZoneChunk { Coord = new ChunkCoord(1, 1), Tiles = [new TerrainTile { Piece = "main", Heights = Zones.Flat(5, 5, 2) }] },
+            new ZoneChunk { Coord = new ChunkCoord(1, 1), Tiles = [new TerrainTile { Piece = "main", Heights = Heightmaps.Flat(5, 5, 2) }] },
         ];
         zone.Borders = [];
         Assert.Empty(Errors(zone));

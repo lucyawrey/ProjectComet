@@ -110,7 +110,7 @@ public class TerrainMesherTests
         const uint moss = 0x336633;
         var zone = Piece(2, rim: true, holes: true, "##", "##");
         var tile = zone.Chunks[0].Tiles[0];
-        tile.Underside = TestWorlds.Flat(2, -4);
+        tile.Underside = Heightmaps.Flat(2, -4);
         tile.UndersideColors = new ColorMap
         {
             SizeX = 2,
@@ -206,7 +206,7 @@ public class TerrainMesherTests
     {
         var zone = Piece(2, rim: true, holes: true, "##", "##");
         var tile = zone.Chunks[0].Tiles[0];
-        tile.Underside = TestWorlds.Flat(2, -10);
+        tile.Underside = Heightmaps.Flat(2, -10);
 
         var lowest = Mesh(zone)[new ChunkCoord(0, 0)].Positions.Min(p => p.Y);
 
