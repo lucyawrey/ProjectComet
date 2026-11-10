@@ -198,7 +198,7 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>Moves a piece <paramref name="dx"/>, <paramref name="dz"/> samples and <paramref name="dy"/> meters.</summary>
+        /// <summary>Moves a piece by whole samples sideways and <paramref name="dy"/> meters up, with its underside and colors.</summary>
         public void MovePiece(string name, int dx, int dz, float dy, uint ground, uint skirt)
         {
             var samples = new Dictionary<(int X, int Z), (float Height, float? Under, uint? Color, uint? UnderColor)>();

@@ -96,7 +96,7 @@ public sealed class MovementValidator
         _budget = _tolerances.DistanceSlack;
     }
 
-    /// <summary><paramref name="stamp"/> is when the client sent the report (bounded by <see cref="StateStamp"/>); defaults to arrival.</summary>
+    /// <summary><paramref name="stamp"/> is when the client sent the report, so a late one after a stall isn't judged by its arrival.</summary>
     public MovementVerdict Check(in PositionReport report, uint tick, float maxSpeed, float jumpVelocity, uint? stamp = null)
     {
         if (report.CorrectionSequence != CorrectionSequence || _serverFalling)

@@ -28,7 +28,7 @@ public interface IJoinHost<TConnection, TCharacter>
 
     void Joined(TConnection connection, CharacterClaim<TCharacter> claim);
 
-    /// <summary>Drops a connection whose character was taken by <paramref name="replaced"/> or the database; returns its place, or null.</summary>
+    /// <summary>Drops a connection whose character was taken by a newer join or the database; returns its place for a final save, or null.</summary>
     CharacterPosition? Dropped(TConnection connection, bool replaced);
 }
 

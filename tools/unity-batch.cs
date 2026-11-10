@@ -242,7 +242,7 @@ int InBatchMode()
     if (!File.Exists(unity))
         throw Tool.Fail($"No Unity {version} at {unity}", 2);
 
-    // Output goes to the log only: its pipes are this tool's, so the editor's helper processes, which outlive it, would hold a caller's output open.
+    // Output goes to the log only: its pipes are this tool's, so the editor's helper processes, which outlive it, can't hold a caller's output open.
     var info = Tool.Info(unity, ["-batchmode", "-projectPath", project, "-logFile", log, .. unityArgs]);
     info.RedirectStandardInput = info.RedirectStandardOutput = info.RedirectStandardError = true;
     var editor = Tool.Start(info);

@@ -324,7 +324,7 @@ namespace Comet.Simulation
                 && !TryPushOut(ref lower, radius, bodyHeight, passThrough);
         }
 
-        /// <summary>Lowest fit from blocked <paramref name="feet"/> to clear <paramref name="clearY"/>, to a millimeter; false if blocked.</summary>
+        /// <summary>Lowest fit from <paramref name="feet"/> to clear <paramref name="clearY"/>, to a millimeter; false if not clear there.</summary>
         public bool TryRest(ref Vector3 feet, float clearY, float radius, float bodyHeight, ISet<int>? passThrough = null)
         {
             var high = new Vector3(feet.X, clearY, feet.Z);

@@ -33,6 +33,9 @@ namespace Comet.Client
         /// <param name="reportInterval">How often moving entities are updated, in seconds.</param>
         /// <param name="idleGap">A gap longer than this, in seconds, after a standing-still state means the entity stood still.</param>
         /// <param name="teleportSpeed">Ground or upward moves above this speed (m/s) are drawn as jumps; falling never is.</param>
+        /// <param name="gravity">Downward acceleration while dead-reckoning a vertical move, in meters per second squared.</param>
+        /// <param name="maxExtrapolation">How long, in seconds, an entity is dead-reckoned before it holds.</param>
+        /// <param name="blend">How long, in seconds, the difference is eased out when a late state arrives.</param>
         public RemoteEntities(
             int tickRate,
             double reportInterval = 1.0 / 15,
