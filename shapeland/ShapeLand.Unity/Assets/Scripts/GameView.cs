@@ -76,7 +76,7 @@ namespace ShapeLand.Client
 
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
 
-        private readonly List<Pad> _pads = new List<Pad>();
+        private readonly List<(object Owner, Renderer[] Renderers, Color Color)> _pads = new List<(object, Renderer[], Color)>();
         private readonly Dictionary<string, List<(GameObject Thing, bool StartsOff)>> _tagged = new Dictionary<string, List<(GameObject, bool)>>();
 
         private readonly TriggerCharge _spawnCharge = new TriggerCharge();
@@ -352,24 +352,13 @@ namespace ShapeLand.Client
                 owner is SpawnPoint
                     ? Conversions.FromRgb(_content.Settings.Spawns.UnsetColor)
                     : Conversions.FromRgb(pad.Color ?? _content.Settings.World.PlacedColor);
-            _pads.Add(new Pad(owner, thing.GetComponentsInChildren<Renderer>(), color));
+            _pads.Add((owner, thing.GetComponentsInChildren<Renderer>(), color));
         }
 
-        private sealed class Pad
-        {
-            public Pad(object owner, Renderer[] renderers, Color color)
-            {
-                Owner = owner;
-                Renderers = renderers;
-                Color = color;
-            }
-
-            public object Owner { get; }
-
-            public Renderer[] Renderers { get; }
-
-            public Color Color { get; }
-        }
+        private static float Charge(TriggerCharge charge, object owner, float now) =>
+            charge.Inside != owner ? 0
+            : charge.Fired ? 1
+            : charge.Progress(now);
 
         private void ColorPads()
         {
@@ -425,25 +414,18 @@ namespace ShapeLand.Client
                 Color color;
                 if (pad.Owner is SpawnPoint spawn)
                 {
-                    var charge = _spawnCharge.Inside == spawn ? (_spawnCharge.Fired ? 1 : _spawnCharge.Progress(now)) : 0;
+                    var charge = Charge(_spawnCharge, spawn, now);
                     color = spawn.Number == own ? body : Charging(pad.Color, body, charge, spawn.Volume.StandSeconds);
                 }
                 else if (pad.Owner is Teleporter teleporter)
                 {
-                    var charge =
-                        teleporter == _sending && Player != null && Player.Departing ? 1
-                        : _teleportCharge.Inside != teleporter ? 0
-                        : _teleportCharge.Fired ? 1
-                        : _teleportCharge.Progress(now);
+                    var charge = teleporter == _sending && Player != null && Player.Departing ? 1 : Charge(_teleportCharge, teleporter, now);
                     var to = Conversions.FromRgb(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
                     color = Charging(pad.Color, to, charge, teleporter.Volume.StandSeconds);
                 }
                 else if (pad.Owner is Trigger trigger)
                 {
-                    var charge =
-                        _triggerCharge.Inside != trigger ? 0
-                        : _triggerCharge.Fired ? 1
-                        : _triggerCharge.Progress(now);
+                    var charge = Charge(_triggerCharge, trigger, now);
                     var to = Conversions.FromRgb(trigger.ChargeColor ?? _content.Settings.Triggers.ChargeColor);
                     color = Charging(pad.Color, to, charge, trigger.Volume.StandSeconds);
                 }
