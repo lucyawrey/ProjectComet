@@ -135,12 +135,7 @@ public sealed class ContentBuilder
             }
 
             AssignZoneNumbers(zones, registry);
-            var groupNumbers = registry.Assign("group", groups.Select(g => g.Id));
-            foreach (var group in groups)
-            {
-                group.Number = groupNumbers[group.Id];
-            }
-
+            Number(registry, "group", groups);
             groups.Sort((a, b) => a.Number.CompareTo(b.Number));
 
             if (saveRegistry && registry.Changed)
@@ -231,34 +226,23 @@ public sealed class ContentBuilder
 
     private static void AssignZoneNumbers(List<Zone> zones, IdRegistry registry)
     {
-        var numbers = registry.Assign("zone", zones.Select(z => z.Id));
-        var spawns = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Spawns).ToList();
-        var spawnNumbers = registry.Assign("spawn", spawns.Select(s => s.Id));
-        var teleporters = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).ToList();
-        var teleporterNumbers = registry.Assign("teleporter", teleporters.Select(t => t.Id));
-        var triggers = zones.SelectMany(z => z.Chunks).SelectMany(c => c.Triggers).ToList();
-        var triggerNumbers = registry.Assign("trigger", triggers.Select(t => t.Id));
-        foreach (var zone in zones)
-        {
-            zone.Number = numbers[zone.Id];
-        }
-
-        foreach (var spawn in spawns)
-        {
-            spawn.Number = spawnNumbers[spawn.Id];
-        }
-
-        foreach (var teleporter in teleporters)
-        {
-            teleporter.Number = teleporterNumbers[teleporter.Id];
-        }
-
-        foreach (var trigger in triggers)
-        {
-            trigger.Number = triggerNumbers[trigger.Id];
-        }
-
+        var chunks = zones.SelectMany(z => z.Chunks).ToList();
+        Number(registry, "zone", zones);
+        Number(registry, "spawn", chunks.SelectMany(c => c.Spawns));
+        Number(registry, "teleporter", chunks.SelectMany(c => c.Teleporters));
+        Number(registry, "trigger", chunks.SelectMany(c => c.Triggers));
         zones.Sort((a, b) => a.Number.CompareTo(b.Number));
+    }
+
+    private static void Number<T>(IdRegistry registry, string kind, IEnumerable<T> entries)
+        where T : class, IContentEntry
+    {
+        var list = entries.ToList();
+        var numbers = registry.Assign(kind, list.Select(e => e.Id));
+        foreach (var entry in list)
+        {
+            entry.Number = numbers[entry.Id];
+        }
     }
 
     public IReadOnlyDictionary<string, JsonNode> Schemas() => _types.ToDictionary(t => t.Kind, t => t.Schema());
@@ -300,8 +284,6 @@ public sealed class ContentBuilder
 
     internal interface IReadContent
     {
-        Type EntryType { get; }
-
         void AssignNumbers(IdRegistry registry);
     }
 
@@ -437,18 +419,11 @@ public sealed class ContentBuilder
 
         public ReadContent(string kind) => _kind = kind;
 
-        public Type EntryType => typeof(T);
-
         public List<T> Entries { get; } = new();
 
         public void AssignNumbers(IdRegistry registry)
         {
-            var numbers = registry.Assign(_kind, Entries.Select(e => e.Id));
-            foreach (var entry in Entries)
-            {
-                entry.Number = numbers[entry.Id];
-            }
-
+            Number(registry, _kind, Entries);
             Entries.Sort((a, b) => a.Number.CompareTo(b.Number));
         }
     }
