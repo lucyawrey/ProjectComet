@@ -107,17 +107,9 @@ namespace ShapeLand.Client
                 {
                     _root.focusController?.focusedElement?.Blur();
                 }
-                else if (SigningIn || SettingPassword)
-                {
-                    PageBack();
-                }
-                else if (FromMenu)
-                {
-                    Back();
-                }
                 else
                 {
-                    Cancel();
+                    PageBack();
                 }
             }
             else if (actions.Submit.WasPressedThisFrame() && (!typing || actions.Submit.activeControl?.device is Gamepad))
@@ -278,14 +270,7 @@ namespace ShapeLand.Client
             }
             else if (_onBack)
             {
-                if (SigningIn || SettingPassword)
-                {
-                    PageBack();
-                }
-                else
-                {
-                    Back();
-                }
+                PageBack();
             }
             else if (Items(row) is { Count: > 0 } items)
             {

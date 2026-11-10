@@ -65,6 +65,10 @@ namespace ShapeLand.Client
             {
                 SetSettingPassword(false);
             }
+            else
+            {
+                Back();
+            }
         }
 
         private void SetSignedIn(bool signedIn)
