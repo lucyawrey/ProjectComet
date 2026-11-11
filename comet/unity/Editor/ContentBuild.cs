@@ -12,13 +12,23 @@ namespace Comet.Unity.Editor
     [InitializeOnLoad]
     public static class ContentBuild
     {
+        private const string BuiltKey = "Comet.ContentBuild.Built";
         private static Process? building;
         private static bool buildAgain;
 
         static ContentBuild()
         {
             // After the editor has finished loading, so a game's handlers can find its assets.
-            EditorApplication.delayCall += () => Copy();
+            EditorApplication.delayCall += () =>
+            {
+                Copy();
+                // Once per editor session, not on every domain reload. A batch job could quit before the build finishes.
+                if (!Application.isBatchMode && !SessionState.GetBool(BuiltKey, false))
+                {
+                    SessionState.SetBool(BuiltKey, true);
+                    Build();
+                }
+            };
             EditorApplication.playModeStateChanged += state =>
             {
                 if (state == PlayModeStateChange.ExitingEditMode)
