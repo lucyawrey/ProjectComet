@@ -1,6 +1,6 @@
 # ShapeLand
 
-Comet's demo and reference game. Requirements, setup and the scripts are in the [repository README](../README.md).
+[what ShapeLand is] Requirements, setup and the scripts are in the [repository README](../README.md).
 
 | Folder | What it holds |
 | --- | --- |
