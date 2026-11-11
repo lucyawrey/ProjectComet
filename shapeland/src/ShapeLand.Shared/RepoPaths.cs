@@ -5,7 +5,7 @@ namespace ShapeLand.Shared
 {
     public static class RepoPaths
     {
-        public static string Root(string hint)
+        public static string Root(string hint = "")
         {
             for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
             {
@@ -15,7 +15,7 @@ namespace ShapeLand.Shared
                 }
             }
 
-            throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx)" + hint);
+            throw new InvalidOperationException($"Can't find the repository root (ProjectComet.slnx). {hint}".TrimEnd());
         }
 
         public static string ContentFile(string? configured, string hint)
@@ -32,6 +32,6 @@ namespace ShapeLand.Shared
             return path;
         }
 
-        public static string DefaultContentFile(string hint) => Path.Combine(Root(hint), "artifacts", "content", "shapeland", "content.bin");
+        public static string DefaultContentFile(string hint = "") => Path.Combine(Root(hint), "artifacts", "content", "shapeland", "content.bin");
     }
 }

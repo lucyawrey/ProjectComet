@@ -9,7 +9,7 @@ namespace ShapeLand.LoginServer;
 
 public static class ShapeLandLogin
 {
-    private const string Hint = "; set the paths in the configuration.";
+    private const string Hint = "Set the paths in the configuration.";
 
     public static readonly TimeSpan GuestIdle = TimeSpan.FromDays(7);
 

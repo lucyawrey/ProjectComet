@@ -200,10 +200,11 @@ namespace Comet.Unity.Editor
                     dotnet,
                     root,
                     $"build \"{project}\" -nologo -v quiet -t:Build -getProperty:TargetPath --artifacts-path \"{artifacts}\"",
-                    out var exitCode
+                    out var exitCode,
+                    out var errors
                 );
                 var program = exitCode == 0 ? output.Split('\n').Select(line => line.Trim()).LastOrDefault(line => line.Length > 0) : null;
-                return program != null && File.Exists(program) ? new Built(program, null) : new Built(null, output);
+                return program != null && File.Exists(program) ? new Built(program, null) : new Built(null, output + errors);
             }
             catch (Exception e)
             {
@@ -214,7 +215,11 @@ namespace Comet.Unity.Editor
         private static Built Database(string dotnet, string tool, string root, string checkout, int port)
         {
             // The short form fails on older SDKs in the Unity folder, which holds several projects.
-            string Run(string arguments, out int exitCode) => RunDotnet(dotnet, root, $"run --file \"{tool}\" -- {arguments}", out exitCode);
+            string Run(string arguments, out int exitCode)
+            {
+                var output = RunDotnet(dotnet, root, $"run --file \"{tool}\" -- {arguments}", out exitCode, out var errors);
+                return exitCode == 0 ? output : output + errors;
+            }
 
             try
             {
@@ -233,7 +238,7 @@ namespace Comet.Unity.Editor
             }
         }
 
-        private static string RunDotnet(string dotnet, string root, string arguments, out int exitCode)
+        private static string RunDotnet(string dotnet, string root, string arguments, out int exitCode, out string errors)
         {
             var start = new ProcessStartInfo(dotnet, arguments)
             {
@@ -248,7 +253,8 @@ namespace Comet.Unity.Editor
             var output = process.StandardOutput.ReadToEnd().Trim();
             process.WaitForExit();
             exitCode = process.ExitCode;
-            return exitCode == 0 ? output : output + error.Result;
+            errors = error.Result;
+            return output;
         }
 
         private static bool PortInUse(int port)

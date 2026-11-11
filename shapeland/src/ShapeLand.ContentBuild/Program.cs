@@ -3,7 +3,7 @@ using Comet.ContentBuild;
 using ShapeLand.ContentBuild;
 using ShapeLand.Shared;
 
-var repo = RepoPaths.Root(" above the tool.");
+var repo = RepoPaths.Root();
 var content = Path.Combine(repo, "shapeland", "content");
 var output = Path.Combine(repo, "artifacts", "content", "shapeland");
 

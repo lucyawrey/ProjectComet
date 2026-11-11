@@ -70,7 +70,7 @@ public static class ShapeLandServer
         {
             var options = services.GetRequiredService<IOptions<ShapeLandServerOptions>>().Value;
             var folder = string.IsNullOrEmpty(options.TicketKeysFolder)
-                ? Path.Combine(RepoPaths.Root("; set ShapeLand:ContentFile."), "artifacts", "keys", "public")
+                ? Path.Combine(RepoPaths.Root("Set ShapeLand:ContentFile."), "artifacts", "keys", "public")
                 : options.TicketKeysFolder;
             var keys = Directory.Exists(folder) ? TicketKeys.PublicKeysIn(folder) : [];
             if (keys.Count == 0)
@@ -126,10 +126,7 @@ public static class ShapeLandServer
                     return Results.Text(config, "text/javascript");
                 }
             );
-        }
 
-        if (!string.IsNullOrEmpty(serverOptions.WebRoot))
-        {
             if (!File.Exists(Path.Combine(serverOptions.WebRoot, "index.html")))
             {
                 throw new FileNotFoundException("No web build to serve (ShapeLand:WebRoot has no index.html).", serverOptions.WebRoot);
@@ -261,7 +258,7 @@ public static class ShapeLandServer
 
     private static LoadedContent LoadContent(ShapeLandServerOptions options)
     {
-        var path = RepoPaths.ContentFile(options.ContentFile, "; set ShapeLand:ContentFile.");
+        var path = RepoPaths.ContentFile(options.ContentFile, "Set ShapeLand:ContentFile.");
         var file = File.ReadAllBytes(path);
         return new LoadedContent(ShapeLandContent.Load(new MemoryStream(file)), ContentHash.Of(file));
     }

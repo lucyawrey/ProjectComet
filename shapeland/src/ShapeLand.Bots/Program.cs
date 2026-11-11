@@ -26,14 +26,14 @@ var meta = args.Select((arg, i) => (arg, i))
     .ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : "");
 
 ShapeLandContent content;
-using (var stream = File.OpenRead(contentFile != "" ? contentFile : RepoPaths.DefaultContentFile(".")))
+using (var stream = File.OpenRead(contentFile != "" ? contentFile : RepoPaths.DefaultContentFile()))
 {
     content = ShapeLandContent.Load(stream);
 }
 
 if (tokens == "")
 {
-    tokens = Path.Combine(RepoPaths.Root("."), "artifacts", "bot-tokens");
+    tokens = Path.Combine(RepoPaths.Root(), "artifacts", "bot-tokens");
 }
 
 var dev = args.Contains("--dev");
