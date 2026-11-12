@@ -2,7 +2,6 @@ using Tomlyn.Syntax;
 
 namespace Comet.ContentBuild;
 
-/// <summary>Collects a content file's validation errors, placed at the field they're about.</summary>
 public sealed class ContentValidation
 {
     private readonly string _file;
@@ -17,7 +16,6 @@ public sealed class ContentValidation
 
     internal IReadOnlyList<ContentError> Errors => _errors;
 
-    /// <summary>Records an error about a top-level field, given by its C# property name (<c>nameof(Shape.MaxSpeed)</c>).</summary>
     public void Error(string propertyName, string message)
     {
         var key = ContentJson.KeyFor(propertyName);
@@ -29,11 +27,6 @@ public sealed class ContentValidation
         );
     }
 
-    /// <summary>
-    /// Records an error about a field in a table (<c>[look]</c>), given by C# property names
-    /// (<c>nameof(Shape.Look), nameof(ShapeLook.Height)</c>). Placed at the field whether it's written in the
-    /// table, as a dotted key (<c>look.height</c>) or in an inline table, else at the table.
-    /// </summary>
     public void Error(string tablePropertyName, string propertyName, string message)
     {
         var table = ContentJson.KeyFor(tablePropertyName);

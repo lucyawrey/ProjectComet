@@ -4,20 +4,11 @@ using System.Numerics;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// The edges of a triangle mesh worth drawing as a wireframe: where the surface bends or ends. Edges inside a flat
-    /// face (a box side's diagonal) are left out, so the wireframe shows the shape rather than how it was cut up.
-    /// </summary>
     public static class FeatureEdges
     {
-        // Corners closer than this, in meters, count as one, so seams between triangles that don't share
-        // vertices exactly (placed meshes, baked collision) still pair up.
         private const float Weld = 0.001f;
 
-        /// <summary>
-        /// The edges of <paramref name="triangles"/> (three corners each) as pairs of points: those with one
-        /// triangle, or whose triangles meet at more than <paramref name="creaseDegrees"/>.
-        /// </summary>
+        /// <summary>Edges with one triangle, or whose triangles meet at more than <paramref name="creaseDegrees"/>, as point pairs.</summary>
         public static Vector3[] Of(IReadOnlyList<Vector3> triangles, float creaseDegrees = 1)
         {
             var minCos = (float)Math.Cos(creaseDegrees * Math.PI / 180);
@@ -27,7 +18,7 @@ namespace Comet.Simulation
                 var normal = Vector3.Cross(triangles[i + 1] - triangles[i], triangles[i + 2] - triangles[i]);
                 if (normal.LengthSquared() < 1e-12f)
                 {
-                    continue; // degenerate: no face to bound
+                    continue;
                 }
 
                 normal = Vector3.Normalize(normal);

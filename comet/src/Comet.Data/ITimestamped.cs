@@ -1,6 +1,6 @@
 namespace Comet.Data;
 
-/// <summary>A row with creation and change times, stamped by <see cref="TimestampInterceptor"/> on every save.</summary>
+/// <summary>Set by <see cref="TimestampInterceptor"/> on save; don't set these yourself.</summary>
 public interface ITimestamped
 {
     DateTime CreatedAt { get; set; }

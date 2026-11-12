@@ -3,29 +3,21 @@ using System.Numerics;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// Solid triangles placed in the world: a prop's collision mesh at its placement, or a hand-placed volume. Three
-    /// corners per triangle in world meters, wound clockwise seen from outside (Unity's convention).
-    /// </summary>
+    /// <summary>Three corners each, in world meters, wound clockwise seen from outside (Unity's convention).</summary>
     public sealed class CollisionMesh
     {
         public CollisionMesh(Vector3[] triangles) => Triangles = triangles;
 
         public Vector3[] Triangles { get; }
 
-        /// <summary>The tag of the placement it belongs to, for flipping it (<see cref="CollisionWorld.SetFlipped"/>), or null.</summary>
         public string? Tag { get; set; }
 
-        /// <summary>Whether it starts off: not solid until it's turned on.</summary>
         public bool StartsOff { get; set; }
 
-        /// <summary>The <see cref="Kind"/> of the meshes <see cref="CollisionWorld"/> makes from its terrain.</summary>
         public const string TerrainKind = "terrain";
 
-        /// <summary>What made it (a prop, a primitive, a wall…), named by the game, for debug views; or null.</summary>
         public string? Kind { get; set; }
 
-        /// <summary>A prop's collision triangles (in its own space) placed by <paramref name="transform"/>.</summary>
         public static CollisionMesh Placed(IReadOnlyList<Vector3> triangles, Matrix4x4 transform)
         {
             var placed = new Vector3[triangles.Count];
@@ -46,13 +38,10 @@ namespace Comet.Simulation
             return new CollisionMesh(placed);
         }
 
-        /// <summary>A box of <paramref name="size"/> centered on the origin, placed by <paramref name="transform"/>.</summary>
         public static CollisionMesh Box(Vector3 size, Matrix4x4 transform) => Placed(BoxTriangles(size), transform);
 
-        /// <summary>An axis-aligned box from <paramref name="min"/> to <paramref name="max"/>.</summary>
         public static CollisionMesh Box(Vector3 min, Vector3 max) => Box(max - min, Matrix4x4.CreateTranslation((min + max) / 2));
 
-        // The twelve triangles of a box centered on the origin, wound so the faces point outward.
         private static Vector3[] BoxTriangles(Vector3 size)
         {
             var e = size / 2;

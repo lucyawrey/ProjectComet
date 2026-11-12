@@ -14,10 +14,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
-using Npgsql;
-using Testcontainers.PostgreSql;
 
-[assembly: AssemblyFixture(typeof(Comet.Login.Tests.PostgresContainer))]
+[assembly: AssemblyFixture(typeof(Comet.Testing.PostgresContainer))]
 
 namespace Comet.Login.Tests;
 
@@ -30,7 +28,6 @@ public sealed class TestRegionContext(DbContextOptions<TestRegionContext> option
 
 public sealed class TestAccountContext(DbContextOptions<TestAccountContext> options) : CometAccountContext(options);
 
-/// <summary>A test game's rules: ShapeLand-like names, a look number, one game server.</summary>
 public sealed partial class TestRules : ILoginRules<TestCharacter>
 {
     public const int ServerId = 7;
@@ -66,33 +63,6 @@ public sealed class TestView
     public int Look { get; set; }
 }
 
-/// <summary>One throwaway PostgreSQL 18 container for the run (Testcontainers; needs Docker).</summary>
-public sealed class PostgresContainer : IAsyncLifetime
-{
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18").Build();
-
-    public async ValueTask InitializeAsync() => await _container.StartAsync();
-
-    public async ValueTask DisposeAsync() => await _container.DisposeAsync();
-
-    public async Task<string> CreateDatabaseAsync()
-    {
-        var name = $"test_{Guid.NewGuid():N}";
-        await using (var admin = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await admin.OpenAsync();
-            await using var create = new NpgsqlCommand($"CREATE DATABASE {name}", admin);
-            await create.ExecuteNonQueryAsync();
-        }
-
-        return new NpgsqlConnectionStringBuilder(_container.GetConnectionString()) { Database = name }.ConnectionString;
-    }
-}
-
-/// <summary>
-/// A Login server in memory (TestServer) on a fresh database, with a fake clock. Requests come from
-/// <see cref="ClientAddressHeader"/>'s address (default 127.0.0.1, which counts as the trusted local proxy).
-/// </summary>
 public sealed class LoginHost : IAsyncDisposable
 {
     public const string ClientAddressHeader = "X-Test-Client-Address";
@@ -132,11 +102,11 @@ public sealed class LoginHost : IAsyncDisposable
             options.SigningKeyFile = Path.Combine(keys, "login.pem");
             options.PublicKeysFolder = Path.Combine(keys, "public");
             options.CreateSigningKey = true;
-            options.Migrate = false; // the test contexts have no migrations: their tables are made directly
+            options.Migrate = false;
             options.GuestIdle = TimeSpan.FromDays(7);
             options.AccountHold = TimeSpan.FromDays(7);
             options.CharacterHold = TimeSpan.FromDays(7);
-            options.CleanupPeriod = TimeSpan.FromDays(3650); // tests run the cleanup themselves, not when the clock moves
+            options.CleanupPeriod = TimeSpan.FromDays(3650);
             options.AllowedOrigins = ["https://page.test"];
             options.RateLimits.SignInPerMinute = 1000;
             options.RateLimits.GuestsPerHour = 1000;
@@ -159,7 +129,6 @@ public sealed class LoginHost : IAsyncDisposable
         return new LoginHost(app, keys, clock, connection);
     }
 
-    /// <summary>A client with no session yet, as if on another device.</summary>
     public Client NewClient(string? address = null)
     {
         var http = _app.GetTestClient();
@@ -171,7 +140,6 @@ public sealed class LoginHost : IAsyncDisposable
         return new Client(http);
     }
 
-    /// <summary>A new guest with its own client, signed in.</summary>
     public async Task<Client> GuestAsync(string name, int look = 1)
     {
         var client = NewClient();
@@ -220,7 +188,6 @@ public sealed class LoginHost : IAsyncDisposable
         await region.GetService<IRelationalDatabaseCreator>().CreateTablesAsync();
     }
 
-    /// <summary>One device: an HTTP client that keeps its session token.</summary>
     public sealed class Client(HttpClient http)
     {
         public string? Token { get; set; }
@@ -238,7 +205,6 @@ public sealed class LoginHost : IAsyncDisposable
             return (await response.Content.ReadFromJsonAsync<T>())!;
         }
 
-        /// <summary>Signs in with a password, keeping the new token. Returns the error code, or null.</summary>
         public async Task<string?> SignInAsync(string username, string password, string path = LoginPaths.SignIn)
         {
             var response = await PostAsync(path, new { username, password });
@@ -270,7 +236,6 @@ public sealed class LoginHost : IAsyncDisposable
             return (await response.Content.ReadFromJsonAsync<AccountResponse<TestView>>())!;
         }
 
-        /// <summary>The error code of a call (null if it succeeded).</summary>
         public async Task<string?> ErrorOfAsync(Task<HttpResponseMessage> call) => await ErrorAsync(await call);
 
         public static async Task<string?> ErrorAsync(HttpResponseMessage response)

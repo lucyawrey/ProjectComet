@@ -6,7 +6,6 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.Bots;
 
-/// <summary>The collision worlds of content's zones, each built once when a bot first needs it; safe across threads.</summary>
 public sealed class ZoneWorlds(ShapeLandContent content)
 {
     private readonly ConcurrentDictionary<int, Lazy<CollisionWorld>> _worlds = new();

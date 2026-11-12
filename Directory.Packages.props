@@ -22,5 +22,6 @@
   </ItemGroup>
   <ItemGroup Label="Tests">
     <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.1" />
   </ItemGroup>
 </Project>

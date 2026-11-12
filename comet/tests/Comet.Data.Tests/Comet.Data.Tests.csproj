@@ -11,15 +11,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Comet.Testing" />
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Comet.Testing\Comet.Testing.csproj" />
     <ProjectReference Include="..\..\src\Comet.Data\Comet.Data.csproj" />
   </ItemGroup>
 </Project>

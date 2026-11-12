@@ -7,13 +7,10 @@ using MessagePack;
 
 namespace ShapeLand.Shared.Content
 {
-    /// <summary>ShapeLand's compiled content, as loaded by the server and client.</summary>
     public sealed class ShapeLandContent
     {
-        /// <summary>How the content file is encoded: Comet's content types plus ShapeLand's.</summary>
         public static readonly MessagePackSerializerOptions SerializerOptions = ContentSerializer.CreateOptions(ShapeLandResolver.Instance);
 
-        /// <summary>Content made in memory (by the content build, or tests); <see cref="Fingerprint"/> is 0 until it's saved.</summary>
         public ShapeLandContent(
             IEnumerable<Shape> shapes,
             GameSettings settings,
@@ -34,37 +31,27 @@ namespace ShapeLand.Shared.Content
             Zones = new ContentTable<Zone>("zone", zones.OrderBy(z => z.Number));
         }
 
-        /// <summary>The playable shapes, in number order.</summary>
         public ContentTable<Shape> Shapes { get; }
 
-        /// <summary>The colors players pick from for body and eyes, in the order they're shown (not number order).</summary>
         public ContentTable<PlayerColor> Colors { get; }
 
-        /// <summary>A player color's 0xRRGGBB by its number, or the first color's for a number the content doesn't have.</summary>
         public uint ColorRgb(int number) =>
             Colors.TryGet(number, out var color) ? color.Rgb
             : Colors.All.Count > 0 ? Colors.All[0].Rgb
             : 0xFFFFFF;
 
-        /// <summary>The game-wide values (<c>content/settings/game.toml</c>).</summary>
         public GameSettings Settings { get; }
 
-        /// <summary>The movement physics from <see cref="Settings"/>, as the motor and the server's checks take them.</summary>
         public Comet.Simulation.MovementRules Movement { get; }
 
-        /// <summary>The interface text (<c>content/strings/en.toml</c>).</summary>
         public StringTable Strings { get; }
 
-        /// <summary>What zones place (<c>content/props/</c>), with their collision, in number order.</summary>
         public ContentTable<Prop> Props { get; }
 
-        /// <summary>The zones (<c>content/zones/</c>), in number order.</summary>
         public ContentTable<Zone> Zones { get; }
 
-        /// <summary>The groups (<c>content/groups/</c>), in number order: the shapes' looks (zones hold theirs expanded).</summary>
         public ContentTable<Group> Groups { get; }
 
-        /// <summary>The primitive kind of a shape's body (its look's first <c>body</c> part), or null if it has none.</summary>
         public PrimitiveKind? BodyKind(Shape shape) =>
             Groups.TryGet(shape.Look, out var look)
                 ? Comet
@@ -73,13 +60,8 @@ namespace ShapeLand.Shared.Content
                     ?.Primitive?.Kind
                 : null;
 
-        /// <summary>
-        /// A fingerprint of the content file this was loaded from or saved to (0 for content never in a file). Joins
-        /// carry it, so the server turns away a client whose content differs rather than judging it by other numbers.
-        /// </summary>
         public ulong Fingerprint { get; private set; }
 
-        /// <summary>Reads a content file; throws <see cref="ContentException"/> if it's corrupt or from an incompatible build.</summary>
         public static ShapeLandContent Load(Stream stream)
         {
             var bytes = new MemoryStream();
@@ -101,7 +83,6 @@ namespace ShapeLand.Shared.Content
             };
         }
 
-        /// <summary>Writes the content file and sets <see cref="Fingerprint"/> to match it.</summary>
         public void Save(Stream stream)
         {
             var data = MessagePackSerializer.Serialize(
@@ -121,7 +102,7 @@ namespace ShapeLand.Shared.Content
             stream.Write(data, 0, data.Length);
         }
 
-        // 64-bit FNV-1a: plenty to tell two content builds apart, and the same on every platform.
+        // 64-bit FNV-1a: the same on every platform.
         private static ulong FingerprintOf(byte[] data)
         {
             var hash = 14695981039346656037UL;

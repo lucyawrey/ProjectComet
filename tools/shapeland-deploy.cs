@@ -26,6 +26,7 @@
 // and its snapshots well under a dollar a month; the page is on Vercel's free plan. When the servers are down, the
 // page says the game isn't open for testing.
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 using System.Formats.Tar;
 using System.IO.Compression;
 using System.Net;
@@ -47,8 +48,6 @@ const string PageHost = "shapeland." + Domain,
     ServerHost = ServerName + "." + Domain;
 
 // Where the server's name points while it's down: an address reserved for documentation, which nothing answers.
-// Removing the record instead would let the domain's wildcard answer for the name, and resolvers keep that
-// answer for 30 minutes, past the next up; the record's own cache time is a minute.
 const string Parked = "192.0.2.1";
 
 var options = new Tool.Args(args);
@@ -118,6 +117,8 @@ switch (command)
 
 string Aws(params string[] awsArgs) => Tool.Output("aws", awsArgs);
 
+string AwsText(string query, params string[] awsArgs) => Aws([.. awsArgs, "--query", query, "--output", "text"]);
+
 string Account()
 {
     var (code, text) = Tool.Capture(Tool.Info("aws", ["sts", "get-caller-identity", "--query", "Account", "--output", "text"]), withErrors: true);
@@ -139,29 +140,21 @@ string AcmeEmail()
     return string.IsNullOrEmpty(email) ? throw Tool.Fail($"Set ACME_EMAIL in {file}.", 2) : email;
 }
 
-// The running (or starting) game server instances' ids.
 string[] Instances() =>
-    Aws(
+    AwsText(
+            "Reservations[].Instances[].InstanceId",
             "ec2",
             "describe-instances",
             "--filters",
             $"Name=tag:{Tag},Values=server",
-            "Name=instance-state-name,Values=pending,running,stopping,stopped",
-            "--query",
-            "Reservations[].Instances[].InstanceId",
-            "--output",
-            "text"
+            "Name=instance-state-name,Values=pending,running,stopping,stopped"
         )
         .Split((char[])[' ', '\t', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
-// The kept data volume's id, or None.
-string DataVolume() =>
-    Aws("ec2", "describe-volumes", "--filters", $"Name=tag:{Tag},Values=data", "--query", "Volumes[0].VolumeId", "--output", "text");
+string DataVolume() => AwsText("Volumes[0].VolumeId", "ec2", "describe-volumes", "--filters", $"Name=tag:{Tag},Values=data");
 
-string SecurityGroup() =>
-    Aws("ec2", "describe-security-groups", "--filters", $"Name=group-name,Values={Tag}", "--query", "SecurityGroups[0].GroupId", "--output", "text");
+string SecurityGroup() => AwsText("SecurityGroups[0].GroupId", "ec2", "describe-security-groups", "--filters", $"Name=group-name,Values={Tag}");
 
-// Vercel DNS: the server's records as (id, value), from the CLI's table (columns: id, name, type, value, ...).
 List<(string Id, string Value)> DnsRecords() =>
     Tool.Capture(Tool.Info("vercel", ["dns", "ls", Domain]), withErrors: false)
         .Output.Split('\n')
@@ -177,8 +170,6 @@ void DnsSet(string address)
     Tool.Output("vercel", "dns", "add", Domain, ServerName, "A", address);
 }
 
-// Whether the game and Login servers at an address answer over HTTPS with "ok" from /health and /api/health. Asked
-// at that address, so a stale DNS answer on this machine can't mislead it; the certificate is still checked for the name.
 bool Answers(string address)
 {
     using var http = new HttpClient(
@@ -210,13 +201,10 @@ bool Answers(string address)
     return true;
 }
 
-// The running server's public address, if any.
 string? ServerIp()
 {
     var ids = Instances();
-    return ids.Length == 0
-        ? null
-        : Aws(["ec2", "describe-instances", "--instance-ids", .. ids, "--query", "Reservations[0].Instances[0].PublicIpAddress", "--output", "text"]);
+    return ids.Length == 0 ? null : AwsText("Reservations[0].Instances[0].PublicIpAddress", ["ec2", "describe-instances", "--instance-ids", .. ids]);
 }
 
 void Setup()
@@ -240,7 +228,6 @@ void Setup()
             "--public-access-block-configuration",
             "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
         );
-        // Old packages go after a day; each up uploads its own.
         Aws(
             "s3api",
             "put-bucket-lifecycle-configuration",
@@ -255,8 +242,9 @@ void Setup()
     if (group == "None")
     {
         Console.WriteLine($"== Creating the security group {Tag} (HTTP and HTTPS in; no SSH)");
-        var vpc = Aws("ec2", "describe-vpcs", "--filters", "Name=isDefault,Values=true", "--query", "Vpcs[0].VpcId", "--output", "text");
-        group = Aws(
+        var vpc = AwsText("Vpcs[0].VpcId", "ec2", "describe-vpcs", "--filters", "Name=isDefault,Values=true");
+        group = AwsText(
+            "GroupId",
             "ec2",
             "create-security-group",
             "--group-name",
@@ -264,11 +252,7 @@ void Setup()
             "--description",
             "ShapeLand: Caddy on 80 and 443",
             "--vpc-id",
-            vpc,
-            "--query",
-            "GroupId",
-            "--output",
-            "text"
+            vpc
         );
         Aws(
             "ec2",
@@ -285,7 +269,8 @@ void Setup()
     if (volume == "None")
     {
         Console.WriteLine($"== Creating the data volume (8 GB, encrypted) in {region}a");
-        volume = Aws(
+        volume = AwsText(
+            "VolumeId",
             "ec2",
             "create-volume",
             "--availability-zone",
@@ -296,11 +281,7 @@ void Setup()
             "gp3",
             "--encrypted",
             "--tag-specifications",
-            $"ResourceType=volume,Tags=[{{Key={Tag},Value=data}},{{Key=Name,Value={Tag}-data}}]",
-            "--query",
-            "VolumeId",
-            "--output",
-            "text"
+            $"ResourceType=volume,Tags=[{{Key={Tag},Value=data}},{{Key=Name,Value={Tag}-data}}]"
         );
     }
     var policies = Tool.Capture(
@@ -311,7 +292,7 @@ void Setup()
     {
         Console.WriteLine("== Creating the daily snapshot policy (7 kept)");
         Tool.Capture(Tool.Info("aws", ["dlm", "create-default-role", "--resource-type", "snapshot"]), withErrors: true);
-        var role = Aws("iam", "get-role", "--role-name", "AWSDataLifecycleManagerDefaultRole", "--query", "Role.Arn", "--output", "text");
+        var role = AwsText("Role.Arn", "iam", "get-role", "--role-name", "AWSDataLifecycleManagerDefaultRole");
         var details = $$"""
             {"PolicyType":"EBS_SNAPSHOT_MANAGEMENT","ResourceTypes":["VOLUME"],"TargetTags":[{"Key":"{{Tag}}","Value":"data"}],
              "Schedules":[{"Name":"daily","CreateRule":{"Interval":24,"IntervalUnit":"HOURS","Times":["09:00"]},
@@ -333,8 +314,6 @@ void Setup()
     Console.WriteLine($"Set up: bucket {bucket}, security group {group}, data volume {volume}.");
 }
 
-// The server package: the Login and game servers for Linux on ARM (self-contained), the content and the Caddyfile,
-// and the bots when any are asked for.
 void Package()
 {
     var output = Path.Combine(work, "package");
@@ -362,8 +341,7 @@ void Package()
     File.Copy(content, Path.Combine(output, "content.bin"));
     File.Copy(Path.Combine(Tool.Repo, "shapeland", "deploy", "Caddyfile"), Path.Combine(output, "Caddyfile"));
 
-    // Written here rather than with tar, so it's the same from every platform: the programs are executable on Linux
-    // whatever file modes this machine keeps.
+    // Written here rather than with tar, so programs are executable on Linux whatever file modes this machine keeps.
     using var file = File.Create(Path.Combine(work, "package.tar.gz"));
     using var gzip = new GZipStream(file, CompressionLevel.Optimal);
     using var tar = new TarWriter(gzip, TarEntryFormat.Pax);
@@ -393,19 +371,15 @@ void Up(bool packaged)
     var volume = DataVolume();
     if (group == "None" || volume == "None")
         throw Tool.Fail("Run setup first.");
-    // The instance starts beside the volume, in its availability zone; the last instance must have let it go.
     Aws("ec2", "wait", "volume-available", "--volume-ids", volume);
-    var zone = Aws("ec2", "describe-volumes", "--volume-ids", volume, "--query", "Volumes[0].AvailabilityZone", "--output", "text");
-    var subnet = Aws(
+    var zone = AwsText("Volumes[0].AvailabilityZone", "ec2", "describe-volumes", "--volume-ids", volume);
+    var subnet = AwsText(
+        "Subnets[0].SubnetId",
         "ec2",
         "describe-subnets",
         "--filters",
         $"Name=availability-zone,Values={zone}",
-        "Name=default-for-az,Values=true",
-        "--query",
-        "Subnets[0].SubnetId",
-        "--output",
-        "text"
+        "Name=default-for-az,Values=true"
     );
 
     if (!packaged)
@@ -428,17 +402,9 @@ void Up(bool packaged)
     File.WriteAllText(bootFile, boot);
 
     Console.WriteLine($"== Starting a {InstanceType} in {region}");
-    var ami = Aws(
-        "ssm",
-        "get-parameter",
-        "--name",
-        "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
-        "--query",
-        "Parameter.Value",
-        "--output",
-        "text"
-    );
-    var id = Aws(
+    var ami = AwsText("Parameter.Value", "ssm", "get-parameter", "--name", "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64");
+    var id = AwsText(
+        "Instances[0].InstanceId",
         "ec2",
         "run-instances",
         "--image-id",
@@ -456,16 +422,12 @@ void Up(bool packaged)
         "--metadata-options",
         "HttpTokens=required",
         "--tag-specifications",
-        $"ResourceType=instance,Tags=[{{Key={Tag},Value=server}},{{Key=Name,Value={Tag}}}]",
-        "--query",
-        "Instances[0].InstanceId",
-        "--output",
-        "text"
+        $"ResourceType=instance,Tags=[{{Key={Tag},Value=server}},{{Key=Name,Value={Tag}}}]"
     );
     Aws("ec2", "wait", "instance-running", "--instance-ids", id);
     Console.WriteLine($"== Attaching the data volume {volume}");
     Aws("ec2", "attach-volume", "--volume-id", volume, "--instance-id", id, "--device", "/dev/sdf");
-    var ip = Aws("ec2", "describe-instances", "--instance-ids", id, "--query", "Reservations[0].Instances[0].PublicIpAddress", "--output", "text");
+    var ip = AwsText("Reservations[0].Instances[0].PublicIpAddress", "ec2", "describe-instances", "--instance-ids", id);
 
     Console.WriteLine($"== Pointing {ServerHost} at {ip}");
     DnsSet(ip);
@@ -499,16 +461,10 @@ void Status()
     Console.WriteLine(
         ids.Length == 0
             ? "No game server is up."
-            : Aws([
-                "ec2",
-                "describe-instances",
-                "--instance-ids",
-                .. ids,
-                "--query",
+            : AwsText(
                 "Reservations[].Instances[].[InstanceId,State.Name,PublicIpAddress,LaunchTime]",
-                "--output",
-                "text",
-            ])
+                ["ec2", "describe-instances", "--instance-ids", .. ids]
+            )
     );
     Console.WriteLine($"DNS: {ServerHost} -> {string.Join(' ', DnsRecords().Select(r => r.Value))}");
     var ip = ServerIp();
@@ -554,8 +510,7 @@ void Page()
     );
     File.WriteAllText(Path.Combine(output, "config.js"), $"window.shapelandLogin = \"https://{ServerHost}\";\n");
 
-    // The page's name needs its own record: once server.shapeland exists, the domain's wildcard no longer covers
-    // shapeland itself (it has a name under it).
+    // The page's name needs its own record: once server.shapeland exists, the domain's wildcard no longer covers shapeland.
     var records = Tool.Capture(Tool.Info("vercel", ["dns", "ls", Domain]))
         .Output.Split('\n')
         .Select(l => l.Split((char[])[' ', '\t'], StringSplitOptions.RemoveEmptyEntries));
@@ -566,7 +521,6 @@ void Page()
     }
 
     Console.WriteLine("== Publishing on Vercel");
-    // The deployment's address is the last vercel.app URL in its output (the rest varies between CLI versions).
     var deploy = Tool.Capture(Tool.Info("vercel", ["deploy", "--prod", "--yes"], folder: output), withErrors: true).Output;
     var deployment =
         System.Text.RegularExpressions.Regex.Matches(deploy, @"https://[a-z0-9.-]*\.vercel\.app").LastOrDefault()?.Value

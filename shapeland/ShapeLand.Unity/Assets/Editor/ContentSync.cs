@@ -8,16 +8,9 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Editor
 {
-    /// <summary>
-    /// Keeps what the editor holds from ShapeLand's content in step with it each time Comet copies the content in
-    /// (<see cref="ContentBuild"/>): the prop library (<see cref="PropLibrary"/>) follows the content's prop
-    /// entries, and the Comet settings take the game's terrain colors, body height, defaults for new spawn points,
-    /// teleporters and triggers, and polygon budget.
-    /// </summary>
     [InitializeOnLoad]
     public static class ContentSync
     {
-        /// <summary>Where the prop library lives; the game scene refers to it.</summary>
         public const string LibraryPath = "Assets/Models/PropLibrary.asset";
 
         static ContentSync()
@@ -29,8 +22,6 @@ namespace ShapeLand.Client.Editor
             };
         }
 
-        // The Comet settings that come from the game's content: terrain colors, the body height, trigger defaults and the
-        // polygon budget.
         private static void RefreshCometSettings(byte[] contentFile)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -46,13 +37,13 @@ namespace ShapeLand.Client.Editor
             }
             catch (Comet.Content.ContentException)
             {
-                return; // RefreshLibrary has said so
+                return;
             }
 
             var game = content.Settings;
-            var ground = GameView.Color(game.World.GroundColor);
-            var under = GameView.Color(game.World.UnderColor);
-            var placed = GameView.Color(game.World.PlacedColor);
+            var ground = Conversions.FromRgb(game.World.GroundColor);
+            var under = Conversions.FromRgb(game.World.UnderColor);
+            var placed = Conversions.FromRgb(game.World.PlacedColor);
             if (
                 settings.groundColor == ground
                 && settings.underColor == under
@@ -60,14 +51,14 @@ namespace ShapeLand.Client.Editor
                 && settings.bodyHeight == game.Movement.BodyHeight
                 && settings.spawnPad == game.Spawns.Pad
                 && settings.spawnPadSize.y == game.Spawns.PadHeight
-                && settings.spawnPadColor == GameView.Color(game.Spawns.UnsetColor)
+                && settings.spawnPadColor == Conversions.FromRgb(game.Spawns.UnsetColor)
                 && settings.spawnStandSeconds == game.Spawns.StandSeconds
                 && settings.teleporterPad == game.Teleporters.Pad
                 && settings.teleporterPadSize.y == game.Teleporters.PadHeight
-                && settings.teleporterPadColor == GameView.Color(game.Teleporters.PadColor)
+                && settings.teleporterPadColor == Conversions.FromRgb(game.Teleporters.PadColor)
                 && settings.teleporterStandSeconds == game.Teleporters.StandSeconds
-                && settings.teleporterChargeColor == GameView.Color(game.Teleporters.ChargeColor)
-                && settings.triggerChargeColor == GameView.Color(game.Triggers.ChargeColor)
+                && settings.teleporterChargeColor == Conversions.FromRgb(game.Teleporters.ChargeColor)
+                && settings.triggerChargeColor == Conversions.FromRgb(game.Triggers.ChargeColor)
                 && settings.triggerStandSeconds == game.Triggers.StandSeconds
                 && settings.spawnVolumeHeight == game.Spawns.VolumeHeight
                 && settings.teleporterVolumeHeight == game.Teleporters.VolumeHeight
@@ -86,14 +77,14 @@ namespace ShapeLand.Client.Editor
             settings.bodyHeight = game.Movement.BodyHeight;
             settings.spawnPad = game.Spawns.Pad;
             settings.spawnPadSize.y = game.Spawns.PadHeight;
-            settings.spawnPadColor = GameView.Color(game.Spawns.UnsetColor);
+            settings.spawnPadColor = Conversions.FromRgb(game.Spawns.UnsetColor);
             settings.spawnStandSeconds = game.Spawns.StandSeconds;
             settings.teleporterPad = game.Teleporters.Pad;
             settings.teleporterPadSize.y = game.Teleporters.PadHeight;
-            settings.teleporterPadColor = GameView.Color(game.Teleporters.PadColor);
+            settings.teleporterPadColor = Conversions.FromRgb(game.Teleporters.PadColor);
             settings.teleporterStandSeconds = game.Teleporters.StandSeconds;
-            settings.teleporterChargeColor = GameView.Color(game.Teleporters.ChargeColor);
-            settings.triggerChargeColor = GameView.Color(game.Triggers.ChargeColor);
+            settings.teleporterChargeColor = Conversions.FromRgb(game.Teleporters.ChargeColor);
+            settings.triggerChargeColor = Conversions.FromRgb(game.Triggers.ChargeColor);
             settings.triggerStandSeconds = game.Triggers.StandSeconds;
             settings.spawnVolumeHeight = game.Spawns.VolumeHeight;
             settings.teleporterVolumeHeight = game.Teleporters.VolumeHeight;
@@ -107,7 +98,6 @@ namespace ShapeLand.Client.Editor
             Debug.Log("Updated the Comet settings from the content.");
         }
 
-        // Points each prop id at the model its entry names (a path under Assets/), saving only if something changed.
         private static void RefreshLibrary(byte[] contentFile)
         {
             ShapeLandContent content;
@@ -147,7 +137,7 @@ namespace ShapeLand.Client.Editor
                         uniformScale = prop.UniformScale,
                         bounds = new Bounds((min + max) / 2, max - min),
                         hasColor = prop.Color != null,
-                        color = prop.Color is { } color ? PlacedColors.FromRgb(color) : default,
+                        color = prop.Color is { } color ? Conversions.FromRgb(color) : default,
                     };
                 })
                 .ToList();

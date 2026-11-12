@@ -6,10 +6,6 @@ using MessagePack;
 
 namespace ShapeLand.Shared.Content
 {
-    /// <summary>
-    /// ShapeLand's game-wide tunable values (<c>content/settings/game.toml</c>, the one entry of its type): movement
-    /// physics, the world's look and limits, spawn points, teleporters and triggers, and the colors players pick from.
-    /// </summary>
     [MessagePackObject]
     public sealed class GameSettings : IContentEntry
     {
@@ -21,7 +17,6 @@ namespace ShapeLand.Shared.Content
         [Key(1)]
         public string Id { get; set; } = "";
 
-        /// <summary>Movement physics, the same for every shape (each shape's speed, jump and scale are in its own file).</summary>
         [JsonRequired]
         [Key(2)]
         public MovementSettings Movement { get; set; } = new MovementSettings();
@@ -34,15 +29,10 @@ namespace ShapeLand.Shared.Content
         [Key(4)]
         public SpawnSettings Spawns { get; set; } = new SpawnSettings();
 
-        /// <summary>
-        /// The colors every player can pick for their body and eyes, by key, as 0xRRGGBB, in the order they're shown
-        /// (more come from items later). Compiled into <see cref="ShapeLandContent.Colors"/> with their numbers.
-        /// </summary>
         [JsonRequired]
         [IgnoreMember]
         public Dictionary<string, uint> Colors { get; set; } = new Dictionary<string, uint>();
 
-        /// <summary>How finely round primitives are cut, the same for all of them (players' shapes are regular solids, so it doesn't change them).</summary>
         [JsonRequired]
         [Key(6)]
         public PolygonBudget Primitives { get; set; } = new PolygonBudget();
@@ -55,7 +45,6 @@ namespace ShapeLand.Shared.Content
         [Key(8)]
         public TriggerSettings Triggers { get; set; } = new TriggerSettings();
 
-        /// <summary>The movement physics as the shared motor and the server's checks take them.</summary>
         public MovementRules Rules() =>
             new MovementRules
             {
@@ -72,7 +61,6 @@ namespace ShapeLand.Shared.Content
             };
     }
 
-    /// <summary>The values of Comet's <see cref="MovementRules"/>, in meters, seconds and degrees.</summary>
     [MessagePackObject]
     public sealed class MovementSettings
     {
@@ -80,7 +68,6 @@ namespace ShapeLand.Shared.Content
         [Key(0)]
         public float Gravity { get; set; }
 
-        /// <summary>The collision body every shape shares: an upright cylinder of this radius.</summary>
         [JsonRequired]
         [Key(1)]
         public float BodyRadius { get; set; }
@@ -109,12 +96,10 @@ namespace ShapeLand.Shared.Content
         [Key(7)]
         public float TurnSpeed { get; set; }
 
-        /// <summary>The steepest ground a player stands on, in degrees; steeper is a wall.</summary>
         [JsonRequired]
         [Key(8)]
         public float MaxSlope { get; set; }
 
-        /// <summary>The highest ledge a player in the air is lifted onto when moving into its side.</summary>
         [JsonRequired]
         [Key(9)]
         public float MantleHeight { get; set; }
@@ -123,67 +108,54 @@ namespace ShapeLand.Shared.Content
     [MessagePackObject]
     public sealed class WorldSettings
     {
-        /// <summary>Falling below this height, in meters, is out of the world: the player goes back to their spawn.</summary>
         [JsonRequired]
         [Key(0)]
         public float KillHeight { get; set; }
 
-        /// <summary>The color of terrain no one has painted, for pieces without their own, as 0xRRGGBB.</summary>
         [JsonRequired]
         [Key(1)]
         public uint GroundColor { get; set; }
 
-        /// <summary>The color of terrain's unpainted undersides (the walls and bottoms where its ground ends), for pieces without their own, as 0xRRGGBB.</summary>
         [JsonRequired]
         [Key(2)]
         public uint UnderColor { get; set; }
 
-        /// <summary>The color placed objects are drawn in when neither they nor their prop have one, as 0xRRGGBB.</summary>
         [JsonRequired]
         [Key(4)]
         public uint PlacedColor { get; set; }
     }
 
-    /// <summary>Spawn points: the editor's defaults for new ones (each keeps its own after) and how pads are drawn.</summary>
     [MessagePackObject]
     public sealed class SpawnSettings
     {
-        /// <summary>How long a player stands in a new spawn point to make it theirs, in seconds.</summary>
         [JsonRequired]
         [Key(0)]
         public float StandSeconds { get; set; }
 
-        /// <summary>The primitive kind of a new spawn point's pad, flattened under it.</summary>
         [JsonRequired]
         [Key(1)]
         public string Pad { get; set; } = "";
 
-        /// <summary>How tall a new pad is, in meters, sunk halfway into the ground; it can be moved in the editor after.</summary>
         [JsonRequired]
         [Key(2)]
         public float PadHeight { get; set; }
 
-        /// <summary>A pad's color while it isn't the player's spawn, as 0xRRGGBB: a pale color used nowhere else.</summary>
         [JsonRequired]
         [Key(3)]
         public uint UnsetColor { get; set; }
 
-        /// <summary>How tall a new spawn point's volume is, in meters, above its pad.</summary>
         [JsonRequired]
         [Key(4)]
         public float VolumeHeight { get; set; }
     }
 
-    /// <summary>Teleporters: the editor's defaults for new ones (each keeps its own after).</summary>
     [MessagePackObject]
     public sealed class TeleporterSettings
     {
-        /// <summary>How long a player stands in a new teleporter before it sends them, in seconds.</summary>
         [JsonRequired]
         [Key(0)]
         public float StandSeconds { get; set; }
 
-        /// <summary>The primitive kind of a new teleporter's pad, flattened under it.</summary>
         [JsonRequired]
         [Key(1)]
         public string Pad { get; set; } = "";
@@ -192,37 +164,30 @@ namespace ShapeLand.Shared.Content
         [Key(2)]
         public float PadHeight { get; set; }
 
-        /// <summary>A new pad's color, as 0xRRGGBB.</summary>
         [JsonRequired]
         [Key(3)]
         public uint PadColor { get; set; }
 
-        /// <summary>How tall a new teleporter's volume is, in meters, above its pad.</summary>
         [JsonRequired]
         [Key(4)]
         public float VolumeHeight { get; set; }
 
-        /// <summary>The color a new pad turns toward while a player stands in it, and that of teleporters without their own, as 0xRRGGBB.</summary>
         [JsonRequired]
         [Key(5)]
         public uint ChargeColor { get; set; }
     }
 
-    /// <summary>Triggers with toggle effects: the editor's defaults for new ones (each keeps its own after; new ones have no pad).</summary>
     [MessagePackObject]
     public sealed class TriggerSettings
     {
-        /// <summary>How long a player stands in a new trigger before it fires, in seconds (0 fires at once).</summary>
         [JsonRequired]
         [Key(0)]
         public float StandSeconds { get; set; }
 
-        /// <summary>How tall a new trigger's volume is, in meters.</summary>
         [JsonRequired]
         [Key(1)]
         public float VolumeHeight { get; set; }
 
-        /// <summary>The color a new trigger's pad turns toward while a player stands in it, and that of triggers without their own, as 0xRRGGBB.</summary>
         [JsonRequired]
         [Key(2)]
         public uint ChargeColor { get; set; }

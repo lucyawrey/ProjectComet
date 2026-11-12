@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Comet.ContentBuild;
 using ShapeLand.ContentBuild;
+using ShapeLand.Shared;
 
-// ShapeLand's content tool. Paths are fixed relative to the repository, so it runs the same from anywhere.
-var repo = FindRepoRoot();
+var repo = RepoPaths.Root();
 var content = Path.Combine(repo, "shapeland", "content");
 var output = Path.Combine(repo, "artifacts", "content", "shapeland");
 
@@ -46,8 +46,8 @@ int Build(bool release)
     }
 
     Directory.CreateDirectory(output);
-    // Written beside it and renamed over it: the editor builds when a zone is saved while shapeland-dev's watcher
-    // builds too, and a rename never meets the other build's lock or leaves readers a half-written file.
+    // Written beside it and renamed over it, since the editor and shapeland-dev's watcher may build at once;
+    // a rename never meets the other build's lock or leaves a half-written file.
     var file = Path.Combine(output, "content.bin");
     var temporary = $"{file}.{Environment.ProcessId}.tmp";
     using (var stream = File.Create(temporary))
@@ -74,17 +74,4 @@ void WriteSchemas()
     }
 
     Console.WriteLine($"Wrote editor schemas to {Path.GetRelativePath(repo, schemas)}.");
-}
-
-static string FindRepoRoot()
-{
-    for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-    {
-        if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-        {
-            return dir.FullName;
-        }
-    }
-
-    throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx) above the tool.");
 }

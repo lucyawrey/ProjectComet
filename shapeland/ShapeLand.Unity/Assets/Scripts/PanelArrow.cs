@@ -3,11 +3,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// A little triangle under a panel (a speech bubble, a sign), its tip at the bottom middle: in the given color, or
-    /// with none, in the panel's background color as its style resolves it.
-    /// Drawn rather than a turned square, which would show its overlap with a see-through panel as a darker piece.
-    /// </summary>
     internal sealed class PanelArrow : VisualElement
     {
         private readonly Color? _color;

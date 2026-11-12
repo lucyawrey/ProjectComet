@@ -11,9 +11,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Tests
 {
-    // Tests of the real Game scene against the real game server: each loads the scene, starts a fresh server, and
-    // joins through the join card as a player would (or leaves the card up for the test). A simulated keyboard
-    // stands in for the player's. Needs the dotnet SDK on the PATH and the content built.
     public abstract class GameSceneTest
     {
         protected TestGameServer Server;
@@ -66,8 +63,6 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        // Loads the Game scene against a fresh server (with the Login server too, given accounts) and, unless the
-        // test drives the card itself, joins as "UnityTest" with the card's choices.
         protected IEnumerator StartGame(bool join = true, bool accounts = false, string loginArguments = "", string devCharacters = "")
         {
             TestGameServer.LoadContent();
@@ -75,9 +70,8 @@ namespace ShapeLand.Client.Tests
             Server = new TestGameServer(accounts, loginArguments);
             yield return Server.Start();
 
-            // A session of the tests' own, empty at the start: every test begins as a new player.
             JoinClient.TokenKey = "tests-login-token";
-            JoinScreen.DevCharactersFile = devCharacters; // not the editor server's characters unless given: a new player
+            JoinScreen.DevCharactersFile = devCharacters;
             if (accounts)
             {
                 JoinClient.ForgetToken(Server.Address);
@@ -95,7 +89,7 @@ namespace ShapeLand.Client.Tests
             NetStats.Remember = false;
             if (NetStats.Shown)
             {
-                NetStats.Toggle(); // left on from playing in the editor
+                NetStats.Toggle();
             }
 
             yield return TestGameServer.WaitFor(() => Screen.Showing, 15);
@@ -120,15 +114,12 @@ namespace ShapeLand.Client.Tests
 
         protected TextField Field(string name) => Screen.Root.Q<TextField>(name);
 
-        // Waits until the card's button is laid out, so Click hits it.
         protected IEnumerator LaidOut(string button)
         {
             var element = Screen.Root.Q<Button>(button);
             yield return TestGameServer.WaitFor(() => element.worldBound.width > 0, 5);
         }
 
-        // Presses a button with a mouse click at its center. (A navigation submit wouldn't reach it: the menu and the look
-        // card take over UI Toolkit's navigation, GameMenu.TakeOverNavigation.)
         protected static void Click(VisualElement button)
         {
             var center = button.worldBound.center;

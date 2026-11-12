@@ -3,13 +3,6 @@ using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// A third-person camera orbiting the player: the mouse turns it while the right button is held, the right
-    /// stick turns it always. It stays above the ground but keeps its distance through blocks and props, which are
-    /// culled from inside; the player's own shape shows through what hides it (<see cref="ShapeBody.ShowThroughWalls"/>).
-    /// Its numbers are placeholders, adjusted by playing; the values that count are the ones on the camera in the
-    /// Game scene.
-    /// </summary>
     public sealed class OrbitCamera : MonoBehaviour
     {
         [Tooltip("The point looked at, above the target's feet, in meters.")]
@@ -55,19 +48,12 @@ namespace ShapeLand.Client
         private float _followGlideStart;
         private float _followGlideSeconds;
 
-        /// <summary>The camera's heading in degrees, clockwise from +Z seen from above: movement is relative to it.</summary>
         public float Yaw { get; private set; }
 
-        /// <summary>What the camera follows, or null while it orbits the island.</summary>
         public Transform Target { get; private set; }
 
-        /// <summary>Turns the camera by <paramref name="degrees"/> (yaw, pitch) on its next update: a touch drag (<see cref="TouchControls"/>).</summary>
         public void Turn(Vector2 degrees) => _touchTurn += degrees;
 
-        /// <summary>
-        /// Until <see cref="Follow"/>, orbits slowly around <paramref name="center"/> (behind the join screen), gliding
-        /// there from the last center if <paramref name="glide"/>.
-        /// </summary>
         public void Showcase(Vector3 center, bool glide = false)
         {
             if (!glide || _showcaseCenter == null)
@@ -79,10 +65,6 @@ namespace ShapeLand.Client
             _showcaseCenter = center;
         }
 
-        /// <summary>
-        /// Glides what the camera looks at from <paramref name="from"/> to the target over <paramref name="seconds"/>,
-        /// easing in and out, rather than cutting there (after a near respawn).
-        /// </summary>
         public void Glide(Vector3 from, float seconds)
         {
             _followGlideFrom = from;
@@ -90,16 +72,13 @@ namespace ShapeLand.Client
             _followGlideSeconds = seconds;
         }
 
-        /// <summary>The world the camera keeps out of, when the followed player goes to another zone.</summary>
         public CollisionWorld World
         {
             set => _world = value;
         }
 
-        /// <summary>Stops following and goes back to the showcase orbit (after the connection is lost).</summary>
         public void Release() => Target = null;
 
-        /// <summary>Starts following <paramref name="target"/>, from behind it.</summary>
         public void Follow(Transform target, ShapeLandControls controls, CollisionWorld world)
         {
             Target = target;
@@ -112,7 +91,7 @@ namespace ShapeLand.Client
         {
             if (Target == null)
             {
-                _touchTurn = Vector2.zero; // a drag without a target turns nothing, rather than all at once later
+                _touchTurn = Vector2.zero;
                 if (_showcaseCenter is Vector3 center)
                 {
                     Yaw = Mathf.Repeat(Yaw + showcase.z * Time.unscaledDeltaTime, 360);

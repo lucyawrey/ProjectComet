@@ -3,7 +3,6 @@ using Comet.Protocol.Login;
 
 namespace Comet.Login.Tests;
 
-/// <summary>The shared Login client against the real Login server: the two sides' JSON agree.</summary>
 public sealed class LoginClientEndToEndTests(PostgresContainer postgres)
 {
     private sealed class Tokens : ITokenStore

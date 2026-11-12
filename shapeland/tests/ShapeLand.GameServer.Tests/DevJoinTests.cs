@@ -13,10 +13,6 @@ using RawClient = ShapeLand.GameServer.Tests.EndToEndTests.RawClient;
 
 namespace ShapeLand.GameServer.Tests;
 
-/// <summary>
-/// The editor's server without accounts (<c>ShapeLand:DevJoins</c>): joins by name, characters in memory and in a
-/// snapshot file that outlives the server. Tests build Debug, where dev joins exist.
-/// </summary>
 public sealed class DevJoinTests : IAsyncLifetime
 {
     private readonly string _contentFile = Path.Combine(Path.GetTempPath(), $"shapeland-content-{Guid.NewGuid():N}.bin");
@@ -25,7 +21,7 @@ public sealed class DevJoinTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        var (content, errors) = ShapeLandBuild.Build(Path.Combine(EndToEndTests.RepoRoot(), "shapeland", "content"), saveRegistry: false);
+        var (content, errors) = ShapeLandBuild.Build(Path.Combine(TestPaths.RepoRoot(), "shapeland", "content"), saveRegistry: false);
         Assert.Empty(errors);
         _content = content!;
         await using var file = File.Create(_contentFile);
@@ -42,7 +38,6 @@ public sealed class DevJoinTests : IAsyncLifetime
         return ValueTask.CompletedTask;
     }
 
-    // A dev server on a free port with the tests' snapshot file; or, with devJoins off, one that needs accounts.
     private async Task<(WebApplication Server, Uri Url)> StartServer(bool devJoins = true)
     {
         var server = ShapeLandServer.Build(
@@ -97,7 +92,6 @@ public sealed class DevJoinTests : IAsyncLifetime
         return (await client.NextAsync<JoinRejected>(ShapeLandMessageIds.JoinRejected)).Reason;
     }
 
-    // Waits until nobody holds the character called name (its final save is in).
     private static async Task WaitForLeave(WebApplication server, string name)
     {
         var database = server.Services.GetRequiredService<DevCharacters>().Database;
@@ -130,7 +124,7 @@ public sealed class DevJoinTests : IAsyncLifetime
             using var again = new RawClient();
             var back = await JoinAsync(again, url, JoinAs("ADA", shape: 0));
             Assert.Equal("Ada", back.Name);
-            Assert.Equal(_content.Shapes.All[1].Number, back.Shape); // the saved look, not the card's
+            Assert.Equal(_content.Shapes.All[1].Number, back.Shape);
             Assert.True(
                 Vector3.Distance(left, new Vector3(back.X, back.Y, back.Z)) < 0.01f,
                 $"left at {left}, back at ({back.X}, {back.Y}, {back.Z})"
@@ -155,8 +149,6 @@ public sealed class DevJoinTests : IAsyncLifetime
             await first.SendAsync(ShapeLandMessageIds.DevJoinRequest, JoinAs("Bea"));
             await second.SendAsync(ShapeLandMessageIds.DevJoinRequest, JoinAs("bea"));
 
-            // Each client reads until its own answer, a spawn or a refusal: exactly one is refused, and the other
-            // holds the one character (still connected, so its hold stands).
             var answers = await Task.WhenAll(
                 first.NextOfAsync(ShapeLandMessageIds.PlayerSpawn, ShapeLandMessageIds.JoinRejected),
                 second.NextOfAsync(ShapeLandMessageIds.PlayerSpawn, ShapeLandMessageIds.JoinRejected)
@@ -267,7 +259,6 @@ public sealed class DevJoinTests : IAsyncLifetime
     [Fact]
     public async Task ABotWhoseTicketIsRefusedFailsWithoutThrowing()
     {
-        // A Login server that knows the account but won't give a ticket.
         var builder = WebApplication.CreateSlimBuilder();
         builder.Configuration["Urls"] = "http://127.0.0.1:0";
         await using var login = builder.Build();
@@ -348,13 +339,12 @@ public sealed class DevJoinTests : IAsyncLifetime
         Vector3 left;
         try
         {
-            // Still playing when the server stops: the stop writes the spot.
             using var cyrus = new RawClient();
             var joined = await JoinAsync(cyrus, url, JoinAs("Cyrus"));
             var (zone, _) = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]);
             var start = new Vector3(joined.X, joined.Y, joined.Z);
             left = await cyrus.WalkAsync(ShapeLandWorld.Create(_content, zone), start, start + new Vector3(0, 0, 3), sequence: 0);
-            await Task.Delay(200, TestContext.Current.CancellationToken); // the last report reaches the tick
+            await Task.Delay(200, TestContext.Current.CancellationToken);
         }
         finally
         {

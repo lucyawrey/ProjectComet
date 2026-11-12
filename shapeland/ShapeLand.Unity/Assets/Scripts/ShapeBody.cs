@@ -1,16 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
+using Comet.Unity;
 using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// A player's drawn shape, at the player's feet, built from its look (a group, <see cref="GameView.BuildShape"/>):
-    /// parts with the role <c>body</c> in the player's color, <c>eyes</c> in their eye color, others in their own, and
-    /// how far the shape has faded. While it fades it swaps to transparent copies of its materials (made the first
-    /// time), which cast no shadow; fully visible, it's drawn opaque as usual. Shown through walls, it's also drawn in
-    /// its body color wherever something hides it. The materials it makes are freed with it.
-    /// </summary>
     public sealed class ShapeBody : MonoBehaviour
     {
         private sealed class Part
@@ -34,13 +28,10 @@ namespace ShapeLand.Client
         private Material _silhouetteTemplate;
         private Material _silhouette;
 
-        /// <summary>The body's renderers (role <c>body</c>).</summary>
         public IReadOnlyList<MeshRenderer> Body => _parts.Where(p => p.Role == "body").Select(p => p.Renderer).ToList();
 
-        /// <summary>The eyes' renderers (role <c>eyes</c>).</summary>
         public IReadOnlyList<MeshRenderer> Eyes => _parts.Where(p => p.Role == "eyes").Select(p => p.Renderer).ToList();
 
-        /// <summary>The middle of the top of the body, in world space, where a name tag goes above.</summary>
         public Vector3 Top
         {
             get
@@ -51,17 +42,12 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>How far the shape has faded: 0 fully visible, 1 gone.</summary>
         public float Faded
         {
             get => _faded;
             set => SetFaded(Mathf.Clamp01(value));
         }
 
-        /// <summary>
-        /// An empty shape named <paramref name="name"/> at <paramref name="parent"/>'s origin, its look drawn
-        /// <paramref name="scale"/> times its size and <paramref name="hover"/> meters (before scaling) above the feet.
-        /// </summary>
         public static ShapeBody Create(string name, Transform parent, float scale, float hover)
         {
             var root = new GameObject(name);
@@ -74,10 +60,6 @@ namespace ShapeLand.Client
             return shape;
         }
 
-        /// <summary>
-        /// Adds one part of the look, placed in the look's space, drawn with <paramref name="material"/> (and
-        /// <paramref name="fadeMaterial"/> while fading), in its role's color or else <paramref name="own"/>.
-        /// </summary>
         public void AddPart(Mesh mesh, Vector3 position, Quaternion rotation, string role, Color own, Material material, Material fadeMaterial)
         {
             var part = new GameObject(role ?? "part");
@@ -98,16 +80,15 @@ namespace ShapeLand.Client
             Draw(added, material);
         }
 
-        /// <summary>Colors the body and eyes, each as 0xRRGGBB; other parts keep their own color.</summary>
         public void SetColors(uint bodyColor, uint eyeColor)
         {
             FreeMaterials();
-            _bodyColor = GameView.Color(bodyColor);
+            _bodyColor = Conversions.FromRgb(bodyColor);
             foreach (var part in _parts)
             {
                 var color =
-                    part.Role == "body" ? GameView.Color(bodyColor)
-                    : part.Role == "eyes" ? GameView.Color(eyeColor)
+                    part.Role == "body" ? Conversions.FromRgb(bodyColor)
+                    : part.Role == "eyes" ? Conversions.FromRgb(eyeColor)
                     : part.Own;
                 part.Opaque = new Material(part.Template) { color = color };
                 Draw(part, part.Opaque);
@@ -118,11 +99,6 @@ namespace ShapeLand.Client
             ColorSilhouette();
         }
 
-        /// <summary>
-        /// Draws the shape wherever blocks, props or terrain hide it, flat in its body color at
-        /// <paramref name="silhouette"/>'s opacity, after <paramref name="mask"/> marks where it's in sight (the
-        /// two materials of Comet's Silhouette shader); with null materials it stops.
-        /// </summary>
         public void ShowThroughWalls(Material mask, Material silhouette)
         {
             if (_silhouette != null)
@@ -141,7 +117,6 @@ namespace ShapeLand.Client
             ColorSilhouette();
         }
 
-        /// <summary>Turns off shadows and moves the shape's parts to <paramref name="layer"/>, as the join card's preview does.</summary>
         public void ShowOnLayer(int layer)
         {
             foreach (var part in _parts)
@@ -182,8 +157,6 @@ namespace ShapeLand.Client
             ColorSilhouette();
         }
 
-        // The silhouette's materials draw the part's one submesh again, after its own. The arrays are reused, since
-        // fading redraws every frame.
         private void Draw(Part part, Material material)
         {
             if (_silhouette == null)

@@ -4,10 +4,6 @@ using MessagePack;
 
 namespace Comet.Protocol.Framing
 {
-    /// <summary>
-    /// Reads the messages in a frame written by <see cref="MessageWriter"/>.
-    /// Unknown message IDs can be skipped, because every message carries its length.
-    /// </summary>
     public struct FrameReader
     {
         /// <summary>The largest frame clients accept from the server; the server keeps its frames under it.</summary>
@@ -21,10 +17,9 @@ namespace Comet.Protocol.Framing
             _remaining = messages;
         }
 
-        /// <summary>The tick in the frame's header: the server's tick in frames from the server; in frames from a client, the server tick the client stamps its report with.</summary>
+        /// <summary>The server's tick from the server; from a client, the server tick it stamps its report with.</summary>
         public uint Tick { get; }
 
-        /// <summary>A reader for <paramref name="frame"/>; throws <see cref="ProtocolException"/> if it's too short for its header.</summary>
         public static FrameReader Create(ReadOnlyMemory<byte> frame)
         {
             if (frame.Length < MessageWriter.TickSize)
@@ -35,7 +30,6 @@ namespace Comet.Protocol.Framing
             return new FrameReader(tick, frame.Slice(MessageWriter.TickSize));
         }
 
-        /// <summary>Reads the next message, or returns false at the end of the frame.</summary>
         public bool TryReadNext(out ushort messageId, out ReadOnlyMemory<byte> payload)
         {
             if (_remaining.IsEmpty)
@@ -66,7 +60,6 @@ namespace Comet.Protocol.Framing
             return true;
         }
 
-        /// <param name="payload">A message's payload, from <see cref="TryReadNext"/>.</param>
         /// <param name="options">Serializer options; <see cref="ProtocolSerializer.Options"/> (Comet's messages only) if null.</param>
         public static T Decode<T>(ReadOnlyMemory<byte> payload, MessagePackSerializerOptions? options = null)
         {

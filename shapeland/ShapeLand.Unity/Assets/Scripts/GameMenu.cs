@@ -5,13 +5,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The Esc menu (<c>Assets/UI/Menu.uxml</c>, inside the HUD): Resume, Controls, Settings, Change Look, Respawn and
-    /// Leave game, opened with Esc, gamepad Start or the HUD's menu button (<see cref="Hud"/> decides when). Keys and
-    /// the gamepad move a selection and choose with the Menu actions; a mouse or a tap chooses directly, and a tap
-    /// outside closes it. Controls shows the controls for the input in use, with tabs for the others; Settings changes
-    /// <see cref="GameSettings"/>. The game keeps running behind it.
-    /// </summary>
     public sealed class GameMenu
     {
         private enum Page
@@ -22,23 +15,14 @@ namespace ShapeLand.Client
             Leave,
         }
 
-        // Steps of the camera speed slider, and how a held direction repeats.
         private const float SpeedStep = 0.05f;
-        private const float RepeatDelay = 0.4f,
-            RepeatInterval = 0.1f;
         private const float RowHeight = 42;
         private const int ChangeLookEntry = 4;
 
-        /// <summary>The Account entry's place in the list, where the Account page's Back returns to.</summary>
         public const int AccountEntry = 3;
 
         private const int LeaveEntry = 6;
 
-        /// <summary>
-        /// Turns off UI Toolkit's own keys-and-gamepad navigation under <paramref name="root"/>: the menu and the look
-        /// card move their selection themselves, with the Menu actions. Left on, it moves the keyboard focus among the
-        /// buttons as well, and its submit takes the focus off a text field the gamepad just put it in.
-        /// </summary>
         public static void TakeOverNavigation(VisualElement root)
         {
             void Ignore(EventBase e)
@@ -52,13 +36,8 @@ namespace ShapeLand.Client
             root.RegisterCallback<NavigationCancelEvent>(Ignore, TrickleDown.TrickleDown);
         }
 
-        /// <summary>Opens the menu with Change Look selected: where Back on the look card returns to.</summary>
         public void ShowAtChangeLook(bool navigating) => Show(ChangeLookEntry, navigating);
 
-        /// <summary>
-        /// True while keys or a gamepad move the selection, which shows only then; the mouse or a touch hides it again
-        /// (it has its own hover look).
-        /// </summary>
         public bool Navigating
         {
             get => _menu.ClassListContains("navigating");
@@ -81,12 +60,10 @@ namespace ShapeLand.Client
         private readonly Label _controlsName;
         private readonly Label _settingsName;
 
-        // Per page, the rows the selection moves through (Controls has none: up and down scroll it).
         private readonly VisualElement[] _entries;
         private readonly VisualElement[] _confirmEntries;
         private readonly VisualElement[] _settingRows;
 
-        // The Settings rows that are switches, by row: what they show and how they flip.
         private readonly (int Row, VisualElement Switch, Func<bool> On, Action Flip)[] _switches;
         private readonly (InputKind Kind, VisualElement Tab, VisualElement Rows)[] _tabs;
         private readonly Action[] _entryActions;
@@ -94,15 +71,13 @@ namespace ShapeLand.Client
         private Page _page;
         private int _selected;
         private InputKind _tab;
-        private InputKind _input = (InputKind)(-1); // none yet, so the first update marks the tab in use
+        private InputKind _input = (InputKind)(-1);
         private int _closedOnFrame = -1;
         private int _shownOnFrame = -1;
-        private Vector2 _held;
-        private float _repeatAt;
+        private readonly MenuNavigation _navigation = new();
         private int? _dragPointer;
         private float _shownSpeed = -1;
 
-        /// <summary>The menu in <paramref name="hud"/>'s overlay.</summary>
         public GameMenu(Hud hud, VisualElement root)
         {
             _hud = hud;
@@ -121,7 +96,6 @@ namespace ShapeLand.Client
             _settingsName = root.Q<Label>("menu-page-settings");
             root.Q("menu-host").pickingMode = PickingMode.Ignore;
 
-            // With accounts off (the editor), the Account page has nothing to show: its entry stays, off.
             root.Q("menu-account").SetEnabled(JoinClient.Accounts);
             _entries = new[]
             {
@@ -155,7 +129,6 @@ namespace ShapeLand.Client
                 },
                 () => ShowPage(Page.Leave),
             };
-            // Leave first: the player was already heading there.
             _confirmEntries = new[] { root.Q("menu-leave-confirm"), root.Q("menu-stay") };
             _settingRows = new[]
             {
@@ -202,7 +175,7 @@ namespace ShapeLand.Client
             foreach (var (row, element, _, _) in _switches)
             {
                 _settingRows[row].RegisterCallback<ClickEvent>(_ => Flip(row));
-                element.AddToClassList("settling"); // no slide until Settings has been shown once (ShowPage)
+                element.AddToClassList("settling");
             }
             foreach (var (kind, tab, _) in _tabs)
             {
@@ -220,24 +193,15 @@ namespace ShapeLand.Client
             _speedTrack.RegisterCallback<PointerCaptureOutEvent>(_ => _dragPointer = null);
         }
 
-        /// <summary>True while the menu is up.</summary>
         public bool Open { get; private set; }
 
-        /// <summary>
-        /// True while the menu is up and on the frame it closed, so the press that closed it (Enter, Space or the
-        /// gamepad's A) doesn't also open chat or jump.
-        /// </summary>
         public bool Blocking => Open || Time.frameCount == _closedOnFrame;
 
-        /// <summary>
-        /// Opens the menu at its list, with Resume (or the entry <paramref name="selected"/>) selected; the selection
-        /// shows when it was opened with keys or a gamepad (<paramref name="navigating"/>).
-        /// </summary>
         public void Show(int selected = 0, bool navigating = true)
         {
             Open = true;
             Navigating = navigating;
-            _shownOnFrame = Time.frameCount; // the press that brought it up (Back on the look card) isn't the menu's
+            _shownOnFrame = Time.frameCount;
             _menu.RemoveFromClassList("hidden");
             _hud.Root.AddToClassList("menu-open");
             _hud.MarkMenuTipSeen();
@@ -245,7 +209,6 @@ namespace ShapeLand.Client
             ShowPage(Page.List, selected);
         }
 
-        /// <summary>Closes the menu, whatever page it's on.</summary>
         public void Close()
         {
             if (!Open)
@@ -260,7 +223,6 @@ namespace ShapeLand.Client
             _hud.Root.RemoveFromClassList("menu-open");
         }
 
-        /// <summary>One step back: from a page to the list, from the list out of the menu.</summary>
         public void Back()
         {
             switch (_page)
@@ -277,10 +239,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>
-        /// Moves the selection and chooses with the Menu actions, and keeps the device tabs, prompts and camera speed
-        /// in step with <paramref name="input"/>, the kind of input in use.
-        /// </summary>
         public void Update(ShapeLandControls.MenuActions actions, InputKind input)
         {
             if (!Open || Time.frameCount == _shownOnFrame)
@@ -302,7 +260,7 @@ namespace ShapeLand.Client
                 ShowSettings();
             }
 
-            var step = NavigationStep(actions.Navigate.ReadValue<Vector2>());
+            var step = _navigation.Step(actions.Navigate.ReadValue<Vector2>());
             var pressed =
                 actions.Submit.WasPressedThisFrame()
                 || actions.Back.WasPressedThisFrame()
@@ -310,7 +268,7 @@ namespace ShapeLand.Client
                 || actions.PreviousTab.WasPressedThisFrame();
             if (!Navigating && step != Vector2Int.zero)
             {
-                Navigating = true; // the first press only shows where the selection is
+                Navigating = true;
                 return;
             }
 
@@ -347,37 +305,10 @@ namespace ShapeLand.Client
             }
         }
 
-        // A held direction steps once, then repeats after a pause; down and right are positive.
-        private Vector2Int NavigationStep(Vector2 value)
-        {
-            var held = new Vector2(Mathf.Abs(value.x) > 0.5f ? Mathf.Sign(value.x) : 0, Mathf.Abs(value.y) > 0.5f ? -Mathf.Sign(value.y) : 0);
-            if (held.y != 0)
-            {
-                held.x = 0; // a diagonal moves up or down
-            }
-
-            var now = Time.unscaledTime;
-            if (held != _held)
-            {
-                _held = held;
-                _repeatAt = now + RepeatDelay;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            if (held != Vector2.zero && now >= _repeatAt)
-            {
-                _repeatAt = now + RepeatInterval;
-                return Vector2Int.RoundToInt(held);
-            }
-
-            return Vector2Int.zero;
-        }
-
         private void Move(int by)
         {
             switch (_page)
             {
-                // Up from the top of a page reaches its Back button (selection -1); Controls scrolls until then.
                 case Page.Controls:
                     if (_selected < 0)
                     {
@@ -399,7 +330,6 @@ namespace ShapeLand.Client
                 default:
                     var rows = Rows();
                     var next = Mathf.Clamp(_selected + by, _page == Page.Settings ? -1 : 0, rows.Length - 1);
-                    // Over an entry that's off (Account, with accounts off), to the next one on.
                     while (next > 0 && next < rows.Length - 1 && !rows[next].enabledSelf)
                     {
                         next += by > 0 ? 1 : -1;
@@ -496,7 +426,6 @@ namespace ShapeLand.Client
             {
                 _shownSpeed = -1;
                 ShowSettings();
-                // The switches start "on" in Menu.uxml: they take their real state without sliding the first time.
                 _settings
                     .schedule.Execute(() =>
                     {
@@ -554,11 +483,10 @@ namespace ShapeLand.Client
             _backButton.EnableInClassList("selected", index < 0);
             if (_page == Page.Settings && index >= 0 && index < rows.Length)
             {
-                _scroll.ScrollTo(rows[index]); // Settings scrolls on a short screen
+                _scroll.ScrollTo(rows[index]);
             }
         }
 
-        // Flips the switch on Settings row <paramref name="row"/>, if it is one.
         private void Flip(int row)
         {
             foreach (var (switchRow, _, _, flip) in _switches)
@@ -572,8 +500,6 @@ namespace ShapeLand.Client
             ShowSettings();
         }
 
-        // The settings as they are now: the switches can also change with their keys (V, F3, F4), and the speed shown is
-        // the one for the input in use.
         private void ShowSettings()
         {
             foreach (var (_, element, on, _) in _switches)

@@ -3,7 +3,6 @@ using ShapeLand.ContentBuild;
 
 namespace ShapeLand.GameServer.Tests;
 
-/// <summary>The development option that serves a web build from the game server's own port.</summary>
 public sealed class WebBuildTests : IAsyncLifetime
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"shapeland-web-{Guid.NewGuid():N}");
@@ -19,7 +18,7 @@ public sealed class WebBuildTests : IAsyncLifetime
         await File.WriteAllBytesAsync(Path.Combine(_root, "Build", "web.wasm.unityweb"), [6, 7]);
         await File.WriteAllBytesAsync(Path.Combine(_root, "StreamingAssets", "content.bin"), [4, 5]);
 
-        var (content, errors) = ShapeLandBuild.Build(Path.Combine(EndToEndTests.RepoRoot(), "shapeland", "content"), saveRegistry: false);
+        var (content, errors) = ShapeLandBuild.Build(Path.Combine(TestPaths.RepoRoot(), "shapeland", "content"), saveRegistry: false);
         Assert.Empty(errors);
         var contentFile = Path.Combine(_root, "server-content.bin");
         await using (var file = File.Create(contentFile))
@@ -72,7 +71,6 @@ public sealed class WebBuildTests : IAsyncLifetime
         using var encoded = await _http.SendAsync(accepting, token);
         Assert.Equal(["br"], encoded.Content.Headers.ContentEncoding);
 
-        // Firefox over plain HTTP doesn't ask for br: the bytes go as they are, for Unity's loader to unpack.
         using var refusing = new HttpRequestMessage(HttpMethod.Get, "/Build/web.wasm.unityweb");
         refusing.Headers.AcceptEncoding.ParseAdd("gzip, deflate");
         using var raw = await _http.SendAsync(refusing, token);

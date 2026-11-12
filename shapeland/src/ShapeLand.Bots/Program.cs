@@ -1,19 +1,7 @@
 using ShapeLand.Bots;
+using ShapeLand.Shared;
 using ShapeLand.Shared.Content;
 
-// ShapeLand bots: honest wanderers plus optional cheaters that slide too fast. Each bot is a guest account on the
-// Login server (named like Bot0001), which says which game server to join; its token is kept in --tokens
-// (default artifacts/bot-tokens), so later runs play the same accounts.
-// --server replaces the game server address in the bots' tickets (in Docker, where the server's name differs).
-// --dev joins the Unity editor's own server without accounts instead, by name, at --server (--login and --tokens
-// are ignored).
-//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--dev] [--login http://localhost:5090] [--tokens <folder>] [--server ws://server:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
-//     [--warmup 10] [--results file.json] [--meta key=value ...] [--prefix Bot] [--chat [30]] [--cheat-speed 2.5] [--cheat-jump 1]
-// Cheaters move --cheat-speed times faster than allowed and jump --cheat-jump times faster (small values make subtle
-// cheaters, for tuning the server's tolerances).
-// Bots stay quiet unless --chat is given, optionally with the average seconds between their lines (30).
-// With --warmup or --results, bots record network numbers (as the F3 overlay shows them) after the warmup and
-// print a summary at the end (NetReport); --results also writes them to a file, with each --meta pair in it.
 var login = new Uri(Arg("--login", "http://localhost:5090"));
 var tokens = Arg("--tokens", "");
 var serverOverride = Arg("--server", "") is { Length: > 0 } server ? new Uri(server) : null;
@@ -30,7 +18,7 @@ var chat =
     chatIndex < 0 ? 0
     : chatIndex + 1 < args.Length && double.TryParse(args[chatIndex + 1], out var every) ? every
     : 30;
-var prefix = Arg("--prefix", "Bot"); // honest bots' names, so two groups can share a server
+var prefix = Arg("--prefix", "Bot");
 var warmup = double.Parse(Arg("--warmup", resultsFile != "" ? "10" : "-1"));
 var meta = args.Select((arg, i) => (arg, i))
     .Where(a => a.arg == "--meta" && a.i + 1 < args.Length)
@@ -38,14 +26,14 @@ var meta = args.Select((arg, i) => (arg, i))
     .ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : "");
 
 ShapeLandContent content;
-using (var stream = File.OpenRead(contentFile != "" ? contentFile : Path.Combine(FindRepoRoot(), "artifacts", "content", "shapeland", "content.bin")))
+using (var stream = File.OpenRead(contentFile != "" ? contentFile : RepoPaths.DefaultContentFile()))
 {
     content = ShapeLandContent.Load(stream);
 }
 
 if (tokens == "")
 {
-    tokens = Path.Combine(FindRepoRoot(), "artifacts", "bot-tokens");
+    tokens = Path.Combine(RepoPaths.Root(), "artifacts", "bot-tokens");
 }
 
 var dev = args.Contains("--dev");
@@ -101,7 +89,7 @@ await Task.WhenAll(
     bots.Select(
         async (bot, i) =>
         {
-            await Task.Delay(i * 100); // don't all join in the same instant
+            await Task.Delay(i * 100);
             await bot.RunAsync(stop.Token);
         }
     )
@@ -142,17 +130,4 @@ string Arg(string name, string fallback)
 {
     var index = Array.IndexOf(args, name);
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : fallback;
-}
-
-static string FindRepoRoot()
-{
-    for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-    {
-        if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-        {
-            return dir.FullName;
-        }
-    }
-
-    throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx).");
 }

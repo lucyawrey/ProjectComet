@@ -8,9 +8,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Tests
 {
-    // Playing in the Game scene: the player walks and jumps with no snap-backs and the camera follows; the speed
-    // cheat is snapped back with a blend; walking off the edge fades the shape out before the respawn and back in
-    // after; real bots are drawn moving and removed when they leave; F3 shows the network numbers.
     public class PlayTests : GameSceneTest
     {
         [UnityTest]
@@ -25,7 +22,6 @@ namespace ShapeLand.Client.Tests
             var walked = Vector3.ProjectOnPlane(player.transform.position - start, Vector3.up).magnitude;
             Assert.That(walked, Is.GreaterThan(2f), "Didn't walk forward.");
 
-            // Stop, then jump in place.
             Press();
             yield return Wait(0.5f);
             var ground = player.Motor.Position.Y;
@@ -62,7 +58,6 @@ namespace ShapeLand.Client.Tests
             Press();
             player.TestSpeedScale = 1;
 
-            // The drawn shape trails the corrected position, then catches up within the blend.
             Assert.That(trailing, Is.GreaterThan(0.05f), "The snap-back wasn't blended.");
             yield return Wait(0.3f);
             Assert.That(player.BlendDistance, Is.EqualTo(0), "The blend didn't finish.");
@@ -75,7 +70,6 @@ namespace ShapeLand.Client.Tests
             yield return StartGame();
             var player = View.Player;
 
-            // Walk straight on until off the edge, noting how faded the shape was just before the respawn arrived.
             Press(Key.W);
             var fadedBefore = 0f;
             var deadline = Time.realtimeSinceStartup + 20;
@@ -89,13 +83,12 @@ namespace ShapeLand.Client.Tests
             Assert.That(player.Respawns, Is.EqualTo(1), "Never fell off.");
             Assert.That(fadedBefore, Is.GreaterThan(0.99f), "The shape wasn't faded before the respawn arrived.");
 
-            yield return Wait(1 + ShapeFade.FadeInSeconds + 0.3f); // a near respawn's camera glide first
+            yield return Wait(1 + ShapeFade.FadeInSeconds + 0.3f);
             Assert.That(player.Faded, Is.EqualTo(0), "The shape didn't fade back in.");
             Assert.That(player.Motor.Position.Y, Is.GreaterThan(-1), "Not back on the ground.");
             Assert.That(player.SnapBacks, Is.EqualTo(0), "The server snapped the player back.");
         }
 
-        // Bots sign in through the Login server.
         [UnityTest, Category("Accounts")]
         public IEnumerator DrawsOtherPlayersMovingAndLeaving()
         {
@@ -120,7 +113,6 @@ namespace ShapeLand.Client.Tests
             Debug.Log($"Saw 2 bots; the furthest moved {moved:0.0} m in 2 s.");
         }
 
-        // Bots sign in through the Login server.
         [UnityTest, Category("Accounts")]
         public IEnumerator F3ShowsNetworkStats()
         {
@@ -136,10 +128,8 @@ namespace ShapeLand.Client.Tests
             Assert.That(NetStats.Shown, Is.True, "F3 didn't show the stats.");
             Assert.That(NetStats.Panel.ClassListContains("hidden"), Is.False);
 
-            // A ping a second, and the bots moving for the delay and holds.
             yield return Wait(3);
             string Number(string name) => NetStats.Panel.Q<Label>(name).text;
-            // Under a millisecond on loopback, so the number itself is 0; the clock must have had a pong.
             Assert.That(Join.Session.Clock.Synced, Is.True, "No pong yet.");
             Assert.That(double.Parse(Number("ping-best")), Is.GreaterThanOrEqualTo(0));
             Assert.That(double.Parse(Number("delay")), Is.GreaterThanOrEqualTo(133), "The delay is under its floor of two report intervals.");

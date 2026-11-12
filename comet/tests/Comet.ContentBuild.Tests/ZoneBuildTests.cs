@@ -7,7 +7,6 @@ namespace Comet.ContentBuild.Tests;
 
 public class ZoneBuildTests
 {
-    // A zone with spawn points named by spawns (spawn.<zone>.<name>).
     private static Zone Zone(string id, params string[] spawns) =>
         new()
         {
@@ -52,7 +51,6 @@ public class ZoneBuildTests
             .AddZones()
             .Build(release: release);
 
-    // A zone with one placement, and a 1 m plate prop (its model spans x -1..0, z 0..1 in Unity's space).
     private static void WritePlacement(ContentFolder folder, Placement placement, bool uniformScale = false)
     {
         var model = TestModels.Model(("Plate", Vector3.Zero));
@@ -94,7 +92,6 @@ public class ZoneBuildTests
         Assert.Contains("[spawn]\n\"meadow.gate\" = 1\n\"meadow.well\" = 2\n", registry);
         Assert.Contains("[teleporter]\n\"cave.to_meadow\" = 1\n\"meadow.to_cave\" = 2\n", registry);
 
-        // The quoted names read back: a second build keeps the numbers.
         Assert.Empty(Build(folder).Errors);
         Assert.Equal(registry, File.ReadAllText(folder.Registry).ReplaceLineEndings("\n"));
     }
@@ -184,11 +181,11 @@ public class ZoneBuildTests
     }
 
     [Theory]
-    [InlineData(10, 0, 1, true)] // well inside
-    [InlineData(1, 0, 64, true)] // spans x -63..1: inside the chunk to the west
-    [InlineData(1, 0, 66, false)] // spans x -65..1: past it
-    [InlineData(1, 90, 126, true)] // turned so the plate runs toward +Z: z 1..127 (toward -Z it would reach -125)
-    [InlineData(1, 90, 128, false)] // z 1..129: past the chunk to the north
+    [InlineData(10, 0, 1, true)]
+    [InlineData(1, 0, 64, true)]
+    [InlineData(1, 0, 66, false)]
+    [InlineData(1, 90, 126, true)]
+    [InlineData(1, 90, 128, false)]
     public void ObjectsReachAtMostOneChunkPastTheirOwn(float x, float yaw, float scale, bool fits)
     {
         using var folder = new ContentFolder();
@@ -359,7 +356,6 @@ public class ZoneBuildTests
         using var folder = new ContentFolder();
         folder.Write("groups/loop.toml", "id = \"group.loop\"\n\n[[part]]\ngroup = \"group.loop\"\nposition = [0.0, 0.0, 0.0]\n");
 
-        // A zone's copy of a sound group isn't reported as unknown because another group is broken.
         GroupFile.Write(
             Path.Combine(folder.Root, "groups", "post.toml"),
             new Group { Id = "group.post", Parts = [new Placement { Primitive = new Primitive { Kind = PrimitiveKind.Box } }] }

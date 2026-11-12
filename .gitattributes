@@ -1,3 +1,6 @@
+# Text files are LF in the repo and in every checkout.
+* text=auto eol=lf
+
 # Files Unity or a tool writes, collapsed in GitHub's diffs.
 *.meta linguist-generated
 shapeland/ShapeLand.Unity/Assets/Scripts/ShapeLandControls.cs linguist-generated

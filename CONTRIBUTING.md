@@ -22,8 +22,8 @@ The rest of the rules are not covered by the automated checks, but try to follow
 - **Check input where it enters** (players, network, files, config), then trust the code's own calls.
 - **Keep comments rare.** Only when a reader would get the code wrong without one, and say why. Comet's public API keeps short `<summary>` comments that add something, such as units.
 - **Clean up after yourself.** Delete code your change leaves unused, and fix comments it makes wrong or leaves above the wrong code.
-- **Keep refactors separate.** A cleanup does exactly what the old code did; behavior changes go in their own commit.
-- **Keep files a readable size.** Split a file along a clear line when it gets too big to follow.
+- **Keep refactors separate.** A cleanup does exactly what the old code did; behavior changes go in their own commit. In a pull request, a refactor's own commit comes first.
+- **Keep files a readable size.** Split a file along a clear line when a change makes it too big to follow.
 - **Tests** check behavior through the public API surface, stay short with shared helpers.
 - **Interface text** lives in `shapeland/content/strings/`.
 

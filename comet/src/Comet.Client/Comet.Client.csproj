@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Comet.Protocol\Comet.Protocol.csproj" />
+    <ProjectReference Include="..\Comet.Simulation\Comet.Simulation.csproj" />
   </ItemGroup>
 
   <!-- The Login client's JSON. -->

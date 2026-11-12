@@ -25,6 +25,7 @@
 // The bots run on this machine and reach the server through its published port, as a browser does, unless
 // --bots-net is given. Results go to artifacts/netruns/<time>-<profile>.json, with the server's log beside it.
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -111,10 +112,8 @@ Tool.Quietly("dotnet", "run", "--project", Path.Combine(Tool.Repo, "shapeland", 
 foreach (var program in new[] { "ShapeLand.LoginServer", "ShapeLand.GameServer", "ShapeLand.Bots" })
     Tool.Quietly("dotnet", "build", "-v", "quiet", "-nologo", Path.Combine(Tool.Repo, "shapeland", "src", program));
 
-// Its own Compose project, so a tools/run shapeland-dev run alongside keeps its containers. No web build.
 string[] compose = ["compose", "-p", "shapeland-netrun", "-f", Path.Combine(Tool.Repo, "shapeland", "docker", "compose.yaml")];
 
-// Each run starts from a fresh database and fresh bot accounts (comet-postgres, tools/run comet-postgres).
 var (code, connection) = Tool.Capture(
     "dotnet",
     "run",
@@ -141,7 +140,6 @@ env["SHAPELAND_USER"] = NetProfiles.HostUser();
 int Docker(params string[] dockerArgs) => Tool.Run(Tool.Info("docker", dockerArgs, env: env));
 void Quiet(params string[] dockerArgs) => Tool.Capture(Tool.Info("docker", dockerArgs, env: env), withErrors: true);
 
-// Ctrl+C or a kill stops the run there, after cleaning up.
 Tool.OnStop(() =>
 {
     File.WriteAllText(
@@ -205,7 +203,6 @@ string[] inContainer =
 ];
 if (far > 0)
 {
-    // The far players run alongside, in their own container behind --far-net, and are read afterwards.
     botArgs.AddRange(["--meta", $"far={far}", "--meta", $"farNet={farNet}"]);
     Quiet([
         .. compose,
@@ -249,7 +246,6 @@ if (botsNet == "none")
     );
 else
 {
-    // In the bots' container, behind their own netem as well; the results file is copied out afterwards.
     Quiet("rm", "-f", "shapeland-netrun-bots");
     Docker([
         .. compose,
@@ -280,9 +276,6 @@ if (far > 0)
     Console.WriteLine($"  Results in {Path.Combine(runs, name + ".far.json")}");
 }
 
-// What the server saw, from each player's line on leaving: rule violations, and falls it finished itself; and how
-// much of the movement tolerances honest players needed (MovementHeadroom), the worst of them: banked movement in
-// seconds for each speed factor, height over an exact jump's apex, and late arc start.
 static void Summarize(string[] log)
 {
     static bool IsCheater(string player) => player.Contains("Cheater") || player.Contains("-cheater");
@@ -318,7 +311,7 @@ static void Summarize(string[] log)
     if (farSeen)
         Console.WriteLine($"  Server         far players: {farViolations} violations, {farFalls} falls finished by the server");
 
-    var bursts = new Dictionary<string, double>(); // in the order the server logs them
+    var bursts = new Dictionary<string, double>();
     double? rise = null,
         air = null;
     foreach (

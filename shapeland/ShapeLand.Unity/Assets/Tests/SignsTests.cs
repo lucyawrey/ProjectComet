@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using Comet.Content;
+using Comet.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -8,14 +9,12 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Tests
 {
-    // Signs over the zone: shown within their distance and in sight of the camera, in their own colors.
     public class SignsTests : GameSceneTest
     {
         [UnityTest]
         public IEnumerator SignsShowInRangeAndInSight()
         {
             yield return StartGame();
-            // The camera moves to the player in its next LateUpdate after the spawn, and the signs are placed from it.
             yield return TestGameServer.WaitFor(() => Vector3.Distance(Camera.transform.position, View.Player.transform.position) < 10, 5);
             var eye = Camera.transform.position;
             var ahead = eye + Camera.transform.forward * 4;
@@ -24,10 +23,9 @@ namespace ShapeLand.Client.Tests
             var worldFar = eye + Camera.transform.forward * 8 + Camera.transform.up;
             var feet = View.Player.transform.position;
 
-            // The tests zone's door, a box 1 by 3 by 4 m standing at (18, 0, 12), closed until its plate is stepped on.
             var door = new Vector3(18, 1.5f, 12);
             var behindDoor = door + (door - eye).normalized * 1.5f;
-            var onDoor = new Vector3(eye.x < door.x ? 17.45f : 18.55f, 1.5f, 12); // just in front of the face toward the camera
+            var onDoor = new Vector3(eye.x < door.x ? 17.45f : 18.55f, 1.5f, 12);
             var chunk = Join.Zone.Chunks[0];
             chunk.Signs = chunk
                 .Signs.Concat(
@@ -35,7 +33,7 @@ namespace ShapeLand.Client.Tests
                     {
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(ahead),
+                            Position = Conversions.ToNumerics(ahead),
                             Text = "Near",
                             Background = true,
                             BackgroundColor = 0x12161E,
@@ -46,37 +44,36 @@ namespace ShapeLand.Client.Tests
                         },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(ahead + right),
+                            Position = Conversions.ToNumerics(ahead + right),
                             Text = "Plain",
                             TextColor = 0xFFEE00,
                             Arrow = true,
                         },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(ahead - right),
+                            Position = Conversions.ToNumerics(ahead - right),
                             Text = "Far",
                             ShowDistance = 2,
                         },
-                        new Sign { Position = Vectors.ToNumerics(feet + Vector3.down * 3), Text = "Buried" },
+                        new Sign { Position = Conversions.ToNumerics(feet + Vector3.down * 3), Text = "Buried" },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(worldNear),
+                            Position = Conversions.ToNumerics(worldNear),
                             Text = "World",
                             TextHeight = 0.3f,
                         },
                         new Sign
                         {
-                            Position = Vectors.ToNumerics(worldFar),
+                            Position = Conversions.ToNumerics(worldFar),
                             Text = "World far",
                             TextHeight = 0.3f,
                         },
-                        new Sign { Position = Vectors.ToNumerics(behindDoor), Text = "Behind door" },
-                        new Sign { Position = Vectors.ToNumerics(onDoor), Text = "On door" },
+                        new Sign { Position = Conversions.ToNumerics(behindDoor), Text = "Behind door" },
+                        new Sign { Position = Conversions.ToNumerics(onDoor), Text = "On door" },
                     }
                 )
                 .ToArray();
 
-            // The signs are read as a zone is entered; turning them off and on reads the zone again.
             var signs = Object.FindAnyObjectByType<Signs>();
             signs.enabled = false;
             signs.enabled = true;
@@ -98,13 +95,11 @@ namespace ShapeLand.Client.Tests
             Assert.That(Showing("On door"), Is.True, "A sign on a wall's face is hidden by it.");
             Assert.That(Of("Near").resolvedStyle.backgroundColor.a, Is.EqualTo(0.75f).Within(0.01f));
             Assert.That(Of("Plain").resolvedStyle.backgroundColor.a, Is.EqualTo(0f), "A sign without a background has one.");
-            Assert.That(Of("Plain").Q<Label>().resolvedStyle.color, Is.EqualTo(GameView.Color(0xFFEE00)));
+            Assert.That(Of("Plain").Q<Label>().resolvedStyle.color, Is.EqualTo(Conversions.FromRgb(0xFFEE00)));
             Assert.That(Of("Near").Q<Label>().resolvedStyle.fontSize, Is.EqualTo(20f));
             Assert.That(Of("Near").Q(className: "sign-arrow"), Is.Not.Null, "The sign has no arrow.");
             Assert.That(Of("Plain").Q(className: "sign-arrow"), Is.Null, "A sign without a background has an arrow.");
 
-            // World-sized signs shrink with their depth from the camera, measured now since the camera may have moved
-            // since they were placed. Screen-sized ones aren't scaled.
             Assert.That(Showing("World") && Showing("World far"), Is.True);
             float Depth(Vector3 at) => View.Camera.WorldToScreenPoint(at).z;
             var nearDepth = Depth(worldNear);

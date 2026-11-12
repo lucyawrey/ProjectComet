@@ -7,10 +7,6 @@ using NpgsqlTypes;
 
 namespace Comet.Data.Characters;
 
-/// <summary>
-/// The character repository on PostgreSQL, through the game's region context. Each operation uses a fresh context
-/// from <paramref name="createContext"/>. Hand-written SQL is in <see cref="CharacterRepositorySql"/>.
-/// </summary>
 public sealed class CharacterRepository<TCharacter, TContext>(
     Func<TContext> createContext,
     CharacterRepositoryOptions options,
@@ -220,7 +216,6 @@ public sealed class CharacterRepository<TCharacter, TContext>(
         return applied;
     }
 
-    // Locks the owner row and says whether this server holds it under the version.
     private async Task<bool> LockHeldAsync(TContext db, long characterId, long version, CancellationToken cancellationToken)
     {
         await using var command = Command(db, CharacterRepositorySql.LockOwner);
@@ -232,7 +227,6 @@ public sealed class CharacterRepository<TCharacter, TContext>(
             && reader.GetBoolean(2);
     }
 
-    // A command on the context's connection, in its transaction if it has one.
     private static NpgsqlCommand Command(TContext db, string sql) =>
         new(sql, (NpgsqlConnection)db.Database.GetDbConnection(), (NpgsqlTransaction?)db.Database.CurrentTransaction?.GetDbTransaction());
 }

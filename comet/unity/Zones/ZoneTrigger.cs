@@ -3,11 +3,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// What spawn points, teleporters and triggers share in a zone opened in the editor: a id, an invisible volume
-    /// standing on the object's position and turned by its Y rotation, a stand time and re-arming, an optional pad
-    /// (a primitive placement as its child, solid in the game) and an optional sign (a sign as its child). The volume is drawn as the game's collision view draws it.
-    /// </summary>
     [DisallowMultipleComponent]
     [SelectionBase]
     public abstract class ZoneTrigger : MonoBehaviour
@@ -48,20 +43,15 @@ namespace Comet.Unity
         [Tooltip("Step off: fires again only after stepping out. Repeat: again every stand time while inside.")]
         public RearmMode rearm;
 
-        /// <summary>The kind, as ids start: spawn, teleporter or trigger.</summary>
         public abstract string Kind { get; }
 
-        /// <summary>The wireframe's color: its kind's in <see cref="CollisionColors.Editing"/>.</summary>
         protected abstract Color GizmoColor { get; }
 
-        /// <summary>The volume's shape as zone files have it.</summary>
         public PrimitiveKind Shape => (PrimitiveKind)System.Enum.Parse(typeof(PrimitiveKind), volume.ToString());
 
-        // The wireframe, kept until the shape, size or polygon budget changes.
         private Vector3[]? _edges;
         private (VolumeKind, Vector3, float, int, int) _edgesFor;
 
-        /// <summary>The pad: a placement that's a direct child, or null.</summary>
         public ZonePlacement? Pad
         {
             get
@@ -78,7 +68,6 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>The sign shown with it: a sign that's a direct child, or null. Saved with the trigger, so it moves with it.</summary>
         public ZoneSign? Sign
         {
             get
@@ -111,7 +100,6 @@ namespace Comet.Unity
             Gizmos.matrix = Matrix4x4.identity;
         }
 
-        /// <summary>Draws which way arrivals face, for the kinds players arrive at, as the collision view does.</summary>
         protected void DrawFacing(FacingMode facing)
         {
             if (facing == FacingMode.Direction)

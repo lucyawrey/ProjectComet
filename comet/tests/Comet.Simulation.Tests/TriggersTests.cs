@@ -22,11 +22,11 @@ public class TriggersTests
 
         Assert.True(Triggers.Inside(box, new Vector3(9.9f, 1, 8.9f)));
         Assert.False(Triggers.Inside(box, new Vector3(10.1f, 1, 8)));
-        Assert.True(Triggers.Inside(box, new Vector3(8, 0.97f, 8))); // a hair below the bottom: standing on its pad
-        Assert.False(Triggers.Inside(box, new Vector3(8, 0.9f, 8))); // below the bottom
-        Assert.False(Triggers.Inside(box, new Vector3(8, 3.1f, 8))); // above the top
+        Assert.True(Triggers.Inside(box, new Vector3(8, 0.97f, 8)));
+        Assert.False(Triggers.Inside(box, new Vector3(8, 0.9f, 8)));
+        Assert.False(Triggers.Inside(box, new Vector3(8, 3.1f, 8)));
         Assert.True(Triggers.Inside(cylinder, new Vector3(9.9f, 3, 8)));
-        Assert.False(Triggers.Inside(cylinder, new Vector3(9.9f, 1, 8.9f))); // a box's corner, outside the ellipse
+        Assert.False(Triggers.Inside(cylinder, new Vector3(9.9f, 1, 8.9f)));
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class TriggersTests
 
         Assert.True(Triggers.Inside(sphere, new Vector3(8, 2, 8)));
         Assert.True(Triggers.Inside(sphere, new Vector3(8.9f, 2, 8)));
-        Assert.False(Triggers.Inside(sphere, new Vector3(8.9f, 1.1f, 8))); // the bottom's edge is round
+        Assert.False(Triggers.Inside(sphere, new Vector3(8.9f, 1.1f, 8)));
     }
 
     [Fact]
@@ -79,7 +79,6 @@ public class TriggersTests
     [Fact]
     public void PlayersStandingOnAPadAreInsideTheVolumeOnItsTop()
     {
-        // A hub teleporter's numbers: the pad from 9.208 m, 0.4 m tall, and the volume standing on its top.
         var pad = new Placement
         {
             Primitive = new Primitive { Kind = PrimitiveKind.Box },
@@ -108,7 +107,6 @@ public class TriggersTests
     [Fact]
     public void SpotsWithoutRoomFallBackToTheCenter()
     {
-        // A volume wholly inside a tall block.
         var world = TestWorlds.Create(TestWorlds.Block(10, 10, 1, new Vector3(6, 3, 6)));
         var volume = Volume(PrimitiveKind.Cylinder, 10, 10, new Vector3(2, 2, 2));
 
@@ -167,7 +165,7 @@ public class TriggersTests
 
         Assert.True(triggers.TryGetSpawn(7, out var spawn));
         Assert.Same(spawn, triggers.SpawnAt(new Vector3(5, 1, 4)));
-        Assert.True(triggers.TryGetTeleporter("teleporter.test.b", out var teleporter));
+        var teleporter = triggers.Teleporters.Single(t => t.Id == "teleporter.test.b");
         Assert.Same(teleporter, triggers.TeleporterAt(new Vector3(10, 2, 4)));
         Assert.Null(triggers.SpawnAt(new Vector3(10, 2, 4)));
         Assert.Null(triggers.TeleporterAt(new Vector3(7, 1, 4)));

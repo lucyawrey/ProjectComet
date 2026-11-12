@@ -9,14 +9,6 @@ using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The player's own shape: moves it with the shared <see cref="PlayerMotor"/> on a fixed step, reports its
-    /// position, and draws it between the last two steps. A snap-back from the server moves the simulation at once
-    /// and blends the drawn shape after it; a teleport or a respawn moves the simulation at once, while the drawn
-    /// shape fades out where it stood before it's drawn there (<see cref="ShapeFade"/>), the camera cutting or, for a
-    /// near respawn, gliding after it. Placements that turn solid around the player are passed through until the
-    /// player is out of them.
-    /// </summary>
     public sealed class LocalPlayer : MonoBehaviour
     {
         [Tooltip("After a respawn, how long the camera glides to the spawn before the shape fades in, in seconds.")]
@@ -27,17 +19,12 @@ namespace ShapeLand.Client
         [SerializeField]
         private float respawnGlideDistance = 30f;
 
-        /// <summary>
-        /// Motor steps per second. Faster than the server's tick so input waits less (about 8 ms on average
-        /// for a step, and as long again drawing between steps); reports are paced separately.
-        /// </summary>
         public const int StepsPerSecond = 60;
 
-        /// <summary>A multiple of the shape's top speed, for tests that need the server to snap the player back.</summary>
         public float TestSpeedScale { get; set; } = 1;
 
         private readonly FixedStep _step = new FixedStep(StepsPerSecond);
-        private readonly PositionReporter _reporter = new PositionReporter();
+        private readonly OwnMovement _movement = new OwnMovement(StepsPerSecond);
         private readonly CorrectionBlend _blend = new CorrectionBlend();
         private ClientSession _session;
         private CollisionWorld _world;
@@ -54,13 +41,10 @@ namespace ShapeLand.Client
         private CorrectionReason _moveReason;
         private bool _zoneChanged;
 
-        /// <summary>Whether the controls move the shape; off while typing in chat.</summary>
         public bool InputEnabled { get; set; } = true;
 
-        /// <summary>The motor's state after the latest step.</summary>
         public MotorState Motor => _motor;
 
-        /// <summary>The world the player moves in; set anew when the server puts them in another zone.</summary>
         public CollisionWorld World
         {
             get => _world;
@@ -72,37 +56,24 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>The meshes the player passes through: turned on around them, until they're out (as the server keeps them).</summary>
-        public PassThrough PassThrough { get; } = new PassThrough();
+        public PassThrough PassThrough => _movement.PassThrough;
 
-        /// <summary>How many times a teleporter sent the player somewhere.</summary>
         public int Teleports { get; private set; }
 
-        /// <summary>How many times the server has moved the player back (a correction that wasn't a respawn).</summary>
         public int SnapBacks { get; private set; }
 
-        /// <summary>How many times the player fell out of the world and was respawned.</summary>
         public int Respawns { get; private set; }
 
-        /// <summary>How far the drawn shape still trails the simulation after a snap-back, in meters.</summary>
         public float BlendDistance => _blend.Offset.Length();
 
-        /// <summary>How far the player's shape has faded (<see cref="ShapeFade"/>): 0 fully visible, 1 gone.</summary>
         public float Faded => _fade.Faded;
 
-        /// <summary>Whether the shape is fading out for a move (before a teleport, or held where it stood after one).</summary>
         public bool Departing => _fade.Departing;
 
-        /// <summary>
-        /// The pad the player stands on fires in <paramref name="seconds"/>: the shape fades out to be gone by then,
-        /// started as if it had begun on time.
-        /// </summary>
         public void TeleportSoon(float seconds) => _fade.DepartFrom(Time.unscaledTime + seconds - ShapeFade.FadeOutSeconds);
 
-        /// <summary>The player stepped off the pad before it fired: the shape fades back in.</summary>
         public void TeleportCancelled() => _fade.Cancel();
 
-        /// <summary>Starts the player as <paramref name="shape"/> at <paramref name="position"/>, facing <paramref name="facing"/> radians, moved by <paramref name="controls"/> relative to the camera.</summary>
         public void Begin(
             ClientSession session,
             CollisionWorld world,
@@ -122,7 +93,7 @@ namespace ShapeLand.Client
             _controls = controls;
             _motor = new MotorState
             {
-                Position = Vectors.ToNumerics(position),
+                Position = Conversions.ToNumerics(position),
                 Grounded = true,
                 Facing = facing,
             };
@@ -131,16 +102,10 @@ namespace ShapeLand.Client
             Draw(1);
         }
 
-        /// <summary>Moves on as <paramref name="shape"/> from now on, with its speed and jump.</summary>
         public void ChangeShape(Shape shape) => _shape = shape;
 
-        /// <summary>Placements tagged <paramref name="tag"/> flipped: any that turned solid around the player are passed through.</summary>
         public void Flipped(string tag) => PassThrough.Flipped(_world, tag, _motor.Position, _rules.BodyRadius, _rules.BodyHeight);
 
-        /// <summary>
-        /// Turns stick or key input (x right, y forward) into a direction on the ground (X, Z) relative to a
-        /// camera heading <paramref name="yawDegrees"/> clockwise from +Z.
-        /// </summary>
         public static System.Numerics.Vector2 CameraRelative(Vector2 input, float yawDegrees)
         {
             var yaw = yawDegrees * Mathf.Deg2Rad;
@@ -163,25 +128,14 @@ namespace ShapeLand.Client
             var now = CometConnection.Now;
             var maxSpeed = _shape.MaxSpeed * TestSpeedScale;
 
-            // The steps run on the server's clock, so every other one falls on a server tick; only those are
-            // reported, stamped with their tick, so others draw exactly the spacing the player moved at.
+            // The steps run on the server's clock so every other one falls on a server tick; only those are reported, stamped with their tick.
             var steps = _step.Advance(_session.ServerSeconds(now));
             for (var i = 0; i < steps; i++)
             {
                 var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
-                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules, PassThrough);
-                PassThrough.Prune(_world, _motor.Position, _rules.BodyRadius, _rules.BodyHeight);
-
+                _movement.Step(_session, stepNumber, ref _motor, move, _jumpQueued, maxSpeed, _shape.JumpVelocity, _world, _rules, out _);
                 _jumpQueued = false;
-                // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.
-                if (
-                    _session.TickOfStep(stepNumber, StepsPerSecond, out var tick)
-                    && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds)
-                )
-                {
-                    _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
-                }
             }
 
             _blend.Advance(Time.unscaledDeltaTime);
@@ -193,12 +147,9 @@ namespace ShapeLand.Client
             }
         }
 
-        // Faded out where it stood, the shape is drawn at its new place: the camera cuts there, or glides there for a
-        // near respawn in the same zone, and the shape fades in after.
         private void Arrived(float now)
         {
             Draw(_step.Alpha);
-            // Measured across the ground: a fall ends far below wherever it started.
             var across = Vector2.Distance(new Vector2(_held.x, _held.z), new Vector2(transform.position.x, transform.position.z));
             if (_moveReason == CorrectionReason.Respawn && !_zoneChanged && across <= respawnGlideDistance)
             {
@@ -215,7 +166,7 @@ namespace ShapeLand.Client
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
             if (!_fade.Holding)
             {
-                transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+                transform.SetPositionAndRotation(Conversions.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
             }
         }
 
@@ -230,10 +181,9 @@ namespace ShapeLand.Client
             _motor.Velocity = System.Numerics.Vector3.Zero;
             _motor.Grounded = false;
             _previous = _motor;
-            _reporter.Reset();
+            _movement.Reporter.Reset();
             if (correction.Reason is CorrectionReason.Respawn or CorrectionReason.Teleport)
             {
-                // Usually faded already (from the fall, or the pad's charge); if not, it fades out now, held where it stood.
                 _blend.Clear();
                 _moveReason = correction.Reason;
                 _fade.Moved(Time.unscaledTime);

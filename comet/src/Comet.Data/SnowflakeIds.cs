@@ -1,11 +1,6 @@
 namespace Comet.Data;
 
-/// <summary>
-/// Makes Snowflake-style 64-bit row IDs: 42 bits of milliseconds since <see cref="Epoch"/> (about 139 years), 10 bits
-/// of node number (one per server process, from config) and 11 bits of sequence (2,048 IDs per millisecond per node).
-/// The sign bit stays 0, so IDs fit PostgreSQL's <c>bigint</c>. IDs from one generator only grow; IDs from different
-/// nodes never collide. Thread-safe.
-/// </summary>
+/// <summary>42 bits of milliseconds since <see cref="Epoch"/>, 10 of node, 11 of sequence; sign bit 0 for <c>bigint</c>. Thread-safe.</summary>
 public sealed class SnowflakeIds
 {
     public static readonly DateTimeOffset Epoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
@@ -17,7 +12,6 @@ public sealed class SnowflakeIds
     private const long MaxSequence = (1 << SequenceBits) - 1;
     private const long MaxTime = (1L << TimeBits) - 1;
 
-    /// <summary>How far the clock may step back before <see cref="Next"/> gives up instead of waiting.</summary>
     public static readonly TimeSpan MaxClockStepBack = TimeSpan.FromSeconds(1);
 
     private readonly int _node;
@@ -34,10 +28,7 @@ public sealed class SnowflakeIds
         _clock = clock;
     }
 
-    /// <summary>
-    /// The next ID. If this millisecond's 2,048 are used up, or the clock stepped back by up to
-    /// <see cref="MaxClockStepBack"/>, it waits for the clock; a bigger step back throws.
-    /// </summary>
+    /// <summary>Waits if this millisecond's IDs are used up or the clock stepped back up to <see cref="MaxClockStepBack"/>; more throws.</summary>
     public long Next()
     {
         lock (_lock)
@@ -58,7 +49,7 @@ public sealed class SnowflakeIds
                 _sequence = (_sequence + 1) & MaxSequence;
                 if (_sequence == 0)
                 {
-                    time = WaitUntil(_lastTime + 1); // this millisecond is used up
+                    time = WaitUntil(_lastTime + 1);
                 }
             }
             else
@@ -71,10 +62,8 @@ public sealed class SnowflakeIds
         }
     }
 
-    /// <summary>When an ID was made, to the millisecond.</summary>
     public static DateTimeOffset TimeOf(long id) => Epoch.AddMilliseconds(id >> (NodeBits + SequenceBits));
 
-    /// <summary>The node that made an ID.</summary>
     public static int NodeOf(long id) => (int)((id >> SequenceBits) & MaxNode);
 
     private long Now()

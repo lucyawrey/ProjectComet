@@ -4,35 +4,25 @@ using System.Numerics;
 
 namespace Comet.Simulation
 {
-    /// <summary>A moving player's physical state.</summary>
     public struct MotorState
     {
-        /// <summary>The bottom center of the body.</summary>
         public Vector3 Position;
 
         /// <summary>In meters per second.</summary>
         public Vector3 Velocity;
 
-        /// <summary>True while standing on terrain or a box.</summary>
         public bool Grounded;
 
         /// <summary>Facing as a yaw angle in radians (0 faces +Z).</summary>
         public float Facing;
     }
 
-    /// <summary>
-    /// Moves a player one step: slides toward the wanted horizontal velocity, jumps, falls, stands on ground
-    /// and slides along solid meshes and terrain walls. Clients and bots move with it, so their movement fits the rules the server checks.
-    /// </summary>
     public static class PlayerMotor
     {
-        /// <param name="state">The player's state, updated in place.</param>
         /// <param name="move">Wanted direction on the ground plane (X, Z), length 0 to 1.</param>
-        /// <param name="jump">Start a jump if grounded.</param>
-        /// <param name="seconds">The step length.</param>
         /// <param name="maxSpeed">The player's top ground speed, in meters per second.</param>
         /// <param name="jumpVelocity">The player's jump take-off speed, in meters per second.</param>
-        /// <param name="passThrough">Meshes the player passes through (turned on around them), or null.</param>
+        /// <param name="passThrough">Meshes the player passes through, or null.</param>
         public static void Step(
             ref MotorState state,
             Vector2 move,
@@ -50,7 +40,6 @@ namespace Comet.Simulation
                 move = Vector2.Normalize(move);
             }
 
-            // Horizontal: accelerate toward the wanted velocity.
             var wanted = move * maxSpeed;
             var current = new Vector2(state.Velocity.X, state.Velocity.Z);
             var change = wanted - current;
@@ -66,7 +55,6 @@ namespace Comet.Simulation
                 state.Facing = TurnToward(state.Facing, MathF.Atan2(move.X, move.Y), rules.TurnSpeed * MathF.PI / 180 * seconds);
             }
 
-            // Vertical: jump or fall.
             var velocityY = state.Velocity.Y;
             if (state.Grounded && jump)
             {
@@ -78,9 +66,6 @@ namespace Comet.Simulation
                 velocityY -= rules.Gravity * seconds;
             }
 
-            // Move horizontally, sliding along walls one axis at a time. On the ground, a move walks up low ledges. In
-            // the air, it rides up onto them by as much as terrain climbs over that move, up to the mantle height: a
-            // jump up a slope keeps its speed, and one that comes up just short of a ledge carries on over it.
             var position = state.Position;
             var stepUp = state.Grounded ? rules.StepHeight : 0;
             position = TryMoveAxis(
@@ -102,7 +87,6 @@ namespace Comet.Simulation
                 ref current.Y
             );
 
-            // Move vertically, landing on ground or stopping under something solid.
             var startY = position.Y;
             var targetY = startY + velocityY * seconds;
             if (velocityY > 0)
@@ -115,7 +99,6 @@ namespace Comet.Simulation
                 }
             }
 
-            // Terrain may rise by up to twice the distance moved (slopes up to ~63°), however fast the player moves.
             var snap = state.Grounded ? rules.GroundSnap : 0;
             var climb = 2 * Vector2.Distance(new Vector2(state.Position.X, state.Position.Z), new Vector2(position.X, position.Z));
             if (
@@ -134,9 +117,6 @@ namespace Comet.Simulation
                 state.Grounded = false;
             }
 
-            // Landing or stepping down beside a steep surface can leave the body in it, where no sideways move gets
-            // out: push it out sideways. Where no push gets out (a V of steep faces), the fall stops where it fits.
-            // A body held up that way stands, as on ground.
             var held = !world.TryPushOut(ref position, rules.BodyRadius, rules.BodyHeight, passThrough)
                 ? velocityY <= 0 && world.TryRest(ref position, startY, rules.BodyRadius, rules.BodyHeight, passThrough)
                 : !state.Grounded && velocityY <= 0 && world.IsWedged(position, rules.BodyRadius, rules.BodyHeight, passThrough);
@@ -150,7 +130,6 @@ namespace Comet.Simulation
             state.Velocity = new Vector3(current.X, velocityY, current.Y);
         }
 
-        // Turns a yaw angle the short way round toward another, by at most maxTurn radians; the result is in (-π, π].
         private static float TurnToward(float from, float to, float maxTurn)
         {
             var difference = to - from;
@@ -180,7 +159,6 @@ namespace Comet.Simulation
                 return moved;
             }
 
-            // Walk or ride up onto a low ledge, if the body fits on top of it.
             if (stepUp > 0 && world.TryGetGround(moved, rules.BodyRadius, position.Y + stepUp, out var ledge, 0, passThrough) && ledge > position.Y)
             {
                 var stepped = new Vector3(moved.X, ledge, moved.Z);

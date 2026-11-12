@@ -2,15 +2,8 @@ using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// What the web page says about where the game runs, and reloading it to pick up new content
-    /// (Plugins/WebGL/ShapeLandPage.jslib). The page remembers, for this tab only, that it reloaded to rejoin, so the
-    /// reloaded game joins again by itself. Desktop builds have no page. In the editor, Unity's Device Simulator set
-    /// to a phone stands in for a phone page, to lay out the phone interface without a web build.
-    /// </summary>
     public static class WebPage
     {
-        /// <summary>Reloads the page, to rejoin once it's back; false where there's no page.</summary>
         public static bool Reload()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -25,13 +18,12 @@ namespace ShapeLand.Client
         private static bool? _isPhone;
 #endif
 
-        /// <summary>Whether the page laid itself out for a phone: the game fills the screen, played by touch.</summary>
         public static bool IsPhone
         {
             get
             {
 #if UNITY_WEBGL && !UNITY_EDITOR
-                return _isPhone ??= ShapeLand_IsPhone() != 0; // a page doesn't stop being one
+                return _isPhone ??= ShapeLand_IsPhone() != 0;
 #elif UNITY_EDITOR
                 return UnityEngine.Device.SystemInfo.deviceType == DeviceType.Handheld;
 #else
@@ -40,7 +32,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Whether the page is playing, past its "Tap to play" card on a phone; true where there's no page.</summary>
         public static bool Playing
         {
             get
@@ -53,7 +44,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Whether a phone's on-screen keyboard is up; false where there's no page.</summary>
         public static bool KeyboardUp
         {
             get
@@ -66,10 +56,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>
-        /// The screen's safe area insets (what notches, rounded corners and the home bar cover), for the HUD to keep
-        /// clear of: as shares of the screen's height (top, bottom) and width (left, right); zero where there's no page.
-        /// </summary>
         public static (float Top, float Right, float Bottom, float Left) SafeArea()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -87,7 +73,6 @@ namespace ShapeLand.Client
 #endif
         }
 
-        /// <summary>True, once, after the page reloaded to rejoin.</summary>
         public static bool TakeRejoin()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR

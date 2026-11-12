@@ -8,7 +8,7 @@ namespace ShapeLand.ContentBuild.Tests;
 
 public class ContentTests
 {
-    private static readonly string ContentRoot = Path.Combine(RepoRoot(), "shapeland", "content");
+    private static readonly string ContentRoot = Path.Combine(TestPaths.RepoRoot(), "shapeland", "content");
 
     [Fact]
     public void CompiledContentFindsEachShapeByKey()
@@ -42,7 +42,6 @@ public class ContentTests
         file.Position = 0;
         var loaded = ShapeLandContent.Load(file);
 
-        // Shown in the file's order, looked up by their registry numbers.
         Assert.Equal(built.Settings.Colors.Keys.Select(key => $"color.{key}"), loaded.Colors.All.Select(c => c.Id));
         foreach (var color in loaded.Colors.All)
         {
@@ -53,8 +52,6 @@ public class ContentTests
     [Fact]
     public void TheContentBuildsWithItsZone()
     {
-        // The zone is made by hand in the editor, so only that it builds is checked: the build itself reports
-        // missing spawns and the like.
         var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
         var file = new MemoryStream();
@@ -68,19 +65,17 @@ public class ContentTests
     [Fact]
     public void TheTestsZoneHasWhatThePlayTestsCountOn()
     {
-        // The play-mode tests walk straight ahead from its start spawn (facing +Z, next to no scatter) and jump there,
-        // then walk on off the edge. Change zones/tests only along with them.
         var (content, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
-        var (zone, spawn) = ShapeLandWorld.FindSpawn(content!, "spawn.tests.start")!.Value;
+        var (zone, spawn) = Triggers.FindSpawn(content!.Zones.All, "spawn.tests.start")!.Value;
         Assert.Equal("zone.tests", zone.Id);
         var world = ShapeLandWorld.Create(content!, zone);
         Assert.Equal((SpawnFacing.Direction, 0f), (spawn.Facing, spawn.Volume.Yaw));
         Assert.InRange(spawn.Volume.Size.X, 0, 0.25f);
 
-        var feet = ShapeLandWorld.Center(spawn, world);
+        var feet = Triggers.Center(spawn, world);
         var radius = content!.Movement.BodyRadius;
-        for (var ahead = 2; ahead <= 19; ahead++) // past the spawn marker, flat ground at 0 m
+        for (var ahead = 2; ahead <= 19; ahead++)
         {
             Assert.True(
                 world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, ahead), radius, feet.Y + 1, out var ground),
@@ -187,8 +182,6 @@ public class ContentTests
     [InlineData("max_sides = 4", "max_sides: 4 is out of range")]
     public void SettingsRulesAreChecked(string line, string message) => RuleIsChecked(Path.Combine("settings", "game.toml"), line, message);
 
-    // Builds a copy of the content with one line of a file replaced (or added) and perhaps a file added, expecting one
-    // error naming the changed file.
     private static void RuleIsChecked(string relativeFile, string line, string message, (string Path, string Text)? extraFile = null)
     {
         var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
@@ -247,7 +240,6 @@ public class ContentTests
         }
     }
 
-    // IL2CPP and web builds can't generate code at run time, so every content type and message needs a source-generated formatter.
     [Fact]
     public void EveryMessagePackTypeHasASourceGeneratedFormatter()
     {
@@ -278,18 +270,5 @@ public class ContentTests
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target);
         }
-    }
-
-    private static string RepoRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("Can't find the repository root.");
     }
 }

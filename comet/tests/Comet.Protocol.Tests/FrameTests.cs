@@ -42,8 +42,6 @@ public class FrameTests
     [Fact]
     public void EntityStateFitsTheBudget()
     {
-        // The stack benchmark budgeted about 10 updates in ~300 bytes per frame; the state has since
-        // gained the mover's tick and velocity (for dead reckoning), so about 10 now fit in ~480.
         var writer = new MessageWriter();
         writer.Clear();
 
@@ -125,9 +123,9 @@ public class FrameTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 1, 2 })] // shorter than the tick
-    [InlineData(new byte[] { 0, 0, 0, 0, 0x80 })] // truncated message ID
-    [InlineData(new byte[] { 0, 0, 0, 0, 3, 10, 1, 2 })] // length runs past the end
+    [InlineData(new byte[] { 1, 2 })]
+    [InlineData(new byte[] { 0, 0, 0, 0, 0x80 })]
+    [InlineData(new byte[] { 0, 0, 0, 0, 3, 10, 1, 2 })]
     public void RejectsMalformedFrames(byte[] frame)
     {
         Assert.Throws<ProtocolException>(() =>

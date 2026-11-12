@@ -4,10 +4,8 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace ShapeLand.Data.Accounts;
 
-/// <summary>ShapeLand's account database: Comet's tables as they are.</summary>
 public class ShapeLandAccountContext(DbContextOptions<ShapeLandAccountContext> options) : CometAccountContext(options);
 
-// For dotnet ef (migrations) and the model checks in tests, which need a context without a server. It never connects.
 public sealed class AccountContextFactory : IDesignTimeDbContextFactory<ShapeLandAccountContext>
 {
     public ShapeLandAccountContext CreateDbContext(string[] args)

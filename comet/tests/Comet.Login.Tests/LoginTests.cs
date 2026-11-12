@@ -92,12 +92,12 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
 
         Assert.Equal(LoginErrors.NameTaken, await alice.ErrorOfAsync(alice.PostAsync(LoginPaths.Rename, new { name = "bob" })));
         Assert.Null(await alice.ErrorOfAsync(alice.PostAsync(LoginPaths.Rename, new { name = "Alicia" })));
-        Assert.Null(await alice.ErrorOfAsync(alice.PostAsync(LoginPaths.Rename, new { name = "ALICIA" }))); // only the capitals
+        Assert.Null(await alice.ErrorOfAsync(alice.PostAsync(LoginPaths.Rename, new { name = "ALICIA" })));
 
         var me = await alice.MeAsync();
         Assert.Equal("ALICIA", me.Username);
         Assert.Equal("ALICIA", me.Character!.Name);
-        await _host.GuestAsync("Alice"); // free at once
+        await _host.GuestAsync("Alice");
     }
 
     [Fact]
@@ -106,11 +106,11 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var guest = await _host.GuestAsync("Alice");
         Assert.Null(await guest.ErrorOfAsync(guest.PostAsync(LoginPaths.SignOut)));
         Assert.Equal(LoginErrors.SignedOut, await guest.ErrorOfAsync(guest.GetAsync(LoginPaths.Me)));
-        await _host.GuestAsync("Alice"); // a guest can't come back, so its name is free at once
+        await _host.GuestAsync("Alice");
 
         var alicia = await ClaimedAsync("Alicia", "a password");
         Assert.Null(await alicia.ErrorOfAsync(alicia.PostAsync(LoginPaths.SignOut)));
-        Assert.Null(await _host.NewClient().SignInAsync("Alicia", "a password")); // a claimed account stays
+        Assert.Null(await _host.NewClient().SignInAsync("Alicia", "a password"));
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
     public async Task ClaimingSetsAPasswordThatSignsInElsewhere()
     {
         var guest = await _host.GuestAsync("Alice");
-        _host.Clock.Advance(TimeSpan.FromDays(1)); // a guest's first password needs no recent sign-in
+        _host.Clock.Advance(TimeSpan.FromDays(1));
         Assert.Null(await guest.ErrorOfAsync(guest.PostAsync(LoginPaths.Password, new { password = "correct horse" })));
         Assert.False((await guest.MeAsync()).Guest);
 
@@ -172,7 +172,7 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         Assert.Equal(LoginErrors.SignInAgain, await phone.ErrorOfAsync(phone.PostAsync(LoginPaths.Password, new { password = "second password" })));
         Assert.Equal(LoginErrors.SignInAgain, await phone.ErrorOfAsync(phone.PostAsync(LoginPaths.RecoveryCode)));
 
-        Assert.Null(await phone.SignInAsync("Alice", "first password")); // a fresh session
+        Assert.Null(await phone.SignInAsync("Alice", "first password"));
         Assert.True((await phone.MeAsync()).RecentSignIn);
         Assert.Null(await phone.ErrorOfAsync(phone.PostAsync(LoginPaths.Password, new { password = "second password" })));
 
@@ -195,10 +195,8 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         Assert.Equal("Alice", (await phone.MeAsync()).Username);
         Assert.Equal(LoginErrors.SignedOut, await laptop.ErrorOfAsync(laptop.GetAsync(LoginPaths.Me)));
 
-        // Then a new password, at once, since signing in with the code made a fresh session.
         Assert.Null(await phone.ErrorOfAsync(phone.PostAsync(LoginPaths.Password, new { password = "a new password" })));
 
-        // The code can be used again.
         var tablet = _host.NewClient();
         Assert.Null(await tablet.SignInWithCodeAsync(code));
     }
@@ -276,7 +274,6 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         Assert.Equal(LoginErrors.Banned, await alice.ErrorOfAsync(alice.PostAsync(LoginPaths.Ticket)));
         Assert.Equal(LoginErrors.Banned, await _host.NewClient().SignInAsync("Alice", "a password"));
 
-        // The second kick, just after a ticket's lifetime.
         _host.Clock.Advance(TimeSpan.FromSeconds(62));
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (await OwnerVersionAsync(characterId) < 3 && DateTime.UtcNow < deadline)
@@ -337,8 +334,8 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         var (_, playing) = await IdsAsync("Playing");
 
         _host.Clock.Advance(TimeSpan.FromDays(6));
-        await ClaimAsync(playing); // a game server's heartbeat stamps the owner row
-        await fresh.MeAsync(); // using the session counts as activity
+        await ClaimAsync(playing);
+        await fresh.MeAsync();
         _host.Clock.Advance(TimeSpan.FromDays(2));
 
         Assert.Equal(1, await _host.Actions.CleanUpGuestsAsync(TestContext.Current.CancellationToken));
@@ -349,7 +346,6 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
             .ToListAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["Idle"], deleted);
 
-        // A guest can't restore itself, so the next purge frees the name without waiting out the hold.
         Assert.Equal((1, 1), await _host.Actions.PurgeAsync(TestContext.Current.CancellationToken));
         await _host.GuestAsync("Idle");
     }
@@ -391,7 +387,6 @@ public sealed class LoginTests(PostgresContainer postgres) : IAsyncLifetime
         return (character.AccountId, character.Id);
     }
 
-    // What a game server's claim does to the owner row (version 1, held).
     private async Task ClaimAsync(long characterId)
     {
         await using var region = _host.Region();
@@ -457,7 +452,6 @@ public sealed class RateLimitTests(PostgresContainer postgres)
     {
         await using var host = await LoginHost.StartAsync(postgres, options => options.RateLimits.SignInPerMinute = 1);
 
-        // Through the local proxy (127.0.0.1): each forwarded client gets its own limit.
         foreach (var client in new[] { "203.0.113.1", "203.0.113.2" })
         {
             var viaProxy = host.NewClient();
@@ -465,7 +459,6 @@ public sealed class RateLimitTests(PostgresContainer postgres)
             Assert.Equal(LoginErrors.WrongPassword, await viaProxy.SignInAsync("Nobody", "guess"));
         }
 
-        // From anywhere else, the header is ignored: both requests count against the sender.
         for (var i = 0; i < 2; i++)
         {
             var spoofer = host.NewClient("198.51.100.7");

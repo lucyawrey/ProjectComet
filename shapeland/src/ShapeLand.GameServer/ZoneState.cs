@@ -5,18 +5,12 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.GameServer;
 
-/// <summary>
-/// One zone as the server plays it: its world (with placements flipped by triggers), spawn points, teleporters and
-/// triggers, the players in it, and its live trigger state, which resets when the server restarts. Tick thread only.
-/// </summary>
 internal sealed class ZoneState
 {
     private readonly Dictionary<Trigger, TriggerCharge> _charges = [];
 
-    // The tick each flipped tag with a revert time flips back.
     private readonly Dictionary<string, uint> _reverts = [];
 
-    // Scratch for the tags due to flip back this tick.
     private readonly List<string> _due = [];
 
     private readonly MovementRules _rules;
@@ -39,16 +33,10 @@ internal sealed class ZoneState
 
     public Triggers Triggers { get; }
 
-    /// <summary>The joined players here.</summary>
     public HashSet<Player> Players { get; } = [];
 
-    /// <summary>The tags of placements flipped from how they start.</summary>
     public HashSet<string> Flipped { get; } = [];
 
-    /// <summary>
-    /// Times each trigger (one state per trigger, shared by everyone in it) and fires its effects, then flips back
-    /// tags whose revert time is up. Reports each flip or flip back, for the server to tell the zone's players.
-    /// </summary>
     public void Tick(uint tick, float seconds, Action<string, bool> flipped)
     {
         foreach (var (trigger, charge) in _charges)
@@ -93,8 +81,6 @@ internal sealed class ZoneState
         }
     }
 
-    // Flips the effect's placements, unless a revert is pending: then an effect with a revert time restarts the wait,
-    // and one without leaves it.
     private void Fire(ToggleEffect effect, uint tick, Action<string, bool> flipped)
     {
         var revertAt = tick + (uint)MathF.Round(effect.RevertSeconds * ShapeLandRules.TickRate);
@@ -120,7 +106,6 @@ internal sealed class ZoneState
         var now = Flipped.Add(tag) || !Flipped.Remove(tag);
         World.SetFlipped(tag, now);
 
-        // Anyone inside a placement that just turned solid passes through it until they're out.
         foreach (var player in Players)
         {
             player.Validator.PassThrough.Flipped(World, tag, player.Validator.Position, _rules.BodyRadius, _rules.BodyHeight);

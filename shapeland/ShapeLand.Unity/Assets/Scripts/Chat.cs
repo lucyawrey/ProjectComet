@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Comet.Client;
+using Comet.Unity;
 using ShapeLand.Shared.Messages;
 using ShapeLand.Shared.World;
 using UnityEngine;
@@ -8,25 +9,15 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The chat box in the HUD's lower corner: the log and an input. Enter or the chat button opens chat (the shape
-    /// stops moving while it's open), and it stays open after sending until Esc, the chat button, Enter on an empty
-    /// line or a click outside the box closes it. Closed, the log shows for a while after each message, then fades.
-    /// The log scrolls back through older lines. Speech bubbles are <see cref="NameTags"/>' part.
-    /// </summary>
     [RequireComponent(typeof(Hud))]
     public sealed class Chat : MonoBehaviour
     {
-        /// <summary>Seconds without a message before the log fades out.</summary>
         private const float LogSeconds = 60;
 
-        /// <summary>How many lines the log keeps to scroll back through.</summary>
         private const int MaxLines = 100;
 
-        // Enter or Esc that opened or closed the chat may reach another handler too; ignore it for this long.
         private const float KeyDebounce = 0.2f;
 
-        /// <summary>How long the log takes to fade in or out, in seconds.</summary>
         private const float FadeSeconds = 0.4f;
 
         private Hud _hud;
@@ -40,19 +31,14 @@ namespace ShapeLand.Client
         private bool _openOnRelease;
         private bool _keyboardWasUp;
 
-        /// <summary>True while the input is open.</summary>
         public bool Open { get; private set; }
 
-        /// <summary>True just after the input opened or closed, while the key that did it may still reach other handlers.</summary>
         public bool JustToggled => Time.unscaledTime - _toggledAt <= KeyDebounce;
 
-        /// <summary>How visible the chat box is now, from 0 (faded out) to 1.</summary>
         public float Opacity { get; private set; }
 
-        /// <summary>The chat box, log and input together.</summary>
         public VisualElement Box => _box;
 
-        /// <summary>The text typed into the input.</summary>
         public string Typed
         {
             get => _input.value;
@@ -86,7 +72,6 @@ namespace ShapeLand.Client
             _hud.Join.ConnectionLost -= OnConnectionLost;
         }
 
-        // Back to the join screen: the log is for a world that's gone.
         private void OnConnectionLost(CloseReason reason)
         {
             CloseInput();
@@ -101,8 +86,8 @@ namespace ShapeLand.Client
                 return;
             }
 
-            // The input opens when Enter is released: focusing it while Enter is still down lets the rest of that
-            // key press reach it, which in web builds leaves it ignoring typed characters.
+            // The input opens on Enter's release: focusing it while Enter is down lets the rest of that key press reach it,
+            // which in web builds leaves it ignoring typed characters.
             var openChat = _hud.View.Controls.Game.OpenChat;
             if (!Open && !_hud.CardShowing && !_hud.MenuBlocking && openChat.WasPressedThisFrame() && !JustToggled)
             {
@@ -114,14 +99,11 @@ namespace ShapeLand.Client
                 OpenInput();
             }
 
-            // Not in the moment it opened: a quick tap on the chat button lands outside the box in the same frame.
             if (Open && !JustToggled && ClickedOutside())
             {
                 CloseInput();
             }
 
-            // On a phone, chat sits above the on-screen keyboard while it's up and goes back down as soon as it's put
-            // away, still open. The keyboard comes up a moment after the input opens, so only once it has been up.
             if (Open && WebPage.IsPhone)
             {
                 var keyboardUp = WebPage.KeyboardUp;
@@ -135,7 +117,6 @@ namespace ShapeLand.Client
             _button.EnableInClassList("on", Open);
         }
 
-        /// <summary>Opens chat if it's closed, else closes it (the chat button).</summary>
         public void Toggle()
         {
             if (Open)
@@ -148,7 +129,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>Opens the input and stops the shape moving until it closes.</summary>
         public void OpenInput()
         {
             _openOnRelease = false;
@@ -156,7 +136,7 @@ namespace ShapeLand.Client
             Open = true;
             _toggledAt = Time.unscaledTime;
             _inputRow.RemoveFromClassList("hidden");
-            _box.EnableInClassList("typing-top", WebPage.IsPhone); // above a phone's on-screen keyboard
+            _box.EnableInClassList("typing-top", WebPage.IsPhone);
             _log.verticalScrollerVisibility = ScrollerVisibility.Auto;
             SetPicking(_log, true);
             _input.value = "";
@@ -164,7 +144,6 @@ namespace ShapeLand.Client
             _hud.UpdateMoving();
         }
 
-        /// <summary>Closes the input without sending.</summary>
         public void CloseInput()
         {
             if (!Open)
@@ -183,7 +162,6 @@ namespace ShapeLand.Client
             _hud.UpdateMoving();
         }
 
-        // A click, tap or pen press this frame that landed outside the chat box and the chat button (a right click too).
         private bool ClickedOutside()
         {
             var pointer = Pointer.current;
@@ -202,9 +180,7 @@ namespace ShapeLand.Client
             return !_box.worldBound.Contains(point) && !_button.worldBound.Contains(point);
         }
 
-        // Shows the newest line once the log has laid out. The scheduler can run before that layout, so for a moment it
-        // also follows the log and its lines changing size: new lines, and closing the input (which hides the input row
-        // and the scroll bar, rewrapping lines).
+        // Shows the newest line once the log has laid out; the scheduler can run before that layout, so for a moment it also follows size changes.
         private void ScrollToEnd()
         {
             _log.RegisterCallback<GeometryChangedEvent>(OnLogResized);
@@ -222,15 +198,11 @@ namespace ShapeLand.Client
 
         private void ShowNewest() => _log.verticalScroller.value = _log.verticalScroller.highValue;
 
-        // Whether the log takes the pointer: only while the input is open (to scroll it). Closed, it fades but stays laid
-        // out, over the bottom left where a thumb works the touch stick, so it lets touches through.
         private static void SetPicking(VisualElement element, bool on) =>
             element.Query<VisualElement>().ForEach(e => e.pickingMode = on ? PickingMode.Position : PickingMode.Ignore);
 
-        /// <summary>Typed in chat, sends the player back to their spawn point instead of saying it.</summary>
         public const string ReturnCommand = "/return";
 
-        /// <summary>Sends what's typed and clears the input for the next line; with nothing typed, closes chat.</summary>
         public void Send()
         {
             if (string.IsNullOrWhiteSpace(_input.value))
@@ -241,7 +213,6 @@ namespace ShapeLand.Client
 
             if (ShapeLandRules.TryNormalizeChat(_input.value, out var text))
             {
-                // A command rather than chat. Becomes an action once Comet has them.
                 if (text.Equals(ReturnCommand, System.StringComparison.OrdinalIgnoreCase))
                 {
                     _hud.Join.ReturnToSpawn();
@@ -291,19 +262,18 @@ namespace ShapeLand.Client
                 line.Add(
                     new ShapeIcon(
                         _hud.Join.Content.BodyKind(_hud.Join.Content.Shapes[speaker.Shape]),
-                        GameView.Color(_hud.Join.Content.ColorRgb(speaker.Color))
+                        Conversions.FromRgb(_hud.Join.Content.ColorRgb(speaker.Color))
                     )
                 );
             }
 
-            // Chat is server-wide: a speaker in another zone isn't in view, but the line names them.
             var name = new Label(
                 !string.IsNullOrEmpty(message.Name) ? message.Name
                 : known ? speaker.Name
                 : strings.Get("chat.someone")
             );
             name.AddToClassList("chat-name");
-            var text = new Label(message.Text) { enableRichText = false }; // what players type is shown as typed, never markup
+            var text = new Label(message.Text) { enableRichText = false };
             text.AddToClassList("chat-text");
             line.Add(name);
             line.Add(text);
@@ -320,10 +290,8 @@ namespace ShapeLand.Client
             }
         }
 
-        // A line from the game rather than a player, from the strings file.
         private void AddNote(string key) => Note(_hud.Join.Content.Strings.Get(key));
 
-        /// <summary>Adds a line from the game rather than a player.</summary>
         public void Note(string text)
         {
             var note = new Label(text);
@@ -333,7 +301,6 @@ namespace ShapeLand.Client
 
         private void AddLine(VisualElement line)
         {
-            // Follow new lines unless the player has scrolled back to read older ones.
             var scroller = _log.verticalScroller;
             var follow = !Open || scroller.value >= scroller.highValue - 1;
             SetPicking(line, Open);
@@ -351,7 +318,6 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>The log's lines as text, oldest first.</summary>
         public List<string> LogLines()
         {
             var lines = new List<string>();

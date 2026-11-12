@@ -1,7 +1,7 @@
 {
     "name": "Comet.Client",
     "rootNamespace": "Comet.Client",
-    "references": ["Comet.Protocol"],
+    "references": ["Comet.Protocol", "Comet.Simulation"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

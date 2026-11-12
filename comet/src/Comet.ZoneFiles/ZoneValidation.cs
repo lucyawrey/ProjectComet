@@ -9,39 +9,25 @@ using Group = Comet.Content.Group;
 
 namespace Comet.ZoneFiles
 {
-    /// <summary>
-    /// Checks what a zone's files mean, after <see cref="ZoneFolder.Read"/> has checked their form: ids and names,
-    /// tiles that name a known piece and fit their chunk, terrain that matches where a piece's tiles meet, objects
-    /// whose pivots are in their own chunk, spawn, teleporter and trigger ids that name their zone, signs' text and
-    /// ranges, and toggle effects that name placements in it. Run by the content build, and by the editor before it
-    /// saves.
-    /// </summary>
     public static class ZoneValidation
     {
         private static readonly Regex NamePattern = new Regex("^[a-z][a-z0-9_]*$");
         private static readonly Regex PlacementTag = new Regex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$");
 
-        /// <summary>A name in ids and in the zone: a lowercase letter, then lowercase letters, digits and underscores.</summary>
         public static bool IsName(string name) => NamePattern.IsMatch(name);
 
-        /// <summary>Whether <paramref name="id"/> is <c>{kind}.zone.name</c>, as spawn, teleporter and trigger ids are.</summary>
+        /// <summary>Whether <paramref name="id"/> is <c>{kind}.zone.name</c>, as spawn and trigger ids are.</summary>
         public static bool IsZonedId(string id, string kind) =>
             id.StartsWith(kind + ".", StringComparison.Ordinal)
             && id.Substring(kind.Length + 1).Split('.') is { Length: 2 } parts
             && IsName(parts[0])
             && IsName(parts[1]);
 
-        /// <summary>The zone named in a <c>{kind}.zone.name</c> id, as a zone id (<c>zone.zone</c>).</summary>
-        public static string ZoneOf(string id) => "zone." + id.Split('.')[1];
-
-        /// <summary>The kinds a trigger volume can be.</summary>
         public static readonly PrimitiveKind[] VolumeKinds = { PrimitiveKind.Box, PrimitiveKind.Cylinder, PrimitiveKind.Sphere };
 
-        /// <summary>Whether <paramref name="id"/> is <c>{kind}.name</c>.</summary>
         public static bool IsId(string id, string kind) =>
             id.StartsWith(kind + ".", StringComparison.Ordinal) && IsName(id.Substring(kind.Length + 1));
 
-        /// <summary>The problems in <paramref name="zone"/>, each against the file it's in.</summary>
         public static List<ZoneFileError> Check(Zone zone)
         {
             var errors = new List<ZoneFileError>();
@@ -95,7 +81,6 @@ namespace Comet.ZoneFiles
                 }
             }
 
-            // Tags may be shared: a toggle effect flips every placement with its tag.
             var placementTags = new HashSet<string>();
             foreach (var chunk in zone.Chunks)
             {
@@ -135,7 +120,6 @@ namespace Comet.ZoneFiles
                 foreach (var teleporter in chunk.Teleporters)
                 {
                     CheckTrigger(teleporter.Id, "teleporter", teleporter.Volume, chunk.Coord, zoneName, idFiles, file, Error);
-                    // An empty target is a teleporter not linked yet, which the content build warns about.
                     if (teleporter.Target != "" && !IsZonedId(teleporter.Target, "teleporter"))
                     {
                         Error(
@@ -183,13 +167,7 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
-        /// <summary>
-        /// The problems with <paramref name="zone"/>'s placements given its props and groups (found by id through
-        /// <paramref name="findProp"/> and <paramref name="findGroup"/>, null for an unknown id): unknown props and
-        /// groups, uneven scale on a prop that only scales evenly, and objects reaching past the ring of chunks around
-        /// their pivot's chunk. A group copy's parts are checked where they land, each against its own chunk, as the
-        /// content build places them (<see cref="Groups.Expand(Zone, Func{string, Group?})"/>).
-        /// </summary>
+        /// <summary><paramref name="findProp"/> and <paramref name="findGroup"/> return null for unknown ids; parts are checked in place.</summary>
         public static List<ZoneFileError> CheckPlacements(Zone zone, Func<string, Prop?> findProp, Func<string, Group?>? findGroup = null)
         {
             var errors = new List<ZoneFileError>();
@@ -234,10 +212,6 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
-        /// <summary>
-        /// The problems with a game's groups, each against its file: ids, parts that fit a group (no names; roles are
-        /// names), unknown props and groups, and groups that contain themselves.
-        /// </summary>
         public static List<ZoneFileError> CheckGroups(IReadOnlyList<(Group Group, string File)> groups, Func<string, Prop?> findProp)
         {
             var errors = new List<ZoneFileError>();
@@ -289,7 +263,6 @@ namespace Comet.ZoneFiles
                 }
             }
 
-            // A group may not contain itself, however deep.
             var visiting = new List<string>();
             var done = new HashSet<string>();
             void Visit(string id)
@@ -333,10 +306,6 @@ namespace Comet.ZoneFiles
             return errors;
         }
 
-        /// <summary>
-        /// The zone's blockout placements, each against its chunk file: stand-ins to finish before a release. A group
-        /// copy counts if it or any part it expands to is blockout.
-        /// </summary>
         public static List<ZoneFileError> Blockout(Zone zone, Func<string, Group?> findGroup)
         {
             var found = new List<ZoneFileError>();
@@ -368,7 +337,6 @@ namespace Comet.ZoneFiles
             return found;
         }
 
-        // A placement's reach: its bounds once placed stay within the ring of chunks around `chunk`.
         private static void CheckReach(
             Placement placement,
             ChunkCoord chunk,
@@ -378,48 +346,43 @@ namespace Comet.ZoneFiles
             List<ZoneFileError> errors
         )
         {
+            (Vector3 Min, Vector3 Max) local;
+            if (placement.Primitive is { } primitive)
             {
+                local = PrimitiveMesher.Bounds(primitive, placement.Scale);
+            }
+            else
+            {
+                var prop = findProp(placement.Prop);
+                if (prop is null)
                 {
-                    (Vector3 Min, Vector3 Max) local;
-                    if (placement.Primitive is { } primitive)
-                    {
-                        local = PrimitiveMesher.Bounds(primitive, placement.Scale);
-                    }
-                    else
-                    {
-                        var prop = findProp(placement.Prop);
-                        if (prop is null)
-                        {
-                            errors.Add(new ZoneFileError(file, $"{what}: there's no prop '{placement.Prop}'."));
-                            return;
-                        }
-
-                        var scale = placement.Scale;
-                        if (prop.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
-                        {
-                            errors.Add(new ZoneFileError(file, $"{what}: {prop.Id} only scales evenly, the same on every axis."));
-                        }
-
-                        local = (prop.BoundsMin, prop.BoundsMax);
-                    }
-
-                    var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
-                    var reachMin = new Vector3((chunk.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Z - 1) * ZoneGrid.ChunkSize);
-                    var reachMax = new Vector3((chunk.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Z + 2) * ZoneGrid.ChunkSize);
-                    if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
-                    {
-                        errors.Add(
-                            new ZoneFileError(
-                                file,
-                                $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."
-                            )
-                        );
-                    }
+                    errors.Add(new ZoneFileError(file, $"{what}: there's no prop '{placement.Prop}'."));
+                    return;
                 }
+
+                var scale = placement.Scale;
+                if (prop.UniformScale && (Math.Abs(scale.X - scale.Y) > 1e-4f || Math.Abs(scale.X - scale.Z) > 1e-4f))
+                {
+                    errors.Add(new ZoneFileError(file, $"{what}: {prop.Id} only scales evenly, the same on every axis."));
+                }
+
+                local = (prop.BoundsMin, prop.BoundsMax);
+            }
+
+            var (min, max) = Bounds(local.Min, local.Max, placement.Matrix());
+            var reachMin = new Vector3((chunk.X - 1) * ZoneGrid.ChunkSize, float.MinValue, (chunk.Z - 1) * ZoneGrid.ChunkSize);
+            var reachMax = new Vector3((chunk.X + 2) * ZoneGrid.ChunkSize, float.MaxValue, (chunk.Z + 2) * ZoneGrid.ChunkSize);
+            if (min.X < reachMin.X || min.Z < reachMin.Z || max.X > reachMax.X || max.Z > reachMax.Z)
+            {
+                errors.Add(
+                    new ZoneFileError(
+                        file,
+                        $"{what}: it reaches past the chunks around its own; objects can reach at most one chunk ({ZoneGrid.ChunkSize} m) beyond the chunk holding their pivot."
+                    )
+                );
             }
         }
 
-        // A group copy's colors by role: each names a role its group's parts play.
         private static void CheckRoleColors(Placement copy, string what, string file, Func<string, Group?> findGroup, Action<string, string> error)
         {
             if (copy.Colors is not { } colors || copy.Group is not { } group)
@@ -439,15 +402,11 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // What a placement places, for messages: its prop's or group's id, or its primitive's kind.
         private static string Placed(Placement placement) =>
             placement.Primitive is { } primitive ? $"a {ZoneToml.SnakeCase(primitive.Kind.ToString())}" : placement.Group ?? placement.Prop;
 
         private static bool Even(Vector3 scale) => Math.Abs(scale.X - scale.Y) <= 1e-4f && Math.Abs(scale.X - scale.Z) <= 1e-4f;
 
-        // What a placement places and how, wherever it is: a prop id, a primitive's values or a group id; a scale
-        // above 0 (even for a group); a role only on a group's parts, a tag and starting off only in a zone, and no
-        // color of a group copy's own.
         private static void CheckPlaced(Placement placement, string what, bool inGroup, string file, Action<string, string> error)
         {
             if (placement.Primitive is { } primitive)
@@ -510,7 +469,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A primitive's values: in range, and only those its kind uses.
         private static void CheckPrimitive(Primitive primitive, string what, string file, Action<string, string> error)
         {
             var kind = primitive.Kind;
@@ -550,7 +508,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // The world box around a mesh's bounds once placed.
         private static (Vector3 Min, Vector3 Max) Bounds(Vector3 boundsMin, Vector3 boundsMax, Matrix4x4 matrix)
         {
             var min = new Vector3(float.MaxValue);
@@ -656,8 +613,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // Neighboring chunks repeat the samples on their shared edges (and corners), so where two tiles of one piece
-        // both cover a sample, they must agree on whether it's ground and, within half a height step, how high.
         private static void CheckSharedEdges(Zone zone, Action<string, string> error)
         {
             var tiles = zone.Chunks.SelectMany(c => c.Tiles.Select(t => (Chunk: c.Coord, Tile: t))).GroupBy(t => t.Tile.Piece);
@@ -691,7 +646,6 @@ namespace Comet.ZoneFiles
 
         private static (int X, int Z)? FirstMismatch(ChunkCoord chunkA, TerrainTile a, ChunkCoord chunkB, TerrainTile b)
         {
-            // Both tiles in world sample coordinates (a chunk's first sample is at chunk × ChunkSize).
             int ax = chunkA.X * ZoneGrid.ChunkSize + a.OriginX,
                 az = chunkA.Z * ZoneGrid.ChunkSize + a.OriginZ;
             int bx = chunkB.X * ZoneGrid.ChunkSize + b.OriginX,
@@ -736,7 +690,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A sign's text, colors and sizes; where it is is checked by the caller.
         private static void CheckSign(Sign sign, string what, string file, Action<string, string> error)
         {
             if (string.IsNullOrWhiteSpace(sign.Text))
@@ -769,7 +722,6 @@ namespace Comet.ZoneFiles
             }
         }
 
-        // A spawn point's, teleporter's or trigger's id, volume, pad and sign.
         private static void CheckTrigger(
             string id,
             string kind,
@@ -831,7 +783,6 @@ namespace Comet.ZoneFiles
 
             if (volume.Sign is { } sign)
             {
-                // Its offset may reach into the next chunk: it goes with its trigger.
                 CheckSign(sign, $"{id}'s sign", file, error);
             }
         }

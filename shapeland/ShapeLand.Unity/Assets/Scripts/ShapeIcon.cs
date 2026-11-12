@@ -4,18 +4,11 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// A flat drawing of a shape in a player's color (a lit face and a shaded side), for buttons and chat lines:
-    /// the shape alongside the color, so players aren't told apart by color alone. Drawn by the kind of the shape's
-    /// body (<see cref="ShapeLand.Shared.Content.ShapeLandContent.BodyKind"/>): a cube, a diamond (an octahedron on
-    /// its tip) or, for anything else, a pyramid (a tetrahedron).
-    /// </summary>
     public sealed class ShapeIcon : VisualElement
     {
         private PrimitiveKind? _kind;
         private Color _color;
 
-        /// <summary>An icon of a shape whose body is <paramref name="kind"/>, in <paramref name="color"/>.</summary>
         public ShapeIcon(PrimitiveKind? kind, Color color)
         {
             _kind = kind;
@@ -25,7 +18,6 @@ namespace ShapeLand.Client
             generateVisualContent += Draw;
         }
 
-        /// <summary>Redraws the icon as <paramref name="kind"/> in <paramref name="color"/>.</summary>
         public void Set(PrimitiveKind? kind, Color color)
         {
             _kind = kind;
@@ -33,7 +25,6 @@ namespace ShapeLand.Client
             MarkDirtyRepaint();
         }
 
-        // Drawn in a 100 x 100 box, like the mockup's icons.
         private void Draw(MeshGenerationContext context)
         {
             var size = Mathf.Min(contentRect.width, contentRect.height);

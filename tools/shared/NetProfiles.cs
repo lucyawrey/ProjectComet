@@ -1,13 +1,5 @@
-// ShapeLand's simulated network profiles, for tools/run shapeland-dev --net and tools/run shapeland-netrun. Each is
-// netem's delay and jitter each way plus loss each way, on the game server's link (shapeland/docker).
-//
-//   none   nothing added
-//   good   40 ms ± 10 ms and 1% loss each way (about 80 ms round trip)
-//   bad    100 ms ± 25 ms and 2% loss each way (about 200 ms round trip)
-//   awful  100 ms ± 25 ms and 5% loss each way
 public static class NetProfiles
 {
-    // The profile's settings for the compose file, as PREFIX_DELAY, PREFIX_JITTER and PREFIX_LOSS.
     public static Dictionary<string, string?> Settings(string prefix, string profile)
     {
         var (delay, jitter, loss) = profile switch
@@ -26,10 +18,9 @@ public static class NetProfiles
         };
     }
 
-    // Fails unless the kernel modules netem needs are loaded. Only Linux runs Docker on this machine's own kernel.
-    // Docker Desktop's VM on macOS has netem but no ifb device, which shaping incoming traffic needs
-    // (tools/docker/netem.sh), so the server's container stops at "Unknown device type"; Windows' depends on its
-    // WSL kernel.
+    // Fails unless the kernel modules netem needs are loaded; only Linux runs Docker on this machine's own kernel.
+    // Docker Desktop's macOS VM has netem but no ifb device, which shaping incoming traffic needs (tools/docker/netem.sh);
+    // Windows' depends on its WSL kernel.
     public static void CheckModules()
     {
         if (!OperatingSystem.IsLinux())
@@ -45,10 +36,7 @@ public static class NetProfiles
                 throw Tool.Fail($"Kernel module {module} isn't loaded; see README.md (Requirements, Docker).");
     }
 
-    // The host user for the containers, so files they write in artifacts/ stay readable outside Docker. Docker
-    // Desktop maps file owners itself, so Windows leaves it to the compose file's default.
     public static string? HostUser() => OperatingSystem.IsWindows() ? null : $"{Tool.Output("id", "-u")}:{Tool.Output("id", "-g")}";
 
-    // A connection string for this machine's comet-postgres, as containers on the comet network reach it.
     public static string ForContainers(string connection) => connection.Replace("Host=127.0.0.1;Port=55432", "Host=comet-postgres;Port=5432");
 }

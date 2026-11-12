@@ -9,11 +9,6 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// A zone's terrain while it's being edited: each piece's tiles grown to whole chunks, so brushes can reach
-    /// anywhere in a chunk the piece touches, and written back to the scene's copy of the zone after each stroke
-    /// (one undo step). Saving crops the tiles back to their ground (<see cref="Crop"/>).
-    /// </summary>
     public sealed class ZoneTerrainEditing
     {
         private static readonly MessagePackSerializerOptions Serializer = ContentSerializer.CreateOptions(
@@ -35,12 +30,10 @@ namespace Comet.Unity.Editor
 
         public ZoneEditing Editing { get; }
 
-        /// <summary>The zone with expanded tiles. Changes go through <see cref="SetHeight"/> and the like, then <see cref="Commit"/>.</summary>
         public Zone Zone { get; }
 
         public ZoneTerrain Terrain { get; private set; }
 
-        /// <summary>The terrain being edited for a zone opened in the editor, made on first use.</summary>
         public static ZoneTerrainEditing For(ZoneEditing editing)
         {
             if (!Open.TryGetValue(editing, out var terrain) || terrain.Editing == null)
@@ -52,10 +45,8 @@ namespace Comet.Unity.Editor
             return terrain;
         }
 
-        /// <summary>Forgets the edited copies, so they're read again from the scene (after an undo, say).</summary>
         public static void Forget() => Open.Clear();
 
-        /// <summary>Writes the edited terrain into the scene's copy of the zone as one undo step, and redraws it.</summary>
         public void Commit(string undoName, CometSettings settings)
         {
             Undo.RecordObject(Editing, undoName);
@@ -65,16 +56,11 @@ namespace Comet.Unity.Editor
             ZoneEditor.RebuildTerrain(Editing, Zone, settings);
         }
 
-        /// <summary>Rebuilds the piece index after pieces or tiles were added or removed.</summary>
         public void Reindex() => Terrain = new ZoneTerrain(Zone);
 
-        /// <summary>The ground height at a world sample of <paramref name="piece"/>, if it has ground there.</summary>
         public bool TryGetHeight(string piece, int x, int z, out float height) => Terrain[piece].TryGetHeight(x, z, out height);
 
-        /// <summary>
-        /// Sets a world sample of <paramref name="piece"/>: a height in meters, or null for a hole. Every tile
-        /// holding the sample is changed (chunks repeat their shared edges); one is made if none holds it.
-        /// </summary>
+        /// <summary>A height in meters, or null for a hole; changes every tile holding the sample (edges repeat), making one if none does.</summary>
         public void SetHeight(string piece, int x, int z, float? height) =>
             ForEachTile(
                 piece,
@@ -84,7 +70,6 @@ namespace Comet.Unity.Editor
                 (tile, tx, tz) => tile.Heights.Samples[tz * tile.Heights.SizeX + tx] = Sample(tile.Heights, height)
             );
 
-        /// <summary>Sets the underside height at a world sample, starting an underside map at the piece's bottom where there's none.</summary>
         public void SetUnderside(string piece, int x, int z, float height) =>
             ForEachTile(
                 piece,
@@ -98,11 +83,9 @@ namespace Comet.Unity.Editor
                 }
             );
 
-        /// <summary>The underside height at a world sample: its underside map, else the piece's bottom.</summary>
         public float UndersideAt(string piece, int x, int z) =>
             Terrain[piece].TryGetUnderside(x, z, out var under) ? under : Terrain[piece].BottomHeight;
 
-        /// <summary>Paints a world sample's color (0xRRGGBB), starting a color map of <paramref name="ground"/> where there's none.</summary>
         public void SetColor(string piece, int x, int z, uint color, uint ground) =>
             ForEachTile(
                 piece,
@@ -111,21 +94,11 @@ namespace Comet.Unity.Editor
                 create: false,
                 (tile, tx, tz) =>
                 {
-                    tile.Colors ??= new ColorMap
-                    {
-                        SizeX = tile.Heights.SizeX,
-                        SizeZ = tile.Heights.SizeZ,
-                        Colors = Enumerable.Repeat(ground, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray(),
-                    };
+                    tile.Colors ??= NewColors(tile.Heights.SizeX, tile.Heights.SizeZ, ground);
                     tile.Colors.Colors[tz * tile.Colors.SizeX + tx] = color;
                 }
             );
 
-        /// <summary>
-        /// Gives a world sample the piece's default colors (<paramref name="ground"/> and <paramref name="skirt"/>) in
-        /// the color maps its tiles have, so new ground starts unpainted. Tiles grown to their whole chunk for editing
-        /// have no colors past their old edge (zero, which is black).
-        /// </summary>
         public void ResetColors(string piece, int x, int z, uint ground, uint skirt) =>
             ForEachTile(
                 piece,
@@ -146,10 +119,6 @@ namespace Comet.Unity.Editor
                 }
             );
 
-        /// <summary>
-        /// Paints a world sample's underside color (0xRRGGBB), where the piece has an underside map, starting a map
-        /// of <paramref name="skirt"/> where there's none.
-        /// </summary>
         public void SetUndersideColor(string piece, int x, int z, uint color, uint skirt) =>
             ForEachTile(
                 piece,
@@ -163,20 +132,11 @@ namespace Comet.Unity.Editor
                         return;
                     }
 
-                    tile.UndersideColors ??= new ColorMap
-                    {
-                        SizeX = tile.Heights.SizeX,
-                        SizeZ = tile.Heights.SizeZ,
-                        Colors = Enumerable.Repeat(skirt, tile.Heights.SizeX * tile.Heights.SizeZ).ToArray(),
-                    };
+                    tile.UndersideColors ??= NewColors(tile.Heights.SizeX, tile.Heights.SizeZ, skirt);
                     tile.UndersideColors.Colors[tz * tile.UndersideColors.SizeX + tx] = color;
                 }
             );
 
-        /// <summary>
-        /// Recolors the piece's painted maps where they hold its old default colors, so changing a piece's top or
-        /// underside color also changes the samples the brushes left at that color (maps store plain colors).
-        /// </summary>
         public void ReplaceDefaultColors(string piece, uint oldGround, uint newGround, uint oldUnder, uint newUnder)
         {
             static void Replace(ColorMap? map, uint from, uint to)
@@ -200,10 +160,8 @@ namespace Comet.Unity.Editor
             }
         }
 
-        /// <summary>Whether any of the piece's tiles has an underside map.</summary>
         public bool HasUnderside(string piece) => Zone.Chunks.SelectMany(c => c.Tiles).Any(t => t.Piece == piece && t.Underside != null);
 
-        /// <summary>Removes the piece's underside maps and their colors, so its skirts end at its flat bottom again.</summary>
         public void ClearUnderside(string piece)
         {
             foreach (var tile in Zone.Chunks.SelectMany(c => c.Tiles).Where(t => t.Piece == piece))
@@ -215,7 +173,6 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>Adds a piece, flat at <paramref name="height"/> over a square of <paramref name="size"/> samples around <paramref name="center"/>.</summary>
         public void AddPiece(TerrainPiece settings, (int X, int Z) center, int size, float height)
         {
             Zone.Pieces = Zone.Pieces.Append(settings).ToArray();
@@ -231,14 +188,9 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>
-        /// Moves a piece: <paramref name="dx"/> and <paramref name="dz"/> whole samples sideways and
-        /// <paramref name="dy"/> meters up, with its underside and colors, so its shape stays the same.
-        /// </summary>
+        /// <summary>Moves a piece by whole samples sideways and <paramref name="dy"/> meters up, with its underside and colors.</summary>
         public void MovePiece(string name, int dx, int dz, float dy, uint ground, uint skirt)
         {
-            // Every world sample the piece has, read from its tiles (chunks repeat their shared edges, so a sample may
-            // be read twice, with the same values).
             var samples = new Dictionary<(int X, int Z), (float Height, float? Under, uint? Color, uint? UnderColor)>();
             foreach (var chunk in Zone.Chunks)
             {
@@ -256,7 +208,6 @@ namespace Comet.Unity.Editor
 
                             var i = z * map.SizeX + x;
                             var key = (chunk.Coord.X * ZoneGrid.ChunkSize + tile.OriginX + x, chunk.Coord.Z * ZoneGrid.ChunkSize + tile.OriginZ + z);
-                            // Where tiles share a sample, one may have a map the other lacks: keep what either has.
                             samples.TryGetValue(key, out var seen);
                             samples[key] = (
                                 map.Offset + map.Samples[i] * Heightmap.Scale,
@@ -303,7 +254,6 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>Removes a piece and all its tiles.</summary>
         public void RemovePiece(string name)
         {
             Zone.Pieces = Zone.Pieces.Where(p => p.Name != name).ToArray();
@@ -315,10 +265,7 @@ namespace Comet.Unity.Editor
             Reindex();
         }
 
-        /// <summary>
-        /// World samples where two pieces both have ground closer together than <paramref name="gap"/> meters, so a
-        /// body may not fit between them: allowed, but worth fixing.
-        /// </summary>
+        /// <summary>Samples where two pieces' ground is closer than <paramref name="gap"/> meters, so a body may not fit; worth fixing.</summary>
         public List<Vector3> Overlaps(float gap)
         {
             var found = new List<Vector3>();
@@ -346,10 +293,6 @@ namespace Comet.Unity.Editor
             return found;
         }
 
-        /// <summary>
-        /// Crops each tile to the samples with ground (and drops tiles with none), as the zone's files keep them.
-        /// Underside and color maps (ground and underside) are cropped the same way.
-        /// </summary>
         public static void Crop(Zone zone)
         {
             foreach (var chunk in zone.Chunks)
@@ -376,7 +319,6 @@ namespace Comet.Unity.Editor
                         }
                     }
 
-                    // A tile needs a whole cell of ground to draw anything; a lone row or column is dropped too.
                     if (maxX - minX < 1 || maxZ - minZ < 1)
                     {
                         continue;
@@ -406,44 +348,13 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A tile grown to its whole chunk, with holes where it had no samples.
         private static TerrainTile Expand(TerrainTile tile)
         {
             const int size = ZoneGrid.ChunkSamples;
-            var heights = new Heightmap
-            {
-                SizeX = size,
-                SizeZ = size,
-                Offset = tile.Heights.Offset,
-                Samples = new ushort[size * size],
-            };
-            var under = tile.Underside is { } u
-                ? new Heightmap
-                {
-                    SizeX = size,
-                    SizeZ = size,
-                    Offset = u.Offset,
-                    Samples = new ushort[size * size],
-                }
-                : null;
-            var colors =
-                tile.Colors != null
-                    ? new ColorMap
-                    {
-                        SizeX = size,
-                        SizeZ = size,
-                        Colors = new uint[size * size],
-                    }
-                    : null;
-            var underColors =
-                tile.UndersideColors != null
-                    ? new ColorMap
-                    {
-                        SizeX = size,
-                        SizeZ = size,
-                        Colors = new uint[size * size],
-                    }
-                    : null;
+            var heights = NewHeights(size, size, tile.Heights.Offset);
+            var under = tile.Underside is { } u ? NewHeights(size, size, u.Offset) : null;
+            var colors = tile.Colors != null ? NewColors(size, size, 0) : null;
+            var underColors = tile.UndersideColors != null ? NewColors(size, size, 0) : null;
             for (var z = 0; z < tile.Heights.SizeZ; z++)
             {
                 for (var x = 0; x < tile.Heights.SizeX; x++)
@@ -477,8 +388,6 @@ namespace Comet.Unity.Editor
             };
         }
 
-        // Runs `change` on every tile of the piece holding world sample (x, z), making one for its own chunk if
-        // none does and `create` is set.
         private void ForEachTile(string piece, int x, int z, bool create, Action<TerrainTile, int, int> change)
         {
             var found = false;
@@ -516,18 +425,7 @@ namespace Comet.Unity.Editor
                 }
 
                 const int size = ZoneGrid.ChunkSamples;
-                var tile = new TerrainTile
-                {
-                    Piece = piece,
-                    Heights = new Heightmap
-                    {
-                        SizeX = size,
-                        SizeZ = size,
-                        Offset = Zone.HeightBase,
-                        Samples = new ushort[size * size],
-                    },
-                };
-                // Its edges repeat its neighbors' (chunks share their edge samples), so it starts with theirs.
+                var tile = new TerrainTile { Piece = piece, Heights = NewHeights(size, size, Zone.HeightBase) };
                 var whole = Terrain[piece];
                 for (var i = 0; i < size; i++)
                 {
@@ -547,19 +445,69 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A height in meters as one of the map's samples, kept off the hole value and within range.
         private static ushort Sample(Heightmap map, float? height) => height is { } h ? map.ToSample(h) : Heightmap.Hole;
 
         private static Heightmap Filled(Heightmap like, float height)
         {
-            var map = new Heightmap
-            {
-                SizeX = like.SizeX,
-                SizeZ = like.SizeZ,
-                Offset = like.Offset,
-                Samples = new ushort[like.SizeX * like.SizeZ],
-            };
+            var map = NewHeights(like.SizeX, like.SizeZ, like.Offset);
             Array.Fill(map.Samples, Sample(map, height));
+            return map;
+        }
+
+        internal static Vector3? RayEnter(Ray ray, Func<Vector3, bool> inside)
+        {
+            const float step = 0.25f,
+                far = 1000;
+            var previous = ray.origin;
+            var wasInside = inside(previous);
+            for (var t = step; t < far; t += step)
+            {
+                var point = ray.GetPoint(t);
+                var isInside = inside(point);
+                if (isInside && !wasInside)
+                {
+                    var (a, b) = (previous, point);
+                    for (var i = 0; i < 10; i++)
+                    {
+                        var middle = (a + b) / 2;
+                        if (inside(middle))
+                        {
+                            b = middle;
+                        }
+                        else
+                        {
+                            a = middle;
+                        }
+                    }
+
+                    return b;
+                }
+
+                previous = point;
+                wasInside = isInside;
+            }
+
+            return null;
+        }
+
+        private static Heightmap NewHeights(int sizeX, int sizeZ, float offset) =>
+            new Heightmap
+            {
+                SizeX = sizeX,
+                SizeZ = sizeZ,
+                Offset = offset,
+                Samples = new ushort[sizeX * sizeZ],
+            };
+
+        private static ColorMap NewColors(int sizeX, int sizeZ, uint fill)
+        {
+            var map = new ColorMap
+            {
+                SizeX = sizeX,
+                SizeZ = sizeZ,
+                Colors = new uint[sizeX * sizeZ],
+            };
+            Array.Fill(map.Colors, fill);
             return map;
         }
 

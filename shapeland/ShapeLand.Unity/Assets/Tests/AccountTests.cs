@@ -6,15 +6,12 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Tests
 {
-    // The account screens, with the Login server: the card's Sign In, the Account page reached from the Esc menu, and
-    // the session kept for each Login server.
     [Category("Accounts")]
     public class AccountTests : GameSceneTest
     {
         private const string Password = "a long test password";
         private const string NewPassword = "another long password";
 
-        // Sign-ins count as recent this long, so a test can wait it out and have the page ask for the password again.
         private const string Recent = "--Login:RecentSignIn=00:00:03";
 
         private VisualElement Page => Hud.Root.Q("account");
@@ -30,7 +27,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(Page.ClassListContains("hidden"), Is.False, "The Account page didn't open.");
         }
 
-        // The page's rows take clicks rather than being buttons.
         private static void ClickRow(VisualElement row)
         {
             using var click = ClickEvent.GetPooled();
@@ -54,7 +50,6 @@ namespace ShapeLand.Client.Tests
             yield return SubmitStep("account-rows");
         }
 
-        // The confirm panel's choice with this text, wherever its host is.
         private void Choose(string text)
         {
             var choice = Hud
@@ -86,7 +81,7 @@ namespace ShapeLand.Client.Tests
         {
             yield return StartGame(accounts: true);
             yield return OpenAccount();
-            ClickRow(Hud.Root.Q("account-password-row")); // a guest's first password asks for nothing first
+            ClickRow(Hud.Root.Q("account-password-row"));
             yield return SetPassword(Password);
             Assert.That(Join.Account.Guest, Is.False, "Still a guest with a password.");
 
@@ -94,7 +89,7 @@ namespace ShapeLand.Client.Tests
             yield return LaidOut("sign-in-button");
             Click(Screen.Root.Q<Button>("sign-in-button"));
             yield return null;
-            Field("sign-in-username").value = "unitytest"; // in other capitals
+            Field("sign-in-username").value = "unitytest";
             Field("sign-in-password").value = Password;
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null || Screen.Error != null, 15);
@@ -113,7 +108,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(Field("name").value, Is.Empty, "The card kept the signed-out player's name.");
             Assert.That(ShapeButton(Join.Content.Shapes.All[0].Id).ClassListContains("on"), Is.True, "The card kept the signed-out player's shape.");
 
-            // Signing in from the Sign In page, then leaving, comes back to the signed-in card rather than that page.
             yield return LaidOut("sign-in-button");
             Click(Screen.Root.Q<Button>("sign-in-button"));
             yield return null;
@@ -136,7 +130,6 @@ namespace ShapeLand.Client.Tests
             ClickRow(Hud.Root.Q("account-password-row"));
             yield return SetPassword(Password);
 
-            // A new password, once the sign-in isn't recent: the old one first.
             yield return Wait(4);
             ClickRow(Hud.Root.Q("account-password-row"));
             yield return TestGameServer.WaitFor(() => AtStep("account-confirm"), 10);
@@ -145,7 +138,6 @@ namespace ShapeLand.Client.Tests
             yield return SubmitStep("account-password");
             yield return SetPassword(NewPassword);
 
-            // A recovery code, the same way, then signing in with it.
             yield return Wait(4);
             ClickRow(Hud.Root.Q("account-code-row"));
             yield return TestGameServer.WaitFor(() => AtStep("account-confirm"), 10);
@@ -220,7 +212,7 @@ namespace ShapeLand.Client.Tests
             yield return StartGame(accounts: true);
             Assert.That(Join.SignedIn, Is.True);
             Join.Leave();
-            Join.UseLoginServer("127.0.0.1:9"); // another Login server: nobody's signed in there
+            Join.UseLoginServer("127.0.0.1:9");
             Assert.That(Join.SignedIn, Is.False, "A session showed up on another Login server.");
             Join.UseLoginServer(Server.Address);
             Assert.That(Join.SignedIn, Is.True, "Switching back lost the session.");

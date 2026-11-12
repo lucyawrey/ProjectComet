@@ -9,19 +9,12 @@ using UnityEngine;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// The Scene view's place tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Place
-    /// Tool): pick a primitive, a prop, or a new spawn point, teleporter, trigger or sign in its panel, then click in
-    /// the scene to place it on whatever is under the mouse. Placed objects are moved, turned and scaled with Unity's
-    /// own tools; spawn points, teleporters, triggers and signs are edited in the Inspector.
-    /// </summary>
     [EditorTool("Zone Place")]
     public sealed class ZonePlaceTool : EditorTool
     {
         [SerializeField]
         private string placeable = "";
 
-        // The kind of thing to add (spawn, teleporter, trigger or sign), or empty to place placeables; and its id (none for signs).
         [SerializeField]
         private string adding = "";
 
@@ -32,7 +25,7 @@ namespace Comet.Unity.Editor
         private string groupId = "group.";
 
         [SerializeField]
-        private Color color = Color.clear; // clear until first shown: then the game's placed color
+        private Color color = Color.clear;
 
         [SerializeField]
         private bool blockout;
@@ -40,7 +33,6 @@ namespace Comet.Unity.Editor
         private GUIContent? _icon;
         private Vector3? _hover;
 
-        /// <summary>The tool's one instance, for its panel.</summary>
         internal static ZonePlaceTool? Instance { get; private set; }
 
         [MenuItem("Comet/Zones/Place Tool", priority = 21)]
@@ -57,9 +49,6 @@ namespace Comet.Unity.Editor
 
         public override bool IsAvailable() => Editing != null;
 
-        // The panel's pictures of each model and primitive, drawn in the placed objects' material and the picked color
-        // (Unity's own previews use the models' imported materials, which show purple where their shaders aren't
-        // ready). Keyed by what's drawn, its color and, for primitives, the polygon budget.
         private readonly Dictionary<(string, Color), Texture2D> _thumbnails = new Dictionary<(string, Color), Texture2D>();
 
         private void OnEnable() => Instance = this;
@@ -74,15 +63,13 @@ namespace Comet.Unity.Editor
             _thumbnails.Clear();
         }
 
-        // A model's meshes, in its own space, without its collision objects.
         private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(GameObject model, Vector3 scale) =>
             model
                 .GetComponentsInChildren<MeshFilter>()
-                .Where(f => f.sharedMesh != null && !f.name.EndsWith(Prop.CollisionSuffix, StringComparison.Ordinal))
+                .Where(f => f.sharedMesh != null && !PlacedProps.IsCollision(f))
                 .Select(f => (f.sharedMesh, Matrix4x4.Scale(scale) * model.transform.worldToLocalMatrix * f.transform.localToWorldMatrix))
                 .ToList();
 
-        // What a placeable name (a prop id or a primitive's kind) draws at a scale, or nothing if it has no model.
         private static List<(Mesh Mesh, Matrix4x4 Matrix)> Parts(string placeable, CometSettings settings, Vector3? size = null)
         {
             if (ZoneEditor.PrimitiveNamed(placeable) is { } kind)
@@ -111,7 +98,6 @@ namespace Comet.Unity.Editor
         private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix)> parts, Material material, Color color, int size) =>
             Thumbnail(key, parts.Select(p => (p.Mesh, p.Matrix, color)).ToList(), material, color, size);
 
-        // A picture of meshes each in its own color; cached by key and `color` (the picked one, for what follows it).
         private Texture2D? Thumbnail(string key, List<(Mesh Mesh, Matrix4x4 Matrix, Color Color)> parts, Material material, Color color, int size)
         {
             if (_thumbnails.TryGetValue((key, color), out var cached) && cached != null)
@@ -182,7 +168,6 @@ namespace Comet.Unity.Editor
 
         private static ZoneEditing Editing => FindAnyObjectByType<ZoneEditing>();
 
-        /// <summary>The tool's panel in the Scene view.</summary>
         internal void PanelGui(float width)
         {
             var editing = Editing;
@@ -202,23 +187,7 @@ namespace Comet.Unity.Editor
             EditorGUILayout.BeginVertical(GUILayout.Width(width));
             if (editing.IsGroup)
             {
-                EditorGUILayout.HelpBox(
-                    $"Editing {editing.groupId}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.",
-                    MessageType.Info
-                );
-                var back = ZoneGroups.ReturnFolder;
-                if (back.Length > 0 && GUILayout.Button($"Back to {System.IO.Path.GetFileName(back)}"))
-                {
-                    EditorApplication.delayCall += () =>
-                    {
-                        if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                        {
-                            ZoneEditor.Open(back, settings);
-                        }
-                    };
-                }
-
-                EditorGUILayout.Space();
+                GroupBanner(editing, settings);
             }
 
             if (color.a == 0)
@@ -236,117 +205,12 @@ namespace Comet.Unity.Editor
             );
             EditorGUILayout.Space();
 
-            // As many buttons to a row as the panel's width fits.
-            const int size = 64;
-            var perRow = Mathf.Max(1, (int)(width / (size + 4)));
+            var perRow = Mathf.Max(1, (int)(width / (ButtonSize + 4)));
             var budget = settings.Budget;
             var budgetKey = $"{budget.FacetLength}/{budget.MinSides}/{budget.MaxSides}";
-            void Grid(List<(string Key, string Label, Texture2D? Picture)> items)
-            {
-                for (var i = 0; i < items.Count; i += perRow)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    foreach (var (item, label, picture) in items.Skip(i).Take(perRow))
-                    {
-                        var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, item);
-                        var picked = adding.Length == 0 && placeable == item;
-                        if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) && !picked)
-                        {
-                            placeable = item;
-                            adding = "";
-                        }
-                    }
+            CatalogGui(editing, settings, perRow, budgetKey);
+            GroupActionsGui(editing, settings);
 
-                    EditorGUILayout.EndHorizontal();
-                }
-            }
-
-            EditorGUILayout.LabelField("Primitives", EditorStyles.boldLabel);
-            Grid(
-                PrimitiveKinds
-                    .All.Select(PrimitiveKinds.Name)
-                    .Select(kind =>
-                        (
-                            kind,
-                            kind,
-                            settings.placedMaterial != null
-                                ? Thumbnail($"{kind} {budgetKey}", Parts(kind, settings), settings.placedMaterial, color, size * 2)
-                                : null
-                        )
-                    )
-                    .ToList()
-            );
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Props", EditorStyles.boldLabel);
-            Grid(
-                settings
-                    .props.Entries.Select(entry =>
-                    {
-                        var label =
-                            !string.IsNullOrEmpty(entry.displayName) ? entry.displayName
-                            : entry.id.StartsWith("prop.") ? entry.id.Substring("prop.".Length)
-                            : entry.id;
-                        var preview =
-                            entry.model == null ? null
-                            : settings.placedMaterial != null
-                                ? Thumbnail(entry.id, Parts(entry.model, Vector3.one), settings.placedMaterial, color, size * 2)
-                            : AssetPreview.GetAssetPreview(entry.model);
-                        return (entry.id, label, preview);
-                    })
-                    .ToList()
-            );
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Groups", EditorStyles.boldLabel);
-            Grid(
-                ZoneGroups
-                    .All.Where(g => g.Id != editing.groupId)
-                    .Select(g =>
-                    {
-                        var label = g.DisplayName ?? g.Id.Substring("group.".Length);
-                        var picture =
-                            settings.placedMaterial != null
-                                ? Thumbnail(
-                                    $"{g.Id} {ZoneGroups.Version} {budgetKey}",
-                                    ZoneGroups.Meshes(g.Id, settings),
-                                    settings.placedMaterial,
-                                    Color.clear,
-                                    size * 2
-                                )
-                                : null;
-                        return (g.Id, label, picture);
-                    })
-                    .ToList()
-            );
-            if (adding.Length == 0 && placeable.StartsWith("group.", StringComparison.Ordinal) && ZoneGroups.Find(placeable) != null)
-            {
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button($"Edit {placeable}"))
-                {
-                    ZoneGroups.OpenLater(placeable, settings);
-                }
-
-                if (GUILayout.Button("Delete…", GUILayout.Width(70)))
-                {
-                    var id = placeable;
-                    EditorApplication.delayCall += () => ZoneGroups.Delete(id, editing, settings); // after this GUI pass
-                    placeable = "";
-                }
-
-                EditorGUILayout.EndHorizontal();
-            }
-
-            EditorGUILayout.BeginHorizontal();
-            groupId = EditorGUILayout.TextField(groupId);
-            if (GUILayout.Button("Save selection as group", GUILayout.Width(160)))
-            {
-                ZoneGroups.SaveSelection(editing, groupId, settings);
-            }
-
-            EditorGUILayout.EndHorizontal();
-
-            // Previews load in the background; keep repainting until they're in.
             if (AssetPreview.IsLoadingAssetPreviews())
             {
                 SceneView.RepaintAll();
@@ -364,31 +228,172 @@ namespace Comet.Unity.Editor
                 return;
             }
 
+            TriggersGui(editing, settings, budgetKey);
+            SignsGui(editing, settings, budgetKey);
+            EditorGUILayout.HelpBox(
+                adding.Length > 0 || !string.IsNullOrEmpty(placeable)
+                    ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
+                    : "Pick a primitive, a prop, a group, or a new spawn point, teleporter, trigger or sign, then click in the scene to place it.",
+                MessageType.None
+            );
+            EditorGUILayout.EndVertical();
+        }
+
+        private const int ButtonSize = 64;
+
+        private static void GroupBanner(ZoneEditing editing, CometSettings settings)
+        {
+            EditorGUILayout.HelpBox(
+                $"Editing {editing.groupId}: its pivot is the scene's origin. Saving (Ctrl+S) updates every copy.",
+                MessageType.Info
+            );
+            var back = ZoneGroups.ReturnFolder;
+            if (back.Length > 0 && GUILayout.Button($"Back to {System.IO.Path.GetFileName(back)}"))
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                    {
+                        ZoneEditor.Open(back, settings);
+                    }
+                };
+            }
+
+            EditorGUILayout.Space();
+        }
+
+        private void CatalogGui(ZoneEditing editing, CometSettings settings, int perRow, string budgetKey)
+        {
+            EditorGUILayout.LabelField("Primitives", EditorStyles.boldLabel);
+            Grid(
+                PrimitiveKinds
+                    .All.Select(PrimitiveKinds.Name)
+                    .Select(kind =>
+                        (
+                            kind,
+                            kind,
+                            settings.placedMaterial != null
+                                ? Thumbnail($"{kind} {budgetKey}", Parts(kind, settings), settings.placedMaterial, color, ButtonSize * 2)
+                                : null
+                        )
+                    )
+                    .ToList(),
+                perRow
+            );
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Props", EditorStyles.boldLabel);
+            Grid(
+                settings
+                    .props!.Entries.Select(entry =>
+                    {
+                        var label =
+                            !string.IsNullOrEmpty(entry.displayName) ? entry.displayName
+                            : entry.id.StartsWith("prop.") ? entry.id.Substring("prop.".Length)
+                            : entry.id;
+                        var preview =
+                            entry.model == null ? null
+                            : settings.placedMaterial != null
+                                ? Thumbnail(entry.id, Parts(entry.model, Vector3.one), settings.placedMaterial, color, ButtonSize * 2)
+                            : AssetPreview.GetAssetPreview(entry.model);
+                        return (entry.id, label, preview);
+                    })
+                    .ToList(),
+                perRow
+            );
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Groups", EditorStyles.boldLabel);
+            Grid(
+                ZoneGroups
+                    .All.Where(g => g.Id != editing.groupId)
+                    .Select(g =>
+                    {
+                        var label = g.DisplayName ?? g.Id.Substring("group.".Length);
+                        var picture =
+                            settings.placedMaterial != null
+                                ? Thumbnail(
+                                    $"{g.Id} {ZoneGroups.Version} {budgetKey}",
+                                    ZoneGroups.Meshes(g.Id, settings),
+                                    settings.placedMaterial,
+                                    Color.clear,
+                                    ButtonSize * 2
+                                )
+                                : null;
+                        return (g.Id, label, picture);
+                    })
+                    .ToList(),
+                perRow
+            );
+        }
+
+        private void Grid(List<(string Key, string Label, Texture2D? Picture)> items, int perRow)
+        {
+            for (var i = 0; i < items.Count; i += perRow)
+            {
+                EditorGUILayout.BeginHorizontal();
+                foreach (var (item, label, picture) in items.Skip(i).Take(perRow))
+                {
+                    var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label, item);
+                    var picked = adding.Length == 0 && placeable == item;
+                    if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(ButtonSize), GUILayout.Height(ButtonSize)) && !picked)
+                    {
+                        placeable = item;
+                        adding = "";
+                    }
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        private void GroupActionsGui(ZoneEditing editing, CometSettings settings)
+        {
+            if (adding.Length == 0 && placeable.StartsWith("group.", StringComparison.Ordinal) && ZoneGroups.Find(placeable) != null)
+            {
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button($"Edit {placeable}"))
+                {
+                    ZoneGroups.OpenLater(placeable, settings);
+                }
+
+                if (GUILayout.Button("Delete…", GUILayout.Width(70)))
+                {
+                    var id = placeable;
+                    EditorApplication.delayCall += () => ZoneGroups.Delete(id, editing, settings);
+                    placeable = "";
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            groupId = EditorGUILayout.TextField(groupId);
+            if (GUILayout.Button("Save selection as group", GUILayout.Width(160)))
+            {
+                ZoneGroups.SaveSelection(editing, groupId, settings);
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void TriggersGui(ZoneEditing editing, CometSettings settings, string budgetKey)
+        {
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Spawn points, teleporters and triggers", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
-            // Spawn points' and teleporters' pictures are their new pads, flattened, in their colors.
-            void Adder(string kind, string label, string pad, Vector3 padSize, Color padColor)
-            {
-                var picture =
-                    settings.placedMaterial != null && !string.IsNullOrEmpty(pad)
-                        ? Thumbnail($"{kind} {pad} {padSize} {budgetKey}", Parts(pad, settings, padSize), settings.placedMaterial, padColor, size * 2)
-                        : null;
-                var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label);
-                var picked = adding == kind;
-                if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(size), GUILayout.Height(size)) != picked)
-                {
-                    adding = picked ? "" : kind;
-                    // The id starts as the kind and the zone, keeping a name already typed.
-                    var prefix = $"{kind}.{ZoneName(editing)}.";
-                    var typed = addingId.Split('.') is { Length: 3 } parts ? parts[2] : "";
-                    addingId = prefix + typed;
-                }
-            }
-
-            Adder("spawn", "New spawn point", settings.spawnPad, settings.spawnPadSize, settings.spawnPadColor);
-            Adder("teleporter", "New teleporter", settings.teleporterPad, settings.teleporterPadSize, settings.teleporterPadColor);
-            Adder("trigger", "New trigger", "", Vector3.zero, Color.white);
+            Adder(editing, settings, budgetKey, "spawn", "New spawn point", settings.spawnPad, settings.spawnPadSize, settings.spawnPadColor);
+            Adder(
+                editing,
+                settings,
+                budgetKey,
+                "teleporter",
+                "New teleporter",
+                settings.teleporterPad,
+                settings.teleporterPadSize,
+                settings.teleporterPadColor
+            );
+            Adder(editing, settings, budgetKey, "trigger", "New trigger", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
             if (adding.Length > 0 && adding != "sign")
             {
@@ -404,11 +409,14 @@ namespace Comet.Unity.Editor
                     SceneView.lastActiveSceneView?.FrameSelected();
                 }
             }
+        }
 
+        private void SignsGui(ZoneEditing editing, CometSettings settings, string budgetKey)
+        {
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Signs", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
-            Adder("sign", "New sign", "", Vector3.zero, Color.white);
+            Adder(editing, settings, budgetKey, "sign", "New sign", "", Vector3.zero, Color.white);
             EditorGUILayout.EndHorizontal();
             foreach (var sign in editing.GetComponentsInChildren<ZoneSign>(true))
             {
@@ -422,17 +430,40 @@ namespace Comet.Unity.Editor
                     SceneView.lastActiveSceneView?.FrameSelected();
                 }
             }
-
-            EditorGUILayout.HelpBox(
-                adding.Length > 0 || !string.IsNullOrEmpty(placeable)
-                    ? "Click in the scene to place it, in the picked color; hold Alt to orbit as usual. Move, turn and scale with Unity's tools after (W, E, R; hold Ctrl to snap). Saving checks scale limits and how far objects reach."
-                    : "Pick a primitive, a prop, a group, or a new spawn point, teleporter, trigger or sign, then click in the scene to place it.",
-                MessageType.None
-            );
-            EditorGUILayout.EndVertical();
         }
 
-        // The color things are placed in: the settings' swatches, and a picker for any other.
+        private void Adder(
+            ZoneEditing editing,
+            CometSettings settings,
+            string budgetKey,
+            string kind,
+            string label,
+            string pad,
+            Vector3 padSize,
+            Color padColor
+        )
+        {
+            var picture =
+                settings.placedMaterial != null && !string.IsNullOrEmpty(pad)
+                    ? Thumbnail(
+                        $"{kind} {pad} {padSize} {budgetKey}",
+                        Parts(pad, settings, padSize),
+                        settings.placedMaterial,
+                        padColor,
+                        ButtonSize * 2
+                    )
+                    : null;
+            var content = picture != null ? new GUIContent(picture, label) : new GUIContent(label);
+            var picked = adding == kind;
+            if (GUILayout.Toggle(picked, content, GUI.skin.button, GUILayout.Width(ButtonSize), GUILayout.Height(ButtonSize)) != picked)
+            {
+                adding = picked ? "" : kind;
+                var prefix = $"{kind}.{ZoneName(editing)}.";
+                var typed = addingId.Split('.') is { Length: 3 } parts ? parts[2] : "";
+                addingId = prefix + typed;
+            }
+        }
+
         private void ColorRow(CometSettings settings)
         {
             EditorGUILayout.LabelField("Color", EditorStyles.boldLabel);
@@ -476,7 +507,6 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            // Take the left mouse button from the scene's selection while the tool is picked.
             var control = GUIUtility.GetControlID(FocusType.Passive);
             if (e.type == EventType.Layout)
             {
@@ -517,7 +547,7 @@ namespace Comet.Unity.Editor
                     placement.ApplyColor();
                     if (placement.IsGroup)
                     {
-                        ZoneGroups.Redraw(placement);
+                        ZoneGroups.Draw(placement);
                     }
                 }
 
@@ -527,7 +557,6 @@ namespace Comet.Unity.Editor
 
             if (adding == "sign")
             {
-                // A little above the ground, so its text isn't half in it.
                 Selection.activeGameObject = ZoneEditor.AddSign(editing, at + Vector3.up * 1.5f).gameObject;
                 return;
             }
@@ -558,12 +587,9 @@ namespace Comet.Unity.Editor
             ).gameObject;
         }
 
-        // The opened zone's name (meadow, for zone.meadow), as its ids use it; its root is named after its id.
         private static string ZoneName(ZoneEditing editing) =>
             editing.name.StartsWith("Zone zone.", StringComparison.Ordinal) ? editing.name.Substring("Zone zone.".Length) : "";
 
-        // Where the mouse points: on top of the terrain, or of a placed object if one is nearer along the ray (on its
-        // bounding box's top), else on the ground plane.
         private static Vector3? Drop(ZoneEditing editing, Vector2 mouse)
         {
             var ray = HandleUtility.GUIPointToWorldRay(mouse);
@@ -598,48 +624,13 @@ namespace Comet.Unity.Editor
             return best;
         }
 
-        // Where the ray first meets any terrain piece's ground: marching a quarter meter at a time, then narrowing in.
         private static Vector3? TerrainHit(ZoneEditing editing, Ray ray)
         {
             var pieces = ZoneTerrainEditing.For(editing).Terrain.Pieces;
-            bool Below(Vector3 p) => pieces.Any(piece => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground);
-
-            const float step = 0.25f,
-                far = 1000;
-            var previous = ray.origin;
-            for (var t = step; t < far; t += step)
-            {
-                var point = ray.GetPoint(t);
-                if (Below(point))
-                {
-                    var (a, b) = (previous, point);
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var middle = (a + b) / 2;
-                        if (Below(middle))
-                        {
-                            b = middle;
-                        }
-                        else
-                        {
-                            a = middle;
-                        }
-                    }
-
-                    return b;
-                }
-
-                previous = point;
-            }
-
-            return null;
+            return ZoneTerrainEditing.RayEnter(ray, p => pieces.Any(piece => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground));
         }
     }
 
-    /// <summary>
-    /// The place tool's panel, shown in the Scene view while the tool is picked. Drag its edge to resize it; its
-    /// contents scroll when they don't fit.
-    /// </summary>
     [Overlay(typeof(SceneView), "comet-zone-place", "Zone Place")]
     internal sealed class ZonePlacePanel : IMGUIOverlay, ITransientOverlay
     {
@@ -659,7 +650,6 @@ namespace Comet.Unity.Editor
 
         public override void OnGUI()
         {
-            // The overlay's size less its title bar and margins.
             var width = Mathf.Max(minSize.x, size.x) - 12;
             _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Width(width), GUILayout.Height(Mathf.Max(minSize.y, size.y) - 34));
             ZonePlaceTool.Instance?.PanelGui(width - 20);

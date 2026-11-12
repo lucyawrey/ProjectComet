@@ -4,7 +4,6 @@ namespace Comet.Protocol.Tests;
 
 public class SerializerTests
 {
-    // IL2CPP and web builds can't generate code at run time, so every message needs a source-generated formatter.
     [Fact]
     public void EveryMessageHasASourceGeneratedFormatter()
     {

@@ -8,16 +8,10 @@ using Microsoft.Extensions.Hosting;
 
 namespace Comet.Server;
 
-/// <summary>Hooks Comet's connections into an ASP.NET Core app.</summary>
 public static class CometServerExtensions
 {
     private static readonly ConnectionLimits DefaultLimits = new();
 
-    /// <summary>
-    /// Accepts game connections at <paramref name="pattern"/>. Needs <c>UseWebSockets()</c>, and a
-    /// <see cref="ConnectionRegistry"/>, <see cref="IConnectionHandler"/> and <see cref="TickLoop"/> in services,
-    /// and optionally <see cref="ConnectionLimits"/>. Connections over the limits are refused (503).
-    /// </summary>
     public static IEndpointConventionBuilder MapCometWebSocket(this IEndpointRouteBuilder endpoints, string pattern) =>
         endpoints.Map(
             pattern,
@@ -35,7 +29,6 @@ public static class CometServerExtensions
                 var address = context.Connection.RemoteIpAddress;
                 if (!registry.TryReserve(address, limits))
                 {
-                    registry.Stats.AddConnectionRefused();
                     context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                     return;
                 }
@@ -57,7 +50,6 @@ public static class CometServerExtensions
                         services.GetRequiredService<TickLoop>()
                     );
 
-                    // Close connections as the server stops, rather than leave them for the host's shutdown timeout.
                     using var stopping = services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(connection.Shutdown);
                     await connection.RunAsync(context.RequestAborted);
                 }

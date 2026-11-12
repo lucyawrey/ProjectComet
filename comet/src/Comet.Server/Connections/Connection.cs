@@ -9,53 +9,24 @@ using Comet.Server.Ticking;
 
 namespace Comet.Server.Connections;
 
-/// <summary>
-/// One client's WebSocket connection.
-/// <para>
-/// Outgoing: each tick, <see cref="Flush"/> builds one frame from the queued events and the
-/// latest-only state queues. At most one tick frame is in flight; if the previous one is still
-/// sending, the flush is skipped and the state keeps being replaced with newer updates. A tick frame
-/// stays under the clients' frame limit: events past <see cref="TickFrameEventBudget"/>, and states
-/// that don't fit, wait for the next tick, in order; states wait while any events do (so a burst of events
-/// pauses everyone's movement for a few ticks; holding back only new entities' states could replace this).
-/// Pings are answered immediately in their own frame, so round trips measure the network
-/// rather than the wait for the next tick.
-/// </para>
-/// <para>
-/// Limits (a client's traffic is never trusted): incoming messages are rate-limited (each frame, or piece of
-/// one, costs at least a message), and a client over the limit is dropped; at most <see cref="MaxPendingImmediate"/> immediate frames wait to send, beyond which pongs are
-/// dropped; a client that stops reading is dropped once its unsent events pass <see cref="MaxPendingEventBytes"/>
-/// or a send has waited <see cref="SendTimeout"/>.
-/// </para>
-/// <para>
-/// Threads: <see cref="SendEvent"/>, <see cref="EntityStates"/> and <see cref="Flush"/> belong to
-/// the tick thread; <see cref="SendImmediate"/> to the connection's receive flow (handler callbacks).
-/// </para>
-/// </summary>
+/// <summary><see cref="SendEvent"/>, <see cref="EntityStates"/>, <see cref="Flush"/>: tick thread. <c>SendImmediate</c>: receive flow.</summary>
 public sealed class Connection
 {
     /// <summary>The largest frame a client may send, in bytes; a bigger one drops the client.</summary>
     public const int MaxIncomingFrameSize = 4096;
 
-    /// <summary>Messages a client may send per second on average, well above an honest client's (about 20).</summary>
     public const double MaxMessagesPerSecond = 120;
 
-    /// <summary>How many messages may arrive at once, e.g. the backlog delivered after a TCP stall.</summary>
     public const double MessageBurst = 240;
 
-    /// <summary>Immediate frames (pongs) waiting to send; more are dropped.</summary>
     public const int MaxPendingImmediate = 16;
 
-    /// <summary>Unsent event bytes before the client is taken to have stopped reading and is dropped.</summary>
     public const int MaxPendingEventBytes = 256 * 1024;
 
-    /// <summary>Event bytes one tick frame carries at most, half the clients' frame limit.</summary>
     public const int TickFrameEventBudget = FrameReader.MaxServerFrameSize / 2;
 
-    /// <summary>A tick frame takes no more entity states past this size, which leaves room for the last one under the clients' limit.</summary>
     public const int TickFrameStateLimit = FrameReader.MaxServerFrameSize - 1024;
 
-    /// <summary>A send waiting longer than this drops the client, as stopped reading.</summary>
     public static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(10);
 
     private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(5);
@@ -66,20 +37,17 @@ public sealed class Connection
     private readonly TickLoop _tickLoop;
     private readonly Channel<Outgoing> _outgoing = Channel.CreateUnbounded<Outgoing>(new UnboundedChannelOptions { SingleReader = true });
 
-    // Tick thread.
     private readonly MessageWriter _events;
     private readonly Queue<int> _eventSizes = new();
     private readonly MessageWriter _tickFrame;
     private int _tickFrameInFlight;
     private bool _dropped;
 
-    // Receive flow.
     private readonly MessageWriter _immediateFrame;
     private readonly byte[] _receiveBuffer = new byte[MaxIncomingFrameSize];
     private double _messageAllowance = MessageBurst;
     private long _allowanceTime = Stopwatch.GetTimestamp();
 
-    // Both.
     private int _pendingImmediate;
     private volatile bool _shuttingDown;
 
@@ -95,19 +63,14 @@ public sealed class Connection
         Id = registry.NextId();
     }
 
-    /// <summary>A number for this connection, unique while the server runs.</summary>
     public uint Id { get; }
 
-    /// <summary>The game's own data for this connection.</summary>
     public object? Tag { get; set; }
 
-    /// <summary>Whether the last tick frame is still sending (a flush now would be skipped).</summary>
     internal bool TickFrameInFlight => Volatile.Read(ref _tickFrameInFlight) != 0;
 
-    /// <summary>Pending entity updates, latest only. Tick thread.</summary>
     public LatestOnlyQueue<EntityState> EntityStates { get; } = new();
 
-    /// <summary>Queues an event for the next tick frame. Events are never dropped or merged. Tick thread.</summary>
     public void SendEvent<T>(ushort messageId, in T message)
     {
         if (_dropped)
@@ -117,11 +80,9 @@ public sealed class Connection
 
         if (_events.Length > MaxPendingEventBytes)
         {
-            // The client has stopped reading: drop it rather than keep everything for it.
             _dropped = true;
             _events.Clear();
             _eventSizes.Clear();
-            _registry.Stats.AddSlowClientDropped();
             _socket.Abort();
             return;
         }
@@ -131,7 +92,6 @@ public sealed class Connection
         _eventSizes.Enqueue(_events.Length - length);
     }
 
-    /// <summary>Sends a message now, in its own frame. Receive flow only (handler callbacks).</summary>
     public void SendImmediate<T>(ushort messageId, in T message)
     {
         if (Interlocked.Increment(ref _pendingImmediate) > MaxPendingImmediate)
@@ -146,25 +106,23 @@ public sealed class Connection
         _immediateFrame.WrittenSpan.CopyTo(rented);
         if (!_outgoing.Writer.TryWrite(new Outgoing(rented, _immediateFrame.Length)))
         {
-            ArrayPool<byte>.Shared.Return(rented); // closed
+            ArrayPool<byte>.Shared.Return(rented);
             Interlocked.Decrement(ref _pendingImmediate);
         }
     }
 
-    /// <summary>Builds and sends this tick's frame, unless the previous one is still sending. Tick thread.</summary>
     public void Flush(uint tick)
     {
         if (Interlocked.CompareExchange(ref _tickFrameInFlight, 1, 0) != 0)
         {
-            _registry.Stats.AddFlushSkipped();
             return;
         }
 
         _tickFrame.BeginFrame(tick);
         AppendEvents();
-        _registry.Stats.AddStateReplaced(EntityStates.TakeReplacedCount());
 
-        // States wait while events do, so an entity's state never arrives before the events about it (its spawn).
+        // States wait while events do, so a state never arrives before its entity's spawn;
+        // a burst of events therefore pauses everyone's movement for a few ticks.
         if (_eventSizes.Count == 0)
         {
             EntityStates.Drain(
@@ -187,14 +145,12 @@ public sealed class Connection
         }
     }
 
-    /// <summary>Moves the oldest events, up to <see cref="TickFrameEventBudget"/> bytes, into the tick frame.</summary>
     private void AppendEvents()
     {
         var length = 0;
         var count = 0;
         foreach (var size in _eventSizes)
         {
-            // A single event over the budget still goes, alone, rather than blocking the queue.
             if (count > 0 && length + size > TickFrameEventBudget)
             {
                 break;
@@ -211,13 +167,8 @@ public sealed class Connection
         }
     }
 
-    /// <summary>Drops the connection at once, without a close frame, e.g. a client the game has given up on. Any thread.</summary>
     public void Disconnect() => _socket.Abort();
 
-    /// <summary>
-    /// Closes the connection because the server is stopping: sends what's queued, then a close frame, and
-    /// aborts if the client hasn't answered within the close timeout.
-    /// </summary>
     internal void Shutdown()
     {
         _shuttingDown = true;
@@ -225,7 +176,6 @@ public sealed class Connection
         _ = Task.Delay(CloseTimeout).ContinueWith(_ => _socket.Abort(), TaskScheduler.Default);
     }
 
-    /// <summary>Runs the connection until it closes: the handler's callbacks, receiving, and sending in the background.</summary>
     internal async Task RunAsync(CancellationToken cancellationToken)
     {
         // The handler sets up its data before the tick thread can see the connection.
@@ -240,8 +190,6 @@ public sealed class Connection
         }
         catch (ProtocolException)
         {
-            // Don't wait for a misbehaving client to read a close frame.
-            _registry.Stats.AddProtocolError();
             _socket.Abort();
         }
         catch (Exception e) when (e is WebSocketException or OperationCanceledException)
@@ -255,8 +203,8 @@ public sealed class Connection
             _handler.OnDisconnected(this);
         }
 
-        // A WebSocket allows one send at a time, and closing counts as a send, so close only
-        // after the send loop has finished; give up on a client that has stopped reading.
+        // A WebSocket allows one send at a time and closing counts as one, so close only after the send loop ends;
+        // give up on a client that has stopped reading.
         if (await Task.WhenAny(sending, Task.Delay(CloseTimeout, CancellationToken.None)) != sending)
         {
             _socket.Abort();
@@ -275,7 +223,6 @@ public sealed class Connection
         {
             var result = await _socket.ReceiveAsync(_receiveBuffer.AsMemory(length), cancellationToken);
 
-            // Each piece of a frame costs a message, so floods of empty frames or tiny fragments are limited too.
             Charge();
             if (result.MessageType == WebSocketMessageType.Close)
             {
@@ -301,12 +248,10 @@ public sealed class Connection
 
     private void HandleFrame(ReadOnlyMemory<byte> frame)
     {
-        _registry.Stats.AddReceived(frame.Length);
         var reader = FrameReader.Create(frame);
         var first = true;
         while (reader.TryReadNext(out var messageId, out var payload))
         {
-            // The frame's first message was paid for when it arrived.
             if (!first)
             {
                 Charge();
@@ -325,7 +270,6 @@ public sealed class Connection
         }
     }
 
-    /// <summary>Takes one message from the allowance, which refills at <see cref="MaxMessagesPerSecond"/>.</summary>
     private void Charge()
     {
         var now = Stopwatch.GetTimestamp();
@@ -350,11 +294,9 @@ public sealed class Connection
                 try
                 {
                     var data = item.Rented is null ? _tickFrame.WrittenMemory[..item.Length] : item.Rented.AsMemory(0, item.Length);
-                    // A client that stops reading fills its socket's buffers, and the send waits; give up on it.
                     timeout.CancelAfter(SendTimeout);
                     await _socket.SendAsync(data, WebSocketMessageType.Binary, endOfMessage: true, timeout.Token);
                     timeout.CancelAfter(Timeout.InfiniteTimeSpan);
-                    _registry.Stats.AddSent(item.Length);
                 }
                 finally
                 {
@@ -372,18 +314,15 @@ public sealed class Connection
 
             if (_shuttingDown)
             {
-                // The client answers the close, which ends the receive loop.
                 await CloseQuietlyAsync(WebSocketCloseStatus.EndpointUnavailable, "The server is shutting down.");
             }
         }
         catch (Exception e) when (e is WebSocketException or OperationCanceledException or ObjectDisposedException)
         {
-            // The client went away; ending the socket also ends the receive loop.
             _socket.Abort();
         }
         finally
         {
-            // Return any rented buffers still queued.
             while (_outgoing.Reader.TryRead(out var item))
             {
                 if (item.Rented is not null)
@@ -403,6 +342,5 @@ public sealed class Connection
         catch (Exception e) when (e is WebSocketException or ObjectDisposedException) { }
     }
 
-    /// <summary>A queued frame: an immediate frame in a rented buffer, or (when <see cref="Rented"/> is null) the tick frame.</summary>
     private readonly record struct Outgoing(byte[]? Rented, int Length);
 }

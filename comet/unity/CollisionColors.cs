@@ -2,11 +2,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>
-    /// The colors collision is drawn in, by the game's <see cref="CollisionView"/> and the editor's gizmos alike, so a
-    /// kind looks the same in both. Muted, so the view doesn't drown the game. Each game's Unity project has one
-    /// (Create › Comet › Collision Colors), named in its Comet settings; kinds of mesh a game adds pick their own.
-    /// </summary>
     [CreateAssetMenu(fileName = "Collision Colors", menuName = "Comet/Collision Colors")]
     public sealed class CollisionColors : ScriptableObject
     {
@@ -23,10 +18,8 @@ namespace Comet.Unity
 
         private static CollisionColors? _defaults;
 
-        /// <summary>Finds the project's colors for the editor's gizmos; set by the editor.</summary>
         public static System.Func<CollisionColors?>? Find { get; set; }
 
-        /// <summary>The colors the editor's gizmos draw in: the project's, or the defaults if it has none.</summary>
         public static CollisionColors Editing
         {
             get
@@ -46,7 +39,6 @@ namespace Comet.Unity
             }
         }
 
-        /// <summary>Raised when the colors are changed in the Inspector, so views can redraw.</summary>
         public event System.Action? Changed;
 
         private void OnValidate() => Changed?.Invoke();

@@ -2,11 +2,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Comet.Data.Accounts;
 
-/// <summary>
-/// The account database (the <c>account</c> schema): accounts and sessions. Only the Login server uses it. A game
-/// subclasses it to own the migrations; Identity's side tables (claims, external logins, tokens, passkeys) aren't
-/// in the model.
-/// </summary>
 public abstract class CometAccountContext(DbContextOptions options) : DbContext(options)
 {
     public const string Schema = "account";
@@ -52,10 +47,8 @@ public abstract class CometAccountContext(DbContextOptions options) : DbContext(
     }
 }
 
-/// <summary>Database options for the account context.</summary>
 public static class CometAccountDatabase
 {
-    /// <summary>Options for a game's <see cref="CometAccountContext"/>.</summary>
     public static DbContextOptionsBuilder UseCometAccount(this DbContextOptionsBuilder options, string connectionString, TimeProvider clock) =>
         options.UseComet(connectionString, CometAccountContext.Schema, clock);
 }

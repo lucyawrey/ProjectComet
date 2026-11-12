@@ -3,21 +3,8 @@ using Comet.Content;
 
 namespace Comet.ZoneFiles.Tests;
 
-// Test zones, and a throwaway folder to save them in.
 internal static class Zones
 {
-    /// <summary>A flat tile of <paramref name="sizeX"/> by <paramref name="sizeZ"/> samples at <paramref name="height"/> meters.</summary>
-    public static Heightmap Flat(int sizeX, int sizeZ, float height)
-    {
-        var map = new Heightmap { SizeX = sizeX, SizeZ = sizeZ };
-        map.Samples = Enumerable.Repeat(map.ToSample(height), sizeX * sizeZ).ToArray();
-        return map;
-    }
-
-    /// <summary>
-    /// A zone of two chunks side by side along X, with one piece whose tiles meet on the shared edge, a tagged placement,
-    /// a spawn point with a pad, a teleporter, a trigger that toggles the placement, and a volume.
-    /// </summary>
     public static Zone Sample() =>
         new()
         {
@@ -73,7 +60,7 @@ internal static class Zones
                             Piece = "main",
                             OriginX = 32,
                             OriginZ = 0,
-                            Heights = Flat(33, 65, 4),
+                            Heights = Heightmaps.Flat(33, 65, 4),
                         },
                     ],
                     Placements =
@@ -96,7 +83,7 @@ internal static class Zones
                         new TerrainTile
                         {
                             Piece = "main",
-                            Heights = Flat(17, 65, 4),
+                            Heights = Heightmaps.Flat(17, 65, 4),
                             Colors = new ColorMap
                             {
                                 SizeX = 17,

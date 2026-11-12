@@ -2,11 +2,9 @@ using MessagePack;
 
 namespace Comet.Protocol.Messages
 {
-    /// <summary>Server event: sent once after connecting.</summary>
     [MessagePackObject]
     public struct Welcome
     {
-        /// <summary>The entity this connection controls.</summary>
         [Key(0)]
         public uint EntityId;
 
@@ -19,7 +17,6 @@ namespace Comet.Protocol.Messages
         public int Zone;
     }
 
-    /// <summary>Client input: asks for a <see cref="Pong"/>, answered immediately rather than on the next tick.</summary>
     [MessagePackObject]
     public struct Ping
     {
@@ -28,7 +25,6 @@ namespace Comet.Protocol.Messages
         public long ClientTime;
     }
 
-    /// <summary>Server event: the answer to a <see cref="Ping"/>.</summary>
     [MessagePackObject]
     public struct Pong
     {

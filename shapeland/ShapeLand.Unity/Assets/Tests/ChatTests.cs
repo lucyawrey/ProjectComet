@@ -7,8 +7,6 @@ using UnityEngine.TestTools;
 
 namespace ShapeLand.Client.Tests
 {
-    // Chat in the Game scene: lines go round to the log and a bubble, chat stays open after sending, Enter opens the input and stops the shape,
-    // others' lines arrive, and sending too fast is explained.
     public class ChatTests : GameSceneTest
     {
         [UnityTest]
@@ -74,7 +72,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(Chat.Box.ClassListContains("hidden"), Is.False);
         }
 
-        // The bots sign in through the Login server.
         [UnityTest, Category("Accounts")]
         public IEnumerator OthersChatInTheLogAndInBubbles()
         {

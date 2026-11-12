@@ -21,6 +21,7 @@
 // (tests passed), 2 tests failed, 1 if it failed or gave no result, 124 on the time limit. Runs tools/run unity-restore
 // first when the project's NuGet packages were never restored or packages.config changed since.
 #:project shared/Tools.Shared.csproj
+#:property PublishAot=false
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -86,7 +87,6 @@ else if (job == "test")
         throw Tool.Fail("test takes PlayMode or EditMode", 2);
 }
 
-// A fresh clone or worktree has no NuGet packages, and the editor can't compile without them.
 var restored = new FileInfo("Assets/Packages/.restored");
 if (
     File.Exists("Assets/packages.config")
@@ -129,8 +129,7 @@ string? EditorPort()
     return null;
 }
 
-// Runs a command in the open editor and returns its result, or fails with its error. Build reports and test
-// messages hold raw control characters (tabs, line breaks), which JSON strings don't allow, so they become spaces.
+// Build reports and test messages hold raw control characters (tabs, line breaks), which JSON strings don't allow, so they become spaces.
 JsonElement Editor(params string[] command)
 {
     var (code, text) = Tool.Capture(
@@ -155,7 +154,6 @@ JsonElement Editor(params string[] command)
     return json.GetProperty("data").GetProperty("result");
 }
 
-// Polls a status command until its status is one of the given ones, then returns its result.
 JsonElement Await(string command, params string[] ends)
 {
     while (true)
@@ -244,11 +242,10 @@ int InBatchMode()
     if (!File.Exists(unity))
         throw Tool.Fail($"No Unity {version} at {unity}", 2);
 
-    // Output goes to the log only. Its pipes are this tool's, so the editor's helper processes, which outlive it,
-    // can't hold a caller's output open.
+    // Output goes to the log only: its pipes are this tool's, so the editor's helper processes, which outlive it, can't hold a caller's output open.
     var info = Tool.Info(unity, ["-batchmode", "-projectPath", project, "-logFile", log, .. unityArgs]);
     info.RedirectStandardInput = info.RedirectStandardOutput = info.RedirectStandardError = true;
-    var editor = Tool.Start(info); // stopping this tool stops the editor too, or it keeps the project locked
+    var editor = Tool.Start(info);
     editor.StandardInput.Close();
     editor.OutputDataReceived += (_, _) => { };
     editor.ErrorDataReceived += (_, _) => { };
@@ -265,7 +262,6 @@ int InBatchMode()
     code ??= Result();
     if (code != null)
     {
-        // Done: allow a normal exit, then stop a hung quit.
         if (!editor.WaitForExit(20_000))
         {
             Console.Error.WriteLine("Unity finished but hung while quitting; stopping it");
@@ -274,8 +270,6 @@ int InBatchMode()
     }
     else
     {
-        // Exited before any result line (a crash, a license problem, another editor on the project, a method that
-        // called Exit).
         code = editor.ExitCode == 0 ? 1 : editor.ExitCode;
         Console.Error.WriteLine(
             ReadLog().Contains("another Unity instance")
@@ -287,7 +281,6 @@ int InBatchMode()
     return code.Value;
 }
 
-// The exit code the run's last line means, once the log has one.
 int? Result()
 {
     var line = Regex.Match(
@@ -302,7 +295,6 @@ int? Result()
     return line.Value == "Build Finished, Result: Success" || (line.Value == "Batchmode quit successfully invoked" && job != "build") ? 0 : 1;
 }
 
-// The editor writes the log as it goes; read it without getting in its way.
 string ReadLog()
 {
     try

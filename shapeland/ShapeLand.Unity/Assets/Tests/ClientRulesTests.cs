@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Comet.Simulation;
+using Comet.Unity;
 using NUnit.Framework;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.World;
@@ -10,8 +11,6 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Tests
 {
-    // The client's rules and pieces that need no server: movement input, server addresses, fades, shapes and
-    // interface text.
     public class ClientRulesTests
     {
         [TestCase(0, 0, 1, 0, 1)]
@@ -25,7 +24,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(move.Y, Is.EqualTo(expectedZ).Within(1e-5f));
         }
 
-        // A web build's Login server: the one its page's config.js names, unless ?login= says otherwise.
         [TestCase("https://shapeland.example.org/", "https://server.shapeland.example.org", "https://server.shapeland.example.org")]
         [TestCase(
             "https://shapeland.example.org/?login=http%3A%2F%2Flocalhost%3A5090",
@@ -66,7 +64,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(ShapeFade.FromFalling(kill + ShapeFade.FadeDistance / 2, kill), Is.EqualTo(0.5f).Within(1e-5f));
             Assert.That(ShapeFade.FromFalling(kill - 5, kill), Is.EqualTo(1));
 
-            // Falling fades at once, with no easing; a respawn there moves it on at once, and it eases back in.
             var fade = new ShapeFade();
             fade.Step(0, 0.01f, kill, kill);
             Assert.That(fade.Faded, Is.EqualTo(1));
@@ -85,7 +82,6 @@ namespace ShapeLand.Client.Tests
             const float kill = -30;
             var fade = new ShapeFade();
 
-            // The pad finishes charging; the move comes partway through the fade-out, which it waits for.
             fade.Depart(0);
             fade.Step(0.1f, 0.1f, 3, kill);
             Assert.That(fade.Faded, Is.EqualTo(0.1f / ShapeFade.FadeOutSeconds).Within(1e-5f));
@@ -95,7 +91,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(fade.Step(ShapeFade.FadeOutSeconds, 0.05f, 3, kill), Is.True, "Faded out: drawn at the target.");
             Assert.That(fade.Holding, Is.False);
 
-            // Hidden while the camera glides, then fading in.
             fade.HideFor(ShapeFade.FadeOutSeconds, 0.5f);
             fade.Step(ShapeFade.FadeOutSeconds + 0.4f, 0.4f, 3, kill);
             Assert.That(fade.Faded, Is.EqualTo(1));
@@ -109,7 +104,6 @@ namespace ShapeLand.Client.Tests
             const float kill = -30;
             var fade = new ShapeFade();
 
-            // Started a fade-out ahead of the pad firing, which the player steps off before.
             fade.DepartFrom(0);
             fade.Step(0.1f, 0.1f, 3, kill);
             Assert.That(fade.Faded, Is.EqualTo(0.1f / ShapeFade.FadeOutSeconds).Within(1e-5f));
@@ -164,8 +158,6 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        // Each shape's look stands on the feet (plus its hover), about a player's height, facing +Z with its eyes on
-        // the front, and colored through its body and eyes.
         [TestCase("shape.cube")]
         [TestCase("shape.diamond")]
         [TestCase("shape.pyramid")]
@@ -195,7 +187,6 @@ namespace ShapeLand.Client.Tests
         [Test]
         public void TerrainFacesUpUnderUnitysNormals()
         {
-            // A flat 3×3-sample piece without skirts: Unity's recalculated normals must agree with the mesher's winding.
             var zone = new Comet.Content.Zone
             {
                 Pieces = new[]
@@ -243,14 +234,13 @@ namespace ShapeLand.Client.Tests
         [TestCase(-80, 15, 170)]
         public void PlacementRotationsMatchUnitys(float x, float y, float z)
         {
-            // Zones store Euler angles; Comet turns them into rotations for collision, Unity for drawing. They must agree.
             var comet = Comet.Content.ZoneGrid.Rotation(new System.Numerics.Vector3(x, y, z));
             var unity = Quaternion.Euler(x, y, z);
 
             var forward = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitZ, comet);
             var right = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitX, comet);
-            Assert.That(Vector3.Distance(Vectors.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
-            Assert.That(Vector3.Distance(Vectors.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Conversions.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Conversions.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
         }
 
         [Test]
@@ -262,7 +252,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(jump, Is.EqualTo(8.5f * 8.5f / (2 * 25)).Within(1e-4f));
         }
 
-        // Every key the scripts, UXML and web page use is in the string file, so no "[key]" shows on screen.
         [Test]
         public void EveryInterfaceTextKeyExists()
         {
@@ -282,7 +271,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(keys.Where(k => !content.Strings.Contains(k.Key)).Select(k => $"{k.File}: {k.Key}"), Is.Empty);
         }
 
-        // A shape built as the game builds it, from the content and the game's materials.
         private static ShapeBody Build(string id)
         {
             var content = TestGameServer.LoadContent();

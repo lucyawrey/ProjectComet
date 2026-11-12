@@ -9,10 +9,6 @@ using Microsoft.Extensions.Options;
 
 namespace Comet.Login;
 
-/// <summary>
-/// Before the server takes requests (hosted services start before it listens): loads the signing key, so a missing
-/// one stops startup, and applies both schemas' migrations. Only the Login server migrates; game servers wait for it.
-/// </summary>
 internal sealed class Startup<TCharacter>(
     IServiceScopeFactory scopes,
     RegionContexts<TCharacter> regions,
@@ -50,7 +46,6 @@ internal sealed class Startup<TCharacter>(
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
-/// <summary>Runs the guest cleanup and the purge every <see cref="LoginOptions.CleanupPeriod"/>, starting soon after startup.</summary>
 internal sealed class Cleanup<TCharacter>(
     AccountActions<TCharacter> actions,
     IOptions<LoginOptions> options,

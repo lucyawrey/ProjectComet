@@ -9,12 +9,6 @@ using Debug = UnityEngine.Debug;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Builds a game's content and keeps the copy that play mode and the play-mode tests read (StreamingAssets, git
-    /// ignored) the same as the build's output, by the project's <see cref="CometSettings"/>. The build runs in the
-    /// background when a zone is saved and from Comet › Content › Build; the copy is made after each build, when the
-    /// editor loads its scripts and as play mode starts. <see cref="Copied"/> lets the game read what it needs from it.
-    /// </summary>
     [InitializeOnLoad]
     public static class ContentBuild
     {
@@ -35,10 +29,8 @@ namespace Comet.Unity.Editor
             ZoneEditor.Saved += _ => Build();
         }
 
-        /// <summary>Raised with the content after each copy (whether or not it changed), so a game can refresh what it keeps from it.</summary>
         public static event Action<byte[]>? Copied;
 
-        /// <summary>The content build's output, as a full path; null if the settings don't name one.</summary>
         public static string? Source
         {
             get
@@ -51,7 +43,6 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Content/Build", priority = 20)]
         private static void BuildMenu() => Build();
 
-        /// <summary>Runs the content build in the background, then copies its output in; a build asked for during one runs after it.</summary>
         public static void Build()
         {
             var settings = CometSettings.Find(quiet: false);
@@ -131,7 +122,6 @@ namespace Comet.Unity.Editor
                     Debug.Log("Built the content and copied it in.");
                 }
 
-                // Warnings (such as blockout placements) don't stop the build, but are worth seeing.
                 if (!failed)
                 {
                     lock (output)
@@ -153,7 +143,6 @@ namespace Comet.Unity.Editor
             EditorApplication.update += Poll;
         }
 
-        /// <summary>Copies the content build's output into StreamingAssets if it differs; false if there is none yet.</summary>
         public static bool Copy()
         {
             var source = Source;
@@ -175,7 +164,7 @@ namespace Comet.Unity.Editor
             return true;
         }
 
-        // The editor may not have the shell's PATH (opened from Unity Hub, say), so look where installers put dotnet too.
+        // The editor may lack the shell's PATH (opened from Unity Hub, say), so also look where installers put dotnet.
         internal static string Dotnet()
         {
             var windows = Application.platform == RuntimePlatform.WindowsEditor;

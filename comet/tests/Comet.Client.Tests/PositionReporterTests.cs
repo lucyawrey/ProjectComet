@@ -32,7 +32,7 @@ public class PositionReporterTests
     {
         var reporter = new PositionReporter(interval: 0.1, sharpTurnDegrees: 45);
         Assert.True(reporter.ShouldReport(East, 0));
-        Assert.False(reporter.ShouldReport(new Vector3(5, 0, 1), 0.02)); // ~11°
+        Assert.False(reporter.ShouldReport(new Vector3(5, 0, 1), 0.02));
         Assert.True(reporter.ShouldReport(new Vector3(0, 0, 5), 0.04));
     }
 
@@ -48,8 +48,6 @@ public class PositionReporterTests
     [Fact]
     public void StepTimesReportEveryFourStepsDespiteRounding()
     {
-        // 60 steps a second, reporting on every other (server ticks), from far into a session where step numbers
-        // over the rate round: still 15 reports a second.
         var reporter = new PositionReporter();
         var reports = 0;
         for (long step = 1_000_000; step < 1_000_060; step += 2)

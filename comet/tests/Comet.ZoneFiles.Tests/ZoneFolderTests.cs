@@ -12,13 +12,19 @@ public class ZoneFolderTests
         return ZoneFolder.Read(folder.Root, errors);
     }
 
+    private static Zone RoundTripClean(Zone zone, TempFolder folder)
+    {
+        var read = RoundTrip(zone, folder, out var errors);
+        Assert.Empty(errors);
+        return read;
+    }
+
     [Fact]
     public void RoundTripsAZone()
     {
         using var folder = new TempFolder();
-        var zone = RoundTrip(Zones.Sample(), folder, out var errors);
+        var zone = RoundTripClean(Zones.Sample(), folder);
 
-        Assert.Empty(errors);
         Assert.Empty(ZoneValidation.Check(zone));
         Assert.Equal("zone.meadow", zone.Id);
         var piece = Assert.Single(zone.Pieces);
@@ -67,8 +73,7 @@ public class ZoneFolderTests
         Assert.Null(RoundTrip(sample, folder, out _).KillHeight);
 
         sample.KillHeight = 150;
-        var zone = RoundTrip(sample, folder, out var errors);
-        Assert.Empty(errors);
+        var zone = RoundTripClean(sample, folder);
         Assert.Equal(150f, zone.KillHeight);
         Assert.Contains("kill_height = 150.0", File.ReadAllText(folder.PathOf("zone.toml")));
     }
@@ -79,14 +84,13 @@ public class ZoneFolderTests
         using var folder = new TempFolder();
         var sample = Zones.Sample();
         var tile = sample.Chunks[0].Tiles[0];
-        tile.Underside = Zones.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
+        tile.Underside = Heightmaps.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
         var plain = RoundTrip(sample, folder, out _);
         Assert.DoesNotContain("height_base", File.ReadAllText(folder.PathOf("zone.toml")));
 
         sample.HeightBase = -400;
-        var zone = RoundTrip(sample, folder, out var errors);
+        var zone = RoundTripClean(sample, folder);
 
-        Assert.Empty(errors);
         Assert.Contains("height_base = -400.0", File.ReadAllText(folder.PathOf("zone.toml")));
         var (was, read) = (plain.Chunks[0].Tiles[0], zone.Chunks[0].Tiles[0]);
         Assert.Equal(was.Heights.Samples, read.Heights.Samples);
@@ -117,7 +121,7 @@ public class ZoneFolderTests
             rotation = [0.0, 45.0, 0.0]
             scale = [2.0, 1.0, 2.0]
 
-            """.ReplaceLineEndings("\n"), // the test source may be checked out with Windows line endings
+            """.ReplaceLineEndings("\n"),
             File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")).ReplaceLineEndings("\n")
         );
         Assert.True(File.Exists(folder.PathOf("chunks/-1_0/main.height")));
@@ -182,9 +186,8 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements[0].Off = true;
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.True(read.Chunks[0].Placements[0].Off);
         Assert.Contains("off = true", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
@@ -198,7 +201,7 @@ public class ZoneFolderTests
         zone.Pieces[0].GroundColor = 0x739e4d;
         var tile = zone.Chunks[1].Tiles[0];
         var size = tile.Heights.SizeX * tile.Heights.SizeZ;
-        tile.Underside = Zones.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
+        tile.Underside = Heightmaps.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
         tile.UndersideColors = new ColorMap
         {
             SizeX = tile.Heights.SizeX,
@@ -206,9 +209,8 @@ public class ZoneFolderTests
             Colors = Enumerable.Repeat(0x336633u, size).ToArray(),
         };
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.Empty(ZoneValidation.Check(read));
         Assert.Equal(0x7a5c3eu, read.Pieces[0].UnderColor);
         Assert.Equal(0x739e4du, read.Pieces[0].GroundColor);
@@ -225,9 +227,8 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements[0].Color = 0xc04020;
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.Equal(0xc04020u, read.Chunks[0].Placements[0].Color);
         Assert.Contains("color = 0xC04020", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
@@ -276,12 +277,11 @@ public class ZoneFolderTests
         ];
         placement.Blockout = true;
 
-        var read = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+        var read = RoundTripClean(zone, folder).Chunks[0].Placements[0];
 
-        Assert.Empty(errors);
         Assert.Equal("", read.Prop);
         Assert.True(read.Blockout);
-        Assert.True(placement.Primitive.SameAs(read.Primitive!));
+        Assert.Equivalent(placement.Primitive, read.Primitive, strict: true);
         var text = File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml"));
         Assert.Contains("primitive = \"arch\"", text);
         Assert.Contains("thickness = 0.4", text);
@@ -313,9 +313,8 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements[0].Tag = "east.gate";
 
-        var placement = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+        var placement = RoundTripClean(zone, folder).Chunks[0].Placements[0];
 
-        Assert.Empty(errors);
         Assert.Equal("east.gate", placement.Tag);
         Assert.Contains("tag = \"east.gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
@@ -362,7 +361,6 @@ public class ZoneFolderTests
         using var folder = new TempFolder();
         ZoneFolder.Write(folder.Root, Zones.Sample());
         folder.Write("chunks/notes.txt", "kept");
-        // Not the zone's, so left alone: the old layout's chunk file, other folders, nested folders and other files.
         folder.Write("chunks/9_9.toml", "kept");
         folder.Write("chunks/old/0_0.toml", "kept");
         folder.Write("chunks/0_0/backup/main.height", "kept");
@@ -389,11 +387,11 @@ public class ZoneFolderTests
     {
         using var folder = new TempFolder();
         ZoneFolder.Write(folder.Root, Zones.Sample());
-        folder.Write("chunks/9_9.toml", "not = [toml"); // the old layout's: ignored
+        folder.Write("chunks/9_9.toml", "not = [toml");
         folder.Write("chunks/old/notes.txt", "");
         folder.Write("chunks/1_1/.DS_Store", "");
         folder.Write("chunks/2_2/main.height", "");
-        folder.Write("chunks/0_0/0_0.toml", ""); // not a tile file, so not reported
+        folder.Write("chunks/0_0/0_0.toml", "");
 
         var errors = new List<ZoneFileError>();
         var zone = ZoneFolder.Read(folder.Root, errors);
@@ -488,7 +486,6 @@ public class ZoneFolderTests
                 FontSize = 18,
                 Arrow = true,
             },
-            // Settings not in use are kept, to come back when turned on again; a turned-off sign is kept but not shown.
             new Sign
             {
                 Position = new Vector3(14, 6, 9),
@@ -501,9 +498,8 @@ public class ZoneFolderTests
                 Off = true,
             },
         ];
-        var zone = RoundTrip(sample, folder, out var errors);
+        var zone = RoundTripClean(sample, folder);
 
-        Assert.Empty(errors);
         Assert.Contains(
             """
             [[sign]]
@@ -553,9 +549,8 @@ public class ZoneFolderTests
             BackgroundColor = 0x202030,
             Arrow = true,
         };
-        var zone = RoundTrip(sample, folder, out var errors);
+        var zone = RoundTripClean(sample, folder);
 
-        Assert.Empty(errors);
         Assert.Contains(
             """
             [spawn.sign]
@@ -568,12 +563,10 @@ public class ZoneFolderTests
         var sign = chunk.Spawns[0].Volume.Sign!;
         Assert.Equal(("Gate", new Vector3(1, 3, 0), true), (sign.Text, sign.Position, sign.Arrow));
 
-        // Shown over its offset turned with the volume's yaw (90 degrees: +X turns to -Z).
         var (point, shown) = chunk.AllSigns().Single();
         Assert.Same(sign, shown);
         Assert.True(Vector3.Distance(new Vector3(5, 7, 4), point) < 1e-4f, $"The sign is shown over {point}.");
 
-        // Turned off, it's kept with its trigger but not shown.
         sign.Off = true;
         Assert.Empty(chunk.AllSigns());
     }

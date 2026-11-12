@@ -2,7 +2,6 @@ using MessagePack;
 
 namespace ShapeLand.Shared.Messages
 {
-    /// <summary>Client input: say something in the shared channel.</summary>
     [MessagePackObject]
     public struct ChatSend
     {
@@ -10,10 +9,6 @@ namespace ShapeLand.Shared.Messages
         public string Text;
     }
 
-    /// <summary>
-    /// Server event: someone said something (including the sender, so everyone sees the same order). Chat is
-    /// server-wide, so it carries the sender's name: they may be in another zone, not in view.
-    /// </summary>
     [MessagePackObject]
     public struct ChatMessage
     {
@@ -27,17 +22,13 @@ namespace ShapeLand.Shared.Messages
         public string Name;
     }
 
-    /// <summary>Why the server didn't deliver a chat line.</summary>
     public enum ChatRejection : byte
     {
-        /// <summary>Empty after trimming, or longer than <see cref="ShapeLand.Shared.World.ShapeLandRules.MaxChatLength"/>.</summary>
         InvalidText = 1,
 
-        /// <summary>Sent too many messages too quickly.</summary>
         TooFast = 2,
     }
 
-    /// <summary>Server event: the sender's message wasn't delivered.</summary>
     [MessagePackObject]
     public struct ChatRejected
     {

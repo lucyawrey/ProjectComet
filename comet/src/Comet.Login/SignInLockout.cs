@@ -3,18 +3,12 @@ using Microsoft.Extensions.Options;
 
 namespace Comet.Login;
 
-/// <summary>
-/// Counts wrong passwords per account and address together, so a stranger elsewhere can't lock someone out by
-/// knowing their name. After <see cref="LoginOptions.LockoutFailures"/> within <see cref="LoginOptions.LockoutDuration"/>,
-/// that pair is refused until the duration passes. In memory: a restart resets it. Recovery codes ignore it.
-/// </summary>
 public sealed class SignInLockout(IOptions<LoginOptions> options, TimeProvider clock)
 {
     private const int PruneAbove = 10_000;
 
     private readonly ConcurrentDictionary<(long Account, string Address), Entry> _entries = new();
 
-    /// <summary>Whether the pair is locked out now.</summary>
     public bool IsLocked(long accountId, string address) => _entries.TryGetValue((accountId, address), out var entry) && entry.LockedUntil > Now;
 
     public void Failed(long accountId, string address)
@@ -45,7 +39,6 @@ public sealed class SignInLockout(IOptions<LoginOptions> options, TimeProvider c
 
     private static Entry Next(Entry entry, DateTime now, LoginOptions settings)
     {
-        // Failures count within one window; a lockout that ended starts a fresh one.
         if (now - entry.Since > settings.LockoutDuration || (entry.LockedUntil != DateTime.MinValue && entry.LockedUntil <= now))
         {
             entry = new Entry(0, now, DateTime.MinValue);

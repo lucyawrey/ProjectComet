@@ -2,12 +2,6 @@ using System.Diagnostics.Tracing;
 
 namespace Comet.Server.Diagnostics;
 
-/// <summary>
-/// Times every garbage-collection pause (all managed threads suspended) from the runtime's own
-/// events, from GCSuspendEEBegin to GCRestartEEEnd. This includes the short pauses inside
-/// background collections, whose total collection time is mostly concurrent and not a pause.
-/// <see cref="PauseRecorded"/> is raised on the runtime's event thread, shortly after the pause.
-/// </summary>
 public sealed class GcPauseListener : EventListener
 {
     private const string RuntimeSource = "Microsoft-Windows-DotNETRuntime";
@@ -22,7 +16,6 @@ public sealed class GcPauseListener : EventListener
     private bool _startedInPause;
     private GcHeapStats? _heapStats;
 
-    /// <summary>A pause ended; raised on the runtime's event thread.</summary>
     public event Action<GcPause>? PauseRecorded;
 
     protected override void OnEventSourceCreated(EventSource eventSource)
@@ -79,20 +72,12 @@ public sealed class GcPauseListener : EventListener
     }
 }
 
-/// <summary>
-/// One GC pause. <see cref="Collection"/> is the deepest collection that started in this pause, or, when
-/// <see cref="StartedInPause"/> is false, the latest one before it (such as the background
-/// collection whose later phase this pause belongs to).
-/// </summary>
 public readonly record struct GcPause(DateTime End, TimeSpan Duration, GcCollection? Collection, bool StartedInPause, GcHeapStats? HeapStats);
 
-/// <summary>A collection as GCStart reports it: its number, the generation collected, why and how.</summary>
 public readonly record struct GcCollection(ulong Number, int Generation, GcReason Reason, GcType Type);
 
-/// <summary>Generation sizes after a collection, and the bytes that survived it.</summary>
 public readonly record struct GcHeapStats(ulong Gen0Bytes, ulong Gen1Bytes, ulong Gen2Bytes, ulong LargeObjectBytes, ulong PromotedBytes);
 
-/// <summary>The runtime's GCStart reasons.</summary>
 public enum GcReason
 {
     AllocSmall = 0,
@@ -111,7 +96,6 @@ public enum GcReason
     LowMemoryHostBlocking = 13,
 }
 
-/// <summary>The runtime's GCStart types: blocking, background, or a foreground collection during a background one.</summary>
 public enum GcType
 {
     Blocking = 0,

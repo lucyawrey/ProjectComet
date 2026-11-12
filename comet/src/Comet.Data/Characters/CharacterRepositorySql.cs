@@ -1,21 +1,12 @@
 namespace Comet.Data.Characters;
 
-/// <summary>
-/// The character repository's hand-written SQL: only what EF Core can't express (an upsert that returns a value,
-/// batched writes over arrays, row locks). Everything else goes through EF. Each statement is covered by the
-/// repository's contract tests on a real PostgreSQL.
-/// </summary>
 internal static class CharacterRepositorySql
 {
     private const string Character = $"{CometRegion.Schema}.{CometRegion.CharacterTable}";
     private const string Owner = $"{CometRegion.Schema}.{CometRegion.CharacterOwnerTable}";
     private const string Status = $"{CometRegion.Schema}.{CometRegion.CharacterStatusTable}";
 
-    /// <summary>
-    /// Claims a live character for <c>@server</c>: makes its owner row or takes it over, adding one to the version,
-    /// and returns the new version (no row if the character is missing or deleted). EF can't upsert and return the
-    /// result in one statement, and the read-then-write it would need races another claim.
-    /// </summary>
+    /// <summary>Returns the new owner version, or no row if missing or deleted; one statement, since read-then-write would race a claim.</summary>
     public const string Claim = $"""
         INSERT INTO {Owner} AS o (character_id, server_id, version, created_at, updated_at, released_at)
         SELECT c.id, @server, 1, @now, @now, NULL
@@ -26,11 +17,7 @@ internal static class CharacterRepositorySql
         RETURNING o.version
         """;
 
-    /// <summary>
-    /// Writes a batch of status saves in one statement, each only while <c>@server</c> still holds the character
-    /// under the save's version, and returns the characters whose saves applied. The owner rows are share-locked,
-    /// so a claim committing meanwhile is seen (and wins). EF can't upsert, or write a batch in one statement.
-    /// </summary>
+    /// <summary>Returns the characters whose saves applied; owner rows are share-locked, so a claim committing meanwhile wins.</summary>
     public const string SaveStatuses = $"""
         WITH save AS (
             SELECT * FROM unnest(@characters, @versions, @zones, @xs, @ys, @zs, @facings)
@@ -52,10 +39,7 @@ internal static class CharacterRepositorySql
         RETURNING cs.character_id
         """;
 
-    /// <summary>
-    /// Locks a character's owner row for the rest of the transaction and reads who holds it, so a look save or a
-    /// leave checks the version and writes before any claim can change it. EF has no row locks.
-    /// </summary>
+    /// <summary>Holds the lock to the end of the transaction, so the version check and write happen before any claim can change it.</summary>
     public const string LockOwner = $"""
         SELECT server_id, version, released_at IS NULL
         FROM {Owner}

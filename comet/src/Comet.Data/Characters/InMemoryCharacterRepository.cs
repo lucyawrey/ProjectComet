@@ -5,16 +5,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Comet.Data.Characters;
 
-/// <summary>
-/// The rows an <see cref="InMemoryCharacterRepository{TCharacter}"/> reads and writes, shareable between several
-/// repositories (servers) as one database would be. It also does what the Login server does to the region (adding
-/// characters, renaming, deleting, kicking), for tests and for a development server without accounts, which can
-/// keep the characters and their spots in a snapshot file (<see cref="Load"/>). Thread-safe.
-/// </summary>
+/// <summary>Rows shared between repositories, as one database would be; also does what the Login server does to the region. Thread-safe.</summary>
 public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     where TCharacter : Character
 {
-    // The game's own columns: what a look save writes.
     private static readonly PropertyInfo[] GameProperties = typeof(TCharacter)
         .GetProperties(BindingFlags.Instance | BindingFlags.Public)
         .Where(p => p.DeclaringType != typeof(Character) && p.CanWrite && p.CanRead)
@@ -24,12 +18,8 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     private readonly Dictionary<long, TCharacter> _characters = [];
     private readonly Dictionary<long, CharacterOwner> _owners = [];
     private readonly Dictionary<long, CharacterStatus> _statuses = [];
-    private string? _snapshot; // the file every change is written to, once loaded from one
+    private string? _snapshot;
 
-    /// <summary>
-    /// The snapshot file couldn't be written (another program holding it, say), with why; the rows changed anyway,
-    /// and the next change tries again. Raised under the database's lock.
-    /// </summary>
     public event Action<Exception>? SnapshotFailed;
 
     public TimeProvider Clock => clock;
@@ -44,10 +34,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>
-    /// The live character with this name, ignoring case (as the name column does), or a new one from
-    /// <paramref name="make"/>, given the next free ID. Returns its ID, and whether it was made.
-    /// </summary>
     public (long Id, bool Made) FindOrAdd(string name, Func<long, TCharacter> make)
     {
         lock (_lock)
@@ -64,11 +50,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>
-    /// Reads the characters and their spots from a snapshot file, and from then on writes it after every change. A
-    /// missing file starts empty; one that won't read (damaged, or from an older character class) is renamed to
-    /// <c>.bad</c> and the database starts empty, returning why. Owners aren't kept, so no character loads held.
-    /// </summary>
+    /// <summary>A file that won't read is renamed to <c>.bad</c> and the database starts empty, returning why. Owners aren't kept.</summary>
     public string? Load(string path)
     {
         lock (_lock)
@@ -127,7 +109,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>A copy of the character, deleted or not, or null.</summary>
+    /// <summary>A copy, deleted or not.</summary>
     public TCharacter? Character(long characterId)
     {
         lock (_lock)
@@ -144,7 +126,7 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>The owner row's server, version and whether a server holds it now, or null before the first claim.</summary>
+    /// <summary>Null before the first claim.</summary>
     public (int ServerId, long Version, bool Held, DateTime UpdatedAt)? Owner(long characterId)
     {
         lock (_lock)
@@ -153,7 +135,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>Sets the saved position, as an earlier session's save would have.</summary>
     public void SetPosition(long characterId, CharacterPosition position)
     {
         lock (_lock)
@@ -174,7 +155,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>Marks the character deleted and kicks it, as deleting its account does.</summary>
     public void Delete(long characterId)
     {
         lock (_lock)
@@ -185,7 +165,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         }
     }
 
-    /// <summary>Adds one to the owner version, as a ban or deletion does, so the holding server drops the player.</summary>
     public void Kick(long characterId)
     {
         lock (_lock)
@@ -330,8 +309,8 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
         WriteSnapshotLocked();
     }
 
-    // Under the lock, so one write goes at a time and each has the latest rows; written beside the file and renamed
-    // over it, so a crash mid-write leaves the last good one.
+    // Under the lock, so one write goes at a time and has the latest rows;
+    // written beside the file and renamed over it, so a crash leaves the last good one.
     private void WriteSnapshotLocked()
     {
         if (_snapshot == null)
@@ -388,11 +367,6 @@ public sealed class InMemoryCharacterDatabase<TCharacter>(TimeProvider clock)
     }
 }
 
-/// <summary>
-/// The character repository in memory, for game-server tests and development servers without accounts: the same contract as the PostgreSQL
-/// <see cref="CharacterRepository{TCharacter, TContext}"/> (claims, versions, refused saves, releases and the save
-/// queue), checked by the same contract tests.
-/// </summary>
 public sealed class InMemoryCharacterRepository<TCharacter>(
     InMemoryCharacterDatabase<TCharacter> database,
     CharacterRepositoryOptions options,

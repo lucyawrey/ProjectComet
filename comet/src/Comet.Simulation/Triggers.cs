@@ -5,30 +5,19 @@ using Comet.Content;
 
 namespace Comet.Simulation
 {
-    /// <summary>
-    /// A zone's spawn points, teleporters and triggers, found by id, by number or by where a player stands; whether
-    /// feet are inside a trigger volume; and arriving at one: a random spot in its footprint on the ground under it,
-    /// facing as it says. How each kind fires (its stand time, re-arming, what it does) is game policy.
-    /// </summary>
     public sealed class Triggers
     {
-        /// <summary>Random spots tried for one with ground and room, before falling back to the center.</summary>
         public const int Tries = 8;
 
-        /// <summary>
-        /// How far below a box's or cylinder's bottom feet still count as inside, in meters: a volume usually stands
-        /// on its pad's top, and feet standing there can come out a hair lower in floating point.
-        /// </summary>
+        /// <summary>Meters below a box's or cylinder's bottom that count as inside: floats can put feet on a pad's top a hair lower.</summary>
         public const float BottomSlack = 0.05f;
 
         private readonly Dictionary<string, SpawnPoint> _spawnsByKey = new Dictionary<string, SpawnPoint>();
         private readonly Dictionary<int, SpawnPoint> _spawnsByNumber = new Dictionary<int, SpawnPoint>();
-        private readonly Dictionary<string, Teleporter> _teleportersByKey = new Dictionary<string, Teleporter>();
         private readonly List<SpawnPoint> _spawns = new List<SpawnPoint>();
         private readonly List<Teleporter> _teleporters = new List<Teleporter>();
         private readonly List<Trigger> _triggers = new List<Trigger>();
 
-        /// <summary>The spawn points, teleporters and triggers of <paramref name="zone"/>.</summary>
         public Triggers(Zone zone)
         {
             foreach (var chunk in zone.Chunks)
@@ -40,12 +29,7 @@ namespace Comet.Simulation
                     _spawns.Add(spawn);
                 }
 
-                foreach (var teleporter in chunk.Teleporters)
-                {
-                    _teleportersByKey[teleporter.Id] = teleporter;
-                    _teleporters.Add(teleporter);
-                }
-
+                _teleporters.AddRange(chunk.Teleporters);
                 _triggers.AddRange(chunk.Triggers);
             }
         }
@@ -54,16 +38,12 @@ namespace Comet.Simulation
 
         public IReadOnlyList<Teleporter> Teleporters => _teleporters;
 
-        /// <summary>The triggers with toggle effects.</summary>
         public IReadOnlyList<Trigger> All => _triggers;
 
         public bool TryGetSpawn(string key, out SpawnPoint spawn) => _spawnsByKey.TryGetValue(key, out spawn!);
 
         public bool TryGetSpawn(int number, out SpawnPoint spawn) => _spawnsByNumber.TryGetValue(number, out spawn!);
 
-        public bool TryGetTeleporter(string key, out Teleporter teleporter) => _teleportersByKey.TryGetValue(key, out teleporter!);
-
-        /// <summary>The spawn point whose volume <paramref name="feet"/> are in, or null (the first, if volumes overlap).</summary>
         public SpawnPoint? SpawnAt(Vector3 feet)
         {
             foreach (var spawn in _spawns)
@@ -77,7 +57,6 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>The teleporter whose volume <paramref name="feet"/> are in, or null (the first, if volumes overlap).</summary>
         public Teleporter? TeleporterAt(Vector3 feet)
         {
             foreach (var teleporter in _teleporters)
@@ -91,10 +70,35 @@ namespace Comet.Simulation
             return null;
         }
 
-        /// <summary>
-        /// Whether <paramref name="feet"/> are inside <paramref name="volume"/>: a box or an upright cylinder from its
-        /// bottom (less <see cref="BottomSlack"/>) to its top, or a sphere (an ellipsoid for an uneven size) filling its size.
-        /// </summary>
+        public static (Zone Zone, SpawnPoint Spawn)? FindSpawn(IEnumerable<Zone> zones, string id)
+        {
+            foreach (var zone in zones)
+            {
+                foreach (var chunk in zone.Chunks)
+                {
+                    foreach (var spawn in chunk.Spawns)
+                    {
+                        if (spawn.Id == id)
+                        {
+                            return (zone, spawn);
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public static Vector3 Center(SpawnPoint spawn, CollisionWorld world)
+        {
+            var volume = spawn.Volume;
+            var top = volume.Position.Y + volume.Size.Y;
+            return world.TryGetGround(new Vector3(volume.Position.X, top, volume.Position.Z), 0, top, out var ground)
+                ? new Vector3(volume.Position.X, ground, volume.Position.Z)
+                : volume.Position;
+        }
+
+        /// <summary>A sphere (ellipsoid if uneven) fills its size; otherwise from the bottom (less <see cref="BottomSlack"/>) to the top.</summary>
         public static bool Inside(TriggerVolume volume, Vector3 feet)
         {
             var local = ToLocal(volume, feet);
@@ -116,12 +120,6 @@ namespace Comet.Simulation
             }
         }
 
-        /// <summary>
-        /// Where a player arrives in <paramref name="volume"/> and which way they face (radians, 0 facing +Z, as
-        /// <see cref="MotorState.Facing"/>): a random spot in its footprint (an ellipse for round kinds, else a
-        /// rectangle) kept a body's radius in from its edge where it's wide enough, standing on ground between a step below its bottom and its top, with nothing in the way; else
-        /// its center on the ground there, else its bottom center.
-        /// </summary>
         public static (Vector3 Feet, float Facing) Arrive(
             TriggerVolume volume,
             SpawnFacing facing,
@@ -172,7 +170,6 @@ namespace Comet.Simulation
             }
         }
 
-        // A uniformly random point of the volume's footprint, at its bottom, kept margin in from its edge.
         private static Vector3 RandomSpot(TriggerVolume volume, float margin, Random random)
         {
             var half = Vector3.Max(volume.Size / 2 - new Vector3(margin), Vector3.Zero);
@@ -185,7 +182,6 @@ namespace Comet.Simulation
             }
             else
             {
-                // Uniform over the disc: the square root spreads spots evenly rather than bunching them at the center.
                 var angle = (float)(random.NextDouble() * 2 * Math.PI);
                 var distance = MathF.Sqrt((float)random.NextDouble());
                 x = MathF.Sin(angle) * distance * half.X;
@@ -195,7 +191,6 @@ namespace Comet.Simulation
             return ToWorld(volume, new Vector3(x, 0, z));
         }
 
-        // A world point in the volume's own space: from its bottom center, turned back by its yaw.
         private static Vector3 ToLocal(TriggerVolume volume, Vector3 point)
         {
             var d = point - volume.Position;

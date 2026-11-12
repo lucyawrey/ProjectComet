@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>A spawn point in a zone opened in the editor: players arrive in its volume. Clicking its pad selects it first.</summary>
     public sealed class ZoneSpawn : ZoneTrigger
     {
         [Tooltip("Direction: face the way the object turns (its Y rotation). Toward point: face the center. Random.")]

@@ -9,39 +9,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Npgsql;
 using ShapeLand.Data;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
-using Testcontainers.PostgreSql;
 
-[assembly: AssemblyFixture(typeof(ShapeLand.LoginServer.Tests.PostgresContainer))]
+[assembly: AssemblyFixture(typeof(Comet.Testing.PostgresContainer))]
 
 namespace ShapeLand.LoginServer.Tests;
 
-public sealed class PostgresContainer : IAsyncLifetime
-{
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18").Build();
-
-    public async ValueTask InitializeAsync() => await _container.StartAsync();
-
-    public async ValueTask DisposeAsync() => await _container.DisposeAsync();
-
-    public async Task<string> CreateDatabaseAsync()
-    {
-        var name = $"test_{Guid.NewGuid():N}";
-        await using (var admin = new NpgsqlConnection(_container.GetConnectionString()))
-        {
-            await admin.OpenAsync();
-            await using var create = new NpgsqlCommand($"CREATE DATABASE {name}", admin);
-            await create.ExecuteNonQueryAsync();
-        }
-
-        return new NpgsqlConnectionStringBuilder(_container.GetConnectionString()) { Database = name }.ConnectionString;
-    }
-}
-
-/// <summary>ShapeLand's Login server as it runs: its real migrations, content and rules, on a fresh database.</summary>
 public sealed class LoginServerTests(PostgresContainer postgres) : IAsyncDisposable
 {
     private readonly string _keys = Path.Combine(Path.GetTempPath(), $"shapeland-login-tests-{Guid.NewGuid():N}");

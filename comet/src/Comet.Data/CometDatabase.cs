@@ -4,10 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Comet.Data;
 
-/// <summary>Database options shared by every Comet context: PostgreSQL, snake_case names and the timestamps.</summary>
 public static class CometDatabase
 {
-    /// <summary>Options for a context on <paramref name="schema"/>, keeping its migration history in that schema.</summary>
     public static DbContextOptionsBuilder UseComet(
         this DbContextOptionsBuilder options,
         string connectionString,
@@ -19,10 +17,6 @@ public static class CometDatabase
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(new TimestampInterceptor(clock));
 
-    /// <summary>
-    /// Options for a context on <paramref name="schema"/> that uses an open <paramref name="connection"/> (another
-    /// context's), so the two can share one transaction (<c>UseTransaction</c>).
-    /// </summary>
     public static DbContextOptionsBuilder UseComet(
         this DbContextOptionsBuilder options,
         DbConnection connection,
@@ -34,7 +28,6 @@ public static class CometDatabase
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(new TimestampInterceptor(clock));
 
-    /// <summary>Options for a game's <see cref="CometRegionContext{TCharacter}"/>.</summary>
     public static DbContextOptionsBuilder UseCometRegion(this DbContextOptionsBuilder options, string connectionString, TimeProvider clock) =>
         options.UseComet(connectionString, CometRegion.Schema, clock);
 }
