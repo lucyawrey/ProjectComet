@@ -1,0 +1,61 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Comet.Unity
+{
+    [CreateAssetMenu(menuName = "Comet/Prop Library")]
+    public sealed class PropLibrary : ScriptableObject
+    {
+        [Serializable]
+        public struct Entry
+        {
+            public string id;
+
+            [Tooltip("The name the zone editor shows; empty shows the id without its prefix.")]
+            public string displayName;
+
+            public GameObject model;
+
+            [Tooltip("Placements may only scale it the same on every axis.")]
+            public bool uniformScale;
+
+            [Tooltip("The box around its model, in its own space: the zone editor checks how far placements reach with it.")]
+            public Bounds bounds;
+
+            [Tooltip("Whether its placements are drawn in its own color, not the placed objects' material's.")]
+            public bool hasColor;
+
+            public Color color;
+        }
+
+        [SerializeField]
+        private List<Entry> entries = new List<Entry>();
+
+        private Dictionary<string, Entry>? _byId;
+
+        public IReadOnlyList<Entry> Entries => entries;
+
+        public GameObject? Model(string id) => TryGet(id, out var entry) ? entry.model : null;
+
+        public bool TryGet(string id, out Entry entry)
+        {
+            if (_byId == null)
+            {
+                _byId = new Dictionary<string, Entry>();
+                foreach (var e in entries)
+                {
+                    _byId[e.id] = e;
+                }
+            }
+
+            return _byId.TryGetValue(id, out entry);
+        }
+
+        public void SetEntries(IEnumerable<Entry> newEntries)
+        {
+            entries = new List<Entry>(newEntries);
+            _byId = null;
+        }
+    }
+}

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Comet.Client;
 using Comet.Protocol.Messages;
 using Comet.Simulation;
@@ -8,27 +9,23 @@ using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The player's own shape: moves it with the shared <see cref="PlayerMotor"/> on a fixed step, reports its
-    /// position, and draws it between the last two steps. A snap-back from the server moves the simulation at once
-    /// and blends the drawn shape after it; a respawn moves both, behind the screen fade, which starts while
-    /// falling (<see cref="RespawnFade"/>).
-    /// </summary>
     public sealed class LocalPlayer : MonoBehaviour
     {
-        /// <summary>
-        /// Motor steps per second. Faster than the server's tick so input waits less (about 8 ms on average
-        /// for a step, and as long again drawing between steps); reports are paced separately.
-        /// </summary>
+        [Tooltip("After a respawn, how long the camera glides to the spawn before the shape fades in, in seconds.")]
+        [SerializeField]
+        private float respawnGlideSeconds = 0.5f;
+
+        [Tooltip("The farthest a respawn glides the camera, in meters across the ground; farther, or into another zone, it cuts.")]
+        [SerializeField]
+        private float respawnGlideDistance = 30f;
+
         public const int StepsPerSecond = 60;
 
-        /// <summary>How much faster than the shape allows the speed cheat moves (development builds and the editor only), like the cheating bots.</summary>
-        public const float SpeedCheat = 2.5f;
+        public float TestSpeedScale { get; set; } = 1;
 
         private readonly FixedStep _step = new FixedStep(StepsPerSecond);
-        private readonly PositionReporter _reporter = new PositionReporter();
+        private readonly OwnMovement _movement = new OwnMovement(StepsPerSecond);
         private readonly CorrectionBlend _blend = new CorrectionBlend();
-        private float _cheatedAt = float.NegativeInfinity;
         private ClientSession _session;
         private CollisionWorld _world;
         private MovementRules _rules;
@@ -39,30 +36,54 @@ namespace ShapeLand.Client
         private MotorState _previous;
         private bool _jumpQueued;
         private System.Numerics.Vector3 _drawn;
+        private readonly ShapeFade _fade = new ShapeFade();
+        private Vector3 _held;
+        private CorrectionReason _moveReason;
+        private bool _zoneChanged;
 
-        /// <summary>Whether the controls move the shape; off while typing in chat.</summary>
         public bool InputEnabled { get; set; } = true;
 
-        /// <summary>The motor's state after the latest step.</summary>
         public MotorState Motor => _motor;
 
-        /// <summary>How many times the server has moved the player back (a correction that wasn't a respawn).</summary>
+        public CollisionWorld World
+        {
+            get => _world;
+            set
+            {
+                _zoneChanged |= value != _world;
+                _world = value;
+                PassThrough.Clear();
+            }
+        }
+
+        public PassThrough PassThrough => _movement.PassThrough;
+
+        public int Teleports { get; private set; }
+
         public int SnapBacks { get; private set; }
 
-        /// <summary>Of <see cref="SnapBacks"/>, those that came within a second of using the speed cheat.</summary>
-        public int CheatSnapBacks { get; private set; }
-
-        /// <summary>How many times the player fell out of the world and was respawned.</summary>
         public int Respawns { get; private set; }
 
-        /// <summary>How far the drawn shape still trails the simulation after a snap-back, in meters.</summary>
         public float BlendDistance => _blend.Offset.Length();
 
-        /// <summary>How dark the screen should be for the respawn fade: 0 clear, 1 black.</summary>
-        public float Darkness { get; private set; }
+        public float Faded => _fade.Faded;
 
-        /// <summary>Starts the player as <paramref name="shape"/> at <paramref name="position"/>, facing <paramref name="facing"/> radians, moved by <paramref name="controls"/> relative to the camera.</summary>
-        public void Begin(ClientSession session, CollisionWorld world, MovementRules rules, Shape shape, Vector3 position, float facing, OrbitCamera orbitCamera, ShapeLandControls controls)
+        public bool Departing => _fade.Departing;
+
+        public void TeleportSoon(float seconds) => _fade.DepartFrom(Time.unscaledTime + seconds - ShapeFade.FadeOutSeconds);
+
+        public void TeleportCancelled() => _fade.Cancel();
+
+        public void Begin(
+            ClientSession session,
+            CollisionWorld world,
+            MovementRules rules,
+            Shape shape,
+            Vector3 position,
+            float facing,
+            OrbitCamera orbitCamera,
+            ShapeLandControls controls
+        )
         {
             _rules = rules;
             _session = session;
@@ -70,19 +91,21 @@ namespace ShapeLand.Client
             _shape = shape;
             _camera = orbitCamera;
             _controls = controls;
-            _motor = new MotorState { Position = Vectors.ToNumerics(position), Grounded = true, Facing = facing };
+            _motor = new MotorState
+            {
+                Position = Conversions.ToNumerics(position),
+                Grounded = true,
+                Facing = facing,
+            };
             _previous = _motor;
             _session.Corrected += OnCorrected;
             Draw(1);
         }
 
-        /// <summary>Moves on as <paramref name="shape"/> from now on, with its speed and jump.</summary>
         public void ChangeShape(Shape shape) => _shape = shape;
 
-        /// <summary>
-        /// Turns stick or key input (x right, y forward) into a direction on the ground (X, Z) relative to a
-        /// camera heading <paramref name="yawDegrees"/> clockwise from +Z.
-        /// </summary>
+        public void Flipped(string tag) => PassThrough.Flipped(_world, tag, _motor.Position, _rules.BodyRadius, _rules.BodyHeight);
+
         public static System.Numerics.Vector2 CameraRelative(Vector2 input, float yawDegrees)
         {
             var yaw = yawDegrees * Mathf.Deg2Rad;
@@ -98,67 +121,85 @@ namespace ShapeLand.Client
                 return;
             }
 
-            var move = InputEnabled ? CameraRelative(_controls.Game.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
-            _jumpQueued |= InputEnabled && _controls.Game.Jump.WasPressedThisFrame();
+            var move =
+                InputEnabled && !_fade.Holding ? CameraRelative(_controls.Game.Move.ReadValue<Vector2>(), _camera.Yaw) : System.Numerics.Vector2.Zero;
+            _jumpQueued |= InputEnabled && !_fade.Holding && _controls.Game.Jump.WasPressedThisFrame();
 
             var now = CometConnection.Now;
-            var maxSpeed = _shape.MaxSpeed;
-            if (Debug.isDebugBuild && InputEnabled && _controls.Game.SpeedCheat.IsPressed())
-            {
-                maxSpeed *= SpeedCheat;
-                _cheatedAt = Time.unscaledTime;
-            }
+            var maxSpeed = _shape.MaxSpeed * TestSpeedScale;
 
-            // The steps run on the server's clock, so every other one falls on a server tick; only those are
-            // reported, stamped with their tick, so others draw exactly the spacing the player moved at.
+            // The steps run on the server's clock so every other one falls on a server tick; only those are reported, stamped with their tick.
             var steps = _step.Advance(_session.ServerSeconds(now));
             for (var i = 0; i < steps; i++)
             {
                 var stepNumber = _step.LastStep - (steps - 1 - i);
                 _previous = _motor;
-                PlayerMotor.Step(ref _motor, move, _jumpQueued, (float)_step.StepSeconds, maxSpeed, _shape.JumpVelocity, _world, _rules);
+                _movement.Step(_session, stepNumber, ref _motor, move, _jumpQueued, maxSpeed, _shape.JumpVelocity, _world, _rules, out _);
                 _jumpQueued = false;
-                // Paced by the step's own time, not the frame's, so reports stay evenly spaced at any frame rate.
-                if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber * _step.StepSeconds))
-                {
-                    _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
-                }
             }
 
             _blend.Advance(Time.unscaledDeltaTime);
             Draw(_step.Alpha);
-            Darkness = RespawnFade.Step(Darkness, _drawn.Y, _world.KillHeight, Time.unscaledDeltaTime);
+            var time = Time.unscaledTime;
+            if (_fade.Step(time, Time.unscaledDeltaTime, _fade.Holding ? _held.y : _drawn.Y, _world.KillHeight))
+            {
+                Arrived(time);
+            }
+        }
+
+        private void Arrived(float now)
+        {
+            Draw(_step.Alpha);
+            var across = Vector2.Distance(new Vector2(_held.x, _held.z), new Vector2(transform.position.x, transform.position.z));
+            if (_moveReason == CorrectionReason.Respawn && !_zoneChanged && across <= respawnGlideDistance)
+            {
+                _camera.Glide(_held, respawnGlideSeconds);
+                _fade.HideFor(now, respawnGlideSeconds);
+            }
+
+            _zoneChanged = false;
         }
 
         private void Draw(float alpha)
         {
             _drawn = System.Numerics.Vector3.Lerp(_previous.Position, _motor.Position, alpha) + _blend.Offset;
             var facing = Mathf.LerpAngle(_previous.Facing * Mathf.Rad2Deg, _motor.Facing * Mathf.Rad2Deg, alpha);
-            transform.SetPositionAndRotation(Vectors.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+            if (!_fade.Holding)
+            {
+                transform.SetPositionAndRotation(Conversions.ToUnity(_drawn), Quaternion.Euler(0, facing, 0));
+            }
         }
 
         private void OnCorrected(PositionCorrection correction)
         {
+            if (correction.Reason is CorrectionReason.Respawn or CorrectionReason.Teleport && !_fade.Holding)
+            {
+                _held = transform.position;
+            }
+
             _motor.Position = new System.Numerics.Vector3(correction.X, correction.Y, correction.Z);
             _motor.Velocity = System.Numerics.Vector3.Zero;
             _motor.Grounded = false;
             _previous = _motor;
-            _reporter.Reset();
-            if (correction.Reason == CorrectionReason.Respawn)
+            _movement.Reporter.Reset();
+            if (correction.Reason is CorrectionReason.Respawn or CorrectionReason.Teleport)
             {
-                // Usually dark already from the fall; if not, cut to black rather than show the jump.
                 _blend.Clear();
-                Darkness = 1;
-                Respawns++;
+                _moveReason = correction.Reason;
+                _fade.Moved(Time.unscaledTime);
+                if (correction.Reason == CorrectionReason.Respawn)
+                {
+                    Respawns++;
+                }
+                else
+                {
+                    Teleports++;
+                }
             }
             else
             {
                 _blend.Begin(_drawn, _motor.Position);
                 SnapBacks++;
-                if (Time.unscaledTime - _cheatedAt < 1)
-                {
-                    CheatSnapBacks++;
-                }
             }
 
             Draw(1);

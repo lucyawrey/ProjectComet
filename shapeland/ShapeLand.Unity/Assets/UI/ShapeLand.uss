@@ -8,20 +8,51 @@
 
 .backdrop {
     position: absolute; left: 0; top: 0; right: 0; bottom: 0;
-    background-color: rgba(10, 16, 30, 0.32);
+    background-color: rgba(8, 12, 22, 0.55); /* the one dim behind every menu, card and question (.menu-dim) */
     align-items: center; justify-content: center;
     -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf");
     font-size: 15px;
     color: rgb(238, 241, 246);
 }
-.backdrop.hidden { display: none; }
+.backdrop.hidden, .backdrop.waiting { display: none; }
+/* Changing the look in game: the game dims and the HUD fades as behind the Esc menu, the card has a page header
+   (Back only when opened from the menu) in place of the title, and the HUD around it stays usable. */
+.look-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
+.backdrop.changing .look-head { display: flex; }
+.backdrop.changing .join-title { display: none; }
 
+/* The card has the Esc menu window's size, place and look (.menu-window), growing only for an error. On a phone it's
+   as tall as its content, centered in the safe area (.card-safe, kept there by Hud) with even margins, and the body
+   scrolls if it still doesn't fit; tighter phone spacing is at the end of this section. */
+.card-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .card {
-    width: 580px;
-    padding: 18px 22px;
-    background-color: rgba(18, 22, 30, 0.9);
-    border-width: 1px; border-color: rgba(255, 255, 255, 0.1); border-radius: 6px;
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    width: 600px; min-height: 440px;
+    padding: 18px 24px 16px 24px;
+    background-color: rgba(16, 20, 28, 0.96);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
 }
+.backdrop.phone .card-safe { padding: 8px 0 48px 0; justify-content: center; align-items: center; }
+.backdrop.phone.touch-input .card-safe { padding: 8px 0; } /* no prompts bar with touch controls */
+/* The prompts bar along the bottom, as in the Esc menu (.menu-prompts); Back only while changing the look. */
+.backdrop .changing-only { display: none; }
+.backdrop.changing .prompt.changing-only { display: flex; }
+.backdrop.phone .card { position: relative; left: auto; top: auto; translate: 0 0; min-height: 0; max-height: 100%; }
+/* The scroll view's viewport clips, so it reaches out over the rows' negative margins (.nav-row) to keep their tint. */
+.card > * { flex-shrink: 0; }
+.card > .card-scroll { flex-shrink: 1; margin: -4px -8px; }
+.card-scroll .body { padding: 4px 8px; }
+/* Rows a gamepad or the arrow keys move through (JoinScreen), the selected one tinted like a Settings row. */
+.card .nav-row { margin: -4px -8px 6px -8px; padding: 4px 8px; border-radius: 4px; }
+.card .nav-row.server { margin-bottom: -4px; }
+/* The selection shows only while keys or a gamepad move it (.navigating, set by JoinScreen and GameMenu). */
+.backdrop.navigating .nav-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.join-button, .cancel-button { border-width: 2px; border-color: rgba(0, 0, 0, 0); }
+.backdrop.navigating .join-button.selected, .backdrop.navigating .cancel-button.selected,
+.backdrop.navigating .sign-out-button.selected { border-color: rgb(255, 255, 255); }
+/* Links and the Sign In and Set Password pages' fields, selected with keys or a gamepad. */
+.backdrop.navigating .link-button.selected { color: rgb(255, 255, 255); background-color: rgba(106, 161, 255, 0.2); border-radius: 4px; padding: 4px 6px; margin-left: -6px; }
+.backdrop.navigating .card-page .field.selected .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
 
 Label { padding: 0; margin: 0; }
 .title { font-size: 28px; margin-bottom: 8px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
@@ -31,7 +62,6 @@ Label { padding: 0; margin: 0; }
 .label-row { flex-direction: row; align-items: flex-end; margin-bottom: 5px; }
 .label { font-size: 12px; letter-spacing: 1px; color: rgb(169, 178, 196); }
 .field > .label { margin-bottom: 5px; }
-.hint { font-size: 12px; margin-left: 6px; color: rgb(141, 151, 171); }
 
 .input { margin: 0; }
 /* Centered by padding, not a fixed height: Unity draws an empty field's caret at the top of the text box. */
@@ -63,11 +93,16 @@ Label { padding: 0; margin: 0; }
 .shape-button.on { border-color: rgb(106, 161, 255); background-color: rgba(106, 161, 255, 0.18); }
 .shape-icon { width: 26px; height: 26px; margin-right: 4px; }
 
+/* A swatch's color is its fill; the chosen one has a white ring with a gap, so it shows on white too. */
 .swatch {
-    width: 26px; height: 26px; padding: 0; margin: 0 6px 4px 0;
-    border-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 3px;
+    width: 26px; height: 26px; padding: 0; margin: 0 6px 6px 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(0, 0, 0, 0);
 }
-.swatch.on { border-color: rgb(255, 255, 255); }
+.swatch-fill { flex-grow: 1; border-radius: 3px; }
+.swatch.on { border-width: 2px; border-color: rgb(255, 255, 255); border-radius: 5px; padding: 2px; }
+.swatch.on > .swatch-fill { border-radius: 1px; }
+/* Ten swatches a line: each is 26px wide plus a 6px margin. */
+.swatches { max-width: 320px; }
 
 .preview-column { width: 150px; margin-left: 18px; align-items: center; justify-content: center; }
 .preview { width: 128px; height: 128px; margin-bottom: 10px; }
@@ -94,7 +129,7 @@ Label { padding: 0; margin: 0; }
 .join-button {
     height: 40px; padding: 0 26px; margin: 0;
     background-color: rgb(61, 124, 240);
-    border-width: 0; border-radius: 4px;
+    border-radius: 4px;
     color: rgb(255, 255, 255); font-size: 16px;
     -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
 }
@@ -102,11 +137,27 @@ Label { padding: 0; margin: 0; }
 .cancel-button {
     height: 40px; padding: 0 20px; margin: 0 10px 0 0;
     background-color: rgba(255, 255, 255, 0.08);
-    border-width: 0; border-radius: 4px;
+    border-radius: 4px;
     color: rgb(238, 241, 246); font-size: 16px;
 }
 .cancel-button:hover { background-color: rgba(255, 255, 255, 0.16); }
 .cancel-button.hidden { display: none; }
+
+/* Tighter on a phone, so the card usually fits without scrolling. */
+.backdrop.phone .card { padding: 12px 18px 10px 18px; }
+.backdrop.phone .title { font-size: 22px; margin-bottom: 4px; }
+.backdrop.phone .look-head { margin-bottom: 6px; }
+.backdrop.phone .fields > .nav-row { margin-bottom: 2px; }
+.backdrop.phone .label-row, .backdrop.phone .field > .label { margin-bottom: 3px; }
+.backdrop.phone .input .unity-base-text-field__input { padding: 5px 10px; }
+.backdrop.phone .shape-button { height: 30px; }
+.backdrop.phone .shape-icon { width: 22px; height: 22px; }
+.backdrop.phone .swatch { width: 24px; height: 24px; margin: 0 5px 5px 0; }
+.backdrop.phone .swatches { max-width: 290px; }
+.backdrop.phone .preview { width: 104px; height: 104px; margin-bottom: 6px; }
+.backdrop.phone .stat { margin-bottom: 4px; }
+.backdrop.phone .error { padding: 5px 10px; margin-bottom: 6px; }
+.backdrop.phone .join-button, .backdrop.phone .cancel-button { height: 36px; }
 
 /* ---- In game: chat, name tags and speech bubbles ---- */
 
@@ -117,14 +168,30 @@ Label { padding: 0; margin: 0; }
     color: rgb(238, 241, 246);
 }
 .hud.hidden { display: none; }
-/* The respawn fade: black over everything in the HUD, its opacity set by Hud. */
-.screen-fade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: black; opacity: 0; }
 .tags { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 
-/* The chat box and its hint fade in code (Chat), not with USS transitions. */
+/* The chat box fades in code (Chat), not with USS transitions. */
 .chat { position: absolute; left: 16px; bottom: 16px; width: 380px; }
 .chat-log { max-height: 190px; padding: 8px 10px; background-color: rgba(18, 22, 30, 0.7); border-radius: 6px; }
+/* Typing on a phone (.typing-top, set by Chat): just below the HUD buttons, above the on-screen keyboard, which covers
+   the lower half of a landscape screen. */
+.chat.typing-top { top: 72px; bottom: auto; }
+.chat.typing-top .chat-log { max-height: 110px; }
 .chat-log.empty { display: none; }
+/* The log's scroll bar: a thin rounded track and thumb like the stat bars, with no arrow buttons. */
+.chat-log .unity-scroller--vertical { width: 6px; margin-left: 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.chat-log .unity-scroller__low-button, .chat-log .unity-scroller__high-button { display: none; }
+.chat-log .unity-scroller__slider { width: 6px; min-width: 6px; margin: 0; padding: 0; flex-grow: 1; }
+.chat-log .unity-base-slider__tracker {
+    left: 0; right: 0; top: 0; bottom: 0; width: auto; margin: 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.12);
+}
+.chat-log .unity-base-slider__dragger {
+    left: 0; width: 6px; margin: 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.35);
+}
+.chat-log .unity-base-slider__dragger:hover { background-color: rgb(106, 161, 255); }
+.chat-log .unity-base-slider__dragger-border { display: none; }
 .chat-line { flex-direction: row; align-items: flex-start; margin-bottom: 3px; }
 .chat-line .shape-icon { width: 14px; height: 14px; margin-right: 5px; margin-top: 3px; flex-shrink: 0; }
 .chat-name { font-size: 14px; margin-right: 6px; flex-shrink: 0; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
@@ -140,48 +207,82 @@ Label { padding: 0; margin: 0; }
 .chat-input-row.hidden { display: none; }
 .chat-input { flex-grow: 1; }
 .chat-input .unity-base-text-field__input { background-color: rgba(0, 0, 0, 0); border-width: 0; font-size: 14px; }
-.chat-keys { font-size: 12px; color: rgb(141, 151, 171); }
-
-.look-button {
-    position: absolute; left: 12px; top: 12px;
-    padding: 4px 9px; margin: 0; font-size: 13px;
-    background-color: rgba(18, 22, 30, 0.6); border-width: 0; border-radius: 3px;
+.chat-send {
+    margin: 4px 0; padding: 4px 12px; font-size: 14px; -unity-font-style: bold;
+    background-color: rgb(61, 124, 240); border-width: 0; border-radius: 3px;
     color: rgb(238, 241, 246);
 }
-.look-button:hover { background-color: rgba(18, 22, 30, 0.85); }
 
-.chat-hint {
-    position: absolute; left: 16px; bottom: 16px;
-    padding: 4px 9px; font-size: 13px;
-    background-color: rgba(18, 22, 30, 0.6); border-radius: 3px;
-    opacity: 0;
+/* Bigger chat text on a phone (16px), with a log to match. */
+.hud.phone .chat { width: 420px; }
+.hud.phone .chat-log { max-height: 210px; }
+.hud.phone .chat.typing-top .chat-log { max-height: 110px; }
+.hud.phone .chat-name, .hud.phone .chat-text, .hud.phone .chat-note,
+.hud.phone .chat-input .unity-base-text-field__input, .hud.phone .chat-send { font-size: 16px; }
+.hud.phone .chat-line .shape-icon { width: 16px; height: 16px; margin-top: 4px; }
+.hud.phone .chat-input .unity-text-element { height: 20px; }
+
+/* Change Look, Return to Spawn, chat and network stats as round buttons at the top left, larger with touch controls
+   in use. With a mouse, hovering one shows its name and key. Icons from UI/Icons (sources in shapeland/CREDITS.md). */
+.hud-row { position: absolute; left: 16px; top: 12px; flex-direction: row; }
+.hud-button, .hud-button:hover {
+    width: 44px; height: 44px; border-radius: 22px; margin: 0 12px 0 0; padding: 0;
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.3);
+    background-color: rgba(18, 22, 30, 0.55);
+    align-items: center; justify-content: center;
 }
+.hud-button:hover { background-color: rgba(18, 22, 30, 0.8); border-color: rgba(238, 241, 246, 0.5); }
+.hud-button:active, .hud-button:hover:active, .hud-button.on { background-color: rgba(79, 140, 240, 0.8); border-color: rgba(238, 241, 246, 0.5); }
+.hud.touch-input .hud-button { width: 52px; height: 52px; border-radius: 26px; margin-right: 14px; }
+.hud-icon { width: 24px; height: 24px; -unity-background-scale-mode: scale-to-fit; }
+.hud.touch-input .hud-icon { width: 28px; height: 28px; }
+.hud-tip {
+    display: none; position: absolute; left: -2px; top: 48px;
+    flex-direction: row; align-items: center;
+    /* A fixed height, as tall as with its key cap, so a tip without one (a gamepad's) doesn't come out shorter. */
+    height: 25px; padding: 0 8px; font-size: 13px; white-space: nowrap;
+    background-color: rgba(18, 22, 30, 0.88); border-radius: 3px;
+}
+.hud-button:hover .hud-tip { display: flex; }
+.hud.touch-input .hud-tip { display: none; }
+/* A tip's key is the keyboard's (.keys-part, a .key cap) or the gamepad's (.pad-part, a .pad-word pill), as on the
+   menu's Controls page; buttons with no gamepad binding show none on a pad. */
+.hud-tip .hud-tip-key { margin: 0 0 0 8px; }
 
 .name-tag {
     position: absolute; translate: -50% -100%;
     padding: 2px 8px; font-size: 13px;
     background-color: rgba(18, 22, 30, 0.75); border-radius: 3px;
 }
+/* A sign (Signs): centered on its point, or with its arrow, above it with the arrow's tip on it. Its colors and
+   font size are the sign's own, set inline. */
+.sign {
+    position: absolute; translate: -50% -50%;
+    max-width: 260px; padding: 2px 8px; border-radius: 3px;
+}
+.sign > Label { white-space: normal; -unity-text-align: middle-center; }
+.sign.with-arrow { translate: -50% -100%; margin-top: -7px; }
+.sign-arrow { position: absolute; left: 50%; bottom: -7px; width: 12px; height: 7px; margin-left: -6px; }
 .bubble {
     position: absolute; translate: -50% -100%;
     max-width: 220px; padding: 6px 11px;
     background-color: rgba(18, 22, 30, 0.88); border-radius: 6px;
 }
 .bubble > Label { font-size: 14px; white-space: normal; -unity-text-align: middle-center; }
-.bubble-tail {
-    position: absolute; left: 50%; bottom: -6px;
-    width: 11px; height: 11px; margin-left: -6px;
-    rotate: 45deg;
-    background-color: rgba(18, 22, 30, 0.88);
-}
+/* Drawn in code in the bubble's background color (PanelArrow). */
+.bubble-tail { position: absolute; left: 50%; bottom: -7px; width: 14px; height: 7px; margin-left: -7px; }
 
 /* Network stats (NetStats, F3): rows with a state dot. Numbers in the mono face so they don't jitter. */
 .net-stats {
-    position: absolute; left: 12px; top: 44px; width: 270px; /* under the Change Look button */
+    position: absolute; left: 16px; top: 68px; width: 270px; /* under the HUD buttons */
     padding: 8px 10px 6px 10px; font-size: 13px;
     background-color: rgba(18, 22, 30, 0.78); border-radius: 4px;
 }
 .net-stats.hidden { display: none; }
+.hud.touch-input .net-stats { top: 76px; } /* under the larger buttons */
+/* The footer names F3, except with touch controls in use, where the stats button opens and closes the numbers. */
+.touch-only, .hud.touch-input .keys-only { display: none; }
+.hud.touch-input .touch-only { display: flex; }
 .net-row { flex-direction: row; align-items: center; margin-bottom: 3px; }
 .net-dot { width: 7px; height: 7px; border-radius: 4px; margin-right: 7px; flex-shrink: 0; background-color: rgb(92, 201, 138); }
 .net-dot.warn { background-color: rgb(240, 181, 74); }
@@ -198,3 +299,403 @@ Label { padding: 0; margin: 0; }
     border-top-width: 1px; border-top-color: rgba(255, 255, 255, 0.12);
     font-size: 11px; color: rgb(141, 151, 171);
 }
+
+/* ---- Touch controls (phones): a floating stick on the left half, a camera drag on the right, and a jump button. ---- */
+.touch { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.touch-half { position: absolute; top: 0; bottom: 0; width: 50%; }
+.touch-left { left: 0; }
+.touch-right { right: 0; }
+.stick-base {
+    position: absolute;
+    width: 144px;
+    height: 144px;
+    border-radius: 72px;
+    border-width: 3px;
+    border-color: rgba(238, 241, 246, 0.35);
+    background-color: rgba(18, 22, 30, 0.25);
+    align-items: center;
+    justify-content: center;
+}
+.stick-knob { width: 56px; height: 56px; border-radius: 28px; background-color: rgba(238, 241, 246, 0.6); }
+/* Inside the screen's safe area (set from code, Hud), clear of notches and the home bar: Jump here, and the HUD
+   buttons, chat box, stats and the rest of the overlay in .safe. */
+.touch-safe, .safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+/* Sizes in panel pixels, which on a phone are about CSS pixels (Hud.PhoneReferenceResolution). */
+.touch-button, .touch-button:hover {
+    border-width: 2px;
+    border-color: rgba(238, 241, 246, 0.3);
+    background-color: rgba(18, 22, 30, 0.55);
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+}
+.touch-button:active, .touch-button:hover:active, .touch-button.pressed { background-color: rgba(79, 140, 240, 0.8); }
+.jump-button { position: absolute; right: 16px; bottom: 16px; width: 100px; height: 100px; border-radius: 50px; }
+.touch-icon { width: 46px; height: 46px; -unity-background-scale-mode: scale-to-fit; }
+.icon-look { background-image: url("Icons/look.png"); }
+.icon-return { background-image: url("Icons/return.png"); }
+.icon-chat { background-image: url("Icons/chat.png"); }
+.icon-jump { background-image: url("Icons/jump.png"); }
+.icon-menu { background-image: url("Icons/menu.png"); }
+
+/* ---- The Esc menu (Menu.uxml, GameMenu), ported from the approved mockup. ---- */
+
+/* Parts for one kind of input: keys and mouse unless the HUD or the look card has .pad-input or .touch-input
+   (TouchControls, Hud). */
+.pad-part, .touch-part { display: none; }
+.pad-input .keys-part, .touch-input .keys-part { display: none; }
+.pad-input .pad-part, .touch-input .touch-part { display: flex; }
+
+.key {
+    min-width: 24px; padding: 1px 6px; margin: 0 2px;
+    border-width: 1px; border-bottom-width: 2px; border-color: rgba(238, 241, 246, 0.4); border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.07);
+    font-size: 12px; -unity-text-align: middle-center;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+.pad-word {
+    padding: 1px 7px; border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 9px;
+    font-size: 12px; -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+.glyph { width: 26px; height: 26px; -unity-background-scale-mode: scale-to-fit; }
+.glyph-label { margin-left: 2px; font-size: 11px; color: rgb(169, 178, 196); -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+.icon-mouse-right { background-image: url("Icons/mouse_right.png"); }
+.icon-stick { background-image: url("Icons/stick.png"); }
+.icon-pad-south { background-image: url("Icons/pad_south.png"); }
+.icon-pad-east { background-image: url("Icons/pad_east.png"); }
+
+/* While the menu is open the game dims and the HUD fades behind it. */
+/* The same for the look card changing the look (.look-open, set by Hud), whose dim is the card's own, and the
+   Account page (.account-open, set by Hud), whose dim is #account-dim. */
+.hud.menu-open .hud-row, .hud.menu-open .tags, .hud.menu-open .chat, .hud.menu-open .net-stats,
+.hud.account-open .hud-row, .hud.account-open .tags, .hud.account-open .chat, .hud.account-open .net-stats,
+.hud.look-open .hud-row, .hud.look-open .tags { opacity: 0.35; }
+#account-dim { display: none; }
+.hud.account-open #account-dim { display: flex; }
+.menu-host, .menu, .menu-dim, .menu-safe { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.menu-dim { background-color: rgba(8, 12, 22, 0.55); }
+
+/* The list: a centered column of separate buttons, the selected one filled blue. */
+.menu-list, .menu-confirm {
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    align-items: stretch;
+}
+.menu-entry, .menu-entry:hover {
+    width: 280px; height: 46px; padding: 0; margin: 0 0 6px 0;
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.12); border-radius: 6px;
+    background-color: rgba(16, 20, 28, 0.82);
+    color: rgb(238, 241, 246); font-size: 19px; -unity-text-align: middle-center;
+}
+.menu-entry:hover { border-color: rgba(238, 241, 246, 0.4); }
+.menu-entry.leave { color: rgb(255, 160, 157); }
+.menu-entry.leave:hover { border-color: rgba(255, 160, 157, 0.6); }
+.menu.navigating .menu-entry.selected, .menu.navigating .menu-entry.selected:hover {
+    background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6);
+    color: rgb(255, 255, 255); /* not bold: the entries would change width as the selection moves */
+}
+.menu.navigating .menu-entry.leave.selected, .menu.navigating .menu-entry.leave.selected:hover { background-color: rgb(190, 58, 54); }
+/* Pressed: the button answers at once, before what it does. */
+.menu-entry:active, .menu-entry:hover:active, .menu-back:active, .menu-back:hover:active, .menu-dev:active, .menu-dev:hover:active { background-color: rgba(79, 140, 240, 0.8); }
+.menu-gap { height: 14px; }
+/* Under an entry that's off, why (the Account entry with accounts off in the editor). */
+.menu-entry:disabled { color: rgba(238, 241, 246, 0.4); }
+.hud.phone .menu-entry { height: 38px; font-size: 17px; margin-bottom: 4px; }
+.hud.phone .menu-gap { height: 8px; }
+
+.menu-confirm { align-items: center; }
+.menu-confirm-title { font-size: 22px; margin-bottom: 4px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.menu-confirm-note { font-size: 14px; color: rgb(169, 178, 196); margin-bottom: 16px; }
+
+/* Controls and Settings: one fixed-size window for both pages and every device tab; long pages scroll inside. */
+.menu-window {
+    position: absolute; left: 50%; top: 50%; translate: -50% -54%;
+    width: 600px; height: 440px; max-height: 76%;
+    padding: 18px 24px 16px 24px;
+    background-color: rgba(16, 20, 28, 0.96);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
+}
+/* On a phone the menu centers in the space above the prompts bar (40px), with even margins; the window fills it. */
+.hud.phone .menu-list, .hud.phone .menu-confirm { translate: -50% -50%; margin-top: -20px; }
+.hud.phone .menu-window {
+    top: 8px; bottom: 48px; height: auto; max-height: none; translate: -50% 0;
+    padding: 12px 18px 10px 18px;
+}
+/* With touch controls there are no prompts, so the bar is gone and the menu centers on the whole screen. */
+.touch-input .menu-prompts { display: none; }
+.hud.phone.touch-input .menu-list, .hud.phone.touch-input .menu-confirm { margin-top: 0; }
+.hud.phone.touch-input .menu-window { bottom: 8px; }
+.menu-page-head { flex-direction: row; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+.menu-back, .menu-back:hover {
+    flex-direction: row; align-items: center;
+    height: 28px; padding: 0 10px 0 8px; margin: 0 12px 0 0;
+    border-width: 1px; border-color: rgba(255, 255, 255, 0.16); border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(238, 241, 246); font-size: 13px;
+}
+.menu-back:hover { background-color: rgba(255, 255, 255, 0.06); }
+/* Back selected with keys or a gamepad (the menu's pages and the look card), outlined like the card's buttons. */
+.navigating .menu-back.selected { border-color: rgb(255, 255, 255); background-color: rgba(106, 161, 255, 0.2); }
+.menu-back-arrow {
+    width: 7px; height: 7px; margin-right: 6px; rotate: 45deg;
+    border-left-width: 2px; border-bottom-width: 2px; border-color: rgb(238, 241, 246);
+}
+.menu-page-name { font-size: 20px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+
+.menu-devices {
+    flex-direction: row; align-items: flex-end; height: 36px; flex-shrink: 0; margin-bottom: 4px;
+    border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.1);
+}
+.menu-dev, .menu-dev:hover {
+    flex-direction: row; align-items: center;
+    height: 30px; padding: 0 12px; margin: 0 4px 0 0;
+    border-width: 0; border-bottom-width: 2px; border-color: rgba(0, 0, 0, 0); border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(169, 178, 196); font-size: 14px;
+}
+.menu-dev.on { color: rgb(238, 241, 246); border-bottom-color: rgb(106, 161, 255); }
+.menu-in-use { display: none; margin-left: 6px; font-size: 11px; color: rgb(106, 161, 255); }
+.menu-dev.current .menu-in-use { display: flex; }
+.menu-shoulder {
+    padding: 0 5px; margin: 0 6px 7px 6px; font-size: 11px; color: rgb(169, 178, 196);
+    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); border-radius: 4px;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+
+.menu-scroll { flex-grow: 1; }
+.menu-scroll .unity-scroller--vertical { width: 6px; margin-left: 6px; border-width: 0; background-color: rgba(0, 0, 0, 0); }
+.menu-scroll .unity-scroller__low-button, .menu-scroll .unity-scroller__high-button { display: none; }
+.menu-scroll .unity-scroller__slider { width: 6px; min-width: 6px; margin: 0; padding: 0; flex-grow: 1; }
+.menu-scroll .unity-base-slider__tracker {
+    left: 0; right: 0; top: 0; bottom: 0; width: auto; margin: 0;
+    border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.12);
+}
+.menu-scroll .unity-base-slider__dragger { left: 0; width: 6px; margin: 0; border-width: 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.35); }
+.menu-scroll .unity-base-slider__dragger-border { display: none; }
+
+/* One row style for both pages. */
+.menu-row {
+    flex-direction: row; align-items: center; justify-content: space-between;
+    height: 42px; padding: 0 12px; flex-shrink: 0;
+    border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07);
+}
+.hud.phone .menu-row { height: 36px; }
+.menu.navigating .menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.menu-row-name { font-size: 15px; }
+.menu-bind { flex-direction: row; align-items: center; }
+.menu-bind-note { font-size: 13px; color: rgb(141, 151, 171); margin: 0 6px; }
+.mini-button {
+    width: 24px; height: 24px; border-radius: 12px; align-items: center; justify-content: center;
+    border-width: 1px; border-color: rgba(238, 241, 246, 0.35); background-color: rgba(18, 22, 30, 0.55);
+}
+.mini-icon { width: 15px; height: 15px; -unity-background-scale-mode: scale-to-fit; }
+
+.setting-text { flex-direction: row; align-items: flex-end; }
+/* A section heading inside a page, in the join card's label style. */
+.menu-section { margin: 14px 0 2px 12px; font-size: 12px; letter-spacing: 1px; color: rgb(169, 178, 196); }
+.setting-note { margin-left: 10px; font-size: 12px; color: rgb(141, 151, 171); }
+.switch { width: 44px; height: 24px; border-radius: 12px; flex-shrink: 0; background-color: rgb(61, 124, 240); }
+.switch.off { background-color: rgba(255, 255, 255, 0.18); }
+.switch-knob {
+    position: absolute; top: 3px; left: 23px; width: 18px; height: 18px; border-radius: 9px;
+    background-color: rgb(255, 255, 255);
+    transition-property: left; transition-duration: 0.15s;
+}
+.switch.off .switch-knob { left: 3px; }
+.switch.settling .switch-knob { transition-duration: 0s; }
+.slider { flex-direction: row; align-items: center; }
+/* The track is taller than it looks, so it's easy to grab. */
+.slider-track { width: 150px; height: 24px; justify-content: center; }
+.slider-rail { position: absolute; left: 0; right: 0; top: 9px; height: 6px; border-radius: 3px; background-color: rgba(255, 255, 255, 0.14); }
+.slider-fill { position: absolute; left: 0; top: 9px; height: 6px; border-radius: 3px; background-color: rgb(106, 161, 255); }
+.slider-knob { position: absolute; top: 3px; width: 18px; height: 18px; margin-left: -9px; border-radius: 9px; background-color: rgb(255, 255, 255); }
+.slider-value {
+    width: 46px; margin-left: 10px; font-size: 13px; color: rgb(169, 178, 196); -unity-text-align: middle-right;
+    -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf");
+}
+
+/* Button prompts along the bottom of the screen, for the input in use. */
+.menu-prompts {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 40px; padding: 0 22px;
+    flex-direction: row; justify-content: flex-end; align-items: center;
+    background-color: rgba(8, 12, 22, 0.7); font-size: 14px;
+}
+.prompt { flex-direction: row; align-items: center; margin-left: 20px; }
+.prompt .key, .prompt .glyph, .prompt .menu-shoulder { margin: 0 6px 0 0; }
+.prompt .glyph { width: 22px; height: 22px; }
+/* The device prompt only on the Controls page (.on-controls, set by GameMenu), still for the input in use. */
+.hud .menu .prompt.tabs-prompt { display: none; }
+.hud .menu.on-controls .prompt.tabs-prompt.keys-part { display: flex; }
+.hud.pad-input .menu .prompt.tabs-prompt.keys-part, .hud.touch-input .menu .prompt.tabs-prompt.keys-part { display: none; }
+.hud.pad-input .menu.on-controls .prompt.tabs-prompt.pad-part { display: flex; }
+
+/* First time in the game: the menu button's tip stays up, outlined, until the menu is first opened (Hud). It names
+   the key for the input in use (Start on a gamepad); not shown with touch controls. */
+.hud-button.first-time .hud-tip {
+    display: flex; border-width: 1px; border-color: rgb(106, 161, 255);
+}
+.hud.touch-input .hud-button.first-time .hud-tip { display: none; }
+
+/* ---- Accounts: the join card's pages, the signed-in card, the connecting pop-up, the confirm, the Account page and
+   the guest reminder (placeholder wording; layout from the accounts mockup). ---- */
+.link-button {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; padding: 4px 0; margin: 0 12px 0 0;
+    color: rgb(190, 200, 255); font-size: 14px; -unity-text-align: middle-left;
+}
+.link-button:hover { color: rgb(230, 235, 255); }
+.card-note { margin-top: 6px; font-size: 13px; color: rgb(141, 151, 171); white-space: normal; }
+.input-value { padding: 9px 11px; font-size: 15px; color: rgb(169, 178, 196); background-color: rgba(255, 255, 255, 0.04); border-radius: 4px; }
+.code-input .unity-base-text-field__input { -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+
+/* The card's pages (signing in, setting a password) replace the title and the new player's rows, keeping the card's size. */
+.page-head { display: none; flex-direction: row; align-items: center; margin-bottom: 12px; }
+.card-page { display: none; flex-grow: 1; max-width: 360px; }
+#join.signing-in .page-head, #join.setting-password .page-head { display: flex; }
+#join.signing-in .join-title, #join.setting-password .join-title { display: none; }
+#join.signing-in .card-scroll, #join.setting-password .card-scroll { display: none; }
+#join.signing-in #sign-in, #join.setting-password #set-password { display: flex; }
+#sign-in.with-code { max-width: 440px; }
+
+/* "Already have an account?" and Sign in, on the new player's card only; Sign out on the signed-in card only. */
+.have-account { flex-direction: row; align-items: center; }
+.have-account-text { font-size: 14px; color: rgb(169, 178, 196); margin-right: 10px; }
+#join.changing .have-account, #join.signing-in .have-account, #join.signed-in .have-account, #join.setting-password .have-account { display: none; }
+/* Pointed to after a new player picks a taken name. */
+.cancel-button.pointed { border-color: rgb(106, 161, 255); }
+/* Sign out: the same button at the bottom left of the signed-in card and the Account page, in the Esc menu's
+   Leave game look (.menu-entry.leave) at the card's button size. */
+.sign-out-button, .sign-out-button:hover {
+    height: 40px; padding: 0 20px; margin: 0 12px 0 0;
+    background-color: rgba(16, 20, 28, 0.82);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.12); border-radius: 6px;
+    color: rgb(255, 160, 157); font-size: 16px;
+}
+.sign-out-button:hover { border-color: rgba(255, 160, 157, 0.6); }
+#sign-out-button { display: none; }
+#join.signed-in #sign-out-button { display: flex; }
+/* The server line: desktop builds only, on the new player's and signed-in cards. */
+.server-line { flex-direction: row; align-items: center; margin-top: 10px; }
+.server-line.hidden { display: none; }
+.server-text { font-size: 13px; color: rgb(141, 151, 171); margin-right: 8px; }
+.server-line .link-button { font-size: 13px; }
+.server-line.open .server-text, .server-line.open #server-change { display: none; }
+/* Cancel puts the address back and closes the field; beside it, level with the input. */
+.server-cancel { display: none; align-self: flex-end; margin: 0 0 9px 12px; }
+.server-line.open .server-cancel { display: flex; }
+#join.setting-password .server-line { display: none; }
+
+/* The signed-in card: who the player is beside their turning shape, in place of the new player's rows. */
+.who { display: none; flex-grow: 1; justify-content: center; }
+#join.signed-in .who { display: flex; }
+#join.signed-in #player-fields, #join.signed-in #stats { display: none; }
+#join.signed-in .preview-column { width: 200px; }
+#join.signed-in .preview { width: 160px; height: 160px; }
+.who-name { font-size: 30px; margin: 4px 0 8px 0; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.guest-tag {
+    align-self: flex-start; padding: 1px 8px; border-radius: 9px; font-size: 12px;
+    border-width: 1px; border-color: rgba(255, 214, 160, 0.6); color: rgb(255, 214, 160);
+}
+
+/* Change Shape has no name row (renaming is on the Account page), so the preview grows into the space. */
+.backdrop.changing .preview-column { width: 200px; }
+.backdrop.changing .preview { width: 150px; height: 150px; margin-bottom: 18px; }
+.backdrop.changing .stats { width: 190px; }
+
+/* The connecting pop-up: small and low on the screen, over the world, which isn't dimmed. */
+.join-pop {
+    position: absolute; left: 50%; bottom: 72px; translate: -50% 0; min-width: 320px;
+    flex-direction: row; align-items: center; padding: 12px 16px;
+    background-color: rgba(16, 20, 28, 0.92);
+    border-width: 2px; border-color: rgba(238, 241, 246, 0.16); border-radius: 8px;
+    -unity-font: url("Fonts/AtkinsonHyperlegible-Regular.ttf"); color: rgb(238, 241, 246);
+}
+.join-pop.hidden { display: none; }
+.join-pop.failed { border-color: rgba(255, 107, 103, 0.5); }
+.pop-dots { flex-direction: row; margin-right: 14px; }
+.pop-dot { width: 8px; height: 8px; margin-right: 5px; border-radius: 4px; background-color: rgba(238, 241, 246, 0.25); }
+.pop-dot.lit { background-color: rgb(106, 161, 255); }
+.pop-fail-mark {
+    display: none; width: 22px; height: 22px; margin-right: 14px; border-radius: 11px;
+    background-color: rgba(255, 107, 103, 0.25); color: rgb(255, 160, 157); font-size: 15px;
+    -unity-text-align: middle-center; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf");
+}
+.join-pop.failed .pop-dots { display: none; }
+.join-pop.failed .pop-fail-mark { display: flex; }
+.pop-text { flex-grow: 1; margin-right: 16px; }
+.pop-main { font-size: 16px; }
+.pop-sub { margin-top: 2px; font-size: 13px; color: rgb(141, 151, 171); white-space: normal; max-width: 300px; }
+.pop-button { height: 32px; padding: 0 14px; font-size: 14px; }
+.cancel-button.pop-button { margin-right: 8px; }
+.pop-retry { display: none; }
+.join-pop.failed .pop-retry { display: flex; }
+
+/* A confirm over the dimmed game or card, in the Esc menu's Leave game style (ConfirmPanel). */
+/* The selection with keys or a gamepad, as in the Esc menu. */
+.navigating .confirm-overlay .menu-entry.selected { background-color: rgb(61, 124, 240); border-color: rgba(255, 255, 255, 0.6); color: rgb(255, 255, 255); }
+.navigating .confirm-overlay .menu-entry.leave.selected { background-color: rgb(190, 58, 54); }
+/* No dim of its own: the screen it's over already has the one dim. */
+.confirm-overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.confirm-overlay.hidden { display: none; }
+.confirm-overlay .menu-confirm-note { max-width: 440px; white-space: normal; -unity-text-align: upper-center; }
+/* The window a question came from steps aside while it's up, so the question reads against the dimmed game. */
+#join.confirming .card, .confirming .account-window { display: none; }
+#join.confirming .menu-prompts { display: none; }
+
+/* The Account page: rows like Settings, each opening its own step in the same window. */
+.account-window { flex-direction: column; }
+.hud.phone .account-window { bottom: 8px; } /* no prompts bar under the Account page */
+.account-step { display: none; flex-grow: 1; }
+.account-step.shown { display: flex; }
+.account-form { padding: 4px 12px 0 12px; flex-grow: 1; }
+/* Fields evenly spaced; their notes together after the last one. */
+.account-form .field, .card-page .field { max-width: 340px; margin-bottom: 14px; }
+.account-form > .card-note, .card-page > .card-note { margin-top: 0; margin-bottom: 4px; }
+.account-text { font-size: 15px; white-space: normal; margin-bottom: 12px; max-width: 460px; }
+.account-row-value { flex-direction: row; align-items: center; font-size: 14px; color: rgb(169, 178, 196); }
+.account-who { flex-direction: row; align-items: center; padding: 2px 12px 10px 12px; border-bottom-width: 1px; border-color: rgba(255, 255, 255, 0.07); }
+.account-name { font-size: 22px; margin-right: 10px; -unity-font: url("Fonts/AtkinsonHyperlegible-Bold.ttf"); }
+.account-who .guest-tag { align-self: center; }
+.row-chevron {
+    width: 7px; height: 7px; margin-left: 10px; rotate: 45deg;
+    border-right-width: 2px; border-top-width: 2px; border-color: rgb(169, 178, 196);
+}
+.menu-row.account-row:hover { background-color: rgba(255, 255, 255, 0.04); }
+/* The selection with keys or a gamepad (AccountPage), as in the Esc menu's pages. */
+.account-window.navigating .menu-row.selected { background-color: rgba(106, 161, 255, 0.2); }
+.account-window.navigating .join-button.selected, .account-window.navigating .sign-out-button.selected,
+.account-window.navigating .copy-button.selected { border-color: rgb(255, 255, 255); }
+.account-window.navigating .input.selected .unity-base-text-field__input { border-color: rgb(106, 161, 255); }
+.menu-row.disabled .menu-row-name { color: rgb(141, 151, 171); }
+.account-info {
+    margin: 10px 0 6px 0; padding: 8px 12px; font-size: 14px; white-space: normal;
+    background-color: rgba(106, 161, 255, 0.14); border-left-width: 3px; border-color: rgb(106, 161, 255);
+}
+.account-info.hidden { display: none; }
+.account-actions { flex-direction: row; align-items: center; flex-shrink: 0; }
+.account-window .error { flex-shrink: 0; margin: 8px 0 10px 0; } /* the join card's error box, above the buttons */
+.recovery-code {
+    flex-direction: row; align-items: center; justify-content: space-between; margin: 6px 0 10px 0; padding: 12px 14px;
+    background-color: rgba(255, 255, 255, 0.06); border-width: 1px; border-color: rgba(255, 255, 255, 0.3); border-radius: 6px;
+}
+.recovery-code-text { font-size: 20px; letter-spacing: 1px; -unity-font: url("Fonts/AtkinsonHyperlegibleMono-Regular.ttf"); }
+.copy-button {
+    height: 30px; padding: 0 12px; margin: 0 0 0 12px; border-width: 1px; border-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px; background-color: rgba(0, 0, 0, 0); color: rgb(238, 241, 246); font-size: 14px;
+}
+.copy-button:hover { background-color: rgba(255, 255, 255, 0.06); }
+.code-warning {
+    padding: 8px 12px; font-size: 14px; white-space: normal; color: rgb(255, 226, 186);
+    background-color: rgba(255, 176, 64, 0.14); border-left-width: 3px; border-color: rgb(255, 176, 64);
+}
+
+/* The guest reminder: a note under the HUD row, once, with Set password and Not now. */
+.guest-reminder {
+    position: absolute; left: 16px; top: 68px; width: 360px; padding: 10px 12px;
+    background-color: rgba(16, 20, 28, 0.92); border-width: 2px; border-color: rgba(255, 214, 160, 0.45); border-radius: 8px;
+}
+.guest-reminder.hidden { display: none; }
+.hud.touch-input .guest-reminder { top: 76px; }
+.guest-reminder-text { font-size: 14px; white-space: normal; }
+.guest-reminder-actions { flex-direction: row; margin-top: 8px; }
+.guest-reminder .join-button { height: 30px; padding: 0 12px; font-size: 14px; }
+.guest-reminder .cancel-button { height: 30px; padding: 0 12px; font-size: 14px; margin: 0 0 0 8px; }

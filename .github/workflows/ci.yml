@@ -1,0 +1,65 @@
+# The .NET tests and the tools, on Linux and Windows. Windows runners have no Linux containers, so the test projects
+# that start PostgreSQL in Docker (Testcontainers) run on Linux only. Unity isn't run here.
+name: CI
+
+# Every push, so a branch is checked before its pull request opens.
+on: push
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Formatting
+        if: runner.os == 'Linux'
+        run: |
+          dotnet tool restore
+          dotnet csharpier check .
+
+      # Some tests read the compiled content (artifacts/content/), as the servers do.
+      - name: Content
+        run: dotnet run --project shapeland/src/ShapeLand.ContentBuild -- build
+
+      - name: Tests
+        if: runner.os == 'Linux'
+        run: dotnet test --solution ProjectComet.slnx
+
+      - name: Tests (without the PostgreSQL ones)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $docker = 'Comet.Data.Tests', 'Comet.Login.Tests', 'ShapeLand.LoginServer.Tests'
+          $projects = Get-ChildItem comet/tests, shapeland/tests -Filter *.Tests.csproj -Recurse | Where-Object { $docker -notcontains $_.BaseName }
+          foreach ($project in $projects) {
+            dotnet test --project $project.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      # Each tool builds, starts and reads its arguments; the launcher passes them through untouched.
+      - name: Tools
+        if: runner.os == 'Linux'
+        run: |
+          for tool in check comet-postgres unity-batch unity-restore shapeland-dev shapeland-netrun shapeland-deploy; do
+            tools/run "$tool" --help > /dev/null
+          done
+          test "$(tools/run comet-postgres name '/a b/My Checkout' 5080)" = shapeland_my_checkout_5080
+
+      - name: Tools
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for %%t in (check comet-postgres unity-batch unity-restore shapeland-dev shapeland-netrun shapeland-deploy) do (
+            call tools\run %%t --help > nul || exit /b 1
+          )
+          for /f %%n in ('tools\run comet-postgres name "C:\a b\My Checkout" 5080') do set name=%%n
+          if not "%name%"=="shapeland_my_checkout_5080" (echo Got %name% & exit /b 1)
+          for /f %%n in ('tools\run comet-postgres name C:\x\A^=B^;C 1') do set split=%%n
+          if not "%split%"=="shapeland_a_b_c_1" (echo Got %split% & exit /b 1)

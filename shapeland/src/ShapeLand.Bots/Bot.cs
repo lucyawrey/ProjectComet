@@ -10,39 +10,20 @@ using ShapeLand.Shared.World;
 
 namespace ShapeLand.Bots;
 
-/// <summary>How a bot behaves.</summary>
 public sealed class BotSettings
 {
-    /// <summary>Seconds between chat lines on average; 0 for none.</summary>
     public double ChatEverySeconds { get; set; } = 30;
 
-    /// <summary>Slide this many times faster than the shape allows (1 for an honest bot).</summary>
     public float SpeedCheat { get; set; } = 1;
 
-    /// <summary>Jump this many times faster than the shape allows (1 for an honest bot); the height goes with its square.</summary>
     public float JumpCheat { get; set; } = 1;
 
-    /// <summary>Stay within this distance of the island's center, in meters.</summary>
-    public float WanderRadius { get; set; } = 18;
-
-    /// <summary>Ask for this body color (0xRRGGBB) instead of a random one from the starting set.</summary>
-    public uint? Color { get; set; }
-
-    /// <summary>Seconds after joining before network numbers are recorded (the delay settles first); negative for none.</summary>
     public double WarmupSeconds { get; set; } = -1;
 }
 
-/// <summary>A bot's network numbers at one moment: seconds since it joined, and milliseconds for the rest.</summary>
 public readonly record struct NetSample(double Seconds, double PingMs, double BestPingMs, double DelayMs, double TargetMs);
 
-/// <summary>
-/// One simulated player: joins, wanders the island with the shared player motor, jumps now and then and chats
-/// occasionally. A cheating bot slides faster than its shape allows and should be snapped back. Runs on the
-/// same client session as the Unity client (tick estimate, interpolation buffer, report schedule), so load
-/// tests exercise that code too. Counts what it sees, so tests and the bot program can check the server.
-/// Moves in the zone the server's Welcome names, its world from <paramref name="worlds"/> (shared by many bots).
-/// </summary>
-public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, ZoneWorlds worlds)
+public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandContent content, ZoneWorlds worlds, IBotAccount account)
 {
     private const int StepsPerSecond = 30;
 
@@ -51,11 +32,12 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private readonly Random _random = new(seed);
     private readonly HashSet<uint> _seen = [];
     private readonly HashSet<uint> _cheatersInView = [];
-    private readonly PositionReporter _reporter = new();
+    private readonly OwnMovement _movement = new(StepsPerSecond);
     private readonly FixedStep _fixed = new(StepsPerSecond);
     private readonly List<(uint Tick, Vector3 Position)> _ownReports = [];
     private ClientSession _session = null!;
-    private CollisionWorld _world = worlds.For(ShapeLandWorld.DefaultZone(content));
+
+    private CollisionWorld _world = worlds.For(content.Zones.All[0]).WithOwnFlips();
     private MotorState _motor;
     private Shape _shape = null!;
     private Vector2 _target;
@@ -70,53 +52,42 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private (long MoveStates, long Holds, double HeldTicks, long Jumps, long SpeedHitches, long Overruns, long VisibleBlendBacks) _baseline;
     private double _lastRecord;
 
-    public string Name => name;
+    public string Name { get; private set; } = name;
+
+    public string? LoginFailure { get; private set; }
+
+    public DropReason? DroppedFor { get; private set; }
 
     public uint EntityId => _session.EntityId;
 
-    /// <summary>True once the server has spawned the bot.</summary>
     public bool Joined { get; private set; }
 
-    /// <summary>Why the server turned the bot's join down, or null.</summary>
     public JoinRejection? Rejected { get; private set; }
 
-    /// <summary>Other players this bot has seen spawn.</summary>
     public IReadOnlyCollection<uint> SeenPlayers => _seen;
 
     public int StatesReceived => _session.StatesReceived;
 
-    /// <summary>How many times the server moved the bot back (corrections other than respawns).</summary>
     public int SnapBacks { get; private set; }
 
-    /// <summary>How many times the bot fell out of the world and was respawned.</summary>
     public int Respawns { get; private set; }
 
-    /// <summary>Chat lines the bot sent, and those it received from others.</summary>
     public int ChatsSent { get; private set; }
 
     public int ChatsReceived { get; private set; }
 
-    /// <summary>How many other players left the bot's view.</summary>
-    public int Despawns { get; private set; }
-
-    /// <summary>The connection failed or was lost, rather than being closed by the bot.</summary>
     public bool Failed { get; private set; }
 
-    /// <summary>Network numbers sampled while running, for <c>--results</c>; empty until the warmup is over.</summary>
     public List<NetSample> NetSamples { get; } = [];
 
-    /// <summary>When the bot started, in UTC: its samples' seconds count from here, to match them to timestamped server logs.</summary>
     public DateTimeOffset StartedAt { get; private set; }
 
-    /// <summary>Of the others' states received since the warmup, those that continued a move, and the holds among them.</summary>
     public long MoveStates => Joined && _recording ? _session.Entities.MoveStates - _baseline.MoveStates : 0;
 
     public long Holds => Joined && _recording ? _session.Entities.Holds - _baseline.Holds : 0;
 
-    /// <summary>Of the others' moves since the warmup, those drawn as a jump (too far to walk between stamps).</summary>
     public long Jumps => Joined && _recording ? _session.Entities.Jumps - _baseline.Jumps : 0;
 
-    /// <summary>This bot's own reports since the warmup, and how many changed speed as a hitch would (real changes).</summary>
     public long OwnMoves { get; private set; }
 
     public long OwnHitches { get; private set; }
@@ -127,55 +98,81 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     public long VisibleHitches => Overruns + VisibleBlendBacks + Jumps;
 
-    /// <summary>Other players watched since the warmup, in player-seconds, to put visible hitches per player per minute.</summary>
     public double WatchedSeconds { get; private set; }
 
     public long SpeedHitches => Joined && _recording ? _session.Entities.SpeedHitches - _baseline.SpeedHitches : 0;
 
-    /// <summary>How long the holds since the warmup were, in seconds, summed.</summary>
     public double HeldSeconds => Joined && _recording ? (_session.Entities.HeldTicks - _baseline.HeldTicks) / _session.Entities.TickRate : 0;
 
-    public async Task RunAsync(Uri url, CancellationToken stop)
+    public async Task RunAsync(CancellationToken stop)
     {
-        var transport = new WebSocketTransport(url);
-        _session = new ClientSession(transport, ShapeLandProtocol.Options, teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
-            gravity: content.Movement.Gravity);
-        _session.WelcomeArrived += welcome =>
+        BotJoin? ticket;
+        string? failure;
+        try
         {
-            _world = worlds.For(content.Zones[welcome.Zone]);
-            _session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(content, _world);
-        };
+            (ticket, failure) = await account.JoinAsync(stop);
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (ticket == null)
+        {
+            LoginFailure = failure;
+            Failed = true;
+            Console.Error.WriteLine($"{Name} couldn't sign in: {failure}");
+            return;
+        }
+
+        Name = ticket.Name;
+        var transport = new WebSocketTransport(ticket.Server);
+        _session = new ClientSession(
+            transport,
+            ShapeLandProtocol.Options,
+            teleportSpeed: ShapeLandWorld.TeleportSpeed(content),
+            gravity: content.Movement.Gravity
+        );
         _session.GameMessage += OnGameMessage;
         _session.Corrected += OnCorrected;
-        _session.EntityDespawned += id =>
-        {
-            Despawns++;
-            _cheatersInView.Remove(id);
-        };
+        _session.EntityDespawned += id => _cheatersInView.Remove(id);
 
         var clock = Stopwatch.StartNew();
         StartedAt = DateTimeOffset.UtcNow;
         var asked = false;
-        // Wakes twice per step; the steps themselves run on the server's clock (FixedStep), on its ticks.
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(0.5 / StepsPerSecond));
         try
         {
-            while (transport.State != TransportState.Closed && await timer.WaitForNextTickAsync(stop))
+            while (transport.State != TransportState.Closed && Rejected == null && await timer.WaitForNextTickAsync(stop))
             {
                 var now = clock.Elapsed.TotalSeconds;
                 _lastNow = now;
                 if (!asked && transport.State == TransportState.Open)
                 {
                     asked = true;
-                    _shape = content.Shapes.All[_random.Next(content.Shapes.All.Count)];
-                    _session.Write(ShapeLandMessageIds.JoinRequest, new JoinRequest
+                    if (ticket.Ticket is { } joinTicket)
                     {
-                        Name = name,
-                        Shape = _shape.Number,
-                        Color = settings.Color ?? content.Settings.Colors.Body[_random.Next(content.Settings.Colors.Body.Length)],
-                        EyeColor = content.Settings.Colors.Eyes[_random.Next(content.Settings.Colors.Eyes.Length)],
-                        ContentFingerprint = content.Fingerprint,
-                    });
+                        _session.Write(
+                            ShapeLandMessageIds.JoinRequest,
+                            new JoinRequest { Ticket = joinTicket, ContentFingerprint = content.Fingerprint }
+                        );
+                    }
+                    else
+                    {
+                        var look = ticket.Look ?? new NewCharacter();
+                        _session.Write(
+                            ShapeLandMessageIds.DevJoinRequest,
+                            new DevJoinRequest
+                            {
+                                Name = ticket.Name,
+                                Shape = look.Shape,
+                                Color = look.Color,
+                                EyeColor = look.EyeColor,
+                                ContentFingerprint = content.Fingerprint,
+                                Bot = true,
+                            }
+                        );
+                    }
                 }
 
                 _session.Update(now);
@@ -187,7 +184,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                         Step(now, _fixed.LastStep - (steps - 1 - i));
                     }
 
-                    // Draw the others, as a real client would, so the interpolation buffer runs under load.
                     var renderTick = _session.RenderTick(now);
                     foreach (var id in _session.Entities.Ids)
                     {
@@ -200,9 +196,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 _session.Flush(now);
             }
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested)
-        {
-        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
 
         transport.Close();
         await transport.Completion;
@@ -212,11 +206,9 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
     private void Step(double now, long stepNumber)
     {
-        const float seconds = 1f / StepsPerSecond;
         _step++;
         var elapsed = _step / (double)StepsPerSecond;
         var position = new Vector2(_motor.Position.X, _motor.Position.Z);
-        // A new target on arrival, or after 30 s without getting there (stuck behind a block).
         if (Vector2.Distance(position, _target) < 1.5f || now - _targetSince > 30)
         {
             _target = RandomPoint();
@@ -230,11 +222,21 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             _nextJump = elapsed + 3 + _random.NextDouble() * 5;
         }
 
-        PlayerMotor.Step(ref _motor, move, jump, seconds, _shape.MaxSpeed * settings.SpeedCheat, _shape.JumpVelocity * settings.JumpCheat, _world, content.Movement);
-        // Each step falls on a server tick, so its state is reported stamped with exactly that tick.
-        if (_session.TickOfStep(stepNumber, StepsPerSecond, out var tick) && _reporter.ShouldReport(_motor.Velocity, stepNumber / (double)StepsPerSecond))
+        if (
+            _movement.Step(
+                _session,
+                stepNumber,
+                ref _motor,
+                move,
+                jump,
+                _shape.MaxSpeed * settings.SpeedCheat,
+                _shape.JumpVelocity * settings.JumpCheat,
+                _world,
+                content.Movement,
+                out var tick
+            )
+        )
         {
-            _session.ReportPosition(tick, _motor.Position, _motor.Velocity, _motor.Facing);
             CountOwnHitch(tick, _motor.Position);
         }
 
@@ -244,7 +246,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
             ChatsSent++;
             _nextChat = elapsed + settings.ChatEverySeconds * (0.5 + _random.NextDouble());
         }
-
     }
 
     private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
@@ -257,9 +258,20 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 var position = new Vector3(spawn.X, spawn.Y, spawn.Z);
                 if (_session.Welcomed && spawn.EntityId == _session.EntityId)
                 {
+                    _shape = content.Shapes[spawn.Shape];
+                    if (Joined)
+                    {
+                        break;
+                    }
+
                     Joined = true;
                     _joinedAt = _lastNow;
-                    _motor = new MotorState { Position = position, Grounded = true, Facing = spawn.Facing };
+                    _motor = new MotorState
+                    {
+                        Position = position,
+                        Grounded = true,
+                        Facing = spawn.Facing,
+                    };
                     _fixed.Reset();
                     _target = RandomPoint();
                     _nextJump = 2 + _random.NextDouble() * 4;
@@ -271,15 +283,34 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                     _session.Entities.Spawn(spawn.EntityId, tick, position, spawn.Facing);
                     if (IsCheaterName(spawn.Name))
                     {
-                        // A speed cheater's impossible moves would count as the network's hitches.
                         _session.Entities.ExcludeFromCounts(spawn.EntityId);
                         _cheatersInView.Add(spawn.EntityId);
                     }
                 }
 
                 break;
+            case ShapeLandMessageIds.ZoneEntered:
+                var entered = FrameReader.Decode<ZoneEntered>(payload, options);
+                _world = worlds.For(content.Zones[entered.Zone]).WithOwnFlips();
+                _movement.PassThrough.Clear();
+                _session.Entities.GroundHeight = _world.GroundHeight(content.Movement);
+                foreach (var tag in entered.Flipped ?? [])
+                {
+                    _world.SetFlipped(tag, true);
+                }
+
+                break;
+            case ShapeLandMessageIds.PlacementsFlipped:
+                var flipped = FrameReader.Decode<PlacementsFlipped>(payload, options);
+                _world.SetFlipped(flipped.Tag, flipped.Flipped);
+                _movement.PassThrough.Flipped(_world, flipped.Tag, _motor.Position, content.Movement.BodyRadius, content.Movement.BodyHeight);
+                break;
+            case ShapeLandMessageIds.Dropped:
+                DroppedFor = FrameReader.Decode<Dropped>(payload, options).Reason;
+                break;
             case ShapeLandMessageIds.JoinRejected:
                 Rejected = FrameReader.Decode<JoinRejected>(payload, options).Reason;
+                Console.Error.WriteLine($"{Name} was refused: {Rejected}");
                 break;
             case ShapeLandMessageIds.ChatMessage:
                 ChatsReceived++;
@@ -292,23 +323,20 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         _motor.Position = new Vector3(correction.X, correction.Y, correction.Z);
         _motor.Velocity = Vector3.Zero;
         _motor.Grounded = false;
-        _reporter.Reset();
+        _movement.Reporter.Reset();
         if (correction.Reason == CorrectionReason.Respawn)
         {
             Respawns++;
         }
-        else
+        else if (correction.Reason != CorrectionReason.Teleport)
         {
             SnapBacks++;
         }
     }
 
-    /// <summary>Whether a player's name is a cheating bot's, as Program names them ("Cheater 01", "Far cheater 01").</summary>
     public static bool IsCheaterName(string name) =>
-        name.StartsWith("Cheater ", StringComparison.Ordinal) || name.Contains(" cheater ", StringComparison.Ordinal);
+        name.StartsWith("Cheater", StringComparison.Ordinal) || name.Contains("-cheater", StringComparison.Ordinal);
 
-    // The speed-hitch test RemoteEntities applies to others' states, applied to this bot's own reports: what its
-    // real movement does, to compare with what others draw.
     private void CountOwnHitch(uint tick, Vector3 position)
     {
         if (_recording && _ownReports.Count == 2)
@@ -335,7 +363,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private static float GroundSpeed(Vector3 from, Vector3 to, uint ticks) =>
         ticks == 0 ? 0 : new Vector2(to.X - from.X, to.Z - from.Z).Length() / (ticks / 30f);
 
-    // After the warmup, the network numbers the overlay shows, four times a second.
     private void Record(double now)
     {
         if (settings.WarmupSeconds < 0 || now < _joinedAt + settings.WarmupSeconds)
@@ -347,12 +374,20 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         if (!_recording)
         {
             _recording = true;
-            _baseline = (entities.MoveStates, entities.Holds, entities.HeldTicks, entities.Jumps, entities.SpeedHitches, entities.Overruns, entities.VisibleBlendBacks);
+            _baseline = (
+                entities.MoveStates,
+                entities.Holds,
+                entities.HeldTicks,
+                entities.Jumps,
+                entities.SpeedHitches,
+                entities.Overruns,
+                entities.VisibleBlendBacks
+            );
             _lastRecord = now;
             _nextSample = now;
         }
 
-        WatchedSeconds += (entities.Count - _cheatersInView.Count) * (now - _lastRecord); // as counted: not cheaters
+        WatchedSeconds += (entities.Count - _cheatersInView.Count) * (now - _lastRecord);
         _lastRecord = now;
         if (now < _nextSample)
         {
@@ -361,18 +396,22 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
 
         _nextSample += 0.25;
         var delay = _session.InterpolationDelay;
-        NetSamples.Add(new NetSample(
-            now - _joinedAt,
-            _session.Clock.LastRoundTrip * 1000,
-            _session.Clock.RoundTrip * 1000,
-            delay.Seconds * 1000,
-            delay.Target / delay.TickRate * 1000));
+        NetSamples.Add(
+            new NetSample(
+                now - _joinedAt,
+                _session.Clock.LastRoundTrip * 1000,
+                _session.Clock.RoundTrip * 1000,
+                delay.Seconds * 1000,
+                delay.Target / delay.TickRate * 1000
+            )
+        );
     }
 
     private Vector2 RandomPoint()
     {
         var angle = _random.NextDouble() * Math.Tau;
-        var distance = settings.WanderRadius * Math.Sqrt(_random.NextDouble());
+        const float wanderRadius = 18;
+        var distance = wanderRadius * Math.Sqrt(_random.NextDouble());
         return new Vector2((float)(Math.Cos(angle) * distance), (float)(Math.Sin(angle) * distance));
     }
 }

@@ -1,20 +1,15 @@
-using ShapeLand.Shared.Content;
+using Comet.Content;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// A flat drawing of a shape in a player's color (a lit face and a shaded side), for buttons and chat lines:
-    /// the shape alongside the color, so players aren't told apart by color alone.
-    /// </summary>
     public sealed class ShapeIcon : VisualElement
     {
-        private MeshKind _kind;
+        private PrimitiveKind? _kind;
         private Color _color;
 
-        /// <summary>An icon of <paramref name="kind"/> in <paramref name="color"/>.</summary>
-        public ShapeIcon(MeshKind kind, Color color)
+        public ShapeIcon(PrimitiveKind? kind, Color color)
         {
             _kind = kind;
             _color = color;
@@ -23,15 +18,13 @@ namespace ShapeLand.Client
             generateVisualContent += Draw;
         }
 
-        /// <summary>Redraws the icon as <paramref name="kind"/> in <paramref name="color"/>.</summary>
-        public void Set(MeshKind kind, Color color)
+        public void Set(PrimitiveKind? kind, Color color)
         {
             _kind = kind;
             _color = color;
             MarkDirtyRepaint();
         }
 
-        // Drawn in a 100 x 100 box, like the mockup's icons.
         private void Draw(MeshGenerationContext context)
         {
             var size = Mathf.Min(contentRect.width, contentRect.height);
@@ -59,12 +52,12 @@ namespace ShapeLand.Client
 
             switch (_kind)
             {
-                case MeshKind.Cube:
+                case PrimitiveKind.Box:
                     Polygon(light, 18, 36, 34, 20, 84, 20, 68, 36);
                     Polygon(dark, 68, 36, 84, 20, 84, 70, 68, 86);
                     Polygon(_color, 18, 36, 68, 36, 68, 86, 18, 86);
                     break;
-                case MeshKind.Diamond:
+                case PrimitiveKind.Octahedron:
                     Polygon(_color, 50, 6, 18, 50, 50, 94);
                     Polygon(dark, 50, 6, 82, 50, 50, 94);
                     break;

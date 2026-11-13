@@ -1,0 +1,76 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Comet.Content;
+using Tomlyn.Model;
+
+namespace Comet.ZoneFiles
+{
+    /// <summary>A <c>[[part]]</c> table per part, written like a zone's placements and relative to the group's pivot.</summary>
+    public static class GroupFile
+    {
+        public static Group? Read(string path, string file, List<ZoneFileError> errors)
+        {
+            var toml = new ZoneToml(file, errors);
+            var table = toml.Parse(File.ReadAllText(path));
+            if (table is null)
+            {
+                return null;
+            }
+
+            toml.CheckKeys(table, "", "id", "display_name", "part");
+            return new Group
+            {
+                Id = toml.String(table, "", "id"),
+                DisplayName = table.ContainsKey("display_name") ? toml.String(table, "", "display_name") : null,
+                Parts = toml.Tables(table, "part").Select(p => ZoneFolder.ReadPlacement(toml, p.Table, p.Path)).ToArray(),
+            };
+        }
+
+        public static List<(Group Group, string File)> ReadFolder(string folder, List<ZoneFileError> errors)
+        {
+            var groups = new List<(Group, string)>();
+            if (!Directory.Exists(folder))
+            {
+                return groups;
+            }
+
+            foreach (var path in Directory.EnumerateFiles(folder, "*.toml", SearchOption.AllDirectories).OrderBy(p => p, StringComparer.Ordinal))
+            {
+                var file = Path.GetRelativePath(folder, path).Replace('\\', '/');
+                var before = errors.Count;
+                var group = Read(path, file, errors);
+                if (group != null && errors.Count == before)
+                {
+                    groups.Add((group, file));
+                }
+            }
+
+            return groups;
+        }
+
+        public static void Write(string path, Group group)
+        {
+            var table = new TomlTable { ["id"] = group.Id };
+            if (group.DisplayName != null)
+            {
+                table["display_name"] = group.DisplayName;
+            }
+
+            ZoneFolder.AddTables(table, "part", group.Parts, ZoneFolder.PlacementTable);
+            var bytes = Encoding.UTF8.GetBytes(ZoneFolder.HexColors(ZoneToml.Write(table)));
+            if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes))
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            File.WriteAllBytes(path, bytes);
+        }
+
+        public static string FileFor(string key) =>
+            (key.StartsWith("group.", StringComparison.Ordinal) ? key.Substring("group.".Length) : key) + ".toml";
+    }
+}

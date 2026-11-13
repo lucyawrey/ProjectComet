@@ -5,16 +5,12 @@ using Comet.Content;
 
 namespace Comet.Simulation
 {
-    /// <summary>One chunk's terrain mesh: triangles as consecutive corners, each with its color.</summary>
     public sealed class TerrainMesh
     {
-        /// <summary>Three corners per triangle, relative to the chunk's origin (<see cref="ChunkCoord.Origin"/>), wound clockwise seen from the front (Unity's convention).</summary>
+        /// <summary>Three corners per triangle, relative to the chunk's origin, wound clockwise from the front (Unity's convention).</summary>
         public List<Vector3> Positions { get; } = new List<Vector3>();
 
-        /// <summary>Each corner's color as 0xRRGGBB.</summary>
         public List<uint> Colors { get; } = new List<uint>();
-
-        public int TriangleCount => Positions.Count / 3;
 
         internal void Add(Vector3 a, Vector3 b, Vector3 c, uint colorA, uint colorB, uint colorC)
         {
@@ -27,24 +23,9 @@ namespace Comet.Simulation
         }
     }
 
-    /// <summary>
-    /// Turns a zone's terrain pieces into flat-shaded, vertex-colored meshes cut per chunk, the same everywhere they're
-    /// drawn (the game client and the editor; later, the LOD build). Each grid cell splits along the
-    /// diagonal from (x+1, z) to (x, z+1) into two triangles, drawn only where all three corners are ground, so what's
-    /// drawn is what's stood on. Wherever a piece's ground ends, skirts close it: walls down from the edge to the
-    /// piece's bottom (its underside map, else its flat bottom height, but no lower than other terrain beneath), and,
-    /// for pieces with rim skirts, a bottom face under the whole piece. The rim and hole toggles choose which edges get
-    /// walls: the piece's outer edge, or the edges of holes inside it.
-    /// </summary>
     public static class TerrainMesher
     {
-        /// <summary>The meshes of <paramref name="terrain"/>'s pieces, by chunk.</summary>
-        /// <param name="groundColor">The color of unpainted ground, for pieces without their own.</param>
-        /// <param name="underColor">The color of unpainted undersides (skirt walls and bottoms), for pieces without their own.</param>
-        /// <param name="only">
-        /// Mesh only these chunks (the editor redrawing where a brush went); null for all. A chunk left with no
-        /// terrain has no entry.
-        /// </param>
+        /// <param name="only">Mesh only these chunks (null for all); a chunk left with no terrain has no entry.</param>
         public static Dictionary<ChunkCoord, TerrainMesh> Build(ZoneTerrain terrain, uint groundColor, uint underColor, ISet<ChunkCoord>? only = null)
         {
             var meshes = new Dictionary<ChunkCoord, TerrainMesh>();
@@ -59,9 +40,6 @@ namespace Comet.Simulation
             return meshes;
         }
 
-        // Meshes one piece. Triangles are addressed by cell and half: half 0 has corners (x, z), (x, z+1), (x+1, z);
-        // half 1 has (x+1, z), (x, z+1), (x+1, z+1). The piece's samples are read once into flat arrays, since looking
-        // each up in its tile is slow and every sample is used by up to six triangles.
         private sealed class PieceMesher
         {
             private readonly ZoneTerrain _terrain;
@@ -70,21 +48,27 @@ namespace Comet.Simulation
             private readonly uint _underColor;
             private readonly Dictionary<ChunkCoord, TerrainMesh> _meshes;
             private readonly ISet<ChunkCoord>? _only;
-            // The cells looked at: the piece's extent plus a margin of one empty cell on every side.
+
             private readonly int _minX;
             private readonly int _minZ;
             private readonly int _width;
             private readonly int _depth;
             private readonly bool[] _ground;
             private readonly bool[] _outside;
-            // Per sample over those cells' corners ((_width + 1) by (_depth + 1)): the ground height (NaN where there's
-            // none), the bottom (the underside, else the flat bottom), and the ground and underside colors.
+
             private readonly float[] _top;
             private readonly float[] _bottom;
             private readonly uint[] _color;
             private readonly uint[] _under;
 
-            public PieceMesher(ZoneTerrain terrain, ZoneTerrain.Piece piece, uint groundColor, uint underColor, Dictionary<ChunkCoord, TerrainMesh> meshes, ISet<ChunkCoord>? only)
+            public PieceMesher(
+                ZoneTerrain terrain,
+                ZoneTerrain.Piece piece,
+                uint groundColor,
+                uint underColor,
+                Dictionary<ChunkCoord, TerrainMesh> meshes,
+                ISet<ChunkCoord>? only
+            )
             {
                 _terrain = terrain;
                 _piece = piece;
@@ -108,8 +92,6 @@ namespace Comet.Simulation
 
             public void Build()
             {
-                // Every height, to tell the outside from holes; the rest only where triangles are made (the chunks
-                // meshed, and their edge samples).
                 var (fromX, fromZ, toX, toZ) = (int.MinValue, int.MinValue, int.MaxValue, int.MaxValue);
                 if (_only != null)
                 {
@@ -139,15 +121,13 @@ namespace Comet.Simulation
                     }
                 }
 
-                // A cell's corners are samples s (x, z), s + 1 (x+1, z), s + row (x, z+1) and s + row + 1; half 0 is the
-                // first three, half 1 the last three.
                 var row = _width + 1;
                 for (var cz = 0; cz < _depth; cz++)
                 {
                     for (var cx = 0; cx < _width; cx++)
                     {
                         var s = cz * row + cx;
-                        bool corner = !float.IsNaN(_top[s + 1]) && !float.IsNaN(_top[s + row]);
+                        var corner = !float.IsNaN(_top[s + 1]) && !float.IsNaN(_top[s + row]);
                         var cell = (cz * _width + cx) * 2;
                         _ground[cell] = corner && !float.IsNaN(_top[s]);
                         _ground[cell + 1] = corner && !float.IsNaN(_top[s + row + 1]);
@@ -182,22 +162,27 @@ namespace Comet.Simulation
 
             private int Sample((int X, int Z) sample) => Sample(sample.X, sample.Z);
 
-            private static ((int X, int Z) A, (int X, int Z) B, (int X, int Z) C) Corners(int cx, int cz, int half) => half == 0
-                ? ((cx, cz), (cx, cz + 1), (cx + 1, cz))
-                : ((cx + 1, cz), (cx, cz + 1), (cx + 1, cz + 1));
+            private static ((int X, int Z) A, (int X, int Z) B, (int X, int Z) C) Corners(int cx, int cz, int half) =>
+                half == 0 ? ((cx, cz), (cx, cz + 1), (cx + 1, cz)) : ((cx + 1, cz), (cx, cz + 1), (cx + 1, cz + 1));
 
-            // The triangle across edge `edge` of a triangle: edges a-b, b-c and c-a in Corners' order.
-            private static (int X, int Z, int Half) Neighbor(int cx, int cz, int half, int edge) => half == 0
-                ? edge == 0 ? (cx - 1, cz, 1) : edge == 1 ? (cx, cz, 1) : (cx, cz - 1, 1)
-                : edge == 0 ? (cx, cz, 0) : edge == 1 ? (cx, cz + 1, 0) : (cx + 1, cz, 0);
+            private static (int X, int Z, int Half) Neighbor(int cx, int cz, int half, int edge) =>
+                half == 0
+                    ? edge == 0
+                        ? (cx - 1, cz, 1)
+                        : edge == 1
+                            ? (cx, cz, 1)
+                            : (cx, cz - 1, 1)
+                    : edge == 0
+                        ? (cx, cz, 0)
+                        : edge == 1
+                            ? (cx, cz + 1, 0)
+                            : (cx + 1, cz, 0);
 
-            // Flood-fills the empty triangles reachable from the margin: they're past the piece's outer edge, and the
-            // empty triangles left over are holes.
-            // Works on triangle indices (Index) with a plain array as the queue, since this pass covers the whole piece.
             private void MarkOutside()
             {
                 var queue = new int[_ground.Length];
-                int head = 0, tail = 0;
+                int head = 0,
+                    tail = 0;
                 for (var cz = 0; cz < _depth; cz++)
                 {
                     for (var cx = 0; cx < _width; cx++)
@@ -214,10 +199,10 @@ namespace Comet.Simulation
                 {
                     var index = queue[head++];
                     var cell = index >> 1;
-                    int cx = cell % _width, cz = cell / _width;
+                    int cx = cell % _width,
+                        cz = cell / _width;
                     if ((index & 1) == 0)
                     {
-                        // Half 0's neighbors (as Neighbor gives them): half 1 of the cells west and south, and of its own.
                         Visit(index + 1, queue, ref tail);
                         if (cx > 0)
                         {
@@ -231,7 +216,6 @@ namespace Comet.Simulation
                     }
                     else
                     {
-                        // Half 1's: half 0 of its own cell and of the cells north and east.
                         Visit(index - 1, queue, ref tail);
                         if (cz < _depth - 1)
                         {
@@ -270,7 +254,6 @@ namespace Comet.Simulation
                 var settings = _piece.Settings;
                 if (settings.RimSkirts)
                 {
-                    // The bottom face, under the triangle and facing down.
                     mesh.Add(Bottom(a) - origin, Bottom(c) - origin, Bottom(b) - origin, _under[Sample(a)], _under[Sample(c)], _under[Sample(b)]);
                 }
 
@@ -283,17 +266,20 @@ namespace Comet.Simulation
                         continue;
                     }
 
-                    // Edge p-q, with the triangle's third corner inside.
-                    var (p, q, inner) = edge == 0 ? (a, b, c) : edge == 1 ? (b, c, a) : (c, a, b);
+                    var (p, q, inner) =
+                        edge == 0 ? (a, b, c)
+                        : edge == 1 ? (b, c, a)
+                        : (c, a, b);
                     AddWall(mesh, origin, p, q, inner);
                 }
             }
 
-            // A wall down from edge p-q, facing away from the triangle's third corner.
             private void AddWall(TerrainMesh mesh, Vector3 origin, (int X, int Z) p, (int X, int Z) q, (int X, int Z) inner)
             {
-                Vector3 pTop = Top(p), qTop = Top(q);
-                Vector3 pBottom = WallBottom(p, pTop.Y), qBottom = WallBottom(q, qTop.Y);
+                Vector3 pTop = Top(p),
+                    qTop = Top(q);
+                Vector3 pBottom = WallBottom(p, pTop.Y),
+                    qBottom = WallBottom(q, qTop.Y);
                 if (pBottom.Y >= pTop.Y && qBottom.Y >= qTop.Y)
                 {
                     return;
@@ -305,7 +291,8 @@ namespace Comet.Simulation
                 qTop -= origin;
                 pBottom -= origin;
                 qBottom -= origin;
-                uint pColor = _under[Sample(p)], qColor = _under[Sample(q)];
+                uint pColor = _under[Sample(p)],
+                    qColor = _under[Sample(q)];
                 if (Vector3.Dot(new Vector3(normal.X, 0, normal.Z), new Vector3(outward.X, 0, outward.Z)) >= 0)
                 {
                     mesh.Add(pTop, qTop, qBottom, pColor, qColor, qColor);
@@ -322,8 +309,6 @@ namespace Comet.Simulation
 
             private Vector3 Bottom((int X, int Z) sample) => At(sample, _bottom[Sample(sample)]);
 
-            // A wall's foot: the piece's bottom, unless other terrain lower than the edge but higher than that is in
-            // the way, where the wall stops on it.
             private Vector3 WallBottom((int X, int Z) sample, float top)
             {
                 var bottom = Bottom(sample);

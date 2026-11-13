@@ -1,15 +1,10 @@
 using ShapeLand.Bots;
+using ShapeLand.Shared;
 using ShapeLand.Shared.Content;
 
-// ShapeLand bots for phase 0: honest wanderers plus optional cheaters that slide too fast.
-//   dotnet run --project shapeland/src/ShapeLand.Bots -- [--url ws://localhost:5080/ws] [--count 5] [--cheaters 1] [--seconds 0] [--seed 1] [--content <repo>/artifacts/content/shapeland/content.bin]
-//     [--warmup 10] [--results file.json] [--meta key=value ...] [--prefix Bot] [--chat [30]] [--cheat-speed 2.5] [--cheat-jump 1]
-// Cheaters move --cheat-speed times faster than allowed and jump --cheat-jump times faster (small values make subtle
-// cheaters, for tuning the server's tolerances).
-// Bots stay quiet unless --chat is given, optionally with the average seconds between their lines (30).
-// With --warmup or --results, bots record network numbers (as the F3 overlay shows them) after the warmup and
-// print a summary at the end (NetReport); --results also writes them to a file, with each --meta pair in it.
-var url = new Uri(Arg("--url", "ws://localhost:5080/ws"));
+var login = new Uri(Arg("--login", "http://localhost:5090"));
+var tokens = Arg("--tokens", "");
+var serverOverride = Arg("--server", "") is { Length: > 0 } server ? new Uri(server) : null;
 var count = int.Parse(Arg("--count", "5"));
 var cheaters = int.Parse(Arg("--cheaters", "0"));
 var cheatSpeed = float.Parse(Arg("--cheat-speed", "2.5"), System.Globalization.CultureInfo.InvariantCulture);
@@ -19,22 +14,65 @@ var seed = int.Parse(Arg("--seed", "1"));
 var contentFile = Arg("--content", "");
 var resultsFile = Arg("--results", "");
 var chatIndex = Array.IndexOf(args, "--chat");
-var chat = chatIndex < 0 ? 0 : chatIndex + 1 < args.Length && double.TryParse(args[chatIndex + 1], out var every) ? every : 30;
-var prefix = Arg("--prefix", "Bot"); // honest bots' names, so two groups can share a server
+var chat =
+    chatIndex < 0 ? 0
+    : chatIndex + 1 < args.Length && double.TryParse(args[chatIndex + 1], out var every) ? every
+    : 30;
+var prefix = Arg("--prefix", "Bot");
 var warmup = double.Parse(Arg("--warmup", resultsFile != "" ? "10" : "-1"));
-var meta = args.Select((arg, i) => (arg, i)).Where(a => a.arg == "--meta" && a.i + 1 < args.Length)
-    .Select(a => args[a.i + 1].Split('=', 2)).ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : "");
+var meta = args.Select((arg, i) => (arg, i))
+    .Where(a => a.arg == "--meta" && a.i + 1 < args.Length)
+    .Select(a => args[a.i + 1].Split('=', 2))
+    .ToDictionary(pair => pair[0], pair => pair.Length > 1 ? pair[1] : "");
 
 ShapeLandContent content;
-using (var stream = File.OpenRead(contentFile != "" ? contentFile : Path.Combine(FindRepoRoot(), "artifacts", "content", "shapeland", "content.bin")))
+using (var stream = File.OpenRead(contentFile != "" ? contentFile : RepoPaths.DefaultContentFile()))
 {
     content = ShapeLandContent.Load(stream);
 }
 
+if (tokens == "")
+{
+    tokens = Path.Combine(RepoPaths.Root(), "artifacts", "bot-tokens");
+}
+
+var dev = args.Contains("--dev");
+if (dev && serverOverride == null)
+{
+    Console.Error.WriteLine("--dev needs --server: the game server to join by name.");
+    Environment.ExitCode = 2;
+    return;
+}
+
 var worlds = new ZoneWorlds(content);
-var bots = Enumerable.Range(1, count)
-    .Select(i => new Bot($"{prefix} {i:00}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }, content, worlds))
-    .Concat(Enumerable.Range(1, cheaters).Select(i => new Bot($"{(prefix == "Bot" ? "Cheater" : prefix + " cheater")} {i:00}", seed * 1000 + 500 + i, new BotSettings { SpeedCheat = cheatSpeed, JumpCheat = cheatJump, ChatEverySeconds = chat }, content, worlds)))
+Bot NewBot(string name, int botSeed, BotSettings settings) =>
+    new(
+        name,
+        botSeed,
+        settings,
+        content,
+        worlds,
+        dev ? new DevBotAccount(name, serverOverride!, content, botSeed) : new LoginBotAccount(name, login, tokens, content, botSeed, serverOverride)
+    );
+var bots = Enumerable
+    .Range(1, count)
+    .Select(i => NewBot($"{prefix}{i:0000}", seed * 1000 + i, new BotSettings { WarmupSeconds = warmup, ChatEverySeconds = chat }))
+    .Concat(
+        Enumerable
+            .Range(1, cheaters)
+            .Select(i =>
+                NewBot(
+                    $"{(prefix == "Bot" ? "Cheater" : prefix + "-cheater")}{i:00}",
+                    seed * 1000 + 500 + i,
+                    new BotSettings
+                    {
+                        SpeedCheat = cheatSpeed,
+                        JumpCheat = cheatJump,
+                        ChatEverySeconds = chat,
+                    }
+                )
+            )
+    )
     .ToList();
 var isCheater = bots.Select((_, i) => i >= count).ToList();
 
@@ -44,23 +82,42 @@ Console.CancelKeyPress += (_, e) =>
     e.Cancel = true;
     stop.Cancel();
 };
-Console.WriteLine($"{bots.Count} bots joining {url}; Ctrl+C to stop.");
-await Task.WhenAll(bots.Select(async (bot, i) =>
-{
-    await Task.Delay(i * 100); // don't all join in the same instant
-    await bot.RunAsync(url, stop.Token);
-}));
+Console.WriteLine(
+    dev ? $"{bots.Count} bots joining {serverOverride} by name; Ctrl+C to stop." : $"{bots.Count} bots signing in at {login}; Ctrl+C to stop."
+);
+await Task.WhenAll(
+    bots.Select(
+        async (bot, i) =>
+        {
+            await Task.Delay(i * 100);
+            await bot.RunAsync(stop.Token);
+        }
+    )
+);
 
-Console.WriteLine($"{"Bot",-12} {"Joined",-7} {"Seen",5} {"States",7} {"Chat in/out",12} {"Snap-backs",11} {"Respawns",9}");
+Console.WriteLine($"{"Bot", -16} {"Joined", -7} {"Seen", 5} {"States", 7} {"Chat in/out", 12} {"Snap-backs", 11} {"Respawns", 9}");
 foreach (var bot in bots)
 {
-    var joined = bot.Failed ? "failed" : bot.Rejected is { } reason ? reason.ToString() : bot.Joined ? "yes" : "no";
-    Console.WriteLine($"{bot.Name,-12} {joined,-7} {bot.SeenPlayers.Count,5} {bot.StatesReceived,7} {$"{bot.ChatsReceived}/{bot.ChatsSent}",12} {bot.SnapBacks,11} {bot.Respawns,9}");
+    var joined =
+        bot.LoginFailure is { } refused ? refused
+        : bot.Rejected is { } reason ? reason.ToString()
+        : bot.DroppedFor is { } drop ? drop.ToString()
+        : bot.Failed ? "failed"
+        : bot.Joined ? "yes"
+        : "no";
+    Console.WriteLine(
+        $"{bot.Name, -16} {joined, -7} {bot.SeenPlayers.Count, 5} {bot.StatesReceived, 7} {$"{bot.ChatsReceived}/{bot.ChatsSent}", 12} {bot.SnapBacks, 11} {bot.Respawns, 9}"
+    );
 }
 
 if (warmup >= 0)
 {
-    var report = NetReport.Create(bots, isCheater, new NetReport.RunSettings(url.ToString(), count, cheaters, seconds, seed, warmup), meta);
+    var report = NetReport.Create(
+        bots,
+        isCheater,
+        new NetReport.RunSettings(dev ? serverOverride!.ToString() : login.ToString(), count, cheaters, seconds, seed, warmup),
+        meta
+    );
     report.Print();
     if (resultsFile != "")
     {
@@ -73,17 +130,4 @@ string Arg(string name, string fallback)
 {
     var index = Array.IndexOf(args, name);
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : fallback;
-}
-
-static string FindRepoRoot()
-{
-    for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-    {
-        if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-        {
-            return dir.FullName;
-        }
-    }
-
-    throw new InvalidOperationException("Can't find the repository root (ProjectComet.slnx).");
 }

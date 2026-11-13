@@ -10,7 +10,17 @@ public class FrameTests
     {
         var writer = new MessageWriter();
         writer.BeginFrame(tick: 123_456);
-        writer.Write(MessageIds.EntityState, new EntityState { EntityId = 7, X = 1.5f, Y = -2f, Z = 3f, Facing = 0.25f });
+        writer.Write(
+            MessageIds.EntityState,
+            new EntityState
+            {
+                EntityId = 7,
+                X = 1.5f,
+                Y = -2f,
+                Z = 3f,
+                Facing = 0.25f,
+            }
+        );
         writer.Write(MessageIds.Pong, new Pong { ClientTime = 42 });
 
         var reader = FrameReader.Create(writer.WrittenMemory);
@@ -32,16 +42,24 @@ public class FrameTests
     [Fact]
     public void EntityStateFitsTheBudget()
     {
-        // The stack benchmark budgeted about 10 updates in ~300 bytes per frame; the state has since
-        // gained the mover's tick and velocity (for dead reckoning), so about 10 now fit in ~480.
         var writer = new MessageWriter();
         writer.Clear();
 
-        writer.Write(MessageIds.EntityState, new EntityState
-        {
-            EntityId = 299, X = 123.456f, Y = 7.89f, Z = -98.7f, Facing = 3.1f, Tick = 1_000_000,
-            VelocityX = 4.2f, VelocityY = -3.3f, VelocityZ = 1.1f,
-        });
+        writer.Write(
+            MessageIds.EntityState,
+            new EntityState
+            {
+                EntityId = 299,
+                X = 123.456f,
+                Y = 7.89f,
+                Z = -98.7f,
+                Facing = 3.1f,
+                Tick = 1_000_000,
+                VelocityX = 4.2f,
+                VelocityY = -3.3f,
+                VelocityZ = 1.1f,
+            }
+        );
 
         Assert.InRange(writer.Length, 1, 48);
     }
@@ -79,8 +97,7 @@ public class FrameTests
         do
         {
             Assert.True(reader.TryReadNext(out id, out payload));
-        }
-        while (id != MessageIds.Ping);
+        } while (id != MessageIds.Ping);
 
         Assert.Equal(9, FrameReader.Decode<Ping>(payload).ClientTime);
     }
@@ -106,17 +123,15 @@ public class FrameTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 1, 2 })]                     // shorter than the tick
-    [InlineData(new byte[] { 0, 0, 0, 0, 0x80 })]         // truncated message ID
-    [InlineData(new byte[] { 0, 0, 0, 0, 3, 10, 1, 2 })]  // length runs past the end
+    [InlineData(new byte[] { 1, 2 })]
+    [InlineData(new byte[] { 0, 0, 0, 0, 0x80 })]
+    [InlineData(new byte[] { 0, 0, 0, 0, 3, 10, 1, 2 })]
     public void RejectsMalformedFrames(byte[] frame)
     {
         Assert.Throws<ProtocolException>(() =>
         {
             var reader = FrameReader.Create(frame);
-            while (reader.TryReadNext(out _, out _))
-            {
-            }
+            while (reader.TryReadNext(out _, out _)) { }
         });
     }
 }

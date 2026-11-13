@@ -1,62 +1,106 @@
 using System.Collections.Generic;
+using System.Linq;
 using Comet.Client;
 using Comet.Content;
+using Comet.Protocol.Messages;
 using Comet.Simulation;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.Messages;
-using ShapeLand.Shared.World;
 using UnityEngine;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// The game scene's view: draws the zone (its terrain and placed objects) once the content has loaded, the player's own shape
-    /// (with eyes, to show its facing) once the server spawns it, with the orbit camera following, and the other
-    /// players where the interpolation buffer puts them. Others fade out as they fall off the island and back in
-    /// after respawning (<see cref="RespawnFade"/>); the player's own fall darkens the screen instead (<see cref="Hud"/>).
-    /// </summary>
     [RequireComponent(typeof(JoinClient))]
     public sealed class GameView : MonoBehaviour
     {
-        /// <summary>A layer the main camera doesn't draw, for the join screen's shape preview.</summary>
         public const int PreviewLayer = 31;
 
         [Tooltip("Terrain's material: Comet/Vertex Color Lit, since its colors are vertex colors.")]
-        [SerializeField] private Material terrainMaterial;
+        [SerializeField]
+        private Material terrainMaterial;
+
         [Tooltip("The material placed objects are drawn with (their models' own are ignored).")]
-        [SerializeField] private Material blockMaterial;
-        [Tooltip("The models for asset keys, kept up to date by the editor from the content.")]
-        [SerializeField] private AssetLibrary assets;
-        [Tooltip("The player shape for content's mesh = \"cube\".")]
-        [SerializeField] private ShapeBody cubePrefab;
-        [Tooltip("The player shape for content's mesh = \"diamond\".")]
-        [SerializeField] private ShapeBody diamondPrefab;
-        [Tooltip("The player shape for content's mesh = \"pyramid\".")]
-        [SerializeField] private ShapeBody pyramidPrefab;
-        [SerializeField] private OrbitCamera orbitCamera;
+        [SerializeField]
+        private Material blockMaterial;
+
+        [Tooltip("The material blockout placements are drawn with (Comet/Blockout: a grid over their color).")]
+        [SerializeField]
+        private Material blockoutMaterial;
+
+        [Tooltip("The models for prop ids, kept up to date by the editor from the content.")]
+        [SerializeField]
+        private PropLibrary props;
+
+        [Tooltip("Players' shapes: their looks' parts other than eyes, colored per part.")]
+        [SerializeField]
+        private Material shapeMaterial;
+
+        [Tooltip("Players' eyes (parts with the role eyes).")]
+        [SerializeField]
+        private Material eyesMaterial;
+
+        [Tooltip("The transparent material a shape's parts fade with; its color is set from each part's.")]
+        [SerializeField]
+        private Material shapeFadeMaterial;
+
+        [Tooltip("The transparent material eyes fade with.")]
+        [SerializeField]
+        private Material eyesFadeMaterial;
+
+        [Tooltip("Marks where the player's own shape is in sight, before its silhouette draws (Comet's Silhouette shader).")]
+        [SerializeField]
+        private Material shapeMaskMaterial;
+
+        [Tooltip("The player's own shape where blocks, props or terrain hide it; its color is set from the body's, its alpha is the opacity.")]
+        [SerializeField]
+        private Material shapeSilhouetteMaterial;
+
+        [SerializeField]
+        private OrbitCamera orbitCamera;
 
         private readonly Dictionary<uint, ShapeBody> _others = new Dictionary<uint, ShapeBody>();
+        private readonly Dictionary<uint, OtherFade> _otherFades = new Dictionary<uint, OtherFade>();
+        private bool _zonePending;
+        private PositionCorrection? _pendingArrival;
+        private Mesh _warmUpMesh;
+        private bool _padFading;
+        private readonly List<(ShapeBody Shape, ShapeFade Fade)> _leaving = new List<(ShapeBody, ShapeFade)>();
+
+        private sealed class OtherFade
+        {
+            public readonly ShapeFade Fade = new ShapeFade();
+            public Vector3 Last;
+            public Vector3 Held;
+        }
+
         private readonly Dictionary<uint, PlayerSpawn> _spawns = new Dictionary<uint, PlayerSpawn>();
-        // Each spawn point's marker (the placement named with its key), by the spawn's content number.
-        private readonly Dictionary<int, Renderer[]> _markers = new Dictionary<int, Renderer[]>();
-        private MaterialPropertyBlock _markerColor;
-        private Spawns _spawnPoints;
+
+        private readonly List<(object Owner, Renderer[] Renderers, Color Color)> _pads = new List<(object, Renderer[], Color)>();
+        private readonly Dictionary<string, List<(GameObject Thing, bool StartsOff)>> _tagged = new Dictionary<string, List<(GameObject, bool)>>();
+
+        private readonly TriggerCharge _spawnCharge = new TriggerCharge();
+        private readonly TriggerCharge _teleportCharge = new TriggerCharge();
+        private readonly TriggerCharge _triggerCharge = new TriggerCharge();
+
+        private Teleporter _sending;
+        private MaterialPropertyBlock _padColor;
+        private Triggers _triggers;
+
+        private HashSet<string> _teleporterIds;
         private ShapeLandContent _content;
-        private (int Spawn, float Since)? _claiming;
+        private Shape _showcased;
         private JoinClient _join;
         private CollisionWorld _world;
         private Transform _drawnZone;
+        private ZoneDrawing _drawing;
         private ShapeLandControls _controls;
         private ShapeBody _playerShape;
 
-        /// <summary>The player, once spawned; their shape is a child of it.</summary>
         public LocalPlayer Player { get; private set; }
 
-        /// <summary>The other players' shapes drawn now, by entity ID.</summary>
         public IReadOnlyDictionary<uint, ShapeBody> Others => _others;
 
-        /// <summary>Every player in view, this one included, as the server spawned them (name, shape, colors), by entity ID.</summary>
         public IReadOnlyDictionary<uint, PlayerSpawn> Spawns => _spawns;
 
         /// <summary>The same as a concrete dictionary, so looping over it every frame doesn't box an enumerator.</summary>
@@ -66,16 +110,38 @@ namespace ShapeLand.Client
 
         public Camera Camera => orbitCamera.GetComponent<Camera>();
 
-        /// <summary>A player's drawn shape (this one's too), or null.</summary>
+        public OrbitCamera OrbitCamera => orbitCamera;
+
+        public bool ShowThroughWalls
+        {
+            get => GameSettings.ShowThroughWalls;
+            set
+            {
+                GameSettings.ShowThroughWalls = value;
+                ApplyShowThroughWalls();
+            }
+        }
+
+        private void ApplyShowThroughWalls()
+        {
+            if (_playerShape != null)
+            {
+                var shown = ShowThroughWalls;
+                _playerShape.ShowThroughWalls(shown ? shapeMaskMaterial : null, shown ? shapeSilhouetteMaterial : null);
+            }
+        }
+
         public ShapeBody ShapeOf(uint entityId) =>
             Player != null && entityId == _join.Session?.EntityId ? _playerShape
-            : _others.TryGetValue(entityId, out var other) ? other : null;
+            : _others.TryGetValue(entityId, out var other) ? other
+            : null;
 
         private void Awake()
         {
             _join = GetComponent<JoinClient>();
             _join.ContentLoaded += OnContentLoaded;
             _join.ZoneChanged += OnZoneChanged;
+            _join.PlacementsFlipped += OnFlipped;
             _join.OwnSpawned += OnOwnSpawned;
             _join.OtherSpawned += OnOtherSpawned;
             _join.OtherLeft += OnOtherLeft;
@@ -85,10 +151,33 @@ namespace ShapeLand.Client
             Camera.cullingMask &= ~(1 << PreviewLayer);
         }
 
-        // Others are drawn where the interpolation buffer puts them, a little behind the newest states.
         private void Update()
         {
-            ColorMarkers();
+            if (_zonePending && (Player == null || !Player.Departing))
+            {
+                OnZoneChanged(_join.Zone);
+            }
+
+            ColorPads();
+            if (Player != null && _playerShape != null)
+            {
+                _playerShape.Faded = Player.Faded;
+            }
+
+            var now = Time.unscaledTime;
+            var seconds = Time.unscaledDeltaTime;
+            for (var i = _leaving.Count - 1; i >= 0; i--)
+            {
+                var (shape, fade) = _leaving[i];
+                fade.Step(now, seconds, shape.transform.position.y, _world.KillHeight);
+                shape.Faded = fade.Faded;
+                if (fade.Faded >= 1)
+                {
+                    Destroy(shape.gameObject);
+                    _leaving.RemoveAt(i);
+                }
+            }
+
             if (_others.Count == 0)
             {
                 return;
@@ -101,8 +190,26 @@ namespace ShapeLand.Client
                 if (session.Entities.TrySample(other.Key, renderTick, out var pose))
                 {
                     var shape = other.Value;
-                    shape.transform.SetPositionAndRotation(Vectors.ToUnity(pose.Position), Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
-                    shape.Faded = RespawnFade.Step(shape.Faded, pose.Position.Y, _world.KillHeight, Time.unscaledDeltaTime);
+                    var track = _otherFades[other.Key];
+                    var position = Conversions.ToUnity(pose.Position);
+                    if (Vector3.Distance(position, track.Last) > session.Entities.TeleportSpeed * seconds + 1)
+                    {
+                        if (!track.Fade.Holding)
+                        {
+                            track.Held = shape.transform.position;
+                        }
+
+                        track.Fade.Moved(now);
+                    }
+
+                    track.Last = position;
+                    track.Fade.Step(now, seconds, track.Fade.Holding ? track.Held.y : position.y, _world.KillHeight);
+                    if (!track.Fade.Holding)
+                    {
+                        shape.transform.SetPositionAndRotation(position, Quaternion.Euler(0, pose.Facing * Mathf.Rad2Deg, 0));
+                    }
+
+                    shape.Faded = track.Fade.Faded;
                 }
             }
         }
@@ -110,142 +217,294 @@ namespace ShapeLand.Client
         private void OnContentLoaded(ShapeLandContent content)
         {
             _content = content;
+            var world = content.Settings.World;
+            _drawing = new ZoneDrawing(
+                terrainMaterial,
+                blockMaterial,
+                blockoutMaterial,
+                props,
+                content.Settings.Primitives,
+                world.PlacedColor,
+                world.GroundColor,
+                world.UnderColor
+            );
             DrawZone();
         }
 
-        // A server plays another zone than the one drawn: draw that instead (before this player spawns in it).
         private void OnZoneChanged(Zone zone)
         {
+            if (_drawnZone == null)
+            {
+                return;
+            }
+
+            if (Player != null && Player.Departing)
+            {
+                Player.World = _join.World;
+                _zonePending = true;
+                return;
+            }
+
+            _zonePending = false;
+
             Destroy(_drawnZone.gameObject);
-            _markers.Clear();
-            _claiming = null;
+            _pads.Clear();
+            _tagged.Clear();
+            _spawnCharge.Clear();
+            _teleportCharge.Clear();
+            _triggerCharge.Clear();
+            _sending = null;
+            ClearLeaving();
             DrawZone();
+            if (Player != null)
+            {
+                Player.World = _world;
+                orbitCamera.World = _world;
+            }
+
+            if (_pendingArrival is { } arrival)
+            {
+                _pendingArrival = null;
+                OnCorrected(arrival);
+            }
         }
 
-        // Draws the join client's zone: its terrain, placed objects and spawn markers.
+        private void OnFlipped(string tag, bool flipped)
+        {
+            if (!_zonePending && _tagged.TryGetValue(tag, out var things))
+            {
+                foreach (var (thing, startsOff) in things)
+                {
+                    thing.SetActive(startsOff == flipped);
+                }
+            }
+
+            Player?.Flipped(tag);
+        }
+
         private void DrawZone()
         {
             var content = _content;
             var zone = _join.Zone;
             _world = _join.World;
-            _spawnPoints = new Spawns(zone);
-            _drawnZone = new GameObject(zone.Id).transform;
-            _drawnZone.SetParent(transform, false);
-            var terrain = new GameObject("Terrain").transform;
-            terrain.SetParent(_drawnZone, false);
-            foreach (var chunk in TerrainMesher.Build(_world.Terrain, content.Settings.World.GroundColor, content.Settings.World.UnderColor))
-            {
-                var name = $"Chunk {chunk.Key}";
-                var drawn = AddMesh(name, TerrainMeshes.Build(name, chunk.Value), terrainMaterial, terrain);
-                drawn.transform.localPosition = Vectors.ToUnity(chunk.Key.Origin);
-            }
+            _triggers = new Triggers(zone);
+            _teleporterIds = content.Zones.All.SelectMany(z => z.Chunks).SelectMany(c => c.Teleporters).Select(t => t.Id).ToHashSet();
+            _drawnZone = _drawing.Draw(
+                zone,
+                _world,
+                transform,
+                (placement, thing) =>
+                {
+                    if (!_tagged.TryGetValue(placement.Tag, out var things))
+                    {
+                        _tagged.Add(placement.Tag, things = new List<(GameObject, bool)>());
+                    }
 
-            var placed = new GameObject("Placed").transform;
-            placed.SetParent(_drawnZone, false);
+                    things.Add((thing, placement.Off));
+                    thing.SetActive(placement.Off == _join.Flipped.Contains(placement.Tag));
+                },
+                out var placed
+            );
             foreach (var chunk in zone.Chunks)
             {
-                foreach (var placement in chunk.Placements)
+                foreach (var spawn in chunk.Spawns)
                 {
-                    var thing = Place(placement, placed);
-                    if (thing != null && placement.Name != null && _spawnPoints.TryGet(placement.Name, out var spawn))
-                    {
-                        _markers[spawn.Number] = thing.GetComponentsInChildren<Renderer>();
-                    }
+                    AddPad(spawn, spawn.Id, spawn.Volume, placed);
+                }
+
+                foreach (var teleporter in chunk.Teleporters)
+                {
+                    AddPad(teleporter, teleporter.Id, teleporter.Volume, placed);
+                }
+
+                foreach (var trigger in chunk.Triggers)
+                {
+                    AddPad(trigger, trigger.Id, trigger.Volume, placed);
                 }
             }
 
-            orbitCamera.Showcase(Vectors.ToUnity(ShapeLandWorld.SpawnPoint(content, zone, _world)));
+            var shown =
+                (_showcased != null && _triggers.TryGetSpawn(_showcased.Spawn, out var picked) ? picked : null)
+                ?? content.Shapes.All.Select(shape => _triggers.TryGetSpawn(shape.Spawn, out var start) ? start : null).FirstOrDefault(s => s != null)
+                ?? _triggers.Spawns.FirstOrDefault();
+            orbitCamera.Showcase(shown != null ? Conversions.ToUnity(Triggers.Center(shown, _world)) : Vector3.zero);
         }
 
-        // An asset's model where a zone places it, in the placed objects' material; its collision objects are hidden.
-        private GameObject Place(Placement placement, Transform parent)
+        public void Showcase(Shape shape, bool glide)
         {
-            var model = assets.Model(placement.Asset);
-            if (model == null)
+            _showcased = shape;
+            if (_triggers != null && _triggers.TryGetSpawn(shape.Spawn, out var start))
             {
-                Debug.LogWarning($"No model for {placement.Asset} in the asset library; is the content up to date in the editor?");
-                return null;
+                orbitCamera.Showcase(Conversions.ToUnity(Triggers.Center(start, _world)), glide);
             }
-
-            var thing = Instantiate(model, parent, false);
-            thing.name = placement.Asset;
-            var rotation = placement.Rotation;
-            thing.transform.SetLocalPositionAndRotation(Vectors.ToUnity(placement.Position), Quaternion.Euler(rotation.X, rotation.Y, rotation.Z));
-            thing.transform.localScale = Vectors.ToUnity(placement.Scale);
-            foreach (var renderer in thing.GetComponentsInChildren<Renderer>())
-            {
-                if (renderer.name.EndsWith(Asset.CollisionSuffix, System.StringComparison.Ordinal))
-                {
-                    renderer.enabled = false;
-                }
-                else
-                {
-                    renderer.sharedMaterial = blockMaterial;
-                }
-            }
-
-            var own = placement.Color is { } rgb ? PlacedColors.FromRgb(rgb) : (Color?)null;
-            var asset = assets.TryGet(placement.Asset, out var entry) && entry.hasColor ? entry.color : (Color?)null;
-            PlacedColors.Apply(thing, own ?? asset ?? Color(_content.Settings.World.PlacedColor));
-            return thing;
         }
 
-        // The player's own spawn's marker takes their body color, the rest a grey used nowhere else. One they stand
-        // in, claiming it, pulses between the two until the server says it's theirs.
-        private void ColorMarkers()
+        private void AddPad(object owner, string id, TriggerVolume volume, Transform parent)
         {
-            if (_content == null || _markers.Count == 0)
+            if (volume.Pad is not { } pad)
             {
                 return;
             }
 
-            _markerColor ??= new MaterialPropertyBlock();
-            var settings = _content.Settings.Spawns;
-            var own = Player != null ? _join.SpawnNumber : null;
-            var body = Player != null && _join.Spawn is { } me ? Color(me.Color) : Color(settings.UnsetColor);
-            var standingIn = Player != null ? _spawnPoints.StandingIn(Vectors.ToNumerics(Player.transform.position), ShapeLandRules.SpawnClaimReach) : null;
-            if (standingIn == null || standingIn.Number == own)
+            var thing = _drawing.PlacePrimitive(pad, parent);
+            thing.name = id;
+            var color =
+                owner is SpawnPoint
+                    ? Conversions.FromRgb(_content.Settings.Spawns.UnsetColor)
+                    : Conversions.FromRgb(pad.Color ?? _content.Settings.World.PlacedColor);
+            _pads.Add((owner, thing.GetComponentsInChildren<Renderer>(), color));
+        }
+
+        private static float Charge(TriggerCharge charge, object owner, float now) =>
+            charge.Inside != owner ? 0
+            : charge.Fired ? 1
+            : charge.Progress(now);
+
+        private void ColorPads()
+        {
+            if (_content == null || _pads.Count == 0)
             {
-                _claiming = null;
-            }
-            else if (_claiming?.Spawn != standingIn.Number)
-            {
-                _claiming = (standingIn.Number, Time.time);
+                return;
             }
 
-            foreach (var marker in _markers)
+            _padColor ??= new MaterialPropertyBlock();
+            var now = Time.time;
+            var own = Player != null ? _join.SpawnNumber : null;
+            var body =
+                Player != null && _join.Spawn is { } me
+                    ? Conversions.FromRgb(_content.ColorRgb(me.Color))
+                    : Conversions.FromRgb(_content.Settings.Spawns.UnsetColor);
+            if (Player != null)
             {
-                var color = marker.Key == own ? body : Color(settings.UnsetColor);
-                if (_claiming is { } claiming && claiming.Spawn == marker.Key && Time.time - claiming.Since < settings.ClaimSeconds + 1)
+                var feet = Player.Motor.Position;
+                var spawn = _triggers.SpawnAt(feet);
+                var teleporter = _triggers.TeleporterAt(feet) is { } at && _teleporterIds.Contains(at.Target) ? at : null;
+                var trigger = _triggers.All.FirstOrDefault(t => Triggers.Inside(t.Volume, feet));
+                _spawnCharge.Step(spawn, spawn?.Volume, now);
+                _triggerCharge.Step(trigger, trigger?.Volume, now);
+                if (_teleportCharge.Step(teleporter, teleporter?.Volume, now))
                 {
-                    var pulse = 0.5f - 0.5f * Mathf.Cos((Time.time - claiming.Since) * 2 * Mathf.PI * 1.5f);
-                    color = UnityEngine.Color.Lerp(Color(settings.UnsetColor), body, pulse);
+                    _sending = teleporter;
+                    _padFading = false;
                 }
 
-                _markerColor.SetColor(BaseColor, color);
-                foreach (var renderer in marker.Value)
+                if (teleporter != null && _teleportCharge.Inside == teleporter && !_teleportCharge.Fired)
                 {
-                    if (renderer.enabled)
+                    var left = (1 - _teleportCharge.Progress(now)) * teleporter.Volume.StandSeconds;
+                    if (!_padFading && left <= ShapeFade.FadeOutSeconds)
                     {
-                        renderer.SetPropertyBlock(_markerColor);
+                        Player.TeleportSoon(left);
+                        _padFading = true;
                     }
                 }
+                else if (_padFading)
+                {
+                    Player.TeleportCancelled();
+                    _padFading = false;
+                }
+
+                if (_sending != null && _teleportCharge.Inside != _sending && !Player.Departing)
+                {
+                    _sending = null;
+                }
+            }
+
+            foreach (var pad in _pads)
+            {
+                Color color;
+                if (pad.Owner is SpawnPoint spawn)
+                {
+                    var charge = Charge(_spawnCharge, spawn, now);
+                    color = spawn.Number == own ? body : Charging(pad.Color, body, charge, spawn.Volume.StandSeconds);
+                }
+                else if (pad.Owner is Teleporter teleporter)
+                {
+                    var charge = teleporter == _sending && Player != null && Player.Departing ? 1 : Charge(_teleportCharge, teleporter, now);
+                    var to = Conversions.FromRgb(teleporter.ChargeColor ?? _content.Settings.Teleporters.ChargeColor);
+                    color = Charging(pad.Color, to, charge, teleporter.Volume.StandSeconds);
+                }
+                else if (pad.Owner is Trigger trigger)
+                {
+                    var charge = Charge(_triggerCharge, trigger, now);
+                    var to = Conversions.FromRgb(trigger.ChargeColor ?? _content.Settings.Triggers.ChargeColor);
+                    color = Charging(pad.Color, to, charge, trigger.Volume.StandSeconds);
+                }
+                else
+                {
+                    continue;
+                }
+
+                _padColor.SetColor(BaseColor, color);
+                foreach (var renderer in pad.Renderers)
+                {
+                    renderer.SetPropertyBlock(_padColor);
+                }
+            }
+        }
+
+        private void OnCorrected(PositionCorrection correction)
+        {
+            if (_zonePending)
+            {
+                _pendingArrival = correction;
+                return;
+            }
+
+            if (_triggers == null)
+            {
+                return;
+            }
+
+            var feet = new System.Numerics.Vector3(correction.X, correction.Y, correction.Z);
+            if (_triggers.SpawnAt(feet) is { } spawn)
+            {
+                _spawnCharge.Arrived(spawn, spawn.Volume);
+            }
+
+            if (_triggers.TeleporterAt(feet) is { } teleporter)
+            {
+                _teleportCharge.Arrived(teleporter, teleporter.Volume);
             }
         }
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
-        // On joining, the player and their shape; on a change of look, a new shape where they stand, so the motor and
-        // the camera carry on as they were (the server's snap-back has already put the player where it has them).
+        private const float BlinkSeconds = 0.1f;
+
+        private static Color Charging(Color rest, Color to, float charge, float standSeconds)
+        {
+            var left = (1 - charge) * standSeconds;
+            return charge > 0 && left > BlinkSeconds && left <= 2 * BlinkSeconds ? rest : UnityEngine.Color.Lerp(rest, to, charge);
+        }
+
         private void OnOwnSpawned(PlayerSpawn spawn)
         {
+            WarmUpFades();
             _spawns[spawn.EntityId] = spawn;
             var shape = _join.Content.Shapes[spawn.Shape];
             if (Player == null)
             {
                 Player = new GameObject().AddComponent<LocalPlayer>();
-                Player.Begin(_join.Session, _world, _join.Content.Movement, shape, new Vector3(spawn.X, spawn.Y, spawn.Z), spawn.Facing, orbitCamera, _controls);
+                Player.Begin(
+                    _join.Session,
+                    _world,
+                    _join.Content.Movement,
+                    shape,
+                    new Vector3(spawn.X, spawn.Y, spawn.Z),
+                    spawn.Facing,
+                    orbitCamera,
+                    _controls
+                );
                 orbitCamera.Follow(Player.transform, _controls, _world);
+                _join.Session.Corrected += OnCorrected;
+                OnCorrected(
+                    new PositionCorrection
+                    {
+                        X = spawn.X,
+                        Y = spawn.Y,
+                        Z = spawn.Z,
+                    }
+                );
             }
             else
             {
@@ -254,26 +513,68 @@ namespace ShapeLand.Client
             }
 
             Player.name = $"{spawn.Name} (you)";
-            _playerShape = BuildShape(shape, spawn.Color, spawn.EyeColor, Player.transform);
+            _playerShape = BuildShape(shape, _content.ColorRgb(spawn.Color), _content.ColorRgb(spawn.EyeColor), Player.transform);
+            ApplyShowThroughWalls();
+        }
+
+        // Draws the fade and silhouette materials once, out of sight, so their shaders compile before a shape first fades instead of hitching then.
+        private void WarmUpFades()
+        {
+            _warmUpMesh ??= new Mesh
+            {
+                name = "Fade warm-up",
+                vertices = new[] { Vector3.zero, Vector3.right * 0.001f, Vector3.up * 0.001f },
+                triangles = new[] { 0, 1, 2 },
+            };
+            var place = Matrix4x4.Translate(Camera.transform.position + Camera.transform.forward * (Camera.nearClipPlane * 2));
+            foreach (var material in new[] { shapeFadeMaterial, eyesFadeMaterial, shapeMaskMaterial, shapeSilhouetteMaterial })
+            {
+                if (material != null)
+                {
+                    Graphics.RenderMesh(new RenderParams(material) { camera = Camera }, _warmUpMesh, 0, place);
+                }
+            }
         }
 
         private void OnOtherSpawned(PlayerSpawn spawn)
         {
-            OnOtherLeft(spawn.EntityId);
+            var track = _otherFades.TryGetValue(spawn.EntityId, out var known) ? known : new OtherFade();
+            if (known == null)
+            {
+                track.Fade.StartHidden();
+            }
+
+            if (_others.Remove(spawn.EntityId, out var old))
+            {
+                Destroy(old.gameObject);
+            }
+
             _spawns[spawn.EntityId] = spawn;
-            var other = BuildShape(_join.Content.Shapes[spawn.Shape], spawn.Color, spawn.EyeColor, transform);
+            var other = BuildShape(
+                _join.Content.Shapes[spawn.Shape],
+                _join.Content.ColorRgb(spawn.Color),
+                _join.Content.ColorRgb(spawn.EyeColor),
+                transform
+            );
             other.name = $"{spawn.Name} ({spawn.EntityId})";
-            other.transform.SetPositionAndRotation(new Vector3(spawn.X, spawn.Y, spawn.Z), Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
+            var position = new Vector3(spawn.X, spawn.Y, spawn.Z);
+            other.transform.SetPositionAndRotation(position, Quaternion.Euler(0, spawn.Facing * Mathf.Rad2Deg, 0));
+            other.Faded = track.Fade.Faded;
+            track.Last = position;
             _others[spawn.EntityId] = other;
+            _otherFades[spawn.EntityId] = track;
         }
 
-        // Everyone leaves the world, this player too, and the camera goes back to orbiting the island.
         private void OnConnectionLost(CloseReason reason)
         {
-            foreach (var id in new List<uint>(_others.Keys))
+            foreach (var other in _others.Values)
             {
-                OnOtherLeft(id);
+                Destroy(other.gameObject);
             }
+
+            ClearLeaving();
+            _others.Clear();
+            _otherFades.Clear();
 
             if (Player != null)
             {
@@ -283,7 +584,17 @@ namespace ShapeLand.Client
                 _playerShape = null;
             }
 
-            _spawns.Clear(); // this player's own entry too, or a rejoin would tag someone with the old name
+            _spawns.Clear();
+        }
+
+        private void ClearLeaving()
+        {
+            foreach (var (shape, _) in _leaving)
+            {
+                Destroy(shape.gameObject);
+            }
+
+            _leaving.Clear();
         }
 
         private void OnOtherLeft(uint entityId)
@@ -291,45 +602,62 @@ namespace ShapeLand.Client
             if (_others.Remove(entityId, out var other))
             {
                 _spawns.Remove(entityId);
-                Destroy(other.gameObject);
+                var fade = _otherFades.Remove(entityId, out var track) ? track.Fade : new ShapeFade();
+                fade.Depart(Time.unscaledTime);
+                _leaving.Add((other, fade));
             }
         }
 
-        /// <summary>
-        /// A player's shape in their colors (0xRRGGBB), standing at its parent's origin: the prefab for its mesh,
-        /// sized by its scale in content.
-        /// </summary>
-        public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent)
+        public ShapeBody BuildShape(Shape shape, uint color, uint eyeColor, Transform parent) =>
+            BuildShape(_content, shape, color, eyeColor, parent, shapeMaterial, eyesMaterial, shapeFadeMaterial, eyesFadeMaterial);
+
+        public static ShapeBody BuildShape(
+            ShapeLandContent content,
+            Shape shape,
+            uint color,
+            uint eyeColor,
+            Transform parent,
+            Material shapeMaterial,
+            Material eyesMaterial,
+            Material shapeFadeMaterial,
+            Material eyesFadeMaterial
+        )
         {
-            var prefab = shape.Mesh switch
+            var drawn = ShapeBody.Create(shape.DisplayName, parent, shape.Scale, shape.Hover);
+            foreach (var part in Groups.Expand(new Placement { Group = shape.Look }, id => content.Groups.TryGet(id, out var group) ? group : null))
             {
-                MeshKind.Diamond => diamondPrefab,
-                MeshKind.Pyramid => pyramidPrefab,
-                _ => cubePrefab,
-            };
-            var drawn = Instantiate(prefab, parent, false);
-            drawn.name = shape.DisplayName;
-            drawn.transform.localScale = Vector3.one * shape.Scale;
+                if (part.Primitive == null)
+                {
+                    continue;
+                }
+
+                var r = part.Rotation;
+                var eyes = part.Role == "eyes";
+                drawn.AddPart(
+                    PrimitiveMeshes.For(part, content.Settings.Primitives),
+                    Conversions.ToUnity(part.Position),
+                    Quaternion.Euler(r.X, r.Y, r.Z),
+                    part.Role,
+                    Conversions.FromRgb(part.Color ?? content.Settings.World.PlacedColor),
+                    eyes ? eyesMaterial : shapeMaterial,
+                    eyes ? eyesFadeMaterial : shapeFadeMaterial
+                );
+            }
+
             drawn.SetColors(color, eyeColor);
             return drawn;
         }
 
-        private static GameObject AddMesh(string name, Mesh mesh, Material material, Transform parent)
-        {
-            var thing = new GameObject(name);
-            thing.transform.SetParent(parent, false);
-            thing.AddComponent<MeshFilter>().sharedMesh = mesh;
-            thing.AddComponent<MeshRenderer>().sharedMaterial = material;
-            return thing;
-        }
-
-        /// <summary>A 0xRRGGBB color as Unity's.</summary>
-        public static Color Color(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
-
         private void OnDestroy()
         {
+            if (_warmUpMesh != null)
+            {
+                Destroy(_warmUpMesh);
+            }
+
             _join.ContentLoaded -= OnContentLoaded;
             _join.ZoneChanged -= OnZoneChanged;
+            _join.PlacementsFlipped -= OnFlipped;
             _join.OwnSpawned -= OnOwnSpawned;
             _join.OtherSpawned -= OnOtherSpawned;
             _join.OtherLeft -= OnOtherLeft;

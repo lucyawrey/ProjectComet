@@ -1,0 +1,135 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using MessagePack;
+
+namespace Comet.Content
+{
+    /// <summary>Parts are relative to the group's pivot; the content build expands each copy, so editing the group changes every copy.</summary>
+    [MessagePackObject]
+    public sealed class Group : IContentEntry
+    {
+        [Key(0)]
+        public int Number { get; set; }
+
+        [Key(1)]
+        public string Id { get; set; } = "";
+
+        [Key(2)]
+        public Placement[] Parts { get; set; } = Array.Empty<Placement>();
+
+        [Key(3)]
+        public string? DisplayName { get; set; }
+    }
+
+    public static class Groups
+    {
+        /// <summary>How deeply groups may nest; deeper nesting places nothing, and validation reports it.</summary>
+        public const int MaxDepth = 16;
+
+        /// <summary>A copy's placements in its zone's space, nested groups expanded; an unknown or self-containing group places nothing.</summary>
+        public static List<Placement> Expand(Placement copy, Func<string, Group?> find)
+        {
+            var placements = new List<Placement>();
+            Add(copy, find, placements, new HashSet<string>());
+            return placements;
+        }
+
+        /// <summary>Replaces each group copy in <paramref name="zone"/> with its parts, in the chunk holding each pivot (made if none).</summary>
+        public static void Expand(Zone zone, Func<string, Group?> find)
+        {
+            var chunks = zone.Chunks.ToDictionary(c => c.Coord);
+            var moved = new List<Placement>();
+            foreach (var chunk in zone.Chunks)
+            {
+                if (chunk.Placements.Any(p => p.Group != null))
+                {
+                    moved.AddRange(chunk.Placements.Where(p => p.Group != null).SelectMany(p => Expand(p, find)));
+                    chunk.Placements = chunk.Placements.Where(p => p.Group == null).ToArray();
+                }
+            }
+
+            foreach (var placement in moved)
+            {
+                var coord = ChunkCoord.Containing(placement.Position);
+                if (!chunks.TryGetValue(coord, out var chunk))
+                {
+                    chunk = new ZoneChunk { Coord = coord };
+                    chunks.Add(coord, chunk);
+                }
+
+                chunk.Placements = chunk.Placements.Append(placement).ToArray();
+            }
+
+            zone.Chunks = chunks.Values.OrderBy(c => c.Coord.X).ThenBy(c => c.Coord.Z).ToArray();
+        }
+
+        /// <summary>A copy's parts placed by its transform, one level (nested groups stay copies); colors, tag, off and blockout pass down.</summary>
+        public static List<Placement> Place(Placement copy, Group group)
+        {
+            var rotation = ZoneGrid.Rotation(copy.Rotation);
+            var scale = copy.Scale.X;
+            return group
+                .Parts.Select(part => new Placement
+                {
+                    Prop = part.Prop,
+                    Primitive = part.Primitive,
+                    Group = part.Group,
+                    Role = part.Role,
+                    Position = copy.Position + Vector3.Transform(part.Position * scale, rotation),
+                    Rotation = ZoneGrid.Euler(Quaternion.Concatenate(ZoneGrid.Rotation(part.Rotation), rotation)),
+                    Scale = part.Scale * scale,
+                    Color = part.Role is { } role && copy.Colors?.TryGetValue(role, out var color) == true ? color : part.Color,
+                    Colors = part.Group is null ? null : Over(copy.Colors, part.Colors),
+                    Blockout = part.Blockout || copy.Blockout,
+                    Tag = copy.Tag,
+                    Off = part.Off || copy.Off,
+                })
+                .ToList();
+        }
+
+        public static SortedSet<string> Roles(string group, Func<string, Group?> find) =>
+            new(Expand(new Placement { Group = group }, find).Select(p => p.Role).OfType<string>());
+
+        private static Dictionary<string, uint>? Over(Dictionary<string, uint>? outer, Dictionary<string, uint>? inner)
+        {
+            if (outer is null || inner is null)
+            {
+                return outer ?? inner;
+            }
+
+            var colors = new Dictionary<string, uint>(inner);
+            foreach (var (role, color) in outer)
+            {
+                colors[role] = color;
+            }
+
+            return colors;
+        }
+
+        // outer holds the groups it's inside, so a group inside itself stops there.
+        private static void Add(Placement copy, Func<string, Group?> find, List<Placement> into, HashSet<string> outer)
+        {
+            if (outer.Count >= MaxDepth || copy.Group is null || outer.Contains(copy.Group) || find(copy.Group) is not { } group)
+            {
+                return;
+            }
+
+            outer.Add(copy.Group);
+            foreach (var placed in Place(copy, group))
+            {
+                if (placed.Group != null)
+                {
+                    Add(placed, find, into, outer);
+                }
+                else
+                {
+                    into.Add(placed);
+                }
+            }
+
+            outer.Remove(copy.Group);
+        }
+    }
+}

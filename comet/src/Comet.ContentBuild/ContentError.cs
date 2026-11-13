@@ -1,10 +1,7 @@
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// A problem in a content file. <see cref="ToString"/> uses the compiler's <c>file(line,col): error: message</c>
-/// format, so terminals and editors link straight to the spot.
-/// </summary>
-public sealed record ContentError(string File, int Line, int Column, string Message)
+/// <summary>A warning doesn't stop the build; <see cref="ToString"/> uses the compiler's <c>file(line,col): error: message</c> format.</summary>
+public sealed record ContentError(string File, int Line, int Column, string Message, bool Warning = false)
 {
-    public override string ToString() => $"{File}({Line},{Column}): error: {Message}";
+    public override string ToString() => $"{File}({Line},{Column}): {(Warning ? "warning" : "error")}: {Message}";
 }

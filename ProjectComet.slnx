@@ -3,36 +3,42 @@
   <Folder Name="/comet/src/">
     <Project Path="comet/src/Comet.Client/Comet.Client.csproj" />
     <Project Path="comet/src/Comet.Content/Comet.Content.csproj" />
+    <Project Path="comet/src/Comet.Data/Comet.Data.csproj" />
+    <Project Path="comet/src/Comet.Data.Accounts/Comet.Data.Accounts.csproj" />
     <Project Path="comet/src/Comet.ContentBuild/Comet.ContentBuild.csproj" />
+    <Project Path="comet/src/Comet.Login/Comet.Login.csproj" />
     <Project Path="comet/src/Comet.Protocol/Comet.Protocol.csproj" />
     <Project Path="comet/src/Comet.Server/Comet.Server.csproj" />
     <Project Path="comet/src/Comet.Simulation/Comet.Simulation.csproj" />
+    <Project Path="comet/src/Comet.Tickets/Comet.Tickets.csproj" />
     <Project Path="comet/src/Comet.ZoneFiles/Comet.ZoneFiles.csproj" />
   </Folder>
   <Folder Name="/comet/tests/">
     <Project Path="comet/tests/Comet.Client.Tests/Comet.Client.Tests.csproj" />
     <Project Path="comet/tests/Comet.ContentBuild.Tests/Comet.ContentBuild.Tests.csproj" />
+    <Project Path="comet/tests/Comet.Data.Tests/Comet.Data.Tests.csproj" />
+    <Project Path="comet/tests/Comet.Login.Tests/Comet.Login.Tests.csproj" />
     <Project Path="comet/tests/Comet.Protocol.Tests/Comet.Protocol.Tests.csproj" />
     <Project Path="comet/tests/Comet.Server.Tests/Comet.Server.Tests.csproj" />
     <Project Path="comet/tests/Comet.Simulation.Tests/Comet.Simulation.Tests.csproj" />
+    <Project Path="comet/tests/Comet.Testing/Comet.Testing.csproj" />
+    <Project Path="comet/tests/Comet.Tickets.Tests/Comet.Tickets.Tests.csproj" />
     <Project Path="comet/tests/Comet.ZoneFiles.Tests/Comet.ZoneFiles.Tests.csproj" />
   </Folder>
   <Folder Name="/shapeland/" />
   <Folder Name="/shapeland/src/">
     <Project Path="shapeland/src/ShapeLand.Bots/ShapeLand.Bots.csproj" />
     <Project Path="shapeland/src/ShapeLand.ContentBuild/ShapeLand.ContentBuild.csproj" />
+    <Project Path="shapeland/src/ShapeLand.Data/ShapeLand.Data.csproj" />
+    <Project Path="shapeland/src/ShapeLand.Data.Accounts/ShapeLand.Data.Accounts.csproj" />
     <Project Path="shapeland/src/ShapeLand.GameServer/ShapeLand.GameServer.csproj" />
+    <Project Path="shapeland/src/ShapeLand.LoginServer/ShapeLand.LoginServer.csproj" />
     <Project Path="shapeland/src/ShapeLand.Shared/ShapeLand.Shared.csproj" />
   </Folder>
   <Folder Name="/shapeland/tests/">
     <Project Path="shapeland/tests/ShapeLand.ContentBuild.Tests/ShapeLand.ContentBuild.Tests.csproj" />
+    <Project Path="shapeland/tests/ShapeLand.Data.Tests/ShapeLand.Data.Tests.csproj" />
     <Project Path="shapeland/tests/ShapeLand.GameServer.Tests/ShapeLand.GameServer.Tests.csproj" />
-  </Folder>
-  <Folder Name="/tools/" />
-  <Folder Name="/tools/StackBench/">
-    <Project Path="tools/StackBench/StackBench.Bots/StackBench.Bots.csproj" />
-    <Project Path="tools/StackBench/StackBench.Metrics/StackBench.Metrics.csproj" />
-    <Project Path="tools/StackBench/StackBench.Report/StackBench.Report.csproj" />
-    <Project Path="tools/StackBench/StackBench.Server/StackBench.Server.csproj" />
+    <Project Path="shapeland/tests/ShapeLand.LoginServer.Tests/ShapeLand.LoginServer.Tests.csproj" />
   </Folder>
 </Solution>

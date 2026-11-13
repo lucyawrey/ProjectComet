@@ -11,9 +11,6 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client.Tests
 {
-    // Tests of the real Game scene against the real game server: each loads the scene, starts a fresh server, and
-    // joins through the join card as a player would (or leaves the card up for the test). A simulated keyboard
-    // stands in for the player's. Needs the dotnet SDK on the PATH and the content built.
     public abstract class GameSceneTest
     {
         protected TestGameServer Server;
@@ -53,18 +50,32 @@ namespace ShapeLand.Client.Tests
 
             InputSystem.settings.editorInputBehaviorInPlayMode = _editorInput;
             InputSystem.settings.backgroundBehavior = _background;
-            Server?.Dispose();
-            Server = null;
+            JoinScreen.DevCharactersFile = null;
+            if (Server != null)
+            {
+                if (Server.Address != null)
+                {
+                    JoinClient.ForgetToken(Server.Address);
+                }
+
+                Server.Dispose();
+                Server = null;
+            }
         }
 
-        // Loads the Game scene against a fresh server and, unless the test drives the card itself, joins as "Unity
-        // test" with the card's choices.
-        protected IEnumerator StartGame(bool join = true)
+        protected IEnumerator StartGame(bool join = true, bool accounts = false, string loginArguments = "", string devCharacters = "")
         {
             TestGameServer.LoadContent();
 
-            Server = new TestGameServer();
+            Server = new TestGameServer(accounts, loginArguments);
             yield return Server.Start();
+
+            JoinClient.TokenKey = "tests-login-token";
+            JoinScreen.DevCharactersFile = devCharacters;
+            if (accounts)
+            {
+                JoinClient.ForgetToken(Server.Address);
+            }
 
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode("Assets/Scenes/Game.unity", new LoadSceneParameters(LoadSceneMode.Single));
             Join = Object.FindAnyObjectByType<JoinClient>();
@@ -75,22 +86,26 @@ namespace ShapeLand.Client.Tests
             Tags = Object.FindAnyObjectByType<NameTags>();
             NetStats = Object.FindAnyObjectByType<NetStats>();
             Camera = Object.FindAnyObjectByType<OrbitCamera>();
-            Screen.Remember = false;
             NetStats.Remember = false;
             if (NetStats.Shown)
             {
-                NetStats.Toggle(); // left on from playing in the editor
+                NetStats.Toggle();
             }
 
             yield return TestGameServer.WaitFor(() => Screen.Showing, 15);
             Assert.That(Screen.Showing, Is.True, "The join screen never came up.");
-            Field("server").value = Server.Address;
+            yield return LaidOut("join-button");
+            if (accounts)
+            {
+                Field("server").value = Server.Address;
+            }
+
             if (!join)
             {
                 yield break;
             }
 
-            Field("name").value = "Unity test";
+            Field("name").value = "UnityTest";
             Click(Screen.Root.Q<Button>("join-button"));
             yield return TestGameServer.WaitFor(() => View.Player != null || Screen.Error != null, 15);
             Assert.That(Screen.Error, Is.Null);
@@ -99,21 +114,51 @@ namespace ShapeLand.Client.Tests
 
         protected TextField Field(string name) => Screen.Root.Q<TextField>(name);
 
-        // Presses a button the way a keyboard or gamepad submit does.
+        protected IEnumerator LaidOut(string button)
+        {
+            var element = Screen.Root.Q<Button>(button);
+            yield return TestGameServer.WaitFor(() => element.worldBound.width > 0, 5);
+        }
+
         protected static void Click(VisualElement button)
         {
-            using (var submit = NavigationSubmitEvent.GetPooled())
+            var center = button.worldBound.center;
+            using (
+                var down = PointerDownEvent.GetPooled(
+                    new Event
+                    {
+                        type = EventType.MouseDown,
+                        mousePosition = center,
+                        button = 0,
+                        clickCount = 1,
+                    }
+                )
+            )
             {
-                submit.target = button;
-                button.SendEvent(submit);
+                down.target = button;
+                button.SendEvent(down);
+            }
+
+            using (
+                var up = PointerUpEvent.GetPooled(
+                    new Event
+                    {
+                        type = EventType.MouseUp,
+                        mousePosition = center,
+                        button = 0,
+                        clickCount = 1,
+                    }
+                )
+            )
+            {
+                up.target = button;
+                button.SendEvent(up);
             }
         }
 
-        protected VisualElement ShapeButton(MeshKind kind) =>
-            Screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Mesh == kind);
+        protected VisualElement ShapeButton(string id) => Screen.Root.Q("shapes").Children().First(b => ((Shape)b.userData).Id == id);
 
-        protected VisualElement Swatch(string row, uint color) =>
-            Screen.Root.Q(row).Children().First(b => (uint)b.userData == color);
+        protected VisualElement Swatch(string row, int color) => Screen.Root.Q(row).Children().First(b => (int)b.userData == color);
 
         protected void Press(params Key[] keys)
         {

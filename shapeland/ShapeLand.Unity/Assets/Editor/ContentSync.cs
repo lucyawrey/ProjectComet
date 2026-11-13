@@ -8,16 +8,10 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Editor
 {
-    /// <summary>
-    /// Keeps what the editor holds from ShapeLand's content in step with it each time Comet copies the content in
-    /// (<see cref="ContentBuild"/>): the asset library (<see cref="AssetLibrary"/>) follows the content's asset
-    /// entries, and the Comet settings take the game's terrain colors, body height and spawn markers.
-    /// </summary>
     [InitializeOnLoad]
     public static class ContentSync
     {
-        /// <summary>Where the asset library lives; the game scene refers to it.</summary>
-        public const string LibraryPath = "Assets/Models/AssetLibrary.asset";
+        public const string LibraryPath = "Assets/Models/PropLibrary.asset";
 
         static ContentSync()
         {
@@ -28,7 +22,6 @@ namespace ShapeLand.Client.Editor
             };
         }
 
-        // The Comet settings that come from the game's content: terrain colors, the body height and spawn markers.
         private static void RefreshCometSettings(byte[] contentFile)
         {
             var settings = CometSettings.Find(quiet: true);
@@ -44,16 +37,36 @@ namespace ShapeLand.Client.Editor
             }
             catch (Comet.Content.ContentException)
             {
-                return; // RefreshLibrary has said so
+                return;
             }
 
             var game = content.Settings;
-            var ground = GameView.Color(game.World.GroundColor);
-            var under = GameView.Color(game.World.UnderColor);
-            var placed = GameView.Color(game.World.PlacedColor);
-            if (settings.groundColor == ground && settings.underColor == under && settings.placedColor == placed && settings.bodyHeight == game.Movement.BodyHeight
-                && settings.spawnMarkerAsset == game.Spawns.MarkerAsset && settings.spawnMarkerHeight == game.Spawns.MarkerHeight
-                && settings.spawnMarkerColor == GameView.Color(game.Spawns.UnsetColor))
+            var ground = Conversions.FromRgb(game.World.GroundColor);
+            var under = Conversions.FromRgb(game.World.UnderColor);
+            var placed = Conversions.FromRgb(game.World.PlacedColor);
+            if (
+                settings.groundColor == ground
+                && settings.underColor == under
+                && settings.placedColor == placed
+                && settings.bodyHeight == game.Movement.BodyHeight
+                && settings.spawnPad == game.Spawns.Pad
+                && settings.spawnPadSize.y == game.Spawns.PadHeight
+                && settings.spawnPadColor == Conversions.FromRgb(game.Spawns.UnsetColor)
+                && settings.spawnStandSeconds == game.Spawns.StandSeconds
+                && settings.teleporterPad == game.Teleporters.Pad
+                && settings.teleporterPadSize.y == game.Teleporters.PadHeight
+                && settings.teleporterPadColor == Conversions.FromRgb(game.Teleporters.PadColor)
+                && settings.teleporterStandSeconds == game.Teleporters.StandSeconds
+                && settings.teleporterChargeColor == Conversions.FromRgb(game.Teleporters.ChargeColor)
+                && settings.triggerChargeColor == Conversions.FromRgb(game.Triggers.ChargeColor)
+                && settings.triggerStandSeconds == game.Triggers.StandSeconds
+                && settings.spawnVolumeHeight == game.Spawns.VolumeHeight
+                && settings.teleporterVolumeHeight == game.Teleporters.VolumeHeight
+                && settings.triggerVolumeHeight == game.Triggers.VolumeHeight
+                && settings.facetLength == game.Primitives.FacetLength
+                && settings.minSides == game.Primitives.MinSides
+                && settings.maxSides == game.Primitives.MaxSides
+            )
             {
                 return;
             }
@@ -62,15 +75,29 @@ namespace ShapeLand.Client.Editor
             settings.underColor = under;
             settings.placedColor = placed;
             settings.bodyHeight = game.Movement.BodyHeight;
-            settings.spawnMarkerAsset = game.Spawns.MarkerAsset;
-            settings.spawnMarkerHeight = game.Spawns.MarkerHeight;
-            settings.spawnMarkerColor = GameView.Color(game.Spawns.UnsetColor);
+            settings.spawnPad = game.Spawns.Pad;
+            settings.spawnPadSize.y = game.Spawns.PadHeight;
+            settings.spawnPadColor = Conversions.FromRgb(game.Spawns.UnsetColor);
+            settings.spawnStandSeconds = game.Spawns.StandSeconds;
+            settings.teleporterPad = game.Teleporters.Pad;
+            settings.teleporterPadSize.y = game.Teleporters.PadHeight;
+            settings.teleporterPadColor = Conversions.FromRgb(game.Teleporters.PadColor);
+            settings.teleporterStandSeconds = game.Teleporters.StandSeconds;
+            settings.teleporterChargeColor = Conversions.FromRgb(game.Teleporters.ChargeColor);
+            settings.triggerChargeColor = Conversions.FromRgb(game.Triggers.ChargeColor);
+            settings.triggerStandSeconds = game.Triggers.StandSeconds;
+            settings.spawnVolumeHeight = game.Spawns.VolumeHeight;
+            settings.teleporterVolumeHeight = game.Teleporters.VolumeHeight;
+            settings.triggerVolumeHeight = game.Triggers.VolumeHeight;
+            settings.facetLength = game.Primitives.FacetLength;
+            settings.minSides = game.Primitives.MinSides;
+            settings.maxSides = game.Primitives.MaxSides;
+            ZonePrimitiveEditing.Preview(settings);
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssetIfDirty(settings);
             Debug.Log("Updated the Comet settings from the content.");
         }
 
-        // Points each asset key at the model its entry names (a path under Assets/), saving only if something changed.
         private static void RefreshLibrary(byte[] contentFile)
         {
             ShapeLandContent content;
@@ -80,37 +107,40 @@ namespace ShapeLand.Client.Editor
             }
             catch (Comet.Content.ContentException e)
             {
-                Debug.LogWarning($"Can't read the content to update the asset library: {e.Message}");
+                Debug.LogWarning($"Can't read the content to update the prop library: {e.Message}");
                 return;
             }
 
-            var library = AssetDatabase.LoadAssetAtPath<AssetLibrary>(LibraryPath);
+            var library = AssetDatabase.LoadAssetAtPath<PropLibrary>(LibraryPath);
             if (library == null)
             {
-                library = ScriptableObject.CreateInstance<AssetLibrary>();
+                library = ScriptableObject.CreateInstance<PropLibrary>();
                 AssetDatabase.CreateAsset(library, LibraryPath);
             }
 
-            var entries = content.Assets.All.Select(asset =>
-            {
-                var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + asset.Model);
-                if (model == null)
+            var entries = content
+                .Props.All.Select(prop =>
                 {
-                    Debug.LogWarning($"{asset.Id}'s model Assets/{asset.Model} isn't in the project.");
-                }
+                    var model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + prop.Model);
+                    if (model == null)
+                    {
+                        Debug.LogWarning($"{prop.Id}'s model Assets/{prop.Model} isn't in the project.");
+                    }
 
-                var min = new Vector3(asset.BoundsMin.X, asset.BoundsMin.Y, asset.BoundsMin.Z);
-                var max = new Vector3(asset.BoundsMax.X, asset.BoundsMax.Y, asset.BoundsMax.Z);
-                return new AssetLibrary.Entry
-                {
-                    key = asset.Id,
-                    model = model,
-                    uniformScale = asset.UniformScale,
-                    bounds = new Bounds((min + max) / 2, max - min),
-                    hasColor = asset.Color != null,
-                    color = asset.Color is { } color ? PlacedColors.FromRgb(color) : default,
-                };
-            }).ToList();
+                    var min = new Vector3(prop.BoundsMin.X, prop.BoundsMin.Y, prop.BoundsMin.Z);
+                    var max = new Vector3(prop.BoundsMax.X, prop.BoundsMax.Y, prop.BoundsMax.Z);
+                    return new PropLibrary.Entry
+                    {
+                        id = prop.Id,
+                        displayName = prop.DisplayName ?? "",
+                        model = model,
+                        uniformScale = prop.UniformScale,
+                        bounds = new Bounds((min + max) / 2, max - min),
+                        hasColor = prop.Color != null,
+                        color = prop.Color is { } color ? Conversions.FromRgb(color) : default,
+                    };
+                })
+                .ToList();
             if (entries.SequenceEqual(library.Entries))
             {
                 return;
@@ -119,7 +149,7 @@ namespace ShapeLand.Client.Editor
             library.SetEntries(entries);
             EditorUtility.SetDirty(library);
             AssetDatabase.SaveAssetIfDirty(library);
-            Debug.Log($"Updated the asset library ({entries.Count} assets).");
+            Debug.Log($"Updated the prop library ({entries.Count} props).");
         }
     }
 }

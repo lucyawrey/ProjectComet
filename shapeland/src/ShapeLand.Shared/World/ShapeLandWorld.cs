@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Comet.Content;
@@ -7,32 +6,12 @@ using ShapeLand.Shared.Content;
 
 namespace ShapeLand.Shared.World
 {
-    /// <summary>
-    /// ShapeLand's world: a zone from content (terrain, placed objects and wall volumes), built the same way on client
-    /// and server. A server plays one zone, the default unless it's told another, and names it in its Welcome.
-    /// </summary>
     public static class ShapeLandWorld
     {
-        /// <summary>Where players appear: <paramref name="zone"/>'s default spawn point, on the ground.</summary>
-        public static Vector3 SpawnPoint(ShapeLandContent content, Zone zone, CollisionWorld world)
-        {
-            var spawn = DefaultSpawn(zone);
-            world.TryGetGround(spawn, content.Movement.BodyRadius, spawn.Y + 1000, out var ground);
-            return new Vector3(spawn.X, ground, spawn.Z);
-        }
+        public static (Zone Zone, SpawnPoint Spawn) StartOf(ShapeLandContent content, Shape shape) =>
+            Triggers.FindSpawn(content.Zones.All, shape.Spawn)
+            ?? throw new System.InvalidOperationException($"{shape.Id}'s spawn '{shape.Spawn}' isn't in any zone.");
 
-        /// <summary>
-        /// The highest ground under a position at or below it (terrain, or a mesh's top under the shared body), or
-        /// null over a hole or past the edge: for dead-reckoning other players (Comet.Client's RemoteEntities).
-        /// </summary>
-        public static Func<Vector3, float?> GroundHeight(ShapeLandContent content, CollisionWorld world) =>
-            feet => world.TryGetGround(feet, content.Movement.BodyRadius, feet.Y, out var height) ? height : null;
-
-        /// <summary>
-        /// Other players moving faster than this (across the ground, or upwards) are drawn jumping rather than
-        /// gliding: half again the fastest shape's top speed or jump speed, so only respawns, snap-backs and speed
-        /// cheats exceed it.
-        /// </summary>
         public static float TeleportSpeed(ShapeLandContent content)
         {
             var fastest = 0f;
@@ -44,7 +23,10 @@ namespace ShapeLand.Shared.World
             return 1.5f * fastest;
         }
 
-        /// <summary>The world of <paramref name="zone"/>, one of <paramref name="content"/>'s, the same on client and server.</summary>
+        public const string PropKind = "prop",
+            PrimitiveKind = "primitive",
+            WallKind = "wall";
+
         public static CollisionWorld Create(ShapeLandContent content, Zone zone)
         {
             var meshes = new List<CollisionMesh>();
@@ -52,38 +34,70 @@ namespace ShapeLand.Shared.World
             {
                 foreach (var placement in chunk.Placements)
                 {
-                    meshes.Add(CollisionMesh.Placed(content.Assets[placement.Asset].Collision, placement.Matrix()));
+                    var mesh = Placed(content, placement);
+                    mesh.Tag = placement.Tag;
+                    mesh.StartsOff = placement.Off;
+                    mesh.Kind = placement.Primitive is null ? PropKind : PrimitiveKind;
+                    meshes.Add(mesh);
+                }
+
+                foreach (var pad in Pads(chunk))
+                {
+                    var mesh = Placed(content, pad);
+                    mesh.Kind = PrimitiveKind;
+                    meshes.Add(mesh);
                 }
 
                 foreach (var volume in chunk.Volumes)
                 {
                     if (volume.Kind == VolumeKind.Wall)
                     {
-                        meshes.Add(CollisionMesh.Box(volume.Size, Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(volume.Rotation)) * Matrix4x4.CreateTranslation(volume.Position)));
+                        var mesh = CollisionMesh.Box(
+                            volume.Size,
+                            Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(volume.Rotation)) * Matrix4x4.CreateTranslation(volume.Position)
+                        );
+                        mesh.Kind = WallKind;
+                        meshes.Add(mesh);
                     }
                 }
             }
 
-            return new CollisionWorld(new ZoneTerrain(zone), meshes, content.Settings.World.KillHeight);
+            return new CollisionWorld(new ZoneTerrain(zone), meshes, zone.KillHeight ?? content.Settings.World.KillHeight, content.Movement.MaxSlope);
         }
 
-        /// <summary>The zone a server plays unless it's told another (<c>world.default_zone</c>).</summary>
-        public static Zone DefaultZone(ShapeLandContent content) => content.Zones[content.Settings.World.DefaultZone];
-
-        private static Vector3 DefaultSpawn(Zone zone)
+        public static IEnumerable<Placement> Pads(ZoneChunk chunk)
         {
-            foreach (var chunk in zone.Chunks)
+            foreach (var spawn in chunk.Spawns)
             {
-                foreach (var spawn in chunk.Spawns)
+                if (spawn.Volume.Pad is { } pad)
                 {
-                    if (spawn.IsDefault)
-                    {
-                        return spawn.Position;
-                    }
+                    yield return pad;
                 }
             }
 
-            return Vector3.Zero;
+            foreach (var teleporter in chunk.Teleporters)
+            {
+                if (teleporter.Volume.Pad is { } pad)
+                {
+                    yield return pad;
+                }
+            }
+
+            foreach (var trigger in chunk.Triggers)
+            {
+                if (trigger.Volume.Pad is { } pad)
+                {
+                    yield return pad;
+                }
+            }
+        }
+
+        private static CollisionMesh Placed(ShapeLandContent content, Placement placement)
+        {
+            var triangles = placement.Primitive is null
+                ? content.Props[placement.Prop].Collision
+                : PrimitiveMesher.For(placement, content.Settings.Primitives);
+            return CollisionMesh.Placed(triangles, placement.Matrix());
         }
     }
 }

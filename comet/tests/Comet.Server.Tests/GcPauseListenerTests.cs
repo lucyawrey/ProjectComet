@@ -11,7 +11,6 @@ public class GcPauseListenerTests
         using var listener = new GcPauseListener();
         listener.PauseRecorded += pause => recorded.TrySetResult(pause.Duration);
 
-        // Events arrive on the runtime's event thread, a little after the collection.
         var timeout = Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         while (!recorded.Task.IsCompleted && !timeout.IsCompleted)
         {

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Login server's mechanisms: accounts, sessions, recovery codes, guests, join tickets. A game hosts it. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Comet.Login.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Comet.Data\Comet.Data.csproj" />
+    <ProjectReference Include="..\Comet.Data.Accounts\Comet.Data.Accounts.csproj" />
+    <ProjectReference Include="..\Comet.Protocol\Comet.Protocol.csproj" />
+    <ProjectReference Include="..\Comet.Tickets\Comet.Tickets.csproj" />
+  </ItemGroup>
+</Project>

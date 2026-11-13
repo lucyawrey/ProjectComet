@@ -1,7 +1,0 @@
-id = "zone.hub"
-
-[[piece]]
-name = "island"
-skirt_depth = 0.0
-rim_skirts = true
-hole_skirts = true

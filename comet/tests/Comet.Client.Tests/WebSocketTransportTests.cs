@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Comet.Client.Tests;
 
-/// <summary>The desktop transport's close and error paths, against a server that accepts and then says nothing.</summary>
 public sealed class WebSocketTransportTests : IDisposable
 {
     private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
@@ -21,8 +20,6 @@ public sealed class WebSocketTransportTests : IDisposable
         _listener.Stop();
     }
 
-    // Completes the WebSocket handshake, then never reads or writes again (a hung or partitioned server); returns
-    // the stream, for a test to send frames itself.
     private async Task<NetworkStream> AcceptSilentlyAsync()
     {
         var client = await _listener.AcceptTcpClientAsync(TestContext.Current.CancellationToken);
@@ -43,7 +40,6 @@ public sealed class WebSocketTransportTests : IDisposable
         return stream;
     }
 
-    // A server's binary frame (unmasked) with a 16-bit length.
     private static byte[] ServerFrame(int length)
     {
         var frame = new byte[4 + length];
@@ -90,7 +86,7 @@ public sealed class WebSocketTransportTests : IDisposable
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(TransportState.Closed, transport.State);
-        Assert.Equal(CloseReason.None, transport.CloseReason); // closing was our choice
+        Assert.Equal(CloseReason.None, transport.CloseReason);
         Assert.Null(transport.Error);
     }
 
@@ -108,8 +104,6 @@ public sealed class WebSocketTransportTests : IDisposable
     [Fact]
     public async Task AServerThatNeverAnswersTheHandshakeTimesOut()
     {
-        // The listener takes the TCP connection but no one answers the WebSocket request (like a black-holed address,
-        // without waiting for TCP's own timeout).
         var transport = new WebSocketTransport(Url, connectTimeout: TimeSpan.FromMilliseconds(300));
 
         await transport.Completion.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
@@ -120,7 +114,6 @@ public sealed class WebSocketTransportTests : IDisposable
     [Fact]
     public async Task FramesNobodyTakesPastTheCapCloseTheConnection()
     {
-        // The game isn't running (a paused editor): received frames pile up until the cap, then the connection ends.
         var accepting = AcceptSilentlyAsync();
         var transport = new WebSocketTransport(Url);
         var stream = await accepting;

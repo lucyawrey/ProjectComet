@@ -15,9 +15,7 @@ public class IdRegistryTests
         var saved = File.ReadAllText(folder.Registry);
         var second = folder.Build();
 
-        Assert.Equal(
-            [("widget.old", 1), ("widget.new_a", 8), ("widget.new_b", 9)],
-            first.Entries<Widget>().Select(w => (w.Id, w.Number)));
+        Assert.Equal([("widget.old", 1), ("widget.new_a", 8), ("widget.new_b", 9)], first.Entries<Widget>().Select(w => (w.Id, w.Number)));
         Assert.EndsWith("[widget]\nold = 1\ngone = 7\nnew_a = 8\nnew_b = 9\n", saved);
         Assert.Equal(saved, File.ReadAllText(folder.Registry));
         Assert.Equal([1, 8, 9], second.Entries<Widget>().Select(w => w.Number));
@@ -27,7 +25,7 @@ public class IdRegistryTests
     [InlineData("[widget]\na = 1\nb = 1\n", 3, "Number 1 is used by both")]
     [InlineData("[widget]\na = 1\na = 2\n", 3, "")]
     [InlineData("[widget]\na = 0\n", 2, "out of range")]
-    [InlineData("[widget]\na = \"one\"\n", 2, "Expected 'key = number'")]
+    [InlineData("[widget]\na = \"one\"\n", 2, "Expected 'name = number'")]
     [InlineData("a = 1\n", 1, "belong in a [type] table")]
     public void BadRegistriesFail(string registry, int line, string message)
     {

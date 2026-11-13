@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <!-- Shared with Unity: netstandard2.1 and C# 9 until Unity 7 (CoreCLR, .NET 10). -->
     <TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>
@@ -8,6 +7,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Comet.Protocol\Comet.Protocol.csproj" />
+    <ProjectReference Include="..\Comet.Simulation\Comet.Simulation.csproj" />
   </ItemGroup>
 
+  <!-- The Login client's JSON. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
 </Project>

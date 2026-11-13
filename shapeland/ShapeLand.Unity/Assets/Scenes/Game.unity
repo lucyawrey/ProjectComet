@@ -133,6 +133,9 @@ GameObject:
   - component: {fileID: 910666499}
   - component: {fileID: 910666504}
   - component: {fileID: 910666503}
+  - component: {fileID: 910666507}
+  - component: {fileID: 910666506}
+  - component: {fileID: 910666505}
   m_Layer: 0
   m_Name: Hud
   m_TagString: Untagged
@@ -217,6 +220,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ea0bb851f71e3ac0ab871b06443e8cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.NameTags
+--- !u!114 &910666507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910666498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8310348e065f4925b12df08300886845, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.Signs
 --- !u!114 &910666504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,6 +244,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32bd47a5e017f996bb5b54ce4907ae4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.Chat
+--- !u!114 &910666505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910666498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cc55bbd2a0869e0393e40a83c853179, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.CollisionDebug
+  colors: {fileID: 11400000, guid: e08c3b2641094102b9d46b3932c7a870, type: 2}
+--- !u!114 &910666506
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910666498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a071500915dd15e0b92c5f698c07d17c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Comet.Unity::Comet.Unity.CollisionView
+  shader: {fileID: 4800000, guid: 662981f7183732ff4a79af7c3e42d4be, type: 3}
 --- !u!1 &1117559766
 GameObject:
   m_ObjectHideFlags: 0
@@ -264,10 +305,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.GameView
   terrainMaterial: {fileID: 2100000, guid: 39ef6832ec4bb4c45bd3ae46f21fd7f1, type: 2}
   blockMaterial: {fileID: 2100000, guid: 43d7a230d1c5924a89d36b7efea1f91b, type: 2}
-  assets: {fileID: 11400000, guid: 2c366cc91512f1b414be159ca4ff4d57, type: 2}
-  cubePrefab: {fileID: 3588937628090892900, guid: 21f87fe88e1c8dd619c7fe5ddce3469e, type: 3}
-  diamondPrefab: {fileID: 4242476006985550958, guid: b178253dd24bed7f5a731083f2b0d80c, type: 3}
-  pyramidPrefab: {fileID: 4601383380699552631, guid: fb8e25e71b70ab1858a0fc94f3ec2897, type: 3}
+  blockoutMaterial: {fileID: 2100000, guid: 26029874649d843a982e5f6f09b2fa11, type: 2}
+  props: {fileID: 11400000, guid: 2c366cc91512f1b414be159ca4ff4d57, type: 2}
+  shapeMaterial: {fileID: 2100000, guid: 9620fa0eda73df2868773d48c4e0351c, type: 2}
+  eyesMaterial: {fileID: 2100000, guid: 2363a39ddd6cb0ff68d7c40daa468bf7, type: 2}
+  shapeFadeMaterial: {fileID: 2100000, guid: 61dd4b4118ed94a48a34b63a8dc64b5b, type: 2}
+  eyesFadeMaterial: {fileID: 2100000, guid: 71fb7ea9edb6b490c85ea0df884edb30, type: 2}
+  shapeMaskMaterial: {fileID: 2100000, guid: 9b726625d76643b88b959b6ff771ce55, type: 2}
+  shapeSilhouetteMaterial: {fileID: 2100000, guid: 9e3845ba4a38408fa6d9f709a54c6ab5, type: 2}
   orbitCamera: {fileID: 1791137201}
 --- !u!114 &1117559768
 MonoBehaviour:
@@ -281,7 +326,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d12a36599c34f6635868da0bfacc8e9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: ShapeLand.Client::ShapeLand.Client.JoinClient
-  address: localhost:5080
+  address: localhost:5090
 --- !u!114 &1117559769
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -478,8 +523,6 @@ MonoBehaviour:
   stickDegreesPerSecond: {x: 180, y: 120}
   pitchLimits: {x: -10, y: 70}
   groundClearance: 0.3
-  blockClearance: 0.2
-  zoomOutSpeed: 6
   showcase: {x: 30, y: 25, z: 6}
 --- !u!20 &1791137202
 Camera:

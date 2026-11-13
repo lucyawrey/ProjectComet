@@ -1,0 +1,11 @@
+# Text files are LF in the repo and in every checkout.
+* text=auto eol=lf
+
+# Files Unity or a tool writes, collapsed in GitHub's diffs.
+*.meta linguist-generated
+shapeland/ShapeLand.Unity/Assets/Scripts/ShapeLandControls.cs linguist-generated
+shapeland/ShapeLand.Unity/Packages/packages-lock.json linguist-generated
+
+# The tools launcher: sh needs LF line endings, cmd works best with CRLF, whatever a checkout uses.
+tools/run text eol=lf
+*.cmd text eol=crlf

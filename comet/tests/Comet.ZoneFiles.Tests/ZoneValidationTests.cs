@@ -11,21 +11,22 @@ public class ZoneValidationTests
     public void AcceptsTheSampleZone() => Assert.Empty(Errors(Zones.Sample()));
 
     [Fact]
-    public void ChecksKeysAndNames()
+    public void ChecksIdsAndNames()
     {
         var zone = Zones.Sample();
         zone.Id = "meadow";
         zone.Pieces = [zone.Pieces[0], new TerrainPiece { Name = "main" }, new TerrainPiece { Name = "Sky Island" }];
-        zone.Chunks[0].Placements[0].Asset = "cube";
+        zone.Chunks[0].Placements[0].Prop = "cube";
 
         Assert.Equal(
             [
-                "zone.toml: id: 'meadow' isn't a valid zone key: use 'zone.' then lowercase letters, digits and underscores.",
+                "zone.toml: id: 'meadow' isn't a valid zone id: use 'zone.' then lowercase letters, digits and underscores.",
                 "zone.toml: piece: 'main' is used twice.",
                 "zone.toml: piece: 'Sky Island' isn't a valid name: use lowercase letters, digits and underscores, starting with a letter.",
-                "chunks/-1_0.toml: placement: 'cube' isn't an asset key.",
+                "chunks/-1_0/chunk.toml: placement of cube at [-10.5, 4, 3.25]: 'cube' isn't a prop id.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -38,29 +39,41 @@ public class ZoneValidationTests
     }
 
     [Fact]
+    public void TilesUseTheZonesHeightBase()
+    {
+        var zone = Zones.Sample();
+        zone.HeightBase = -400;
+
+        Assert.All(Errors(zone), e => Assert.Contains("isn't the zone's height_base (-400)", e));
+        Assert.Equal(zone.Chunks.Sum(c => c.Tiles.Length), Errors(zone).Count());
+    }
+
+    [Fact]
     public void TilesNeedAKnownPieceAndMustFitTheirChunk()
     {
         var zone = Zones.Sample();
-        zone.Chunks[0].Tiles = [zone.Chunks[0].Tiles[0], new TerrainTile { Piece = "cliff", Heights = Zones.Flat(2, 2, 0) }];
+        zone.Chunks[0].Tiles = [zone.Chunks[0].Tiles[0], new TerrainTile { Piece = "cliff", Heights = Heightmaps.Flat(2, 2, 0) }];
         zone.Chunks[1].Tiles[0].OriginX = 50;
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: tile: there's no piece 'cliff' in zone.toml.",
-                "chunks/0_0.toml: tile main: 17×65 samples from [50, 0] reach past the chunk's 65×65.",
+                "chunks/-1_0/chunk.toml: tile: there's no piece 'cliff' in zone.toml.",
+                "chunks/0_0/chunk.toml: tile main: 17×65 samples from [50, 0] reach past the chunk's 65×65.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
     public void TerrainMustMatchWhereAPiecesTilesMeet()
     {
         var zone = Zones.Sample();
-        zone.Chunks[1].Tiles[0].Heights = Zones.Flat(17, 65, 4.5f);
+        zone.Chunks[1].Tiles[0].Heights = Heightmaps.Flat(17, 65, 4.5f);
 
         Assert.Equal(
-            ["chunks/-1_0.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 0])."],
-            Errors(zone));
+            ["chunks/-1_0/chunk.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 0])."],
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -70,8 +83,9 @@ public class ZoneValidationTests
         zone.Chunks[1].Tiles[0].Heights.Samples[65 / 2 * 17] = Heightmap.Hole;
 
         Assert.Equal(
-            ["chunks/-1_0.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 32])."],
-            Errors(zone));
+            ["chunks/-1_0/chunk.toml: tile main: the terrain doesn't match chunk 0_0's where they meet (world sample [0, 32])."],
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -80,16 +94,30 @@ public class ZoneValidationTests
         var zone = Zones.Sample();
         zone.Chunks =
         [
-            new ZoneChunk { Coord = new ChunkCoord(0, 0), Tiles = [new TerrainTile { Piece = "main", OriginX = 60, OriginZ = 60, Heights = Zones.Flat(5, 5, 2) }] },
-            new ZoneChunk { Coord = new ChunkCoord(1, 1), Tiles = [new TerrainTile { Piece = "main", Heights = Zones.Flat(5, 5, 2) }] },
+            new ZoneChunk
+            {
+                Coord = new ChunkCoord(0, 0),
+                Tiles =
+                [
+                    new TerrainTile
+                    {
+                        Piece = "main",
+                        OriginX = 60,
+                        OriginZ = 60,
+                        Heights = Heightmaps.Flat(5, 5, 2),
+                    },
+                ],
+            },
+            new ZoneChunk { Coord = new ChunkCoord(1, 1), Tiles = [new TerrainTile { Piece = "main", Heights = Heightmaps.Flat(5, 5, 2) }] },
         ];
         zone.Borders = [];
         Assert.Empty(Errors(zone));
 
         zone.Chunks[1].Tiles[0].Heights.Samples[0] = Heightmap.Hole;
         Assert.Equal(
-            ["chunks/0_0.toml: tile main: the terrain doesn't match chunk 1_1's where they meet (world sample [64, 64])."],
-            Errors(zone));
+            ["chunks/0_0/chunk.toml: tile main: the terrain doesn't match chunk 1_1's where they meet (world sample [64, 64])."],
+            Errors(zone)
+        );
     }
 
     [Fact]
@@ -101,44 +129,198 @@ public class ZoneValidationTests
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of asset.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
-                "chunks/0_0.toml: wall volume at [64, 0, 1] is in chunk 1_0: objects belong to the chunk holding their pivot.",
+                "chunks/-1_0/chunk.toml: placement of prop.cube at [0, 4, 3] is in chunk 0_0: objects belong to the chunk holding their pivot.",
+                "chunks/0_0/chunk.toml: wall volume at [64, 0, 1] is in chunk 1_0: objects belong to the chunk holding their pivot.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
-    public void PlacementNamesAreUniqueAndValid()
+    public void PrimitiveValuesFitTheirKind()
+    {
+        var zone = Zones.Sample();
+        var placements = zone.Chunks[0].Placements;
+        placements[0].Primitive = new Primitive { Kind = PrimitiveKind.Box, Sides = 8 };
+        zone.Chunks[0].Placements = placements
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive { Kind = PrimitiveKind.Cylinder, Sides = 2 },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive { Kind = PrimitiveKind.Stairs, Steps = -1 },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive
+                    {
+                        Kind = PrimitiveKind.Doorway,
+                        OpeningWidth = 1,
+                        OpeningHeight = 2,
+                    },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive
+                    {
+                        Kind = PrimitiveKind.Wall,
+                        OpeningWidth = 1,
+                        OpeningHeight = 2,
+                    },
+                }
+            )
+            .Append(
+                new Placement
+                {
+                    Position = placements[0].Position,
+                    Primitive = new Primitive { Kind = PrimitiveKind.Box, Thickness = 0.5f },
+                }
+            )
+            .ToArray();
+
+        var errors = Errors(zone).ToList();
+
+        Assert.Contains(errors, e => e.Contains("a box") && e.Contains("only cylinders, cones, spheres and arches have sides"));
+        Assert.Contains(errors, e => e.Contains("a cylinder") && e.Contains("sides must be from 3"));
+        Assert.Contains(errors, e => e.Contains("a stairs") && e.Contains("only stairs have steps"));
+        Assert.Contains(errors, e => e.Contains("a wall") && e.Contains("only doorways have an opening"));
+        Assert.Contains(errors, e => e.Contains("a box") && e.Contains("only arches have a thickness"));
+        Assert.DoesNotContain(errors, e => e.Contains("a doorway"));
+    }
+
+    [Fact]
+    public void PrimitivesReachAsFarAsTheirSize()
+    {
+        var zone = Zones.Sample();
+        var placement = zone.Chunks[0].Placements[0];
+        placement.Primitive = new Primitive { Kind = PrimitiveKind.Box };
+        placement.Scale = new Vector3(2, 2, 2);
+        Assert.Empty(ZoneValidation.CheckPlacements(zone, _ => null));
+
+        placement.Scale = new Vector3(ZoneGrid.ChunkSize * 4, 2, 2);
+        Assert.Contains(ZoneValidation.CheckPlacements(zone, _ => null), e => e.Message.Contains("reaches past the chunks around its own"));
+    }
+
+    [Fact]
+    public void PlacementNamesMayBeSharedButMustBeValid()
     {
         var zone = Zones.Sample();
         zone.Chunks[0].Placements =
         [
-            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-10, 0, 1) },
-            new Placement { Asset = "asset.cube", Name = "gate", Position = new Vector3(-12, 0, 1) },
-            new Placement { Asset = "asset.cube", Name = "Gate!", Position = new Vector3(-14, 0, 1) },
+            new Placement
+            {
+                Prop = "prop.cube",
+                Tag = "gate",
+                Position = new Vector3(-10, 0, 1),
+            },
+            new Placement
+            {
+                Prop = "prop.cube",
+                Tag = "gate",
+                Position = new Vector3(-12, 0, 1),
+            },
+            new Placement
+            {
+                Prop = "prop.cube",
+                Tag = "Gate!",
+                Position = new Vector3(-14, 0, 1),
+            },
         ];
 
         Assert.Equal(
             [
-                "chunks/-1_0.toml: placement of asset.cube: the name 'gate' is already used in chunks/-1_0.toml.",
-                "chunks/-1_0.toml: placement of asset.cube: 'Gate!' isn't a valid name: use lowercase letters, digits, underscores and dots, starting with a letter.",
+                "chunks/-1_0/chunk.toml: placement of prop.cube: 'Gate!' isn't a valid tag: use lowercase letters, digits, underscores and dots, starting with a letter.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
     }
 
     [Fact]
-    public void AZoneWithSpawnsHasOneDefault()
+    public void TriggerIdsNameTheirZoneAndAreUnique()
     {
         var zone = Zones.Sample();
-        zone.Chunks[0].Spawns = [new SpawnPoint { Id = "spawn.meadow_gate", Position = new Vector3(-5, 4, 5) }];
-        zone.Chunks[1].Spawns[0].IsDefault = false;
+        zone.Chunks[0].Spawns =
+        [
+            new SpawnPoint
+            {
+                Id = "spawn.meadow.gate",
+                Volume = new TriggerVolume { Position = new Vector3(-5, 4, 5) },
+            },
+        ];
+        zone.Chunks[1].Teleporters[0].Id = "teleporter.hills.to_cave";
+        zone.Chunks[1].Triggers[0].Id = "trigger.plate";
 
         Assert.Equal(
             [
-                "chunks/0_0.toml: spawn: 'spawn.meadow_gate' is already used in chunks/-1_0.toml.",
-                "zone.toml: No default spawn: mark one of the zone's spawns with default = true.",
+                "chunks/0_0/chunk.toml: spawn: 'spawn.meadow.gate' is already used in chunks/-1_0/chunk.toml.",
+                "chunks/0_0/chunk.toml: teleporter: 'teleporter.hills.to_cave' isn't a valid teleporter id here: use 'teleporter.meadow.' then lowercase letters, digits and underscores.",
+                "chunks/0_0/chunk.toml: trigger: 'trigger.plate' isn't a valid trigger id here: use 'trigger.meadow.' then lowercase letters, digits and underscores.",
             ],
-            Errors(zone));
+            Errors(zone).OrderBy(e => e, StringComparer.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void VolumesArePlainShapesAndPadsArePlainPrimitives()
+    {
+        var zone = Zones.Sample();
+        var volume = zone.Chunks[1].Spawns[0].Volume;
+        volume.Kind = PrimitiveKind.Arch;
+        volume.Size = new Vector3(2, 0, 2);
+        volume.StandSeconds = -1;
+        volume.Pad!.Tag = "pad";
+        zone.Chunks[1].Teleporters[0].Volume.Pad = new Placement { Prop = "prop.cube", Position = new Vector3(12, 4, 5) };
+
+        Assert.Equal(
+            [
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: a volume is a box, a cylinder or a sphere, not a arch.",
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: size must be above 0 on every axis.",
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: stand_seconds can't be negative.",
+                "chunks/0_0/chunk.toml: spawn.meadow.gate: a pad can't be tagged or start off; pads aren't toggled.",
+                "chunks/0_0/chunk.toml: teleporter.meadow.to_cave: a pad is a primitive.",
+            ],
+            Errors(zone)
+        );
+    }
+
+    [Fact]
+    public void TeleportersTargetAnotherTeleporterAndEffectsNameAPlacement()
+    {
+        var zone = Zones.Sample();
+        zone.Chunks[1].Teleporters[0].Target = "teleporter.meadow.to_cave";
+        zone.Chunks[1].Triggers[0].Effects = [new ToggleEffect { Tag = "bridge", RevertSeconds = -2 }];
+        zone.Chunks[1].Triggers[0].Volume.StandSeconds = 0;
+
+        Assert.Equal(
+            [
+                "chunks/0_0/chunk.toml: teleporter.meadow.to_cave: a teleporter can't target itself.",
+                "chunks/0_0/chunk.toml: trigger.meadow.plate: rearm = \"repeat\" needs a stand_seconds above 0, or it fires every tick.",
+                "chunks/0_0/chunk.toml: trigger.meadow.plate: no placement in the zone is tagged 'bridge'.",
+                "chunks/0_0/chunk.toml: trigger.meadow.plate: revert_seconds can't be negative.",
+            ],
+            Errors(zone)
+        );
+    }
+
+    [Fact]
+    public void ATeleporterWithNoTargetYetIsValid()
+    {
+        var zone = Zones.Sample();
+        zone.Chunks[1].Teleporters[0].Target = "";
+
+        Assert.Empty(Errors(zone));
     }
 
     [Fact]
@@ -153,10 +335,64 @@ public class ZoneValidationTests
         Assert.Equal(
             [
                 "zone.toml: border: chunk 5_5 isn't one of the zone's chunks.",
-                "zone.toml: border: 'zone.meadow' isn't another zone's key.",
+                "zone.toml: border: 'zone.meadow' isn't another zone's id.",
                 "zone.toml: entrance cave: size must be above 0 on every axis.",
                 "zone.toml: transition_room hall: there's no entrance 'door'.",
             ],
-            Errors(zone));
+            Errors(zone)
+        );
+    }
+
+    [Fact]
+    public void SignsHaveTextAndARangeAndBelongToTheirChunk()
+    {
+        var zone = Zones.Sample();
+        zone.Chunks[1].Signs =
+        [
+            new Sign
+            {
+                Position = new Vector3(12, 6, 5),
+                Text = "  ",
+                TextHeight = 9,
+            },
+            new Sign
+            {
+                Position = new Vector3(13, 6, 5),
+                Text = new string('a', Sign.MaxText + 1),
+                Background = true,
+                BackgroundOpacity = 2,
+            },
+            new Sign
+            {
+                Position = new Vector3(-3, 6, 5),
+                Text = "Lost",
+                ShowDistance = 0,
+                ScreenSized = true,
+                FontSize = 4,
+            },
+        ];
+
+        Assert.Equal(
+            [
+                "chunks/0_0/chunk.toml: sign at [12, 6, 5]: its text is empty.",
+                "chunks/0_0/chunk.toml: sign at [12, 6, 5]: text_height should be 0.05 to 5 meters.",
+                $"chunks/0_0/chunk.toml: sign at [13, 6, 5]: its text is {Sign.MaxText + 1} characters long; the most is {Sign.MaxText}.",
+                "chunks/0_0/chunk.toml: sign at [13, 6, 5]: background_opacity should be 0 to 1.",
+                "chunks/0_0/chunk.toml: sign at [-3, 6, 5] is in chunk -1_0: objects belong to the chunk holding their pivot.",
+                "chunks/0_0/chunk.toml: sign at [-3, 6, 5]: show_distance should be 1 to 200 meters.",
+                "chunks/0_0/chunk.toml: sign at [-3, 6, 5]: font_size should be 8 to 48.",
+            ],
+            Errors(zone)
+        );
+    }
+
+    [Fact]
+    public void TriggerSignsAreCheckedAndMayReachIntoTheNextChunk()
+    {
+        var zone = Zones.Sample();
+        var teleporter = zone.Chunks.SelectMany(c => c.Teleporters).Single();
+        teleporter.Volume.Sign = new Sign { Position = new Vector3(-20, 3, 0), Text = "" };
+
+        Assert.Equal(["chunks/0_0/chunk.toml: teleporter.meadow.to_cave's sign: its text is empty."], Errors(zone));
     }
 }

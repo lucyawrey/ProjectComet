@@ -68,13 +68,15 @@ public class ContentBuilderTests
         using var folder = new ContentFolder();
         folder.Write("widgets/a.toml", "id = \"widget.a\"\nsize = -4\n");
 
-        var result = folder.Build((widget, validation) =>
-        {
-            if (widget.Size < 0)
+        var result = folder.Build(
+            (widget, validation) =>
             {
-                validation.Error(nameof(Widget.Size), "must not be negative.");
+                if (widget.Size < 0)
+                {
+                    validation.Error(nameof(Widget.Size), "must not be negative.");
+                }
             }
-        });
+        );
 
         var error = Assert.Single(result.Errors);
         Assert.Equal((2, 8), (error.Line, error.Column));
@@ -91,13 +93,15 @@ public class ContentBuilderTests
         using var folder = new ContentFolder();
         folder.Write("widgets/a.toml", toml);
 
-        var result = folder.Build((widget, validation) =>
-        {
-            if (widget.Color?.Blue < 0)
+        var result = folder.Build(
+            (widget, validation) =>
             {
-                validation.Error(nameof(Widget.Color), nameof(Color.Blue), "must not be negative.");
+                if (widget.Color?.Blue < 0)
+                {
+                    validation.Error(nameof(Widget.Color), nameof(Color.Blue), "must not be negative.");
+                }
             }
-        });
+        );
 
         var error = Assert.Single(result.Errors);
         Assert.Equal((line, column), (error.Line, error.Column));

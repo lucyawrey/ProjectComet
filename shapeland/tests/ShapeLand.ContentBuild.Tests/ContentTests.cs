@@ -1,7 +1,6 @@
 using Comet.Content;
 using Comet.Simulation;
 using MessagePack;
-using ShapeLand.ContentBuild;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.World;
 
@@ -9,7 +8,7 @@ namespace ShapeLand.ContentBuild.Tests;
 
 public class ContentTests
 {
-    private static readonly string ContentRoot = Path.Combine(RepoRoot(), "shapeland", "content");
+    private static readonly string ContentRoot = Path.Combine(TestPaths.RepoRoot(), "shapeland", "content");
 
     [Fact]
     public void CompiledContentFindsEachShapeByKey()
@@ -23,7 +22,10 @@ public class ContentTests
         var content = ShapeLandContent.Load(file);
 
         Assert.Equal(["shape.cube", "shape.diamond", "shape.pyramid"], content.Shapes.All.Select(s => s.Id));
-        Assert.Equal(MeshKind.Diamond, content.Shapes["shape.diamond"].Mesh);
+        Assert.Equal("group.shape_diamond", content.Shapes["shape.diamond"].Look);
+        Assert.Equal(PrimitiveKind.Octahedron, content.BodyKind(content.Shapes["shape.diamond"]));
+        Assert.Equal(PrimitiveKind.Tetrahedron, content.BodyKind(content.Shapes["shape.pyramid"]));
+        Assert.Equal(PrimitiveKind.Box, content.BodyKind(content.Shapes["shape.cube"]));
         Assert.Equal("Pyramid", content.Shapes["shape.pyramid"].DisplayName);
         Assert.True(content.Shapes["shape.cube"].MaxSpeed > 0);
         Assert.Same(content.Shapes["shape.cube"], content.Shapes[content.Shapes["shape.cube"].Number]);
@@ -31,10 +33,25 @@ public class ContentTests
     }
 
     [Fact]
+    public void PlayerColorsKeepTheFilesOrderAndTheirNumbers()
+    {
+        var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
+        Assert.Empty(errors);
+        var file = new MemoryStream();
+        built!.Save(file);
+        file.Position = 0;
+        var loaded = ShapeLandContent.Load(file);
+
+        Assert.Equal(built.Settings.Colors.Keys.Select(key => $"color.{key}"), loaded.Colors.All.Select(c => c.Id));
+        foreach (var color in loaded.Colors.All)
+        {
+            Assert.Equal(built.Settings.Colors[color.Id["color.".Length..]], loaded.Colors[color.Number].Rgb);
+        }
+    }
+
+    [Fact]
     public void TheContentBuildsWithItsZone()
     {
-        // The zone is made by hand in the editor, so only that it builds is checked: the build itself reports
-        // missing spawns and the like.
         var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
         var file = new MemoryStream();
@@ -42,43 +59,32 @@ public class ContentTests
         file.Position = 0;
 
         var content = ShapeLandContent.Load(file);
-        Assert.NotEmpty(content.Zones[content.Settings.World.DefaultZone].Chunks);
+        Assert.All(content.Shapes.All, shape => Assert.NotEmpty(ShapeLandWorld.StartOf(content, shape).Zone.Chunks));
     }
 
     [Fact]
     public void TheTestsZoneHasWhatThePlayTestsCountOn()
     {
-        // The play-mode tests walk straight ahead from its default spawn (facing +Z, no scatter) and jump there, then
-        // walk on off the edge. Change zones/tests only along with them.
         var (content, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
         Assert.Empty(errors);
-        var zone = content!.Zones["zone.tests"];
-        var world = ShapeLandWorld.Create(content, zone);
-        var spawn = new Spawns(zone).Default!;
-        Assert.Equal((SpawnFacing.Direction, 0f, 0f), (spawn.Facing, spawn.Yaw, spawn.Radius));
+        var (zone, spawn) = Triggers.FindSpawn(content!.Zones.All, "spawn.tests.start")!.Value;
+        Assert.Equal("zone.tests", zone.Id);
+        var world = ShapeLandWorld.Create(content!, zone);
+        Assert.Equal((SpawnFacing.Direction, 0f), (spawn.Facing, spawn.Volume.Yaw));
+        Assert.InRange(spawn.Volume.Size.X, 0, 0.25f);
 
-        var feet = ShapeLandWorld.SpawnPoint(content, zone, world);
-        var radius = content.Movement.BodyRadius;
-        for (var ahead = 2; ahead <= 19; ahead++) // past the spawn marker, flat ground at 0 m
+        var feet = Triggers.Center(spawn, world);
+        var radius = content!.Movement.BodyRadius;
+        for (var ahead = 2; ahead <= 19; ahead++)
         {
-            Assert.True(world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, ahead), radius, feet.Y + 1, out var ground), $"No ground {ahead} m ahead.");
+            Assert.True(
+                world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, ahead), radius, feet.Y + 1, out var ground),
+                $"No ground {ahead} m ahead."
+            );
             Assert.Equal(0f, ground, 0.01f);
         }
 
         Assert.False(world.TryGetGround(feet + new System.Numerics.Vector3(0, 1, 22), radius, feet.Y + 1, out _), "No drop 22 m ahead.");
-    }
-
-    [Fact]
-    public void PrimitivesCollideAsModeled()
-    {
-        var (built, errors) = ShapeLandBuild.Build(ContentRoot, saveRegistry: false);
-        Assert.Empty(errors);
-
-        Assert.Equal(["asset.cone", "asset.cube", "asset.cylinder", "asset.ramp", "asset.sphere"], built!.Assets.All.Select(a => a.Id).Order());
-        var cube = built.Assets["asset.cube"];
-        Assert.Equal(12 * 3, cube.Collision.Length);
-        Assert.Equal((new System.Numerics.Vector3(-1, 0, -1), new System.Numerics.Vector3(1, 2, 1)), (cube.BoundsMin, cube.BoundsMax));
-        Assert.All(built.Assets.All, a => Assert.Equal(0, a.BoundsMin.Y, 0.001f));
     }
 
     [Fact]
@@ -101,7 +107,10 @@ public class ContentTests
     public void TerrainIsTheSameForTheSameSeed()
     {
         Assert.Equal(TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples, TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples);
-        Assert.NotEqual(TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples, TestTerrain.GenerateZone(2).Chunks[3].Tiles[0].Heights.Samples);
+        Assert.NotEqual(
+            TestTerrain.GenerateZone(1).Chunks[3].Tiles[0].Heights.Samples,
+            TestTerrain.GenerateZone(2).Chunks[3].Tiles[0].Heights.Samples
+        );
     }
 
     [Fact]
@@ -121,15 +130,18 @@ public class ContentTests
     {
         var zone = TestTerrain.GenerateZone(1);
         var island = new ZoneTerrain(zone)["island"];
-        var blocks = zone.Chunks.SelectMany(c => c.Placements).Where(p => p.Name == null).ToList();
+        var blocks = zone.Chunks.SelectMany(c => c.Placements).Where(p => p.Tag == null).ToList();
 
         Assert.Equal(4, blocks.Count);
-        Assert.All(blocks, b =>
-        {
-            Assert.Equal("asset.cube", b.Asset);
-            Assert.True(island.TryGetHeightAt(b.Position.X, b.Position.Z, out var ground));
-            Assert.Equal(ground - 0.5f, b.Position.Y, 2);
-        });
+        Assert.All(
+            blocks,
+            b =>
+            {
+                Assert.Equal(PrimitiveKind.Box, b.Primitive!.Kind);
+                Assert.True(island.TryGetHeightAt(b.Position.X, b.Position.Z, out var ground));
+                Assert.Equal(ground - 0.5f, b.Position.Y, 2);
+            }
+        );
     }
 
     [Fact]
@@ -143,21 +155,43 @@ public class ContentTests
     [InlineData("max_speed = 0.0", "max_speed: 0 is out of range")]
     [InlineData("jump_velocity = 99.0", "jump_velocity: 99 is out of range")]
     [InlineData("display_name = \" \"", "display_name: must not be empty")]
-    [InlineData("mesh = \"sphere\"", "Invalid enum name `sphere`")]
+    [InlineData("look = \"group.nowhere\"", "look 'group.nowhere' isn't a group")]
+    [InlineData("hover = 3.0", "hover: 3 is out of range")]
     [InlineData("scale = 0.0", "scale: 0 is out of range")]
     [InlineData("scale = 5.0", "scale: 5 is out of range")]
     [InlineData("max_speed = nan", "content numbers must be finite")]
     [InlineData("scale = nan", "content numbers must be finite")]
-    public void ShapeRulesAreChecked(string line, string message, string shape = "cube")
+    public void ShapeRulesAreChecked(string line, string message, string shape = "cube") =>
+        RuleIsChecked(Path.Combine("shapes", shape + ".toml"), line, message);
+
+    [Fact]
+    public void LooksAreOnlyPrimitives() =>
+        RuleIsChecked(
+            Path.Combine("shapes", "cube.toml"),
+            "look = \"group.prop_look\"",
+            "looks are built only from primitives",
+            (
+                "groups/prop_look.toml",
+                "id = \"group.prop_look\"\n\n[[part]]\nprop = \"prop.strange_shape\"\nrole = \"body\"\nposition = [0.0, 0.0, 0.0]\n"
+            )
+        );
+
+    [Theory]
+    [InlineData("facet_length = 0.0", "facet_length: 0 is out of range")]
+    [InlineData("min_sides = 2", "min_sides: 2 is too few")]
+    [InlineData("max_sides = 4", "max_sides: 4 is out of range")]
+    public void SettingsRulesAreChecked(string line, string message) => RuleIsChecked(Path.Combine("settings", "game.toml"), line, message);
+
+    private static void RuleIsChecked(string relativeFile, string line, string message, (string Path, string Text)? extraFile = null)
     {
         var root = Path.Combine(Path.GetTempPath(), "shapeland-content-" + Guid.NewGuid().ToString("N"));
         try
         {
             CopyDirectory(ContentRoot, root);
-            var file = Path.Combine(root, "shapes", shape + ".toml");
+            var file = Path.Combine(root, relativeFile);
             var key = line[..line.IndexOf(' ')];
             var lines = File.ReadAllLines(file).ToList();
-            var at = lines.FindIndex(l => l.StartsWith(key + " "));
+            var at = lines.FindIndex(l => l.StartsWith(key + " ", StringComparison.Ordinal));
             if (at >= 0)
             {
                 lines[at] = line;
@@ -168,12 +202,16 @@ public class ContentTests
             }
 
             File.WriteAllLines(file, lines);
+            if (extraFile is { } extra)
+            {
+                File.WriteAllText(Path.Combine(root, extra.Path), extra.Text);
+            }
 
             var (built, errors) = ShapeLandBuild.Build(root, saveRegistry: false, Path.Combine(ContentRoot, ShapeLandBuild.ModelRoot));
 
             Assert.Null(built);
             var error = Assert.Single(errors);
-            Assert.EndsWith(shape + ".toml", error.File);
+            Assert.EndsWith(Path.GetFileName(relativeFile), error.File);
             Assert.Contains(message, error.Message);
         }
         finally
@@ -202,15 +240,19 @@ public class ContentTests
         }
     }
 
-    // IL2CPP and web builds can't generate code at run time, so every content type and message needs a source-generated formatter.
     [Fact]
     public void EveryMessagePackTypeHasASourceGeneratedFormatter()
     {
-        var contentTypes = typeof(Shape).Assembly.GetTypes()
+        var contentTypes = typeof(Shape)
+            .Assembly.GetTypes()
             .Concat(typeof(Heightmap).Assembly.GetTypes())
             .Where(t => t.GetCustomAttributes(typeof(MessagePackObjectAttribute), false).Length > 0)
             .ToList();
-        var resolvers = new[] { typeof(Shape).Assembly.GetType("ShapeLand.Shared.Content.ShapeLandResolver")!, typeof(Heightmap).Assembly.GetType("Comet.Content.ContentResolver")! }
+        var resolvers = new[]
+        {
+            typeof(Shape).Assembly.GetType("ShapeLand.Shared.Content.ShapeLandResolver")!,
+            typeof(Heightmap).Assembly.GetType("Comet.Content.ContentResolver")!,
+        }
             .Select(t => (IFormatterResolver)t.GetField("Instance")!.GetValue(null)!)
             .ToList();
         var getFormatter = typeof(IFormatterResolver).GetMethod(nameof(IFormatterResolver.GetFormatter))!;
@@ -228,18 +270,5 @@ public class ContentTests
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target);
         }
-    }
-
-    private static string RepoRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "ProjectComet.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("Can't find the repository root.");
     }
 }

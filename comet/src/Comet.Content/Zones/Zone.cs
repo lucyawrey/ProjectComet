@@ -1,43 +1,50 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// A zone: its terrain pieces, borders, entrances and transition rooms, and the chunks it owns. Authored as a
-    /// folder of files (a zone TOML, a TOML per chunk and binary tiles), compiled whole into the content file.
-    /// </summary>
     [MessagePackObject]
     public sealed class Zone : IContentEntry
     {
-        [Key(0)] public int Number { get; set; }
+        [Key(0)]
+        public int Number { get; set; }
 
-        /// <summary>The zone's key (<c>zone.meadow</c>).</summary>
-        [Key(1)] public string Id { get; set; } = "";
+        [Key(1)]
+        public string Id { get; set; } = "";
 
-        /// <summary>
-        /// For a zone on its own local grid (a dungeon), the region chunk its chunk (0, 0) sits on, so its scenery can
-        /// show in the open world's distant LODs; null for open zones, which are on the region grid already.
-        /// </summary>
-        [Key(2)] public ChunkCoord? WorldAnchor { get; set; }
+        /// <summary>For a zone on its own grid (a dungeon), the region chunk its (0, 0) sits on, for distant LODs; null for open zones.</summary>
+        [Key(2)]
+        public ChunkCoord? WorldAnchor { get; set; }
 
-        /// <summary>The terrain pieces, with their zone-wide settings; tiles in chunks refer to them by name.</summary>
-        [Key(3)] public TerrainPiece[] Pieces { get; set; } = new TerrainPiece[0];
+        [Key(3)]
+        public TerrainPiece[] Pieces { get; set; } = Array.Empty<TerrainPiece>();
 
-        /// <summary>The chunk edges where this zone meets a neighbor.</summary>
-        [Key(4)] public ZoneBorder[] Borders { get; set; } = new ZoneBorder[0];
+        [Key(4)]
+        public ZoneBorder[] Borders { get; set; } = Array.Empty<ZoneBorder>();
 
-        /// <summary>Doorways into other zones, such as a dungeon's mouth.</summary>
-        [Key(5)] public ZoneEntrance[] Entrances { get; set; } = new ZoneEntrance[0];
+        [Key(5)]
+        public ZoneEntrance[] Entrances { get; set; } = Array.Empty<ZoneEntrance>();
 
-        /// <summary>Loading rooms: areas a party gathers in before an entrance closes behind them.</summary>
-        [Key(6)] public TransitionRoom[] TransitionRooms { get; set; } = new TransitionRoom[0];
+        [Key(6)]
+        public TransitionRoom[] TransitionRooms { get; set; } = Array.Empty<TransitionRoom>();
 
-        /// <summary>The chunks the zone owns, each with its terrain tiles, placements, spawns and volumes.</summary>
-        [Key(7)] public ZoneChunk[] Chunks { get; set; } = new ZoneChunk[0];
+        [Key(7)]
+        public ZoneChunk[] Chunks { get; set; } = Array.Empty<ZoneChunk>();
+
+        /// <summary>This zone's own height in meters below which a fall is out of the world; null uses the game's.</summary>
+        [Key(8)]
+        public float? KillHeight { get; set; }
+
+        public const float DefaultHeightBase = -100f;
+
+        /// <summary>Meters at terrain sample value 0, so ground covers this + 0.01 m to this + 655.35 m (<see cref="Heightmap.Scale"/>).</summary>
+        [Key(9)]
+        public float HeightBase { get; set; } = DefaultHeightBase;
     }
 
-    /// <summary>A chunk's position on the grid (<see cref="ZoneGrid"/>).</summary>
     [MessagePackObject]
     public readonly struct ChunkCoord : System.IEquatable<ChunkCoord>
     {
@@ -48,14 +55,19 @@ namespace Comet.Content
             Z = z;
         }
 
-        [Key(0)] public int X { get; }
+        [Key(0)]
+        public int X { get; }
 
-        [Key(1)] public int Z { get; }
+        [Key(1)]
+        public int Z { get; }
+
+        public static bool operator ==(ChunkCoord a, ChunkCoord b) => a.Equals(b);
+
+        public static bool operator !=(ChunkCoord a, ChunkCoord b) => !a.Equals(b);
 
         /// <summary>The chunk holding a world position (edges belong to the chunk on their high side).</summary>
-        public static ChunkCoord Containing(Vector3 position) => new ChunkCoord(
-            (int)System.MathF.Floor(position.X / ZoneGrid.ChunkSize),
-            (int)System.MathF.Floor(position.Z / ZoneGrid.ChunkSize));
+        public static ChunkCoord Containing(Vector3 position) =>
+            new ChunkCoord((int)System.MathF.Floor(position.X / ZoneGrid.ChunkSize), (int)System.MathF.Floor(position.Z / ZoneGrid.ChunkSize));
 
         /// <summary>The world position of the chunk's low corner, at height 0.</summary>
         [IgnoreMember]
@@ -70,221 +82,424 @@ namespace Comet.Content
         public override string ToString() => $"{X}_{Z}";
     }
 
-    /// <summary>A terrain piece's zone-wide settings. Its heights are stored in tiles, one per chunk it covers.</summary>
     [MessagePackObject]
     public sealed class TerrainPiece
     {
-        /// <summary>The piece's name, unique in the zone (<c>main</c>, <c>sky_island</c>).</summary>
-        [Key(0)] public string Name { get; set; } = "";
+        [Key(0)]
+        public string Name { get; set; } = "";
 
         /// <summary>Where the piece's skirts end when it has no underside map: a flat bottom this many meters below its lowest ground.</summary>
-        [Key(1)] public float SkirtDepth { get; set; } = 4;
+        [Key(1)]
+        public float SkirtDepth { get; set; } = 4;
 
-        /// <summary>Whether the piece's outer edge gets skirts (off for main ground that nothing sees below).</summary>
-        [Key(2)] public bool RimSkirts { get; set; } = true;
+        [Key(2)]
+        public bool RimSkirts { get; set; } = true;
 
-        /// <summary>Whether the edges of holes inside the piece get skirts (chasm walls).</summary>
-        [Key(3)] public bool HoleSkirts { get; set; } = true;
+        [Key(3)]
+        public bool HoleSkirts { get; set; } = true;
 
         /// <summary>The color of the piece's unpainted underside (its skirt walls and bottom) as 0xRRGGBB, if not the game's.</summary>
-        [Key(4)] public uint? UnderColor { get; set; }
+        [Key(4)]
+        public uint? UnderColor { get; set; }
 
-        /// <summary>The color of the piece's unpainted ground as 0xRRGGBB, if not the game's.</summary>
-        [Key(5)] public uint? GroundColor { get; set; }
+        [Key(5)]
+        public uint? GroundColor { get; set; }
     }
 
     /// <summary>One chunk of a zone: the terrain tiles, placed objects, spawns and volumes whose pivots are in it.</summary>
     [MessagePackObject]
     public sealed class ZoneChunk
     {
-        [Key(0)] public ChunkCoord Coord { get; set; }
+        [Key(0)]
+        public ChunkCoord Coord { get; set; }
 
-        [Key(1)] public TerrainTile[] Tiles { get; set; } = new TerrainTile[0];
+        [Key(1)]
+        public TerrainTile[] Tiles { get; set; } = Array.Empty<TerrainTile>();
 
-        [Key(2)] public Placement[] Placements { get; set; } = new Placement[0];
+        [Key(2)]
+        public Placement[] Placements { get; set; } = Array.Empty<Placement>();
 
-        [Key(3)] public SpawnPoint[] Spawns { get; set; } = new SpawnPoint[0];
+        [Key(3)]
+        public SpawnPoint[] Spawns { get; set; } = Array.Empty<SpawnPoint>();
 
-        [Key(4)] public CollisionVolume[] Volumes { get; set; } = new CollisionVolume[0];
+        [Key(4)]
+        public CollisionVolume[] Volumes { get; set; } = Array.Empty<CollisionVolume>();
+
+        [Key(5)]
+        public Teleporter[] Teleporters { get; set; } = Array.Empty<Teleporter>();
+
+        [Key(6)]
+        public Trigger[] Triggers { get; set; } = Array.Empty<Trigger>();
+
+        [Key(7)]
+        public Sign[] Signs { get; set; } = Array.Empty<Sign>();
+
+        public IEnumerable<(Vector3 Point, Sign Sign)> AllSigns()
+        {
+            foreach (var sign in Signs.Where(s => !s.Off))
+            {
+                yield return (sign.Position, sign);
+            }
+
+            foreach (var volume in Spawns.Select(s => s.Volume).Concat(Teleporters.Select(t => t.Volume)).Concat(Triggers.Select(t => t.Volume)))
+            {
+                if (volume.Sign is { Off: false } sign)
+                {
+                    yield return (volume.ToWorld(sign.Position), sign);
+                }
+            }
+        }
     }
 
-    /// <summary>
-    /// A terrain piece's part of one chunk: a heightmap whose sample (0, 0) sits at sample
-    /// (<see cref="OriginX"/>, <see cref="OriginZ"/>) of the chunk, with an optional underside and colors on the same grid.
-    /// </summary>
+    /// <summary>A heightmap whose sample (0, 0) sits at chunk sample (<see cref="OriginX"/>, <see cref="OriginZ"/>).</summary>
     [MessagePackObject]
     public sealed class TerrainTile
     {
-        /// <summary>The <see cref="TerrainPiece.Name"/> of the piece this tile belongs to.</summary>
-        [Key(0)] public string Piece { get; set; } = "";
+        [Key(0)]
+        public string Piece { get; set; } = "";
 
         /// <summary>The chunk sample column of the tile's first column (0 to <see cref="ZoneGrid.ChunkSize"/>).</summary>
-        [Key(1)] public int OriginX { get; set; }
+        [Key(1)]
+        public int OriginX { get; set; }
 
-        /// <summary>The chunk sample row of the tile's first row.</summary>
-        [Key(2)] public int OriginZ { get; set; }
+        [Key(2)]
+        public int OriginZ { get; set; }
 
-        /// <summary>The ground's heights; holes mark where the piece has no ground.</summary>
-        [Key(3)] public Heightmap Heights { get; set; } = new Heightmap();
+        [Key(3)]
+        public Heightmap Heights { get; set; } = new Heightmap();
 
-        /// <summary>The bottom of the piece's skirts, if it has a painted underside rather than a flat bottom.</summary>
-        [Key(4)] public Heightmap? Underside { get; set; }
+        [Key(4)]
+        public Heightmap? Underside { get; set; }
 
-        /// <summary>Painted colors, if any.</summary>
-        [Key(5)] public ColorMap? Colors { get; set; }
+        [Key(5)]
+        public ColorMap? Colors { get; set; }
 
         /// <summary>Painted colors of the underside and the skirt walls above it, if any; only with an <see cref="Underside"/>.</summary>
-        [Key(6)] public ColorMap? UndersideColors { get; set; }
+        [Key(6)]
+        public ColorMap? UndersideColors { get; set; }
     }
 
-    /// <summary>An asset placed in a chunk: free position and full rotation, with uniform or non-uniform scale.</summary>
+    /// <summary>A primitive's scale is its size in meters, and its mesh is built at that size.</summary>
     [MessagePackObject]
     public sealed class Placement
     {
-        /// <summary>The asset's key (<c>asset.cube</c>).</summary>
-        [Key(0)] public string Asset { get; set; } = "";
+        /// <summary>The prop's id (<c>prop.rock</c>), or empty for a primitive or a group.</summary>
+        [Key(0)]
+        public string Prop { get; set; } = "";
 
-        /// <summary>The pivot's world position, in meters; it lies in the placement's chunk.</summary>
-        [Key(1)] public Vector3 Position { get; set; }
+        [Key(1)]
+        public Vector3 Position { get; set; }
 
         /// <summary>Rotation as Euler angles in degrees, applied in Unity's order (Z, then X, then Y).</summary>
-        [Key(2)] public Vector3 Rotation { get; set; }
+        [Key(2)]
+        public Vector3 Rotation { get; set; }
 
-        [Key(3)] public Vector3 Scale { get; set; } = Vector3.One;
+        [Key(3)]
+        public Vector3 Scale { get; set; } = Vector3.One;
 
-        /// <summary>
-        /// An optional name, unique in the zone, for game code to find this placement by (in ShapeLand, a spawn
-        /// point's marker is named with the spawn's key); null for most.
-        /// </summary>
-        [Key(4)] public string? Name { get; set; }
+        [Key(4)]
+        public string? Tag { get; set; }
 
-        /// <summary>The placement's own color as 0xRRGGBB, or null for its asset's.</summary>
-        [Key(5)] public uint? Color { get; set; }
+        /// <summary>The placement's own color as 0xRRGGBB, or null for its prop's.</summary>
+        [Key(5)]
+        public uint? Color { get; set; }
 
-        /// <summary>The placement's transform from the asset's space to the world (scale, then rotation, then position).</summary>
+        /// <summary>The primitive placed, or null for a prop.</summary>
+        [Key(6)]
+        public Primitive? Primitive { get; set; }
+
+        [Key(7)]
+        public bool Blockout { get; set; }
+
+        /// <summary>The group placed (<c>group.tree</c>), or null for a prop or a primitive.</summary>
+        [Key(8)]
+        public string? Group { get; set; }
+
+        [Key(9)]
+        public string? Role { get; set; }
+
+        /// <summary>Colors by role (0xRRGGBB) that parts of that role, at any depth, take over their own; outer copies win. Null for most.</summary>
+        [Key(10)]
+        public Dictionary<string, uint>? Colors { get; set; }
+
+        /// <summary>Whether the placement starts off: hidden and not solid until a trigger turns it on.</summary>
+        [Key(11)]
+        public bool Off { get; set; }
+
         public Matrix4x4 Matrix() =>
-            Matrix4x4.CreateScale(Scale) * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation)) * Matrix4x4.CreateTranslation(Position);
+            (Primitive is null ? Matrix4x4.CreateScale(Scale) : Matrix4x4.Identity)
+            * Matrix4x4.CreateFromQuaternion(ZoneGrid.Rotation(Rotation))
+            * Matrix4x4.CreateTranslation(Position);
     }
 
-    /// <summary>How a player faces on arriving at a spawn point.</summary>
     public enum SpawnFacing
     {
-        /// <summary>Toward <see cref="SpawnPoint.Yaw"/>.</summary>
         Direction,
-        /// <summary>Toward the spawn point's center (for a scattered arrival).</summary>
+
         TowardPoint,
         Random,
     }
 
-    /// <summary>A place players arrive: a random spot with ground within <see cref="Radius"/> of the point.</summary>
+    public enum Rearm
+    {
+        StepOff,
+
+        Repeat,
+    }
+
+    [MessagePackObject]
+    public sealed class TriggerVolume
+    {
+        /// <summary>The volume's kind: a box, a cylinder round around Y, or a sphere (an ellipsoid when its size is uneven).</summary>
+        [Key(0)]
+        public PrimitiveKind Kind { get; set; } = PrimitiveKind.Box;
+
+        /// <summary>The volume's bottom center, in world meters; it lies in its chunk.</summary>
+        [Key(1)]
+        public Vector3 Position { get; set; }
+
+        /// <summary>The volume's turn about the vertical axis, in degrees clockwise from +Z.</summary>
+        [Key(2)]
+        public float Yaw { get; set; }
+
+        /// <summary>The volume's full size along its own axes, in meters.</summary>
+        [Key(3)]
+        public Vector3 Size { get; set; } = Vector3.One;
+
+        /// <summary>How long a player stands inside before it fires, in seconds (0 fires at once).</summary>
+        [Key(4)]
+        public float StandSeconds { get; set; }
+
+        [Key(5)]
+        public Rearm Rearm { get; set; }
+
+        /// <summary>The solid primitive drawn under the volume (in world space, never toggled), or null for none.</summary>
+        [Key(6)]
+        public Placement? Pad { get; set; }
+
+        /// <summary>A sign shown with it (its position from the volume's bottom center, turned with its yaw), or null for none.</summary>
+        [Key(7)]
+        public Sign? Sign { get; set; }
+
+        public Vector3 ToWorld(Vector3 local)
+        {
+            var radians = Yaw * MathF.PI / 180;
+            var (sin, cos) = (MathF.Sin(radians), MathF.Cos(radians));
+            return Position + new Vector3(local.X * cos + local.Z * sin, local.Y, -local.X * sin + local.Z * cos);
+        }
+    }
+
+    /// <summary>A place players arrive: a random spot in its volume's footprint. Its id names its zone (<c>spawn.meadow.gate</c>).</summary>
     [MessagePackObject]
     public sealed class SpawnPoint : IContentEntry
     {
-        [Key(0)] public int Number { get; set; }
+        [Key(0)]
+        public int Number { get; set; }
 
-        /// <summary>The spawn's key (<c>spawn.meadow_gate</c>), unique across zones.</summary>
-        [Key(1)] public string Id { get; set; } = "";
+        [Key(1)]
+        public string Id { get; set; } = "";
 
-        [Key(2)] public Vector3 Position { get; set; }
+        [Key(2)]
+        public TriggerVolume Volume { get; set; } = new TriggerVolume();
 
-        /// <summary>How far from the point arrivals scatter, in meters.</summary>
-        [Key(3)] public float Radius { get; set; }
-
-        [Key(4)] public SpawnFacing Facing { get; set; }
-
-        /// <summary>The facing for <see cref="SpawnFacing.Direction"/>, in degrees clockwise from +Z.</summary>
-        [Key(5)] public float Yaw { get; set; }
-
-        /// <summary>Whether this is the zone's default spawn (exactly one per zone with spawns).</summary>
-        [Key(6)] public bool IsDefault { get; set; }
+        [Key(3)]
+        public SpawnFacing Facing { get; set; }
     }
 
-    /// <summary>What a collision volume does.</summary>
+    [MessagePackObject]
+    public sealed class Teleporter : IContentEntry
+    {
+        [Key(0)]
+        public int Number { get; set; }
+
+        [Key(1)]
+        public string Id { get; set; } = "";
+
+        [Key(2)]
+        public TriggerVolume Volume { get; set; } = new TriggerVolume();
+
+        [Key(3)]
+        public SpawnFacing Facing { get; set; }
+
+        [Key(4)]
+        public string Target { get; set; } = "";
+
+        [Key(5)]
+        public uint? ChargeColor { get; set; }
+    }
+
+    [MessagePackObject]
+    public sealed class Trigger : IContentEntry
+    {
+        [Key(0)]
+        public int Number { get; set; }
+
+        [Key(1)]
+        public string Id { get; set; } = "";
+
+        [Key(2)]
+        public TriggerVolume Volume { get; set; } = new TriggerVolume();
+
+        [Key(3)]
+        public ToggleEffect[] Effects { get; set; } = Array.Empty<ToggleEffect>();
+
+        [Key(4)]
+        public uint? ChargeColor { get; set; }
+    }
+
+    [MessagePackObject]
+    public sealed class Sign
+    {
+        public const int MaxText = 200;
+
+        /// <summary>The farthest a sign can be seen, in meters.</summary>
+        public const float MaxShowDistance = 200;
+
+        public const float MinFontSize = 8,
+            MaxFontSize = 48;
+
+        /// <summary>The smallest and largest text heights of world-sized signs, in meters.</summary>
+        public const float MinTextHeight = 0.05f,
+            MaxTextHeight = 5;
+
+        [Key(0)]
+        public Vector3 Position { get; set; }
+
+        [Key(1)]
+        public string Text { get; set; } = "";
+
+        [Key(2)]
+        public uint TextColor { get; set; } = 0xFFFFFF;
+
+        [Key(3)]
+        public uint BackgroundColor { get; set; }
+
+        /// <summary>How opaque the panel is, from 0 to 1.</summary>
+        [Key(4)]
+        public float BackgroundOpacity { get; set; } = 1;
+
+        /// <summary>How far away it's shown, in meters.</summary>
+        [Key(5)]
+        public float ShowDistance { get; set; } = 45;
+
+        /// <summary>A screen-sized sign's text size, in the game's interface pixels.</summary>
+        [Key(6)]
+        public float FontSize { get; set; } = 13;
+
+        /// <summary>Whether the panel has an arrow pointing at the point, as speech bubbles do; only with <see cref="Background"/>.</summary>
+        [Key(7)]
+        public bool Arrow { get; set; }
+
+        [Key(8)]
+        public bool ScreenSized { get; set; }
+
+        /// <summary>A world-sized sign's text size: the height of its font, in meters.</summary>
+        [Key(9)]
+        public float TextHeight { get; set; } = 0.3f;
+
+        [Key(10)]
+        public bool Background { get; set; }
+
+        [Key(11)]
+        public bool Off { get; set; }
+    }
+
+    [MessagePackObject]
+    public sealed class ToggleEffect
+    {
+        [Key(0)]
+        public string Tag { get; set; } = "";
+
+        /// <summary>Seconds until they flip back, or 0 to stay. Firing again before then restarts the wait instead of flipping.</summary>
+        [Key(1)]
+        public float RevertSeconds { get; set; }
+    }
+
     public enum VolumeKind
     {
-        /// <summary>Blocks movement, unseen (an invisible wall).</summary>
         Wall,
         Water,
     }
 
-    /// <summary>A hand-placed box for special cases, such as an invisible wall or water.</summary>
     [MessagePackObject]
     public sealed class CollisionVolume
     {
-        [Key(0)] public VolumeKind Kind { get; set; }
+        [Key(0)]
+        public VolumeKind Kind { get; set; }
 
         /// <summary>The box's center, in world meters.</summary>
-        [Key(1)] public Vector3 Position { get; set; }
+        [Key(1)]
+        public Vector3 Position { get; set; }
 
-        /// <summary>Euler angles in degrees, as for <see cref="Placement.Rotation"/>.</summary>
-        [Key(2)] public Vector3 Rotation { get; set; }
+        [Key(2)]
+        public Vector3 Rotation { get; set; }
 
-        /// <summary>The box's full size along its own axes, in meters.</summary>
-        [Key(3)] public Vector3 Size { get; set; }
+        [Key(3)]
+        public Vector3 Size { get; set; }
     }
 
-    /// <summary>A side of a chunk.</summary>
     public enum ChunkSide
     {
         /// <summary>The +Z edge.</summary>
         North,
+
         /// <summary>The +X edge.</summary>
         East,
         South,
         West,
     }
 
-    /// <summary>One chunk edge where this zone meets another; a border is the list of its edges.</summary>
     [MessagePackObject]
     public sealed class ZoneBorder
     {
-        /// <summary>The chunk on this zone's side.</summary>
-        [Key(0)] public ChunkCoord Chunk { get; set; }
+        [Key(0)]
+        public ChunkCoord Chunk { get; set; }
 
-        [Key(1)] public ChunkSide Side { get; set; }
+        [Key(1)]
+        public ChunkSide Side { get; set; }
 
-        /// <summary>The neighboring zone's key.</summary>
-        [Key(2)] public string Zone { get; set; } = "";
+        [Key(2)]
+        public string Zone { get; set; } = "";
     }
 
-    /// <summary>A doorway into another zone: walking into its box takes a player to the other zone's matching entrance.</summary>
     [MessagePackObject]
     public sealed class ZoneEntrance
     {
-        /// <summary>The entrance's name, unique in the zone.</summary>
-        [Key(0)] public string Name { get; set; } = "";
+        [Key(0)]
+        public string Name { get; set; } = "";
 
-        /// <summary>The doorway box's center, in world meters.</summary>
-        [Key(1)] public Vector3 Position { get; set; }
+        [Key(1)]
+        public Vector3 Position { get; set; }
 
-        /// <summary>The box's turn about the vertical axis, in degrees clockwise from +Z.</summary>
-        [Key(2)] public float Yaw { get; set; }
+        [Key(2)]
+        public float Yaw { get; set; }
 
-        [Key(3)] public Vector3 Size { get; set; }
+        [Key(3)]
+        public Vector3 Size { get; set; }
 
-        /// <summary>The zone it leads to.</summary>
-        [Key(4)] public string ToZone { get; set; } = "";
+        [Key(4)]
+        public string ToZone { get; set; } = "";
 
-        /// <summary>The entrance in that zone where players arrive.</summary>
-        [Key(5)] public string ToEntrance { get; set; } = "";
+        [Key(5)]
+        public string ToEntrance { get; set; } = "";
     }
 
-    /// <summary>A loading room: an area a party gathers in; once one member goes on, <see cref="Entrance"/> closes.</summary>
     [MessagePackObject]
     public sealed class TransitionRoom
     {
-        /// <summary>The room's name, unique in the zone.</summary>
-        [Key(0)] public string Name { get; set; } = "";
+        [Key(0)]
+        public string Name { get; set; } = "";
 
-        /// <summary>The room's box center, in world meters.</summary>
-        [Key(1)] public Vector3 Position { get; set; }
+        [Key(1)]
+        public Vector3 Position { get; set; }
 
-        /// <summary>The box's turn about the vertical axis, in degrees clockwise from +Z.</summary>
-        [Key(2)] public float Yaw { get; set; }
+        [Key(2)]
+        public float Yaw { get; set; }
 
-        [Key(3)] public Vector3 Size { get; set; }
+        [Key(3)]
+        public Vector3 Size { get; set; }
 
-        /// <summary>The name of the entrance into the room, which closes once the party has gone on.</summary>
-        [Key(4)] public string Entrance { get; set; } = "";
+        [Key(4)]
+        public string Entrance { get; set; } = "";
     }
 }

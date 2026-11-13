@@ -1,10 +1,13 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using Comet.Client;
+using Comet.Client.Login;
 using Comet.Content;
 using Comet.Protocol.Framing;
-using Comet.Protocol.Messages;
+using Comet.Protocol.Login;
 using Comet.Simulation;
 using Comet.Unity;
 using ShapeLand.Shared.Content;
@@ -15,116 +18,330 @@ using UnityEngine.Networking;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// Joins ShapeLand: loads the content, connects to a game server, sends the join request and logs what the
-    /// server says (welcome, spawns, despawns, chat). The join screen calls <see cref="Join"/> and can try again
-    /// after a refusal or a failed connection; the rest of the game scene draws on top of it. Holds the zone being
-    /// played: the default one until a server's Welcome names another.
-    /// </summary>
     [RequireComponent(typeof(CometConnection))]
     public sealed class JoinClient : MonoBehaviour
     {
         private const string LogPrefix = "JOIN";
 
-        [SerializeField] private string address = "localhost:5080";
+        [SerializeField]
+        private string address = "localhost:5090";
+
+        /// <summary>One per Login server, so a token is only ever sent to the server it came from; tests use their own.</summary>
+        public static string TokenKey = "login-token";
+
+        public static void ForgetToken(string loginAddress) => PlayerPrefs.DeleteKey(TokenKeyFor(LoginUrl(loginAddress)));
+
+        private static string TokenKeyFor(string loginUrl) => $"{TokenKey} {loginUrl}";
 
         private CometConnection _connection;
         private ShapeLandContent _content;
+        private LoginClient<CharacterView> _login;
+        private string _loginAddress;
         private Uri _url;
         private JoinRequest? _pending;
+        private DevJoinRequest? _pendingDev;
+        private string _devName = "";
+
+        private int _joinAttempt;
+        private bool _ticketRetried;
         private bool _awaitingAnswer;
-        private int _previews; // questions to servers' /info so far; only the newest answer counts
+        private readonly HashSet<string> _flipped = new HashSet<string>();
         private double _askedAt;
         private double _connectedAt;
 
-        /// <summary>The name last asked for.</summary>
-        public string PlayerName { get; private set; }
+        public string PlayerName => Accounts ? Account?.Username ?? "" : _devName;
 
-        /// <summary>
-        /// The server to join unless the player names another: on the web, the page's <c>?server=</c>, else the one its
-        /// deploy names (<c>config.js</c>), else the one the page came from; elsewhere, <see cref="Address"/>.
-        /// </summary>
-        public string DefaultAddress
+        public static bool Accounts => Comet.Unity.LocalServerPort.UseAccounts;
+
+        public string DefaultLoginAddress
         {
             get
             {
 #if UNITY_WEBGL && !UNITY_EDITOR
-                return AddressForPage(Application.absoluteURL, address, ShapeLand_PageServer());
+                return LoginForPage(Application.absoluteURL, address, ShapeLand_PageLogin());
 #else
-                return address;
+                return Comet.Unity.LocalServerPort.LoginInEditor is { } port ? $"localhost:{port}" : address;
 #endif
             }
         }
 
-        /// <summary>The loaded content, or null until it has loaded.</summary>
+        public AccountResponse<CharacterView> Account
+        {
+            get => _account;
+            private set
+            {
+                _account = value;
+                _content?.Strings.SetShared("username", value?.Username ?? "");
+            }
+        }
+
+        private AccountResponse<CharacterView> _account;
+
+        public bool SignedIn => Accounts && (_login?.SignedIn ?? false);
+
+        public DropReason? DroppedFor { get; private set; }
+
         public ShapeLandContent Content => _content;
 
-        /// <summary>Raised once the content has loaded, before connecting.</summary>
         public event Action<ShapeLandContent> ContentLoaded;
 
-        /// <summary>Raised when the server spawns this player: on joining, and again with a changed look (not on respawning).</summary>
         public event Action<PlayerSpawn> OwnSpawned;
 
-        /// <summary>Raised when another player comes into view, after the session starts tracking them.</summary>
         public event Action<PlayerSpawn> OtherSpawned;
 
-        /// <summary>Raised when another player leaves view.</summary>
         public event Action<uint> OtherLeft;
 
-        /// <summary>Raised when the server refuses the join or a change of look; the player may try again.</summary>
         public event Action<JoinRejection> JoinRefused;
 
-        /// <summary>
-        /// The connection was lost while joined (the server closed it, stopped answering, or the game fell too far
-        /// behind), with the reason. The player is gone from the world; the next <see cref="Join"/> starts over.
-        /// </summary>
+        public event Action<LookRejection> LookRefused;
+
+        public event Action SignedOut;
+
         public event Action<CloseReason> ConnectionLost;
 
-        /// <summary>Raised when the content won't load, or joining fails before the player is in; <see cref="Error"/> has the details.</summary>
         public event Action<JoinFailure> Failed;
 
-        /// <summary>Raised for each chat line, the player's own included (the server echoes it, so everyone sees one order).</summary>
+        public event Action<string> RetryFailed;
+
         public event Action<ChatMessage> ChatReceived;
 
-        /// <summary>Raised when the server doesn't deliver this player's chat line.</summary>
         public event Action<ChatRejection> ChatRefused;
 
-        /// <summary>
-        /// The server plays a zone other than the one drawn (its /info said so before joining, or its Welcome);
-        /// <see cref="Zone"/> and <see cref="World"/> are now its.
-        /// </summary>
         public event Action<Zone> ZoneChanged;
 
-        /// <summary>The zone being played, once the content has loaded: the default one until a server names another (<see cref="Preview"/>, then its Welcome).</summary>
+        public event Action<string, bool> PlacementsFlipped;
+
         public Zone Zone { get; private set; }
 
-        /// <summary>The collision world of <see cref="Zone"/>.</summary>
         public CollisionWorld World { get; private set; }
 
-        /// <summary>The player's spawn point changed (on joining, and on claiming another), by content number.</summary>
-        public event Action<int> SpawnSet;
+        public IReadOnlyCollection<string> Flipped => _flipped;
 
-        /// <summary>The player's spawn point's content number, once the server has said.</summary>
+        public event Action<int, bool> SpawnSet;
+
         public int? SpawnNumber { get; private set; }
 
-        /// <summary>True once the server has spawned this player.</summary>
         public bool Joined { get; private set; }
 
-        /// <summary>The server's spawn of this player, once joined.</summary>
         public PlayerSpawn? Spawn { get; private set; }
 
-        /// <summary>Why the server turned the last join down, or null.</summary>
         public JoinRejection? Rejected { get; private set; }
 
-        /// <summary>The last failure, or <see cref="JoinFailure.None"/>.</summary>
         public JoinFailure Failure { get; private set; }
 
-        /// <summary>The details of <see cref="Failure"/>, in English, for logs; null when there's none.</summary>
         public string Error { get; private set; }
 
         public ClientSession Session => _connection.Session;
 
-        private void Awake() => _connection = GetComponent<CometConnection>();
+        private void Awake()
+        {
+            _connection = GetComponent<CometConnection>();
+            UseLoginServer(DefaultLoginAddress);
+        }
+
+        public void UseLoginServer(string loginAddress)
+        {
+            var url = LoginUrl(loginAddress);
+            if (url == _loginAddress && _login != null)
+            {
+                return;
+            }
+
+            _loginAddress = url;
+            _login = new LoginClient<CharacterView>(new UnityLoginTransport(url), new PlayerPrefsTokenStore(TokenKeyFor(url)));
+        }
+
+        public string LoginAddress => _loginAddress;
+
+        public static string LoginUrl(string loginAddress)
+        {
+            loginAddress = (loginAddress ?? "").Trim().TrimEnd('/');
+            return loginAddress.Contains("://") ? loginAddress : "http://" + loginAddress;
+        }
+
+        public static string LoginForPage(string pageUrl, string fallback, string pageLogin = null)
+        {
+            if (Uri.TryCreate(pageUrl, UriKind.Absolute, out var page))
+            {
+                foreach (var pair in page.Query.TrimStart('?').Split('&'))
+                {
+                    if (pair.StartsWith("login=", StringComparison.Ordinal) && pair.Length > "login=".Length)
+                    {
+                        return Uri.UnescapeDataString(pair.Substring("login=".Length));
+                    }
+                }
+            }
+
+            return string.IsNullOrEmpty(pageLogin) ? fallback : pageLogin;
+        }
+
+        public async Task<string> ResumeAsync()
+        {
+            var attempt = _joinAttempt;
+            var error = await LoadAccountAsync();
+            return error != null || attempt != _joinAttempt ? error : await PlayAsync();
+        }
+
+        public async Task<string> LoadAccountAsync()
+        {
+            if (!SignedIn)
+            {
+                return LoginErrors.SignedOut;
+            }
+
+            var account = await _login.GetAccountAsync();
+            if (!account.Succeeded)
+            {
+                if (account.Error == LoginErrors.SignedOut)
+                {
+                    Account = null;
+                    SignedOut?.Invoke();
+                }
+
+                return account.Error;
+            }
+
+            Account = account.Value;
+            return null;
+        }
+
+        public void CancelJoin()
+        {
+            _joinAttempt++;
+            if (Joined)
+            {
+                return;
+            }
+
+            _pending = null;
+            _pendingDev = null;
+            _awaitingAnswer = false;
+            _connection.Disconnect();
+        }
+
+        public async Task<string> CreateGuestAsync(string name, NewCharacter character)
+        {
+            var made = await _login.CreateGuestAsync(name, character);
+            return made.Succeeded ? await ResumeAsync() : made.Error;
+        }
+
+        public async Task<string> SignInAsync(string username, string password)
+        {
+            var signedIn = await _login.SignInAsync(username, password);
+            return signedIn.Succeeded ? await ResumeAsync() : signedIn.Error;
+        }
+
+        public async Task<string> SignInWithCodeAsync(string code)
+        {
+            var signedIn = await _login.SignInWithCodeAsync(code);
+            return signedIn.Succeeded ? await ResumeAsync() : signedIn.Error;
+        }
+
+        private void BeginJoin()
+        {
+            if (_content == null)
+            {
+                throw new InvalidOperationException("Join after the content has loaded.");
+            }
+
+            Failure = JoinFailure.None;
+            Error = null;
+            Rejected = null;
+            DroppedFor = null;
+        }
+
+        public async Task<string> PlayAsync()
+        {
+            BeginJoin();
+            var attempt = _joinAttempt;
+            var ticket = await _login.GetTicketAsync();
+            if (attempt != _joinAttempt)
+            {
+                return null;
+            }
+            if (!ticket.Succeeded)
+            {
+                if (ticket.Error == LoginErrors.SignedOut)
+                {
+                    Account = null;
+                    SignedOut?.Invoke();
+                }
+
+                return ticket.Error;
+            }
+
+            if (!TryServerUrl(ticket.Value.Server, out var url))
+            {
+                Fail(JoinFailure.BadAddress, $"The Login server named \"{ticket.Value.Server}\", which isn't a game server address.");
+                return null;
+            }
+
+            Connect(url);
+            _pending = new JoinRequest { Ticket = ticket.Value.Ticket };
+            return null;
+        }
+
+        public void DevJoin(string name, NewCharacter look)
+        {
+            BeginJoin();
+            _devName = name;
+            _content.Strings.SetShared("username", name);
+            Connect(new Uri($"ws://localhost:{Comet.Unity.LocalServerPort.InEditor ?? 5080}/ws"));
+            _pendingDev = new DevJoinRequest
+            {
+                Name = name,
+                Shape = look.Shape,
+                Color = look.Color,
+                EyeColor = look.EyeColor,
+            };
+        }
+
+        private async void RetryAsync()
+        {
+            var error = await PlayAsync();
+            if (error != null && error != LoginErrors.SignedOut)
+            {
+                RetryFailed?.Invoke(error);
+            }
+        }
+
+        public async Task<string> SetPasswordAsync(string password)
+        {
+            var set = await _login.SetPasswordAsync(password);
+            await RefreshAccountAsync();
+            return set.Error;
+        }
+
+        public async Task<(string Code, string Error)> MakeRecoveryCodeAsync()
+        {
+            var made = await _login.MakeRecoveryCodeAsync();
+            await RefreshAccountAsync();
+            return (made.Value?.Code, made.Error);
+        }
+
+        public async Task<string> ConfirmPasswordAsync(string password)
+        {
+            var signedIn = await _login.SignInAgainAsync(PlayerName, password);
+            await RefreshAccountAsync();
+            return signedIn.Error;
+        }
+
+        public async Task SignOutAsync()
+        {
+            Leave();
+            await _login.SignOutAsync();
+            Account = null;
+            SignedOut?.Invoke();
+        }
+
+        public async Task RefreshAccountAsync()
+        {
+            var account = await _login.GetAccountAsync();
+            if (account.Succeeded)
+            {
+                Account = account.Value;
+            }
+        }
 
         private IEnumerator Start()
         {
@@ -140,64 +357,62 @@ namespace ShapeLand.Client
                 }
 
                 _content = ShapeLandContent.Load(new MemoryStream(request.downloadHandler.data));
+                _content.Strings.SetVariant(Application.platform == RuntimePlatform.WebGLPlayer ? "web" : null);
             }
 
-            Zone = ShapeLandWorld.DefaultZone(_content);
+            Zone = ShapeLandWorld.StartOf(_content, _content.Shapes.All[0]).Zone;
             World = ShapeLandWorld.Create(_content, Zone);
 
             ContentLoaded?.Invoke(_content);
         }
 
-        /// <summary>
-        /// Asks to join <paramref name="serverAddress"/> (a host and port, or a full ws:// URL) once the content has
-        /// loaded. Reuses the open connection to the same server, so a refused join can simply be tried again.
-        /// </summary>
-        public void Join(string serverAddress, JoinRequest request)
-        {
-            if (_content == null)
-            {
-                throw new InvalidOperationException("Join after the content has loaded.");
-            }
-
-            Failure = JoinFailure.None;
-            Error = null;
-            Rejected = null;
-            PlayerName = request.Name;
-            if (!TryServerUrl(serverAddress, out var url))
-            {
-                Fail(JoinFailure.BadAddress, $"\"{serverAddress}\" isn't a server address.");
-                return;
-            }
-
-            // A connection kept from a refused join is reused, unless the server is about to drop it for not joining.
-            var session = _connection.Session;
-            var nearDeadline = !Joined && Time.realtimeSinceStartupAsDouble - _connectedAt > ShapeLandRules.JoinDeadlineSeconds - 3;
-            if (session == null || session.Closed || url != _url || nearDeadline)
-            {
-                Connect(url);
-            }
-
-            _pending = request;
-        }
-
-        /// <summary>
-        /// Once joined, asks to change the name, shape or colors where the player stands. The answer is a new
-        /// <see cref="OwnSpawned"/>, or <see cref="JoinRefused"/>.
-        /// </summary>
-        public void Change(JoinRequest request)
+        public void ChangeLook(LookChange change)
         {
             if (!Joined)
             {
                 throw new InvalidOperationException("Change the look once joined.");
             }
 
-            Rejected = null;
-            PlayerName = request.Name;
-            _pending = request;
+            Session.Write(ShapeLandMessageIds.LookChange, change);
         }
 
-        /// <summary>Says <paramref name="text"/> in chat, once joined; the line arrives back through <see cref="ChatReceived"/>.</summary>
-        /// <summary>Asks the server to send the player back to their spawn point.</summary>
+        public async Task<string> RenameAsync(string name)
+        {
+            var renamed = await _login.RenameAsync(name);
+            if (!renamed.Succeeded)
+            {
+                return renamed.Error;
+            }
+
+            await RefreshAccountAsync();
+            if (Joined && Session != null && !Session.Closed)
+            {
+                Session.Write(ShapeLandMessageIds.NameChanged, new NameChanged());
+            }
+
+            return null;
+        }
+
+        public void Leave()
+        {
+            if (Joined)
+            {
+                Log("left the game");
+                EndSession(CloseReason.None);
+            }
+        }
+
+        private void EndSession(CloseReason reason)
+        {
+            Joined = false;
+            Spawn = null;
+            _pending = null;
+            _pendingDev = null;
+            _awaitingAnswer = false;
+            _connection.Disconnect();
+            ConnectionLost?.Invoke(reason);
+        }
+
         public void ReturnToSpawn()
         {
             if (Joined)
@@ -218,37 +433,25 @@ namespace ShapeLand.Client
         {
             _url = serverUrl;
             _connectedAt = Time.realtimeSinceStartupAsDouble;
-            var session = _connection.Connect(serverUrl, ShapeLandProtocol.Options, ShapeLandWorld.TeleportSpeed(_content),
-                _content.Movement.Gravity, ShapeLandWorld.GroundHeight(_content, World));
-            session.WelcomeArrived += welcome =>
-            {
-                Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
-                if (_content.Zones.TryGet(welcome.Zone, out var zone))
-                {
-                    EnterZone(zone);
-                }
-                else
-                {
-                    Debug.LogWarning($"{LogPrefix}: the server plays zone {welcome.Zone}, which the content doesn't have.");
-                }
-
-                // Other players are dead-reckoned over this zone's ground, whichever zone the session started with.
-                session.Entities.GroundHeight = ShapeLandWorld.GroundHeight(_content, World);
-            };
+            var session = _connection.Connect(
+                serverUrl,
+                ShapeLandProtocol.Options,
+                ShapeLandWorld.TeleportSpeed(_content),
+                _content.Movement.Gravity,
+                World.GroundHeight(_content.Movement)
+            );
+            session.WelcomeArrived += welcome => Log($"welcome: entity {welcome.EntityId}, {welcome.TickRate} ticks a second");
             session.GameMessage += OnGameMessage;
             session.EntityDespawned += id =>
             {
                 Log($"entity {id} left");
                 OtherLeft?.Invoke(id);
             };
-            session.Corrected += correction => Log($"corrected ({correction.Reason}) to ({correction.X:0.0}, {correction.Y:0.0}, {correction.Z:0.0})");
+            session.Corrected += correction =>
+                Log($"corrected ({correction.Reason}) to ({correction.X:0.0}, {correction.Y:0.0}, {correction.Z:0.0})");
             Log($"connecting to {serverUrl}");
         }
 
-        /// <summary>
-        /// The URL for a server address typed or given: a host and port (connected to with ws://), or a full ws:// or
-        /// wss:// URL. False for anything else, such as a malformed host or port, or an http:// URL.
-        /// </summary>
         public static bool TryServerUrl(string address, out Uri url)
         {
             address = (address ?? "").Trim();
@@ -256,37 +459,9 @@ namespace ShapeLand.Client
                 && (url.Scheme == "ws" || url.Scheme == "wss");
         }
 
-        /// <summary>
-        /// The server a web build connects to: the one named by the page's <c>?server=</c> (a host and port, or a
-        /// full ws:// URL), else <paramref name="pageServer"/> (the server the page's deploy names, when it isn't the
-        /// page's own host), else the host the page came from. A host and port is connected to securely (wss://) from
-        /// a secure page, since browsers block plain connections from one. A page not served over HTTP uses
-        /// <paramref name="fallback"/>.
-        /// </summary>
-        public static string AddressForPage(string pageUrl, string fallback, string pageServer = null)
-        {
-            if (!Uri.TryCreate(pageUrl, UriKind.Absolute, out var page) || (page.Scheme != "http" && page.Scheme != "https"))
-            {
-                return fallback;
-            }
-
-            var scheme = page.Scheme == "https" ? "wss" : "ws";
-            foreach (var pair in page.Query.TrimStart('?').Split('&'))
-            {
-                if (pair.StartsWith("server=", StringComparison.Ordinal) && pair.Length > "server=".Length)
-                {
-                    var server = Uri.UnescapeDataString(pair.Substring("server=".Length));
-                    return server.Contains("://") ? server : $"{scheme}://{server}/ws";
-                }
-            }
-
-            return string.IsNullOrEmpty(pageServer) ? $"{scheme}://{page.Authority}/ws" : pageServer;
-        }
-
 #if UNITY_WEBGL && !UNITY_EDITOR
-        // Plugins/WebGL/ShapeLandPage.jslib.
         [System.Runtime.InteropServices.DllImport("__Internal")]
-        private static extern string ShapeLand_PageServer();
+        private static extern string ShapeLand_PageLogin();
 #endif
 
         private void Update()
@@ -299,23 +474,16 @@ namespace ShapeLand.Client
 
             if (session.Closed && Joined)
             {
-                var reason = session.CloseReason;
-                Joined = false;
-                Spawn = null;
-                _pending = null;
-                _awaitingAnswer = false;
-                _connection.Disconnect(); // the next Join connects afresh
-                Log($"connection lost: {reason} ({session.Error})");
-                ConnectionLost?.Invoke(reason);
+                Log($"connection lost: {session.CloseReason} ({session.Error})");
+                EndSession(session.CloseReason);
                 return;
             }
 
             if (session.Closed)
             {
-                // Idle after a refused join, the server drops the connection after its join deadline; that's no
-                // failure, and the next Join reconnects.
-                var idle = !Joined && _pending == null && !_awaitingAnswer;
+                var idle = !Joined && _pending == null && _pendingDev == null && !_awaitingAnswer;
                 _pending = null;
+                _pendingDev = null;
                 _awaitingAnswer = false;
                 if (Failure == JoinFailure.None && !idle)
                 {
@@ -325,7 +493,6 @@ namespace ShapeLand.Client
                 return;
             }
 
-            // Pings only start with the welcome, so a server that goes quiet before answering the join needs its own limit.
             if (_awaitingAnswer && Time.realtimeSinceStartupAsDouble - _askedAt > TransportLimits.ConnectTimeoutSeconds)
             {
                 _awaitingAnswer = false;
@@ -341,8 +508,17 @@ namespace ShapeLand.Client
                 _askedAt = Time.realtimeSinceStartupAsDouble;
                 request.ContentFingerprint = _content.Fingerprint;
                 session.Write(ShapeLandMessageIds.JoinRequest, request);
-                var shape = _content.Shapes.TryGet(request.Shape, out var found) ? found.DisplayName : $"shape {request.Shape}";
-                Log($"joining as {request.Name}, a {shape}");
+                Log($"joining as {PlayerName}");
+            }
+
+            if (_pendingDev is DevJoinRequest devRequest && session.Transport.State == TransportState.Open)
+            {
+                _pendingDev = null;
+                _awaitingAnswer = true;
+                _askedAt = Time.realtimeSinceStartupAsDouble;
+                devRequest.ContentFingerprint = _content.Fingerprint;
+                session.Write(ShapeLandMessageIds.DevJoinRequest, devRequest);
+                Log($"joining as {PlayerName}, without accounts");
             }
         }
 
@@ -357,8 +533,15 @@ namespace ShapeLand.Client
                     {
                         Joined = true;
                         _awaitingAnswer = false;
+                        _ticketRetried = false;
                         Spawn = spawn;
-                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}), color #{spawn.Color:X6}, eyes #{spawn.EyeColor:X6}");
+                        if (!Accounts)
+                        {
+                            _devName = spawn.Name;
+                            _content.Strings.SetShared("username", spawn.Name);
+                        }
+
+                        Log($"spawned at ({spawn.X:0.0}, {spawn.Y:0.0}, {spawn.Z:0.0}) as {spawn.Name}, color {spawn.Color}, eyes {spawn.EyeColor}");
                         OwnSpawned?.Invoke(spawn);
                     }
                     else
@@ -371,10 +554,29 @@ namespace ShapeLand.Client
                     break;
                 case ShapeLandMessageIds.JoinRejected:
                     var reason = FrameReader.Decode<JoinRejected>(payload, options).Reason;
-                    Rejected = reason;
                     _awaitingAnswer = false;
                     Log($"join rejected: {reason}");
+                    if ((reason == JoinRejection.ExpiredTicket || reason == JoinRejection.UsedTicket) && !_ticketRetried)
+                    {
+                        _ticketRetried = true;
+                        RetryAsync();
+                        break;
+                    }
+
+                    _ticketRetried = false;
+                    Rejected = reason;
+                    _connection.Disconnect();
                     JoinRefused?.Invoke(reason);
+                    break;
+                case ShapeLandMessageIds.LookRejected:
+                    var lookRefusal = FrameReader.Decode<LookRejected>(payload, options).Reason;
+                    Log($"look change rejected: {lookRefusal}");
+                    LookRefused?.Invoke(lookRefusal);
+                    break;
+                case ShapeLandMessageIds.Dropped:
+                    // The connection closes next; the client doesn't rejoin by itself, so two tabs can't keep taking the character from each other.
+                    DroppedFor = FrameReader.Decode<Dropped>(payload, options).Reason;
+                    Log($"dropped: {DroppedFor}");
                     break;
                 case ShapeLandMessageIds.ChatMessage:
                     var chat = FrameReader.Decode<ChatMessage>(payload, options);
@@ -382,9 +584,31 @@ namespace ShapeLand.Client
                     ChatReceived?.Invoke(chat);
                     break;
                 case ShapeLandMessageIds.SpawnSet:
-                    SpawnNumber = FrameReader.Decode<SpawnSet>(payload, options).Spawn;
-                    Log($"spawn point is now {SpawnNumber}");
-                    SpawnSet?.Invoke(SpawnNumber.Value);
+                    var set = FrameReader.Decode<SpawnSet>(payload, options);
+                    SpawnNumber = set.Spawn;
+                    Log($"spawn point is now {SpawnNumber}{(set.Claimed ? ", claimed" : "")}");
+                    SpawnSet?.Invoke(set.Spawn, set.Claimed);
+                    break;
+                case ShapeLandMessageIds.ZoneEntered:
+                    var entered = FrameReader.Decode<ZoneEntered>(payload, options);
+                    if (!_content.Zones.TryGet(entered.Zone, out var zone))
+                    {
+                        Debug.LogWarning($"{LogPrefix}: the server put the player in zone {entered.Zone}, which the content doesn't have.");
+                        break;
+                    }
+
+                    // The world is built here, in the same frame before the arrival correction, so the player's movement never runs on the old zone.
+                    EnterZone(zone, rebuild: true);
+                    Session.Entities.GroundHeight = World.GroundHeight(_content.Movement);
+                    foreach (var tag in entered.Flipped ?? Array.Empty<string>())
+                    {
+                        Flip(tag, true);
+                    }
+
+                    break;
+                case ShapeLandMessageIds.PlacementsFlipped:
+                    var flipped = FrameReader.Decode<PlacementsFlipped>(payload, options);
+                    Flip(flipped.Tag, flipped.Flipped);
                     break;
                 case ShapeLandMessageIds.ChatRejected:
                     var refusal = FrameReader.Decode<ChatRejected>(payload, options).Reason;
@@ -394,65 +618,42 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>
-        /// Before joining, asks the server at <paramref name="serverAddress"/> which zone it plays (its /info), to show
-        /// that zone behind the join screen. Unreachable servers and answers that come too late are ignored: the
-        /// Welcome on joining has the final say.
-        /// </summary>
-        public void Preview(string serverAddress)
+        public void ShowZone(Zone zone)
         {
-            if (_content != null && !Joined && TryServerUrl(serverAddress, out var url))
+            if (_content != null && !Joined)
             {
-                StartCoroutine(AskZone(url, ++_previews));
+                EnterZone(zone, rebuild: false);
             }
         }
 
-        private IEnumerator AskZone(Uri serverUrl, int preview)
+        private void EnterZone(Zone zone, bool rebuild)
         {
-            var info = new UriBuilder(serverUrl) { Scheme = serverUrl.Scheme == "wss" ? "https" : "http", Path = "/info", Port = serverUrl.IsDefaultPort ? -1 : serverUrl.Port };
-            using (var request = UnityWebRequest.Get(info.Uri))
-            {
-                request.timeout = 5;
-                yield return request.SendWebRequest();
-                // Only the newest question counts, and only until the server's Welcome.
-                if (preview != _previews || Session?.Welcomed == true)
-                {
-                    yield break;
-                }
-
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    Log($"no zone from {info.Uri}: {request.error}");
-                    yield break;
-                }
-
-                var key = JsonUtility.FromJson<ServerInfo>(request.downloadHandler.text)?.zone;
-                if (key != null && _content.Zones.TryGet(key, out var zone))
-                {
-                    EnterZone(zone);
-                }
-            }
-        }
-
-        // /info's answer.
-        [Serializable]
-        private sealed class ServerInfo
-        {
-            public string zone;
-        }
-
-        // Switches to the zone the server plays, if it isn't the one drawn. A Welcome's arrives before this player's spawn.
-        private void EnterZone(Zone zone)
-        {
-            if (zone.Number == Zone.Number)
+            if (zone.Number == Zone.Number && !rebuild)
             {
                 return;
             }
 
             Zone = zone;
             World = ShapeLandWorld.Create(_content, zone);
-            Log($"playing {zone.Id}");
+            _flipped.Clear();
+            Log($"in {zone.Id}");
             ZoneChanged?.Invoke(zone);
+        }
+
+        private void Flip(string tag, bool flipped)
+        {
+            World.SetFlipped(tag, flipped);
+            if (flipped)
+            {
+                _flipped.Add(tag);
+            }
+            else
+            {
+                _flipped.Remove(tag);
+            }
+
+            Log($"{tag} {(flipped ? "flipped" : "back")}");
+            PlacementsFlipped?.Invoke(tag, flipped);
         }
 
         private void Fail(JoinFailure failure, string error)
@@ -466,21 +667,16 @@ namespace ShapeLand.Client
         private static void Log(string line) => Debug.Log($"{LogPrefix}: {line}");
     }
 
-    /// <summary>Why the join client stopped before the player was in.</summary>
     public enum JoinFailure
     {
         None,
 
-        /// <summary>The content file wouldn't load.</summary>
         NoContent,
 
-        /// <summary>The server address given isn't one.</summary>
         BadAddress,
 
-        /// <summary>The connection failed or closed before the player was in.</summary>
         Unreachable,
 
-        /// <summary>The server didn't answer the join request in time.</summary>
         Unanswered,
     }
 }

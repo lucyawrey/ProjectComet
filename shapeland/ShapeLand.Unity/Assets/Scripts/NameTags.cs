@@ -6,18 +6,12 @@ using UnityEngine.UIElements;
 
 namespace ShapeLand.Client
 {
-    /// <summary>
-    /// A name tag over each other player's shape and a speech bubble with anyone's latest chat line, the player's
-    /// own included. They're placed over the shapes every frame in screen space, so they keep one readable size.
-    /// </summary>
     [DefaultExecutionOrder(100)] // after the camera has moved
     [RequireComponent(typeof(Hud))]
     public sealed class NameTags : MonoBehaviour
     {
-        /// <summary>Tags and bubbles further away than this, in meters, aren't shown.</summary>
         private const float TagDistance = 45;
 
-        // How far above a shape's top its name tag sits, in meters, and the bubble above the tag, in panel pixels.
         private const float TagLift = 0.25f;
         private const float BubbleGap = 26;
 
@@ -77,13 +71,12 @@ namespace ShapeLand.Client
             }
             else
             {
-                tag.Rename(spawn.Name); // they may have changed it
+                tag.Rename(spawn.Name);
             }
 
             return tag;
         }
 
-        // Puts each player's tag and bubble over their shape, or hides them when behind the camera, too far or faded out.
         private void LateUpdate()
         {
             var panel = _layer.panel;
@@ -116,10 +109,8 @@ namespace ShapeLand.Client
             }
         }
 
-        /// <summary>The bubble text showing over a player now, or null.</summary>
         public string BubbleOf(uint entityId) => _tags.TryGetValue(entityId, out var tag) ? tag.Bubble(Time.unscaledTime) : null;
 
-        /// <summary>A player's name tag (none for the player's own shape) and speech bubble.</summary>
         private sealed class Tag
         {
             private readonly Label _name;
@@ -127,7 +118,6 @@ namespace ShapeLand.Client
             private readonly Label _text;
             private float _bubbleUntil = float.NegativeInfinity;
 
-            /// <summary>A tag on <paramref name="layer"/>; a null <paramref name="name"/> makes a bubble without a name.</summary>
             public Tag(VisualElement layer, string name)
             {
                 if (name != null)
@@ -140,8 +130,7 @@ namespace ShapeLand.Client
                 _bubble = new VisualElement { pickingMode = PickingMode.Ignore };
                 _bubble.AddToClassList("bubble");
                 _text = new Label { pickingMode = PickingMode.Ignore, enableRichText = false };
-                var tail = new VisualElement { pickingMode = PickingMode.Ignore };
-                tail.AddToClassList("bubble-tail");
+                var tail = new PanelArrow(null, "bubble-tail");
                 _bubble.Add(_text);
                 _bubble.Add(tail);
                 _bubble.style.display = DisplayStyle.None;
@@ -156,17 +145,14 @@ namespace ShapeLand.Client
                 }
             }
 
-            /// <summary>Shows <paramref name="text"/> in the bubble, longer for longer lines.</summary>
             public void Say(string text, float now)
             {
                 _text.text = text;
                 _bubbleUntil = now + Mathf.Min(10, 4 + 0.06f * text.Length);
             }
 
-            /// <summary>The bubble's text while it shows, else null.</summary>
             public string Bubble(float now) => now < _bubbleUntil ? _text.text : null;
 
-            /// <summary>Shows the tag (and the bubble, while it lasts) at <paramref name="at"/> in panel coordinates.</summary>
             public void Place(Vector2 at, float opacity, float now)
             {
                 if (_name != null)
@@ -197,7 +183,6 @@ namespace ShapeLand.Client
                 _bubble.style.display = DisplayStyle.None;
             }
 
-            /// <summary>Takes the tag off the screen for good.</summary>
             public void Remove()
             {
                 _name?.RemoveFromHierarchy();

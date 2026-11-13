@@ -1,0 +1,5 @@
+# Generated, or rewritten by their tools: EF Core migrations, the Input System's controls, NuGetForUnity's files.
+**/Migrations/**
+shapeland/ShapeLand.Unity/Assets/Scripts/ShapeLandControls.cs
+shapeland/ShapeLand.Unity/Assets/NuGet.config
+shapeland/ShapeLand.Unity/Assets/packages.config

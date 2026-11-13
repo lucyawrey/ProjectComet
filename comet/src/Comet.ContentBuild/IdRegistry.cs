@@ -4,17 +4,12 @@ using Tomlyn.Syntax;
 
 namespace Comet.ContentBuild;
 
-/// <summary>
-/// The committed ID registry (<c>content/ids.toml</c>): one table per content type, mapping each key (without its
-/// type prefix) to a permanent number. New keys get the next number after the type's highest; numbers are never
-/// changed or reused, and entries whose file is gone stay in place (drift checks and retiring come later).
-/// </summary>
+/// <summary>The committed ID registry (<c>content/ids.toml</c>): numbers are permanent, never changed or reused, even if the file is gone.</summary>
 public sealed class IdRegistry
 {
-    private const string Header =
-        """
-        # Content ID registry: each key's permanent number, per content type.
-        # The content build adds new keys; numbers never change and are never reused. Commit this file.
+    private const string Header = """
+        # Content ID registry: each id's permanent number, by name, per content type.
+        # The content build adds new ids; numbers never change and are never reused. Commit this file.
 
         """;
 
@@ -22,13 +17,10 @@ public sealed class IdRegistry
 
     private IdRegistry(string path) => Path = path;
 
-    /// <summary>The registry file's path.</summary>
     public string Path { get; }
 
-    /// <summary>Whether <see cref="Assign"/> added any numbers since loading.</summary>
     public bool Changed { get; private set; }
 
-    /// <summary>Loads the registry, or starts an empty one if the file doesn't exist yet.</summary>
     public static IdRegistry Load(string path, string displayPath, List<ContentError> errors)
     {
         var registry = new IdRegistry(path);
@@ -63,31 +55,33 @@ public sealed class IdRegistry
             }
 
             var numbers = registry.KindTable(kind);
-            var keys = new HashSet<string>();
+            var names = new HashSet<string>();
             foreach (var item in table.Items)
             {
                 if (item is not KeyValueSyntax { Value: IntegerValueSyntax value } keyValue || keyValue.Key!.DotKeys.ChildrenCount > 0)
                 {
-                    errors.Add(ContentBuilder.ErrorAt(displayPath, item.Span, "Expected 'key = number'."));
+                    errors.Add(ContentBuilder.ErrorAt(displayPath, item.Span, "Expected 'name = number'."));
                     continue;
                 }
 
-                var key = ContentBuilder.KeyText(keyValue.Key);
+                var name = ContentBuilder.KeyText(keyValue.Key);
                 if (value.Value < 1 || value.Value > int.MaxValue)
                 {
-                    errors.Add(ContentBuilder.ErrorAt(displayPath, value.Span, $"Number {value.Value} for '{kind}.{key}' is out of range."));
+                    errors.Add(ContentBuilder.ErrorAt(displayPath, value.Span, $"Number {value.Value} for '{kind}.{name}' is out of range."));
                 }
                 else if (numbers.TryGetValue((int)value.Value, out var other))
                 {
-                    errors.Add(ContentBuilder.ErrorAt(displayPath, value.Span, $"Number {value.Value} is used by both '{kind}.{other}' and '{kind}.{key}'."));
+                    errors.Add(
+                        ContentBuilder.ErrorAt(displayPath, value.Span, $"Number {value.Value} is used by both '{kind}.{other}' and '{kind}.{name}'.")
+                    );
                 }
-                else if (!keys.Add(key))
+                else if (!names.Add(name))
                 {
-                    errors.Add(ContentBuilder.ErrorAt(displayPath, keyValue.Span, $"'{kind}.{key}' is listed twice."));
+                    errors.Add(ContentBuilder.ErrorAt(displayPath, keyValue.Span, $"'{kind}.{name}' is listed twice."));
                 }
                 else
                 {
-                    numbers.Add((int)value.Value, key);
+                    numbers.Add((int)value.Value, name);
                 }
             }
         }
@@ -95,20 +89,20 @@ public sealed class IdRegistry
         return registry;
     }
 
-    /// <summary>Returns each id's number, adding new ids (in key order) after the type's highest number.</summary>
+    /// <summary>New ids are numbered in id order, after the type's highest number.</summary>
     public IReadOnlyDictionary<string, int> Assign(string kind, IEnumerable<string> ids)
     {
         var numbers = KindTable(kind);
-        var byKey = numbers.ToDictionary(n => n.Value, n => n.Key);
+        var byName = numbers.ToDictionary(n => n.Value, n => n.Key);
         var result = new Dictionary<string, int>();
         foreach (var id in ids.Order(StringComparer.Ordinal))
         {
-            var key = id[(kind.Length + 1)..];
-            if (!byKey.TryGetValue(key, out var number))
+            var name = id[(kind.Length + 1)..];
+            if (!byName.TryGetValue(name, out var number))
             {
                 number = numbers.Count == 0 ? 1 : numbers.Keys.Max() + 1;
-                numbers.Add(number, key);
-                byKey.Add(key, number);
+                numbers.Add(number, name);
+                byName.Add(name, number);
                 Changed = true;
             }
 
@@ -118,16 +112,16 @@ public sealed class IdRegistry
         return result;
     }
 
-    /// <summary>Writes the registry, each type's entries in number order (so concurrent additions conflict in git).</summary>
     public void Save()
     {
         var text = new StringBuilder(Header);
         foreach (var (kind, numbers) in _kinds.Where(k => k.Value.Count > 0).OrderBy(k => k.Key, StringComparer.Ordinal))
         {
             text.Append('\n').Append('[').Append(kind).Append("]\n");
-            foreach (var (number, key) in numbers)
+            foreach (var (number, name) in numbers)
             {
-                text.Append(key).Append(" = ").Append(number).Append('\n');
+                // Names with a zone (meadow.gate, for spawn.meadow.gate) are quoted, or TOML would read a table.
+                text.Append(name.Contains('.') ? $"\"{name}\"" : name).Append(" = ").Append(number).Append('\n');
             }
         }
 

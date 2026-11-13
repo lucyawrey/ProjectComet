@@ -92,13 +92,30 @@ public class ClientSessionTests
     public void StatesFeedTheBufferOnceTheGameSpawnsTheEntity()
     {
         Welcome(now: 0);
-        ServerSends(103, MessageIds.EntityState, new EntityState { EntityId = 9, X = 1, Tick = 103 });
+        ServerSends(
+            103,
+            MessageIds.EntityState,
+            new EntityState
+            {
+                EntityId = 9,
+                X = 1,
+                Tick = 103,
+            }
+        );
         _session.Update(0.1);
         Assert.False(_session.Entities.Contains(9));
 
         _session.Entities.Spawn(9, 103, Vector3.Zero, 0);
-        // Buffered by the state's own tick, not the tick of the frame that carried it.
-        ServerSends(108, MessageIds.EntityState, new EntityState { EntityId = 9, X = 2, Tick = 105 });
+        ServerSends(
+            108,
+            MessageIds.EntityState,
+            new EntityState
+            {
+                EntityId = 9,
+                X = 2,
+                Tick = 105,
+            }
+        );
         _session.Update(0.2);
 
         Assert.Equal(2, _session.StatesReceived);
@@ -116,10 +133,18 @@ public class ClientSessionTests
         _session.Entities.Spawn(9, 102, Vector3.Zero, 0);
         var target = _session.InterpolationDelay.Target;
 
-        // A hidden tab: states kept arriving for 10 s, but the session only sees them all when it runs again.
         for (uint tick = 104; tick < 404; tick += 2)
         {
-            ServerSends(tick, MessageIds.EntityState, new EntityState { EntityId = 9, X = tick / 100f, Tick = tick });
+            ServerSends(
+                tick,
+                MessageIds.EntityState,
+                new EntityState
+                {
+                    EntityId = 9,
+                    X = tick / 100f,
+                    Tick = tick,
+                }
+            );
         }
 
         _session.Update(15.1);
@@ -152,7 +177,16 @@ public class ClientSessionTests
         _session.Flush(0);
         Sent();
 
-        ServerSends(110, MessageIds.PositionCorrection, new PositionCorrection { Sequence = 3, Reason = CorrectionReason.SnapBack, X = 4 });
+        ServerSends(
+            110,
+            MessageIds.PositionCorrection,
+            new PositionCorrection
+            {
+                Sequence = 3,
+                Reason = CorrectionReason.SnapBack,
+                X = 4,
+            }
+        );
         _session.Update(0.1);
         _session.ReportPosition(new Vector3(4, 0, 0), Vector3.UnitX, 1);
         _session.Flush(0.1);
@@ -183,14 +217,12 @@ public class ClientSessionTests
         _session.Flush(0);
         Sent();
 
-        // Two reports for different ticks before one flush go in two frames, each with its own tick.
         _session.ReportPosition(140, new Vector3(1, 0, 0), Vector3.UnitX, 0);
         _session.ReportPosition(142, new Vector3(2, 0, 0), Vector3.UnitX, 0);
         _session.Flush(0.1);
         var sent = Sent();
         Assert.Equal([140u, 142u], sent.Select(m => m.Tick));
 
-        // Without a report, a frame is stamped with the estimate again.
         _session.Write(MessageIds.FirstGameMessage, new Pong { ClientTime = 1 });
         _session.Flush(0.1);
         Assert.NotEqual(142u, Assert.Single(Sent()).Tick);
@@ -199,8 +231,6 @@ public class ClientSessionTests
     [Fact]
     public void ReportsAreHeldWhilePingsGoUnansweredThenTheLatestIsSent()
     {
-        // The upload stalls: pings at 0, 1, 2 and 3 s get no answer, so reports stop rather than queue up for the
-        // server to receive all at once, tripping its flood limit.
         Welcome(now: 0);
         for (var i = 0; i <= 30; i++)
         {
@@ -212,10 +242,9 @@ public class ClientSessionTests
 
         var reports = Sent().Where(m => m.Id == MessageIds.PositionReport).ToList();
         Assert.True(_session.ReportsHeld);
-        Assert.InRange(reports.Count, 20, 22); // up to just past 2 s
+        Assert.InRange(reports.Count, 20, 22);
         Assert.Equal(reports.Count - 1, FrameReader.Decode<PositionReport>(reports[^1].Payload).X);
 
-        // The pongs arrive, in order: the latest held report goes out once, and reporting carries on.
         foreach (var sent in new[] { 0.0, 1, 2, 3 })
         {
             ServerSends(200, MessageIds.Pong, new Pong { ClientTime = (long)(sent * 1_000_000) });
@@ -232,8 +261,6 @@ public class ClientSessionTests
     [Fact]
     public void AnAnsweredPingNeverHoldsReports()
     {
-        // Times that don't fit microseconds exactly (frames at 60 Hz from an odd start): each pong answers the latest
-        // ping, so a later pong a second late must not hold reports (the final review's finding).
         const double start = 5.123456789;
         Welcome(now: start);
         var lastPing = 0L;
@@ -254,12 +281,13 @@ public class ClientSessionTests
                 }
             }
 
-            // From 3 s, pongs stop: reports are held only once that ping has waited 2 s (a frame either side is
-            // left out, for rounding).
             var waited = now - (start + 3);
             if (Math.Abs(waited - ClientSession.ReportHoldSeconds) > 0.02)
             {
-                Assert.True(waited > ClientSession.ReportHoldSeconds == _session.ReportsHeld, $"held: {_session.ReportsHeld} at {now - start:0.000} s");
+                Assert.True(
+                    waited > ClientSession.ReportHoldSeconds == _session.ReportsHeld,
+                    $"held: {_session.ReportsHeld} at {now - start:0.000} s"
+                );
             }
         }
     }
@@ -267,7 +295,6 @@ public class ClientSessionTests
     [Fact]
     public void ASilentServerClosesTheSessionAsLost()
     {
-        // No pong for 10 s: a server whose machine vanished closes nothing, so the session gives up itself.
         Welcome(now: 0);
         for (var i = 0; i <= 100; i++)
         {
@@ -285,8 +312,6 @@ public class ClientSessionTests
     [Fact]
     public void AStallOfOurOwnIsntALostConnection()
     {
-        // A hidden tab: a ping goes out, nothing runs for 30 s, and its pong has been waiting the whole time. It's
-        // handled before the check, so the session isn't given up on.
         Welcome(now: 0);
         _session.Update(0.1);
         _session.Flush(0.1);
@@ -306,7 +331,7 @@ public class ClientSessionTests
         _session.GameMessage += (id, payload, tick) => seen = (id, tick, payload.Length);
 
         ServerSends(100, chat, new Pong { ClientTime = 1 });
-        ServerSends(100, 40, new Pong { ClientTime = 1 }); // an unknown Comet message from a newer server is skipped
+        ServerSends(100, 40, new Pong { ClientTime = 1 });
         _session.Update(0);
 
         Assert.Equal(chat, seen.Id);
@@ -345,8 +370,6 @@ public class ClientSessionTests
 
         public void Close() => CloseRequested = true;
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() { }
     }
 }

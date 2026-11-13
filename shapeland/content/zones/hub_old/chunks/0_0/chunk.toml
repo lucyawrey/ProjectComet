@@ -1,0 +1,112 @@
+[[tile]]
+piece = "island"
+origin = [0, 0]
+
+[[placement]]
+primitive = "box"
+position = [5.73, 5.35, 17.269]
+scale = [2.0, 2.0, 2.0]
+color = 0x8A8F99
+
+[[placement]]
+primitive = "box"
+position = [0.15, 4.12, 42.56]
+rotation = [0.0, 1.99, 0.0]
+scale = [19.698, 4.598, 13.142]
+color = 0x8A8F99
+
+[[placement]]
+primitive = "cone"
+position = [17.02, 6.709, 12.62]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[placement]]
+primitive = "cone"
+position = [18.54, 6.29, 8.06]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[placement]]
+primitive = "cone"
+position = [20.47, 6.0, 3.34]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[placement]]
+primitive = "cone"
+position = [16.15, 6.0, 3.34]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[placement]]
+primitive = "cone"
+position = [13.75, 6.28, 8.92]
+scale = [4.0, 4.0, 4.0]
+color = 0x2F5D3A
+
+[[placement]]
+primitive = "wedge"
+position = [0.51, 3.92, 27.54]
+rotation = [0.0, -88.0, 0.0]
+scale = [16.792, 4.814, 13.168]
+color = 0xA0703C
+
+[[placement]]
+primitive = "sphere"
+position = [23.91, 5.53, 19.421]
+scale = [20.324, 2.0, 2.0]
+color = 0x4A4D52
+
+[[spawn]]
+id = "spawn.hub_old.plains"
+volume = "cylinder"
+position = [8.98, 6.68, 3.83]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
+primitive = "cylinder"
+position = [8.98, 6.28, 3.83]
+scale = [4.0, 0.4, 4.0]
+
+[[spawn]]
+id = "spawn.hub_old.cubehome"
+volume = "cylinder"
+position = [5.0, 8.947, 43.71]
+size = [4.0, 1.0, 4.0]
+stand_seconds = 2.0
+facing = "direction"
+
+[spawn.pad]
+primitive = "cylinder"
+position = [5.0, 8.547, 43.71]
+scale = [4.0, 0.4, 4.0]
+
+[[teleporter]]
+id = "teleporter.hub_old.fields"
+volume = "box"
+position = [8.668, 6.669, 8.769]
+size = [2.0, 1.0, 2.0]
+stand_seconds = 1.0
+facing = "direction"
+target = "teleporter.hub_old.pancake"
+charge_color = 0xFFFFFF
+
+[teleporter.pad]
+primitive = "box"
+position = [8.668, 6.269, 8.769]
+scale = [2.0, 0.4, 2.0]
+color = 0xB39DDB
+
+[teleporter.sign]
+offset = [0.0, 1.5, 0.0]
+text = "The Circle"
+text_color = 0xFFFFFF
+background = true
+background_color = 0x12161E
+background_opacity = 0.75
+show_distance = 45.0
+text_height = 0.3
+arrow = true

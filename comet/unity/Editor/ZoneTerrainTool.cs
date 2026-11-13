@@ -5,15 +5,10 @@ using UnityEditor;
 using UnityEditor.EditorTools;
 using UnityEditor.Overlays;
 using UnityEngine;
+using static Comet.Unity.Conversions;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// The Scene view's terrain tool for a zone opened in the editor (in the Tools overlay, or Comet › Zones › Terrain
-    /// Tool): pick a piece and a brush in its panel, then paint with the left mouse button. Each stroke is one undo
-    /// step. The panel also makes and deletes pieces, edits their settings, and warns where two pieces' ground is too
-    /// close for a body to fit between.
-    /// </summary>
     [EditorTool("Zone Terrain")]
     public sealed class ZoneTerrainTool : EditorTool
     {
@@ -31,33 +26,52 @@ namespace Comet.Unity.Editor
         private static readonly string[] BrushNames = { "Raise", "Lower", "Smooth", "Flatten", "Hole", "Ground", "Color" };
         private static readonly string[] SurfaceNames = { "Ground", "Underside" };
 
-        [SerializeField] private Brush brush;
+        [SerializeField]
+        private Brush brush;
+
         [Tooltip("Whether the brushes work on the ground or on the underside map (Hole and Ground only work on the ground).")]
-        [SerializeField] private bool underside;
-        [SerializeField] private float radius = 3;
-        [SerializeField] private float strength = 2;
-        [SerializeField] private Color paint = new Color32(0x8c, 0x7a, 0x52, 0xff);
-        [SerializeField] private string piece = "";
-        [SerializeField] private string newPiece = "piece";
-        [SerializeField] private float newHeight = 4;
+        [SerializeField]
+        private bool underside;
+
+        [SerializeField]
+        private float radius = 3;
+
+        [SerializeField]
+        private float strength = 2;
+
+        [SerializeField]
+        private Color paint = new Color32(0x8c, 0x7a, 0x52, 0xff);
+
+        [SerializeField]
+        private string piece = "";
+
+        [SerializeField]
+        private string newPiece = "piece";
+
+        [SerializeField]
+        private float newHeight = 4;
+
+        [SerializeField]
+        private Vector3 move;
+
+        [Tooltip("Whether moving a piece carries the placed objects and spawn points standing on it.")]
+        [SerializeField]
+        private bool carry = true;
 
         private CometSettings? _settings;
         private bool _painting;
         private bool _redraw;
-        // The chunks the stroke changed since its last redraw; null when it changed which ground there is (holes and
-        // ground decide which edges are the piece's outside, anywhere on it), so everything is redrawn.
+
         private HashSet<ChunkCoord>? _changed = new HashSet<ChunkCoord>();
         private double _lastRedraw;
         private float _flattenHeight;
         private Vector3? _hover;
         private List<Vector3> _overlaps = new List<Vector3>();
 
-        // The undo step a drag in Unity's color picker started, so the whole drag is one step.
         private int? _colorUndoGroup;
 
         private GUIContent? _icon;
 
-        /// <summary>The tool's one instance, for its panel.</summary>
         internal static ZoneTerrainTool? Instance { get; private set; }
 
         [MenuItem("Comet/Zones/Terrain Tool", priority = 20)]
@@ -66,9 +80,10 @@ namespace Comet.Unity.Editor
         [MenuItem("Comet/Zones/Terrain Tool", true)]
         private static bool CanSelect() => Editing != null;
 
-        public override GUIContent toolbarIcon => _icon ??= new GUIContent(EditorGUIUtility.IconContent("Terrain Icon").image, "Zone Terrain: paint the opened zone's terrain");
+        public override GUIContent toolbarIcon =>
+            _icon ??= new GUIContent(EditorGUIUtility.IconContent("Terrain Icon").image, "Zone Terrain: paint the opened zone's terrain");
 
-        public override bool IsAvailable() => Editing != null;
+        public override bool IsAvailable() => Editing is { IsGroup: false };
 
         private void OnEnable()
         {
@@ -98,20 +113,22 @@ namespace Comet.Unity.Editor
             SceneView.RepaintAll();
         }
 
-        /// <summary>The tool's panel in the Scene view.</summary>
-        internal void PanelGui()
+        internal void PanelGui(float width)
         {
             var editing = Editing;
             if (editing == null || _settings == null)
             {
-                EditorGUILayout.HelpBox(_settings == null ? "This project has no Comet Settings asset." : "Open a zone first: Comet › Zones › Open…", MessageType.Info);
+                EditorGUILayout.HelpBox(
+                    _settings == null ? "This project has no Comet Settings asset." : "Open a zone first: Comet › Zones › Open…",
+                    MessageType.Info
+                );
                 return;
             }
 
             var terrain = ZoneTerrainEditing.For(editing);
             var names = terrain.Zone.Pieces.Select(p => p.Name).ToArray();
             EditorGUIUtility.labelWidth = 110;
-            EditorGUILayout.BeginVertical(GUILayout.Width(280));
+            EditorGUILayout.BeginVertical(GUILayout.Width(width));
             EditorGUILayout.LabelField(terrain.Zone.Id, EditorStyles.boldLabel);
 
             if (names.Length > 0)
@@ -144,10 +161,16 @@ namespace Comet.Unity.Editor
 
             if (underside)
             {
-                EditorGUILayout.HelpBox("The underside map sets where the piece's skirts end; painting it starts one. Color paints the underside and the skirt walls above it, where there's an underside map.", MessageType.None);
+                EditorGUILayout.HelpBox(
+                    "The underside map sets where the piece's skirts end; painting it starts one. Color paints the underside and the skirt walls above it, where there's an underside map.",
+                    MessageType.None
+                );
             }
 
-            EditorGUILayout.HelpBox("Paint with the left mouse button; hold Alt to orbit as usual. Flatten and Ground use the height where the stroke starts.", MessageType.None);
+            EditorGUILayout.HelpBox(
+                "Paint with the left mouse button; hold Alt to orbit as usual. Flatten and Ground use the height where the stroke starts.",
+                MessageType.None
+            );
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("New piece", EditorStyles.boldLabel);
@@ -166,13 +189,15 @@ namespace Comet.Unity.Editor
 
             if (_overlaps.Count > 0)
             {
-                EditorGUILayout.HelpBox($"{_overlaps.Count} samples where two pieces' ground is closer than {_settings.bodyHeight} m (marked in red). Allowed, but a body may not fit between them.", MessageType.Warning);
+                EditorGUILayout.HelpBox(
+                    $"{_overlaps.Count} samples where two pieces' ground is closer than {_settings.bodyHeight} m (marked in red). Allowed, but a body may not fit between them.",
+                    MessageType.Warning
+                );
             }
 
             EditorGUILayout.EndVertical();
         }
 
-        // The brushes, three to a row; on the underside, Hole and Ground are greyed out.
         private void BrushGrid()
         {
             var brushes = (Brush[])System.Enum.GetValues(typeof(Brush));
@@ -196,48 +221,62 @@ namespace Comet.Unity.Editor
 
         private static bool OnUnderside(Brush b) => b != Brush.Hole && b != Brush.Ground;
 
-        // A piece's own color, or null for the game's: editing the field sets its own, the reset button clears it.
+        private uint GroundOf(TerrainPiece p) => p.GroundColor ?? ToRgb(_settings!.groundColor);
+
+        private uint UnderOf(TerrainPiece p) => p.UnderColor ?? ToRgb(_settings!.underColor);
+
         private static uint? OwnColor(string label, string what, uint? own, Color game)
         {
             var content = new GUIContent(label, $"The color of the piece's {what}. Reset: the game's, from Comet Settings.");
-            var (color, changed, reset) = ColorFields.WithReset(content, ToColor(own ?? Rgb(game)), own != null);
-            return reset ? null : changed ? Rgb(color) : own;
+            var (color, changed, reset) = ColorFields.WithReset(content, FromRgb(own ?? ToRgb(game)), own != null);
+            return reset ? null
+                : changed ? ToRgb(color)
+                : own;
         }
 
         private static bool ColorPickerFocused => EditorWindow.focusedWindow != null && EditorWindow.focusedWindow.GetType().Name == "ColorPicker";
 
         private void PieceSettings(ZoneTerrainEditing terrain)
         {
-            // A picker session ends once focus leaves it (say, to paint), so later changes get steps of their own.
             if (!ColorPickerFocused)
             {
                 _colorUndoGroup = null;
             }
 
             var settings = terrain.Zone.Pieces.First(p => p.Name == piece);
+            SkirtsAndColorsGui(terrain, settings);
+            UndersideGui(terrain);
+            MoveGui(terrain, settings);
+            DeleteGui(terrain);
+        }
+
+        private void SkirtsAndColorsGui(ZoneTerrainEditing terrain, TerrainPiece settings)
+        {
             EditorGUI.BeginChangeCheck();
-            var depth = Mathf.Max(0, EditorGUILayout.FloatField(new GUIContent("Skirt depth (m)", "Without an underside map, the piece's flat bottom sits this far below its lowest ground."), settings.SkirtDepth));
+            var depth = Mathf.Max(
+                0,
+                EditorGUILayout.FloatField(
+                    new GUIContent("Skirt depth (m)", "Without an underside map, the piece's flat bottom sits this far below its lowest ground."),
+                    settings.SkirtDepth
+                )
+            );
             var rim = EditorGUILayout.Toggle("Rim skirts", settings.RimSkirts);
             var holes = EditorGUILayout.Toggle("Hole skirts", settings.HoleSkirts);
             var ground = OwnColor("Top color", "unpainted ground", settings.GroundColor, _settings!.groundColor);
             var under = OwnColor("Underside color", "unpainted skirt walls and bottom", settings.UnderColor, _settings!.underColor);
 
-            // The reset buttons may not count as a change.
             if (EditorGUI.EndChangeCheck() || ground != settings.GroundColor || under != settings.UnderColor)
             {
                 settings.SkirtDepth = depth;
                 settings.RimSkirts = rim;
                 settings.HoleSkirts = holes;
-                uint Ground() => settings.GroundColor ?? Rgb(_settings!.groundColor);
-                uint Under() => settings.UnderColor ?? Rgb(_settings!.underColor);
-                var (oldGround, oldUnder) = (Ground(), Under());
+                var (oldGround, oldUnder) = (GroundOf(settings), UnderOf(settings));
                 settings.GroundColor = ground;
                 settings.UnderColor = under;
-                terrain.ReplaceDefaultColors(piece, oldGround, Ground(), oldUnder, Under());
+                terrain.ReplaceDefaultColors(piece, oldGround, GroundOf(settings), oldUnder, UnderOf(settings));
                 terrain.Commit("Change piece settings", _settings!);
 
-                // Unity's color picker reports every step of a drag as a change; while it has focus, they all go into
-                // the first one's undo step.
+                // Unity's color picker reports every step of a drag as a change; while it has focus, they all go into the first one's undo step.
                 if (!ColorPickerFocused)
                 {
                     _colorUndoGroup = null;
@@ -251,25 +290,122 @@ namespace Comet.Unity.Editor
                     _colorUndoGroup = Undo.GetCurrentGroup();
                 }
             }
+        }
 
-            // On once the Underside brushes have painted; turning it off removes the underside and its colors.
+        private void UndersideGui(ZoneTerrainEditing terrain)
+        {
             var hasUnderside = terrain.HasUnderside(piece);
             using (new EditorGUI.DisabledScope(!hasUnderside))
             {
-                var keep = EditorGUILayout.Toggle(new GUIContent("Underside map", "Made by painting with the Underside brushes. Turn off to remove it and its colors; the skirts end at the flat bottom again."), hasUnderside);
-                if (hasUnderside && !keep && EditorUtility.DisplayDialog("Remove the underside map", $"Remove '{piece}''s underside map and underside colors? Its skirts will end at its flat bottom again.", "Remove", "Keep"))
+                var keep = EditorGUILayout.Toggle(
+                    new GUIContent(
+                        "Underside map",
+                        "Made by painting with the Underside brushes. Turn off to remove it and its colors; the skirts end at the flat bottom again."
+                    ),
+                    hasUnderside
+                );
+                if (
+                    hasUnderside
+                    && !keep
+                    && EditorUtility.DisplayDialog(
+                        "Remove the underside map",
+                        $"Remove '{piece}''s underside map and underside colors? Its skirts will end at its flat bottom again.",
+                        "Remove",
+                        "Keep"
+                    )
+                )
                 {
                     terrain.ClearUnderside(piece);
                     terrain.Commit("Remove underside map", _settings!);
                 }
             }
+        }
 
-            if (GUILayout.Button($"Delete piece '{piece}'") && EditorUtility.DisplayDialog("Delete piece", $"Delete the piece '{piece}' and all its terrain?", "Delete", "Keep"))
+        private void MoveGui(ZoneTerrainEditing terrain, TerrainPiece settings)
+        {
+            EditorGUILayout.Space();
+            move = EditorGUILayout.Vector3Field(
+                new GUIContent("Move by (m)", "Sideways (X and Z) in whole meters, the terrain's grid; up and down (Y) by any amount."),
+                move
+            );
+            move = new Vector3(
+                Mathf.Round(move.x / ZoneGrid.SampleSpacing) * ZoneGrid.SampleSpacing,
+                move.y,
+                Mathf.Round(move.z / ZoneGrid.SampleSpacing) * ZoneGrid.SampleSpacing
+            );
+            carry = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Carry what's on it",
+                    "Also move the placed objects and spawn points standing on the piece: those over its ground, with no other piece's ground between."
+                ),
+                carry
+            );
+            using (new EditorGUI.DisabledScope(move == Vector3.zero))
+            {
+                if (GUILayout.Button($"Move piece '{piece}'"))
+                {
+                    MovePiece(terrain, settings);
+                }
+            }
+        }
+
+        private void DeleteGui(ZoneTerrainEditing terrain)
+        {
+            EditorGUILayout.Space();
+            if (
+                GUILayout.Button($"Delete piece '{piece}'")
+                && EditorUtility.DisplayDialog("Delete piece", $"Delete the piece '{piece}' and all its terrain?", "Delete", "Keep")
+            )
             {
                 terrain.RemovePiece(piece);
                 terrain.Commit("Delete piece", _settings!);
                 piece = "";
             }
+        }
+
+        private void MovePiece(ZoneTerrainEditing terrain, TerrainPiece settings)
+        {
+            var dx = Mathf.RoundToInt(move.x / ZoneGrid.SampleSpacing);
+            var dz = Mathf.RoundToInt(move.z / ZoneGrid.SampleSpacing);
+            var offset = new Vector3(dx * ZoneGrid.SampleSpacing, move.y, dz * ZoneGrid.SampleSpacing);
+            Undo.SetCurrentGroupName($"Move piece {piece}");
+            var group = Undo.GetCurrentGroup();
+            if (carry)
+            {
+                var carried = terrain
+                    .Editing.GetComponentsInChildren<ZonePlacement>(true)
+                    .Where(p => p.IsLoose && p.GetComponentInParent<ZoneTrigger>(true) == null)
+                    .Select(p => p.transform)
+                    .Concat(terrain.Editing.GetComponentsInChildren<ZoneTrigger>(true).Select(s => s.transform))
+                    .Where(t => StandsOn(terrain, t.position))
+                    .ToArray();
+                Undo.RecordObjects(carried.Cast<Object>().ToArray(), $"Move piece {piece}");
+                foreach (var t in carried)
+                {
+                    t.position += offset;
+                }
+            }
+
+            terrain.MovePiece(piece, dx, dz, move.y, GroundOf(settings), UnderOf(settings));
+            terrain.Commit($"Move piece {piece}", _settings!);
+            Undo.CollapseUndoOperations(group);
+            RefreshOverlaps();
+        }
+
+        private bool StandsOn(ZoneTerrainEditing terrain, Vector3 point)
+        {
+            const float sink = 1;
+            if (!terrain.Terrain[piece].TryGetHeightAt(point.x, point.z, out var ground) || ground > point.y + sink)
+            {
+                return false;
+            }
+
+            return !terrain.Terrain.Pieces.Any(other =>
+                other != terrain.Terrain[piece]
+                && other.TryGetHeightAt(point.x, point.z, out var height)
+                && height > ground
+                && height <= point.y + sink
+            );
         }
 
         private void AddPiece(ZoneTerrainEditing terrain)
@@ -320,7 +456,6 @@ namespace Comet.Unity.Editor
                 return;
             }
 
-            // Take the left mouse button from the scene's selection while the tool is picked.
             var control = GUIUtility.GetControlID(FocusType.Passive);
             if (e.type == EventType.Layout)
             {
@@ -339,7 +474,11 @@ namespace Comet.Unity.Editor
                 case EventType.MouseDown when e.button == 0 && _hover != null:
                     _painting = true;
                     _flattenHeight = underside
-                        ? terrain.UndersideAt(piece, Mathf.RoundToInt(_hover.Value.x / ZoneGrid.SampleSpacing), Mathf.RoundToInt(_hover.Value.z / ZoneGrid.SampleSpacing))
+                        ? terrain.UndersideAt(
+                            piece,
+                            Mathf.RoundToInt(_hover.Value.x / ZoneGrid.SampleSpacing),
+                            Mathf.RoundToInt(_hover.Value.z / ZoneGrid.SampleSpacing)
+                        )
                         : _hover.Value.y;
                     GUIUtility.hotControl = control;
                     Paint(terrain, _hover.Value, 1f / 30);
@@ -373,43 +512,14 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // Where the mouse ray first enters the selected piece, the solid between its underside and its ground (so it
-        // finds the ground from above and the underside from below), marching along it a quarter meter at a time and
-        // narrowing in on the crossing; else where it meets the height the last stroke started at (for painting
-        // ground where there's none yet).
         private Vector3? Pick(ZoneTerrainEditing terrain, Ray ray)
         {
             var piece = terrain.Terrain[this.piece];
             bool Inside(Vector3 p) => piece.TryGetHeightAt(p.x, p.z, out var ground) && p.y <= ground && p.y >= piece.BottomAt(p.x, p.z);
 
-            const float step = 0.25f, far = 1000;
-            var previous = ray.origin;
-            var wasInside = Inside(previous);
-            for (var t = step; t < far; t += step)
+            if (ZoneTerrainEditing.RayEnter(ray, Inside) is { } hit)
             {
-                var point = ray.GetPoint(t);
-                var inside = Inside(point);
-                if (inside && !wasInside)
-                {
-                    var (a, b) = (previous, point);
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var middle = (a + b) / 2;
-                        if (Inside(middle))
-                        {
-                            b = middle;
-                        }
-                        else
-                        {
-                            a = middle;
-                        }
-                    }
-
-                    return b;
-                }
-
-                previous = point;
-                wasInside = inside;
+                return hit;
             }
 
             if (brush == Brush.Ground && Mathf.Abs(ray.direction.y) > 1e-4f)
@@ -421,19 +531,19 @@ namespace Comet.Unity.Editor
             return null;
         }
 
-        // Applies the brush around `center` for `seconds` of painting (one mouse event), with a smooth falloff to the rim.
         private void Paint(ZoneTerrainEditing terrain, Vector3 center, float seconds)
         {
             var spacing = ZoneGrid.SampleSpacing;
-            int minX = Mathf.FloorToInt((center.x - radius) / spacing), maxX = Mathf.CeilToInt((center.x + radius) / spacing);
-            int minZ = Mathf.FloorToInt((center.z - radius) / spacing), maxZ = Mathf.CeilToInt((center.z + radius) / spacing);
+            int minX = Mathf.FloorToInt((center.x - radius) / spacing),
+                maxX = Mathf.CeilToInt((center.x + radius) / spacing);
+            int minZ = Mathf.FloorToInt((center.z - radius) / spacing),
+                maxZ = Mathf.CeilToInt((center.z + radius) / spacing);
             if (!underside && (brush == Brush.Hole || brush == Brush.Ground))
             {
                 _changed = null;
             }
             else if (_changed != null)
             {
-                // The cells around each changed sample, and so their chunks (a sample on a border is in both).
                 for (var cz = FloorDiv(minZ - 1, ZoneGrid.ChunkSize); cz <= FloorDiv(maxZ, ZoneGrid.ChunkSize); cz++)
                 {
                     for (var cx = FloorDiv(minX - 1, ZoneGrid.ChunkSize); cx <= FloorDiv(maxX, ZoneGrid.ChunkSize); cx++)
@@ -457,7 +567,6 @@ namespace Comet.Unity.Editor
                 }
             }
 
-            // Smoothing reads the neighbors before any changes, so the result doesn't depend on the order.
             var before = brush == Brush.Smooth ? changes.ToDictionary(c => (c.X, c.Z), c => Average(terrain, c.X, c.Z)) : null;
             foreach (var (x, z, weight) in changes)
             {
@@ -492,10 +601,10 @@ namespace Comet.Unity.Editor
                     case Brush.Ground when !has:
                         terrain.SetHeight(piece, x, z, _flattenHeight);
                         var pieceSettings = terrain.Terrain[piece].Settings;
-                        terrain.ResetColors(piece, x, z, pieceSettings.GroundColor ?? Rgb(_settings!.groundColor), pieceSettings.UnderColor ?? Rgb(_settings!.underColor));
+                        terrain.ResetColors(piece, x, z, GroundOf(pieceSettings), UnderOf(pieceSettings));
                         break;
                     case Brush.Color when has:
-                        terrain.SetColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.GroundColor ?? Rgb(_settings!.groundColor));
+                        terrain.SetColor(piece, x, z, ToRgb(paint), GroundOf(terrain.Terrain[piece].Settings));
                         break;
                 }
             }
@@ -505,12 +614,9 @@ namespace Comet.Unity.Editor
                 terrain.Reindex();
             }
 
-            // Redrawn as the stroke goes (RedrawDuringStroke); the undo step is written when it ends.
             _redraw = true;
         }
 
-        // A stroke redraws only the chunks it changed (about 2 ms a chunk), at most 60 times a second; its end redraws
-        // in full.
         private void RedrawDuringStroke(ZoneTerrainEditing terrain)
         {
             if (_redraw && EditorApplication.timeSinceStartup - _lastRedraw >= 1.0 / 60)
@@ -524,8 +630,6 @@ namespace Comet.Unity.Editor
 
         private static int FloorDiv(int a, int b) => a >= 0 ? a / b : (a - b + 1) / b;
 
-        // The underside brushes at one ground sample (at `height`); `amount` is the stroke's time times its falloff.
-        // The underside never rises above the ground.
         private void PaintUnderside(ZoneTerrainEditing terrain, int x, int z, float height, float amount, Dictionary<(int, int), float?>? before)
         {
             var under = terrain.UndersideAt(piece, x, z);
@@ -544,12 +648,11 @@ namespace Comet.Unity.Editor
                     terrain.SetUnderside(piece, x, z, Mathf.Min(height, Mathf.Lerp(under, _flattenHeight, Mathf.Clamp01(strength * amount * 3))));
                     break;
                 case Brush.Color:
-                    terrain.SetUndersideColor(piece, x, z, Rgb(paint), terrain.Terrain[piece].Settings.UnderColor ?? Rgb(_settings!.underColor));
+                    terrain.SetUndersideColor(piece, x, z, ToRgb(paint), UnderOf(terrain.Terrain[piece].Settings));
                     break;
             }
         }
 
-        // The average of a sample and its neighbors that have ground: of their heights, or on the underside, their undersides.
         private float? Average(ZoneTerrainEditing terrain, int x, int z)
         {
             float sum = 0;
@@ -568,22 +671,31 @@ namespace Comet.Unity.Editor
 
             return count > 0 ? sum / count : (float?)null;
         }
-
-        private static uint Rgb(Color color)
-        {
-            Color32 c = color;
-            return (uint)(c.r << 16 | c.g << 8 | c.b);
-        }
-
-        private static Color ToColor(uint rgb) => new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
     }
 
-    /// <summary>The terrain tool's panel, shown in the Scene view while the tool is picked.</summary>
     [Overlay(typeof(SceneView), "comet-zone-terrain", "Zone Terrain")]
     internal sealed class ZoneTerrainPanel : IMGUIOverlay, ITransientOverlay
     {
+        private Vector2 _scroll;
+
         public bool visible => ToolManager.activeToolType == typeof(ZoneTerrainTool) && ZoneTerrainTool.Instance != null;
 
-        public override void OnGUI() => ZoneTerrainTool.Instance?.PanelGui();
+        public override void OnCreated()
+        {
+            minSize = new Vector2(300, 160);
+            maxSize = new Vector2(900, 2000);
+            if (size.y < minSize.y)
+            {
+                size = new Vector2(310, 520);
+            }
+        }
+
+        public override void OnGUI()
+        {
+            var width = Mathf.Max(minSize.x, size.x) - 12;
+            _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.Width(width), GUILayout.Height(Mathf.Max(minSize.y, size.y) - 34));
+            ZoneTerrainTool.Instance?.PanelGui(width - 20);
+            EditorGUILayout.EndScrollView();
+        }
     }
 }

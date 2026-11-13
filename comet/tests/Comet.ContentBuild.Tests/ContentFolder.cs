@@ -1,6 +1,5 @@
 namespace Comet.ContentBuild.Tests;
 
-// A throwaway content folder with widgets in widgets/.
 internal sealed class ContentFolder : IDisposable
 {
     public ContentFolder() => Directory.CreateDirectory(Path.Combine(Root, "widgets"));

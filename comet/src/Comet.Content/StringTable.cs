@@ -4,34 +4,49 @@ using MessagePack;
 
 namespace Comet.Content
 {
-    /// <summary>
-    /// Interface text in one language, by key (<c>join.name_taken</c>), compiled from a game's string file
-    /// (<c>strings/en.toml</c>). Text may hold named placeholders, written <c>{name}</c>, filled in by <see cref="Format"/>.
-    /// A missing key gives the key in brackets rather than throwing, so a typo shows on screen instead of
-    /// breaking it; the game's tests check every key it uses.
-    /// </summary>
+    /// <summary>A missing key gives <c>[key]</c>, not an exception; <c>key_variant</c> replaces <c>key</c> when the game sets that variant.</summary>
     [MessagePackObject]
     public sealed class StringTable
     {
-        /// <summary>The text by key.</summary>
-        [Key(0)] public Dictionary<string, string> Entries { get; set; } = new Dictionary<string, string>();
+        [Key(0)]
+        public Dictionary<string, string> Entries { get; set; } = new Dictionary<string, string>();
 
-        /// <summary>True if there's text for <paramref name="key"/>.</summary>
         public bool Contains(string key) => Entries.ContainsKey(key);
 
-        /// <summary>The text for <paramref name="key"/>, or <c>[key]</c> if there's none.</summary>
-        public string Get(string key) => Entries.TryGetValue(key, out var text) ? text : $"[{key}]";
+        private readonly Dictionary<string, string> _shared = new Dictionary<string, string>();
 
-        /// <summary>The text for <paramref name="key"/> with each <c>{name}</c> replaced by its value.</summary>
+        public event System.Action? SharedChanged;
+
+        private string? _variant;
+
+        public void SetVariant(string? variant) => _variant = variant;
+
+        public void SetShared(string name, string value)
+        {
+            if (_shared.TryGetValue(name, out var old) && old == value)
+            {
+                return;
+            }
+
+            _shared[name] = value;
+            SharedChanged?.Invoke();
+        }
+
+        public string Raw(string key) =>
+            _variant != null && Entries.TryGetValue($"{key}_{_variant}", out var variant) ? variant
+            : Entries.TryGetValue(key, out var text) ? text
+            : $"[{key}]";
+
+        public string Get(string key) => Format(key);
+
         public string Format(string key, params (string Name, object Value)[] values)
         {
-            var text = Get(key);
-            if (values.Length == 0)
+            var text = Raw(key);
+            if (values.Length == 0 && _shared.Count == 0)
             {
                 return text;
             }
 
-            // One pass over the text, so a value that itself holds a {name} is left as it is.
             var result = new StringBuilder(text.Length);
             var at = 0;
             while (at < text.Length)
@@ -44,9 +59,14 @@ namespace Comet.Content
                 }
 
                 result.Append(text, at, open - at);
-                if (TryFind(values, text.Substring(open + 1, close - open - 1), out var value))
+                var name = text.Substring(open + 1, close - open - 1);
+                if (TryFind(values, name, out var value))
                 {
                     result.Append(value?.ToString() ?? "");
+                }
+                else if (_shared.TryGetValue(name, out var shared))
+                {
+                    result.Append(shared);
                 }
                 else
                 {

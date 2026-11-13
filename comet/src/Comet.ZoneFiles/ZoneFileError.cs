@@ -1,6 +1,5 @@
 namespace Comet.ZoneFiles
 {
-    /// <summary>A problem in a zone's files: the file it's in and what's wrong, naming the key where there is one.</summary>
     public sealed class ZoneFileError
     {
         public ZoneFileError(string file, string message)
@@ -9,7 +8,7 @@ namespace Comet.ZoneFiles
             Message = message;
         }
 
-        /// <summary>The file's path, relative to the zone's folder (<c>chunks/0_-1.toml</c>).</summary>
+        /// <summary>Relative to the zone's folder (<c>chunks/0_-1/chunk.toml</c>).</summary>
         public string File { get; }
 
         public string Message { get; }

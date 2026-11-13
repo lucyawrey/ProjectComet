@@ -3,51 +3,30 @@ using System.Collections.Generic;
 
 namespace Comet.Client
 {
-    /// <summary>
-    /// How far behind the receive timeline other entities are drawn, adapted to what arriving states need. One
-    /// delay is shared by every entity, so they're all drawn at the same moment.
-    /// </summary>
-    /// <remarks>
-    /// Each state arriving while its entity moves gives a sample: how far the receive tick has run past the
-    /// entity's previous stamp. Drawing at least that far behind means the state arrived before the render tick
-    /// needed it. That covers the gap between reports, the sender's trip to the server (states carry the
-    /// sender's stamp, shifted on the server by their smoothed latency), the server's tick wait and jitter. Every
-    /// <c>TargetInterval</c> the <see cref="Percentile"/> of the samples from the last <see cref="WindowSeconds"/>,
-    /// plus <see cref="MarginTicks"/> and never under <see cref="FloorTicks"/> (two report intervals, the usual
-    /// rule), gives a raw target; the target is the highest raw target of the last <see cref="HoldSeconds"/>, so it
-    /// rises at once when a stall needs more, but only falls once the stall is that long past. Over TCP a lost
-    /// packet stalls every entity at once, and a target that fell as soon as the stall left the window left the
-    /// delay short for the next one (seen in the prototype's network tuning). The delay moves toward the target by
-    /// running the render tick at most <see cref="GrowRate"/> slow or <see cref="ShrinkRate"/> fast, so drawn
-    /// motion never jumps and the render tick never goes back. With no samples (nobody moving) the target stays
-    /// where it was. Times are seconds on the caller's clock; delays are in ticks.
-    /// </remarks>
     public sealed class InterpolationDelay
     {
-        /// <summary>How far back samples count toward the target, in seconds.</summary>
         public const double WindowSeconds = 2;
+
         /// <summary>The share of samples the delay should cover (0.95 covers all but the slowest 5%).</summary>
         public const double Percentile = 0.95;
+
         /// <summary>How much slower than real time the render tick may run while the delay grows (0.04 is 4%).</summary>
         public const double GrowRate = 0.04;
-        /// <summary>How much faster than real time the render tick may run while the delay shrinks.</summary>
+
         public const double ShrinkRate = 0.02;
-        /// <summary>How long a raw target holds before a lower one can replace it, in seconds.</summary>
+
         public const double HoldSeconds = 5;
 
-        // Enough for a crowded view over the window; older samples are dropped first beyond this.
         private const int MaxSamples = 1024;
 
-        // The target is recomputed this often rather than on every sample.
         private const double TargetInterval = 0.25;
 
         private readonly Queue<Sample> _samples = new Queue<Sample>();
-        private readonly Queue<Sample> _raw = new Queue<Sample>(); // raw targets, held for HoldSeconds
+        private readonly Queue<Sample> _raw = new Queue<Sample>();
         private double[] _sorted = new double[64];
         private double _lastAdvance = double.NaN;
         private double _nextTarget;
 
-        /// <param name="tickRate">Server ticks per second.</param>
         /// <param name="reportInterval">How often moving entities are updated, in seconds.</param>
         public InterpolationDelay(int tickRate, double reportInterval = 1.0 / 15)
         {
@@ -62,25 +41,20 @@ namespace Comet.Client
             Ticks = Target = FloorTicks;
         }
 
-        /// <summary>The server's ticks per second.</summary>
         public int TickRate { get; }
 
-        /// <summary>The least the delay can be, in ticks.</summary>
         public double FloorTicks { get; }
 
-        /// <summary>Added to the measured percentile, in ticks.</summary>
         public double MarginTicks { get; }
 
-        /// <summary>The delay now, in ticks.</summary>
         public double Ticks { get; private set; }
 
-        /// <summary>The delay now, in seconds.</summary>
         public double Seconds => Ticks / TickRate;
 
         /// <summary>The delay being moved toward, in ticks.</summary>
         public double Target { get; private set; }
 
-        /// <summary>A state arrived needing a delay of <paramref name="neededTicks"/> (receive tick at arrival minus the entity's previous stamp).</summary>
+        /// <summary>The delay a state needed: receive tick at arrival minus the entity's previous stamp (<paramref name="neededTicks"/>).</summary>
         public void AddSample(double neededTicks, double now)
         {
             _samples.Enqueue(new Sample(now, neededTicks));
@@ -90,7 +64,6 @@ namespace Comet.Client
             }
         }
 
-        /// <summary>Moves the delay toward the target. Call once per update.</summary>
         public void Advance(double now)
         {
             if (now >= _nextTarget)
@@ -148,7 +121,6 @@ namespace Comet.Client
 
         private readonly struct Sample
         {
-            /// <summary>A sample taken at <paramref name="time"/>, needing a delay of <paramref name="neededTicks"/>.</summary>
             public Sample(double time, double neededTicks)
             {
                 Time = time;

@@ -66,6 +66,33 @@ public class StringFileTests
         Assert.Equal("{y} and 2", table.Format("a", ("x", "{y}"), ("y", 2)));
     }
 
+    [Fact]
+    public void OnlyTheGamesPlaceholdersAreAllowed()
+    {
+        using var folder = new ContentFolder();
+        folder.Write("strings/en.toml", "a = \"Hi {username}\"\nb = \"Hi {usernme}\"\n");
+
+        var result = new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddStrings(placeholders: ["username"]).Build();
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal(2, error.Line);
+        Assert.Contains("'{usernme}', which the game doesn't fill in", error.Message);
+    }
+
+    [Fact]
+    public void SharedValuesFillInEverywhereUnlessAMessageGivesItsOwn()
+    {
+        var table = new StringTable { Entries = { ["a"] = "Hi {username}" } };
+        var changed = 0;
+        table.SharedChanged += () => changed++;
+
+        table.SetShared("username", "Pip");
+
+        Assert.Equal("Hi Pip", table.Get("a"));
+        Assert.Equal("Hi Sam", table.Format("a", ("username", "Sam")));
+        Assert.Equal(1, changed);
+    }
+
     private static ContentBuildResult Build(ContentFolder folder) =>
         new ContentBuilder(folder.Root).Add("widget", "widgets", TestToml.Default.Widget).AddStrings().Build();
 }

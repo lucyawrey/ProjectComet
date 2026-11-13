@@ -11,8 +11,8 @@ artifacts/
 *.user
 TestResults/
 
-# Stack benchmark results
-tools/StackBench/results/
 
 # Blender
 *.blend1
+# Unity Performance Testing leaves its run files here
+shapeland/ShapeLand.Unity/Assets/Resources/PerformanceTestRun*

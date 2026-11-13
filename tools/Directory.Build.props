@@ -1,0 +1,10 @@
+<Project>
+  <!-- The tools and their shared library. Set here, before the repository's settings below: a tool's own #:property
+       comes too late for the artifacts layout, so every tool would share one folder in artifacts/obj/. -->
+  <PropertyGroup>
+    <IncludeProjectNameInArtifactsPaths>true</IncludeProjectNameInArtifactsPaths>
+    <NoWarn>$(NoWarn);CA2266</NoWarn>
+  </PropertyGroup>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+</Project>

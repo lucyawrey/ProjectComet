@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Comet.Simulation;
+using Comet.Unity;
 using NUnit.Framework;
 using ShapeLand.Shared.Content;
 using ShapeLand.Shared.World;
@@ -10,8 +11,6 @@ using UnityEngine;
 
 namespace ShapeLand.Client.Tests
 {
-    // The client's rules and pieces that need no server: movement input, server addresses, fades, shapes and
-    // interface text.
     public class ClientRulesTests
     {
         [TestCase(0, 0, 1, 0, 1)]
@@ -25,23 +24,23 @@ namespace ShapeLand.Client.Tests
             Assert.That(move.Y, Is.EqualTo(expectedZ).Within(1e-5f));
         }
 
-        [TestCase("http://localhost:5080/", "ws://localhost:5080/ws")]
-        [TestCase("https://example.org/play/index.html", "wss://example.org/ws")]
-        [TestCase("https://example.org/?server=game.example.org%3A5080", "wss://game.example.org:5080/ws")]
-        [TestCase("http://localhost:8000/?server=localhost%3A5080", "ws://localhost:5080/ws")]
-        [TestCase("http://localhost:8000/?debug=1&server=wss://game.example.org/ws", "wss://game.example.org/ws")]
-        [TestCase("file:///tmp/index.html", "localhost:5080")]
-        public void WebBuildsConnectToTheServerTheyCameFrom(string page, string expected)
+        [TestCase("https://shapeland.example.org/", "https://server.shapeland.example.org", "https://server.shapeland.example.org")]
+        [TestCase(
+            "https://shapeland.example.org/?login=http%3A%2F%2Flocalhost%3A5090",
+            "https://server.shapeland.example.org",
+            "http://localhost:5090"
+        )]
+        [TestCase("http://localhost:5080/", null, "localhost:5090")]
+        public void WebBuildsUseTheLoginServerTheirPageNames(string page, string pageLogin, string expected)
         {
-            Assert.That(JoinClient.AddressForPage(page, "localhost:5080"), Is.EqualTo(expected));
+            Assert.That(JoinClient.LoginForPage(page, "localhost:5090", pageLogin), Is.EqualTo(expected));
         }
 
-        // A page whose deploy names its game server (config.js on Vercel): that server, unless ?server= says otherwise.
-        [TestCase("https://shapeland.example.org/", "wss://server.shapeland.example.org/ws")]
-        [TestCase("https://shapeland.example.org/?server=localhost%3A5080", "wss://localhost:5080/ws")]
-        public void WebBuildsConnectToTheServerTheirPageNames(string page, string expected)
+        [TestCase("localhost:5090", "http://localhost:5090")]
+        [TestCase(" https://server.example.org/ ", "https://server.example.org")]
+        public void LoginAddressesBecomeUrls(string address, string expected)
         {
-            Assert.That(JoinClient.AddressForPage(page, "localhost:5080", "wss://server.shapeland.example.org/ws"), Is.EqualTo(expected));
+            Assert.That(JoinClient.LoginUrl(address), Is.EqualTo(expected));
         }
 
         [TestCase("localhost:5080", "ws://localhost:5080/ws")]
@@ -61,27 +60,78 @@ namespace ShapeLand.Client.Tests
         public void FallingFadesBeforeTheKillHeightAndEasesBack()
         {
             const float kill = -30;
-            Assert.That(RespawnFade.FromFalling(kill + RespawnFade.FadeDistance, kill), Is.EqualTo(0));
-            Assert.That(RespawnFade.FromFalling(kill + RespawnFade.FadeDistance / 2, kill), Is.EqualTo(0.5f).Within(1e-5f));
-            Assert.That(RespawnFade.FromFalling(kill - 5, kill), Is.EqualTo(1));
+            Assert.That(ShapeFade.FromFalling(kill + ShapeFade.FadeDistance, kill), Is.EqualTo(0));
+            Assert.That(ShapeFade.FromFalling(kill + ShapeFade.FadeDistance / 2, kill), Is.EqualTo(0.5f).Within(1e-5f));
+            Assert.That(ShapeFade.FromFalling(kill - 5, kill), Is.EqualTo(1));
 
-            // Back on the ground after a respawn, it eases out over the fade-in time.
-            var faded = 1f;
-            faded = RespawnFade.Step(faded, 3, kill, RespawnFade.FadeInSeconds / 2);
-            Assert.That(faded, Is.EqualTo(0.5f).Within(1e-5f));
-            faded = RespawnFade.Step(faded, 3, kill, RespawnFade.FadeInSeconds);
-            Assert.That(faded, Is.EqualTo(0));
+            var fade = new ShapeFade();
+            fade.Step(0, 0.01f, kill, kill);
+            Assert.That(fade.Faded, Is.EqualTo(1));
+            fade.Moved(0);
+            Assert.That(fade.Step(0, 0.01f, 3, kill), Is.True, "Already faded: drawn at the spawn at once.");
+            Assert.That(fade.Holding, Is.False);
+            fade.Step(ShapeFade.FadeInSeconds / 2, ShapeFade.FadeInSeconds / 2, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0.5f).Within(1e-5f));
+            fade.Step(ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
+        }
 
-            // Falling darkens at once, with no easing.
-            Assert.That(RespawnFade.Step(0, kill, kill, 0.01f), Is.EqualTo(1));
+        [Test]
+        public void ATeleportHoldsTheShapeUntilFadedOut()
+        {
+            const float kill = -30;
+            var fade = new ShapeFade();
+
+            fade.Depart(0);
+            fade.Step(0.1f, 0.1f, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0.1f / ShapeFade.FadeOutSeconds).Within(1e-5f));
+            fade.Moved(0.1f);
+            Assert.That(fade.Step(0.2f, 0.1f, 3, kill), Is.False);
+            Assert.That(fade.Holding, Is.True);
+            Assert.That(fade.Step(ShapeFade.FadeOutSeconds, 0.05f, 3, kill), Is.True, "Faded out: drawn at the target.");
+            Assert.That(fade.Holding, Is.False);
+
+            fade.HideFor(ShapeFade.FadeOutSeconds, 0.5f);
+            fade.Step(ShapeFade.FadeOutSeconds + 0.4f, 0.4f, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(1));
+            fade.Step(ShapeFade.FadeOutSeconds + 0.5f + ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SteppingOffBeforeThePadFiresFadesBackIn()
+        {
+            const float kill = -30;
+            var fade = new ShapeFade();
+
+            fade.DepartFrom(0);
+            fade.Step(0.1f, 0.1f, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0.1f / ShapeFade.FadeOutSeconds).Within(1e-5f));
+            fade.Cancel();
+            Assert.That(fade.Departing, Is.False);
+            fade.Step(0.1f + ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void AFadeOutWithNoMoveFadesBackIn()
+        {
+            const float kill = -30;
+            var fade = new ShapeFade();
+            fade.Depart(0);
+            fade.Step(ShapeFade.FadeOutSeconds, ShapeFade.FadeOutSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(1));
+            Assert.That(fade.Step(ShapeFade.FadeOutSeconds + ShapeFade.WaitSeconds, ShapeFade.WaitSeconds, 3, kill), Is.False);
+            fade.Step(ShapeFade.FadeOutSeconds + ShapeFade.WaitSeconds + ShapeFade.FadeInSeconds, ShapeFade.FadeInSeconds, 3, kill);
+            Assert.That(fade.Faded, Is.EqualTo(0));
         }
 
         [Test]
         public void ShapesSwapToTransparentMaterialsWhileFading()
         {
-            var shape = Object.Instantiate(ShapePrefab(MeshKind.Cube));
-            var body = shape.Body;
-            var eyes = shape.Eyes;
+            var shape = Build("shape.cube");
+            var body = shape.Body[0];
+            var eyes = shape.Eyes[0];
             try
             {
                 shape.SetColors(0xFF0000, 0x0000FF);
@@ -108,27 +158,25 @@ namespace ShapeLand.Client.Tests
             }
         }
 
-        // Each prefab is its model with a ShapeBody on the root: standing on its origin, facing +Z with its eyes on
-        // the front, and colored through the body and eyes.
-        [TestCase(MeshKind.Cube)]
-        [TestCase(MeshKind.Diamond)]
-        [TestCase(MeshKind.Pyramid)]
-        public void EveryShapeHasAPrefab(MeshKind kind)
+        [TestCase("shape.cube")]
+        [TestCase("shape.diamond")]
+        [TestCase("shape.pyramid")]
+        public void EveryShapeHasALook(string id)
         {
-            var shape = Object.Instantiate(ShapePrefab(kind));
+            var shape = Build(id);
             try
             {
-                var body = shape.Body;
-                var eyes = shape.Eyes;
-                Assert.That(body, Is.Not.Null.And.Not.SameAs(eyes), "The prefab's ShapeBody isn't set up.");
-                Assert.That(body.bounds.min.y, Is.InRange(0, 0.2f), "The shape doesn't stand on its origin.");
+                Assert.That(shape.Body, Is.Not.Empty, "The look has no body part.");
+                Assert.That(shape.Eyes, Is.Not.Empty, "The look has no eyes.");
+                var body = shape.Body[0];
+                Assert.That(body.bounds.min.y, Is.InRange(0, 0.2f), "The shape doesn't stand on its feet.");
                 Assert.That(body.bounds.size.y, Is.InRange(0.3f, 2), "The shape isn't about a player's height.");
-                Assert.That(eyes.bounds.center.z, Is.GreaterThan(0.1f), "The eyes aren't on the front (+Z).");
-                Assert.That(Mathf.Abs(eyes.bounds.center.x), Is.LessThan(0.01f), "The eyes aren't centered.");
+                Assert.That(shape.Eyes.Average(e => e.bounds.center.z), Is.GreaterThan(0.1f), "The eyes aren't on the front (+Z).");
+                Assert.That(Mathf.Abs(shape.Eyes.Average(e => e.bounds.center.x)), Is.LessThan(0.01f), "The eyes aren't centered.");
 
                 shape.SetColors(0x00FF00, 0xFF0000);
                 Assert.That(body.sharedMaterial.color, Is.EqualTo(Color.green));
-                Assert.That(eyes.sharedMaterial.color, Is.EqualTo(Color.red));
+                Assert.That(shape.Eyes.All(e => e.sharedMaterial.color == Color.red));
             }
             finally
             {
@@ -139,10 +187,12 @@ namespace ShapeLand.Client.Tests
         [Test]
         public void TerrainFacesUpUnderUnitysNormals()
         {
-            // A flat 3×3-sample piece without skirts: Unity's recalculated normals must agree with the mesher's winding.
             var zone = new Comet.Content.Zone
             {
-                Pieces = new[] { new Comet.Content.TerrainPiece { Name = "main", RimSkirts = false } },
+                Pieces = new[]
+                {
+                    new Comet.Content.TerrainPiece { Name = "main", RimSkirts = false },
+                },
                 Chunks = new[]
                 {
                     new Comet.Content.ZoneChunk
@@ -152,7 +202,12 @@ namespace ShapeLand.Client.Tests
                             new Comet.Content.TerrainTile
                             {
                                 Piece = "main",
-                                Heights = new Comet.Content.Heightmap { SizeX = 3, SizeZ = 3, Scale = 1, Offset = 0, Samples = Enumerable.Repeat((ushort)2, 9).ToArray() },
+                                Heights = new Comet.Content.Heightmap
+                                {
+                                    SizeX = 3,
+                                    SizeZ = 3,
+                                    Samples = Enumerable.Repeat((ushort)2, 9).ToArray(),
+                                },
                             },
                         },
                     },
@@ -179,14 +234,13 @@ namespace ShapeLand.Client.Tests
         [TestCase(-80, 15, 170)]
         public void PlacementRotationsMatchUnitys(float x, float y, float z)
         {
-            // Zones store Euler angles; Comet turns them into rotations for collision, Unity for drawing. They must agree.
             var comet = Comet.Content.ZoneGrid.Rotation(new System.Numerics.Vector3(x, y, z));
             var unity = Quaternion.Euler(x, y, z);
 
             var forward = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitZ, comet);
             var right = System.Numerics.Vector3.Transform(System.Numerics.Vector3.UnitX, comet);
-            Assert.That(Vector3.Distance(Vectors.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
-            Assert.That(Vector3.Distance(Vectors.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Conversions.ToUnity(forward), unity * Vector3.forward), Is.LessThan(1e-4f));
+            Assert.That(Vector3.Distance(Conversions.ToUnity(right), unity * Vector3.right), Is.LessThan(1e-4f));
         }
 
         [Test]
@@ -198,7 +252,6 @@ namespace ShapeLand.Client.Tests
             Assert.That(jump, Is.EqualTo(8.5f * 8.5f / (2 * 25)).Within(1e-4f));
         }
 
-        // Every key the scripts, UXML and web page use is in the string file, so no "[key]" shows on screen.
         [Test]
         public void EveryInterfaceTextKeyExists()
         {
@@ -206,16 +259,33 @@ namespace ShapeLand.Client.Tests
 
             var groups = string.Join("|", content.Strings.Entries.Keys.Select(k => k.Split('.')[0]).Distinct());
             var used = new Regex($"(?:\"#?|data-(?:text|label|title)=\")((?:{groups})\\.[a-z0-9_.]+)\"");
-            var files = Directory.GetFiles("Assets/Scripts", "*.cs")
+            var files = Directory
+                .GetFiles("Assets/Scripts", "*.cs")
                 .Concat(Directory.GetFiles("Assets/UI", "*.uxml"))
                 .Concat(new[] { "Assets/WebGLTemplates/ShapeLand/index.html" });
-            var keys = files.SelectMany(file => used.Matches(File.ReadAllText(file)).Cast<Match>().Select(m => (File: file, Key: m.Groups[1].Value))).ToList();
+            var keys = files
+                .SelectMany(file => used.Matches(File.ReadAllText(file)).Cast<Match>().Select(m => (File: file, Key: m.Groups[1].Value)))
+                .ToList();
 
             Assert.That(keys.Count, Is.GreaterThan(20), "The keys weren't found; has the markup changed?");
             Assert.That(keys.Where(k => !content.Strings.Contains(k.Key)).Select(k => $"{k.File}: {k.Key}"), Is.Empty);
         }
 
-        private static ShapeBody ShapePrefab(MeshKind kind) =>
-            AssetDatabase.LoadAssetAtPath<ShapeBody>($"Assets/Prefabs/Shapes/{kind}.prefab");
+        private static ShapeBody Build(string id)
+        {
+            var content = TestGameServer.LoadContent();
+            Material Load(string name) => AssetDatabase.LoadAssetAtPath<Material>($"Assets/Materials/{name}.mat");
+            return GameView.BuildShape(
+                content,
+                content.Shapes[id],
+                0xFFFFFF,
+                0x000000,
+                null,
+                Load("Shape"),
+                Load("Eyes"),
+                Load("ShapeFade"),
+                Load("EyesFade")
+            );
+        }
     }
 }

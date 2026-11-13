@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <!-- Shared with the Unity editor: netstandard2.1 and C# 9 until Unity 7 (CoreCLR, .NET 10). -->
     <TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>
@@ -12,6 +11,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Comet.Content\Comet.Content.csproj" />
+    <ProjectReference Include="..\Comet.Simulation\Comet.Simulation.csproj" />
   </ItemGroup>
-
 </Project>

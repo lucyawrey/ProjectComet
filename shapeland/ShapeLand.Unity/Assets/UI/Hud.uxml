@@ -1,60 +1,216 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Template name="Menu" src="Menu.uxml" />
     <Style src="ShapeLand.uss" />
     <ui:VisualElement name="hud" class="hud hidden" picking-mode="Ignore">
+        <ui:VisualElement name="touch" class="touch hidden" picking-mode="Ignore">
+            <ui:VisualElement name="touch-stick" class="touch-half touch-left">
+                <ui:VisualElement name="stick-base" class="stick-base hidden" picking-mode="Ignore">
+                    <ui:VisualElement name="stick-knob" class="stick-knob" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="touch-look" class="touch-half touch-right" />
+            <ui:VisualElement name="touch-safe" class="touch-safe" picking-mode="Ignore">
+                <ui:VisualElement name="jump-button" class="touch-button jump-button">
+                    <ui:VisualElement class="touch-icon icon-jump" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:VisualElement name="tags" class="tags" picking-mode="Ignore" />
-        <ui:VisualElement name="chat" class="chat" picking-mode="Ignore">
-            <ui:ScrollView name="log" class="chat-log empty" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" />
-            <ui:VisualElement name="chat-input-row" class="chat-input-row hidden">
-                <ui:TextField name="chat-input" max-length="200" class="input chat-input" />
-                <ui:Label text="#chat.keys" class="chat-keys" picking-mode="Ignore" />
+        <ui:VisualElement name="safe" class="safe" picking-mode="Ignore">
+            <ui:VisualElement name="chat" class="chat" picking-mode="Ignore">
+                <ui:ScrollView name="log" class="chat-log empty" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" />
+                <ui:VisualElement name="chat-input-row" class="chat-input-row hidden">
+                    <ui:TextField name="chat-input" max-length="200" class="input chat-input" />
+                    <ui:Button name="chat-send" text="#chat.send" class="chat-send" focusable="false" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="hud-buttons" class="hud-row" picking-mode="Ignore">
+                <ui:Button name="menu-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-menu" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.menu" picking-mode="Ignore" />
+                        <ui:Label text="#hud.menu_key" class="key hud-tip-key keys-part" picking-mode="Ignore" />
+                        <ui:Label text="#menu.pad_start" class="pad-word hud-tip-key pad-part" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="look-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-look" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.change_look" picking-mode="Ignore" />
+                        <ui:Label text="#hud.change_look_key" class="key hud-tip-key keys-part" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="return-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-return" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.return_to_spawn" picking-mode="Ignore" />
+                        <ui:Label text="#hud.return_to_spawn_key" class="key hud-tip-key keys-part" picking-mode="Ignore" />
+                        <ui:Label text="#menu.pad_select" class="pad-word hud-tip-key pad-part" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="chat-button" class="hud-button" focusable="false">
+                    <ui:VisualElement class="hud-icon icon-chat" picking-mode="Ignore" />
+                    <ui:VisualElement class="hud-tip" picking-mode="Ignore">
+                        <ui:Label text="#hud.chat" picking-mode="Ignore" />
+                        <ui:Label text="#hud.chat_key" class="key hud-tip-key keys-part" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:Button>
+            </ui:VisualElement>
+            <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="ping-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.ping" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="ping" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.ping_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="ping-best" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="delay-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.delay" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="delay" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.delay_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="delay-target" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="holds-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.holds" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="holds" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.holds_unit" class="net-unit tight" picking-mode="Ignore" />
+                    <ui:Label name="held" class="net-num net-dim" picking-mode="Ignore" />
+                    <ui:Label text="#stats.held_unit" class="net-unit" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="snaps-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.snap_backs" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="snaps" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.respawns_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="respawns" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement name="frame-dot" class="net-dot" picking-mode="Ignore" />
+                    <ui:Label text="#stats.frame" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="frame" class="net-num" picking-mode="Ignore" />
+                    <ui:Label text="#stats.frame_unit" class="net-unit" picking-mode="Ignore" />
+                    <ui:Label name="frame-worst" class="net-num net-dim" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="net-row" picking-mode="Ignore">
+                    <ui:VisualElement class="net-dot none" picking-mode="Ignore" />
+                    <ui:Label text="#stats.graphics" class="net-key" picking-mode="Ignore" />
+                    <ui:Label name="graphics" class="net-unit" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label text="#stats.foot" class="net-foot keys-only" picking-mode="Ignore" />
+                <ui:Label text="#stats.foot_touch" class="net-foot touch-only" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:Button name="look-button" text="#hud.change_look" class="look-button" focusable="false" />
-        <ui:Label name="chat-hint" text="#chat.hint" class="chat-hint" picking-mode="Ignore" />
-        <ui:VisualElement name="net-stats" class="net-stats hidden" picking-mode="Ignore">
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="ping-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.ping" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="ping" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.ping_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="ping-best" class="net-num net-dim" picking-mode="Ignore" />
+        <ui:Instance template="Menu" name="menu-host" class="menu-host" picking-mode="Ignore" />
+        <!-- The guest reminder: once, under the HUD row. -->
+        <ui:VisualElement name="guest-reminder" class="guest-reminder hidden">
+            <ui:Label name="guest-reminder-text" class="guest-reminder-text" />
+            <ui:VisualElement class="guest-reminder-actions">
+                <ui:Button name="guest-reminder-set" text="#account.set_password" class="join-button" />
+                <ui:Button name="guest-reminder-dismiss" text="#account.not_now" class="cancel-button" />
             </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="delay-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.delay" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="delay" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.delay_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="delay-target" class="net-num net-dim" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="holds-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.holds" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="holds" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.holds_unit" class="net-unit tight" picking-mode="Ignore" />
-                <ui:Label name="held" class="net-num net-dim" picking-mode="Ignore" />
-                <ui:Label text="#stats.held_unit" class="net-unit" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="snaps-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.snap_backs" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="snaps" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.respawns_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="respawns" class="net-num net-dim" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement name="frame-dot" class="net-dot" picking-mode="Ignore" />
-                <ui:Label text="#stats.frame" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="frame" class="net-num" picking-mode="Ignore" />
-                <ui:Label text="#stats.frame_unit" class="net-unit" picking-mode="Ignore" />
-                <ui:Label name="frame-worst" class="net-num net-dim" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:VisualElement class="net-row" picking-mode="Ignore">
-                <ui:VisualElement class="net-dot none" picking-mode="Ignore" />
-                <ui:Label text="#stats.graphics" class="net-key" picking-mode="Ignore" />
-                <ui:Label name="graphics" class="net-unit" picking-mode="Ignore" />
-            </ui:VisualElement>
-            <ui:Label text="#stats.foot" class="net-foot" picking-mode="Ignore" />
         </ui:VisualElement>
-        <ui:VisualElement name="screen-fade" class="screen-fade" picking-mode="Ignore" />
+        <ui:VisualElement name="account-dim" class="menu-dim" />
+        <ui:VisualElement name="account-safe" class="menu-safe" picking-mode="Ignore">
+            <!-- The Account page (AccountPage): rows like Settings, each opening its own step in the same window. -->
+            <ui:VisualElement name="account" class="menu-window account-window hidden">
+                <ui:VisualElement class="menu-page-head">
+                    <ui:Button name="account-back" class="menu-back" focusable="false">
+                        <ui:VisualElement class="menu-back-arrow" picking-mode="Ignore" />
+                        <ui:Label name="account-back-text" text="#menu.back" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:Label name="account-page-name" class="menu-page-name" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:ScrollView name="account-rows" class="menu-scroll account-step" mode="Vertical" horizontal-scroller-visibility="Hidden">
+                    <!-- Who the player is, then a row per action. -->
+                    <ui:VisualElement class="account-who">
+                        <ui:Label name="account-username" class="account-name" />
+                        <ui:Label name="account-guest-tag" text="#account.guest" class="guest-tag" />
+                    </ui:VisualElement>
+                    <ui:Label name="account-guest-info" class="account-info" />
+                    <ui:VisualElement name="account-username-row" class="menu-row account-row">
+                        <ui:Label text="#account.row_change_username" class="menu-row-name" />
+                        <ui:VisualElement class="account-row-value" picking-mode="Ignore">
+                            <ui:VisualElement class="row-chevron" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="account-password-row" class="menu-row account-row">
+                        <ui:Label name="account-password-name" class="menu-row-name" />
+                        <ui:VisualElement class="account-row-value" picking-mode="Ignore">
+                            <ui:VisualElement class="row-chevron" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="account-code-row" class="menu-row account-row">
+                        <ui:VisualElement class="setting-text" picking-mode="Ignore">
+                            <ui:Label text="#account.row_recovery_code" class="menu-row-name" />
+                            <ui:Label name="account-code-note" class="setting-note" />
+                        </ui:VisualElement>
+                        <ui:VisualElement name="account-code-value" class="account-row-value" picking-mode="Ignore">
+                            <ui:VisualElement class="row-chevron" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:ScrollView>
+                <ui:VisualElement name="account-rename" class="account-step">
+                    <ui:VisualElement class="account-form">
+                        <ui:VisualElement class="field">
+                            <ui:Label text="#account.username_label" class="label" />
+                            <ui:TextField name="account-rename-field" max-length="16" class="input" />
+                            <ui:Label text="#account.rename_note" class="card-note" />
+                            <ui:Label name="account-rename-free" class="card-note" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="account-password" class="account-step">
+                    <ui:VisualElement class="account-form">
+                        <ui:VisualElement class="field">
+                            <ui:Label text="#account.username_label" class="label" />
+                            <ui:Label name="account-password-username" class="input-value" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="field">
+                            <ui:Label text="#account.new_password_label" class="label" />
+                            <ui:TextField name="account-password-field" password="true" max-length="128" class="input" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="field">
+                            <ui:Label text="#account.confirm_password_label" class="label" />
+                            <ui:TextField name="account-password-again" password="true" max-length="128" class="input" />
+                        </ui:VisualElement>
+                        <ui:Label text="#account.password_rules" class="card-note" />
+                        <ui:Label name="account-password-signs-out" class="card-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="account-confirm" class="account-step">
+                    <ui:VisualElement class="account-form">
+                        <ui:Label text="#account.confirm_note" class="account-text" />
+                        <ui:VisualElement class="field">
+                            <ui:Label text="#account.password_label" class="label" />
+                            <ui:TextField name="account-confirm-field" password="true" max-length="128" class="input" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="account-new-code" class="account-step">
+                    <ui:VisualElement class="account-form">
+                        <ui:Label text="#account.new_code_note" class="account-text" />
+                        <ui:Label name="account-new-code-status" class="card-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="account-code" class="account-step">
+                    <ui:VisualElement class="account-form">
+                        <ui:Label name="account-code-intro" class="account-text" />
+                        <ui:VisualElement class="recovery-code">
+                            <ui:Label name="account-code-text" class="recovery-code-text" selectable="true" />
+                            <ui:Button name="account-copy" text="#account.copy" class="copy-button" />
+                        </ui:VisualElement>
+                        <ui:Label text="#account.code_warning" class="code-warning" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label name="account-message" class="error" />
+                <ui:VisualElement name="account-actions" class="account-actions">
+                    <ui:Button name="account-sign-out" text="#account.sign_out" class="sign-out-button" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:Button name="account-submit" class="join-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

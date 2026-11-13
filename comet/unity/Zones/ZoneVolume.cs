@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace Comet.Unity
 {
-    /// <summary>A collision volume in a zone opened in the editor: a box of the object's position, rotation and size.</summary>
     [DisallowMultipleComponent]
     public sealed class ZoneVolume : MonoBehaviour
     {

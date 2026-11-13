@@ -12,13 +12,19 @@ public class ZoneFolderTests
         return ZoneFolder.Read(folder.Root, errors);
     }
 
+    private static Zone RoundTripClean(Zone zone, TempFolder folder)
+    {
+        var read = RoundTrip(zone, folder, out var errors);
+        Assert.Empty(errors);
+        return read;
+    }
+
     [Fact]
     public void RoundTripsAZone()
     {
         using var folder = new TempFolder();
-        var zone = RoundTrip(Zones.Sample(), folder, out var errors);
+        var zone = RoundTripClean(Zones.Sample(), folder);
 
-        Assert.Empty(errors);
         Assert.Empty(ZoneValidation.Check(zone));
         Assert.Equal("zone.meadow", zone.Id);
         var piece = Assert.Single(zone.Pieces);
@@ -29,14 +35,71 @@ public class ZoneFolderTests
 
         Assert.Equal([new ChunkCoord(-1, 0), new ChunkCoord(0, 0)], zone.Chunks.Select(c => c.Coord));
         var placement = Assert.Single(zone.Chunks[0].Placements);
-        Assert.Equal(("asset.cube", new Vector3(-10.5f, 4, 3.25f), new Vector3(0, 45, 0), new Vector3(2, 1, 2)), (placement.Asset, placement.Position, placement.Rotation, placement.Scale));
+        Assert.Equal(
+            ("prop.cube", new Vector3(-10.5f, 4, 3.25f), new Vector3(0, 45, 0), new Vector3(2, 1, 2)),
+            (placement.Prop, placement.Position, placement.Rotation, placement.Scale)
+        );
         var tile = zone.Chunks[1].Tiles[0];
         Assert.Equal(Zones.Sample().Chunks[1].Tiles[0].Heights.Samples, tile.Heights.Samples);
         Assert.Equal(0x66aa33u, tile.Colors![3, 5]);
         Assert.Null(tile.Underside);
         var spawn = Assert.Single(zone.Chunks[1].Spawns);
-        Assert.Equal(("spawn.meadow_gate", 3f, SpawnFacing.Direction, 90f, true), (spawn.Id, spawn.Radius, spawn.Facing, spawn.Yaw, spawn.IsDefault));
+        Assert.Equal(("spawn.meadow.gate", SpawnFacing.Direction), (spawn.Id, spawn.Facing));
+        Assert.Equal(
+            (PrimitiveKind.Cylinder, new Vector3(5, 4, 5), 90f, new Vector3(6, 2, 6), 2f, Rearm.StepOff),
+            (spawn.Volume.Kind, spawn.Volume.Position, spawn.Volume.Yaw, spawn.Volume.Size, spawn.Volume.StandSeconds, spawn.Volume.Rearm)
+        );
+        Assert.Equal((PrimitiveKind.Cylinder, new Vector3(6, 0.4f, 6)), (spawn.Volume.Pad!.Primitive!.Kind, spawn.Volume.Pad.Scale));
+        var teleporter = Assert.Single(zone.Chunks[1].Teleporters);
+        Assert.Equal(
+            ("teleporter.meadow.to_cave", SpawnFacing.Random, "teleporter.cave.to_meadow", 1f, null),
+            (teleporter.Id, teleporter.Facing, teleporter.Target, teleporter.Volume.StandSeconds, teleporter.Volume.Pad)
+        );
+        Assert.Equal(0xFFCC00u, teleporter.ChargeColor);
+        var trigger = Assert.Single(zone.Chunks[1].Triggers);
+        Assert.Equal(
+            ("trigger.meadow.plate", PrimitiveKind.Sphere, Rearm.Repeat, 0x33AAFFu),
+            (trigger.Id, trigger.Volume.Kind, trigger.Volume.Rearm, trigger.ChargeColor)
+        );
+        Assert.Equal(("gate", 5f), (trigger.Effects[0].Tag, trigger.Effects[0].RevertSeconds));
         Assert.Equal((VolumeKind.Wall, new Vector3(1, 4, 6)), (zone.Chunks[1].Volumes[0].Kind, zone.Chunks[1].Volumes[0].Size));
+    }
+
+    [Fact]
+    public void AZoneMaySetItsOwnKillHeight()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        Assert.Null(RoundTrip(sample, folder, out _).KillHeight);
+
+        sample.KillHeight = 150;
+        var zone = RoundTripClean(sample, folder);
+        Assert.Equal(150f, zone.KillHeight);
+        Assert.Contains("kill_height = 150.0", File.ReadAllText(folder.PathOf("zone.toml")));
+    }
+
+    [Fact]
+    public void AZoneMaySetItsOwnHeightBase()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        var tile = sample.Chunks[0].Tiles[0];
+        tile.Underside = Heightmaps.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
+        var plain = RoundTrip(sample, folder, out _);
+        Assert.DoesNotContain("height_base", File.ReadAllText(folder.PathOf("zone.toml")));
+
+        sample.HeightBase = -400;
+        var zone = RoundTripClean(sample, folder);
+
+        Assert.Contains("height_base = -400.0", File.ReadAllText(folder.PathOf("zone.toml")));
+        var (was, read) = (plain.Chunks[0].Tiles[0], zone.Chunks[0].Tiles[0]);
+        Assert.Equal(was.Heights.Samples, read.Heights.Samples);
+        Assert.True(was.Heights.TryGetHeight(0, 0, out var before));
+        Assert.True(read.Heights.TryGetHeight(0, 0, out var after));
+        Assert.Equal(before - 300, after, 3);
+        Assert.True(was.Underside!.TryGetHeight(0, 0, out var underBefore));
+        Assert.True(read.Underside!.TryGetHeight(0, 0, out var underAfter));
+        Assert.Equal(underBefore - 300, underAfter, 3);
     }
 
     [Fact]
@@ -52,16 +115,81 @@ public class ZoneFolderTests
             origin = [32, 0]
 
             [[placement]]
-            asset = "asset.cube"
+            prop = "prop.cube"
+            tag = "gate"
             position = [-10.5, 4.0, 3.25]
             rotation = [0.0, 45.0, 0.0]
             scale = [2.0, 1.0, 2.0]
 
-            """,
-            File.ReadAllText(folder.PathOf("chunks/-1_0.toml")).ReplaceLineEndings("\n"));
+            """.ReplaceLineEndings("\n"),
+            File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")).ReplaceLineEndings("\n")
+        );
         Assert.True(File.Exists(folder.PathOf("chunks/-1_0/main.height")));
         Assert.True(File.Exists(folder.PathOf("chunks/0_0/main.color")));
         Assert.False(File.Exists(folder.PathOf("chunks/0_0/main.under.height")));
+    }
+
+    [Fact]
+    public void WritesReadableTriggers()
+    {
+        using var folder = new TempFolder();
+        ZoneFolder.Write(folder.Root, Zones.Sample());
+
+        var text = File.ReadAllText(folder.PathOf("chunks/0_0/chunk.toml")).ReplaceLineEndings("\n");
+        Assert.Contains(
+            """
+            [[spawn]]
+            id = "spawn.meadow.gate"
+            volume = "cylinder"
+            position = [5.0, 4.0, 5.0]
+            yaw = 90.0
+            size = [6.0, 2.0, 6.0]
+            stand_seconds = 2.0
+            facing = "direction"
+
+            [spawn.pad]
+            primitive = "cylinder"
+            position = [5.0, 3.8, 5.0]
+            scale = [6.0, 0.4, 6.0]
+
+            [[teleporter]]
+            id = "teleporter.meadow.to_cave"
+            volume = "box"
+            position = [12.0, 4.0, 5.0]
+            size = [2.0, 2.0, 2.0]
+            stand_seconds = 1.0
+            facing = "random"
+            target = "teleporter.cave.to_meadow"
+            charge_color = 0xFFCC00
+
+            [[trigger]]
+            id = "trigger.meadow.plate"
+            volume = "sphere"
+            position = [14.0, 4.0, 9.0]
+            size = [2.0, 2.0, 2.0]
+            stand_seconds = 1.0
+            rearm = "repeat"
+            charge_color = 0x33AAFF
+
+            [[trigger.effect]]
+            toggle_tag = "gate"
+            revert_seconds = 5.0
+            """.ReplaceLineEndings("\n"),
+            text
+        );
+    }
+
+    [Fact]
+    public void PlacementsCanStartOff()
+    {
+        using var folder = new TempFolder();
+        var zone = Zones.Sample();
+        zone.Chunks[0].Placements[0].Off = true;
+
+        var read = RoundTripClean(zone, folder);
+
+        Assert.True(read.Chunks[0].Placements[0].Off);
+        Assert.Contains("off = true", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
 
     [Fact]
@@ -73,12 +201,16 @@ public class ZoneFolderTests
         zone.Pieces[0].GroundColor = 0x739e4d;
         var tile = zone.Chunks[1].Tiles[0];
         var size = tile.Heights.SizeX * tile.Heights.SizeZ;
-        tile.Underside = new Heightmap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Scale = 0.25f, Offset = -100, Samples = Enumerable.Repeat((ushort)360, size).ToArray() };
-        tile.UndersideColors = new ColorMap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Colors = Enumerable.Repeat(0x336633u, size).ToArray() };
+        tile.Underside = Heightmaps.Flat(tile.Heights.SizeX, tile.Heights.SizeZ, -10);
+        tile.UndersideColors = new ColorMap
+        {
+            SizeX = tile.Heights.SizeX,
+            SizeZ = tile.Heights.SizeZ,
+            Colors = Enumerable.Repeat(0x336633u, size).ToArray(),
+        };
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.Empty(ZoneValidation.Check(read));
         Assert.Equal(0x7a5c3eu, read.Pieces[0].UnderColor);
         Assert.Equal(0x739e4du, read.Pieces[0].GroundColor);
@@ -95,11 +227,10 @@ public class ZoneFolderTests
         var zone = Zones.Sample();
         zone.Chunks[0].Placements[0].Color = 0xc04020;
 
-        var read = RoundTrip(zone, folder, out var errors);
+        var read = RoundTripClean(zone, folder);
 
-        Assert.Empty(errors);
         Assert.Equal(0xc04020u, read.Chunks[0].Placements[0].Color);
-        Assert.Contains("color = 0xC04020", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
+        Assert.Contains("color = 0xC04020", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
 
     [Fact]
@@ -107,23 +238,85 @@ public class ZoneFolderTests
     {
         var zone = Zones.Sample();
         var tile = zone.Chunks[1].Tiles[0];
-        tile.UndersideColors = new ColorMap { SizeX = tile.Heights.SizeX, SizeZ = tile.Heights.SizeZ, Colors = new uint[tile.Heights.SizeX * tile.Heights.SizeZ] };
+        tile.UndersideColors = new ColorMap
+        {
+            SizeX = tile.Heights.SizeX,
+            SizeZ = tile.Heights.SizeZ,
+            Colors = new uint[tile.Heights.SizeX * tile.Heights.SizeZ],
+        };
 
         Assert.Contains(ZoneValidation.Check(zone), e => e.Message.Contains("underside colors but no underside"));
     }
 
     [Fact]
-    public void PlacementsKeepTheirNames()
+    public void PrimitivesRoundTrip()
     {
         using var folder = new TempFolder();
         var zone = Zones.Sample();
-        zone.Chunks[0].Placements[0].Name = "spawn.meadow_gate";
+        var placement = zone.Chunks[0].Placements[0];
+        placement.Prop = "";
+        placement.Primitive = new Primitive
+        {
+            Kind = PrimitiveKind.Arch,
+            Sides = 8,
+            Thickness = 0.4f,
+        };
+        zone.Chunks[0].Placements =
+        [
+            placement,
+            new Placement
+            {
+                Position = placement.Position,
+                Primitive = new Primitive
+                {
+                    Kind = PrimitiveKind.Doorway,
+                    OpeningWidth = 1.2f,
+                    OpeningHeight = 2.2f,
+                },
+            },
+        ];
+        placement.Blockout = true;
 
-        var placement = RoundTrip(zone, folder, out var errors).Chunks[0].Placements[0];
+        var read = RoundTripClean(zone, folder).Chunks[0].Placements[0];
 
-        Assert.Empty(errors);
-        Assert.Equal("spawn.meadow_gate", placement.Name);
-        Assert.Contains("name = \"spawn.meadow_gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
+        Assert.Equal("", read.Prop);
+        Assert.True(read.Blockout);
+        Assert.Equivalent(placement.Primitive, read.Primitive, strict: true);
+        var text = File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml"));
+        Assert.Contains("primitive = \"arch\"", text);
+        Assert.Contains("thickness = 0.4", text);
+        Assert.Contains("opening = [1.2, 2.2]", text);
+        Assert.Contains("blockout = true", text);
+    }
+
+    [Fact]
+    public void APlacementHasAPropOrAPrimitive()
+    {
+        using var folder = new TempFolder();
+        folder.Write("zone.toml", "id = \"zone.test\"\n");
+        folder.Write(
+            "chunks/0_0/chunk.toml",
+            "[[placement]]\nprop = \"prop.rock\"\nprimitive = \"box\"\nposition = [1.0, 0.0, 1.0]\n\n[[placement]]\nprop = \"prop.rock\"\nbevel = 0.1\nposition = [2.0, 0.0, 1.0]\n"
+        );
+
+        var errors = new List<ZoneFileError>();
+        ZoneFolder.Read(folder.Root, errors);
+
+        Assert.Contains(errors, e => e.Message.Contains("places one of: a prop, a primitive or a group"));
+        Assert.Contains(errors, e => e.Message.Contains("'bevel' is for primitives"));
+    }
+
+    [Fact]
+    public void PlacementsKeepTheirTags()
+    {
+        using var folder = new TempFolder();
+        var zone = Zones.Sample();
+        zone.Chunks[0].Placements[0].Tag = "east.gate";
+
+        var placement = RoundTripClean(zone, folder).Chunks[0].Placements[0];
+
+        Assert.Equal("east.gate", placement.Tag);
+        Assert.Contains("tag = \"east.gate\"", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
 
     [Fact]
@@ -138,7 +331,7 @@ public class ZoneFolderTests
 
         Assert.Equal(new Vector3(-10.5f, 4, 3.25f), placement.Position);
         Assert.Equal(new Vector3(0, 45, 0), placement.Rotation);
-        Assert.DoesNotContain("-0.0", File.ReadAllText(folder.PathOf("chunks/-1_0.toml")));
+        Assert.DoesNotContain("-0.0", File.ReadAllText(folder.PathOf("chunks/-1_0/chunk.toml")));
     }
 
     [Fact]
@@ -153,11 +346,11 @@ public class ZoneFolderTests
         }
 
         var zone = Zones.Sample();
-        zone.Chunks[1].Spawns[0].Radius = 4;
+        zone.Chunks[1].Spawns[0].Volume.Size = new Vector3(4, 2, 4);
         ZoneFolder.Write(folder.Root, zone);
 
-        Assert.NotEqual(untouched, File.GetLastWriteTimeUtc(folder.PathOf("chunks/0_0.toml")));
-        Assert.Equal(untouched, File.GetLastWriteTimeUtc(folder.PathOf("chunks/-1_0.toml")));
+        Assert.NotEqual(untouched, File.GetLastWriteTimeUtc(folder.PathOf("chunks/0_0/chunk.toml")));
+        Assert.Equal(untouched, File.GetLastWriteTimeUtc(folder.PathOf("chunks/-1_0/chunk.toml")));
         Assert.Equal(untouched, File.GetLastWriteTimeUtc(folder.PathOf("chunks/0_0/main.height")));
         Assert.Equal(untouched, File.GetLastWriteTimeUtc(folder.PathOf("zone.toml")));
     }
@@ -168,17 +361,43 @@ public class ZoneFolderTests
         using var folder = new TempFolder();
         ZoneFolder.Write(folder.Root, Zones.Sample());
         folder.Write("chunks/notes.txt", "kept");
+        folder.Write("chunks/9_9.toml", "kept");
+        folder.Write("chunks/old/0_0.toml", "kept");
+        folder.Write("chunks/0_0/backup/main.height", "kept");
+        folder.Write("chunks/0_0/0_0.toml", "kept");
 
         var zone = Zones.Sample();
         zone.Chunks = [zone.Chunks[1]];
         zone.Chunks[0].Tiles[0].Colors = null;
         ZoneFolder.Write(folder.Root, zone);
 
-        Assert.False(File.Exists(folder.PathOf("chunks/-1_0.toml")));
+        Assert.False(File.Exists(folder.PathOf("chunks/-1_0/chunk.toml")));
         Assert.False(Directory.Exists(folder.PathOf("chunks/-1_0")));
         Assert.False(File.Exists(folder.PathOf("chunks/0_0/main.color")));
         Assert.True(File.Exists(folder.PathOf("chunks/0_0/main.height")));
         Assert.True(File.Exists(folder.PathOf("chunks/notes.txt")));
+        Assert.All(
+            new[] { "chunks/9_9.toml", "chunks/old/0_0.toml", "chunks/0_0/backup/main.height", "chunks/0_0/0_0.toml" },
+            f => Assert.True(File.Exists(folder.PathOf(f)), f)
+        );
+    }
+
+    [Fact]
+    public void OnlyChunkFoldersAreRead()
+    {
+        using var folder = new TempFolder();
+        ZoneFolder.Write(folder.Root, Zones.Sample());
+        folder.Write("chunks/9_9.toml", "not = [toml");
+        folder.Write("chunks/old/notes.txt", "");
+        folder.Write("chunks/1_1/.DS_Store", "");
+        folder.Write("chunks/2_2/main.height", "");
+        folder.Write("chunks/0_0/0_0.toml", "");
+
+        var errors = new List<ZoneFileError>();
+        var zone = ZoneFolder.Read(folder.Root, errors);
+
+        Assert.Equal(["chunks/2_2: This folder has terrain tiles but no chunk.toml."], errors.Select(e => e.ToString()));
+        Assert.Equal(2, zone.Chunks.Length);
     }
 
     [Fact]
@@ -186,39 +405,44 @@ public class ZoneFolderTests
     {
         using var folder = new TempFolder();
         ZoneFolder.Write(folder.Root, Zones.Sample());
-        folder.Write("chunks/0_0.toml",
+        folder.Write(
+            "chunks/0_0/chunk.toml",
             """
             [[tile]]
             piece = "main"
             origin = [0, 0]
 
             [[placement]]
-            asset = "asset.cube"
+            prop = "prop.cube"
             positon = [1, 2, 3]
 
             [[spawn]]
-            id = "spawn.gate"
+            id = "spawn.meadow.gate"
+            volume = "cylinder"
             position = [1, 2]
-            radius = "far"
+            size = [2, 2, 2]
+            radius = 3.0
             facing = "sideways"
-            """);
+            """
+        );
         folder.Write("chunks/0_0/old.height", "");
-        folder.Write("chunks/zero.toml", "");
+        folder.Write("chunks/zero/chunk.toml", "");
 
         var errors = new List<ZoneFileError>();
         ZoneFolder.Read(folder.Root, errors);
 
         Assert.Equal(
             [
-                "chunks/zero.toml: Chunk files are named by their grid position, x_z (such as 0_-1.toml).",
-                "chunks/0_0.toml: placement[0].positon: unknown key.",
-                "chunks/0_0.toml: placement[0].position: is missing.",
-                "chunks/0_0.toml: spawn[0].position: should be 3 numbers.",
-                "chunks/0_0.toml: spawn[0].radius: should be a number.",
-                "chunks/0_0.toml: spawn[0].facing: should be one of: direction, toward_point, random.",
-                "chunks/0_0/old.height: No tile in chunks/0_0.toml uses this file.",
+                "chunks/zero/chunk.toml: Chunk folders are named by their grid position, x_z (such as 0_-1).",
+                "chunks/0_0/chunk.toml: placement[0].positon: unknown key.",
+                "chunks/0_0/chunk.toml: placement[0].position: is missing.",
+                "chunks/0_0/chunk.toml: spawn[0].radius: unknown key.",
+                "chunks/0_0/chunk.toml: spawn[0].position: should be 3 numbers.",
+                "chunks/0_0/chunk.toml: spawn[0].facing: should be one of: direction, toward_point, random.",
+                "chunks/0_0/old.height: No tile in chunks/0_0/chunk.toml uses this file.",
             ],
-            errors.Select(e => e.ToString()).OrderBy(e => e.StartsWith("chunks/zero", StringComparison.Ordinal) ? 0 : 1));
+            errors.Select(e => e.ToString()).OrderBy(e => e.StartsWith("chunks/zero", StringComparison.Ordinal) ? 0 : 1)
+        );
     }
 
     [Fact]
@@ -232,15 +456,118 @@ public class ZoneFolderTests
         var errors = new List<ZoneFileError>();
         ZoneFolder.Read(folder.Root, errors);
 
-        Assert.Equal(
-            ["zone.toml: No zone file: each zone folder needs one."],
-            errors.Select(e => e.ToString()));
+        Assert.Equal(["zone.toml: No zone file: each zone folder needs one."], errors.Select(e => e.ToString()));
 
         ZoneFolder.Write(folder.Root, new Zone { Id = "zone.x" });
-        folder.Write("chunks/0_0.toml", "[[tile]]\npiece = \"main\"\norigin = [0, 0]\n");
+        folder.Write("chunks/0_0/chunk.toml", "[[tile]]\npiece = \"main\"\norigin = [0, 0]\n");
         errors.Clear();
         ZoneFolder.Read(folder.Root, errors);
 
         Assert.Equal(["chunks/0_0/main.height: Missing: the chunk lists a tile for this piece."], errors.Select(e => e.ToString()));
+    }
+
+    [Fact]
+    public void SignsRoundTripReadably()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        sample.Chunks[1].Signs =
+        [
+            new Sign
+            {
+                Position = new Vector3(12, 6, 5),
+                Text = "To the cave\nmind the gap",
+                TextColor = 0xFFEE00,
+                Background = true,
+                BackgroundColor = 0x202030,
+                BackgroundOpacity = 0.75f,
+                ShowDistance = 60,
+                ScreenSized = true,
+                FontSize = 18,
+                Arrow = true,
+            },
+            new Sign
+            {
+                Position = new Vector3(14, 6, 9),
+                Text = "Plate",
+                TextHeight = 0.5f,
+                BackgroundColor = 0x202030,
+                BackgroundOpacity = 0.4f,
+                Arrow = true,
+                FontSize = 20,
+                Off = true,
+            },
+        ];
+        var zone = RoundTripClean(sample, folder);
+
+        Assert.Contains(
+            """
+            [[sign]]
+            position = [12.0, 6.0, 5.0]
+            text = "To the cave\nmind the gap"
+            text_color = 0xFFEE00
+            background = true
+            background_color = 0x202030
+            background_opacity = 0.75
+            show_distance = 60.0
+            screen_sized = true
+            font_size = 18.0
+            arrow = true
+            """.ReplaceLineEndings("\n"),
+            File.ReadAllText(folder.PathOf("chunks/0_0/chunk.toml")).ReplaceLineEndings("\n")
+        );
+        var signs = zone.Chunks[1].Signs;
+        Assert.Equal(
+            ("To the cave\nmind the gap", 0xFFEE00u, 0x202030u, 0.75f, 60f),
+            (signs[0].Text, signs[0].TextColor, signs[0].BackgroundColor, signs[0].BackgroundOpacity, signs[0].ShowDistance)
+        );
+        Assert.Equal((true, true, 18f, true), (signs[0].Background, signs[0].ScreenSized, signs[0].FontSize, signs[0].Arrow));
+        Assert.Equal(
+            ("Plate", 0xFFFFFFu, 45f, false, 0.5f),
+            (signs[1].Text, signs[1].TextColor, signs[1].ShowDistance, signs[1].ScreenSized, signs[1].TextHeight)
+        );
+        Assert.Equal(
+            (false, 0x202030u, 0.4f, true, 20f),
+            (signs[1].Background, signs[1].BackgroundColor, signs[1].BackgroundOpacity, signs[1].Arrow, signs[1].FontSize)
+        );
+        Assert.Equal((false, true), (signs[0].Off, signs[1].Off));
+        Assert.Equal(["To the cave\nmind the gap"], zone.Chunks[1].AllSigns().Select(s => s.Sign.Text));
+        Assert.Contains("text_height = 0.5", File.ReadAllText(folder.PathOf("chunks/0_0/chunk.toml")));
+    }
+
+    [Fact]
+    public void TriggerSignsRoundTripWithTheirTrigger()
+    {
+        using var folder = new TempFolder();
+        var sample = Zones.Sample();
+        var spawn = sample.Chunks.SelectMany(c => c.Spawns).Single();
+        spawn.Volume.Sign = new Sign
+        {
+            Position = new Vector3(1, 3, 0),
+            Text = "Gate",
+            Background = true,
+            BackgroundColor = 0x202030,
+            Arrow = true,
+        };
+        var zone = RoundTripClean(sample, folder);
+
+        Assert.Contains(
+            """
+            [spawn.sign]
+            offset = [1.0, 3.0, 0.0]
+            text = "Gate"
+            """.ReplaceLineEndings("\n"),
+            File.ReadAllText(folder.PathOf("chunks/0_0/chunk.toml")).ReplaceLineEndings("\n")
+        );
+        var chunk = zone.Chunks.Single(c => c.Spawns.Length > 0);
+        var sign = chunk.Spawns[0].Volume.Sign!;
+        Assert.Equal(("Gate", new Vector3(1, 3, 0), true), (sign.Text, sign.Position, sign.Arrow));
+
+        var (point, shown) = chunk.AllSigns().Single();
+        Assert.Same(sign, shown);
+        Assert.True(Vector3.Distance(new Vector3(5, 7, 4), point) < 1e-4f, $"The sign is shown over {point}.");
+
+        sign.Off = true;
+        Assert.Empty(chunk.AllSigns());
     }
 }

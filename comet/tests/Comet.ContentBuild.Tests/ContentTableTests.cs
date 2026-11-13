@@ -14,9 +14,9 @@ public class ContentTableTests
     }
 
     [Fact]
-    public void UnknownKeysFailLoudly()
+    public void UnknownIdsFailLoudly()
     {
-        Assert.Equal("Unknown widget key 'widget.b'.", Assert.Throws<ContentException>(() => Table["widget.b"]).Message);
+        Assert.Equal("Unknown widget id 'widget.b'.", Assert.Throws<ContentException>(() => Table["widget.b"]).Message);
         Assert.Throws<ContentException>(() => Table[5]);
         Assert.False(Table.TryGet("widget.b", out _));
     }

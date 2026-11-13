@@ -8,12 +8,6 @@ using UnityEngine.SceneManagement;
 
 namespace Comet.Unity.Editor
 {
-    /// <summary>
-    /// Ties the zone editor to Unity's own scene workflow: saving a zone's working scene (File › Save, Ctrl+S) saves
-    /// the zone's files, a zone's terrain preview is drawn again when its scene opens or play mode ends, and play mode
-    /// always starts in the game's own scene (the settings' Play Scene), so it plays the zone from content. A spawn
-    /// point that's duplicated or pasted gets a fresh key, and isn't the default.
-    /// </summary>
     [InitializeOnLoad]
     public static class ZoneEditorScenes
     {
@@ -24,7 +18,10 @@ namespace Comet.Unity.Editor
             EditorApplication.playModeStateChanged += state =>
             {
                 // The test runner enters play mode from a scene of its own, which must stay the one that loads.
-                if (state == PlayModeStateChange.ExitingEditMode && SceneManager.GetActiveScene().name.StartsWith("InitTestScene", StringComparison.Ordinal))
+                if (
+                    state == PlayModeStateChange.ExitingEditMode
+                    && SceneManager.GetActiveScene().name.StartsWith("InitTestScene", StringComparison.Ordinal)
+                )
                 {
                     EditorSceneManager.playModeStartScene = null;
                 }
@@ -39,16 +36,25 @@ namespace Comet.Unity.Editor
                 }
             };
 
-            ObjectChangeEvents.changesPublished += FreshSpawnKeys;
+            ObjectChangeEvents.changesPublished += FreshTriggerIds;
 
-            // The asset database isn't ready while scripts load.
-            EditorApplication.delayCall += () => SetPlayScene(CometSettings.Find(quiet: true));
+            // The asset database isn't ready while scripts load. This runs after every script reload, which can lose
+            // the terrain preview.
+            EditorApplication.delayCall += () =>
+            {
+                SetPlayScene(CometSettings.Find(quiet: true));
+                if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    for (var i = 0; i < SceneManager.sceneCount; i++)
+                    {
+                        Redraw(SceneManager.GetSceneAt(i));
+                    }
+                }
+            };
         }
 
-        /// <summary>While true, saving a scene doesn't save its zone (as when a zone is opened and its scene first saved).</summary>
         internal static bool Quiet { get; set; }
 
-        /// <summary>Makes <paramref name="settings"/>' Play Scene the one play mode starts in.</summary>
         public static void SetPlayScene(CometSettings? settings)
         {
             if (settings != null)
@@ -57,8 +63,7 @@ namespace Comet.Unity.Editor
             }
         }
 
-        // A new spawn point (duplicated or pasted) whose key another already has gets the first free one: key_2, key_3…
-        private static void FreshSpawnKeys(ref ObjectChangeEventStream stream)
+        private static void FreshTriggerIds(ref ObjectChangeEventStream stream)
         {
             for (var i = 0; i < stream.length; i++)
             {
@@ -73,38 +78,35 @@ namespace Comet.Unity.Editor
                     continue;
                 }
 
-                foreach (var spawn in root.GetComponentsInChildren<ZoneSpawn>())
+                foreach (var spawn in root.GetComponentsInChildren<ZoneTrigger>(true))
                 {
-                    var zone = spawn.GetComponentInParent<ZoneEditing>();
+                    var zone = spawn.GetComponentInParent<ZoneEditing>(true);
                     if (zone == null)
                     {
                         continue;
                     }
 
-                    var others = zone.GetComponentsInChildren<ZoneSpawn>().Where(s => s != spawn).Select(s => s.key).ToHashSet();
-                    if (!others.Contains(spawn.key))
+                    var others = zone.GetComponentsInChildren<ZoneTrigger>(true).Where(s => s != spawn).Select(s => s.id).ToHashSet();
+                    if (!others.Contains(spawn.id))
                     {
                         continue;
                     }
 
-                    var stem = Regex.Replace(spawn.key, "_[0-9]+$", "");
+                    var stem = Regex.Replace(spawn.id, "_[0-9]+$", "");
                     var n = 2;
                     while (others.Contains($"{stem}_{n}"))
                     {
                         n++;
                     }
 
-                    Undo.RecordObject(spawn, "Fresh spawn key");
-                    Undo.RecordObject(spawn.gameObject, "Fresh spawn key");
-                    spawn.key = $"{stem}_{n}";
-                    spawn.isDefault = false; // the original stays the default
-                    spawn.gameObject.name = spawn.key;
-                    foreach (var marker in spawn.GetComponentsInChildren<ZonePlacement>())
+                    Undo.RecordObject(spawn, "Fresh id");
+                    Undo.RecordObject(spawn.gameObject, "Fresh id");
+                    spawn.id = $"{stem}_{n}";
+                    spawn.gameObject.name = spawn.id;
+                    if (spawn.Pad is { } pad)
                     {
-                        Undo.RecordObject(marker, "Fresh spawn key");
-                        Undo.RecordObject(marker.gameObject, "Fresh spawn key");
-                        marker.placementName = spawn.key;
-                        marker.gameObject.name = $"{spawn.key} marker";
+                        Undo.RecordObject(pad.gameObject, "Fresh id");
+                        pad.gameObject.name = $"{spawn.id} pad";
                     }
                 }
             }
@@ -140,7 +142,7 @@ namespace Comet.Unity.Editor
 
             foreach (var root in scene.GetRootGameObjects())
             {
-                foreach (var editing in root.GetComponentsInChildren<ZoneEditing>())
+                foreach (var editing in root.GetComponentsInChildren<ZoneEditing>(true))
                 {
                     yield return editing;
                 }

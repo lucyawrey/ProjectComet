@@ -4,43 +4,66 @@ id = "settings.game"
 # checks movement against these. In meters, seconds and degrees.
 [movement]
 gravity = 25.0
-body_radius = 0.4 # the collision body every shape shares: a square footprint this far from the center
+body_radius = 0.4 # the collision body every shape shares: an upright cylinder this wide from its center
 body_height = 1.0
-step_height = 0.35 # the highest ledge a player walks up without jumping
+step_height = 0.3 # the highest ledge a player walks up without jumping
+mantle_height = 0.3 # the most a player in the air rides up onto a ledge when moving into its side
+max_slope = 63.5 # the steepest ground a player stands on, in degrees; steeper terrain and meshes are walls
 ground_snap = 0.4 # how far the ground may drop under the feet while staying grounded (walking downhill)
 ground_acceleration = 40.0
 air_acceleration = 15.0
 turn_speed = 900.0 # how fast a shape turns to face the way it moves, in degrees per second
 
 [world]
-default_zone = "zone.hub" # the zone a server plays unless it's told another (the server's ShapeLand:Zone)
-kill_height = -30.0 # falling below this is out of the world: back to the player's spawn
+kill_height = -30.0 # falling below this is out of the world: back to the player's spawn (a zone.toml can set its own)
 ground_color = 0x739E4D # default unpainted terrain color
 under_color = 0x7A5C3E # default unpainted terrain underside color
-placed_color = 0x9E8C7A # default placed object color, for assets without their own
+placed_color = 0x9E8C7A # default placed object color, for placements without their own
 
+# Spawn points, teleporters and triggers each keep their own stand time and pad in the zone files; these are the
+# editor's defaults for new ones.
 [spawns]
-claim_seconds = 2.0 # standing in another spawn point's radius this long makes it the player's
-marker_asset = "asset.cylinder" # drawn flattened as each spawn point's marker
-marker_height = 0.4 # how tall a new marker is, sunk halfway into the ground; move it in the editor after
-unset_color = 0xEDE8DA # a marker that isn't the player's spawn: a pale cream used nowhere else
+stand_seconds = 2.0 # standing in another spawn point this long makes it the player's
+pad = "cylinder" # the primitive drawn flattened under a new spawn point
+pad_height = 0.4 # how tall a new pad is, sunk halfway into the ground; move it in the editor after
+unset_color = 0xEDE8DA # a pad that isn't the player's spawn: a pale cream used nowhere else
+volume_height = 1.0 # how tall a new spawn point's volume is above its pad; players in it can claim it
 
-# The colors players pick from. Placeholders: the final sets are the project lead's.
+[teleporters]
+stand_seconds = 1.0 # standing in a teleporter this long sends the player to its target
+pad = "box" # the primitive drawn flattened under a new teleporter
+pad_height = 0.4
+pad_color = 0xB39DDB # a new pad's color: a pale violet (a placeholder)
+volume_height = 1.0 # how tall a new teleporter's volume is above its pad
+charge_color = 0x7E57C2 # the color a new pad turns toward while a player stands in it, a deeper violet (a placeholder); each teleporter can set its own
+
+[triggers]
+stand_seconds = 0.0 # 0 fires as soon as a player steps in, like a pressure plate; new triggers have no pad
+volume_height = 2.0 # how tall a new trigger's volume is
+charge_color = 0xFFFFFF # the color a new trigger's pad (added in its Inspector) turns toward while a player stands in it; each trigger can set its own
+
+# How finely round primitives (cylinders, cones, spheres, arches) are cut, so large and small ones look equally
+# faceted. Tune it in the editor with Comet › Zones › Polygon Budget, which previews it and saves it here.
+[primitives]
+facet_length = 0.5 # about how long each side is, in meters
+min_sides = 6 # the fewest sides, however small
+max_sides = 48 # the most sides, however large
+
+# The colors players pick from, for both body and eyes, in the order they're shown: key = 0xRRGGBB. Each key gets a
+# permanent number (ids.toml, type color) that saved characters keep, so rename keys with care. Placeholders: the
+# final set and keys are the project lead's.
 [colors]
-body = [
-  0xE53935, # red
-  0x1E88E5, # blue
-  0xFDD835, # yellow
-  0x43A047, # green
-  0xFB8C00, # orange
-  0x8E24AA, # purple
-  0x00ACC1, # cyan
-  0xEC407A, # pink
-]
-eyes = [
-  0x16161C, # ink
-  0xFFFFFF, # white
-  0x5D4037, # brown
-  0x1565C0, # deep blue
-  0x2E7D32, # deep green
-]
+red = 0xFF3935
+cff0068 = 0xFF0068
+pink = 0xEC407A
+purple = 0x8E24AA
+blue = 0x1E88E5
+deep_blue = 0x1565C0
+cyan = 0x00ACC1
+green = 0x43A047
+deep_green = 0x2E7D32
+orange = 0xFB8C00
+yellow = 0xFDD835
+brown = 0x5D4037
+ink = 0x16161C
+white = 0xFFFFFF

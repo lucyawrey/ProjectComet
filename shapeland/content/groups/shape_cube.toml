@@ -1,0 +1,19 @@
+id = "group.shape_cube"
+
+[[part]]
+primitive = "box"
+role = "body"
+position = [0.0, 0.0, 0.0]
+scale = [0.7, 0.7, 0.7]
+
+[[part]]
+primitive = "box"
+role = "eyes"
+position = [-0.12, 0.41, 0.37]
+scale = [0.1, 0.14, 0.06]
+
+[[part]]
+primitive = "box"
+role = "eyes"
+position = [0.12, 0.41, 0.37]
+scale = [0.1, 0.14, 0.06]
