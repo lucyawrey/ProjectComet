@@ -1,6 +1,8 @@
 # ShapeLand
 
-Comet's demo and reference game. Requirements, setup and the scripts are in the [repository README](../README.md).
+ShapeLand is the referance game for Comet. It is a small MMO about being a shape and hanging out with friends.
+
+Requirements, setup and the scripts are in the [repository README](../README.md).
 
 | Folder | What it holds |
 | --- | --- |

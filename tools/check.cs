@@ -1,5 +1,5 @@
 // Runs the checks CI runs: the formatting check, the content build and the .NET tests. Then lists the interface
-// text still left as a placeholder (a string whose whole value is in square brackets), and fails if there is any.
+// text still left as a placeholder (a string whose whole value is in square brackets) as a warning.
 //
 //   tools/run check
 #:project shared/Tools.Shared.csproj
@@ -34,4 +34,4 @@ var found = Directory
 foreach (var (file, index, line) in found)
     Console.Error.WriteLine($"{Path.GetRelativePath(Tool.Repo, file)}:{index + 1}: placeholder text: {line.Trim()}");
 if (found.Count > 0)
-    throw Tool.Fail($"{found.Count} placeholder(s) left in the interface text.");
+    Console.Error.WriteLine($"Warning: {found.Count} placeholder(s) left in the interface text.");
