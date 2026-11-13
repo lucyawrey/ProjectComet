@@ -89,9 +89,10 @@ namespace Comet.Simulation
             return null;
         }
 
-        public static Vector3 Center(SpawnPoint spawn, CollisionWorld world)
+        public static Vector3 Center(SpawnPoint spawn, CollisionWorld world) => Center(spawn.Volume, world);
+
+        public static Vector3 Center(TriggerVolume volume, CollisionWorld world)
         {
-            var volume = spawn.Volume;
             var top = volume.Position.Y + volume.Size.Y;
             return world.TryGetGround(new Vector3(volume.Position.X, top, volume.Position.Z), 0, top, out var ground)
                 ? new Vector3(volume.Position.X, ground, volume.Position.Z)

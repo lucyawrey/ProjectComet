@@ -61,7 +61,7 @@ Every label and message players see, by key (`[join]` then `name_taken` is `join
 
 ### Bots and the content build
 
-`src/ShapeLand.Bots` runs headless players (honest wanderers, optional cheaters) for load and network runs. They sign in as guests on the Login server, or with `--dev` join the editor's server without accounts by name (`--server` its address), as the editor starts them with Use Accounts off; a person and a bot can't share a name there. `src/ShapeLand.ContentBuild` compiles `content/` into `artifacts/content/shapeland/content.bin`.
+`src/ShapeLand.Bots` runs headless players (honest wanderers, optional cheaters) for load and network runs. A wanderer (`Wanderer`) walks routes over a per-zone grid of walkable ground (`WalkGrid`, built from the collision world, ignoring flips and stacked floors) to random places and, now and then, to a teleporter, so it roams the whole zone and moves between zones. They sign in as guests on the Login server, or with `--dev` join the editor's server without accounts by name (`--server` its address), as the editor starts them with Use Accounts off; a person and a bot can't share a name there. `src/ShapeLand.ContentBuild` compiles `content/` into `artifacts/content/shapeland/content.bin`.
 
 ## Building the level
 
