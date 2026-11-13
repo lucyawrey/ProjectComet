@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using Comet.Client;
+using Comet.Content;
 using Comet.Protocol.Framing;
 using Comet.Protocol.Messages;
 using Comet.Simulation;
@@ -30,6 +31,7 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private static readonly string[] ChatLines = ["hello!", "nice island", "anyone up for a race?", "look, I can jump", "wheee", "brb"];
 
     private readonly Random _random = new(seed);
+    private readonly Random _routeRandom = new(seed + 1);
     private readonly HashSet<uint> _seen = [];
     private readonly HashSet<uint> _cheatersInView = [];
     private readonly OwnMovement _movement = new(StepsPerSecond);
@@ -40,11 +42,11 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private CollisionWorld _world = worlds.For(content.Zones.All[0]).WithOwnFlips();
     private MotorState _motor;
     private Shape _shape = null!;
-    private Vector2 _target;
+    private Task<Wanderer>? _wandering;
+    private Wanderer? _wanderer;
     private int _step;
     private double _nextJump;
     private double _nextChat;
-    private double _targetSince;
     private double _joinedAt;
     private double _lastNow;
     private bool _recording;
@@ -53,6 +55,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     private double _lastRecord;
 
     public string Name { get; private set; } = name;
+
+    private bool Calm => settings is { SpeedCheat: <= 1, JumpCheat: <= 1 };
 
     public string? LoginFailure { get; private set; }
 
@@ -208,18 +212,25 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
     {
         _step++;
         var elapsed = _step / (double)StepsPerSecond;
-        var position = new Vector2(_motor.Position.X, _motor.Position.Z);
-        if (Vector2.Distance(position, _target) < 1.5f || now - _targetSince > 30)
+        if (_wandering is { IsCompleted: true } built)
         {
-            _target = RandomPoint();
-            _targetSince = now;
+            if (built.IsFaulted)
+            {
+                Console.Error.WriteLine($"{Name} can't wander: {built.Exception!.GetBaseException().Message}");
+            }
+            else
+            {
+                _wanderer = built.Result;
+            }
+
+            _wandering = null;
         }
 
-        var move = Vector2.Normalize(_target - position);
-        var jump = _motor.Grounded && elapsed >= _nextJump;
+        var move = _wanderer?.Steer(now, _motor.Position, _shape.MaxSpeed * settings.SpeedCheat / StepsPerSecond) ?? Vector2.Zero;
+        var jump = _motor.Grounded && elapsed >= _nextJump && _wanderer?.CanJump(_motor.Position, move) == true;
         if (jump)
         {
-            _nextJump = elapsed + 3 + _random.NextDouble() * 5;
+            _nextJump = elapsed + (Calm ? 10 + _random.NextDouble() * 15 : 3 + _random.NextDouble() * 5);
         }
 
         if (
@@ -248,6 +259,8 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
         }
     }
 
+    private async Task<Wanderer> WanderIn(Zone zone) => new(await worlds.GridFor(zone), worlds.TriggersFor(zone), _routeRandom, Calm);
+
     private void OnGameMessage(ushort messageId, ReadOnlyMemory<byte> payload, uint tick)
     {
         var options = ShapeLandProtocol.Options;
@@ -273,7 +286,6 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                         Facing = spawn.Facing,
                     };
                     _fixed.Reset();
-                    _target = RandomPoint();
                     _nextJump = 2 + _random.NextDouble() * 4;
                     _nextChat = settings.ChatEverySeconds * _random.NextDouble();
                 }
@@ -291,7 +303,10 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 break;
             case ShapeLandMessageIds.ZoneEntered:
                 var entered = FrameReader.Decode<ZoneEntered>(payload, options);
-                _world = worlds.For(content.Zones[entered.Zone]).WithOwnFlips();
+                var zone = content.Zones[entered.Zone];
+                _world = worlds.For(zone).WithOwnFlips();
+                _wanderer = null;
+                _wandering = WanderIn(zone);
                 _movement.PassThrough.Clear();
                 _session.Entities.GroundHeight = _world.GroundHeight(content.Movement);
                 foreach (var tag in entered.Flipped ?? [])
@@ -405,13 +420,5 @@ public sealed class Bot(string name, int seed, BotSettings settings, ShapeLandCo
                 delay.Target / delay.TickRate * 1000
             )
         );
-    }
-
-    private Vector2 RandomPoint()
-    {
-        var angle = _random.NextDouble() * Math.Tau;
-        const float wanderRadius = 18;
-        var distance = wanderRadius * Math.Sqrt(_random.NextDouble());
-        return new Vector2((float)(Math.Cos(angle) * distance), (float)(Math.Sin(angle) * distance));
     }
 }
