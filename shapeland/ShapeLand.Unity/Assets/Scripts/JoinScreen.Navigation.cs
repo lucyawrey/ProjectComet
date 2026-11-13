@@ -112,9 +112,13 @@ namespace ShapeLand.Client
                     PageBack();
                 }
             }
-            else if (actions.Submit.WasPressedThisFrame() && (!typing || actions.Submit.activeControl?.device is Gamepad))
+            else if (actions.Submit.WasPressedThisFrame())
             {
-                SubmitRow(typing);
+                var gamepad = actions.Submit.activeControl?.device is Gamepad;
+                if (!typing || gamepad)
+                {
+                    SubmitRow(typing, gamepad);
+                }
             }
         }
 
@@ -261,7 +265,7 @@ namespace ShapeLand.Client
             }
         }
 
-        private void SubmitRow(bool typing)
+        private void SubmitRow(bool typing, bool gamepad)
         {
             var row = _rows[_row];
             if (typing)
@@ -292,7 +296,7 @@ namespace ShapeLand.Client
             {
                 field.Focus();
             }
-            else
+            else if (!gamepad)
             {
                 Submit();
             }
